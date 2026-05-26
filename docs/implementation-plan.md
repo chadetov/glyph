@@ -1,0 +1,908 @@
+# Glyph v1.0 — Implementation Plan
+
+A concrete sequence of work from the current state (post-brainstorm, 2026-05-26) to v1.0 launch. **Tasks and deliverables, not goals.** Estimates assume one focused engineer; doubles if context-switching with other projects.
+
+## What this is
+
+- A weekly-cadence work plan, sequenced by dependency.
+- Per-phase acceptance criteria (binary "done" tests).
+- A mapping from each D-decision (D1–D27) to the phase that ships it.
+- A list of implementation-time decisions deferred to coding sessions.
+
+## What this is not
+
+- The "why" — that lives in `docs/manifesto.md`, `docs/language/spec.md`, and `docs/open-questions.md` (Resolved sections). Read those first.
+- A redo of the per-step roadmap docs (`docs/roadmap/`). Those have the per-step scope and constraints. This plan sequences them.
+- A risk register or staffing plan. Solo project; risks are flagged inline where they appear.
+
+## Timeline summary
+
+| Phase | Weeks | What |
+|---|---|---|
+| 0 | week 0 | Prerequisites — validator rewrite, Rust workspace, scaffold |
+| 1 | 1–8 | Transpiler + typechecker substep 5a + tests + emission |
+| 2 | 9–11 | Narrowing & flow analysis (substep 5c) |
+| 3 | 12–17 | Dogfooding (fridge shopping list) |
+| 4 | 18–23 | Re-lock spec + LSP |
+| 5 | 24–25 | Packaging, formatter polish, `glyph publish` |
+| 6 | 26–27 | Installer (npm) + playground |
+| 7 | 28–31 | Docs + book outline |
+| 8 | 32–39 | Killer demo + benchmarks |
+| 9 | 40+ | Launch + first 100 users |
+
+**Total to launch: ~40 weeks of focused work (~10 months).** Calendar 15–24 months depending on context-switching. Matches the brainstorm's revised "9–13 months focused, 15–24 months calendar" estimate.
+
+---
+
+## Phase 0 — Prerequisites (week 0)
+
+Five blocking items before week 1 can start.
+
+### P1. Rewrite the validator example to remove `infer_shape<Shape>` (Q1)
+
+The current validator example in `archive/GLYPH.md §3.1` uses `Schema<infer_shape<Shape>>` — mapped-type territory. **Q1 resolved → defer mapped types to v1.1.** Rewrite with an explicit output type parameter.
+
+**Deliverable:** `examples/01_validator.glyph` at the repo root (NOT in archive/), with the validator using `fn object_schema<Out>(fields: ...) -> Schema<Out>` and an explicit `Out` from each call site.
+
+**Risk:** the rewrite might force ergonomic compromises that surface other open questions. If the rewritten version feels significantly worse, that's data — escalate before continuing.
+
+### P2. Bootstrap the Rust workspace
+
+```
+glyph-compiler/
+├── Cargo.toml
+├── crates/
+│   ├── glyph-lexer/        # hand-written lexer
+│   ├── glyph-parser/       # Pratt parser
+│   ├── glyph-ast/          # AST enums + Span
+│   ├── glyph-resolver/     # name resolution + module graph (salsa-backed)
+│   ├── glyph-typechecker/  # types, exhaustiveness, owned tracking (salsa-backed)
+│   ├── glyph-emit/         # AST-to-TS visitor (dumb, no IR)
+│   ├── glyph-runtime/      # @example/@doc @run sandboxed interpreter
+│   └── glyph-cli/          # `glyph build/run/fmt/regen/publish`
+└── ...
+```
+
+**Dependencies (versions to lock):**
+- `salsa-2022` for incremental queries (Q5 hybrid)
+- `insta` for golden snapshot tests
+- `ariadne` or `miette` for error rendering (Elm-quality bar, Q6)
+- `proptest` for property-based testing (week 8)
+- `tower-lsp` (phase 4)
+
+### P3. Create `examples/` at the repo root
+
+Four files transferred from `archive/GLYPH.md` to standalone `.glyph` files, with P1's rewrite applied to #1:
+
+- `examples/01_validator.glyph`
+- `examples/02_async_errors.glyph`
+- `examples/03_react_component.glyph`
+- `examples/04_cli_tool.glyph`
+
+### P4. Create the `benchmarks/` scaffold (Q10)
+
+```
+benchmarks/
+├── README.md           # what's measured, how to run
+├── glyph/              # Glyph source
+├── typescript/         # equivalent TS
+├── python/             # equivalent Python
+├── rust/               # equivalent Rust
+├── measure.sh          # token count + line count + diff size per fn
+└── results/            # checked-in measurements per commit
+```
+
+Start with 3 functions: a `parseUser` (validator-like), a `loadFeed` (async with Result), and a small list rendering (JSX directive). Grow to 5–10 by end of week 8.
+
+### P5. Pick libraries
+
+| Concern | Choice | Why |
+|---|---|---|
+| Parser strategy | Hand-written Pratt | `archive/glyph-transpiler-plan.md` decision; best error recovery |
+| Salsa version | `salsa = "0.26"` | The "salsa 2022" rewrite reclaimed the canonical `salsa` crate name on crates.io. v0.26+ is the rewrite; v0.16 was the legacy generation. |
+| Error rendering | `ariadne = "0.4"` | Cleaner spans than `miette`; closer to Elm aesthetic |
+| Property testing | `proptest = "1"` | Industry default for Rust |
+| LSP framework | `tower-lsp = "0.20"` | Endorsed in `archive/glyph-lsp-discussion.md` |
+| Code generation | None (dumb visitor) | Q5 hybrid: visitor for emit, salsa for typecheck |
+| Rust toolchain | `1.95` stable | Pinned in `glyph-compiler/rust-toolchain.toml`. Bumped from initial 1.75 to match salsa 0.26's MSRV and the installed toolchain. |
+
+### Phase 0 acceptance
+
+- [ ] `examples/01_validator.glyph` rewritten without `infer_shape`
+- [ ] `glyph-compiler/` Rust workspace builds (empty crates compile)
+- [ ] `benchmarks/` scaffold exists with 3 functions in 4 languages
+- [ ] All library versions pinned in `Cargo.toml`
+
+---
+
+## Phase 1 — Transpiler + typechecker core (weeks 1–8)
+
+The heart of v1.0. Step 4 + substep 5a + the compile-time-execution machinery for D23/D26.
+
+### Week 1: Lexer, Pratt parser, AST, golden tests
+
+**Spec decisions implemented this week:**
+- D1 (significant newlines outside brackets) — external scanner-equivalent in the lexer
+- D12 + D22 (one string syntax with template literal interpolation)
+- D13 (numeric literals with underscore separators)
+- D14 (`//` comments only)
+- D17 (trailing commas everywhere)
+- D7 (types vs values context-disambiguated at `<`)
+- D11 (spread in arrays and objects)
+- D18 (precedence table from `archive/GLYPH.md §2`)
+- D21 (`for x in iter` and `loop { }`)
+- D27 (`@<name> <args>` annotation form)
+
+**Tasks:**
+1. Lexer (~300 LoC). Tokens for keywords, operators, identifiers, numeric literals, string literals (including `${...}` interpolation per D22), comments, newlines, brackets.
+2. Pratt parser. Operator table derived directly from `archive/GLYPH.md §2`. Error recovery via "skip to next statement boundary."
+3. AST enums: `Expr`, `Stmt`, `TypeExpr`, `Pattern`, `Decl`, `Annotation`. Every node carries a `Span`. Use `Arc<str>` for identifiers (no interning for v0).
+4. `insta` snapshot tests for all 4 example files plus 5–10 micro-cases (template literal, owned binding, annotation block, loop forms).
+
+**Acceptance:** All 4 example files parse to AST with snapshots checked into git. Snapshot diff on parser change is exact and minimal.
+
+### Week 2: Name resolution, module graph, basic types (salsa-backed)
+
+**Spec decisions implemented this week:**
+- D15 (three import forms; no barrel files, no re-exports, no relative imports)
+- D19 (`component` is a top-level form)
+- D20 (`const` module-level, `let` function-level)
+- D4 (one `fn` form, name optional)
+
+**Tasks:**
+1. **Salsa-2022 setup** (Q5 hybrid). Define the query database: source file → tokens → AST → resolved module → typed module. Inputs are tracked at file granularity; intermediate queries are memoized.
+2. Module graph builder. Walk import statements; reject barrel files (a module that only re-exports), reject relative imports.
+3. Type representation enum: `Primitive`, `Record`, `Array`, `Function`, `SumType`, `GenericParam`, `Unknown`. **No mapped types** (Q1 deferred).
+4. Name resolution: every identifier resolves to a definition site or fails. Cross-module resolution via the module graph.
+5. **No inference yet.** Function signatures and `let` bindings at function boundaries require annotations. Local `let` inference inside a function body via tiny unification.
+6. Prelude module: `Result<T, E>`, `Option<T>`, `Ok`, `Err`, `Some`, `None`, `par` helpers. Hand-written, lives in a `glyph-prelude` crate.
+
+**Acceptance:** Every example file resolves all names; every expression node has a type (some `Unknown` is fine).
+
+### Week 3: ADTs, match exhaustiveness, `?` propagation, owned tracking
+
+**Spec decisions implemented this week:**
+- D2 (match arm commas)
+- D3 (match is the only conditional)
+- D8 (tagged union punctuation)
+- D9 (`else` arm vs `_` position wildcard)
+- D5 (`mut` syntactic only — grammar restriction enforced)
+- D16 (`void` type and value)
+- D25 (narrow `owned` modifier for resource handles)
+- D8 partial (runtime descriptors for ADTs)
+
+**Tasks:**
+1. **Maranget exhaustiveness checker** (~400 LoC, from Maranget 2007). On every `match` expression, verify all variants and patterns are covered. Tagged unions are implicitly sealed (no `_` catch-all reduces accidental fall-through).
+2. **`?` operator typing rule.** `expr?` requires `expr: Result<T, E>` and the enclosing function returns `Result<_, E>` with `E` matching exactly. No `From` conversion in v1 (the brainstorm's Q5 plan).
+3. **Runtime descriptors (Q8 resolved).** Every `type` and `record` declaration emits a runtime descriptor: field names, field types, parse function. The descriptor is what makes `is TypeName` checks work at runtime.
+4. **D25 owned tracking.** Single-consumption analysis across paths. A new `OwnedAnalysis` salsa query: for each `let owned` binding, compute the set of paths through the function and verify each path consumes the binding exactly once. Forgetting, double-consuming, or returning without consuming = compile error with span pointing to the relevant line.
+5. **`resource` marker** (TBD between keyword and `@resource` annotation; pick during this week). Types declared `resource type X { ... }` can have `owned` bindings. Stdlib's `FileHandle`, `S3Upload`, `DbConnection`, `Mutex` are all `resource`.
+
+**Acceptance:** `examples/01_validator.glyph` and `examples/02_async_errors.glyph` typecheck end-to-end. Adding a variant to a sum type produces a compile error at every match site that doesn't update.
+
+### Week 4: TS emission, JSX directive lowering, async
+
+**Spec decisions implemented this week:**
+- D6 (JSX as sub-grammar; directives are regular elements with semantic-pass handling)
+
+**Tasks:**
+1. **AST-to-TS visitor** (Q5 hybrid: this is the dumb-visitor part, no IR). Mapping table per `archive/glyph-transpiler-plan.md §4`:
+   - `fn name(x: T) -> U` → `function name(x: T): U`
+   - `record User { ... }` → `interface User { ... }` + `const User = { parse(input: unknown) { ... } }`
+   - ADTs → discriminated unions with `tag` field
+   - `match` → `switch` on tag for tagged, `if`-chain for value matches
+   - `result?` → inlined unwrapping pattern (ugly emitted TS is fine; humans read Glyph)
+   - Template literals (D22) → TS template literals directly (`` `hello ${name}` ``)
+   - Loop (D21) → TS `for` and `while(true)` respectively
+2. **JSX directive lowering** as AST rewrite *before* emission. Each lowering pass produces a new AST that emission then visits as ordinary code:
+   - `<if cond={x}>A</if><else>B</else>` → ternary
+   - `<for x in={xs}>...</for>` → `xs.map(x => ...)`
+   - `<match value={v}>...</match>` → switch-returning IIFE
+   - `<case Variant({ field })>` → pattern binding via destructure in the case scope
+3. **Async** → `async`/`await` directly. `par.all` and `par.all_ok` are stdlib functions (Q18 resolved).
+4. **Owned consumption** at emission: `handle.close()` (a consume) emits as-is; the typechecker has already verified the consume happened. No runtime owned-tracking is needed because the analysis is purely static.
+
+**Acceptance:** All 4 examples emit TS. `tsc --strict --noEmit` passes on the output.
+
+### Week 5: Formatter, CLI, runtime prelude
+
+**Spec decisions implemented this week:**
+- D10 (no object literal shorthand)
+
+**Tasks:**
+1. **Formatter** (`glyph fmt`). Recursive AST walk printing to a string. Rule: one element per line if more than two elements in a literal/list/argument. No line-length-based reflow. ~600 LoC.
+2. **CLI** (`glyph` binary):
+   - `glyph build src/ --out dist/` — walk module graph, typecheck whole program, emit TS files into `dist/`, shell out to `tsc` with a generated `tsconfig.json`. **Subprocess `tsc`, not embedded.**
+   - `glyph run examples/01_validator.glyph` — build then run via node.
+   - `glyph fmt` — invoked manually and by LSP format-on-save (phase 4).
+   - `glyph regen <fn>` (Q40 resolved) — reads the `@generate by:` annotation on a function, invokes the configured generator with `@example`/`@property`/`@budget` context, replaces the body, runs the `@example` tests, commits or rolls back.
+   - `glyph --explain E0042` — opens long-form error documentation. Top 20 errors get a paragraph + code-fix example (week 7).
+3. **Runtime prelude** (`glyph-prelude` crate). Hand-written `.ts` shipped with the compiler. `Result`, `Option`, `Ok`, `Err`, `Some`, `None`, `par.all`, `par.all_ok`, the issue type for record parsers. **Under 200 lines.** Every emitted file imports from it via a generated top-of-file import. Resist inlining per-file — one module, full-path import.
+4. **Stdlib bootstrap (Q3):** ship `result`, `option`, `array`, `string`, `io`, `json`, `fs`, `time` as Glyph source files compiled at install time. Everything else (`http`, `process`, `crypto`, React bindings) is v1.1.
+
+**Acceptance:** `glyph run examples/04_cli_tool.glyph add "buy milk"` works end-to-end through tsc → node.
+
+### Week 6: Compile-time test execution (D23 @example + D26 @doc @run)
+
+**Spec decisions implemented this week:**
+- D23 (`@example expr == expr` inline tests)
+- D26 (`@doc """ ... @run ... """` executable documentation)
+
+**Tasks:**
+1. **Sandboxed interpreter** for the Glyph subset allowed inside `@example` and `@doc @run` blocks. No filesystem access, no network, no clock — unless the test capability is granted explicitly (deferred to v1.1 capabilities, Q17). Budget-bounded per assertion (timeout, memory).
+2. **`@example expr == expr`** parsing and execution. Multiple `@example` lines per function are allowed. Each `@example` runs as part of `glyph build`. A failed equality fails the build.
+3. **`@doc """ ... ```glyph @run ... ``` """`** parsing. Markdown body with fenced `glyph @run` blocks. The compiler extracts each `@run` block, compiles, executes in the sandbox. Failed `assert` inside fails the build.
+4. **Property tests as stdlib** (Q11 resolved → Option A). `test.property(predicate, generator)` is a stdlib function. Lives in `stdlib/test/property.glyph`. Uses Glyph's own `Stream<T>` for generators.
+
+**Acceptance:** Every `@example` in the examples passes on `glyph build`. `@doc @run` blocks in stdlib functions (start with 2–3) run on every build.
+
+### Week 7: Error messages (Elm-quality bar, Q6)
+
+**Concrete bar:** when the compiler rejects code, the message must tell the agent (or human) exactly what to change. Format:
+
+```
+error[E0042]: type mismatch in function argument
+   ├─ examples/01_validator.glyph:42:15
+   │
+42 │   fetch_user(user_id_string)
+   │              ^^^^^^^^^^^^^^^^ expected UserId, got String
+   │
+help: wrap with the UserId constructor:
+   │   fetch_user(UserId(user_id_string))
+   │
+   = note: UserId is a nominal newtype over String; see docs/language/spec.md D7
+```
+
+**Tasks:**
+1. **Audit every error path** in the compiler. Every rejection produces a structured `Diagnostic { code, span, primary_label, secondary_labels, help, note }`.
+2. **Source rendering via `ariadne`.** Multi-line, syntax-highlighted, with span underlines.
+3. **`--explain E0042`** documentation for the top 20 error codes. Each gets one paragraph + a code-fix example. Authored this week; ~12 hours.
+4. **Error code allocation strategy.** `E0001-E0099` reserved for parser, `E0100-E0199` for resolver, `E0200-E0299` for typechecker, etc. Document in `docs/error-codes.md` (to be created).
+
+**Acceptance:** A team review of 20 random error messages confirms they meet the Elm-quality bar. Subjective; this is the gate.
+
+### Week 8: Hardening, property tests, CI, benchmarks track
+
+**Tasks:**
+1. **The 4 examples + 15 negative examples as the CI suite.** Negative examples test "this code must fail with this specific error code." Add as `tests/negative/*.glyph` with sibling `*.expected_error` files.
+2. **`proptest` on parser + exhaustiveness checker** (~4 days budgeted in `archive/glyph-transpiler-plan.md`). Property-based fuzzing on the parser (it accepts only valid syntax, rejects invalid with proper diagnostics) and on the exhaustiveness checker (it accepts only exhaustive matches, rejects non-exhaustive with the missing-variant span).
+3. **Benchmarks populated** (Q10). 5–10 functions measured: `parseUser`, `loadFeed`, list rendering, `slugify`, `groupBy`. Token count, line count, diff size per function checked into `benchmarks/results/`.
+4. **CI configuration.** GitHub Actions workflow that runs: `cargo test`, `glyph build examples/`, the negative-test suite, the `@example` and `@doc @run` execution pass, the `proptest` suite, and updates the benchmark results.
+
+**Phase 1 acceptance:**
+- [ ] All 4 examples + the corpus grown during P0 parse, typecheck, emit TS, and run via `glyph run`.
+- [ ] `tsc --strict --noEmit` passes on all emitted TS.
+- [ ] 15 negative examples each fail with the expected error code.
+- [ ] `@example` tests run on every `glyph build`; failure fails the build.
+- [ ] `@doc @run` blocks in stdlib run on every build.
+- [ ] Benchmark results checked in.
+- [ ] CI is green.
+
+---
+
+## Phase 2 — Narrowing & flow analysis (weeks 9–11)
+
+Substep 5c from `docs/roadmap/05-typechecker.md`. The piece that makes `match` and tagged-union dispatch feel native.
+
+**Tasks:**
+1. **Flow-sensitive type narrowing.** Inside `match` arms, the matched value's type is refined to the arm's pattern. Inside `if expr is TypeName { ... }` blocks (cf. Q8 runtime descriptors), the binding is refined to `TypeName`.
+2. **`Result<T, E>` narrowing.** After `result?`, the binding's type is refined from `Result<T, E>` to `T`. Same for `Option<T>` if Q15 nominal newtype answer extends to `Some`/`None` narrowing.
+3. **Pattern-binding scope.** `<case Variant({ field })>` inside JSX binds `field` in the case body's scope (D6 + the AST rewrite from phase 1 week 4 must thread the binding through name resolution).
+
+**Phase 2 acceptance:**
+- [ ] A 30-line function using nested `match` on tagged unions typechecks correctly without redundant `as` or unsafe coercions.
+- [ ] JSX `<case Variant({ field })>` bindings are usable in the case body.
+- [ ] Narrowing is exposed as a salsa query, so the LSP (phase 4) reuses it for hover types.
+
+---
+
+## Phase 3 — Dogfooding (weeks 12–17)
+
+Step 6 per `docs/roadmap/06-dogfooding.md`. The fridge shopping list app. **6 weeks because dogfooding finds compiler/stdlib bugs and fixing them is part of the work.**
+
+### Week 12–13: Build the shopping list app
+
+Glyph source. CLI or simple web UI. Storage as JSON on disk. Domain model: `ShoppingItem`, `ShoppingList`, `Quantity`, `Category`, `Unit`.
+
+**Tasks:**
+1. Build the app end-to-end in Glyph. Add, remove, check off, reorder items.
+2. Save and load to `~/.shopping-list.json`. **First stress test of Q8 runtime descriptors + Q21 stdlib migration pattern.**
+3. Write `@example` tests for every public function. **First large body of D23-annotated Glyph code.**
+4. The app must produce a real shopping list the user can take to the store.
+
+### Week 14–17: Use the app + harvest gaps
+
+Use the app for two weeks (weeks 14–15) before starting #2 — but the next 4 weeks are the compiler-fixing-and-stdlib-extension period. As gaps surface, fix them in the compiler/stdlib, not in the app.
+
+**What to harvest:**
+1. **Stdlib gaps.** Likely candidates: date utilities, currency/quantity formatting, fuzzy string matching for "did I mean cilantro vs coriander."
+2. **Ergonomics failures.** Patterns tolerable at 200 lines but intolerable at 2000.
+3. **Q15 nominal newtypes test.** `type Sku = String`, `type Quantity = Float` — does the newtype boilerplate hurt?
+4. **D25 `owned` stress test.** Saving `shopping-list.json` opens a file handle; the `owned` discipline says it must be consumed before the function returns. If this feels gratuitous on a 10-line save function, escalate.
+5. **Q33 `Tainted<T>` stress test** if the app gains a search box. User input → query → file read.
+6. **Q34 `withBudget` stress test** if the app calls an LLM ("summarize my weekly meals").
+7. **Auto-generated `T.schema` compile-time cost.** Track build time as the codebase grows past 5000 lines.
+
+**Phase 3 acceptance:**
+- [ ] Shopping list app shipped to personal use for two weeks minimum.
+- [ ] Written gap list (concrete issues, not vibes) with 10–25 specific compiler/stdlib gaps prioritized as critical / nice-to-have / v1.1+.
+- [ ] Stdlib extended where dogfooding demanded it (within reason — escalate before adding speculative APIs).
+- [ ] Step 4's example corpus has grown to 30–50+ Glyph programs (Q2 resolved).
+
+---
+
+## Phase 4 — Re-lock + LSP (weeks 18–23)
+
+### Week 18: Re-lock the syntax corpus
+
+If phase 3 produced any breaking spec changes (a new D-decision, an overruled old one), re-run the syntax-lock review against the new corpus. The LSP about to ship bakes in syntactic assumptions; they should be final.
+
+**Outputs:** an updated `docs/language/spec.md` if needed; a note in `docs/open-questions.md` documenting what changed and why.
+
+### Weeks 19–23: LSP (5 weeks)
+
+Per `docs/roadmap/07-lsp.md` updated through sessions 1–3.
+
+**Deliverables:**
+1. Diagnostics (Elm-quality bar from phase 1 week 7)
+2. Hover types (reuses phase 2 narrowing query)
+3. Go-to-definition (cross-module via D15)
+4. Completion
+5. Format-on-save (calls `glyph fmt`)
+6. **Virtual document `agent://file.glyph.canonical`** (Q32). Stable line numbers `L001`, `L002`; SSA-like value names `$0`, `$1`. The LSP serves this on demand for any open Glyph file.
+7. **`applyEdit` RPC** (Q29 resolved → Option B). Agents send `edit { ... } @verify { ... }` blocks; the LSP applies atomically or returns structured rejection `{ ok: false, failed: "all_tests_pass", counterexamples: [...] }`.
+8. **Workspace symbol index** for discoverability (Q12).
+
+**Latency gates (from Q6 + `archive/glyph-lsp-discussion.md`):**
+- p95 < 100ms diagnostics on a warm file under 1000 lines
+- p95 < 30ms completion
+
+**Deferred to v1.1:** rename, find-references. Called out explicitly in the launch communication.
+
+**Phase 4 acceptance:**
+- [ ] LSP serves diagnostics + hover + go-to-def + completion + format-on-save with latency gates met.
+- [ ] Virtual document `agent://file.glyph.canonical` is queryable for every open Glyph file.
+- [ ] `applyEdit` RPC accepts edits and applies-or-rejects atomically with structured feedback.
+- [ ] Workspace symbol index answers "what's importable from where."
+
+---
+
+## Phase 5 — Packaging, formatter polish, `glyph publish` (weeks 24–25)
+
+Step 8 per `docs/roadmap/08-09-packaging.md`.
+
+**Tasks:**
+1. **`"glyph"` key in `package.json` schema.** Document the schema (audit metadata, import declarations). No separate `glyph.json`.
+2. **`glyph publish`.** Builds, runs all tests, computes AST diff vs registry (deferred for v1.0 — registry is npm; AST-diff stub for v1.1).
+3. **Audit metadata in `"glyph"` key** (Q22). `imports.<path>.audit` = `stdlib | internal | third-party`; `last_reviewed: DATE`. `glyph publish` warns/fails on stale third-party reviews.
+4. **`glyph regen` polish.** First-pass shipped in phase 1 week 5; polish based on phase 3 dogfooding feedback. Hookable generator interface (OpenAI/Anthropic/local model adapters).
+
+**Phase 5 acceptance:**
+- [ ] `glyph publish` runs the local test suite and emits a publishable npm package.
+- [ ] Audit metadata in `package.json` is read and enforced.
+- [ ] `glyph regen` works against a sample function with `@generate by: claude`.
+
+---
+
+## Phase 6 — Installer + playground (weeks 26–27)
+
+Step 9 per `docs/roadmap/08-09-packaging.md`.
+
+**Tasks:**
+1. **`npm install -g glyph`** as the canonical install. The package bundles the Rust binary per-platform (prebuilds via cargo-dist or a similar tool). No curl-pipe-bash.
+2. **Playground.** Three panes:
+   - Left: Glyph source (editable)
+   - Center: Emitted TypeScript
+   - Right: **Agent-edit preview** showing the same code with a one-line semantic change producing a one-line diff. The third pane is the demo that makes diff stability legible.
+3. Default example: `loadFeed` from `examples/02_async_errors.glyph` (Result types + `?` propagation + async).
+4. Hosted at a domain to be picked. (Deferral: domain choice happens at week 27.)
+
+**Phase 6 acceptance:**
+- [ ] `npm install -g glyph` installs on macOS, Linux, Windows.
+- [ ] Playground compiles `loadFeed` to TS in < 1 second, side-by-side.
+- [ ] Third pane demonstrates an agent edit and resulting one-line diff.
+
+---
+
+## Phase 7 — Docs + book outline (weeks 28–31)
+
+Step 10. **Four weeks of concentrated authoring**, but docs were maintained continuously since phase 1.
+
+**Deliverables:**
+1. **5-minute tour** — `docs/tour.md`. Hello-world to async-with-Result.
+2. **30-minute tutorial** — `docs/tutorial.md`. Build a tiny CLI (subset of the shopping list).
+3. **Complete language reference** — `docs/reference/*.md`. Spec (`spec.md`) + grammar + precedence + stdlib API.
+4. **Book outline** — `docs/book-outline.md`. Even if the book ships in two years, the outline forces gaps to be confronted.
+5. **`--explain` content** for all 50+ error codes (the top 20 were drafted in phase 1 week 7).
+
+**Phase 7 acceptance:**
+- [ ] Tour, tutorial, and reference all complete.
+- [ ] An external reviewer (engineer who's never seen Glyph) can write a working `hello, world` in 10 minutes following the tour.
+
+---
+
+## Phase 8 — Killer demo + benchmarks (weeks 32–39)
+
+Step 11. **The empirical claim Glyph is making.** Without this, "designed for AI agents" is just a claim.
+
+**Tasks:**
+1. **Comprehensive benchmark.** 20+ functions across 4 languages (Glyph, TS, Python, Rust). Token count, line count, diff size for a controlled edit, agent task-success-rate when given the same task in each language.
+2. **Agentic coding demonstration.** Side-by-side: same Claude (or Claude Code) instance given the same task in Glyph vs TS. Measure correctness, time-to-completion, diff size, follow-up question count.
+3. **Video.** 5-minute screen recording showing the demonstration.
+4. **Blog post.** Numbers + the demo video + the manifesto's bet. Title TBD; aim for one canonical "show HN" post.
+
+**Phase 8 acceptance:**
+- [ ] Benchmark results checked in for 20+ functions across 4 languages.
+- [ ] Demo shows a >1.5x speedup or correctness improvement in Glyph vs TS for at least 5 representative tasks.
+- [ ] Blog post and video published.
+
+---
+
+## Phase 9 — Launch (week 40+)
+
+Step 12. Ongoing.
+
+**Tasks:**
+1. **Show HN** with the blog post and playground link.
+2. **Conference CFPs:** Strange Loop, JSConf, AI Engineer Summit. One submission per quarter.
+3. **First 100 users.** Personally onboard. They define the language's character; treat them as co-designers, not customers.
+
+**Phase 9 acceptance:** Glyph v1.0 has 100+ developers building real things in it. Concrete: 100 GitHub usernames who've checked in at least one Glyph file in the year after launch.
+
+---
+
+## D-decision to phase mapping
+
+| D | What | Implemented in |
+|---|---|---|
+| D1 | Significant newlines | Phase 1 week 1 (lexer) |
+| D2 | Match arm commas | Phase 1 week 3 |
+| D3 | `match` only | Phase 1 week 3 |
+| D4 | One `fn` form | Phase 1 week 2 |
+| D5 | `mut` syntactic | Phase 1 week 1 (grammar) + week 3 (no typechecker enforcement) |
+| D6 | JSX sub-grammar + directives | Phase 1 week 1 (parse) + week 4 (lower) |
+| D7 | Types vs values | Phase 1 week 1 (context disambiguation in parser) |
+| D8 | Tagged union punctuation | Phase 1 week 3 |
+| D9 | `else` vs `_` wildcards | Phase 1 week 3 |
+| D10 | No object literal shorthand | Phase 1 week 5 (formatter check) |
+| D11 | Spread in arrays/objects | Phase 1 week 1 |
+| D12 | One string syntax | Phase 1 week 1 |
+| D13 | Numeric literals | Phase 1 week 1 |
+| D14 | `//` comments only | Phase 1 week 1 |
+| D15 | Three import forms | Phase 1 week 2 |
+| D16 | `void` keyword | Phase 1 week 3 |
+| D17 | Trailing commas | Phase 1 week 1 (lexer/parser) + week 5 (formatter) |
+| D18 | Precedence | Phase 1 week 1 |
+| D19 | `component` keyword | Phase 1 week 2 |
+| D20 | `const` module, `let` local | Phase 1 week 2 |
+| D21 | `for` + `loop` | Phase 1 week 1 |
+| D22 | Template literals | Phase 1 week 1 (lexer with `${` recognition) |
+| D23 | `@example` inline tests | Phase 1 week 6 |
+| D24 | `@redact` PII enforcement | Phase 1 week 3 (typechecker carries metadata) + Phase 1 week 4 (emit redaction at log boundaries) |
+| D25 | `owned` modifier | Phase 1 week 3 |
+| D26 | `@doc @run` exec docs | Phase 1 week 6 |
+| D27 | Annotation meta-rule | Phase 1 week 1 (grammar) + week 6 (handler dispatch) |
+
+---
+
+## Cross-cutting concerns
+
+### Benchmarks (continuous from phase 1 week 8)
+
+Every commit on `main` re-runs the benchmark suite and updates `benchmarks/results/<commit-sha>.json`. Regressions over 10% on any metric require explanation in the commit message.
+
+### Error message audit (continuous from phase 1 week 5)
+
+Every new error path added to the compiler must include a structured `Diagnostic`, a span, and at least a placeholder `help` string. `--explain` content can be deferred but the error code is allocated when the path is added.
+
+### Stdlib API stability (locked end of phase 1)
+
+The 8 v1 stdlib modules (`result`, `option`, `array`, `string`, `io`, `json`, `fs`, `time`) get their APIs locked at the end of phase 1. Changes after that require a written justification and a one-paragraph migration note in `docs/stdlib-changes.md`.
+
+### Documentation (continuous; concentrated in phase 7)
+
+Every new spec decision (D28+ if any land) requires an update to `docs/language/spec.md` in the same commit. Every new stdlib function requires a `@doc """ ... """` block in the same commit (D26 makes the doc executable, so the test is whether `glyph build` passes).
+
+---
+
+## v1.0 acceptance criteria (the gate before launch)
+
+Hard requirements; v1.0 doesn't ship until all are checked:
+
+- [ ] All 4 step-2 examples + the ~50-program corpus from step 6 parse, typecheck, emit TS, and run.
+- [ ] `tsc --strict --noEmit` passes on all emitted TS.
+- [ ] 30+ negative examples each fail with the expected error code.
+- [ ] LSP latency gates met (p95 < 100ms diagnostics, p95 < 30ms completion).
+- [ ] Shopping list app shipped, in personal use for 30+ days.
+- [ ] Benchmark suite shows Glyph favorably or neutrally on token count, line count, diff size across 20+ functions.
+- [ ] At least one third-party engineer has successfully built and run a Glyph program from `npm install` + tour alone, with no help.
+- [ ] `--explain` content for the top 50 error codes.
+
+---
+
+## Implementation-time open questions
+
+Decisions deliberately deferred to the coding session that hits them. Each has a recommended default; the implementation engineer chooses at the time and updates this section.
+
+| # | Decision | Default | Triggered in |
+|---|---|---|---|
+| I1 | `resource` keyword vs `@resource` annotation for D25 marker | `resource` keyword (consistent with `record`, `component`) | Phase 1 week 3 |
+| I2 | `@example` with multiple expressions vs single `==` per line | Single `==` per line (D23 as written) | Phase 1 week 6 |
+| I3 | `glyph regen` generator adapter interface | Synchronous trait with three methods: `name()`, `generate(spec) -> Result<String, Err>`, `cost_estimate(spec)` | Phase 1 week 5 |
+| I4 | Salsa query granularity (per-file vs per-declaration) | Per-file inputs, per-declaration intermediates | Phase 1 week 2 |
+| I5 | Sandboxed interpreter implementation (tree-walking vs bytecode) | Tree-walking AST interpreter (~1000 LoC; bytecode is v2) | Phase 1 week 6 |
+| I6 | LSP virtual-document update strategy (push vs poll) | Push on file save; poll on explicit RPC | Phase 4 week 19 |
+| I7 | Glyph package format (npm tarball vs custom) | npm tarball (Q22 resolved → ride npm) | Phase 5 week 24 |
+
+---
+
+## Status checklist
+
+**Phase 0 complete (2026-05-26).** Phase 1 week 1 is the next concrete action.
+
+- [x] P1: Validator example rewritten (Q1) — `examples/01_validator.glyph` uses explicit `<Out>` type parameter
+- [x] P2: Rust workspace bootstrapped — `glyph-compiler/` with 8 crates, all `cargo check` targets
+- [x] P3: `examples/` at repo root with 4 files
+- [x] P4: `benchmarks/` scaffold with 3 functions in 4 languages — first smoke-test run already gave honest early signal (Glyph wins on `load_feed`, loses on tiny `slugify`)
+- [x] P5: Library versions locked in `Cargo.toml` workspace
+
+### What Phase 0 produced
+
+- `examples/01_validator.glyph` — Q1 rewrite. Caller declares output type explicitly; mapped types deferred to v1.1.
+- `examples/02_async_errors.glyph`, `03_react_component.glyph`, `04_cli_tool.glyph` — faithful transfers with D22 template literals in places where original used `+`.
+- `examples/README.md` — index documenting the four examples and the Q1 deviation.
+- `glyph-compiler/Cargo.toml` — workspace with 8 crate members, `[workspace.dependencies]` pinning `salsa = "0.26"`, `ariadne = "0.4"`, `insta = "1"`, `proptest = "1"`, `tower-lsp = "0.20"`, `tokio = "1"`, `clap = "4"`, `serde = "1"`, `thiserror = "1"`.
+- `glyph-compiler/rust-toolchain.toml` — pinned to Rust 1.95 with rustfmt + clippy.
+- `glyph-compiler/README.md` — crate-by-crate layout reference.
+- 8 crate stubs (`glyph-lexer`, `glyph-ast`, `glyph-parser`, `glyph-resolver`, `glyph-typechecker`, `glyph-emit`, `glyph-runtime`, `glyph-cli`). Each documents which D-decisions and which Phase 1 week it implements.
+- `benchmarks/` with `parse_user` / `load_feed` / `slugify` across Glyph, TypeScript, Python, Rust. `measure.sh` produces `results/<timestamp>.json` with line counts (token counts and diff-size wire up Phase 1 week 8).
+
+### Phase 0 verification (2026-05-26)
+
+Rust 1.95.0 stable installed via rustup. Workspace verified end-to-end:
+
+```
+cargo check --workspace    →  All 8 crates compile cleanly (52s, cold)
+cargo test --workspace     →  All 7 stub tests pass
+cargo build --release      →  glyph binary builds (27s)
+./target/release/glyph --help  →  prints clap-generated help with build/run/fmt/regen/publish
+./target/release/glyph build src/ --out dist/  →  exits 1 with "phase 0 stub: `glyph build` not yet implemented"
+```
+
+Phase 0 acceptance is hard-passed, not just file-correct.
+
+### Next action
+
+Phase 1 week 1: lexer + Pratt parser + AST + golden tests. See the week-1 task list above.
+
+---
+
+## Phase 1 week 1 status (day 1–2 slice shipped, 2026-05-26)
+
+**Real code merged**, not stubs. 27 tests pass across the workspace.
+
+### Implemented this slice (lexer + AST + parser day 1–2)
+
+**glyph-lexer** (~330 LoC of real lexer code; 9 tests):
+- D1 significant newlines outside brackets via `bracket_depth` tracking
+- D12 string literals with escape sequences
+- D13 numeric literals with `_` separators, decimals, exponents
+- D14 `//` line comments (block comments rejected with explicit error)
+- D17 trailing commas (passed through; parser enforces)
+- D21 `for`/`loop`/`break`/`continue` keywords lexed
+- D22 strings tokenize but `${...}` interpolation parsing is deferred (lexed opaquely)
+- D27 `@<name>` annotation prefix lexed (`At` token + identifier)
+- Multi-char punctuation: `->`, `=>`, `==`, `!=`, `<=`, `>=`, `&&`, `||`, `??`, `?.`, `..`, `...`
+
+**glyph-ast** (~230 LoC of enum definitions):
+- `Module`, `Decl::{Import, Fn, Type, Const}`, `Stmt::{Let, Return, Expr}`, `Expr::{Number, String, Bool, Void, Ident, Binary, Unary, Postfix, Call, Member, Index, Await, Array, MatchPlaceholder}`, `TypeExpr::{Path, Generic, FnPlaceholder, UnionPlaceholder}`, `Pattern::{Wildcard, Ident, ConstructorPlaceholder}`, `Annotation`
+- Every node carries a `Span`. Identifiers are `Arc<str>`.
+
+**glyph-parser** (~520 LoC including the Pratt expression parser; 14 tests, including 1 insta snapshot):
+- `module path/name` declaration (D15)
+- All three import forms (`namespace`, `{ Named }`, `as alias`) (D15)
+- `fn` declarations with parameters, return type, async modifier, and function body
+- Pratt expression parser at levels 4–11 (D18): arithmetic, comparison, logical, nullish-coalesce, prefix `!`/`-`, prefix `await`, postfix `?`, member access `.`/`?.`, index `[]`, call `()`
+- Array literal with spread (D11)
+- `let` statement with optional `owned` modifier (D25 syntactic-only for now), optional type annotation, expression
+- `return` statement
+- Type expression: dotted path + generic args
+- **Snapshot test infrastructure via `insta`** — `tests/snapshots.rs` + `tests/fixtures/hello.glyph` + checked-in `.snap` file
+
+### Deferred to week 1 day 3+
+
+- **D22** template literal `${...}` interpolation (currently lexed opaquely as a single string)
+- **D6** JSX sub-grammar
+- **D3** `match` expression (parser yields `MatchPlaceholder` and crudely skips the body so fixtures parse)
+- **D2/D9** pattern matching beyond `Pattern::ConstructorPlaceholder`
+- **D8** tagged unions in type expressions
+- **D5** `mut` statement
+- **D25** owned-modifier consumption analysis (parser accepts the keyword, no analysis)
+- **D21** `for x in iter { }` and `loop { }` statement parsing (keywords lex)
+- **D27** annotations on declarations (lexer emits `@` + ident; parser doesn't attach to decls yet)
+- Generics on `fn` declarations (only generic args at type positions)
+- Error recovery via skip-to-next-statement-boundary
+
+### Acceptance status
+
+The week-1 acceptance criterion is "all 4 example files parse to AST with snapshots checked into git." Currently:
+- `tests/fixtures/hello.glyph` (small representative fixture) **parses** ✓ — snapshot checked in.
+- `examples/01_validator.glyph` through `04_cli_tool.glyph` **do not yet parse** — they use match expressions, JSX, tagged unions, `mut`, and `for` loops that the day-3+ work brings online.
+
+### Test summary
+
+| Crate | Tests | Status |
+|---|---|---|
+| glyph-lexer | 9 | All pass |
+| glyph-ast | 1 | All pass |
+| glyph-parser (lib) | 13 | All pass |
+| glyph-parser (snapshot) | 1 | All pass — insta snapshot checked in |
+| glyph-resolver, glyph-typechecker, glyph-emit, glyph-runtime, glyph-cli | 1 each (stubs) | All pass |
+| **Total** | **27** | **All pass** |
+
+## Phase 1 week 1 day 3 status (shipped 2026-05-26)
+
+**Match expressions + tagged unions + record types + type/const/generic declarations landed. `02_async_errors.glyph` now parses end-to-end.**
+
+### Implemented this slice (parser day 3 + AST expansion)
+
+**glyph-ast** additions:
+- `Expr::Match { scrutinee, arms }`, `Expr::Object { fields }`, `Expr::Lambda { params, return_ty, body }` — replacing day-2 placeholders.
+- `MatchArm { pattern, body }` with `MatchArmBody::{Expr, Block}`.
+- `ObjectField::{KeyValue, Spread}` (D11 inside object literals).
+- `Pattern::{Else, Literal, Constructor (with arg patterns), Object, IsType}` — replacing day-2 placeholder. `Pattern::ArrayPlaceholder` remains for day 4.
+- `TypeExpr::{Fn, Record, Union}` — replacing the day-2 placeholders. `RecordTypeField` carries optional flag. `UnionVariant` carries optional payload.
+- `FnDecl.generics` and `TypeDecl.generics` (D7 generic parameters on declarations).
+- `GenericParam { name, bounds, span }` — bounds always empty in v1 (substep 5a will populate).
+
+**glyph-parser** additions:
+- Real `match` expression parser (D2/D3/D9). Comma between arms is required per D2.
+- Pattern parser (`pat.rs`) covering literal, identifier binding, wildcard `_`, `else` catch-all, constructor with nested args, object pattern with `{ key }` or `{ key: alias }`, `is TypeName` guard.
+- Object literal parser with D10 shorthand-forbidden enforcement (parser produces "expected `:` after field name (D10: no shorthand)") and D11 spread.
+- Tagged union parser for both single-line (`A | B | C`) and multi-line (`| A\n  | B`) forms per D8.
+- Inline record type parser `{ field: Type, optional?: Type }`.
+- `fn(args) -> T` function type expressions.
+- `type X<T> = ...` and `const X = ...` top-level declarations.
+- Generic parameters on `fn` and `type` declarations.
+- Lambda expressions: `fn(args) { body }` and `fn(args: T) -> U { body }` (D4 anonymous form).
+- **Keyword-as-field-name** support: `Token::as_field_name()` lets keywords act as identifiers in object keys, record field names, named-import items, and object-pattern fields.
+- **Soft-keyword-as-identifier** support: modifier keywords (`owned`, `resource`, `mut`, `as`, `type`, etc.) are demoted to identifier expressions in expression position.
+
+### Acceptance gates this slice
+
+- `examples/02_async_errors.glyph` parses to AST end-to-end. **Snapshot checked in** (`tests/snapshots/snapshots__example_02_async_errors_parses.snap`, 2,623 lines).
+- Three example snapshot tests added with `#[ignore]` plus an always-passing diagnostic test (`day3_progress_report`) that reports byte-offset of the first parse error per file. Use it to track day-4 progress.
+
+### Remaining example-parse blockers
+
+| File | Blocker | Earliest week-1 day |
+|---|---|---|
+| `01_validator.glyph` | `for key, sub_schema in shape` (D21 `for` with destructuring) | Day 4 |
+| `02_async_errors.glyph` | ✅ **PARSES** | — |
+| `03_react_component.glyph` | `component Foo(props) -> Component { ... }` (D19) + D6 JSX | Day 5–6 |
+| `04_cli_tool.glyph` | `["help", ..._]` array patterns + `mut x[k] = v` mut statement | Day 4 |
+
+### Updated test summary
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged (struct construction smoke test) |
+| glyph-parser (lib) | 24 | +11 from day 3: type decls (4), match expressions (4), object literal (2), keyword-as-field (1) |
+| glyph-parser (snapshots) | 3 (1 active, 3 ignored, 1 diagnostic) | `hello.glyph` + `02_async_errors.glyph` snapshots checked in |
+| Stubs (resolver / typechecker / emit / runtime / cli) | 1 each | unchanged |
+| **Total** | **42** | All pass (3 `#[ignore]` example snapshots tracked separately) |
+
+## Phase 1 week 1 day 4 status (shipped 2026-05-26)
+
+**Three of four example files parse end-to-end.** Only `03_react_component.glyph` remains, gated on component declarations and JSX (day 5+).
+
+### Implemented this slice
+
+**AST additions:**
+- `Stmt::{Mut, For, Loop, Break, Continue}` with `MutKind::{Assign, AssignIndex, AssignField, MethodCall}` (D5 + D21)
+- `Pattern::Array { elements, rest }` replacing the placeholder (D9 + D11 spread)
+- `Pattern::Constructor` extended to `path: Vec<Ident>` for dotted-path variants like `fs.ErrorKind.NotFound`
+
+**Parser additions:**
+- `mut` statement parser enforcing D5's grammar restriction (only assignment, indexed assignment, field assignment, or method call — anything else is a syntax error citing D5)
+- `for X in iter`, `for K, V in iter`, `loop { }`, `break`, `continue` (D21)
+- Array pattern parser with rest element (D9)
+- Dotted-path variant patterns (extends `Pattern::Constructor`)
+- Match arm body extended to accept single-statement bodies (`Ok(_) => return 0`, `Ok(v) => mut x = v`); previously only expressions and blocks
+- `looks_like_object_literal` extended to recognize soft-keyword keys and `...` spread
+
+### Spec deviation found and resolved
+
+`examples/01_validator.glyph` had a **D20 violation** — `let` and `match` at top-level in its "example usage" section. Per D20 (`const` module-level, `let` function-level), these are syntactically illegal. The example was updated to:
+- Keep `type User = { ... }` at module level
+- Promote `let user_schema:` to `const user_schema:`
+- Wrap `let input` and the `match` in a `fn demo() { ... }`
+
+The example is now D20-compliant and more representative of how real Glyph code structures schema usage.
+
+### Example parse status
+
+| File | Status | Snapshot lines |
+|---|---|---|
+| `01_validator.glyph` | ✅ PARSES | 2,931 |
+| `02_async_errors.glyph` | ✅ PARSES (since day 3) | 2,641 |
+| `03_react_component.glyph` | ❌ component + JSX (day 5+) | — |
+| `04_cli_tool.glyph` | ✅ PARSES | 6,498 |
+
+Total checked-in snapshot: 12,520 lines across the 3 examples plus hello-world.
+
+### Test summary after day 4
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 32 | +8 from day 4: for (2), loop with break/continue (1), mut variants (3), array patterns (1), dotted variant patterns (1) |
+| glyph-parser (snapshots) | 5 (4 active, 1 ignored, 1 diagnostic) | 01, 02, 04 plus hello-world all snapshot in |
+| Stubs (resolver / typechecker / emit / runtime / cli) | 1 each | unchanged |
+| **Total** | **51** | All pass (1 `#[ignore]` for example 03 — pending day 5+) |
+
+### Still deferred
+
+- D6 JSX sub-grammar (day 5–6)
+- D19 `component` declaration (day 5)
+- D22 template literal `${}` interpolation parsing (still tokenized opaquely)
+- D27 annotations on declarations (lexer emits `@example`; parser doesn't attach to `fn`/`type` decls yet)
+- Error recovery via skip-to-next-statement-boundary
+- The proper contextual-keyword refactor (currently using the day-3 soft-keyword fallback in `expr.rs`)
+
+## Phase 1 week 1 day 5 status (shipped 2026-05-26)
+
+**All 4 example files now parse end-to-end.** Week-1 acceptance criterion ("all 4 example files parse to AST with snapshots checked into git") is met.
+
+### Implemented this slice
+
+**AST additions:**
+- `Decl::Component` with `ComponentDecl` (name, annotations, generics, params, return_ty, body)
+- `Expr::Jsx(JsxElement)`
+- `JsxElement { name, attrs, children, self_closing, span }`
+- `JsxAttr::{String, Expr, Positional}` — positional supports `<case Loaded>`-style attrs
+- `JsxChild::{Element, Expr, Text}`
+
+**Parser additions:**
+- `component` top-level declaration (D19), parallel to `fn` with optional `-> Component` return type
+- `jsx.rs` sub-module implementing the JSX parser
+- `Cursor` now holds `&'a str source` for text-run reconstruction
+- JSX disambiguation in `parse_primary`: `<` followed by identifier-like token → JSX, otherwise error
+- Text run reconstruction by slicing source between the closing `>` of an opening tag and the next `<` or `{`
+- Directive elements (`<if>`, `<else>`, `<for>`, `<match>`, `<case>`) parse as ordinary JSX elements per D6 — keywords are accepted as JSX names via `Token::as_field_name()`
+- Self-closing tags (`<Foo />`), explicit close tags (`</name>`) with name-match validation
+
+### Example parse status — week 1 acceptance met
+
+| File | Status | Snapshot lines |
+|---|---|---|
+| `01_validator.glyph` | ✅ PARSES | 2,931 |
+| `02_async_errors.glyph` | ✅ PARSES | 2,641 |
+| `03_react_component.glyph` | ✅ PARSES (21 Jsx nodes in the snapshot) | 2,190 |
+| `04_cli_tool.glyph` | ✅ PARSES | 6,498 |
+
+Total checked-in AST snapshots: 14,710 lines.
+
+### Test summary after day 5
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 37 | +5 from day 5: component decl (1), JSX self-closing with attrs (1), JSX with children + text (1), JSX directive `<case>` with positional attr (1), JSX expression child (1) |
+| glyph-parser (snapshots) | 6 (all active) | All 4 example files + hello-world + diagnostic |
+| Stubs (resolver / typechecker / emit / runtime / cli) | 1 each | unchanged |
+| **Total** | **58** | All pass — no `#[ignore]`'d tests remaining |
+
+### Still deferred (day 6+)
+
+- D22 template literal `${expr}` interpolation parsing (currently tokenized opaquely; strings parse but contain the raw `${...}` text)
+- D27 annotations on declarations (lexer emits `@example`; parser doesn't attach to `fn`/`type` decls)
+- Error recovery via skip-to-next-statement-boundary
+- Contextual-keyword refactor (currently using the day-3 soft-keyword fallback)
+- Generic *call sites* — `json.parse<TodoFile>(text)` currently parses as a chained comparison `((json.parse < TodoFile) > text)`. The AST is technically valid but semantically wrong; the typechecker will reject it. Fix is a lookahead/backtrack in `parse_postfix` when seeing `<` after a member expression — day 6 cleanup.
+
+## Phase 1 week 1 day 6 — WEEK 1 COMPLETE (shipped 2026-05-26)
+
+**Three day-6 cleanups landed; week 1 acceptance is fully met with semantically-correct ASTs.**
+
+### Implemented this slice
+
+**D22 — template literal interpolation:**
+- `Expr::TemplateString { parts, span }` with `TemplatePart::{Text, Expr}` alternation
+- In `parse_primary`, when the lexed string contains `${`, post-process by walking the de-escaped content, finding balanced `${...}` regions (tracking brace nesting and string literals inside), and recursively re-parsing each interpolation via a synthetic `module __template fn __f() { return EXPR }` wrapper
+- **V1 limitation**: literal `${` is indistinguishable from interpolation because `\$` de-escapes to `$` at the lexer level. The lexer needs a proper template-literal mode to fix this — deferred to v1.1. Workaround in v1 is string concatenation.
+
+**Generic call sites — lookahead heuristic:**
+- `Expr::Call` now carries `type_args: Vec<TypeExpr>`
+- `parse_postfix` checks `<` via `looks_like_generic_call` before falling through to `parse_cmp`. The lookahead scans for balanced `<...>` followed by `(`, aborting on any token that can't appear in a type expression (binary operators, statement keywords, etc.)
+- Fixes the 04 snapshot's previously-incorrect `((json.parse < TodoFile) > text)` shape
+- Same heuristic-with-pessimistic-abort approach TypeScript uses; accepts the rare false positive `a < b > (c)` case
+
+**D27 — annotations on declarations:**
+- `parse_top_level` collects leading `@<name> <args>` lines via `parse_annotations` before dispatching to a declaration parser
+- Annotations attach to `Fn`, `Type`, `Const`, `Component` decls (rejected on `Import`)
+- Raw args captured as source slice (per `Annotation.raw_args`); the typechecker parses them later
+
+### Test summary after day 6 — **WEEK 1 COMPLETE**
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | +9 from day 6: D22 (4), generic call sites (2), D27 annotations (3) |
+| glyph-parser (snapshots) | 6 | all 4 examples + hello-world + diagnostic, all active |
+| Stubs (resolver / typechecker / emit / runtime / cli) | 1 each | unchanged |
+| **Total** | **67** | **All pass — no `#[ignore]`'d tests** |
+
+### Snapshot updates from day 6 changes
+
+| File | Day 5 | Day 6 | Δ |
+|---|---|---|---|
+| `01_validator.glyph` | 2,931 | 3,063 | +132 (D22 TemplateString nodes in the demo printf) |
+| `02_async_errors.glyph` | 2,641 | 2,743 | +102 (D22 in `/api/users/${id}` URL strings) |
+| `03_react_component.glyph` | 2,190 | 2,201 | +11 (call sites gained `type_args: []`) |
+| `04_cli_tool.glyph` | 6,498 | 7,204 | +706 (D22 in `${number.to_string(...)}` printfs + `json.parse<TodoFile>(text)` is now a Call with type_args instead of mis-shapen comparison) |
+| **Total** | 14,710 | **15,664** | +954 lines of AST detail |
+
+### Week 1 acceptance — FULLY MET
+
+- [x] Lexer covering D1, D12, D13, D14, D17, D21, D22 (with v1 interpolation limitation), D27
+- [x] AST with full enum architecture; Span on every node; `Arc<str>` idents
+- [x] Pratt parser with D18 precedence
+- [x] All 4 example files parse to AST end-to-end with snapshots checked into git
+- [x] `insta` snapshot infrastructure with auto-update workflow
+- [x] All 27 D-decisions parseable to some degree (some semantics deferred to typechecker)
+
+### Still deferred (week 2+)
+
+- Lexer-level template-literal mode (D22) to distinguish `\${` from `${` — v1.1 cleanup
+- Error recovery via skip-to-next-statement-boundary — Phase 1 week 7 error-message audit
+- Contextual-keyword refactor (currently using the day-3 `is_soft_keyword_in_expr_position` fallback) — week 7 cleanup if it shows up in dogfooding
+
+## Phase 1 week 1 day 7 — /simplify cleanup pass (2026-05-26)
+
+Two `/simplify` passes ran: the first reviewed day-6 changes only; the second covered days 1–5 (which had been written without review). Both used the three-agent parallel pattern (reuse / quality / efficiency).
+
+### Day-6 review fixes applied
+
+1. **Eliminated the `extract_template_expression` synthetic-module wrapper.** D22's `split_template_parts` now calls `crate::parse_expression(source)` directly instead of wrapping the interpolation in `module __template fn __f() { return EXPR }` and parsing the whole thing. Inner expression spans are now correctly relative to the interpolation source; `extract_template_expression` was deleted. (Snapshot regen confirmed the span correction.)
+2. **`split_template_parts` returns `Option<Vec<TemplatePart>>`** — the upfront `value.contains("${")` guard was dropped (one walk instead of two).
+3. **Added `Cursor::parse_comma_separated<T>(terminator, skip_newlines, item_fn)`** and refactored ~9 hand-rolled comma-loop sites: call args (`parse_postfix`), generic call type args, fn params (`parse_fn`), component params, generic params (`parse_generic_params`), lambda params, record-type fields, fn-type params, constructor-pattern args, object-pattern fields.
+4. **Deleted `_expr_use_marker`** dead code in `decl.rs`.
+5. **Cheap pre-checks added to `looks_like_generic_call`**: O(1) `is_callable_receiver` and first-token-type filter; the 200-token scan now only runs when the receiver is a callable shape and the token after `<` is type-shaped.
+6. Minor comment cleanup; deleted unused `Cursor::peek_skipping_newlines_is`.
+
+### Days-1-5 review fixes applied
+
+1. **`parse_postfix` no longer clones `expr` 6× per chain step.** Pattern: extract `let start = expr.span().start;` first, then `Box::new(expr)`. Real perf win on long member/call/index/postfix-? chains.
+2. **`Token::keyword()` and `Token::as_field_name()` now both walk a single `KEYWORDS` static.** Drift between the two ~28-arm tables is structurally impossible.
+3. **Deleted redundant `Lexer.bytes` field** — it was just `source.as_bytes()` cached. Inline `self.source.as_bytes()` at the 3 use sites.
+4. **Added `Span::join(self, end: Span) -> Span` helper.** Available for incremental adoption; 23-site refactor of `Span::new(a.start, b.end)` deferred.
+5. **Extracted `parse_callable_signature(p) -> CallableSignature`** shared by `parse_fn` and `parse_component`. Removed ~25 lines of D4+D19 parallel code.
+6. **Split `parse_pattern(p, allow_else: bool)` into `parse_pattern(p)` and `parse_arm_pattern(p)`.** No more boolean flag through every recursive call.
+7. **`jsx_name` now delegates to `expect_field_name`.** ~20 lines deleted.
+8. **Refactored 4 remaining manual comma loops** (named imports, mut-method-call args, array literal with spread, object literal with spread) to use `parse_comma_separated`.
+9. **Cleaned up `type_to_variant`** — removed `let _ = args.drain(..); let _ = base;` dead-code drainage by using struct pattern with `..`.
+10. **Fixed stale doc comment** in `parser/src/lib.rs` that referenced deleted `Pattern::ConstructorPlaceholder`.
+
+### Skipped (intentional)
+
+- **`Span::join` mass refactor** (23 sites) — helper in place; future passes can adopt incrementally without bug-risk per site.
+- **`Token::Display` impl + `ExpectedKind` enum** — Phase 1 week 7 Elm-quality error-message audit territory.
+- **`AST::span()` boilerplate / `Node<T>` wrapper / `#[derive(Spanned)]` proc macro** — too invasive for /simplify.
+- **Identifier interning** — implementation plan I4 explicitly defers (`Arc<str>` is fine for v0).
+- **JSX text → `Arc<str>`** — on reconsideration, the AST has a consistent convention: `Arc<str>` for names, `String` for text content. JSX text is content.
+
+### Net result
+
+| Metric | Before week-1 day 7 | After |
+|---|---|---|
+| Workspace tests | 67 | 67 |
+| Snapshot lines | 15,664 | 15,664 (spans corrected, count nominally same) |
+| Comma-loop hand-rolls | ~13 | 0 (all use `parse_comma_separated`) |
+| Dead-code items | 4 (`_expr_use_marker`, `Lexer.bytes`, `extract_template_expression`, `type_to_variant` drains) | 0 |
+| Keyword-table drift risk | 2 separate tables | 1 source of truth |
+| `parse_postfix` clones per chain step | 1 per node | 0 |

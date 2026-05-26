@@ -906,3 +906,86 @@ Two `/simplify` passes ran: the first reviewed day-6 changes only; the second co
 | Dead-code items | 4 (`_expr_use_marker`, `Lexer.bytes`, `extract_template_expression`, `type_to_variant` drains) | 0 |
 | Keyword-table drift risk | 2 separate tables | 1 source of truth |
 | `parse_postfix` clones per chain step | 1 per node | 0 |
+
+## Phase 1 week 2 day 1 status (shipped 2026-05-26)
+
+**Name resolution against the four example files is in.** Every identifier in
+every example file resolves to a local binding, a module-level symbol, an
+imported-name wrapper, or a prelude built-in.
+
+### Implemented this slice
+
+**glyph-typechecker** (new):
+- `Ty` enum (`ty.rs`, ~150 LoC): `Unknown` (compiler placeholder), `Prim`
+  (string/number/bool/void), `UnknownTop` (user-facing `unknown`), `Named`,
+  `Param`, `App`, `Record`, `Fn`, `Union`, `Tuple`, `Var`. No mapped types
+  (Q1 → v1.1), no refinement types (Q15).
+- `TypeMap` (`type_map.rs`, ~50 LoC): span-keyed map for "every Expr gets a Ty"
+  bookkeeping. The week-3 typechecker fills this.
+
+**glyph-resolver** (real implementation, was stub):
+- `Symbol` + `SymbolKind` (`symbol.rs`, ~180 LoC). `SymbolKind` covers
+  Function/Type/Const/Component/Variant (the new one, for tagged-union
+  variants hoisted to module scope), ImportNamespace/ImportAlias/ImportNamed,
+  and Prelude.
+- `PreludeKind` enum: closed list of built-in primitives, generics, and
+  values. Decouples the typechecker boundary from string matching.
+- `Prelude` (`prelude.rs`, ~80 LoC): primitives (string/number/bool/void/unknown),
+  generic containers (Result/Option/Array/Record/Schema/Component), value
+  constructors (Ok/Err/Some/None), `par` namespace, `print` built-in.
+- `ModuleSymbols` + `collect_module_symbols` (`collect.rs`, ~200 LoC). Walks
+  top-level decls; introduces variant names alongside their type decl;
+  enforces no-duplicate-top-level and no-relative-imports (D15).
+- `ResolvedModule` + `ResolutionMap` + `resolve_module` (`resolve.rs`, ~380
+  LoC). Pure-function walker over the AST. Three-tier name lookup
+  (local → module → prelude). Generic type parameters bind into the
+  declaration's scope so `T` and `Out` resolve inside fn bodies. JSX
+  directive bindings handled: `<for X in={iter}>` introduces `X` as a child
+  binding; `<case Variant bind={X}>` introduces `X` as a binding visible to
+  children.
+
+**glyph-resolver/tests/examples.rs** — week-2 acceptance integration tests
+against the four example files.
+
+### Acceptance
+
+| File | Total errors | Unresolved names |
+|---|---|---|
+| `01_validator.glyph` | 0 | — |
+| `02_async_errors.glyph` | 0 | — |
+| `03_react_component.glyph` | 0 | — |
+| `04_cli_tool.glyph` | 0 | — |
+
+**The first half of week-2 acceptance is met:** every example file resolves all
+names. The second half ("every expression node has a type") lands in the
+day-2+ slice when `TypeMap` is populated.
+
+### Deferred to week 2 day 2+
+
+- **Cross-module verification**. `import std/result { Ok, Err }` is accepted in
+  the importing module, but the resolver does not yet load the target module
+  and check that `Ok`/`Err` actually exist there. This is the "module graph"
+  half of week 2; needs a stdlib-module synthesis layer or stubs.
+- **Expression type assignment**. `TypeMap` exists; nothing populates it yet.
+  Day 2's job: walk every expression and write at least `Ty::Unknown` for
+  every node, with concrete types pulled from declared function signatures
+  and `const` annotations.
+- **Salsa wiring (I4)**. The pipeline is pure-function pipe-by-hand right
+  now. Wrap `parse → collect → resolve → typemap` as salsa-tracked queries
+  with per-file inputs and per-declaration intermediates.
+- **D15 barrel-file detection**. Needs the module graph to spot
+  "this module only re-exports."
+
+### Test summary after week 2 day 1
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| **glyph-resolver (lib)** | **21** | **+20**: 5 collect, 4 prelude, 8 resolve, 2 symbol-table, 2 smoke |
+| **glyph-resolver (examples)** | **3** | **+3**: progress_report, example_02, duplicate_detection |
+| **glyph-typechecker** | **6** | **+5**: 3 ty, 2 type_map |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **94** | **All pass** (up from 67) |

@@ -1,0 +1,123 @@
+// A search-as-you-type component:
+//   - reactive state objects (no destructured tuples)
+//   - setters are calls, not mutations (no `mut` on set)
+//   - restricted JSX expressions
+//   - compiler-owned directives: <if>, <for>, <match>, <case>, <else>
+
+module components/user_search
+
+import std/result { Result, Ok, Err }
+import react { use_state, use_effect, use_memo, Component }
+import std/time { debounce, Duration }
+import api/users { search_users, SearchError }
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type User = {
+  id: string,
+  name: string,
+  email: string,
+}
+
+type SearchState =
+  | Idle
+  | Loading
+  | Loaded({ users: Array<User> })
+  | Failed({ message: string })
+
+type Props = {
+  on_select: fn(user: User) -> void,
+  placeholder?: string,
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+component UserSearch(props: Props) -> Component {
+  let query = use_state<string>("")
+  let state = use_state<SearchState>(Idle)
+
+  let debounced_search = use_memo(fn() {
+    return debounce(Duration.ms(250), fn(q: string) {
+      run_search(q, state.set)
+    })
+  }, [])
+
+  use_effect(fn() {
+    match query.value.length {
+      0 => state.set(Idle),
+      else => {
+        state.set(Loading)
+        debounced_search(query.value)
+      },
+    }
+  }, [query.value])
+
+  return <div class="user-search">
+    <input
+      type="text"
+      value={query.value}
+      placeholder={props.placeholder ?? "Search users..."}
+      on_input={fn(event) { query.set(event.target.value) }}
+    />
+    <ResultsList state={state.value} on_select={props.on_select} />
+  </div>
+}
+
+// ---------------------------------------------------------------------------
+// Subcomponent
+// ---------------------------------------------------------------------------
+
+type ResultsListProps = {
+  state: SearchState,
+  on_select: fn(user: User) -> void,
+}
+
+component ResultsList(props: ResultsListProps) -> Component {
+  return <match value={props.state}>
+    <case Idle>
+      <p class="hint">Start typing to search.</p>
+    </case>
+
+    <case Loading>
+      <p class="hint">Searching...</p>
+    </case>
+
+    <case Loaded bind={users}>
+      <if cond={users.length == 0}>
+        <p class="hint">No users found.</p>
+      </if>
+      <else>
+        <ul class="results">
+          <for user in={users} key={user.id}>
+            <li on_click={fn() { props.on_select(user) }}>
+              <span class="name">{user.name}</span>
+              <span class="email">{user.email}</span>
+            </li>
+          </for>
+        </ul>
+      </else>
+    </case>
+
+    <case Failed bind={message}>
+      <p class="error">{message}</p>
+    </case>
+  </match>
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async fn run_search(
+  query: string,
+  set: fn(state: SearchState) -> void,
+) -> void {
+  match await search_users(query) {
+    Ok(users) => set(Loaded({ users: users })),
+    Err(SearchError({ message })) => set(Failed({ message: message })),
+  }
+}

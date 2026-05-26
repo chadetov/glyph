@@ -1,0 +1,12 @@
+[package]
+name = "glyph-ast"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Glyph AST: enums per node category (Expr, Stmt, TypeExpr, Pattern, Decl, Annotation), each with Span."
+
+[dependencies]
+glyph-lexer.workspace = true

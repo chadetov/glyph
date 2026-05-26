@@ -1,0 +1,20 @@
+[package]
+name = "glyph-typechecker"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Bidirectional typechecker for Glyph. Salsa-backed. ADTs + Maranget exhaustiveness + D25 owned-tracking + D24 redact metadata + D8 runtime descriptors."
+
+[dependencies]
+glyph-ast.workspace = true
+glyph-resolver.workspace = true
+salsa.workspace = true
+ariadne.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+proptest.workspace = true

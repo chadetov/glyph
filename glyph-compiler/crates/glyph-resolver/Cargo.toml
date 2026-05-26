@@ -1,0 +1,17 @@
+[package]
+name = "glyph-resolver"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Name resolution and module graph for Glyph. Salsa-backed per Q5 hybrid resolution. Enforces D15 import rules (no barrel files, no re-exports, no relative imports)."
+
+[dependencies]
+glyph-ast.workspace = true
+salsa.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+insta.workspace = true

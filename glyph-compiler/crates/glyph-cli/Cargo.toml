@@ -1,0 +1,29 @@
+[package]
+name = "glyph-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Glyph CLI. Implements `glyph build / run / fmt / regen / publish / --explain`."
+
+[[bin]]
+name = "glyph"
+path = "src/main.rs"
+
+[dependencies]
+glyph-lexer.workspace = true
+glyph-ast.workspace = true
+glyph-parser.workspace = true
+glyph-resolver.workspace = true
+glyph-typechecker.workspace = true
+glyph-emit.workspace = true
+glyph-runtime.workspace = true
+
+clap.workspace = true
+tokio.workspace = true
+ariadne.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true

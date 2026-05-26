@@ -1,0 +1,71 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/glyph-lexer",
+    "crates/glyph-ast",
+    "crates/glyph-parser",
+    "crates/glyph-resolver",
+    "crates/glyph-typechecker",
+    "crates/glyph-emit",
+    "crates/glyph-runtime",
+    "crates/glyph-cli",
+]
+
+# Phase 0 (Q3 stdlib bootstrap + P5 library version lock).
+# Versions pinned per `docs/implementation-plan.md §P5`.
+# Update via brainstorm decision, not ad-hoc bumps.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+authors = ["Glyph contributors"]
+repository = "https://github.com/chadetov/glyph"
+
+[workspace.dependencies]
+# Incremental query architecture (brainstorm Q5 hybrid resolution).
+# Note: the crate that was tracked as "salsa-2022" during the rewrite has
+# reclaimed the canonical `salsa` crate name on crates.io. v0.26+ is the
+# rewrite (formerly "salsa-2022"); v0.16 was the legacy generation.
+salsa = "0.26"
+
+# Error rendering (Elm-quality bar per brainstorm Q6 resolution).
+ariadne = "0.4"
+
+# Internal error types in compiler crates.
+thiserror = "1"
+
+# Snapshot tests (Phase 1 week 1 onwards).
+insta = { version = "1", features = ["yaml"] }
+
+# Property-based testing (Phase 1 week 8).
+proptest = "1"
+
+# LSP framework (Phase 4 week 19+).
+tower-lsp = "0.20"
+
+# Async runtime for the LSP and `glyph run` subprocess.
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "process"] }
+
+# CLI parsing (glyph-cli only).
+clap = { version = "4", features = ["derive"] }
+
+# Serialization (config files, audit metadata in package.json).
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Inter-crate dependencies.
+glyph-lexer       = { path = "crates/glyph-lexer" }
+glyph-ast         = { path = "crates/glyph-ast" }
+glyph-parser      = { path = "crates/glyph-parser" }
+glyph-resolver    = { path = "crates/glyph-resolver" }
+glyph-typechecker = { path = "crates/glyph-typechecker" }
+glyph-emit        = { path = "crates/glyph-emit" }
+glyph-runtime     = { path = "crates/glyph-runtime" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1

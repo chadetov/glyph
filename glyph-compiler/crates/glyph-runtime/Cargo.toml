@@ -1,0 +1,17 @@
+[package]
+name = "glyph-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Sandboxed interpreter for D23 @example and D26 @doc @run blocks. Budget-bounded, no IO unless test capability is granted."
+
+[dependencies]
+glyph-ast.workspace = true
+glyph-typechecker.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+insta.workspace = true

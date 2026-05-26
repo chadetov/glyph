@@ -1,0 +1,16 @@
+[package]
+name = "glyph-lexer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Hand-written lexer for Glyph. Implements D1 (significant newlines), D12+D22 (strings with template literal interpolation), D13 (numeric literals), D14 (// comments), D17 (trailing commas), D21 (loop keywords), D27 (annotations)."
+
+[dependencies]
+thiserror.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+proptest.workspace = true

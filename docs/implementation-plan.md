@@ -989,3 +989,82 @@ day-2+ slice when `TypeMap` is populated.
 | **glyph-typechecker** | **6** | **+5**: 3 ty, 2 type_map |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **94** | **All pass** (up from 67) |
+
+## Phase 1 week 2 day 2 status (shipped 2026-05-26)
+
+**Second half of week-2 acceptance is met:** every expression node in every
+example file has a `Ty` entry in the `TypeMap`. Most entries are
+`Ty::Unknown` and will be refined by the week-3 bidirectional checker; this
+slice ships the side table and the static lowering that produces concrete
+types for the parts day-2 can compute directly.
+
+### Implemented this slice
+
+**glyph-typechecker** additions:
+- `lower.rs` (~140 LoC, 6 tests): `lower_type_expr(te, resolved, prelude) -> Ty`
+  turns a `glyph_ast::TypeExpr` into a `Ty` using the resolver's resolution
+  map. Handles `Path` against prelude primitives + generic containers + user
+  type decls, `Generic` lowering to `Ty::App`, function types, record types,
+  unions. Generic parameter references lower to `Ty::Param`. Multi-segment
+  paths (e.g. `http.Response`) lower to `Ty::Unknown` until cross-module pass
+  lands.
+- `assign.rs` (~270 LoC, 5 tests): `assign_types(module, resolved, prelude)
+  -> TypeMap` walks every expression and records a `Ty` for each. Concrete
+  types are emitted for the cases we can determine statically without
+  inference: number/string/template-string/bool/void literals, function
+  references (lower the signature), component references, lambda
+  expressions. Operator results, calls, member access, indexing, await, and
+  match are intentionally `Ty::Unknown` — propagating those is the bidirectional
+  checker's job in week 3.
+- `From<glyph_resolver::SymbolId> for SymbolRef` conversion at the
+  resolver↔typechecker boundary.
+
+**TypeMap and ResolutionMap keying fix:** both side tables previously keyed
+by `span.start` alone, which collides for nested chains like `foo.bar.baz`
+(three Member expressions all starting at byte 0). Fixed to key by the full
+`(start, end)` pair. A regression test in `type_map.rs` covers the
+foo.bar.baz case. Concrete type-entry counts on the examples roughly
+doubled after the fix — the prior keying was silently overwriting outer
+Member types with inner Ident types.
+
+### Acceptance
+
+| File | Expression spans | With Ty entry | Concrete (non-Unknown) |
+|---|---|---|---|
+| `01_validator.glyph` | 153 | 153 | 20 (12 string, 1 number, 7 fn) |
+| `02_async_errors.glyph` | 135 | 135 | 21 (6 string, 5 number, 10 fn) |
+| `03_react_component.glyph` | 101 | 101 | 10 (2 string, 2 number, 6 fn) |
+| `04_cli_tool.glyph` | 440 | 440 | 67 (25 string, 8 number, 4 bool, 24 fn) |
+
+**Week-2 acceptance — fully met:**
+- [x] Every example file resolves all names (day 1)
+- [x] Every expression node has a `Ty` entry (day 2)
+
+### Deferred to week 2 day 3+
+
+- **Cross-module verification** (`import std/result { Ok }` must check that
+  `Ok` exists in `std/result`). Needs synthetic stdlib module stubs or a
+  real module graph spanning files.
+- **Salsa wiring (I4)**. Pipeline is still pure-function pipe-by-hand;
+  wrap `parse → collect → resolve → typemap` as salsa-tracked queries with
+  per-file inputs and per-declaration intermediates.
+- **Local-binding type propagation**. Right now an `Ident` resolving to a
+  `Local` is `Ty::Unknown` even when the binding is a typed parameter. A
+  tiny scope→type-map side table during the assign walk would lift the
+  concrete-count substantially without crossing into week-3 inference
+  territory.
+
+### Test summary after week 2 day 2
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 21 | unchanged |
+| glyph-resolver (examples) | 3 | unchanged |
+| **glyph-typechecker (lib)** | **20** | **+14**: 6 lower, 5 assign, +1 type_map regression test, +2 ty (already there) |
+| **glyph-typechecker (examples)** | **2** | **+2**: every-expr-has-a-type, typed-count diagnostic |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **110** | **All pass** (up from 94) |

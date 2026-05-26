@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-05-26T11-00-46Z",
+  "measurements": [
+    {"function": "load_feed", "language": "glyph", "file": "glyph/load_feed.glyph", "lines": 20, "tokens": null, "diff_size": null},
+    {"function": "load_feed", "language": "typescript", "file": "typescript/load_feed.ts", "lines": 29, "tokens": null, "diff_size": null},
+    {"function": "load_feed", "language": "python", "file": "python/load_feed.py", "lines": 32, "tokens": null, "diff_size": null},
+    {"function": "load_feed", "language": "rust", "file": "rust/load_feed.rs", "lines": 38, "tokens": null, "diff_size": null},
+    {"function": "parse_user", "language": "glyph", "file": "glyph/parse_user.glyph", "lines": 18, "tokens": null, "diff_size": null},
+    {"function": "parse_user", "language": "typescript", "file": "typescript/parse_user.ts", "lines": 20, "tokens": null, "diff_size": null},
+    {"function": "parse_user", "language": "python", "file": "python/parse_user.py", "lines": 22, "tokens": null, "diff_size": null},
+    {"function": "parse_user", "language": "rust", "file": "rust/parse_user.rs", "lines": 20, "tokens": null, "diff_size": null},
+    {"function": "slugify", "language": "glyph", "file": "glyph/slugify.glyph", "lines": 8, "tokens": null, "diff_size": null},
+    {"function": "slugify", "language": "typescript", "file": "typescript/slugify.ts", "lines": 6, "tokens": null, "diff_size": null},
+    {"function": "slugify", "language": "python", "file": "python/slugify.py", "lines": 3, "tokens": null, "diff_size": null},
+    {"function": "slugify", "language": "rust", "file": "rust/slugify.rs", "lines": 9, "tokens": null, "diff_size": null}
+  ]
+}

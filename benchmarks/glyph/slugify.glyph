@@ -1,0 +1,10 @@
+module slugify
+
+import std/string
+
+fn slugify(s: string) -> string {
+  return s
+    .to_lower_case()
+    .replace_all(/[^a-z0-9]+/, "-")
+    .trim_matches("-")
+}

@@ -1,0 +1,26 @@
+module load_feed
+
+import std/result { Result, Ok, Err }
+import std/http
+
+type Feed = {
+  user_id: string,
+  posts: Array<string>,
+}
+
+type FeedError =
+  | NetworkError({ status: number })
+  | DecodeError({ reason: string })
+
+async fn load_feed(user_id: string) -> Result<Feed, FeedError> {
+  let user_resp = await http.get("/api/users/${user_id}")?
+    .map_err(fn(e) { NetworkError({ status: e.status }) })
+
+  let posts_resp = await http.get("/api/users/${user_id}/posts")?
+    .map_err(fn(e) { NetworkError({ status: e.status }) })
+
+  return Ok({
+    user_id: user_id,
+    posts: posts_resp.body.titles,
+  })
+}

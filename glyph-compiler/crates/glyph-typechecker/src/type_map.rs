@@ -1,13 +1,10 @@
 //! `TypeMap` — the side table that records the inferred / declared `Ty` for
 //! every expression in a module.
 //!
-//! Indexed by the expression's span (`u32 start`). Storing on `Span` rather
-//! than `&Expr` lets the typechecker run as a pure function of the AST without
-//! holding lifetimes; salsa wraps this cleanly in week 2 day-3+.
-//!
-//! Spans in Glyph come straight from the lexer's byte offsets. The parser
-//! guarantees every `Expr` carries a unique span (no two expressions in the
-//! same module share start bytes), so `start` is a stable key.
+//! Indexed by the expression's full `Span` (start + end). The start byte
+//! alone isn't unique: nested chains like `foo.bar.baz` produce three Member
+//! expressions all starting at byte 0. Salsa wraps this cleanly in week 2
+//! day-3+; until then it's a plain hash map.
 
 use std::collections::HashMap;
 
@@ -19,7 +16,7 @@ const UNKNOWN: Ty = Ty::Unknown;
 
 #[derive(Debug, Default, Clone)]
 pub struct TypeMap {
-    by_span_start: HashMap<u32, Ty>,
+    by_span: HashMap<(u32, u32), Ty>,
 }
 
 impl TypeMap {
@@ -30,7 +27,7 @@ impl TypeMap {
     /// Record `ty` as the type of the expression at `span`. Last write wins —
     /// callers should write each expression once.
     pub fn insert(&mut self, span: Span, ty: Ty) {
-        self.by_span_start.insert(span.start, ty);
+        self.by_span.insert((span.start, span.end), ty);
     }
 
     /// Look up the type for the expression at `span`. Returns a reference to
@@ -38,7 +35,16 @@ impl TypeMap {
     /// Callers that mutate must clone explicitly; the salsa-wrapped reader
     /// path stays clone-free.
     pub fn get(&self, span: Span) -> &Ty {
-        self.by_span_start.get(&span.start).unwrap_or(&UNKNOWN)
+        self.by_span
+            .get(&(span.start, span.end))
+            .unwrap_or(&UNKNOWN)
+    }
+
+    /// True iff `span` has a recorded type (whether or not it's `Unknown`).
+    /// Distinct from `get` returning `Ty::Unknown`: a sentinel `Unknown` means
+    /// "no entry"; a stored `Unknown` means "I looked and don't know yet."
+    pub fn has_entry(&self, span: Span) -> bool {
+        self.by_span.contains_key(&(span.start, span.end))
     }
 }
 
@@ -59,5 +65,19 @@ mod tests {
     fn missing_lookup_returns_unknown() {
         let m = TypeMap::new();
         assert!(m.get(Span::new(0, 1)).is_unknown());
+    }
+
+    #[test]
+    fn distinct_spans_with_same_start_do_not_collide() {
+        let mut m = TypeMap::new();
+        let outer = Span::new(0, 11); // foo.bar.baz
+        let middle = Span::new(0, 7); //  foo.bar
+        let inner = Span::new(0, 3); //   foo
+        m.insert(outer, Ty::Unknown);
+        m.insert(middle, Ty::Prim(Primitive::Number));
+        m.insert(inner, Ty::Prim(Primitive::String));
+        assert!(matches!(m.get(inner), Ty::Prim(Primitive::String)));
+        assert!(matches!(m.get(middle), Ty::Prim(Primitive::Number)));
+        assert!(matches!(m.get(outer), Ty::Unknown));
     }
 }

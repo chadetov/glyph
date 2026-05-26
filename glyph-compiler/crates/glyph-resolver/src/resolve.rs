@@ -53,7 +53,7 @@ pub struct ResolvedModule {
 
 #[derive(Debug, Default, Clone)]
 pub struct ResolutionMap {
-    by_span_start: HashMap<u32, ResolvedRef>,
+    by_span: HashMap<(u32, u32), ResolvedRef>,
 }
 
 impl ResolutionMap {
@@ -62,22 +62,24 @@ impl ResolutionMap {
     }
 
     pub fn insert(&mut self, span: Span, r: ResolvedRef) {
-        self.by_span_start.insert(span.start, r);
+        self.by_span.insert((span.start, span.end), r);
     }
 
     pub fn get(&self, span: Span) -> Option<ResolvedRef> {
-        self.by_span_start.get(&span.start).copied()
+        self.by_span.get(&(span.start, span.end)).copied()
     }
 
     pub fn len(&self) -> usize {
-        self.by_span_start.len()
+        self.by_span.len()
     }
 
     /// Iterate over every recorded resolution. Used by tests and by the
     /// typechecker, which needs to know "what each name in scope actually
     /// pointed at."
-    pub fn iter(&self) -> impl Iterator<Item = (u32, ResolvedRef)> + '_ {
-        self.by_span_start.iter().map(|(k, v)| (*k, *v))
+    pub fn iter(&self) -> impl Iterator<Item = (Span, ResolvedRef)> + '_ {
+        self.by_span
+            .iter()
+            .map(|((s, e), v)| (Span::new(*s, *e), *v))
     }
 }
 

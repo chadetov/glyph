@@ -1,0 +1,38 @@
+# Rust build output
+target/
+**/*.rs.bk
+*.pdb
+
+# Cargo
+# (Cargo.lock at the workspace root IS committed because the workspace
+# ships a binary crate; per-crate Cargo.lock files in nested manifests
+# should not appear.)
+
+# insta pending snapshots awaiting review
+*.snap.new
+
+# Editor and IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local scratchpads
+TODO.local.md
+NOTES.local.md
+
+# Transient files produced by running the example CLI
+**/.todos.json

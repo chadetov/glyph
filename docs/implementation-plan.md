@@ -1068,3 +1068,65 @@ Member types with inner Ident types.
 | **glyph-typechecker (examples)** | **2** | **+2**: every-expr-has-a-type, typed-count diagnostic |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **110** | **All pass** (up from 94) |
+
+## Phase 1 week 2 day 3 status (shipped 2026-05-26)
+
+**Local-binding type propagation lands.** Identifier references to typed
+function/component/lambda parameters and to typed `let` bindings now resolve
+to their declared type instead of `Ty::Unknown`. The concrete-entry count
+roughly doubles on every example.
+
+### Implemented this slice
+
+`Assigner` gained a `local_tys: HashMap<u32, Ty>` keyed by the resolver's
+def-site span start (the same key `ResolvedRef::Local` carries). The map is
+populated from three sources:
+
+- Function and component parameters — via a new `bind_param_tys` helper
+  called once per declaration before walking its body.
+- Lambda parameters — same helper at the `Expr::Lambda` arm of `walk_expr`.
+- Typed `let` bindings — the `Stmt::Let` arm lowers `l.ty` if present and
+  records the result under `l.span.start`.
+
+`type_of_ident_ref` consults the map for `ResolvedRef::Local(def_start)`
+before falling through to `Ty::Unknown`. Untyped `let` bindings, for-loop
+bindings (which share a def-site span across K/V), and match-arm payload
+bindings remain `Unknown` — the bidirectional checker handles those in
+week 3.
+
+### Acceptance
+
+| File | Concrete entries — before day 3 | After day 3 |
+|---|---|---|
+| `01_validator.glyph` | 20 | 37 |
+| `02_async_errors.glyph` | 21 | 34 |
+| `03_react_component.glyph` | 10 | 19 |
+| `04_cli_tool.glyph` | 67 | 80 |
+
+The lift is largest where the example has many typed parameters that get
+read multiple times in the body.
+
+### Test summary after week 2 day 3
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 21 | unchanged |
+| glyph-resolver (examples) | 3 | unchanged |
+| **glyph-typechecker (lib)** | **23** | **+3**: typed-param propagates, typed-let propagates, untyped-let stays unknown, lambda-param propagates (replaced one obsolete negative test) |
+| glyph-typechecker (examples) | 2 | unchanged |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **113** | **All pass** (up from 110) |
+
+### Still deferred to week 2 day 4+
+
+- **Cross-module verification**. Stdlib stubs and a module graph.
+- **Salsa wiring (I4)**.
+- **For-loop binding spans**. Currently two bindings on `for k, v in iter`
+  share a def-site span; either give bindings per-binding spans (AST
+  change) or accept that K and V are not differentiable in `local_tys`.
+- **Match-arm payload typing**. Needs scrutinee→pattern type flow, which is
+  bidirectional-checker territory.

@@ -1,0 +1,753 @@
+//! Intra-module name resolution.
+//!
+//! Walks every expression and pattern in a `Module`, mapping each identifier
+//! reference to either a local binding, a module-level symbol, an imported
+//! symbol, or a prelude built-in. Produces a `ResolvedModule` that owns:
+//! - the original `ModuleSymbols` (top-level symbol table)
+//! - a `ResolutionMap` keyed by ident span → `ResolvedRef`
+//!
+//! Local scopes (function parameters, `let`s inside blocks, match-arm
+//! bindings, for-loop bindings, lambda params) are managed via a stack of
+//! `HashMap<Ident, LocalId>` frames during the walk. Locals are not interned
+//! into the symbol table — they're transient and don't need stable ids
+//! beyond the walk itself.
+//!
+//! Cross-module resolution (imports → foreign module exports) is deferred to
+//! week 2 day 3+. In this slice, an `ImportNamed` symbol resolves "in the
+//! local module" (the importing module knows the name exists); the
+//! typechecker doesn't yet check the target export.
+
+use std::collections::HashMap;
+
+use glyph_ast::{
+    ArrayElem, Block, Decl, Expr, GenericParam, Ident, JsxAttr, JsxChild, JsxElement, MatchArmBody,
+    Module, ObjectField, Param, Pattern, Span, Stmt, TemplatePart, TypeExpr,
+};
+
+use crate::collect::ModuleSymbols;
+use crate::error::ResolveError;
+use crate::prelude::Prelude;
+use crate::symbol::SymbolId;
+
+/// What a name resolved to. Stored once per ident reference (keyed by the
+/// reference span, not the definition span).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolvedRef {
+    /// Module-level symbol — top-level decl, or import.
+    Module(SymbolId),
+    /// Prelude built-in.
+    Prelude(SymbolId),
+    /// A local binding introduced by the function body: param, `let`, `mut`,
+    /// match binding, `for` binding, lambda param. The `u32` is the binding's
+    /// definition-site span start — stable for the lifetime of the AST.
+    Local(u32),
+}
+
+/// The output of `resolve_module`: the symbol table + a span-indexed
+/// resolution map.
+#[derive(Debug, Clone)]
+pub struct ResolvedModule {
+    pub symbols: ModuleSymbols,
+    pub resolutions: ResolutionMap,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ResolutionMap {
+    by_span_start: HashMap<u32, ResolvedRef>,
+}
+
+impl ResolutionMap {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn insert(&mut self, span: Span, r: ResolvedRef) {
+        self.by_span_start.insert(span.start, r);
+    }
+
+    pub fn get(&self, span: Span) -> Option<ResolvedRef> {
+        self.by_span_start.get(&span.start).copied()
+    }
+
+    pub fn len(&self) -> usize {
+        self.by_span_start.len()
+    }
+
+    /// Iterate over every recorded resolution. Used by tests and by the
+    /// typechecker, which needs to know "what each name in scope actually
+    /// pointed at."
+    pub fn iter(&self) -> impl Iterator<Item = (u32, ResolvedRef)> + '_ {
+        self.by_span_start.iter().map(|(k, v)| (*k, *v))
+    }
+}
+
+/// Resolve every identifier reference in `module`. Local bindings are scoped
+/// per function body; top-level decls and imports use `symbols`; everything
+/// else falls through to `prelude`.
+///
+/// Returns the resolved module plus any errors encountered. Errors do not
+/// abort the walk — the resolver records `Unresolved` references and keeps
+/// going, so a single pass reports every unresolved name at once.
+pub fn resolve_module(
+    module: &Module,
+    symbols: ModuleSymbols,
+    prelude: &Prelude,
+) -> (ResolvedModule, Vec<ResolveError>) {
+    let mut walker = Resolver {
+        symbols: &symbols,
+        prelude,
+        scopes: Vec::new(),
+        resolutions: ResolutionMap::new(),
+        errors: Vec::new(),
+    };
+
+    for item in &module.items {
+        walker.walk_decl(item);
+    }
+
+    let Resolver {
+        resolutions, errors, ..
+    } = walker;
+    (
+        ResolvedModule {
+            symbols,
+            resolutions,
+        },
+        errors,
+    )
+}
+
+// ============================================================================
+// JSX classifier
+// ============================================================================
+
+/// What kind of element a JSX tag is. Drives directive-specific name
+/// resolution: `<for>` and `<case>` introduce bindings; intrinsics like `<div>`
+/// don't resolve as references; component-shaped names (uppercase) do.
+///
+/// The directive name list is duplicated from the parser's `jsx.rs`. If a new
+/// directive lands, both lists need updating — same drift risk the `KEYWORDS`
+/// table fixed for the lexer. Worth promoting to a shared `glyph-ast` helper
+/// if the count grows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum JsxKind {
+    Intrinsic,
+    Component,
+    If,
+    Else,
+    For,
+    Match,
+    Case,
+}
+
+impl JsxKind {
+    fn classify(name: &Ident) -> Self {
+        match name.as_ref() {
+            "if" => JsxKind::If,
+            "else" => JsxKind::Else,
+            "for" => JsxKind::For,
+            "match" => JsxKind::Match,
+            "case" => JsxKind::Case,
+            other => {
+                if other
+                    .chars()
+                    .next()
+                    .map(|c| c.is_ascii_lowercase())
+                    .unwrap_or(false)
+                {
+                    JsxKind::Intrinsic
+                } else {
+                    JsxKind::Component
+                }
+            }
+        }
+    }
+}
+
+fn find_expr_attr<'a>(attrs: &'a [JsxAttr], name: &str) -> Option<&'a Expr> {
+    attrs.iter().find_map(|a| match a {
+        JsxAttr::Expr { name: n, value, .. } if n.as_ref() == name => Some(value),
+        _ => None,
+    })
+}
+
+fn first_positional(attrs: &[JsxAttr]) -> Option<(&Ident, Span)> {
+    attrs.iter().find_map(|a| match a {
+        JsxAttr::Positional { name, span } => Some((name, *span)),
+        _ => None,
+    })
+}
+
+// ============================================================================
+// Walker
+// ============================================================================
+
+struct Resolver<'a> {
+    symbols: &'a ModuleSymbols,
+    prelude: &'a Prelude,
+    /// Stack of local scopes. Each scope maps name → defining-site span start.
+    scopes: Vec<HashMap<Ident, u32>>,
+    resolutions: ResolutionMap,
+    errors: Vec<ResolveError>,
+}
+
+impl Resolver<'_> {
+    fn push_scope(&mut self) {
+        self.scopes.push(HashMap::new());
+    }
+
+    fn pop_scope(&mut self) {
+        self.scopes.pop();
+    }
+
+    fn bind_local(&mut self, name: Ident, def_span: Span) {
+        if let Some(top) = self.scopes.last_mut() {
+            top.insert(name, def_span.start);
+        }
+    }
+
+    fn lookup_local(&self, name: &str) -> Option<u32> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(start) = scope.get(name).copied() {
+                return Some(start);
+            }
+        }
+        None
+    }
+
+    /// Resolve a name *reference* at `ref_span`. Records the resolution into
+    /// `resolutions` and emits an unresolved-name error if no match is found.
+    fn resolve_name_ref(&mut self, name: &Ident, ref_span: Span) {
+        if let Some(start) = self.lookup_local(name) {
+            self.resolutions
+                .insert(ref_span, ResolvedRef::Local(start));
+            return;
+        }
+        if let Some(id) = self.symbols.lookup(name) {
+            self.resolutions.insert(ref_span, ResolvedRef::Module(id));
+            return;
+        }
+        if let Some(id) = self.prelude.lookup(name) {
+            self.resolutions.insert(ref_span, ResolvedRef::Prelude(id));
+            return;
+        }
+        self.errors.push(ResolveError::UnresolvedName {
+            name: name.to_string(),
+            span: ref_span,
+        });
+    }
+
+    /// Shared body for `fn` and `component` declarations (D4 + D19): push a
+    /// scope, bind generics + params, walk the signature types and the body.
+    fn walk_callable(
+        &mut self,
+        generics: &[GenericParam],
+        params: &[Param],
+        return_ty: Option<&TypeExpr>,
+        body: &Block,
+    ) {
+        self.push_scope();
+        // D7 generics are in scope for the whole signature and body.
+        for g in generics {
+            self.bind_local(g.name.clone(), g.span);
+        }
+        for p in params {
+            self.bind_local(p.name.clone(), p.span);
+            self.walk_type_expr(&p.ty);
+        }
+        if let Some(rt) = return_ty {
+            self.walk_type_expr(rt);
+        }
+        self.walk_block(body);
+        self.pop_scope();
+    }
+
+    // ----- decls -----
+
+    fn walk_decl(&mut self, decl: &Decl) {
+        match decl {
+            Decl::Import(_) => {}
+            Decl::Fn(f) => self.walk_callable(&f.generics, &f.params, f.return_ty.as_ref(), &f.body),
+            Decl::Component(c) => {
+                self.walk_callable(&c.generics, &c.params, c.return_ty.as_ref(), &c.body)
+            }
+            Decl::Type(t) => {
+                // Type-decl generic params are in scope for the body of the
+                // type declaration only. `type Schema<T> = { parse: fn(...) -> Result<T, ...> }`
+                // needs `T` visible inside the body.
+                self.push_scope();
+                for g in &t.generics {
+                    self.bind_local(g.name.clone(), g.span);
+                }
+                self.walk_type_expr(&t.body);
+                self.pop_scope();
+            }
+            Decl::Const(c) => {
+                if let Some(ty) = &c.ty {
+                    self.walk_type_expr(ty);
+                }
+                // `const` bodies are module-level expressions; no function
+                // scope, but expression resolution still needs to traverse
+                // them. Push an empty scope so `lookup_local` finds nothing.
+                self.push_scope();
+                self.walk_expr(&c.value);
+                self.pop_scope();
+            }
+        }
+    }
+
+    // ----- blocks / stmts -----
+
+    fn walk_block(&mut self, block: &Block) {
+        // Each block gets a nested scope so `let` bindings inside don't leak.
+        self.push_scope();
+        for s in &block.stmts {
+            self.walk_stmt(s);
+        }
+        self.pop_scope();
+    }
+
+    fn walk_stmt(&mut self, stmt: &Stmt) {
+        match stmt {
+            Stmt::Let(l) => {
+                if let Some(ty) = &l.ty {
+                    self.walk_type_expr(ty);
+                }
+                self.walk_expr(&l.value);
+                // Binding is visible *after* the initializer (sequential let).
+                self.bind_local(l.name.clone(), l.span);
+            }
+            Stmt::Mut(m) => match &m.kind {
+                glyph_ast::MutKind::Assign { target, value } => {
+                    // `target` is an existing binding; resolve it. The Mut node
+                    // doesn't carry the target's reference span separately, so
+                    // we record against the statement span.
+                    self.resolve_name_ref(target, m.span);
+                    self.walk_expr(value);
+                }
+                glyph_ast::MutKind::AssignIndex {
+                    target,
+                    index,
+                    value,
+                } => {
+                    self.resolve_name_ref(target, m.span);
+                    self.walk_expr(index);
+                    self.walk_expr(value);
+                }
+                glyph_ast::MutKind::AssignField {
+                    target,
+                    field: _,
+                    value,
+                } => {
+                    self.resolve_name_ref(target, m.span);
+                    self.walk_expr(value);
+                }
+                glyph_ast::MutKind::MethodCall { receiver, call } => {
+                    self.walk_expr(receiver);
+                    self.walk_expr(call);
+                }
+            },
+            Stmt::Return(r) => {
+                if let Some(v) = &r.value {
+                    self.walk_expr(v);
+                }
+            }
+            Stmt::For(f) => {
+                self.walk_expr(&f.iter);
+                self.push_scope();
+                for b in &f.bindings {
+                    // For-binding spans are the statement's span — we don't
+                    // have per-binding spans in `ForStmt`. Use the for span as
+                    // the def-site marker. (Two bindings share a marker, but
+                    // local refs only need *some* def-site key.)
+                    self.bind_local(b.clone(), f.span);
+                }
+                self.walk_block(&f.body);
+                self.pop_scope();
+            }
+            Stmt::Loop(l) => self.walk_block(&l.body),
+            Stmt::Break(_) | Stmt::Continue(_) => {}
+            Stmt::Expr(e) => self.walk_expr(e),
+        }
+    }
+
+    // ----- expressions -----
+
+    fn walk_expr(&mut self, expr: &Expr) {
+        match expr {
+            Expr::Number { .. }
+            | Expr::String { .. }
+            | Expr::Bool { .. }
+            | Expr::Void { .. } => {}
+            Expr::TemplateString { parts, .. } => {
+                for p in parts {
+                    if let TemplatePart::Expr { value, .. } = p {
+                        self.walk_expr(value);
+                    }
+                }
+            }
+            Expr::Ident { name, span } => self.resolve_name_ref(name, *span),
+            Expr::Binary { left, right, .. } => {
+                self.walk_expr(left);
+                self.walk_expr(right);
+            }
+            Expr::Unary { operand, .. } => self.walk_expr(operand),
+            Expr::Postfix { operand, .. } => self.walk_expr(operand),
+            Expr::Call {
+                callee,
+                type_args,
+                args,
+                ..
+            } => {
+                self.walk_expr(callee);
+                for t in type_args {
+                    self.walk_type_expr(t);
+                }
+                for a in args {
+                    self.walk_expr(a);
+                }
+            }
+            Expr::Member { object, .. } => self.walk_expr(object),
+            Expr::Index { object, index, .. } => {
+                self.walk_expr(object);
+                self.walk_expr(index);
+            }
+            Expr::Await { expr, .. } => self.walk_expr(expr),
+            Expr::Array { elements, .. } => {
+                for e in elements {
+                    match e {
+                        ArrayElem::Expr(e) | ArrayElem::Spread(e) => self.walk_expr(e),
+                    }
+                }
+            }
+            Expr::Object { fields, .. } => {
+                for f in fields {
+                    match f {
+                        ObjectField::KeyValue { value, .. } => self.walk_expr(value),
+                        ObjectField::Spread { value, .. } => self.walk_expr(value),
+                    }
+                }
+            }
+            Expr::Match { scrutinee, arms, .. } => {
+                self.walk_expr(scrutinee);
+                for arm in arms {
+                    self.push_scope();
+                    self.walk_pattern(&arm.pattern);
+                    match &arm.body {
+                        MatchArmBody::Expr(e) => self.walk_expr(e),
+                        // Pattern bindings must be visible in the block body,
+                        // so we walk stmts directly instead of `walk_block`
+                        // (which would push a fresh scope and hide them).
+                        MatchArmBody::Block(b) => {
+                            for s in &b.stmts {
+                                self.walk_stmt(s);
+                            }
+                        }
+                    }
+                    self.pop_scope();
+                }
+            }
+            Expr::Lambda {
+                params,
+                return_ty,
+                body,
+                ..
+            } => {
+                self.push_scope();
+                for p in params {
+                    self.bind_local(p.name.clone(), p.span);
+                    self.walk_type_expr(&p.ty);
+                }
+                if let Some(rt) = return_ty {
+                    self.walk_type_expr(rt);
+                }
+                self.walk_block(body);
+                self.pop_scope();
+            }
+            Expr::Jsx(j) => self.walk_jsx(j),
+        }
+    }
+
+    fn walk_jsx(&mut self, j: &JsxElement) {
+        let kind = JsxKind::classify(&j.name);
+        if kind == JsxKind::Component {
+            self.resolve_name_ref(&j.name, j.span);
+        }
+
+        // Directive bindings introduce locals scoped to the element:
+        // - `<for X in={iter} ...>` — first positional attr `X` is the loop
+        //   variable. `in={...}` evaluates in the *outer* scope so the
+        //   iterable can't accidentally see the binding.
+        // - `<case Variant bind={X}>` — `bind={X}` introduces `X` as a binding
+        //   visible to the element's children.
+        if kind == JsxKind::For {
+            if let Some(iter_expr) = find_expr_attr(&j.attrs, "in") {
+                self.walk_expr(iter_expr);
+            }
+        }
+
+        self.push_scope();
+
+        if kind == JsxKind::For {
+            if let Some((name, span)) = first_positional(&j.attrs) {
+                self.bind_local(name.clone(), span);
+            }
+        }
+        if kind == JsxKind::Case {
+            if let Some(Expr::Ident {
+                name: bind_name,
+                span: bind_span,
+            }) = find_expr_attr(&j.attrs, "bind")
+            {
+                self.bind_local(bind_name.clone(), *bind_span);
+            }
+        }
+
+        for attr in &j.attrs {
+            match attr {
+                JsxAttr::String { .. } => {}
+                JsxAttr::Expr { name, value, .. } => {
+                    // Skip the directive-binding attrs already handled.
+                    let consumed = (kind == JsxKind::For && name.as_ref() == "in")
+                        || (kind == JsxKind::Case && name.as_ref() == "bind");
+                    if !consumed {
+                        self.walk_expr(value);
+                    }
+                }
+                JsxAttr::Positional { name, span } => {
+                    if kind == JsxKind::For {
+                        // Already consumed as the loop binding.
+                        continue;
+                    }
+                    self.resolve_name_ref(name, *span);
+                }
+            }
+        }
+
+        for child in &j.children {
+            match child {
+                JsxChild::Element(e) => self.walk_jsx(e),
+                JsxChild::Expr(e) => self.walk_expr(e),
+                JsxChild::Text { .. } => {}
+            }
+        }
+
+        self.pop_scope();
+    }
+
+    // ----- patterns -----
+
+    fn walk_pattern(&mut self, p: &Pattern) {
+        match p {
+            Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Literal { .. } => {}
+            Pattern::Ident { name, span } => {
+                // Identifier patterns introduce a new binding into the
+                // arm's scope.
+                self.bind_local(name.clone(), *span);
+            }
+            Pattern::Constructor { path, args, span } => {
+                // Constructor path: resolve the first segment as a name
+                // reference (the rest is dotted lookup, handled by the
+                // typechecker). E.g. `Ok(x)` resolves `Ok`; `fs.ErrorKind.NotFound`
+                // resolves `fs`.
+                if let Some(first) = path.first() {
+                    self.resolve_name_ref(first, *span);
+                }
+                for arg in args {
+                    self.walk_pattern(arg);
+                }
+            }
+            Pattern::Object { fields, .. } => {
+                for f in fields {
+                    // `{ name }` binds `name`; `{ name: alias }` binds `alias`.
+                    let binding_name = f.binding.clone().unwrap_or_else(|| f.key.clone());
+                    self.bind_local(binding_name, f.span);
+                }
+            }
+            Pattern::Array { elements, rest, .. } => {
+                for el in elements {
+                    self.walk_pattern(el);
+                }
+                if let Some(r) = rest {
+                    self.walk_pattern(r);
+                }
+            }
+            Pattern::IsType { ty, .. } => {
+                self.walk_type_expr(ty);
+            }
+        }
+    }
+
+    // ----- type expressions -----
+
+    fn walk_type_expr(&mut self, te: &TypeExpr) {
+        match te {
+            TypeExpr::Path { segments, span } => {
+                if let Some(first) = segments.first() {
+                    // Single-segment paths resolve against the local module
+                    // and prelude. Multi-segment paths' first segment resolves
+                    // similarly; subsequent segments are members handled by
+                    // the typechecker.
+                    self.resolve_name_ref(first, *span);
+                }
+            }
+            TypeExpr::Generic { base, args, .. } => {
+                self.walk_type_expr(base);
+                for a in args {
+                    self.walk_type_expr(a);
+                }
+            }
+            TypeExpr::Fn { params, return_ty, .. } => {
+                for p in params {
+                    self.walk_type_expr(&p.ty);
+                }
+                if let Some(rt) = return_ty {
+                    self.walk_type_expr(rt);
+                }
+            }
+            TypeExpr::Record { fields, .. } => {
+                for f in fields {
+                    self.walk_type_expr(&f.ty);
+                }
+            }
+            TypeExpr::Union { variants, .. } => {
+                for v in variants {
+                    if let Some(p) = &v.payload {
+                        self.walk_type_expr(p);
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::collect::collect_module_symbols;
+    use crate::prelude::build_prelude;
+    use glyph_parser::parse;
+
+    fn resolve(src: &str) -> (ResolvedModule, Vec<ResolveError>) {
+        let m = parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).expect("collect failed");
+        let prelude = build_prelude();
+        resolve_module(&m, syms, &prelude)
+    }
+
+    #[test]
+    fn fn_param_resolves_to_local() {
+        let (rm, errs) = resolve("module x\nfn id(a: number) -> number { return a }\n");
+        assert!(errs.is_empty(), "errors: {errs:?}");
+        assert!(rm.resolutions.len() > 0, "should have resolved `a` ref");
+        // Find the resolved entry that's a Local.
+        let any_local = rm
+            .resolutions
+            .iter()
+            .any(|(_, r)| matches!(r, ResolvedRef::Local(_)));
+        assert!(any_local);
+    }
+
+    #[test]
+    fn module_decl_resolves_call_site() {
+        let src = r#"module x
+fn helper() -> number { return 1 }
+fn main() -> number { return helper() }
+"#;
+        let (rm, errs) = resolve(src);
+        assert!(errs.is_empty(), "errors: {errs:?}");
+        let any_module = rm
+            .resolutions
+            .iter()
+            .any(|(_, r)| matches!(r, ResolvedRef::Module(_)));
+        assert!(any_module);
+    }
+
+    #[test]
+    fn prelude_ok_resolves() {
+        let src = r#"module x
+fn one() -> number { return 1 }
+fn main() { let _r = Ok(one()) }
+"#;
+        let (rm, errs) = resolve(src);
+        assert!(errs.is_empty(), "errors: {errs:?}");
+        let any_prelude = rm
+            .resolutions
+            .iter()
+            .any(|(_, r)| matches!(r, ResolvedRef::Prelude(_)));
+        assert!(any_prelude, "expected at least one prelude resolution");
+    }
+
+    #[test]
+    fn unresolved_name_errors() {
+        let (_, errs) = resolve("module x\nfn main() { return missing }\n");
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "missing")),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn match_arm_binding_visible_in_body() {
+        let src = r#"module x
+fn handle(r: number) -> number {
+  return match r {
+    Ok(v) => v,
+    Err(_) => 0,
+  }
+}
+"#;
+        let (_, errs) = resolve(src);
+        // `v` should resolve — it's bound by the Ok arm and used as the body.
+        assert!(
+            !errs.iter()
+                .any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "v")),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn for_binding_visible_in_body() {
+        let src = r#"module x
+fn sum(xs: number) -> number {
+  for item in xs {
+    return item
+  }
+  return 0
+}
+"#;
+        let (_, errs) = resolve(src);
+        assert!(
+            !errs.iter()
+                .any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "item")),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn lambda_param_visible_in_body() {
+        let src = r#"module x
+fn make() -> number {
+  let f = fn(y: number) -> number { return y + 1 }
+  return 0
+}
+"#;
+        let (_, errs) = resolve(src);
+        assert!(
+            !errs.iter()
+                .any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "y")),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn type_decl_named_ref_resolves() {
+        let src = r#"module x
+type Issue = { message: string }
+type Bundle = { issue: Issue }
+"#;
+        let (_, errs) = resolve(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+}

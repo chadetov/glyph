@@ -1,37 +1,43 @@
-//! Glyph resolver — stub for Phase 0.
+//! Glyph resolver — Phase 1 week 2.
 //!
-//! Name resolution + module graph (Phase 1 week 2). **Salsa-backed from day
-//! one** per the Q5 hybrid resolution: typecheck path uses incremental
-//! queries; emission path uses a dumb visitor.
+//! Two responsibilities:
+//! - Build a `SymbolTable` of every top-level declaration and import in a
+//!   `Module`.
+//! - Walk every expression and pattern, mapping each identifier reference to
+//!   either a local binding, a module-level symbol, an imported symbol, or a
+//!   prelude built-in. Unresolved names produce structured `ResolveError`s.
+//!
+//! Salsa-backed per Q5 hybrid: the day-3+ slice wraps `collect_module_symbols`
+//! and `resolve_module` as tracked queries (I4 — per-file inputs,
+//! per-declaration intermediates). Until then both are pure functions of the
+//! AST; the API is salsa-shaped already.
 //!
 //! Implements (Phase 1 week 2):
-//! - D15 three import forms; no barrel files, no re-exports, no relative imports
+//! - D15 three import forms; no relative imports (barrel-file and re-export
+//!   detection arrive in week 2 day 3+ once the module graph spans files)
 //! - D19 `component` declarations resolved like `fn` declarations
-//! - D20 `const` resolved at module scope; `let` at function scope
+//! - D20 `const` module-level, `let` function-level (parser enforces;
+//!   resolver trusts the grammar)
 //! - D4  `fn` declaration vs anonymous expression
-//!
-//! Query database (planned): source file → tokens → AST → resolved module → typed module.
-//! Inputs at file granularity; intermediate queries memoized.
 
 #![forbid(unsafe_code)]
 
-#[derive(Debug, thiserror::Error)]
-pub enum ResolveError {
-    #[error("phase 0 stub: resolver not implemented")]
-    NotImplemented,
-}
+mod collect;
+mod error;
+mod prelude;
+mod resolve;
+mod symbol;
 
-/// Phase 0 stub. Real implementation lands Phase 1 week 2.
-pub fn resolve_module() -> Result<(), ResolveError> {
-    Err(ResolveError::NotImplemented)
-}
+pub use collect::{collect_module_symbols, ModuleSymbols};
+pub use error::ResolveError;
+pub use prelude::{build_prelude, Prelude};
+pub use resolve::{resolve_module, ResolvedModule, ResolvedRef};
+pub use symbol::{PreludeKind, Symbol, SymbolId, SymbolKind, SymbolTable};
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
+mod smoke {
     #[test]
-    fn phase_0_stub_compiles() {
-        assert!(resolve_module().is_err());
+    fn library_exports_compile() {
+        let _ = super::build_prelude();
     }
 }

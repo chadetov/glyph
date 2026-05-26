@@ -349,6 +349,7 @@ name = "glyph-resolver"
 version = "0.1.0"
 dependencies = [
  "glyph-ast",
+ "glyph-parser",
  "insta",
  "salsa",
  "thiserror",

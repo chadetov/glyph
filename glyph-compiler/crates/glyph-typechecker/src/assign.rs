@@ -33,6 +33,7 @@ pub fn assign_types(module: &Module, resolved: &ResolvedModule, prelude: &Prelud
         resolved,
         tm: &mut tm,
         decl_ty_cache: HashMap::new(),
+        local_tys: HashMap::new(),
     };
     for decl in &module.items {
         assigner.walk_decl(decl);
@@ -48,6 +49,13 @@ struct Assigner<'a> {
     /// Memoize the `Ty::Fn` lowered from a `fn` or `component` declaration so
     /// every reference to the same name pays the lowering cost once.
     decl_ty_cache: HashMap<u32, Ty>,
+    /// Type of each locally-bound name, keyed by the def-site span start the
+    /// resolver records in `ResolvedRef::Local`. Populated from typed function
+    /// / component / lambda parameters and typed `let` bindings. For-loop
+    /// bindings and match-arm payload bindings stay absent (the former share
+    /// a def-site span across K/V, the latter need the bidirectional checker
+    /// to derive types from the scrutinee).
+    local_tys: HashMap<u32, Ty>,
 }
 
 impl Assigner<'_> {
@@ -56,9 +64,25 @@ impl Assigner<'_> {
     fn walk_decl(&mut self, decl: &Decl) {
         match decl {
             Decl::Import(_) | Decl::Type(_) => {}
-            Decl::Fn(f) => self.walk_block(&f.body),
-            Decl::Component(c) => self.walk_block(&c.body),
+            Decl::Fn(f) => {
+                self.bind_param_tys(&f.params);
+                self.walk_block(&f.body);
+            }
+            Decl::Component(c) => {
+                self.bind_param_tys(&c.params);
+                self.walk_block(&c.body);
+            }
             Decl::Const(c) => self.walk_expr(&c.value),
+        }
+    }
+
+    /// Record each param's lowered type under its def-site key. Mirrors the
+    /// resolver's `bind_local(name, p.span)` convention so the def-site start
+    /// matches what `ResolvedRef::Local` carries.
+    fn bind_param_tys(&mut self, params: &[Param]) {
+        for p in params {
+            let ty = self.lowerer.lower(&p.ty);
+            self.local_tys.insert(p.span.start, ty);
         }
     }
 
@@ -70,7 +94,13 @@ impl Assigner<'_> {
 
     fn walk_stmt(&mut self, s: &Stmt) {
         match s {
-            Stmt::Let(l) => self.walk_expr(&l.value),
+            Stmt::Let(l) => {
+                self.walk_expr(&l.value);
+                if let Some(te) = &l.ty {
+                    let ty = self.lowerer.lower(te);
+                    self.local_tys.insert(l.span.start, ty);
+                }
+            }
             Stmt::Mut(m) => match &m.kind {
                 glyph_ast::MutKind::Assign { value, .. } => self.walk_expr(value),
                 glyph_ast::MutKind::AssignIndex { index, value, .. } => {
@@ -176,6 +206,7 @@ impl Assigner<'_> {
                 body,
                 span,
             } => {
+                self.bind_param_tys(params);
                 self.walk_block(body);
                 let ty = self.fn_ty(params, return_ty.as_ref(), false);
                 self.tm.insert(*span, ty);
@@ -209,7 +240,11 @@ impl Assigner<'_> {
             return Ty::Unknown;
         };
         match r {
-            ResolvedRef::Local(_) => Ty::Unknown,
+            ResolvedRef::Local(def_start) => self
+                .local_tys
+                .get(&def_start)
+                .cloned()
+                .unwrap_or(Ty::Unknown),
             ResolvedRef::Module(id) => {
                 let sym = self.resolved.symbols.table.get(id).expect("symbol id valid");
                 match &sym.kind {
@@ -353,9 +388,7 @@ fn main() { let f = helper }
     }
 
     #[test]
-    fn local_ident_is_unknown() {
-        // Week 2 does no local inference even though `a`'s declared type is
-        // visible. The week-3 checker handles this.
+    fn typed_param_propagates_to_ident_refs() {
         let (m, _, tm) = type_map_of("module x\nfn id(a: number) -> number { return a }\n");
         let f = match &m.items[0] {
             Decl::Fn(f) => f,
@@ -365,7 +398,76 @@ fn main() { let f = helper }
             Stmt::Return(r) => r.value.as_ref().unwrap(),
             _ => panic!(),
         };
+        assert!(matches!(tm.get(ret_val.span()), Ty::Prim(Primitive::Number)));
+    }
+
+    #[test]
+    fn typed_let_propagates_to_later_refs() {
+        let src = r#"module x
+fn main() -> string {
+  let x: string = "hi"
+  return x
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let f = match &m.items[0] {
+            Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let ret_val = match &f.body.stmts[1] {
+            Stmt::Return(r) => r.value.as_ref().unwrap(),
+            _ => panic!(),
+        };
+        assert!(matches!(tm.get(ret_val.span()), Ty::Prim(Primitive::String)));
+    }
+
+    #[test]
+    fn untyped_let_local_stays_unknown() {
+        // `let x = 42` has no annotation; week-2 doesn't infer from the
+        // initializer, so refs to `x` are Unknown until the week-3 checker.
+        let src = r#"module x
+fn main() -> number {
+  let x = 42
+  return x
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let f = match &m.items[0] {
+            Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let ret_val = match &f.body.stmts[1] {
+            Stmt::Return(r) => r.value.as_ref().unwrap(),
+            _ => panic!(),
+        };
         assert!(tm.get(ret_val.span()).is_unknown());
+    }
+
+    #[test]
+    fn lambda_param_propagates_to_body() {
+        let src = r#"module x
+fn main() {
+  let f = fn(y: number) -> number { return y }
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let f = match &m.items[0] {
+            Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let lambda = match &f.body.stmts[0] {
+            Stmt::Let(l) => &l.value,
+            _ => panic!(),
+        };
+        let body = match lambda {
+            Expr::Lambda { body, .. } => body,
+            _ => panic!(),
+        };
+        let ret_val = match &body.stmts[0] {
+            Stmt::Return(r) => r.value.as_ref().unwrap(),
+            _ => panic!(),
+        };
+        assert!(matches!(tm.get(ret_val.span()), Ty::Prim(Primitive::Number)));
     }
 
     #[test]

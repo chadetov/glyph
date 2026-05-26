@@ -76,6 +76,12 @@ pub enum Ty {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SymbolRef(pub u32);
 
+impl From<glyph_resolver::SymbolId> for SymbolRef {
+    fn from(id: glyph_resolver::SymbolId) -> Self {
+        SymbolRef(id.0)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Primitive {
     String,
@@ -111,6 +117,10 @@ pub enum ParamOwner {
     Callable(SymbolRef),
     /// Generic parameter on a `type` declaration.
     TypeDecl(SymbolRef),
+    /// Owner not yet resolved. The day-2 lowering doesn't track which
+    /// declaration introduced a `Ty::Param` — week 3's bidirectional checker
+    /// fills the real owner on first lookup.
+    Unresolved,
 }
 
 impl Ty {

@@ -16,5 +16,6 @@ ariadne.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+glyph-parser.workspace = true
 insta.workspace = true
 proptest.workspace = true

@@ -23,9 +23,13 @@
 
 #![forbid(unsafe_code)]
 
+pub mod assign;
+pub mod lower;
 pub mod ty;
 pub mod type_map;
 
+pub use assign::assign_types;
+pub use lower::{lower_type_expr, Lowerer};
 pub use ty::{FnParam, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant};
 pub use type_map::TypeMap;
 

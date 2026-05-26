@@ -1,0 +1,453 @@
+---
+source: crates/glyph-parser/tests/snapshots.rs
+expression: ast
+---
+Module {
+    module_path: Some(
+        ModulePath {
+            segments: [
+                "hello",
+            ],
+            span: Span {
+                start: 0,
+                end: 12,
+            },
+        },
+    ),
+    items: [
+        Import(
+            ImportDecl {
+                path: ModulePath {
+                    segments: [
+                        "std",
+                        "io",
+                    ],
+                    span: Span {
+                        start: 14,
+                        end: 27,
+                    },
+                },
+                kind: Namespace,
+                span: Span {
+                    start: 14,
+                    end: 28,
+                },
+            },
+        ),
+        Import(
+            ImportDecl {
+                path: ModulePath {
+                    segments: [
+                        "std",
+                        "result",
+                    ],
+                    span: Span {
+                        start: 28,
+                        end: 45,
+                    },
+                },
+                kind: Named(
+                    [
+                        "Result",
+                        "Ok",
+                        "Err",
+                    ],
+                ),
+                span: Span {
+                    start: 28,
+                    end: 66,
+                },
+            },
+        ),
+        Import(
+            ImportDecl {
+                path: ModulePath {
+                    segments: [
+                        "std",
+                        "http",
+                    ],
+                    span: Span {
+                        start: 66,
+                        end: 81,
+                    },
+                },
+                kind: Aliased(
+                    "h",
+                ),
+                span: Span {
+                    start: 66,
+                    end: 87,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "add",
+                annotations: [],
+                is_async: false,
+                generics: [],
+                params: [
+                    Param {
+                        name: "a",
+                        ty: Path {
+                            segments: [
+                                "number",
+                            ],
+                            span: Span {
+                                start: 98,
+                                end: 104,
+                            },
+                        },
+                        span: Span {
+                            start: 95,
+                            end: 104,
+                        },
+                    },
+                    Param {
+                        name: "b",
+                        ty: Path {
+                            segments: [
+                                "number",
+                            ],
+                            span: Span {
+                                start: 109,
+                                end: 115,
+                            },
+                        },
+                        span: Span {
+                            start: 106,
+                            end: 115,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Path {
+                        segments: [
+                            "number",
+                        ],
+                        span: Span {
+                            start: 120,
+                            end: 126,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Binary {
+                                        op: Add,
+                                        left: Ident {
+                                            name: "a",
+                                            span: Span {
+                                                start: 138,
+                                                end: 139,
+                                            },
+                                        },
+                                        right: Ident {
+                                            name: "b",
+                                            span: Span {
+                                                start: 142,
+                                                end: 143,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 138,
+                                            end: 143,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 131,
+                                    end: 143,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 127,
+                        end: 145,
+                    },
+                },
+                span: Span {
+                    start: 88,
+                    end: 145,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "greet",
+                annotations: [],
+                is_async: true,
+                generics: [],
+                params: [
+                    Param {
+                        name: "name",
+                        ty: Path {
+                            segments: [
+                                "string",
+                            ],
+                            span: Span {
+                                start: 168,
+                                end: 174,
+                            },
+                        },
+                        span: Span {
+                            start: 162,
+                            end: 174,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Generic {
+                        base: Path {
+                            segments: [
+                                "Result",
+                            ],
+                            span: Span {
+                                start: 179,
+                                end: 185,
+                            },
+                        },
+                        args: [
+                            Path {
+                                segments: [
+                                    "number",
+                                ],
+                                span: Span {
+                                    start: 186,
+                                    end: 192,
+                                },
+                            },
+                            Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 194,
+                                    end: 200,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            start: 179,
+                            end: 201,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Let(
+                            LetStmt {
+                                name: "message",
+                                owned: false,
+                                ty: None,
+                                value: String {
+                                    value: "hello",
+                                    span: Span {
+                                        start: 220,
+                                        end: 227,
+                                    },
+                                },
+                                span: Span {
+                                    start: 206,
+                                    end: 227,
+                                },
+                            },
+                        ),
+                        Expr(
+                            Call {
+                                callee: Member {
+                                    object: Ident {
+                                        name: "io",
+                                        span: Span {
+                                            start: 230,
+                                            end: 232,
+                                        },
+                                    },
+                                    field: "println",
+                                    optional: false,
+                                    span: Span {
+                                        start: 230,
+                                        end: 240,
+                                    },
+                                },
+                                type_args: [],
+                                args: [
+                                    Ident {
+                                        name: "message",
+                                        span: Span {
+                                            start: 241,
+                                            end: 248,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    start: 230,
+                                    end: 249,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                name: "x",
+                                owned: false,
+                                ty: None,
+                                value: Binary {
+                                    op: Add,
+                                    left: Number {
+                                        raw: "1",
+                                        span: Span {
+                                            start: 260,
+                                            end: 261,
+                                        },
+                                    },
+                                    right: Binary {
+                                        op: Mul,
+                                        left: Number {
+                                            raw: "2",
+                                            span: Span {
+                                                start: 264,
+                                                end: 265,
+                                            },
+                                        },
+                                        right: Number {
+                                            raw: "3",
+                                            span: Span {
+                                                start: 268,
+                                                end: 269,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 264,
+                                            end: 269,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 260,
+                                        end: 269,
+                                    },
+                                },
+                                span: Span {
+                                    start: 252,
+                                    end: 269,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                name: "y",
+                                owned: false,
+                                ty: None,
+                                value: Index {
+                                    object: Ident {
+                                        name: "arr",
+                                        span: Span {
+                                            start: 280,
+                                            end: 283,
+                                        },
+                                    },
+                                    index: Number {
+                                        raw: "0",
+                                        span: Span {
+                                            start: 284,
+                                            end: 285,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 280,
+                                        end: 286,
+                                    },
+                                },
+                                span: Span {
+                                    start: 272,
+                                    end: 286,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                name: "z",
+                                owned: false,
+                                ty: None,
+                                value: Postfix {
+                                    op: Try,
+                                    operand: Call {
+                                        callee: Ident {
+                                            name: "foo",
+                                            span: Span {
+                                                start: 297,
+                                                end: 300,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [],
+                                        span: Span {
+                                            start: 297,
+                                            end: 302,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 297,
+                                        end: 303,
+                                    },
+                                },
+                                span: Span {
+                                    start: 289,
+                                    end: 303,
+                                },
+                            },
+                        ),
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Call {
+                                        callee: Ident {
+                                            name: "Ok",
+                                            span: Span {
+                                                start: 313,
+                                                end: 315,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [
+                                            Number {
+                                                raw: "0",
+                                                span: Span {
+                                                    start: 316,
+                                                    end: 317,
+                                                },
+                                            },
+                                        ],
+                                        span: Span {
+                                            start: 313,
+                                            end: 318,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 306,
+                                    end: 318,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 202,
+                        end: 320,
+                    },
+                },
+                span: Span {
+                    start: 153,
+                    end: 320,
+                },
+            },
+        ),
+    ],
+    span: Span {
+        start: 0,
+        end: 321,
+    },
+}

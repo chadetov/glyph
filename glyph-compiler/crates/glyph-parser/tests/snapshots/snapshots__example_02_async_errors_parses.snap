@@ -1,0 +1,2743 @@
+---
+source: crates/glyph-parser/tests/snapshots.rs
+expression: ast
+---
+Module {
+    module_path: Some(
+        ModulePath {
+            segments: [
+                "user_feed",
+            ],
+            span: Span {
+                start: 192,
+                end: 208,
+            },
+        },
+    ),
+    items: [
+        Import(
+            ImportDecl {
+                path: ModulePath {
+                    segments: [
+                        "std",
+                        "result",
+                    ],
+                    span: Span {
+                        start: 210,
+                        end: 227,
+                    },
+                },
+                kind: Named(
+                    [
+                        "Result",
+                        "Ok",
+                        "Err",
+                    ],
+                ),
+                span: Span {
+                    start: 210,
+                    end: 248,
+                },
+            },
+        ),
+        Import(
+            ImportDecl {
+                path: ModulePath {
+                    segments: [
+                        "std",
+                        "http",
+                    ],
+                    span: Span {
+                        start: 248,
+                        end: 263,
+                    },
+                },
+                kind: Namespace,
+                span: Span {
+                    start: 248,
+                    end: 264,
+                },
+            },
+        ),
+        Import(
+            ImportDecl {
+                path: ModulePath {
+                    segments: [
+                        "std",
+                        "json",
+                    ],
+                    span: Span {
+                        start: 264,
+                        end: 279,
+                    },
+                },
+                kind: Namespace,
+                span: Span {
+                    start: 264,
+                    end: 280,
+                },
+            },
+        ),
+        Import(
+            ImportDecl {
+                path: ModulePath {
+                    segments: [
+                        "std",
+                        "array",
+                    ],
+                    span: Span {
+                        start: 280,
+                        end: 296,
+                    },
+                },
+                kind: Namespace,
+                span: Span {
+                    start: 280,
+                    end: 297,
+                },
+            },
+        ),
+        Type(
+            TypeDecl {
+                name: "User",
+                annotations: [],
+                generics: [],
+                body: Record {
+                    fields: [
+                        RecordTypeField {
+                            name: "id",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 493,
+                                    end: 499,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 489,
+                                end: 499,
+                            },
+                        },
+                        RecordTypeField {
+                            name: "name",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 509,
+                                    end: 515,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 503,
+                                end: 515,
+                            },
+                        },
+                    ],
+                    span: Span {
+                        start: 485,
+                        end: 518,
+                    },
+                },
+                span: Span {
+                    start: 473,
+                    end: 518,
+                },
+            },
+        ),
+        Type(
+            TypeDecl {
+                name: "Post",
+                annotations: [],
+                generics: [],
+                body: Record {
+                    fields: [
+                        RecordTypeField {
+                            name: "id",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 540,
+                                    end: 546,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 536,
+                                end: 546,
+                            },
+                        },
+                        RecordTypeField {
+                            name: "author_id",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 561,
+                                    end: 567,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 550,
+                                end: 567,
+                            },
+                        },
+                        RecordTypeField {
+                            name: "title",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 578,
+                                    end: 584,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 571,
+                                end: 584,
+                            },
+                        },
+                    ],
+                    span: Span {
+                        start: 532,
+                        end: 587,
+                    },
+                },
+                span: Span {
+                    start: 520,
+                    end: 587,
+                },
+            },
+        ),
+        Type(
+            TypeDecl {
+                name: "Comment",
+                annotations: [],
+                generics: [],
+                body: Record {
+                    fields: [
+                        RecordTypeField {
+                            name: "id",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 612,
+                                    end: 618,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 608,
+                                end: 618,
+                            },
+                        },
+                        RecordTypeField {
+                            name: "post_id",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 631,
+                                    end: 637,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 622,
+                                end: 637,
+                            },
+                        },
+                        RecordTypeField {
+                            name: "body",
+                            ty: Path {
+                                segments: [
+                                    "string",
+                                ],
+                                span: Span {
+                                    start: 647,
+                                    end: 653,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 641,
+                                end: 653,
+                            },
+                        },
+                    ],
+                    span: Span {
+                        start: 604,
+                        end: 656,
+                    },
+                },
+                span: Span {
+                    start: 589,
+                    end: 656,
+                },
+            },
+        ),
+        Type(
+            TypeDecl {
+                name: "PostWithComments",
+                annotations: [],
+                generics: [],
+                body: Record {
+                    fields: [
+                        RecordTypeField {
+                            name: "post",
+                            ty: Path {
+                                segments: [
+                                    "Post",
+                                ],
+                                span: Span {
+                                    start: 692,
+                                    end: 696,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 686,
+                                end: 696,
+                            },
+                        },
+                        RecordTypeField {
+                            name: "comments",
+                            ty: Generic {
+                                base: Path {
+                                    segments: [
+                                        "Array",
+                                    ],
+                                    span: Span {
+                                        start: 710,
+                                        end: 715,
+                                    },
+                                },
+                                args: [
+                                    Path {
+                                        segments: [
+                                            "Comment",
+                                        ],
+                                        span: Span {
+                                            start: 716,
+                                            end: 723,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    start: 710,
+                                    end: 724,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 700,
+                                end: 724,
+                            },
+                        },
+                    ],
+                    span: Span {
+                        start: 682,
+                        end: 727,
+                    },
+                },
+                span: Span {
+                    start: 658,
+                    end: 727,
+                },
+            },
+        ),
+        Type(
+            TypeDecl {
+                name: "Feed",
+                annotations: [],
+                generics: [],
+                body: Record {
+                    fields: [
+                        RecordTypeField {
+                            name: "user",
+                            ty: Path {
+                                segments: [
+                                    "User",
+                                ],
+                                span: Span {
+                                    start: 751,
+                                    end: 755,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 745,
+                                end: 755,
+                            },
+                        },
+                        RecordTypeField {
+                            name: "posts",
+                            ty: Generic {
+                                base: Path {
+                                    segments: [
+                                        "Array",
+                                    ],
+                                    span: Span {
+                                        start: 766,
+                                        end: 771,
+                                    },
+                                },
+                                args: [
+                                    Path {
+                                        segments: [
+                                            "PostWithComments",
+                                        ],
+                                        span: Span {
+                                            start: 772,
+                                            end: 788,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    start: 766,
+                                    end: 789,
+                                },
+                            },
+                            optional: false,
+                            span: Span {
+                                start: 759,
+                                end: 789,
+                            },
+                        },
+                    ],
+                    span: Span {
+                        start: 741,
+                        end: 792,
+                    },
+                },
+                span: Span {
+                    start: 729,
+                    end: 792,
+                },
+            },
+        ),
+        Type(
+            TypeDecl {
+                name: "FeedError",
+                annotations: [],
+                generics: [],
+                body: Union {
+                    variants: [
+                        UnionVariant {
+                            name: "NetworkError",
+                            payload: Some(
+                                Record {
+                                    fields: [
+                                        RecordTypeField {
+                                            name: "url",
+                                            ty: Path {
+                                                segments: [
+                                                    "string",
+                                                ],
+                                                span: Span {
+                                                    start: 915,
+                                                    end: 921,
+                                                },
+                                            },
+                                            optional: false,
+                                            span: Span {
+                                                start: 910,
+                                                end: 921,
+                                            },
+                                        },
+                                        RecordTypeField {
+                                            name: "status",
+                                            ty: Path {
+                                                segments: [
+                                                    "number",
+                                                ],
+                                                span: Span {
+                                                    start: 931,
+                                                    end: 937,
+                                                },
+                                            },
+                                            optional: false,
+                                            span: Span {
+                                                start: 923,
+                                                end: 937,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        start: 908,
+                                        end: 939,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                start: 895,
+                                end: 939,
+                            },
+                        },
+                        UnionVariant {
+                            name: "DecodeError",
+                            payload: Some(
+                                Record {
+                                    fields: [
+                                        RecordTypeField {
+                                            name: "url",
+                                            ty: Path {
+                                                segments: [
+                                                    "string",
+                                                ],
+                                                span: Span {
+                                                    start: 964,
+                                                    end: 970,
+                                                },
+                                            },
+                                            optional: false,
+                                            span: Span {
+                                                start: 959,
+                                                end: 970,
+                                            },
+                                        },
+                                        RecordTypeField {
+                                            name: "reason",
+                                            ty: Path {
+                                                segments: [
+                                                    "string",
+                                                ],
+                                                span: Span {
+                                                    start: 980,
+                                                    end: 986,
+                                                },
+                                            },
+                                            optional: false,
+                                            span: Span {
+                                                start: 972,
+                                                end: 986,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        start: 957,
+                                        end: 988,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                start: 945,
+                                end: 988,
+                            },
+                        },
+                        UnionVariant {
+                            name: "NotFound",
+                            payload: Some(
+                                Record {
+                                    fields: [
+                                        RecordTypeField {
+                                            name: "resource",
+                                            ty: Path {
+                                                segments: [
+                                                    "string",
+                                                ],
+                                                span: Span {
+                                                    start: 1015,
+                                                    end: 1021,
+                                                },
+                                            },
+                                            optional: false,
+                                            span: Span {
+                                                start: 1005,
+                                                end: 1021,
+                                            },
+                                        },
+                                        RecordTypeField {
+                                            name: "id",
+                                            ty: Path {
+                                                segments: [
+                                                    "string",
+                                                ],
+                                                span: Span {
+                                                    start: 1027,
+                                                    end: 1033,
+                                                },
+                                            },
+                                            optional: false,
+                                            span: Span {
+                                                start: 1023,
+                                                end: 1033,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        start: 1003,
+                                        end: 1035,
+                                    },
+                                },
+                            ),
+                            span: Span {
+                                start: 994,
+                                end: 1035,
+                            },
+                        },
+                    ],
+                    span: Span {
+                        start: 893,
+                        end: 1035,
+                    },
+                },
+                span: Span {
+                    start: 874,
+                    end: 1035,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "fetch_json",
+                annotations: [],
+                is_async: true,
+                generics: [
+                    GenericParam {
+                        name: "T",
+                        bounds: [],
+                        span: Span {
+                            start: 1236,
+                            end: 1237,
+                        },
+                    },
+                ],
+                params: [
+                    Param {
+                        name: "url",
+                        ty: Path {
+                            segments: [
+                                "string",
+                            ],
+                            span: Span {
+                                start: 1244,
+                                end: 1250,
+                            },
+                        },
+                        span: Span {
+                            start: 1239,
+                            end: 1250,
+                        },
+                    },
+                    Param {
+                        name: "schema",
+                        ty: Generic {
+                            base: Path {
+                                segments: [
+                                    "Schema",
+                                ],
+                                span: Span {
+                                    start: 1260,
+                                    end: 1266,
+                                },
+                            },
+                            args: [
+                                Path {
+                                    segments: [
+                                        "T",
+                                    ],
+                                    span: Span {
+                                        start: 1267,
+                                        end: 1268,
+                                    },
+                                },
+                            ],
+                            span: Span {
+                                start: 1260,
+                                end: 1269,
+                            },
+                        },
+                        span: Span {
+                            start: 1252,
+                            end: 1269,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Generic {
+                        base: Path {
+                            segments: [
+                                "Result",
+                            ],
+                            span: Span {
+                                start: 1274,
+                                end: 1280,
+                            },
+                        },
+                        args: [
+                            Path {
+                                segments: [
+                                    "T",
+                                ],
+                                span: Span {
+                                    start: 1281,
+                                    end: 1282,
+                                },
+                            },
+                            Path {
+                                segments: [
+                                    "FeedError",
+                                ],
+                                span: Span {
+                                    start: 1284,
+                                    end: 1293,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            start: 1274,
+                            end: 1294,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Let(
+                            LetStmt {
+                                name: "response",
+                                owned: false,
+                                ty: None,
+                                value: Await {
+                                    expr: Call {
+                                        callee: Member {
+                                            object: Postfix {
+                                                op: Try,
+                                                operand: Call {
+                                                    callee: Member {
+                                                        object: Ident {
+                                                            name: "http",
+                                                            span: Span {
+                                                                start: 1320,
+                                                                end: 1324,
+                                                            },
+                                                        },
+                                                        field: "get",
+                                                        optional: false,
+                                                        span: Span {
+                                                            start: 1320,
+                                                            end: 1328,
+                                                        },
+                                                    },
+                                                    type_args: [],
+                                                    args: [
+                                                        Ident {
+                                                            name: "url",
+                                                            span: Span {
+                                                                start: 1329,
+                                                                end: 1332,
+                                                            },
+                                                        },
+                                                    ],
+                                                    span: Span {
+                                                        start: 1320,
+                                                        end: 1333,
+                                                    },
+                                                },
+                                                span: Span {
+                                                    start: 1320,
+                                                    end: 1334,
+                                                },
+                                            },
+                                            field: "map_err",
+                                            optional: false,
+                                            span: Span {
+                                                start: 1320,
+                                                end: 1347,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [
+                                            Lambda {
+                                                params: [
+                                                    Param {
+                                                        name: "e",
+                                                        ty: Path {
+                                                            segments: [
+                                                                "unknown",
+                                                            ],
+                                                            span: Span {
+                                                                start: 1351,
+                                                                end: 1352,
+                                                            },
+                                                        },
+                                                        span: Span {
+                                                            start: 1351,
+                                                            end: 1352,
+                                                        },
+                                                    },
+                                                ],
+                                                return_ty: None,
+                                                body: Block {
+                                                    stmts: [
+                                                        Expr(
+                                                            Call {
+                                                                callee: Ident {
+                                                                    name: "NetworkError",
+                                                                    span: Span {
+                                                                        start: 1356,
+                                                                        end: 1368,
+                                                                    },
+                                                                },
+                                                                type_args: [],
+                                                                args: [
+                                                                    Object {
+                                                                        fields: [
+                                                                            KeyValue {
+                                                                                key: "url",
+                                                                                value: Ident {
+                                                                                    name: "url",
+                                                                                    span: Span {
+                                                                                        start: 1376,
+                                                                                        end: 1379,
+                                                                                    },
+                                                                                },
+                                                                                span: Span {
+                                                                                    start: 1371,
+                                                                                    end: 1379,
+                                                                                },
+                                                                            },
+                                                                            KeyValue {
+                                                                                key: "status",
+                                                                                value: Member {
+                                                                                    object: Ident {
+                                                                                        name: "e",
+                                                                                        span: Span {
+                                                                                            start: 1389,
+                                                                                            end: 1390,
+                                                                                        },
+                                                                                    },
+                                                                                    field: "status",
+                                                                                    optional: false,
+                                                                                    span: Span {
+                                                                                        start: 1389,
+                                                                                        end: 1397,
+                                                                                    },
+                                                                                },
+                                                                                span: Span {
+                                                                                    start: 1381,
+                                                                                    end: 1397,
+                                                                                },
+                                                                            },
+                                                                        ],
+                                                                        span: Span {
+                                                                            start: 1369,
+                                                                            end: 1399,
+                                                                        },
+                                                                    },
+                                                                ],
+                                                                span: Span {
+                                                                    start: 1356,
+                                                                    end: 1400,
+                                                                },
+                                                            },
+                                                        ),
+                                                    ],
+                                                    span: Span {
+                                                        start: 1354,
+                                                        end: 1402,
+                                                    },
+                                                },
+                                                span: Span {
+                                                    start: 1348,
+                                                    end: 1402,
+                                                },
+                                            },
+                                        ],
+                                        span: Span {
+                                            start: 1320,
+                                            end: 1403,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 1314,
+                                        end: 1403,
+                                    },
+                                },
+                                span: Span {
+                                    start: 1299,
+                                    end: 1403,
+                                },
+                            },
+                        ),
+                        Expr(
+                            Match {
+                                scrutinee: Call {
+                                    callee: Member {
+                                        object: Ident {
+                                            name: "schema",
+                                            span: Span {
+                                                start: 1413,
+                                                end: 1419,
+                                            },
+                                        },
+                                        field: "parse",
+                                        optional: false,
+                                        span: Span {
+                                            start: 1413,
+                                            end: 1425,
+                                        },
+                                    },
+                                    type_args: [],
+                                    args: [
+                                        Member {
+                                            object: Ident {
+                                                name: "response",
+                                                span: Span {
+                                                    start: 1426,
+                                                    end: 1434,
+                                                },
+                                            },
+                                            field: "body",
+                                            optional: false,
+                                            span: Span {
+                                                start: 1426,
+                                                end: 1439,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        start: 1413,
+                                        end: 1440,
+                                    },
+                                },
+                                arms: [
+                                    MatchArm {
+                                        pattern: Constructor {
+                                            path: [
+                                                "Ok",
+                                            ],
+                                            args: [
+                                                Ident {
+                                                    name: "value",
+                                                    span: Span {
+                                                        start: 1450,
+                                                        end: 1455,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 1447,
+                                                end: 1456,
+                                            },
+                                        },
+                                        body: Expr(
+                                            Call {
+                                                callee: Ident {
+                                                    name: "Ok",
+                                                    span: Span {
+                                                        start: 1460,
+                                                        end: 1462,
+                                                    },
+                                                },
+                                                type_args: [],
+                                                args: [
+                                                    Ident {
+                                                        name: "value",
+                                                        span: Span {
+                                                            start: 1463,
+                                                            end: 1468,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 1460,
+                                                    end: 1469,
+                                                },
+                                            },
+                                        ),
+                                        span: Span {
+                                            start: 1447,
+                                            end: 1469,
+                                        },
+                                    },
+                                    MatchArm {
+                                        pattern: Constructor {
+                                            path: [
+                                                "Err",
+                                            ],
+                                            args: [
+                                                Ident {
+                                                    name: "issues",
+                                                    span: Span {
+                                                        start: 1479,
+                                                        end: 1485,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 1475,
+                                                end: 1486,
+                                            },
+                                        },
+                                        body: Expr(
+                                            Call {
+                                                callee: Ident {
+                                                    name: "Err",
+                                                    span: Span {
+                                                        start: 1490,
+                                                        end: 1493,
+                                                    },
+                                                },
+                                                type_args: [],
+                                                args: [
+                                                    Call {
+                                                        callee: Ident {
+                                                            name: "DecodeError",
+                                                            span: Span {
+                                                                start: 1494,
+                                                                end: 1505,
+                                                            },
+                                                        },
+                                                        type_args: [],
+                                                        args: [
+                                                            Object {
+                                                                fields: [
+                                                                    KeyValue {
+                                                                        key: "url",
+                                                                        value: Ident {
+                                                                            name: "url",
+                                                                            span: Span {
+                                                                                start: 1519,
+                                                                                end: 1522,
+                                                                            },
+                                                                        },
+                                                                        span: Span {
+                                                                            start: 1514,
+                                                                            end: 1522,
+                                                                        },
+                                                                    },
+                                                                    KeyValue {
+                                                                        key: "reason",
+                                                                        value: Member {
+                                                                            object: Index {
+                                                                                object: Ident {
+                                                                                    name: "issues",
+                                                                                    span: Span {
+                                                                                        start: 1538,
+                                                                                        end: 1544,
+                                                                                    },
+                                                                                },
+                                                                                index: Number {
+                                                                                    raw: "0",
+                                                                                    span: Span {
+                                                                                        start: 1545,
+                                                                                        end: 1546,
+                                                                                    },
+                                                                                },
+                                                                                span: Span {
+                                                                                    start: 1538,
+                                                                                    end: 1547,
+                                                                                },
+                                                                            },
+                                                                            field: "message",
+                                                                            optional: false,
+                                                                            span: Span {
+                                                                                start: 1538,
+                                                                                end: 1555,
+                                                                            },
+                                                                        },
+                                                                        span: Span {
+                                                                            start: 1530,
+                                                                            end: 1555,
+                                                                        },
+                                                                    },
+                                                                ],
+                                                                span: Span {
+                                                                    start: 1506,
+                                                                    end: 1562,
+                                                                },
+                                                            },
+                                                        ],
+                                                        span: Span {
+                                                            start: 1494,
+                                                            end: 1563,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 1490,
+                                                    end: 1564,
+                                                },
+                                            },
+                                        ),
+                                        span: Span {
+                                            start: 1475,
+                                            end: 1564,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    start: 1407,
+                                    end: 1569,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 1295,
+                        end: 1571,
+                    },
+                },
+                span: Span {
+                    start: 1222,
+                    end: 1571,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "fetch_user",
+                annotations: [],
+                is_async: true,
+                generics: [],
+                params: [
+                    Param {
+                        name: "id",
+                        ty: Path {
+                            segments: [
+                                "string",
+                            ],
+                            span: Span {
+                                start: 1597,
+                                end: 1603,
+                            },
+                        },
+                        span: Span {
+                            start: 1593,
+                            end: 1603,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Generic {
+                        base: Path {
+                            segments: [
+                                "Result",
+                            ],
+                            span: Span {
+                                start: 1608,
+                                end: 1614,
+                            },
+                        },
+                        args: [
+                            Path {
+                                segments: [
+                                    "User",
+                                ],
+                                span: Span {
+                                    start: 1615,
+                                    end: 1619,
+                                },
+                            },
+                            Path {
+                                segments: [
+                                    "FeedError",
+                                ],
+                                span: Span {
+                                    start: 1621,
+                                    end: 1630,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            start: 1608,
+                            end: 1631,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Await {
+                                        expr: Call {
+                                            callee: Ident {
+                                                name: "fetch_json",
+                                                span: Span {
+                                                    start: 1649,
+                                                    end: 1659,
+                                                },
+                                            },
+                                            type_args: [],
+                                            args: [
+                                                TemplateString {
+                                                    parts: [
+                                                        Text {
+                                                            content: "/api/users/",
+                                                            span: Span {
+                                                                start: 1660,
+                                                                end: 1678,
+                                                            },
+                                                        },
+                                                        Expr {
+                                                            value: Ident {
+                                                                name: "id",
+                                                                span: Span {
+                                                                    start: 0,
+                                                                    end: 2,
+                                                                },
+                                                            },
+                                                            span: Span {
+                                                                start: 1660,
+                                                                end: 1678,
+                                                            },
+                                                        },
+                                                    ],
+                                                    span: Span {
+                                                        start: 1660,
+                                                        end: 1678,
+                                                    },
+                                                },
+                                                Member {
+                                                    object: Ident {
+                                                        name: "User",
+                                                        span: Span {
+                                                            start: 1680,
+                                                            end: 1684,
+                                                        },
+                                                    },
+                                                    field: "schema",
+                                                    optional: false,
+                                                    span: Span {
+                                                        start: 1680,
+                                                        end: 1691,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 1649,
+                                                end: 1692,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 1643,
+                                            end: 1692,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 1636,
+                                    end: 1692,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 1632,
+                        end: 1694,
+                    },
+                },
+                span: Span {
+                    start: 1579,
+                    end: 1694,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "fetch_posts",
+                annotations: [],
+                is_async: true,
+                generics: [],
+                params: [
+                    Param {
+                        name: "user_id",
+                        ty: Path {
+                            segments: [
+                                "string",
+                            ],
+                            span: Span {
+                                start: 1726,
+                                end: 1732,
+                            },
+                        },
+                        span: Span {
+                            start: 1717,
+                            end: 1732,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Generic {
+                        base: Path {
+                            segments: [
+                                "Result",
+                            ],
+                            span: Span {
+                                start: 1737,
+                                end: 1743,
+                            },
+                        },
+                        args: [
+                            Generic {
+                                base: Path {
+                                    segments: [
+                                        "Array",
+                                    ],
+                                    span: Span {
+                                        start: 1744,
+                                        end: 1749,
+                                    },
+                                },
+                                args: [
+                                    Path {
+                                        segments: [
+                                            "Post",
+                                        ],
+                                        span: Span {
+                                            start: 1750,
+                                            end: 1754,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    start: 1744,
+                                    end: 1755,
+                                },
+                            },
+                            Path {
+                                segments: [
+                                    "FeedError",
+                                ],
+                                span: Span {
+                                    start: 1757,
+                                    end: 1766,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            start: 1737,
+                            end: 1767,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Await {
+                                        expr: Call {
+                                            callee: Ident {
+                                                name: "fetch_json",
+                                                span: Span {
+                                                    start: 1785,
+                                                    end: 1795,
+                                                },
+                                            },
+                                            type_args: [],
+                                            args: [
+                                                TemplateString {
+                                                    parts: [
+                                                        Text {
+                                                            content: "/api/users/",
+                                                            span: Span {
+                                                                start: 1796,
+                                                                end: 1825,
+                                                            },
+                                                        },
+                                                        Expr {
+                                                            value: Ident {
+                                                                name: "user_id",
+                                                                span: Span {
+                                                                    start: 0,
+                                                                    end: 7,
+                                                                },
+                                                            },
+                                                            span: Span {
+                                                                start: 1796,
+                                                                end: 1825,
+                                                            },
+                                                        },
+                                                        Text {
+                                                            content: "/posts",
+                                                            span: Span {
+                                                                start: 1796,
+                                                                end: 1825,
+                                                            },
+                                                        },
+                                                    ],
+                                                    span: Span {
+                                                        start: 1796,
+                                                        end: 1825,
+                                                    },
+                                                },
+                                                Call {
+                                                    callee: Member {
+                                                        object: Member {
+                                                            object: Ident {
+                                                                name: "Post",
+                                                                span: Span {
+                                                                    start: 1827,
+                                                                    end: 1831,
+                                                                },
+                                                            },
+                                                            field: "schema",
+                                                            optional: false,
+                                                            span: Span {
+                                                                start: 1827,
+                                                                end: 1838,
+                                                            },
+                                                        },
+                                                        field: "array",
+                                                        optional: false,
+                                                        span: Span {
+                                                            start: 1827,
+                                                            end: 1844,
+                                                        },
+                                                    },
+                                                    type_args: [],
+                                                    args: [],
+                                                    span: Span {
+                                                        start: 1827,
+                                                        end: 1846,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 1785,
+                                                end: 1847,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 1779,
+                                            end: 1847,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 1772,
+                                    end: 1847,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 1768,
+                        end: 1849,
+                    },
+                },
+                span: Span {
+                    start: 1702,
+                    end: 1849,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "fetch_comments",
+                annotations: [],
+                is_async: true,
+                generics: [],
+                params: [
+                    Param {
+                        name: "post_id",
+                        ty: Path {
+                            segments: [
+                                "string",
+                            ],
+                            span: Span {
+                                start: 1884,
+                                end: 1890,
+                            },
+                        },
+                        span: Span {
+                            start: 1875,
+                            end: 1890,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Generic {
+                        base: Path {
+                            segments: [
+                                "Result",
+                            ],
+                            span: Span {
+                                start: 1895,
+                                end: 1901,
+                            },
+                        },
+                        args: [
+                            Generic {
+                                base: Path {
+                                    segments: [
+                                        "Array",
+                                    ],
+                                    span: Span {
+                                        start: 1902,
+                                        end: 1907,
+                                    },
+                                },
+                                args: [
+                                    Path {
+                                        segments: [
+                                            "Comment",
+                                        ],
+                                        span: Span {
+                                            start: 1908,
+                                            end: 1915,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    start: 1902,
+                                    end: 1916,
+                                },
+                            },
+                            Path {
+                                segments: [
+                                    "FeedError",
+                                ],
+                                span: Span {
+                                    start: 1918,
+                                    end: 1927,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            start: 1895,
+                            end: 1928,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Await {
+                                        expr: Call {
+                                            callee: Ident {
+                                                name: "fetch_json",
+                                                span: Span {
+                                                    start: 1946,
+                                                    end: 1956,
+                                                },
+                                            },
+                                            type_args: [],
+                                            args: [
+                                                TemplateString {
+                                                    parts: [
+                                                        Text {
+                                                            content: "/api/posts/",
+                                                            span: Span {
+                                                                start: 1957,
+                                                                end: 1989,
+                                                            },
+                                                        },
+                                                        Expr {
+                                                            value: Ident {
+                                                                name: "post_id",
+                                                                span: Span {
+                                                                    start: 0,
+                                                                    end: 7,
+                                                                },
+                                                            },
+                                                            span: Span {
+                                                                start: 1957,
+                                                                end: 1989,
+                                                            },
+                                                        },
+                                                        Text {
+                                                            content: "/comments",
+                                                            span: Span {
+                                                                start: 1957,
+                                                                end: 1989,
+                                                            },
+                                                        },
+                                                    ],
+                                                    span: Span {
+                                                        start: 1957,
+                                                        end: 1989,
+                                                    },
+                                                },
+                                                Call {
+                                                    callee: Member {
+                                                        object: Member {
+                                                            object: Ident {
+                                                                name: "Comment",
+                                                                span: Span {
+                                                                    start: 1991,
+                                                                    end: 1998,
+                                                                },
+                                                            },
+                                                            field: "schema",
+                                                            optional: false,
+                                                            span: Span {
+                                                                start: 1991,
+                                                                end: 2005,
+                                                            },
+                                                        },
+                                                        field: "array",
+                                                        optional: false,
+                                                        span: Span {
+                                                            start: 1991,
+                                                            end: 2011,
+                                                        },
+                                                    },
+                                                    type_args: [],
+                                                    args: [],
+                                                    span: Span {
+                                                        start: 1991,
+                                                        end: 2013,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 1946,
+                                                end: 2014,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 1940,
+                                            end: 2014,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 1933,
+                                    end: 2014,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 1929,
+                        end: 2016,
+                    },
+                },
+                span: Span {
+                    start: 1857,
+                    end: 2016,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "load_feed",
+                annotations: [],
+                is_async: true,
+                generics: [],
+                params: [
+                    Param {
+                        name: "user_id",
+                        ty: Path {
+                            segments: [
+                                "string",
+                            ],
+                            span: Span {
+                                start: 2220,
+                                end: 2226,
+                            },
+                        },
+                        span: Span {
+                            start: 2211,
+                            end: 2226,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Generic {
+                        base: Path {
+                            segments: [
+                                "Result",
+                            ],
+                            span: Span {
+                                start: 2231,
+                                end: 2237,
+                            },
+                        },
+                        args: [
+                            Path {
+                                segments: [
+                                    "Feed",
+                                ],
+                                span: Span {
+                                    start: 2238,
+                                    end: 2242,
+                                },
+                            },
+                            Path {
+                                segments: [
+                                    "FeedError",
+                                ],
+                                span: Span {
+                                    start: 2244,
+                                    end: 2253,
+                                },
+                            },
+                        ],
+                        span: Span {
+                            start: 2231,
+                            end: 2254,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Let(
+                            LetStmt {
+                                name: "user",
+                                owned: false,
+                                ty: None,
+                                value: Await {
+                                    expr: Postfix {
+                                        op: Try,
+                                        operand: Call {
+                                            callee: Ident {
+                                                name: "fetch_user",
+                                                span: Span {
+                                                    start: 2276,
+                                                    end: 2286,
+                                                },
+                                            },
+                                            type_args: [],
+                                            args: [
+                                                Ident {
+                                                    name: "user_id",
+                                                    span: Span {
+                                                        start: 2287,
+                                                        end: 2294,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 2276,
+                                                end: 2295,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 2276,
+                                            end: 2296,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 2270,
+                                        end: 2296,
+                                    },
+                                },
+                                span: Span {
+                                    start: 2259,
+                                    end: 2296,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                name: "posts",
+                                owned: false,
+                                ty: None,
+                                value: Await {
+                                    expr: Postfix {
+                                        op: Try,
+                                        operand: Call {
+                                            callee: Ident {
+                                                name: "fetch_posts",
+                                                span: Span {
+                                                    start: 2317,
+                                                    end: 2328,
+                                                },
+                                            },
+                                            type_args: [],
+                                            args: [
+                                                Member {
+                                                    object: Ident {
+                                                        name: "user",
+                                                        span: Span {
+                                                            start: 2329,
+                                                            end: 2333,
+                                                        },
+                                                    },
+                                                    field: "id",
+                                                    optional: false,
+                                                    span: Span {
+                                                        start: 2329,
+                                                        end: 2336,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 2317,
+                                                end: 2337,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 2317,
+                                            end: 2338,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 2311,
+                                        end: 2338,
+                                    },
+                                },
+                                span: Span {
+                                    start: 2299,
+                                    end: 2338,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                name: "comment_results",
+                                owned: false,
+                                ty: None,
+                                value: Await {
+                                    expr: Call {
+                                        callee: Member {
+                                            object: Ident {
+                                                name: "par",
+                                                span: Span {
+                                                    start: 2548,
+                                                    end: 2551,
+                                                },
+                                            },
+                                            field: "all",
+                                            optional: false,
+                                            span: Span {
+                                                start: 2548,
+                                                end: 2555,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [
+                                            Call {
+                                                callee: Member {
+                                                    object: Ident {
+                                                        name: "array",
+                                                        span: Span {
+                                                            start: 2561,
+                                                            end: 2566,
+                                                        },
+                                                    },
+                                                    field: "map",
+                                                    optional: false,
+                                                    span: Span {
+                                                        start: 2561,
+                                                        end: 2570,
+                                                    },
+                                                },
+                                                type_args: [],
+                                                args: [
+                                                    Ident {
+                                                        name: "posts",
+                                                        span: Span {
+                                                            start: 2571,
+                                                            end: 2576,
+                                                        },
+                                                    },
+                                                    Lambda {
+                                                        params: [
+                                                            Param {
+                                                                name: "post",
+                                                                ty: Path {
+                                                                    segments: [
+                                                                        "unknown",
+                                                                    ],
+                                                                    span: Span {
+                                                                        start: 2581,
+                                                                        end: 2585,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 2581,
+                                                                    end: 2585,
+                                                                },
+                                                            },
+                                                        ],
+                                                        return_ty: None,
+                                                        body: Block {
+                                                            stmts: [
+                                                                Expr(
+                                                                    Call {
+                                                                        callee: Ident {
+                                                                            name: "fetch_comments",
+                                                                            span: Span {
+                                                                                start: 2589,
+                                                                                end: 2603,
+                                                                            },
+                                                                        },
+                                                                        type_args: [],
+                                                                        args: [
+                                                                            Member {
+                                                                                object: Ident {
+                                                                                    name: "post",
+                                                                                    span: Span {
+                                                                                        start: 2604,
+                                                                                        end: 2608,
+                                                                                    },
+                                                                                },
+                                                                                field: "id",
+                                                                                optional: false,
+                                                                                span: Span {
+                                                                                    start: 2604,
+                                                                                    end: 2611,
+                                                                                },
+                                                                            },
+                                                                        ],
+                                                                        span: Span {
+                                                                            start: 2589,
+                                                                            end: 2612,
+                                                                        },
+                                                                    },
+                                                                ),
+                                                            ],
+                                                            span: Span {
+                                                                start: 2587,
+                                                                end: 2614,
+                                                            },
+                                                        },
+                                                        span: Span {
+                                                            start: 2578,
+                                                            end: 2614,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 2561,
+                                                    end: 2615,
+                                                },
+                                            },
+                                        ],
+                                        span: Span {
+                                            start: 2548,
+                                            end: 2619,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 2542,
+                                        end: 2619,
+                                    },
+                                },
+                                span: Span {
+                                    start: 2520,
+                                    end: 2619,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                name: "comments_per_post",
+                                owned: false,
+                                ty: None,
+                                value: Postfix {
+                                    op: Try,
+                                    operand: Call {
+                                        callee: Member {
+                                            object: Ident {
+                                                name: "par",
+                                                span: Span {
+                                                    start: 2646,
+                                                    end: 2649,
+                                                },
+                                            },
+                                            field: "all_ok",
+                                            optional: false,
+                                            span: Span {
+                                                start: 2646,
+                                                end: 2656,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [
+                                            Ident {
+                                                name: "comment_results",
+                                                span: Span {
+                                                    start: 2657,
+                                                    end: 2672,
+                                                },
+                                            },
+                                        ],
+                                        span: Span {
+                                            start: 2646,
+                                            end: 2673,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 2646,
+                                        end: 2674,
+                                    },
+                                },
+                                span: Span {
+                                    start: 2622,
+                                    end: 2674,
+                                },
+                            },
+                        ),
+                        Let(
+                            LetStmt {
+                                name: "posts_with_comments",
+                                owned: false,
+                                ty: None,
+                                value: Call {
+                                    callee: Member {
+                                        object: Ident {
+                                            name: "array",
+                                            span: Span {
+                                                start: 2704,
+                                                end: 2709,
+                                            },
+                                        },
+                                        field: "zip",
+                                        optional: false,
+                                        span: Span {
+                                            start: 2704,
+                                            end: 2713,
+                                        },
+                                    },
+                                    type_args: [],
+                                    args: [
+                                        Ident {
+                                            name: "posts",
+                                            span: Span {
+                                                start: 2714,
+                                                end: 2719,
+                                            },
+                                        },
+                                        Ident {
+                                            name: "comments_per_post",
+                                            span: Span {
+                                                start: 2721,
+                                                end: 2738,
+                                            },
+                                        },
+                                        Lambda {
+                                            params: [
+                                                Param {
+                                                    name: "post",
+                                                    ty: Path {
+                                                        segments: [
+                                                            "unknown",
+                                                        ],
+                                                        span: Span {
+                                                            start: 2743,
+                                                            end: 2747,
+                                                        },
+                                                    },
+                                                    span: Span {
+                                                        start: 2743,
+                                                        end: 2747,
+                                                    },
+                                                },
+                                                Param {
+                                                    name: "comments",
+                                                    ty: Path {
+                                                        segments: [
+                                                            "unknown",
+                                                        ],
+                                                        span: Span {
+                                                            start: 2749,
+                                                            end: 2757,
+                                                        },
+                                                    },
+                                                    span: Span {
+                                                        start: 2749,
+                                                        end: 2757,
+                                                    },
+                                                },
+                                            ],
+                                            return_ty: None,
+                                            body: Block {
+                                                stmts: [
+                                                    Return(
+                                                        ReturnStmt {
+                                                            value: Some(
+                                                                Object {
+                                                                    fields: [
+                                                                        KeyValue {
+                                                                            key: "post",
+                                                                            value: Ident {
+                                                                                name: "post",
+                                                                                span: Span {
+                                                                                    start: 2780,
+                                                                                    end: 2784,
+                                                                                },
+                                                                            },
+                                                                            span: Span {
+                                                                                start: 2774,
+                                                                                end: 2784,
+                                                                            },
+                                                                        },
+                                                                        KeyValue {
+                                                                            key: "comments",
+                                                                            value: Ident {
+                                                                                name: "comments",
+                                                                                span: Span {
+                                                                                    start: 2796,
+                                                                                    end: 2804,
+                                                                                },
+                                                                            },
+                                                                            span: Span {
+                                                                                start: 2786,
+                                                                                end: 2804,
+                                                                            },
+                                                                        },
+                                                                    ],
+                                                                    span: Span {
+                                                                        start: 2772,
+                                                                        end: 2806,
+                                                                    },
+                                                                },
+                                                            ),
+                                                            span: Span {
+                                                                start: 2765,
+                                                                end: 2806,
+                                                            },
+                                                        },
+                                                    ),
+                                                ],
+                                                span: Span {
+                                                    start: 2759,
+                                                    end: 2810,
+                                                },
+                                            },
+                                            span: Span {
+                                                start: 2740,
+                                                end: 2810,
+                                            },
+                                        },
+                                    ],
+                                    span: Span {
+                                        start: 2704,
+                                        end: 2811,
+                                    },
+                                },
+                                span: Span {
+                                    start: 2678,
+                                    end: 2811,
+                                },
+                            },
+                        ),
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Call {
+                                        callee: Ident {
+                                            name: "Ok",
+                                            span: Span {
+                                                start: 2822,
+                                                end: 2824,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [
+                                            Object {
+                                                fields: [
+                                                    KeyValue {
+                                                        key: "user",
+                                                        value: Ident {
+                                                            name: "user",
+                                                            span: Span {
+                                                                start: 2837,
+                                                                end: 2841,
+                                                            },
+                                                        },
+                                                        span: Span {
+                                                            start: 2831,
+                                                            end: 2841,
+                                                        },
+                                                    },
+                                                    KeyValue {
+                                                        key: "posts",
+                                                        value: Ident {
+                                                            name: "posts_with_comments",
+                                                            span: Span {
+                                                                start: 2854,
+                                                                end: 2873,
+                                                            },
+                                                        },
+                                                        span: Span {
+                                                            start: 2847,
+                                                            end: 2873,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 2825,
+                                                    end: 2878,
+                                                },
+                                            },
+                                        ],
+                                        span: Span {
+                                            start: 2822,
+                                            end: 2879,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 2815,
+                                    end: 2879,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 2255,
+                        end: 2881,
+                    },
+                },
+                span: Span {
+                    start: 2198,
+                    end: 2881,
+                },
+            },
+        ),
+        Fn(
+            FnDecl {
+                name: "handle_request",
+                annotations: [],
+                is_async: true,
+                generics: [],
+                params: [
+                    Param {
+                        name: "user_id",
+                        ty: Path {
+                            segments: [
+                                "string",
+                            ],
+                            span: Span {
+                                start: 3085,
+                                end: 3091,
+                            },
+                        },
+                        span: Span {
+                            start: 3076,
+                            end: 3091,
+                        },
+                    },
+                ],
+                return_ty: Some(
+                    Path {
+                        segments: [
+                            "http",
+                            "Response",
+                        ],
+                        span: Span {
+                            start: 3096,
+                            end: 3109,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Expr(
+                            Match {
+                                scrutinee: Await {
+                                    expr: Call {
+                                        callee: Ident {
+                                            name: "load_feed",
+                                            span: Span {
+                                                start: 3126,
+                                                end: 3135,
+                                            },
+                                        },
+                                        type_args: [],
+                                        args: [
+                                            Ident {
+                                                name: "user_id",
+                                                span: Span {
+                                                    start: 3136,
+                                                    end: 3143,
+                                                },
+                                            },
+                                        ],
+                                        span: Span {
+                                            start: 3126,
+                                            end: 3144,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 3120,
+                                        end: 3144,
+                                    },
+                                },
+                                arms: [
+                                    MatchArm {
+                                        pattern: Constructor {
+                                            path: [
+                                                "Ok",
+                                            ],
+                                            args: [
+                                                Ident {
+                                                    name: "feed",
+                                                    span: Span {
+                                                        start: 3154,
+                                                        end: 3158,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 3151,
+                                                end: 3159,
+                                            },
+                                        },
+                                        body: Expr(
+                                            Call {
+                                                callee: Member {
+                                                    object: Ident {
+                                                        name: "http",
+                                                        span: Span {
+                                                            start: 3163,
+                                                            end: 3167,
+                                                        },
+                                                    },
+                                                    field: "json",
+                                                    optional: false,
+                                                    span: Span {
+                                                        start: 3163,
+                                                        end: 3172,
+                                                    },
+                                                },
+                                                type_args: [],
+                                                args: [
+                                                    Number {
+                                                        raw: "200",
+                                                        span: Span {
+                                                            start: 3173,
+                                                            end: 3176,
+                                                        },
+                                                    },
+                                                    Ident {
+                                                        name: "feed",
+                                                        span: Span {
+                                                            start: 3178,
+                                                            end: 3182,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 3163,
+                                                    end: 3183,
+                                                },
+                                            },
+                                        ),
+                                        span: Span {
+                                            start: 3151,
+                                            end: 3183,
+                                        },
+                                    },
+                                    MatchArm {
+                                        pattern: Constructor {
+                                            path: [
+                                                "Err",
+                                            ],
+                                            args: [
+                                                Constructor {
+                                                    path: [
+                                                        "NetworkError",
+                                                    ],
+                                                    args: [
+                                                        Object {
+                                                            fields: [
+                                                                ObjectPatternField {
+                                                                    key: "status",
+                                                                    binding: None,
+                                                                    span: Span {
+                                                                        start: 3208,
+                                                                        end: 3215,
+                                                                    },
+                                                                },
+                                                            ],
+                                                            span: Span {
+                                                                start: 3206,
+                                                                end: 3216,
+                                                            },
+                                                        },
+                                                    ],
+                                                    span: Span {
+                                                        start: 3193,
+                                                        end: 3217,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 3189,
+                                                end: 3218,
+                                            },
+                                        },
+                                        body: Expr(
+                                            Call {
+                                                callee: Member {
+                                                    object: Ident {
+                                                        name: "http",
+                                                        span: Span {
+                                                            start: 3222,
+                                                            end: 3226,
+                                                        },
+                                                    },
+                                                    field: "json",
+                                                    optional: false,
+                                                    span: Span {
+                                                        start: 3222,
+                                                        end: 3231,
+                                                    },
+                                                },
+                                                type_args: [],
+                                                args: [
+                                                    Number {
+                                                        raw: "502",
+                                                        span: Span {
+                                                            start: 3232,
+                                                            end: 3235,
+                                                        },
+                                                    },
+                                                    Object {
+                                                        fields: [
+                                                            KeyValue {
+                                                                key: "error",
+                                                                value: String {
+                                                                    value: "upstream_failed",
+                                                                    span: Span {
+                                                                        start: 3252,
+                                                                        end: 3269,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3245,
+                                                                    end: 3269,
+                                                                },
+                                                            },
+                                                            KeyValue {
+                                                                key: "status",
+                                                                value: Ident {
+                                                                    name: "status",
+                                                                    span: Span {
+                                                                        start: 3285,
+                                                                        end: 3291,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3277,
+                                                                    end: 3291,
+                                                                },
+                                                            },
+                                                        ],
+                                                        span: Span {
+                                                            start: 3237,
+                                                            end: 3298,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 3222,
+                                                    end: 3299,
+                                                },
+                                            },
+                                        ),
+                                        span: Span {
+                                            start: 3189,
+                                            end: 3299,
+                                        },
+                                    },
+                                    MatchArm {
+                                        pattern: Constructor {
+                                            path: [
+                                                "Err",
+                                            ],
+                                            args: [
+                                                Constructor {
+                                                    path: [
+                                                        "DecodeError",
+                                                    ],
+                                                    args: [
+                                                        Object {
+                                                            fields: [
+                                                                ObjectPatternField {
+                                                                    key: "url",
+                                                                    binding: None,
+                                                                    span: Span {
+                                                                        start: 3323,
+                                                                        end: 3326,
+                                                                    },
+                                                                },
+                                                                ObjectPatternField {
+                                                                    key: "reason",
+                                                                    binding: None,
+                                                                    span: Span {
+                                                                        start: 3328,
+                                                                        end: 3335,
+                                                                    },
+                                                                },
+                                                            ],
+                                                            span: Span {
+                                                                start: 3321,
+                                                                end: 3336,
+                                                            },
+                                                        },
+                                                    ],
+                                                    span: Span {
+                                                        start: 3309,
+                                                        end: 3337,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 3305,
+                                                end: 3338,
+                                            },
+                                        },
+                                        body: Expr(
+                                            Call {
+                                                callee: Member {
+                                                    object: Ident {
+                                                        name: "http",
+                                                        span: Span {
+                                                            start: 3342,
+                                                            end: 3346,
+                                                        },
+                                                    },
+                                                    field: "json",
+                                                    optional: false,
+                                                    span: Span {
+                                                        start: 3342,
+                                                        end: 3351,
+                                                    },
+                                                },
+                                                type_args: [],
+                                                args: [
+                                                    Number {
+                                                        raw: "500",
+                                                        span: Span {
+                                                            start: 3352,
+                                                            end: 3355,
+                                                        },
+                                                    },
+                                                    Object {
+                                                        fields: [
+                                                            KeyValue {
+                                                                key: "error",
+                                                                value: String {
+                                                                    value: "decode_failed",
+                                                                    span: Span {
+                                                                        start: 3372,
+                                                                        end: 3387,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3365,
+                                                                    end: 3387,
+                                                                },
+                                                            },
+                                                            KeyValue {
+                                                                key: "url",
+                                                                value: Ident {
+                                                                    name: "url",
+                                                                    span: Span {
+                                                                        start: 3400,
+                                                                        end: 3403,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3395,
+                                                                    end: 3403,
+                                                                },
+                                                            },
+                                                            KeyValue {
+                                                                key: "reason",
+                                                                value: Ident {
+                                                                    name: "reason",
+                                                                    span: Span {
+                                                                        start: 3419,
+                                                                        end: 3425,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3411,
+                                                                    end: 3425,
+                                                                },
+                                                            },
+                                                        ],
+                                                        span: Span {
+                                                            start: 3357,
+                                                            end: 3432,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 3342,
+                                                    end: 3433,
+                                                },
+                                            },
+                                        ),
+                                        span: Span {
+                                            start: 3305,
+                                            end: 3433,
+                                        },
+                                    },
+                                    MatchArm {
+                                        pattern: Constructor {
+                                            path: [
+                                                "Err",
+                                            ],
+                                            args: [
+                                                Constructor {
+                                                    path: [
+                                                        "NotFound",
+                                                    ],
+                                                    args: [
+                                                        Object {
+                                                            fields: [
+                                                                ObjectPatternField {
+                                                                    key: "resource",
+                                                                    binding: None,
+                                                                    span: Span {
+                                                                        start: 3454,
+                                                                        end: 3462,
+                                                                    },
+                                                                },
+                                                                ObjectPatternField {
+                                                                    key: "id",
+                                                                    binding: None,
+                                                                    span: Span {
+                                                                        start: 3464,
+                                                                        end: 3467,
+                                                                    },
+                                                                },
+                                                            ],
+                                                            span: Span {
+                                                                start: 3452,
+                                                                end: 3468,
+                                                            },
+                                                        },
+                                                    ],
+                                                    span: Span {
+                                                        start: 3443,
+                                                        end: 3469,
+                                                    },
+                                                },
+                                            ],
+                                            span: Span {
+                                                start: 3439,
+                                                end: 3470,
+                                            },
+                                        },
+                                        body: Expr(
+                                            Call {
+                                                callee: Member {
+                                                    object: Ident {
+                                                        name: "http",
+                                                        span: Span {
+                                                            start: 3474,
+                                                            end: 3478,
+                                                        },
+                                                    },
+                                                    field: "json",
+                                                    optional: false,
+                                                    span: Span {
+                                                        start: 3474,
+                                                        end: 3483,
+                                                    },
+                                                },
+                                                type_args: [],
+                                                args: [
+                                                    Number {
+                                                        raw: "404",
+                                                        span: Span {
+                                                            start: 3484,
+                                                            end: 3487,
+                                                        },
+                                                    },
+                                                    Object {
+                                                        fields: [
+                                                            KeyValue {
+                                                                key: "error",
+                                                                value: String {
+                                                                    value: "not_found",
+                                                                    span: Span {
+                                                                        start: 3504,
+                                                                        end: 3515,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3497,
+                                                                    end: 3515,
+                                                                },
+                                                            },
+                                                            KeyValue {
+                                                                key: "resource",
+                                                                value: Ident {
+                                                                    name: "resource",
+                                                                    span: Span {
+                                                                        start: 3533,
+                                                                        end: 3541,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3523,
+                                                                    end: 3541,
+                                                                },
+                                                            },
+                                                            KeyValue {
+                                                                key: "id",
+                                                                value: Ident {
+                                                                    name: "id",
+                                                                    span: Span {
+                                                                        start: 3553,
+                                                                        end: 3555,
+                                                                    },
+                                                                },
+                                                                span: Span {
+                                                                    start: 3549,
+                                                                    end: 3555,
+                                                                },
+                                                            },
+                                                        ],
+                                                        span: Span {
+                                                            start: 3489,
+                                                            end: 3562,
+                                                        },
+                                                    },
+                                                ],
+                                                span: Span {
+                                                    start: 3474,
+                                                    end: 3563,
+                                                },
+                                            },
+                                        ),
+                                        span: Span {
+                                            start: 3439,
+                                            end: 3563,
+                                        },
+                                    },
+                                ],
+                                span: Span {
+                                    start: 3114,
+                                    end: 3568,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 3110,
+                        end: 3570,
+                    },
+                },
+                span: Span {
+                    start: 3058,
+                    end: 3570,
+                },
+            },
+        ),
+    ],
+    span: Span {
+        start: 72,
+        end: 3571,
+    },
+}

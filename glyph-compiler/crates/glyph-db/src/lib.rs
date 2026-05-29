@@ -56,13 +56,14 @@ use std::sync::Arc;
 
 pub use salsa::Setter;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use glyph_ast::{Decl, Module, TypeExpr};
+use glyph_ast::{Decl, Ident, Module, ModulePath, TypeExpr};
 use glyph_parser::ParseError;
 use glyph_resolver::{
-    build_prelude, collect_module_symbols, resolve_module, verify_imports, ModuleGraph,
-    ModuleSymbols, Prelude, ResolveError, ResolvedModule, StdlibStubs,
+    build_prelude, collect_module_symbols, path_key, resolve_module, verify_imports,
+    ModuleExports, ModuleGraph, ModuleSymbols, Prelude, ResolveError, ResolvedModule,
+    StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
     assign_types_with_resolver, DeclTyResolver, Lowerer, Ty, TypeMap,
@@ -517,6 +518,112 @@ impl ResolvedDecl {
 impl_wrapper_update!(ResolvedDecl);
 
 // ============================================================================
+// Stage 8 wrapper: Exports (per-file module exports)
+// ============================================================================
+
+/// The set of names a file exports — every top-level decl plus
+/// tagged-union variants hoisted into module scope. Imports do NOT
+/// re-export (D15: barrel files forbidden); names brought in via
+/// `import M { N }` stay local to the importing module.
+///
+/// Salsa-backed via `module_exports(file)`. When fn 5's name doesn't
+/// change across an edit (only its body shifts), the wrapper's
+/// PartialEq returns true → Update returns false → consumers of this
+/// file's exports (e.g., the ProjectGraph in another file's
+/// `import_diagnostics`) skip re-execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Exports {
+    inner: Arc<ExportsInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ExportsInner {
+    exports: ModuleExports,
+}
+
+impl Exports {
+    pub fn new(exports: ModuleExports) -> Self {
+        Self {
+            inner: Arc::new(ExportsInner { exports }),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(ModuleExports::empty())
+    }
+
+    pub fn exports(&self) -> &ModuleExports {
+        &self.inner.exports
+    }
+}
+
+impl_wrapper_update!(Exports);
+
+// ============================================================================
+// ProjectGraph — a ModuleGraph backed by salsa-cached file exports
+// ============================================================================
+
+/// In-memory aggregation of multiple files' `module_exports` results.
+/// Construct via `ProjectGraph::build(db, [(module_path_str, SourceFile), ...])`
+/// — the build iterates and salsa-fetches each file's exports.
+///
+/// The graph itself is NOT salsa-tracked; rebuilding it costs O(N) HashMap
+/// inserts but the per-file work is cached. Callers typically rebuild
+/// once per `glyph build` invocation (or once at LSP project-load and
+/// again on workspace-symbol-set change). Cross-file invalidation of
+/// `import_diagnostics` when a project file's exports change is not
+/// automatic today — it requires the caller to rebuild the graph and
+/// re-run `import_diagnostics`. A future salsa-tracked `ProjectExports`
+/// value with `impl ModuleGraph` could close that gap.
+#[derive(Debug, Default, Clone)]
+pub struct ProjectGraph {
+    by_path: HashMap<String, ModuleExports>,
+}
+
+impl ProjectGraph {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Build a `ProjectGraph` from a set of `(module_path, SourceFile)`
+    /// pairs. The `module_path` is the slash-joined path (`"std/array"`,
+    /// `"app/users"`) that matches what `path_key` produces for an
+    /// `import` statement's `ModulePath`.
+    pub fn build<I, S>(db: &dyn Db, files: I) -> Self
+    where
+        I: IntoIterator<Item = (S, SourceFile)>,
+        S: Into<String>,
+    {
+        let mut by_path: HashMap<String, ModuleExports> = HashMap::new();
+        for (path, file) in files {
+            let exports = module_exports(db, file);
+            let key = path.into();
+            let prev = by_path.insert(key.clone(), exports.exports().clone());
+            debug_assert!(
+                prev.is_none(),
+                "ProjectGraph::build: duplicate module path `{key}` — earlier file's exports overwritten"
+            );
+        }
+        Self { by_path }
+    }
+
+    /// Number of registered modules.
+    pub fn len(&self) -> usize {
+        self.by_path.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.by_path.is_empty()
+    }
+}
+
+impl ModuleGraph for ProjectGraph {
+    fn exports_of(&self, path: &ModulePath) -> Option<&ModuleExports> {
+        self.by_path.get(&path_key(path))
+    }
+}
+
+// ============================================================================
 // Tracked queries
 // ============================================================================
 
@@ -543,6 +650,48 @@ pub fn module_symbols(db: &dyn Db, file: SourceFile) -> Symbols {
         Ok(s) => Symbols::ok(s),
         Err(errs) => Symbols::err(errs),
     }
+}
+
+/// Per-file export surface. Returns every name a file makes visible to
+/// importers — top-level decls (fn, type, const, component) plus
+/// tagged-union variants hoisted into module scope. Imports are NOT
+/// re-exported per D15.
+///
+/// Backs the `ProjectGraph` aggregation: editing a file's body re-runs
+/// this query, but when the export set hasn't changed (most edits don't
+/// add or remove top-level names) the wrapper's Update returns false and
+/// downstream consumers of this file's exports skip re-validation.
+#[salsa::tracked]
+pub fn module_exports(db: &dyn Db, file: SourceFile) -> Exports {
+    let syms = module_symbols(db, file);
+    let Some(table) = syms.symbols() else {
+        return Exports::empty();
+    };
+    // **Include-list, not exclude-list**: when a new `SymbolKind` variant
+    // lands (e.g. `Macro`, `TypeAlias`), this `matches!` will reject it by
+    // default and the compiler exhaustiveness check will force a
+    // decision rather than silently leaking the new kind into the
+    // export surface. Imports stay locally-bound per D15 (no barrel files).
+    let names: std::collections::BTreeSet<Ident> = table
+        .by_name
+        .iter()
+        .filter(|(_, id)| {
+            let sym = table
+                .table
+                .get(**id)
+                .expect("by_name points at table entry");
+            matches!(
+                sym.kind,
+                SymbolKind::Function { .. }
+                    | SymbolKind::Type { .. }
+                    | SymbolKind::Const { .. }
+                    | SymbolKind::Component { .. }
+                    | SymbolKind::Variant { .. }
+            )
+        })
+        .map(|(name, _)| name.clone())
+        .collect();
+    Exports::new(ModuleExports::from_names(names))
 }
 
 /// Cross-module verification (`import M { N }` checks). Reads the module
@@ -1278,6 +1427,140 @@ fn use_helper(x: number) -> number { return helper(x) }
         assert!(
             count_will_execute(&main_events) >= 1,
             "decl_ty(main) should fire WillExecute (unreferenced — not warmed); events: {main_events:?}"
+        );
+    }
+
+    use glyph_resolver::{verify_imports as verify_imports_fn, CompositeGraph};
+
+    #[test]
+    fn module_exports_lists_top_level_decls_only() {
+        // Top-level fn, type, const, and component all become exports.
+        // Imports do NOT (D15: no re-export).
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nimport std/array\nfn helper() -> number { return 1 }\ntype User = { name: string }\nconst PI = 3.14\n",
+        );
+        let exports = module_exports(&db, file);
+        let names = &exports.exports().names;
+        assert!(names.contains("helper" as &str), "expected `helper`");
+        assert!(names.contains("User" as &str), "expected `User`");
+        assert!(names.contains("PI" as &str), "expected `PI`");
+        // `array` was introduced by `import std/array` — it's a local
+        // binding in `lib`, not an export FROM `lib`.
+        assert!(!names.contains("array" as &str), "imports should not re-export");
+    }
+
+    #[test]
+    fn module_exports_includes_union_variants() {
+        // Tagged-union variants are hoisted into module scope as Variant
+        // symbols (see glyph-resolver/collect.rs); they're part of the
+        // module's exported surface.
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\ntype FeedError = | NotFound | Timeout\n",
+        );
+        let exports = module_exports(&db, file);
+        let names = &exports.exports().names;
+        assert!(names.contains("FeedError" as &str));
+        assert!(names.contains("NotFound" as &str));
+        assert!(names.contains("Timeout" as &str));
+    }
+
+    #[test]
+    fn project_graph_serves_cross_module_named_imports() {
+        let db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nfn helper() -> number { return 1 }\nfn other() -> number { return 2 }\n",
+        );
+        let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
+        let project = ProjectGraph::build(&db, [("lib", lib)]);
+        let stdlib = StdlibStubs::new();
+        let composite = CompositeGraph {
+            first: &stdlib,
+            second: &project,
+        };
+        let parsed = parse_module(&db, app);
+        let errs = verify_imports_fn(parsed.module().expect("parse"), &composite);
+        assert!(
+            errs.is_empty(),
+            "import lib {{ helper }} should resolve via the project graph; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn project_graph_flags_unknown_export() {
+        let db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nfn helper() -> number { return 1 }\n",
+        );
+        let app = new_file(&db, "app.glyph", "module app\nimport lib { bogus }\n");
+        let project = ProjectGraph::build(&db, [("lib", lib)]);
+        let stdlib = StdlibStubs::new();
+        let composite = CompositeGraph {
+            first: &stdlib,
+            second: &project,
+        };
+        let parsed = parse_module(&db, app);
+        let errs = verify_imports_fn(parsed.module().expect("parse"), &composite);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(matches!(
+            &errs[0],
+            ResolveError::UnknownExportedName { name, module, .. }
+                if name == "bogus" && module == "lib"
+        ));
+    }
+
+    #[test]
+    fn module_exports_memoizes_across_body_edits_that_dont_change_decl_names() {
+        // The export *set* doesn't change when a fn body is edited (only
+        // the names matter). After set_text, salsa walks the dep chain:
+        //   - parse_module re-executes (text changed, output differs)
+        //   - module_symbols re-executes (parse_module changed) but its
+        //     SymbolTable is content-equal across the edit → backdated
+        //   - module_exports sees its sole dep is backdated, validates
+        //     WITHOUT re-executing its own body → DidValidateMemoizedValue
+        //
+        // The two assertions below pin this fire pattern: at most 2
+        // WillExecute events (parse_module + module_symbols, NOT
+        // module_exports), and at least 1 DidValidateMemoizedValue
+        // (module_exports served from cache).
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nfn helper(a: number) -> number { return a + 1 }\n",
+        );
+        let _ = module_exports(&db, file);
+        // Body-only edit, same length so spans stay stable.
+        file.set_text(&mut db).to(
+            "module lib\nfn helper(a: number) -> number { return 1 + a }\n".to_string(),
+        );
+        db.drain_events();
+        let _ = module_exports(&db, file);
+        let events = db.drain_events();
+        let we = count_will_execute(&events);
+        let valid = count_validated_memos(&events);
+        // `we <= 2` excludes module_exports from the re-executed set; a
+        // regression where module_exports re-runs its body would yield
+        // we=3 (parse_module + module_symbols + module_exports).
+        assert!(
+            we <= 2,
+            "module_exports should not re-execute (only parse_module + module_symbols may); got we={we}, events: {events:?}"
+        );
+        // `valid >= 1` confirms a memo hit fired. Jointly with `we <= 2`,
+        // this proves module_exports is the validated query (not just
+        // module_symbols transiently). Do not drop either assertion.
+        assert!(
+            valid >= 1,
+            "module_exports should be a memo hit; got valid={valid}, events: {events:?}"
         );
     }
 

@@ -1530,3 +1530,78 @@ generalize the result; that's deferred.
 | **glyph-db (lib)** | **22** | **+1**: editing_one_fn_body_skips_decl_ty_for_other_fns |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **147** | **All pass** (up from 146) |
+
+## Phase 1 week 2 day 9 status (shipped 2026-05-29)
+
+**Filesystem-backed module graph lands.** Cross-module imports between
+project-local `.glyph` files now resolve against parsed exports
+instead of in-memory `StdlibStubs`. A new salsa-tracked
+`module_exports(file)` query collects per-file exports (top-level
+decls + tagged-union variants, excluding imports per D15); a
+non-tracked `ProjectGraph` aggregator implements `ModuleGraph` over
+many files' export sets. Composes with `StdlibStubs` via the existing
+`CompositeGraph`. 152 workspace tests pass (up from 147).
+
+### Implemented this slice
+
+- **`glyph-resolver`**: `ModuleExports` gained `PartialEq, Eq` derives
+  so it can cross salsa boundaries via the wrapper.
+- **`glyph-db`**:
+  - `Exports` wrapper newtype (`impl_wrapper_update!` pattern) holding
+    a per-file `ModuleExports`.
+  - `module_exports(db, file)` tracked query — reads from
+    `module_symbols(db, file)` and filters out `Import*` symbol kinds.
+    Editing a fn body doesn't change the export set, so the salsa memo
+    backdates and downstream consumers see "no change."
+  - `ProjectGraph::build(db, [(path, file), ...])` — eager aggregation
+    that fetches each file's exports via salsa. The aggregator itself
+    is in-memory (not salsa-tracked); callers rebuild it on demand. The
+    per-file fetches are cached, so rebuilding after editing one file
+    is O(N) HashMap inserts + 1 cache miss.
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| Top-level decls export; imports do not | `module_exports_lists_top_level_decls_only` |
+| Tagged-union variants are exports | `module_exports_includes_union_variants` |
+| Cross-module `import lib { helper }` resolves via the project graph | `project_graph_serves_cross_module_named_imports` |
+| Bogus cross-module import is flagged | `project_graph_flags_unknown_export` |
+| `module_exports` memo survives body-only edits | `module_exports_memoizes_across_body_edits_that_dont_change_decl_names` |
+
+### Limitation: graph-level invalidation
+
+The `ProjectGraph` aggregator is NOT salsa-tracked — when a file's
+exports change, `import_diagnostics` for *importing* files won't
+auto-invalidate unless the caller rebuilds the graph and re-runs the
+query. A future salsa-tracked `ProjectExports` value (with
+`impl ModuleGraph`) would close that gap. The per-file `module_exports`
+salsa cache means rebuilding after one file edit is cheap; the cost
+is the explicit rebuild call, not redundant work.
+
+### Deferred to day 10+
+
+- **Salsa-tracked `ProjectExports`** so changing a project file's
+  exports automatically invalidates importing files' diagnostics.
+- **Span-insensitive `DeclAst` / `ResolvedDecl`** so non-equal-length
+  edits also benefit from day-8's win.
+- D15 **barrel-file detection** at the export level: a file with
+  only imports (no fn/type/const/component) has empty exports — the
+  current `module_exports` returns empty `BTreeSet` for those, but
+  there's no explicit diagnostic yet.
+
+### Test summary after week 2 day 9
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 25 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| **glyph-db (lib)** | **27** | **+5**: module_exports lists top-level decls only, module_exports includes union variants, ProjectGraph serves cross-module named imports, ProjectGraph flags unknown export, module_exports memoizes across body edits |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **152** | **All pass** (up from 147) |

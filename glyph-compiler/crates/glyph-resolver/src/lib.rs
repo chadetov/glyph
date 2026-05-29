@@ -32,7 +32,7 @@ mod symbol;
 pub use collect::{collect_module_symbols, ModuleSymbols};
 pub use error::ResolveError;
 pub use module_graph::{
-    verify_imports, CompositeGraph, ModuleExports, ModuleGraph, StdlibStubs,
+    path_key, verify_imports, CompositeGraph, ModuleExports, ModuleGraph, StdlibStubs,
 };
 pub use prelude::{build_prelude, Prelude};
 pub use resolve::{resolve_module, ResolutionMap, ResolvedModule, ResolvedRef};

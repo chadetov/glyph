@@ -35,7 +35,7 @@ use crate::error::ResolveError;
 /// Exports surface for a single module. The `names` set is the union of
 /// every top-level decl name and every imported-and-re-exported name; for the
 /// stdlib stubs in this slice it's just the top-level decls.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ModuleExports {
     pub names: BTreeSet<Ident>,
 }
@@ -214,7 +214,11 @@ pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveEr
 /// inside `StdlibStubs` and as the `module` field of `UnknownExportedName`,
 /// so the lookup form and the user-visible form cannot drift apart on a
 /// future canonicalization change.
-fn path_key(path: &ModulePath) -> String {
+/// Canonical string form of a `ModulePath`. Doubles as the `HashMap` key
+/// inside `StdlibStubs` and as the `module` field of `UnknownExportedName`
+/// errors. Exposed `pub` since day 9 — `glyph-db`'s `ProjectGraph` also
+/// needs to hash `ModulePath` values consistently with this crate.
+pub fn path_key(path: &ModulePath) -> String {
     path.segments
         .iter()
         .map(|s| s.as_ref())

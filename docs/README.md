@@ -5,10 +5,10 @@ Glyph is a TypeScript-family language designed so AI agents can read, write, and
 ## Start here
 
 - `manifesto.md` — the four pillars and the bet (post-brainstorm: includes one narrow carve-out for `owned` resource discipline)
-- `implementation-plan.md` — **the canonical 40-week sequence from current state to v1.0 launch.** Read this if you're starting work.
+- `implementation-plan.md` — **the canonical 40-week sequence from current state to v1.0 launch, with day-by-day status sections appended as work ships.** Read this for the live record of what's done, what's next, and which tests pass.
 - `language/spec.md` — the 27 numbered grammar decisions (D1–D27)
-- `language/grammar-status.md` — what's in the step-3 grammar, what's still missing on disk
-- `roadmap/overview.md` — the 12-step plan with the current state of each step
+- `language/grammar-status.md` — production Rust parser status + the role of the archived tree-sitter grammar as a reference spec
+- `roadmap/overview.md` — the 12-step plan with the current state of each step (higher-level than `implementation-plan.md`'s daily granularity)
 - `open-questions.md` — historical record of brainstorm resolutions (sessions 1, 2, 3) plus the original question framings
 
 ## Per-step roadmap notes

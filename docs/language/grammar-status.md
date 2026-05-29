@@ -1,6 +1,12 @@
 # Grammar status
 
-The step-3 deliverable is a tree-sitter grammar that encodes the Glyph syntactic spec.
+The step-3 deliverable is a tree-sitter grammar that encodes the Glyph syntactic spec. The **production parser is the hand-written Rust Pratt parser** in `glyph-compiler/crates/glyph-parser/` (per the Q5 hybrid resolution); the tree-sitter grammar's role going forward is as a reference spec and a future editor-tooling source, not a build dependency.
+
+## Current state (as of Phase 1 week 1 completion)
+
+- The Rust parser handles all 27 D-decisions and parses all 4 hard-case `.glyph` example files end-to-end. AST snapshots are checked into `glyph-compiler/crates/glyph-parser/tests/snapshots/`.
+- The tree-sitter grammar in `archive/grammar.js` is unchanged from step 3. It's still unverified (`tree-sitter generate` has never been run in this environment), and the scaffolding gaps below remain.
+- When the Rust parser and the tree-sitter grammar disagree on an ambiguity, the Rust parser is canonical and `docs/language/spec.md` records the resolution.
 
 ## What exists in archive/
 

@@ -17,9 +17,15 @@ Verifiability and greppability are the wedge. Abstraction and diff stability are
 
 ## Status
 
-Phase 1 week 1 complete. The Rust parser (lexer plus AST plus Pratt parser plus JSX sub-grammar plus template literals plus annotations) handles all 27 spec decisions and parses the four hard-case example programs end to end. 67 tests pass.
+Phase 1 weeks 1 and 2 complete; week 3 (typechecker) underway. 14 days of work shipped:
 
-Phase 1 week 2 is next: name resolution, module graph, and a salsa-backed type representation.
+- Hand-written Rust lexer, Pratt parser, and AST handle all 27 spec decisions. All four hard-case example programs parse end to end.
+- Name resolution, module graph, and cross-module verification (`import M { N }`).
+- Full salsa-tracked incremental query pipeline (parse → collect → resolve → per-declaration type → project exports → import diagnostics). Per-decl input slicing, source-byte canonical fingerprints, automatic cross-file invalidation when a project file's exports change.
+- `glyph build src/ --out dist/` walks a source tree, runs the pipeline, and reports ariadne-rendered diagnostics with source-context lines and caret pointers.
+- First real type-system check: Maranget-style variant-set exhaustiveness for `match` over user-defined tagged unions.
+
+179 workspace tests pass. Next: bidirectional checker, `?` propagation typing, `owned` single-consumption analysis, runtime descriptors. Then TS emission (Phase 1 week 4). Live record: [`docs/implementation-plan.md`](docs/implementation-plan.md).
 
 ## Where to start
 

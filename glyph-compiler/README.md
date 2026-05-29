@@ -1,28 +1,29 @@
 # glyph-compiler
 
-The Rust workspace for the Glyph v1.0 compiler. See `../docs/implementation-plan.md` for the phase-by-phase scope; this README is a layout reference only.
+The Rust workspace for the Glyph v1.0 compiler. See `../docs/implementation-plan.md` for the day-by-day scope; this README is a layout reference.
 
 ## Crate layout
 
-| Crate | Phase 0 status | Implements | Phase |
+| Crate | Status | Implements | Phase |
 |---|---|---|---|
-| `glyph-lexer` | stub | Hand-written lexer (D1, D12+D22, D13, D14, D17, D21, D22, D27) | Phase 1 week 1 |
-| `glyph-ast` | stub | AST enums per node category, `Span` on every node | Phase 1 week 1 |
-| `glyph-parser` | stub | Pratt parser; D7 context disambiguation; D6 JSX sub-grammar | Phase 1 week 1 |
-| `glyph-resolver` | stub | Salsa-backed name resolution, module graph, D15 import rules | Phase 1 week 2 |
-| `glyph-typechecker` | stub | Salsa-backed types + ADTs + Maranget exhaustiveness + D25 owned tracking | Phase 1 week 3 |
-| `glyph-emit` | stub | Dumb AST→TS visitor (no IR); D6 JSX directive lowering | Phase 1 week 4 |
-| `glyph-runtime` | stub | Sandboxed interpreter for D23 `@example` and D26 `@doc @run` | Phase 1 week 6 |
-| `glyph-cli` | stub binary | `glyph build / run / fmt / regen / publish / --explain` | Phase 1 weeks 5–7 |
+| `glyph-lexer` | ✅ shipped | Hand-written lexer (D1, D12+D22, D13, D14, D17, D21, D22, D27) | Phase 1 week 1 |
+| `glyph-ast` | ✅ shipped | AST enums per node category, `Span` on every node | Phase 1 week 1 |
+| `glyph-parser` | ✅ shipped | Pratt parser; D7 context disambiguation; D6 JSX sub-grammar; template literals; annotations | Phase 1 week 1 |
+| `glyph-resolver` | ✅ shipped | Name resolution, module graph (`StdlibStubs`, `CompositeGraph`, `ProjectGraph`), cross-module import verification, D15 import rules | Phase 1 week 2 |
+| `glyph-db` | ✅ shipped | Salsa-tracked incremental query pipeline (parse → collect → resolve → decl_ast → resolved_decl → decl_ty → type_map → project_exports → import_diagnostics). Per-decl input slicing, source-byte canonical fingerprints, cross-file auto-invalidation. | Phase 1 week 2 (days 5–12) |
+| `glyph-typechecker` | 🟨 in progress | Types + per-decl signature lowering. Day-14: Maranget variant-set exhaustiveness for tagged unions. Pending: bidirectional check, `?` typing, `owned` analysis (D25), runtime descriptors. | Phase 1 week 3 |
+| `glyph-emit` | 🟦 not started | Dumb AST→TS visitor (no IR); D6 JSX directive lowering | Phase 1 week 4 |
+| `glyph-runtime` | 🟦 not started | Sandboxed interpreter for D23 `@example` and D26 `@doc @run` | Phase 1 week 6 |
+| `glyph-cli` | 🟨 in progress | `glyph build` walks a source tree, runs the salsa pipeline, prints ariadne-rendered diagnostics with caret pointers + TTY-aware color. Other subcommands (`run / fmt / regen / publish / --explain`) are phase-0 stubs. | Phase 1 weeks 5–7 |
 
-## Build (Phase 0 acceptance: workspace compiles empty)
+## Build + test
 
 ```bash
 cd glyph-compiler
-cargo check --workspace
+cargo test --workspace
 ```
 
-If `cargo check` passes with all stubs, Phase 0 P2 is complete.
+179 tests pass as of day 14. `glyph build src/ --out dist/` against any directory of `.glyph` files runs the analysis pipeline and reports diagnostics. TS emission is week-4 work and not yet wired — the `--out` directory is created but no `.ts` files are written.
 
 ## Library versions (P5)
 

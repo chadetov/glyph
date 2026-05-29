@@ -1,6 +1,21 @@
 # Step 5 — Typechecker
 
-Status: **planned, scope contested → partly resolved.** Full critique of the original framing in `archive/glyph_step5_notes.md`.
+Status: **🟨 Substep 5a started.** Full critique of the original framing in `archive/glyph_step5_notes.md`. For day-by-day progress, see `docs/implementation-plan.md`.
+
+## Implementation status (as of day 14)
+
+Substep 5a has begun. The salsa-tracked typechecker substrate (the `Q5 hybrid` architecture) is built and end-to-end through the CLI: parse → collect → resolve → assign types → render diagnostics → exit code. The first real semantic check landed on day 14:
+
+- **Variant-set exhaustiveness for `match` over user-defined tagged unions.** `match f { Loading => 1, Loaded => 2 }` on `type Feed = | Loading | Loaded | Failed` produces a `non-exhaustive match on \`Feed\`: missing variants \`Failed\`` diagnostic with caret pointers across the match expression. Patterns recognized: bare variant ident, `Variant(...)` constructor (any path length), `is Variant` guard (D9), `_`, `else`. Conservatively skipped (deferred): literal/nested/object/array patterns; prelude unions (`Result`, `Option`) pending scrutinee inference.
+
+What substep 5a still needs:
+
+- **Bidirectional checker** — typed scrutinees (especially `Result<T, E>` and `Option<T>` prelude unions), match-arm payload binding (so `Ok(v) => v` types `v` as `T`).
+- **`?` operator typing rule** — `expr?` requires `expr: Result<T, E>` and the enclosing function returns `Result<_, E>` with `E` matching exactly. No `From` conversion in v1 (per Q5 plan).
+- **`owned` single-consumption** (D25) — single-path analysis across function bodies. Manifesto carve-out.
+- **Runtime descriptors** (Q8) — every `type`/`record` declaration emits a runtime descriptor for `is TypeName` checks. Non-negotiable per Q8 resolution.
+
+Substep 5c (narrowing + flow analysis) and substep 5b (deferred to v1.1 per Q1) come after 5a.
 
 ## Updates from brainstorm session 1 (2026-05-26)
 
@@ -54,14 +69,13 @@ This is the floor, not the ceiling.
 
 **Total: ~13 weeks of focused work**, assuming nothing else slips. If the rest of the plan slots this as a 4–6 week line item, the plan breaks against it.
 
-## The blocking decision
+## The blocking decision (resolved)
 
-**Is `infer_shape<Shape>` v1 or v2?**
+**Is `infer_shape<Shape>` v1 or v2?** → **v2 (Q1 resolution, 2026-05-26 brainstorm).**
 
-- **If v1:** mapped types cannot be skipped — they have just been renamed. Substep 5b is mandatory.
-- **If v2:** the validator example (`01_validator.glyph`) needs to be rewritten *now* to use an explicit type parameter, so step 5's scope is honest.
-
-This needs to be reconciled before step 5 starts, **not during it**. The manifesto and the examples currently write checks the typechecker step is not budgeting to cash.
+- Mapped types deferred to v1.1.
+- `01_validator.glyph` was rewritten with an explicit output type parameter before substep 5a began.
+- Substep 5b is **not** on the v1 critical path.
 
 ## Tension with step 4 (transpiler)
 

@@ -1,6 +1,35 @@
 # Step 4 — Transpiler
 
-Status: **planned, not started.** Full week-by-week plan in `archive/glyph-transpiler-plan.md`.
+Status: **🟨 In progress.** 14 days of Phase 1 implementation shipped (commits on `main`). The strategic design decisions below are the long-form rationale; for the day-by-day progress record, see `docs/implementation-plan.md`.
+
+## Implementation status (as of day 14)
+
+What's shipped:
+
+- **Phase 1 week 1 (parser + AST)** — hand-written lexer + Pratt parser + AST. All 27 D-decisions parseable; all 4 hard-case `.glyph` example files parse end-to-end with checked-in `insta` snapshots. JSX sub-grammar (D6), template literals (D22), annotation prefix (D27), match expressions (D3), tagged unions (D8), patterns (D9), and the rest.
+- **Phase 1 week 2 (resolver + types) — extended into a salsa-tracked incremental pipeline (days 5–12)**:
+  - Name resolution (intra-module + cross-module via `import M { N }` verification).
+  - Type representation (`Ty` enum), `TypeMap` side table, per-expression Ty assignment.
+  - A full salsa graph: `parse_module → module_symbols → resolve → decl_ast → resolved_decl → decl_ty → type_map → project_exports → import_diagnostics`.
+  - Per-declaration input slicing — editing one fn's body skips re-execution of `decl_ty` for other decls (verified via salsa event log).
+  - Source-byte canonical fingerprints — non-equal-length edits to other decls don't invalidate this decl's wrapper.
+  - Cross-file auto-invalidation — removing `lib.glyph`'s `helper` auto-fires `UnknownExportedName` on `app.glyph` without graph rebuilds.
+- **CLI wiring (day 11)** — `glyph build src/ --out dist/` walks the source tree, registers files, runs the salsa pipeline, reports diagnostics. Exit codes 0/1/2.
+- **Ariadne-rendered diagnostics (day 13)** — multi-line reports with caret pointers, source-context lines, TTY-aware color, byte-offset spans for multi-byte UTF-8 correctness.
+- **Phase 1 week 3 started — typechecker substep 5a (day 14)** — Maranget-style variant-set exhaustiveness for `match` over user-defined tagged unions. First real type-system enforcement. Diagnostic flows through `assign_types → Types.errors → BuildReport → render_type_error → glyph build`.
+
+What's still ahead:
+
+- **Week 3 continued** — bidirectional checker (unlocks prelude `Result`/`Option` exhaustiveness + nested payload patterns), `?` propagation typing rule, `owned` single-consumption analysis (D25), runtime descriptors (Q8).
+- **Week 4** — TS emission, JSX directive lowering, async. The dumb AST-to-TS visitor.
+- **Week 5** — formatter, full CLI (`glyph run`, `glyph fmt`, `glyph regen`, `glyph publish`), runtime prelude.
+- **Week 6** — `@example` and `@doc @run` execution.
+- **Week 7** — full error-message audit (Phase 1 week 7 "Elm quality" bar; day 13 shipped the ariadne plumbing).
+- **Week 8** — hardening, property tests, CI, benchmark fill-out.
+
+**179 workspace tests pass.** Test count by crate is tracked in `docs/implementation-plan.md`'s test-summary tables.
+
+## Updates from brainstorm session 1 (2026-05-26)
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

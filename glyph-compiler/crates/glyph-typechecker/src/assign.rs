@@ -14,6 +14,7 @@
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use glyph_ast::{
     ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild, JsxElement, MatchArm, MatchArmBody,
@@ -23,7 +24,7 @@ use glyph_ast::{
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
 use crate::lower::Lowerer;
-use crate::ty::{Primitive, Ty};
+use crate::ty::{FnParam, Primitive, RecordField, Ty, UnionVariant};
 use crate::type_map::TypeMap;
 use crate::TypeError;
 
@@ -336,13 +337,19 @@ impl Assigner<'_> {
                 // Synthesize the call's type from the callee's signature.
                 // When the callee resolves to a `Ty::Fn` (a module-level
                 // fn/component reference or a typed lambda binding), the
-                // call has that fn's return type. Generic instantiation is
-                // NOT performed: a call to `fn f<T>(x: T) -> T` types as the
-                // uninstantiated `Ty::Param` — refining that needs the
-                // unifier. Any non-`Fn` callee (member-access method, an
-                // unresolved name) leaves the call `Unknown`.
+                // call has that fn's return type, with type parameters
+                // instantiated from the argument types. A generic
+                // `fn id<T>(x: T) -> T` called with a `number` argument
+                // types as `number`. Any non-`Fn` callee (member-access
+                // method, an unresolved name) leaves the call `Unknown`.
                 let call_ty = match self.tm.get(callee.span()) {
-                    Ty::Fn { return_ty, .. } => (**return_ty).clone(),
+                    Ty::Fn { params, return_ty, .. } => {
+                        let mut subst: HashMap<Ident, Ty> = HashMap::new();
+                        for (p, a) in params.iter().zip(args.iter()) {
+                            collect_type_param_bindings(&p.ty, self.tm.get(a.span()), &mut subst);
+                        }
+                        substitute_type_params(return_ty, &subst)
+                    }
                     _ => Ty::Unknown,
                 };
                 self.tm.insert(*span, call_ty);
@@ -763,6 +770,78 @@ impl Assigner<'_> {
         let variant = variants.iter().find(|v| &v.name == variant_name)?;
         let payload_te = variant.payload.as_ref()?;
         Some(self.lowerer.lower(payload_te))
+    }
+}
+
+// ----- day-20: generic instantiation (a minimal unifier) -----
+
+/// Infer type-parameter bindings by structurally matching a declared
+/// parameter type against the concrete argument type. `fn id<T>(x: T)`
+/// called with `5: number` binds `T → number`; `xs: Array<T>` against
+/// `Array<number>` binds the same. The first binding for a name wins, and
+/// `Unknown` arguments bind nothing (leaving the parameter open rather than
+/// pinning it to `Unknown`). This is not full unification: it only walks
+/// `Param` positions and zips `App` arguments — enough for the common
+/// generic call shapes.
+fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty>) {
+    match (param, arg) {
+        (Ty::Param { name, .. }, concrete) if !concrete.is_unknown() => {
+            out.entry(name.clone()).or_insert_with(|| concrete.clone());
+        }
+        (Ty::App { base: pbase, args: pargs }, Ty::App { base: abase, args: aargs }) => {
+            collect_type_param_bindings(pbase, abase, out);
+            for (p, a) in pargs.iter().zip(aargs.iter()) {
+                collect_type_param_bindings(p, a, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Replace every `Ty::Param` named in `subst` with its bound type, walking
+/// the type structurally. An empty substitution (the non-generic call case)
+/// returns a clone unchanged, so this is a no-op for ordinary calls.
+fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
+    if subst.is_empty() {
+        return ty.clone();
+    }
+    match ty {
+        Ty::Param { name, .. } => subst.get(name).cloned().unwrap_or_else(|| ty.clone()),
+        Ty::App { base, args } => Ty::App {
+            base: Arc::new(substitute_type_params(base, subst)),
+            args: args.iter().map(|a| substitute_type_params(a, subst)).collect(),
+        },
+        Ty::Fn { params, return_ty, is_async } => Ty::Fn {
+            params: params
+                .iter()
+                .map(|p| FnParam {
+                    name: p.name.clone(),
+                    ty: substitute_type_params(&p.ty, subst),
+                })
+                .collect(),
+            return_ty: Arc::new(substitute_type_params(return_ty, subst)),
+            is_async: *is_async,
+        },
+        Ty::Record { fields } => Ty::Record {
+            fields: fields
+                .iter()
+                .map(|f| RecordField {
+                    name: f.name.clone(),
+                    ty: substitute_type_params(&f.ty, subst),
+                    optional: f.optional,
+                })
+                .collect(),
+        },
+        Ty::Union { variants } => Ty::Union {
+            variants: variants
+                .iter()
+                .map(|v| UnionVariant {
+                    name: v.name.clone(),
+                    payload: v.payload.as_ref().map(|p| substitute_type_params(p, subst)),
+                })
+                .collect(),
+        },
+        other => other.clone(),
     }
 }
 
@@ -1686,5 +1765,94 @@ fn run(r: Result<number, E>) -> number {
             ty_errors_of(src).is_empty(),
             "Ok + (multiple Err arms) covers the Result variant set"
         );
+    }
+
+    // ----- day-20: generic instantiation -----
+
+    /// The value span of the first `let` in the `decl_idx`-th decl.
+    fn nth_decl_first_let_span(m: &Module, decl_idx: usize) -> glyph_ast::Span {
+        let f = match &m.items[decl_idx] {
+            Decl::Fn(f) => f,
+            _ => panic!("decl {decl_idx} is not a Fn"),
+        };
+        match &f.body.stmts[0] {
+            Stmt::Let(l) => l.value.span(),
+            _ => panic!("first stmt is not a Let"),
+        }
+    }
+
+    #[test]
+    fn generic_identity_call_instantiates_return() {
+        // `id(5)` infers `T = number` from the argument, so the call types
+        // as `number` rather than the uninstantiated `Ty::Param`.
+        let (m, _, tm) = type_map_of(
+            "module x\nfn id<T>(x: T) -> T { return x }\nfn main() { let n = id(5) }\n",
+        );
+        let call = nth_decl_first_let_span(&m, 1);
+        assert!(
+            matches!(tm.get(call), Ty::Prim(Primitive::Number)),
+            "id(5) should instantiate T = number; got {:?}",
+            tm.get(call)
+        );
+    }
+
+    #[test]
+    fn generic_call_instantiates_through_container() {
+        // `first(arr)` with `arr: Array<number>` against `xs: Array<T>`
+        // binds `T = number` by zipping the `App` arguments.
+        let (m, _, tm) = type_map_of(
+            "module x\n\
+             fn first<T>(xs: Array<T>) -> T { return xs[0] }\n\
+             fn main(arr: Array<number>) { let x = first(arr) }\n",
+        );
+        let call = nth_decl_first_let_span(&m, 1);
+        assert!(
+            matches!(tm.get(call), Ty::Prim(Primitive::Number)),
+            "first(arr: Array<number>) should instantiate T = number; got {:?}",
+            tm.get(call)
+        );
+    }
+
+    #[test]
+    fn non_generic_call_return_is_unchanged() {
+        // Regression: a non-generic call still takes its concrete return
+        // type; the empty substitution is a no-op.
+        let (m, _, tm) = type_map_of(
+            "module x\nfn area(w: number, h: number) -> number { return w }\nfn main() { let a = area(2, 3) }\n",
+        );
+        let call = nth_decl_first_let_span(&m, 1);
+        assert!(matches!(tm.get(call), Ty::Prim(Primitive::Number)));
+    }
+
+    #[test]
+    fn generic_call_with_unknown_argument_leaves_param_open() {
+        // When the argument type is Unknown nothing is bound, so the return
+        // stays the open `Ty::Param` (no worse than before instantiation,
+        // and not falsely pinned to Unknown). Here `pick`'s argument is a
+        // call through a member access, which types as Unknown.
+        let (m, _, tm) = type_map_of(
+            "module x\n\
+             fn pick<T>(x: T) -> T { return x }\n\
+             fn main(obj: number) { let y = pick(obj.missing()) }\n",
+        );
+        let call = nth_decl_first_let_span(&m, 1);
+        assert!(
+            matches!(tm.get(call), Ty::Param { .. }),
+            "unknown arg should leave T open as Ty::Param; got {:?}",
+            tm.get(call)
+        );
+    }
+
+    #[test]
+    fn substitute_is_identity_without_bindings() {
+        let subst = HashMap::new();
+        let t = Ty::App {
+            base: Arc::new(Ty::Param {
+                name: "T".into(),
+                owner: crate::ty::ParamOwner::Unresolved,
+            }),
+            args: vec![Ty::Prim(Primitive::Number)],
+        };
+        assert_eq!(substitute_type_params(&t, &subst), t);
     }
 }

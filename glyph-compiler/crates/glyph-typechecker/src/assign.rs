@@ -300,10 +300,19 @@ impl Assigner<'_> {
                 self.tm.insert(*span, Ty::Unknown);
             }
             Expr::Unary { operand: child, span, .. }
-            | Expr::Member { object: child, span, .. }
-            | Expr::Await { expr: child, span } => {
+            | Expr::Member { object: child, span, .. } => {
                 self.walk_expr(child);
                 self.tm.insert(*span, Ty::Unknown);
+            }
+            Expr::Await { expr, span } => {
+                // A Glyph `async fn -> T` is awaited to a `T` (the declared
+                // return type is the awaited type; there is no user-visible
+                // `Promise<T>` wrapper). So `await e` synthesizes the same
+                // type as `e`. This lets `match await fetch() { .. }` see
+                // through to the callee's return type for exhaustiveness.
+                self.walk_expr(expr);
+                let ty = self.tm.get(expr.span()).clone();
+                self.tm.insert(*span, ty);
             }
             Expr::Binary { left, right, span, .. }
             | Expr::Index {
@@ -323,7 +332,19 @@ impl Assigner<'_> {
                 for a in args {
                     self.walk_expr(a);
                 }
-                self.tm.insert(*span, Ty::Unknown);
+                // Synthesize the call's type from the callee's signature.
+                // When the callee resolves to a `Ty::Fn` (a module-level
+                // fn/component reference or a typed lambda binding), the
+                // call has that fn's return type. Generic instantiation is
+                // NOT performed: a call to `fn f<T>(x: T) -> T` types as the
+                // uninstantiated `Ty::Param` — refining that needs the
+                // unifier. Any non-`Fn` callee (member-access method, an
+                // unresolved name) leaves the call `Unknown`.
+                let call_ty = match self.tm.get(callee.span()) {
+                    Ty::Fn { return_ty, .. } => (**return_ty).clone(),
+                    _ => Ty::Unknown,
+                };
+                self.tm.insert(*span, call_ty);
             }
             Expr::Array { elements, span } => {
                 for el in elements {
@@ -1133,5 +1154,114 @@ fn outer(r: Result<string, string>) -> number {
             errs.is_empty(),
             "`?` in a Result-returning lambda should pass; got: {errs:?}"
         );
+    }
+
+    // ----- day-16: synthesize Call types from the callee signature -----
+
+    #[test]
+    fn call_takes_callee_return_type() {
+        // `helper()` synthesizes `number` from `fn helper() -> number`.
+        let (m, _, tm) = type_map_of(
+            "module x\nfn helper() -> number { return 1 }\nfn main() { let x = helper() }\n",
+        );
+        // The `let x = ...` is the first stmt of the SECOND decl (`main`).
+        let main = match &m.items[1] {
+            Decl::Fn(f) => f,
+            _ => panic!("second decl is not a Fn"),
+        };
+        let call_span = match &main.body.stmts[0] {
+            Stmt::Let(l) => l.value.span(),
+            _ => panic!("first stmt is not a Let"),
+        };
+        assert!(
+            matches!(tm.get(call_span), Ty::Prim(Primitive::Number)),
+            "call should take the callee's return type; got {:?}",
+            tm.get(call_span)
+        );
+    }
+
+    #[test]
+    fn match_on_call_returning_union_checks_exhaustiveness() {
+        // Day-16: the scrutinee is a call, not a bound name. Synthesizing
+        // the call's return type (`Feed`) lets the day-14 exhaustiveness
+        // check fire — previously the call typed as Unknown and was skipped.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn current() -> Feed { return Loading }
+fn show() -> number {
+  return match current() {
+    Loading => 1,
+    Loaded => 2,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                assert_eq!(type_name, "Feed");
+                assert!(missing.contains("Failed"), "missing: {missing}");
+            }
+            other => panic!("expected NonExhaustiveMatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn exhaustive_match_on_call_returning_union_passes() {
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn current() -> Feed { return Loading }
+fn show() -> number {
+  return match current() {
+    Loading => 1,
+    Loaded => 2,
+    Failed => 3,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "exhaustive match on a call should pass; got: {errs:?}");
+    }
+
+    #[test]
+    fn match_on_awaited_call_sees_through_to_union() {
+        // `await current()` synthesizes the same type as `current()`, so
+        // exhaustiveness still fires through the `await`.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+async fn current() -> Feed { return Loading }
+async fn show() -> number {
+  return match await current() {
+    Loading => 1,
+    Loaded => 2,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(
+            matches!(&errs[0], TypeError::NonExhaustiveMatch { type_name, .. } if type_name == "Feed"),
+            "expected NonExhaustiveMatch on Feed; got {:?}",
+            errs[0]
+        );
+    }
+
+    #[test]
+    fn match_on_call_returning_prelude_result_is_not_flagged() {
+        // A call returning a prelude `Result` types as `Ty::App`, which the
+        // day-14 exhaustiveness check skips (prelude unions need the full
+        // bidirectional checker). Synthesizing the call type must not
+        // introduce a false positive here.
+        let src = r#"module x
+fn current() -> Result<number, string> { return Ok(1) }
+fn show() -> number {
+  return match current() {
+    Ok(n) => n,
+    Err(_) => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "prelude-Result call scrutinee must not be flagged; got: {errs:?}");
     }
 }

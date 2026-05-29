@@ -1,3 +1,14 @@
+# Marketing working set (local only, not part of the repo)
+/marketing/
+
+# Local-only project guidance (not part of the repo)
+CLAUDE.md
+
+# Git hooks. The active hooks live in .git/hooks/ which git never tracks;
+# these patterns also ignore any in-tree hook directory so hooks stay local.
+.githooks/
+.husky/
+
 # Rust build output
 target/
 **/*.rs.bk

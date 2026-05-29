@@ -62,7 +62,9 @@ use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, verify_imports, ModuleGraph,
     ModuleSymbols, Prelude, ResolveError, ResolvedModule, StdlibStubs,
 };
-use glyph_typechecker::{assign_types, Lowerer, Ty, TypeMap};
+use glyph_typechecker::{
+    assign_types_with_resolver, DeclTyResolver, Lowerer, Ty, TypeMap,
+};
 
 // ============================================================================
 // Update macro for wrapper newtypes
@@ -492,6 +494,18 @@ pub fn resolve(db: &dyn Db, file: SourceFile) -> Resolved {
 
 /// Assign a `Ty` to every expression node in the file. Empty `TypeMap` if
 /// upstream stages failed.
+///
+/// Routes per-decl signature lowering through the salsa-tracked `decl_ty`
+/// query via `SalsaDeclTy`. The Assigner's old in-call HashMap cache is
+/// gone; calls to `decl_ty_resolver.decl_ty(idx)` hit the cross-revision
+/// memo on `crate::decl_ty(db, file, idx)`. Editing any line in the file
+/// still invalidates `parse_module` and `resolve`, so `decl_ty(file, k)`
+/// re-executes for every k — but for untouched fns each re-execution
+/// returns a structurally-equal `Ty`, the wrapper's Update returns false,
+/// and salsa backdates the revision so downstream consumers of those
+/// `decl_ty` entries skip. The day-7 win is the cache-sharing across the
+/// `type_map` ↔ `decl_ty` boundary, not sub-decl input granularity (that's
+/// week 2 day 8+).
 #[salsa::tracked]
 pub fn type_map(db: &dyn Db, file: SourceFile) -> Types {
     let parsed = parse_module(db, file);
@@ -502,8 +516,28 @@ pub fn type_map(db: &dyn Db, file: SourceFile) -> Types {
     let Some(resolved_module) = resolved.resolved() else {
         return Types::new(TypeMap::new());
     };
-    let tm = assign_types(module, resolved_module, db.prelude());
+    let decl_ty_resolver = SalsaDeclTy { db, file };
+    let tm = assign_types_with_resolver(
+        module,
+        resolved_module,
+        db.prelude(),
+        &decl_ty_resolver,
+    );
     Types::new(tm)
+}
+
+/// `DeclTyResolver` impl that fetches per-decl types from the salsa-tracked
+/// `decl_ty(db, file, idx)` query. Lives at the `glyph-db` ↔ `glyph-typechecker`
+/// boundary so the typechecker stays unaware of salsa.
+struct SalsaDeclTy<'a> {
+    db: &'a dyn Db,
+    file: SourceFile,
+}
+
+impl DeclTyResolver for SalsaDeclTy<'_> {
+    fn decl_ty(&self, decl_idx: u32) -> Ty {
+        decl_ty(self.db, self.file, decl_idx).ty().clone()
+    }
 }
 
 /// Lower the type of the `decl_idx`-th top-level declaration.
@@ -934,5 +968,94 @@ fn ident(x: string) -> string { return x }
         let file = new_file(&db, "ok.glyph", "module x\nconst PI = 3.14\n");
         let d = decl_ty(&db, file, 0);
         assert!(matches!(d.ty(), Ty::Unknown));
+    }
+
+    #[test]
+    fn type_map_consumes_decl_ty_so_body_edit_does_not_relower_other_fns() {
+        // Day-7 acceptance: `type_map` now routes per-decl Ty lookups
+        // through the salsa-tracked `decl_ty` query. After editing one fn's
+        // body, re-running `type_map` causes `decl_ty(file, k)` to re-execute
+        // for the edited fn — but for untouched fns the re-executed `decl_ty`
+        // returns a content-equal value, salsa backdates the revision, and
+        // downstream consumers skip.
+        //
+        // Fixture cross-references both fns so type_map's walk actually
+        // invokes `SalsaDeclTy::decl_ty` for *both* decls (`use_helper` calls
+        // `helper`, `helper` doesn't call `use_helper` but is a top-level
+        // entry exercised by `Lowerer`-level signature lookup at the
+        // `helper` call site). Without cross-refs the day-7 routing path is
+        // never exercised by the test.
+        let mut db = CompilerDb::with_default_stdlib();
+        // Edit `helper`'s body `a + 1` → `1 + a`. Same length, same set of
+        // expression spans — every TypeMap key is preserved across the edit
+        // and every Ty value (`Number` for both `a` and `1`, `Unknown` for
+        // the binary op) is unchanged. `use_helper`'s body is untouched.
+        let src_before = r#"module x
+fn helper(a: number) -> number { return a + 1 }
+fn use_helper(x: number) -> number { return helper(x) }
+"#;
+        let file = new_file(&db, "calls.glyph", src_before);
+        let before = type_map(&db, file);
+        let src_after = r#"module x
+fn helper(a: number) -> number { return 1 + a }
+fn use_helper(x: number) -> number { return helper(x) }
+"#;
+        file.set_text(&mut db).to(src_after.to_string());
+        let after = type_map(&db, file);
+        // Full content equality — not just `len()`. The two source texts
+        // produce structurally-identical TypeMaps for matching spans, and
+        // `TypeMap: PartialEq + Eq` (added in day 5) makes this a strict
+        // check. A bug that returned wrong `Ty` values for any span would
+        // be caught here; the old `len() == len()` check wouldn't.
+        assert_eq!(
+            before.type_map(),
+            after.type_map(),
+            "type_map should be content-equal across a body-only edit",
+        );
+        // No-op repeat call fires zero WillExecute — the memo chain
+        // (parse_module → resolve → decl_ty → type_map) is fully cached.
+        db.drain_events();
+        let _ = type_map(&db, file);
+        let events = db.drain_events();
+        assert_eq!(
+            count_will_execute(&events),
+            0,
+            "repeat type_map call should hit the memo end-to-end; events: {events:?}"
+        );
+    }
+
+    #[test]
+    fn type_map_warms_salsa_decl_ty_for_referenced_decls_and_only_those() {
+        // Structural check that type_map's resolver routes through the
+        // salsa-tracked `decl_ty` query — and only invokes it for decls that
+        // are actually referenced from an expression. The asymmetric
+        // invariant matters: it pins type_map's behavior at the per-ref
+        // granularity. If a future refactor made type_map eager-warm every
+        // decl, the unreferenced `main` would also be cached — a different
+        // (potentially less correct) regime.
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "calls.glyph",
+            "module x\nfn helper() -> number { return 1 }\nfn main() -> number { return helper() }\n",
+        );
+        let _ = type_map(&db, file);
+        db.drain_events();
+        // `helper` is referenced by `main` → its decl_ty memo should be warm.
+        let _ = decl_ty(&db, file, 0);
+        let helper_events = db.drain_events();
+        assert_eq!(
+            count_will_execute(&helper_events),
+            0,
+            "decl_ty(helper) should be a memo hit (referenced by main); events: {helper_events:?}"
+        );
+        // `main` is the entry point itself; nothing else references it →
+        // its decl_ty memo should NOT have been warmed by type_map.
+        let _ = decl_ty(&db, file, 1);
+        let main_events = db.drain_events();
+        assert!(
+            count_will_execute(&main_events) >= 1,
+            "decl_ty(main) should fire WillExecute (unreferenced — not warmed); events: {main_events:?}"
+        );
     }
 }

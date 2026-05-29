@@ -12,6 +12,7 @@
 //! expressions — `a + b` has type `Unknown` even when both operands are
 //! `Number`.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use glyph_ast::{
@@ -24,14 +25,92 @@ use crate::lower::Lowerer;
 use crate::ty::{Primitive, Ty};
 use crate::type_map::TypeMap;
 
+/// Source of per-declaration `Ty` answers. The Assigner queries the resolver
+/// every time it needs the type of a `fn`/`component` reference; injecting
+/// the lookup as a trait lets the salsa-aware caller in `glyph-db` route
+/// these through the memoized `decl_ty(db, file, idx)` query, while the
+/// db-less callers in this crate use the local `LocalDeclTy` default.
+///
+/// **Contract**: an impl MUST return the result of lowering the signature
+/// of `module.items[decl_idx]` via `Lowerer::lower_decl_signature` against
+/// the same `(resolved, prelude)` that was passed to
+/// `assign_types_with_resolver`. Returning anything else produces an
+/// internally-inconsistent `TypeMap` with no compile-time error — type
+/// inference downstream silently sees `Ty::Unknown` where it should see a
+/// concrete `Ty::Fn`. The two shipped impls (`LocalDeclTy` here and
+/// `SalsaDeclTy` in `glyph-db`) both delegate to
+/// `Lowerer::lower_decl_signature`; new impls should do the same or wrap
+/// one of them.
+pub trait DeclTyResolver {
+    fn decl_ty(&self, decl_idx: u32) -> Ty;
+}
+
+/// Default `DeclTyResolver` for callers that don't have a salsa `Db`. Owns
+/// a `HashMap` cache of `decl_idx → Ty` so each decl is lowered at most once
+/// per `assign_types` invocation, matching the pre-day-7 behavior.
+pub struct LocalDeclTy<'a> {
+    module: &'a Module,
+    lowerer: &'a Lowerer<'a>,
+    cache: RefCell<HashMap<u32, Ty>>,
+}
+
+impl<'a> LocalDeclTy<'a> {
+    pub fn new(module: &'a Module, lowerer: &'a Lowerer<'a>) -> Self {
+        Self {
+            module,
+            lowerer,
+            cache: RefCell::new(HashMap::new()),
+        }
+    }
+}
+
+impl DeclTyResolver for LocalDeclTy<'_> {
+    fn decl_ty(&self, decl_idx: u32) -> Ty {
+        // Drop the immutable borrow before doing anything else — keeping it
+        // alive across `ty.clone()` would block a hypothetical future
+        // reentrant `decl_ty` call from inside `Lowerer::lower_decl_signature`.
+        let cached = self.cache.borrow().get(&decl_idx).cloned();
+        if let Some(ty) = cached {
+            return ty;
+        }
+        let ty = self
+            .module
+            .items
+            .get(decl_idx as usize)
+            .map(|d| self.lowerer.lower_decl_signature(d))
+            .unwrap_or(Ty::Unknown);
+        self.cache.borrow_mut().insert(decl_idx, ty.clone());
+        ty
+    }
+}
+
+/// Assign a `Ty` to every expression node in `module`, using the local
+/// `LocalDeclTy` resolver. Direct-call entry point for callers without a
+/// salsa `Db`; `glyph-db`'s `type_map` query goes through
+/// `assign_types_with_resolver` instead.
 pub fn assign_types(module: &Module, resolved: &ResolvedModule, prelude: &Prelude) -> TypeMap {
+    let lowerer = Lowerer::new(resolved, prelude);
+    let resolver = LocalDeclTy::new(module, &lowerer);
+    assign_types_with_resolver(module, resolved, prelude, &resolver)
+}
+
+/// Same as `assign_types`, but the caller supplies the `DeclTyResolver`.
+/// The salsa-backed `glyph-db` caller passes a resolver whose `decl_ty`
+/// method invokes the cached `decl_ty(db, file, k)` query, so each `Ty`
+/// answer is shared across the entire database revision instead of being
+/// recomputed locally.
+pub fn assign_types_with_resolver(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    decl_ty_resolver: &dyn DeclTyResolver,
+) -> TypeMap {
     let mut tm = TypeMap::new();
     let mut assigner = Assigner {
-        module,
         lowerer: Lowerer::new(resolved, prelude),
         resolved,
         tm: &mut tm,
-        decl_ty_cache: HashMap::new(),
+        decl_ty_resolver,
         local_tys: HashMap::new(),
     };
     for decl in &module.items {
@@ -41,17 +120,14 @@ pub fn assign_types(module: &Module, resolved: &ResolvedModule, prelude: &Prelud
 }
 
 struct Assigner<'a> {
-    module: &'a Module,
     lowerer: Lowerer<'a>,
     resolved: &'a ResolvedModule,
     tm: &'a mut TypeMap,
-    /// Memoize the `Ty::Fn` lowered from a `fn` or `component` declaration so
-    /// every reference to the same name pays the lowering cost once *within
-    /// this `assign_types` invocation*. The salsa-tracked `glyph_db::decl_ty`
-    /// query is the cross-revision source of truth for the same value; this
-    /// HashMap stays for callers that don't have a `Db` handle. Week 2 day 7+
-    /// will thread `Db` through `assign_types` and remove this layer.
-    decl_ty_cache: HashMap<u32, Ty>,
+    /// Plug-in source of `Ty::Fn` answers for module-level fn/component
+    /// references. Each call returns the lowered Ty for the given decl_idx;
+    /// the resolver handles its own caching. The Assigner doesn't keep a
+    /// local `decl_ty` map any more.
+    decl_ty_resolver: &'a dyn DeclTyResolver,
     /// Type of each locally-bound name, keyed by the def-site span start the
     /// resolver records in `ResolvedRef::Local`. Populated from typed function
     /// / component / lambda parameters and typed `let` bindings. For-loop
@@ -253,8 +329,10 @@ impl Assigner<'_> {
             ResolvedRef::Module(id) => {
                 let sym = self.resolved.symbols.table.get(id).expect("symbol id valid");
                 match &sym.kind {
-                    SymbolKind::Function { decl_idx } => self.decl_ty_for(*decl_idx),
-                    SymbolKind::Component { decl_idx } => self.decl_ty_for(*decl_idx),
+                    SymbolKind::Function { decl_idx }
+                    | SymbolKind::Component { decl_idx } => {
+                        self.decl_ty_resolver.decl_ty(*decl_idx)
+                    }
                     _ => Ty::Unknown,
                 }
             }
@@ -262,20 +340,6 @@ impl Assigner<'_> {
             // instantiation — week-3 bidirectional checker work.
             ResolvedRef::Prelude(_) => Ty::Unknown,
         }
-    }
-
-    fn decl_ty_for(&mut self, decl_idx: u32) -> Ty {
-        if let Some(ty) = self.decl_ty_cache.get(&decl_idx) {
-            return ty.clone();
-        }
-        let ty = self
-            .module
-            .items
-            .get(decl_idx as usize)
-            .map(|d| self.lowerer.lower_decl_signature(d))
-            .unwrap_or(Ty::Unknown);
-        self.decl_ty_cache.insert(decl_idx, ty.clone());
-        ty
     }
 }
 

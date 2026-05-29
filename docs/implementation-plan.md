@@ -1393,3 +1393,59 @@ consumers exist.
 | **glyph-db (lib)** | **19** | **+8**: decl_ty happy path (1), decl_ty Unknown for type (1), Unknown for const (1, post-review), out-of-range idx (1), per-decl memoization via event log (1), body-edit preserves other fns' content (1), signature edit changes content (1), Component returns Fn shape (1, post-review) |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **144** | **All pass** (up from 134) |
+
+## Phase 1 week 2 day 7 status (shipped 2026-05-29)
+
+**`type_map` now consumes the salsa-tracked `decl_ty` query.** A
+`DeclTyResolver` trait sits at the `glyph-typechecker` ↔ `glyph-db`
+boundary; the default `LocalDeclTy` impl preserves the pre-day-7
+behavior for db-less callers, and the new `SalsaDeclTy` in `glyph-db`
+routes per-decl lookups through `decl_ty(db, file, idx)`. The
+Assigner's old `decl_ty_cache: HashMap<u32, Ty>` is gone — caching is
+now exclusively the resolver's responsibility (per-call for `LocalDeclTy`,
+cross-revision via salsa for `SalsaDeclTy`). 146 workspace tests pass
+(up from 144).
+
+### Implemented this slice
+
+- **`glyph-typechecker`**: new `DeclTyResolver` trait, `LocalDeclTy`
+  default impl (RefCell-backed local HashMap), and
+  `assign_types_with_resolver(module, resolved, prelude, &dyn DeclTyResolver)`
+  entry point. `assign_types(...)` keeps its existing signature and
+  internally constructs a `LocalDeclTy`. The `Assigner` struct no
+  longer holds a `module` field or a `decl_ty_cache`; both shifted
+  into `LocalDeclTy`.
+- **`glyph-db`**: `SalsaDeclTy { db, file }` impl of `DeclTyResolver`.
+  The `type_map` query constructs one and passes it to
+  `assign_types_with_resolver`.
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| `type_map` warms `decl_ty`'s salsa memo for referenced decls | `type_map_warms_salsa_decl_ty_for_referenced_decls` (after type_map runs, calling decl_ty directly fires zero WillExecute) |
+| `type_map` produces the same content across body-only edits | `type_map_consumes_decl_ty_so_body_edit_does_not_relower_other_fns` (entry-count parity + zero WillExecute on no-op repeat) |
+
+### Deferred to week 2 day 8+
+
+- **Per-decl resolved-ref slicing** (`resolved_decl(file, decl_idx)`)
+  — true per-decl input granularity so editing fn 5's body doesn't
+  re-execute `decl_ty(file, k)` for the other k's. Today's win is
+  output-level backdating.
+- **Filesystem-backed module graph** (still deferred from day 5).
+
+### Test summary after week 2 day 7
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 25 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| **glyph-db (lib)** | **21** | **+2**: type_map_warms_salsa_decl_ty_for_referenced_decls, type_map_consumes_decl_ty_so_body_edit_does_not_relower_other_fns |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **146** | **All pass** (up from 144) |

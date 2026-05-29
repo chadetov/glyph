@@ -46,8 +46,15 @@ pub trait DeclTyResolver {
 }
 
 /// Default `DeclTyResolver` for callers that don't have a salsa `Db`. Owns
-/// a `HashMap` cache of `decl_idx → Ty` so each decl is lowered at most once
-/// per `assign_types` invocation, matching the pre-day-7 behavior.
+/// a `RefCell<HashMap<decl_idx, Ty>>` cache so each decl is lowered at most
+/// once per `assign_types` invocation, matching the pre-day-7 behavior. The
+/// cache is `RefCell`-backed (interior mutability) — `LocalDeclTy` is `!Sync`.
+///
+/// The constructor is `pub(crate)`: building one externally would let a
+/// caller pair a `Module` with a `Lowerer` built from an unrelated
+/// `(resolved, prelude)`, silently producing wrong `Ty` answers. External
+/// crates with their own context should implement `DeclTyResolver`
+/// directly (see `SalsaDeclTy` in `glyph-db` for the pattern).
 pub struct LocalDeclTy<'a> {
     module: &'a Module,
     lowerer: &'a Lowerer<'a>,
@@ -55,7 +62,7 @@ pub struct LocalDeclTy<'a> {
 }
 
 impl<'a> LocalDeclTy<'a> {
-    pub fn new(module: &'a Module, lowerer: &'a Lowerer<'a>) -> Self {
+    pub(crate) fn new(module: &'a Module, lowerer: &'a Lowerer<'a>) -> Self {
         Self {
             module,
             lowerer,
@@ -125,8 +132,17 @@ struct Assigner<'a> {
     tm: &'a mut TypeMap,
     /// Plug-in source of `Ty::Fn` answers for module-level fn/component
     /// references. Each call returns the lowered Ty for the given decl_idx;
-    /// the resolver handles its own caching. The Assigner doesn't keep a
-    /// local `decl_ty` map any more.
+    /// the Assigner doesn't keep a local `decl_ty` map any more.
+    ///
+    /// Per-invocation caching behavior differs by impl:
+    /// - `LocalDeclTy` (db-less callers): in-memory `HashMap` short-circuits
+    ///   repeated references to the same fn inside one `assign_types` call.
+    /// - `SalsaDeclTy` (`glyph-db`): no per-invocation cache — every call
+    ///   pays a salsa fetch + a full `Ty::clone()`. The win is the *cross-
+    ///   revision* memo, which `LocalDeclTy` doesn't have. For hot paths
+    ///   (e.g. fn bodies with many references to the same helper), a layer
+    ///   above `SalsaDeclTy` could amortize the per-call cost — day-7
+    ///   chose simplicity over this optimization.
     decl_ty_resolver: &'a dyn DeclTyResolver,
     /// Type of each locally-bound name, keyed by the def-site span start the
     /// resolver records in `ResolvedRef::Local`. Populated from typed function

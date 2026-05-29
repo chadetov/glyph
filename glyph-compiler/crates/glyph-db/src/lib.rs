@@ -975,16 +975,17 @@ fn ident(x: string) -> string { return x }
         // Day-7 acceptance: `type_map` now routes per-decl Ty lookups
         // through the salsa-tracked `decl_ty` query. After editing one fn's
         // body, re-running `type_map` causes `decl_ty(file, k)` to re-execute
-        // for the edited fn — but for untouched fns the re-executed `decl_ty`
-        // returns a content-equal value, salsa backdates the revision, and
-        // downstream consumers skip.
+        // for every k (since parse_module/resolve are per-file inputs) — but
+        // for k whose signature is unchanged, the new Ty is content-equal,
+        // the wrapper's Update returns false, and salsa backdates the
+        // revision counter. A later direct call to `decl_ty(file, k)` then
+        // returns from the memo without re-running.
         //
-        // Fixture cross-references both fns so type_map's walk actually
-        // invokes `SalsaDeclTy::decl_ty` for *both* decls (`use_helper` calls
-        // `helper`, `helper` doesn't call `use_helper` but is a top-level
-        // entry exercised by `Lowerer`-level signature lookup at the
-        // `helper` call site). Without cross-refs the day-7 routing path is
-        // never exercised by the test.
+        // Fixture: `use_helper` references `helper`, so type_map's walk
+        // invokes `SalsaDeclTy::decl_ty(helper_idx)`. `helper` is not
+        // referenced from anywhere, so `SalsaDeclTy::decl_ty(use_helper_idx)`
+        // is NOT invoked by type_map — `decl_ty(file, 1)` enters the memo
+        // only when called directly.
         let mut db = CompilerDb::with_default_stdlib();
         // Edit `helper`'s body `a + 1` → `1 + a`. Same length, same set of
         // expression spans — every TypeMap key is preserved across the edit
@@ -1001,26 +1002,51 @@ fn helper(a: number) -> number { return 1 + a }
 fn use_helper(x: number) -> number { return helper(x) }
 "#;
         file.set_text(&mut db).to(src_after.to_string());
+        // Drain events so the next assertion measures only post-edit work.
+        db.drain_events();
         let after = type_map(&db, file);
-        // Full content equality — not just `len()`. The two source texts
-        // produce structurally-identical TypeMaps for matching spans, and
-        // `TypeMap: PartialEq + Eq` (added in day 5) makes this a strict
-        // check. A bug that returned wrong `Ty` values for any span would
-        // be caught here; the old `len() == len()` check wouldn't.
+        let post_edit_events = db.drain_events();
+        // Full content equality — not just `len()`. `TypeMap: PartialEq + Eq`
+        // (added in day 5) makes this a strict check. A bug that returned
+        // wrong `Ty` values for any span would be caught here.
         assert_eq!(
             before.type_map(),
             after.type_map(),
             "type_map should be content-equal across a body-only edit",
         );
-        // No-op repeat call fires zero WillExecute — the memo chain
-        // (parse_module → resolve → decl_ty → type_map) is fully cached.
-        db.drain_events();
-        let _ = type_map(&db, file);
-        let events = db.drain_events();
+        // The post-edit type_map run executes parse_module, module_symbols,
+        // resolve, decl_ty(0) [helper], decl_ty(1) is NOT visited by
+        // type_map's walk because helper is unreferenced... wait — in this
+        // fixture helper IS referenced by use_helper, so decl_ty(helper)
+        // does fire during type_map's walk. So phase-1 count is roughly
+        // parse + symbols + resolve + decl_ty(helper) + type_map = 5.
+        // What we care about: it shouldn't be much more. A loose `<= 8`
+        // upper bound lets future cheap intermediate queries land without
+        // breaking the test, while still flagging a regression that re-ran
+        // every decl in a large file.
+        let post_edit_count = count_will_execute(&post_edit_events);
+        assert!(
+            post_edit_count <= 8,
+            "post-edit type_map should re-execute a bounded set of queries; got {post_edit_count}, events: {post_edit_events:?}"
+        );
+        // After the post-edit run, calling decl_ty for the referenced helper
+        // hits the memo (the resolver inside type_map already warmed it
+        // AND salsa's backdating preserved its revision). Zero WillExecute.
+        let _ = decl_ty(&db, file, 0);
+        let helper_events = db.drain_events();
         assert_eq!(
-            count_will_execute(&events),
+            count_will_execute(&helper_events),
             0,
-            "repeat type_map call should hit the memo end-to-end; events: {events:?}"
+            "decl_ty(helper) should be a memo hit after the post-edit type_map; events: {helper_events:?}"
+        );
+        // No-op repeat type_map call also fires zero WillExecute — the full
+        // chain (parse_module → resolve → decl_ty → type_map) is cached.
+        let _ = type_map(&db, file);
+        let repeat_events = db.drain_events();
+        assert_eq!(
+            count_will_execute(&repeat_events),
+            0,
+            "repeat type_map call should hit the memo end-to-end; events: {repeat_events:?}"
         );
     }
 
@@ -1039,6 +1065,20 @@ fn use_helper(x: number) -> number { return helper(x) }
             "calls.glyph",
             "module x\nfn helper() -> number { return 1 }\nfn main() -> number { return helper() }\n",
         );
+        // Pin the (idx, name) mapping the rest of the test relies on. If a
+        // future contributor reorders the fixture, this assertion fails
+        // loudly instead of silently inverting the test's meaning.
+        let parsed = parse_module(&db, file);
+        let module = parsed.module().expect("parse should succeed");
+        assert!(
+            matches!(&module.items[0], glyph_ast::Decl::Fn(f) if f.name.as_ref() == "helper"),
+            "fixture invariant: decl_idx 0 must be `helper`"
+        );
+        assert!(
+            matches!(&module.items[1], glyph_ast::Decl::Fn(f) if f.name.as_ref() == "main"),
+            "fixture invariant: decl_idx 1 must be `main`"
+        );
+
         let _ = type_map(&db, file);
         db.drain_events();
         // `helper` is referenced by `main` → its decl_ty memo should be warm.

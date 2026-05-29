@@ -8,6 +8,9 @@ authors.workspace = true
 repository.workspace = true
 description = "Glyph CLI. Implements `glyph build / run / fmt / regen / publish / --explain`."
 
+[lib]
+path = "src/lib.rs"
+
 [[bin]]
 name = "glyph"
 path = "src/main.rs"
@@ -18,6 +21,7 @@ glyph-ast.workspace = true
 glyph-parser.workspace = true
 glyph-resolver.workspace = true
 glyph-typechecker.workspace = true
+glyph-db.workspace = true
 glyph-emit.workspace = true
 glyph-runtime.workspace = true
 

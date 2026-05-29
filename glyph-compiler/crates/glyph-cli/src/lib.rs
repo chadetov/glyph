@@ -1,0 +1,11 @@
+//! Glyph CLI library surface.
+//!
+//! The binary in `main.rs` is a thin clap dispatch on top of these
+//! functions. Tests link the library directly so they can call
+//! `build_project` without spawning a subprocess.
+
+#![forbid(unsafe_code)]
+
+pub mod build;
+
+pub use build::{build_project, BuildError, BuildReport};

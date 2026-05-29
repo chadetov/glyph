@@ -1678,3 +1678,74 @@ rebuild. 156 workspace tests pass (up from 152).
 | **glyph-db (lib)** | **31** | **+4**: import_diagnostics_resolves_against_project_via_db_input, import_diagnostics_flags_unknown_project_export_via_db_input, removing_a_lib_export_auto_invalidates_dependent_app_diagnostics, body_only_edit_to_lib_does_not_invalidate_app_diagnostics |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **156** | **All pass** (up from 152) |
+
+## Phase 1 week 2 day 11 status (shipped 2026-05-29)
+
+**CLI wiring lands.** `glyph build src/ --out dist/` now walks a source
+directory, registers every `.glyph` file on a salsa-backed `CompilerDb`,
+runs the analysis pipeline (parse → collect → verify-imports → resolve →
+type_map), and reports diagnostics. Exit code 0 on clean projects, 1 on
+diagnostics, 2 on I/O / invalid-input errors. TS emission is still week-4
+work, so `--out` is accepted (and the directory is created) but no files
+are written yet. 164 workspace tests pass (up from 156).
+
+### Implemented this slice
+
+- **`glyph-cli` got a library**: `src/lib.rs` exposes `build_project`,
+  `BuildReport`, `BuildError`. Tests link the library directly (no
+  subprocess) — fast, deterministic.
+- **`build_project(src, out)`** walks the source tree (skipping hidden
+  dirs and `target/`), reads each `.glyph` file, registers it on a
+  fresh `CompilerDb` via `set_project`, runs the salsa pipeline for
+  every file, and collects pre-rendered diagnostic strings.
+- **Module path derivation**: `src/foo/bar.glyph` → `foo/bar`. The
+  native path separator is normalized to `/` so the result matches
+  what `import foo/bar` produces.
+- **Binary** (`main.rs`): the `Build` clap arm now dispatches to
+  `build_project` and translates the report into stderr output + an
+  exit code.
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| Clean two-file project with cross-module import reports no diagnostics | `build_reports_no_diagnostics_on_clean_project` |
+| Bogus cross-module import is flagged | `build_flags_unknown_cross_module_export` |
+| Subdirectories are walked | `build_recurses_into_subdirectories` |
+| Missing src dir → `SrcMissing` error | `build_fails_for_missing_src_directory` |
+| Empty src dir → `NoSources` error | `build_fails_for_empty_directory` |
+| `.git/`, `target/` are skipped | `build_skips_hidden_and_target_directories` |
+| `derive_module_path` handles top-level files | unit test |
+| `derive_module_path` drops `.glyph` and normalizes separators | unit test |
+
+Plus a real-binary smoke test (run manually in the day-11 session)
+confirming exit codes and stderr output match.
+
+### Deferred to day 12+
+
+- **TS emission** (phase 1 week 4 in the implementation plan). The
+  `--out` directory is created but unused.
+- **Span-insensitive `DeclAst`/`ResolvedDecl`** so non-equal-length
+  edits also benefit from day-8's win.
+- **Pretty error rendering via ariadne** (phase 1 week 7 "Elm quality"
+  bar). Today's diagnostics are one-line strings.
+- **`glyph run` / `fmt` / `regen` / `publish`** subcommands still
+  return "phase 0 stub."
+
+### Test summary after week 2 day 11
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 25 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| glyph-db (lib) | 31 | unchanged |
+| **glyph-cli (lib)** | **2** | **+2** (new): derive_module_path unit tests |
+| **glyph-cli (integration)** | **6** | **+6** (new): clean project, bogus import, subdirs, missing src, empty src, hidden+target skipped |
+| glyph-emit, glyph-runtime, glyph-cli (bin) | 1 each | unchanged (bin has 0 tests but counts the original stub bin test elsewhere) |
+| **Total** | **164** | **All pass** (up from 156) |

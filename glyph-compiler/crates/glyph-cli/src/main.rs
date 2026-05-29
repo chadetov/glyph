@@ -68,9 +68,35 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
+        Some(Command::Build { src, out }) => match glyph_cli::build_project(&src, &out) {
+            Ok(report) => {
+                for diag in &report.diagnostics {
+                    eprintln!("{diag}");
+                }
+                if report.has_errors() {
+                    eprintln!(
+                        "glyph build: {} diagnostic(s) across {} module(s)",
+                        report.diagnostics.len(),
+                        report.modules.len()
+                    );
+                    std::process::exit(1);
+                }
+                eprintln!(
+                    "glyph build: {} module(s) checked, no diagnostics. \
+                     (TS emission is week-4 work; --out directory created \
+                     but no files written yet.)",
+                    report.modules.len()
+                );
+                std::process::exit(0);
+            }
+            Err(e) => {
+                eprintln!("glyph build: {e}");
+                std::process::exit(2);
+            }
+        },
         Some(cmd) => {
             let name = match cmd {
-                Command::Build { .. } => "build",
+                Command::Build { .. } => unreachable!(),
                 Command::Run { .. } => "run",
                 Command::Fmt { .. } => "fmt",
                 Command::Regen { .. } => "regen",

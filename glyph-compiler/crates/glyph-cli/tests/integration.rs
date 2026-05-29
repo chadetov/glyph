@@ -1,0 +1,165 @@
+//! Integration tests for `glyph build`.
+//!
+//! Each test writes a small multi-file fixture to a unique temp
+//! directory, calls `build_project` directly (no subprocess), and asserts
+//! on the `BuildReport`. Cleanup is best-effort — `std::env::temp_dir()`
+//! is the OS temp dir, periodically cleaned by the system.
+
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use glyph_cli::build_project;
+
+/// Build a uniquely-named temp directory rooted at the OS temp dir.
+/// Returns the path; the test is responsible for not relying on
+/// cleanup. Uniqueness comes from `process::id()` plus a strictly
+/// monotonic per-process counter — using wall-clock nanoseconds would
+/// invite collisions when two tests happen to fire inside the same
+/// nanosecond, sharing a temp dir and stomping each other's fixtures.
+fn unique_tmp(prefix: &str) -> PathBuf {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let name = format!("glyph_cli_test_{prefix}_{}_{}", std::process::id(), n);
+    let dir = std::env::temp_dir().join(name);
+    std::fs::create_dir_all(&dir).expect("create temp dir");
+    dir
+}
+
+/// Write a file with `text` at `dir/relpath`, creating parent dirs.
+fn write_file(dir: &Path, relpath: &str, text: &str) {
+    let p = dir.join(relpath);
+    if let Some(parent) = p.parent() {
+        std::fs::create_dir_all(parent).expect("mkdir parent");
+    }
+    std::fs::write(&p, text).expect("write file");
+}
+
+#[test]
+fn build_reports_no_diagnostics_on_clean_project() {
+    let root = unique_tmp("clean");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\nfn helper() -> number { return 1 }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\nimport lib { helper }\nfn main() -> number { return helper() }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "expected no diagnostics; got: {:?}",
+        report.diagnostics
+    );
+    assert_eq!(report.modules.len(), 2);
+    assert!(out.exists(), "out/ should be created");
+}
+
+#[test]
+fn build_flags_unknown_cross_module_export() {
+    let root = unique_tmp("badimport");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\nfn helper() -> number { return 1 }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\nimport lib { helper, bogus }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("bogus")),
+        "expected a diagnostic mentioning `bogus`; got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn build_recurses_into_subdirectories() {
+    let root = unique_tmp("subdir");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "lib/users.glyph",
+        "module lib/users\nfn find() -> number { return 1 }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\nimport lib/users { find }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "expected no diagnostics; got: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report.modules.iter().any(|m| m == "lib/users"),
+        "modules: {:?}",
+        report.modules
+    );
+}
+
+#[test]
+fn build_fails_for_missing_src_directory() {
+    let root = unique_tmp("missing");
+    let bad_src = root.join("does_not_exist");
+    let out = root.join("dist");
+    let err = build_project(&bad_src, &out).expect_err("should fail");
+    assert!(
+        matches!(err, glyph_cli::BuildError::SrcMissing(_)),
+        "got: {err:?}"
+    );
+}
+
+#[test]
+fn build_fails_for_empty_directory() {
+    let root = unique_tmp("empty");
+    let src = root.join("src");
+    let out = root.join("dist");
+    std::fs::create_dir_all(&src).unwrap();
+    let err = build_project(&src, &out).expect_err("empty dir should fail");
+    assert!(matches!(err, glyph_cli::BuildError::NoSources(_)), "got: {err:?}");
+}
+
+#[test]
+fn build_skips_hidden_and_target_directories() {
+    let root = unique_tmp("skipped");
+    let src = root.join("src");
+    let out = root.join("dist");
+    // A real source file that should be checked.
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\nfn main() -> number { return 1 }\n",
+    );
+    // Files under skipped roots — if the walker descended into them the
+    // build would fail on the deliberately-malformed source.
+    write_file(&src, ".git/decoy.glyph", "module decoy\nfn main(\n");
+    write_file(&src, "target/decoy.glyph", "module decoy\nfn main(\n");
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "decoy files under .git/ and target/ should be skipped; got: {:?}",
+        report.diagnostics
+    );
+    assert_eq!(
+        report.modules,
+        vec!["main".to_string()],
+        "only the real source should be visited"
+    );
+}

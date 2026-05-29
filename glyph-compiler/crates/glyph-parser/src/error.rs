@@ -3,7 +3,7 @@
 
 use glyph_lexer::Span;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ParseError {
     #[error("lex error: {message}")]
     Lex { message: String, span: Span },

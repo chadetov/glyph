@@ -6,6 +6,7 @@ members = [
     "crates/glyph-parser",
     "crates/glyph-resolver",
     "crates/glyph-typechecker",
+    "crates/glyph-db",
     "crates/glyph-emit",
     "crates/glyph-runtime",
     "crates/glyph-cli",
@@ -60,6 +61,7 @@ glyph-ast         = { path = "crates/glyph-ast" }
 glyph-parser      = { path = "crates/glyph-parser" }
 glyph-resolver    = { path = "crates/glyph-resolver" }
 glyph-typechecker = { path = "crates/glyph-typechecker" }
+glyph-db          = { path = "crates/glyph-db" }
 glyph-emit        = { path = "crates/glyph-emit" }
 glyph-runtime     = { path = "crates/glyph-runtime" }
 

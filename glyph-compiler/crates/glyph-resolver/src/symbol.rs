@@ -114,7 +114,7 @@ pub enum PreludeKind {
     Print,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct SymbolTable {
     /// Dense Vec of `Symbol`. Index = `SymbolId.0`.
     symbols: Vec<Symbol>,

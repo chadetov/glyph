@@ -14,7 +14,7 @@ use crate::ty::Ty;
 
 const UNKNOWN: Ty = Ty::Unknown;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct TypeMap {
     by_span: HashMap<(u32, u32), Ty>,
 }
@@ -45,6 +45,15 @@ impl TypeMap {
     /// "no entry"; a stored `Unknown` means "I looked and don't know yet."
     pub fn has_entry(&self, span: Span) -> bool {
         self.by_span.contains_key(&(span.start, span.end))
+    }
+
+    /// Number of recorded entries. Diagnostic helper.
+    pub fn len(&self) -> usize {
+        self.by_span.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.by_span.is_empty()
     }
 }
 

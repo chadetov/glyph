@@ -45,13 +45,13 @@ pub enum ResolvedRef {
 
 /// The output of `resolve_module`: the symbol table + a span-indexed
 /// resolution map.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedModule {
     pub symbols: ModuleSymbols,
     pub resolutions: ResolutionMap,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ResolutionMap {
     by_span: HashMap<(u32, u32), ResolvedRef>,
 }

@@ -1204,3 +1204,104 @@ verifier flags it.
 | glyph-typechecker (examples) | 2 | unchanged |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **123** | **All pass** (up from 113) |
+
+## Phase 1 week 2 day 5 status (shipped 2026-05-29)
+
+**Salsa wiring (I4) lands — per-file half.** A new `glyph-db` crate wraps
+the per-file pipeline as `#[salsa::tracked]` queries. Re-running a query
+with unchanged input reuses the cached `Arc` (verified by a
+`Arc::ptr_eq` assertion); mutating the input via `file.set_text(...)`
+invalidates downstream queries automatically. Per-declaration tracked
+intermediates land in day 6+.
+
+### Implemented this slice
+
+**glyph-db** (new crate, ~470 LoC, 9 tests):
+
+- `Db` trait extending `salsa::Database` with `prelude()` and
+  `module_graph()` accessors.
+- `CompilerDb` concrete struct holding `salsa::Storage<Self>`, an
+  `Arc<Prelude>`, and an `Arc<dyn ModuleGraph + Send + Sync>`. Neither
+  the prelude nor the graph is salsa-tracked — both are immutable for
+  the lifetime of a db. `CompilerDb::with_default_stdlib()` is the test
+  factory.
+- `SourceFile` as a `#[salsa::input]` carrying `virtual_path` and `text`.
+  Tests construct files via `SourceFile::new(&db, path, text)`; mutate
+  via `file.set_text(&mut db).to(new_text)` (requires `use salsa::Setter`).
+- Five tracked queries wired in a pipeline:
+  - `parse_module(db, file) -> ParsedModule`
+  - `module_symbols(db, file) -> Symbols`
+  - `import_diagnostics(db, file) -> Diagnostics`
+  - `resolve(db, file) -> Resolved`
+  - `type_map(db, file) -> Types`
+- Five wrapper newtypes (`ParsedModule`, `Symbols`, `Diagnostics`,
+  `Resolved`, `Types`), each `Arc`-shared internally and implementing
+  `salsa::Update` by hand via `PartialEq` on the inner. The unsafe
+  Update impl is justified by an inline `// SAFETY:` comment: the Eq
+  invariant the trait doc requires holds because every payload type
+  derives `Eq`.
+
+**Upstream `PartialEq`/`Eq` derives** so salsa's change detection works:
+
+- `glyph-resolver`: `ModuleSymbols`, `SymbolTable`, `ResolvedModule`,
+  `ResolutionMap` all gain `PartialEq, Eq`.
+- `glyph-typechecker`: `TypeMap` gains `PartialEq, Eq`. Also gains
+  `len()` and `is_empty()` accessors (the previous-day API didn't
+  expose count, useful for the day-5 tests).
+
+### Why manual `Update` impls instead of `#[derive(salsa::Update)]`
+
+The salsa-2022 derive macro requires the *transitive* type closure of a
+struct to implement `Update`. For our AST (`Module → Decl → … → Expr`)
+that's ~25 types across `glyph-ast`, `glyph-resolver`, and
+`glyph-typechecker`. Adding `salsa` as a dep to those crates would
+leak an incremental-compilation concern down into the AST layer, which
+should stay agnostic. The wrapper-with-manual-`Update` pattern keeps
+`salsa` confined to `glyph-db`. Trade-off: each new pipeline stage
+needs its own wrapper, but the pattern is mechanical.
+
+### Acceptance
+
+The `unchanged_text_returns_same_result` test verifies salsa memoizes
+correctly: a second call to `parse_module(&db, file)` returns a
+`ParsedModule` whose inner `Arc` is pointer-equal to the first call's
+inner — i.e. salsa skipped the recomputation entirely. The
+`changing_text_invalidates_downstream` test confirms a `set_text(...)`
+call triggers re-parsing.
+
+### Deferred to week 2 day 6+
+
+- **Per-declaration tracked intermediates** (I4 second half). The
+  assigner's `decl_ty_cache` is currently a per-`Assigner` HashMap; a
+  `#[salsa::tracked] fn decl_ty(db, file, decl_idx) -> Ty` query would
+  let the LSP / future re-typecheck reuse per-decl results across edits.
+  Needs `Ty: salsa::Update` (or a wrapper).
+- **Filesystem-backed module graph**. Day-5 stops at in-memory
+  `StdlibStubs`. Once a project walker exists, `module_graph()` becomes
+  a salsa query reading from `SourceFile` inputs across the project,
+  unlocking D15 barrel-file detection on real files.
+- **Cross-module reads through `import_diagnostics`**. The query reads
+  `db.module_graph()` (untracked); a future graph backed by other
+  `SourceFile` queries would let salsa invalidate downstream files when
+  an upstream module's exports change.
+- **Accumulator-based diagnostics**. salsa has `#[salsa::accumulator]`
+  for cross-query diagnostic bundling. Day-5 returns errors in-band
+  inside each wrapper; a future `Diagnostic` accumulator would let
+  `glyph build` ask "all errors across this database" without
+  re-iterating files.
+
+### Test summary after week 2 day 5
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 23 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| **glyph-db (lib)** | **11** | **new**: parse/symbols/imports/resolve/type_map happy paths, downstream short-circuit on parse error, memoization (Arc::ptr_eq), invalidation observed by every downstream stage (parse + collect + type_map), cross-file isolation (touching file A doesn't invalidate file B), import-diagnostics empty-success path, concrete-Ty assertion for the `42` literal span |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **134** | **All pass** (up from 123) |

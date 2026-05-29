@@ -24,7 +24,7 @@ use crate::symbol::{Symbol, SymbolId, SymbolKind, SymbolTable};
 /// The result of walking a `Module` for top-level symbols. Carries the
 /// `SymbolTable` itself plus a name → id index for fast lookup during the
 /// resolution walk.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleSymbols {
     pub table: SymbolTable,
     /// Names visible at the top level of the module. Duplicates produce a

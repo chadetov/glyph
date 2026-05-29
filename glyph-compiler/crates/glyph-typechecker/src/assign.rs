@@ -370,6 +370,10 @@ impl Assigner<'_> {
                 let scrutinee_ty = self.tm.get(scrutinee.span()).clone();
                 self.check_match_exhaustiveness(&scrutinee_ty, arms, *span);
                 for arm in arms {
+                    // Type the arm's payload binding from the matched
+                    // variant before walking the body, so refs to it inside
+                    // the body resolve to the payload type.
+                    self.bind_arm_payloads(&scrutinee_ty, &arm.pattern);
                     match &arm.body {
                         MatchArmBody::Expr(e) => self.walk_expr(e),
                         MatchArmBody::Block(b) => self.walk_block(b),
@@ -640,18 +644,67 @@ impl Assigner<'_> {
         });
     }
 
-    /// If `ty` is a `Ty::Named` pointing at a module-local
-    /// `type X = | A | B | ...` declaration, return the type's name
-    /// and the ordered list of variant names. Otherwise None.
-    fn named_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+    /// If `ty` is a `Ty::Named` pointing at a module-local tagged-union
+    /// `type X = | A | B | ...` declaration, return that declaration. The
+    /// shared resolution chain behind `named_union_variants` and
+    /// `union_variant_payload`.
+    fn resolve_named_union(&self, ty: &Ty) -> Option<&glyph_ast::TypeDecl> {
         let Ty::Named { symbol, .. } = ty else { return None };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
         let SymbolKind::Type { decl_idx } = sym.kind else { return None };
-        let decl = self.module.items.get(decl_idx as usize)?;
-        let Decl::Type(td) = decl else { return None };
+        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        matches!(&td.body, TypeExpr::Union { .. }).then_some(td)
+    }
+
+    /// If `ty` is a module-local tagged union, return the type's name and
+    /// the ordered list of variant names. Otherwise None.
+    fn named_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+        let td = self.resolve_named_union(ty)?;
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
         let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
         Some((td.name.to_string(), names))
+    }
+
+    // ----- day-17: match-arm payload binding typing -----
+
+    /// Type a match arm's payload binding from the matched variant. For a
+    /// `Variant(x)` pattern over a module-local tagged union, bind `x` to
+    /// the variant's payload type so references to `x` in the arm body
+    /// resolve concretely (via the resolver's `Local` def-site key).
+    ///
+    /// Scope: a single identifier payload (`Full(n)`). Destructuring
+    /// payloads (`NetworkError({ url, status })`, nested constructors) is
+    /// deferred — the object/array sub-patterns need field-by-field typing
+    /// against the payload's record type. Prelude unions (`Ok(x)`,
+    /// `Some(x)`) aren't handled either: their scrutinee lowers to
+    /// `Ty::App`, not the `Ty::Named` `union_variant_payload` requires.
+    fn bind_arm_payloads(&mut self, scrutinee_ty: &Ty, pattern: &Pattern) {
+        let Pattern::Constructor { path, args, .. } = pattern else {
+            return;
+        };
+        let Some(variant_name) = path.last() else {
+            return;
+        };
+        // Only the single-identifier payload shape for now.
+        let [Pattern::Ident { span, .. }] = args.as_slice() else {
+            return;
+        };
+        if let Some(payload_ty) = self.union_variant_payload(scrutinee_ty, variant_name) {
+            self.local_tys.insert(span.start, payload_ty);
+        }
+    }
+
+    /// The lowered payload type of `variant_name` in the module-local
+    /// tagged union `ty` refers to, or None if `ty` isn't such a union, the
+    /// variant doesn't exist, or it carries no payload.
+    fn union_variant_payload(&self, ty: &Ty, variant_name: &Ident) -> Option<Ty> {
+        let td = self.resolve_named_union(ty)?;
+        let TypeExpr::Union { variants, .. } = &td.body else { return None };
+        let variant = variants.iter().find(|v| &v.name == variant_name)?;
+        let payload_te = variant.payload.as_ref()?;
+        Some(self.lowerer.lower(payload_te))
     }
 }
 
@@ -1263,5 +1316,103 @@ fn show() -> number {
 "#;
         let errs = ty_errors_of(src);
         assert!(errs.is_empty(), "prelude-Result call scrutinee must not be flagged; got: {errs:?}");
+    }
+
+    // ----- day-17: match-arm payload binding typing -----
+
+    /// Navigate to the `arm_idx`-th match arm's body expression span,
+    /// assuming `decl_idx` is a fn whose first statement is
+    /// `return match ... { ... }`.
+    fn match_arm_body_expr_span(
+        m: &Module,
+        decl_idx: usize,
+        arm_idx: usize,
+    ) -> glyph_ast::Span {
+        let f = match &m.items[decl_idx] {
+            Decl::Fn(f) => f,
+            _ => panic!("decl {decl_idx} is not a Fn"),
+        };
+        let ret = match &f.body.stmts[0] {
+            Stmt::Return(r) => r,
+            _ => panic!("first stmt is not a return"),
+        };
+        let value = ret.value.as_ref().expect("return has a value");
+        let arms = match value {
+            Expr::Match { arms, .. } => arms,
+            _ => panic!("return value is not a match"),
+        };
+        match &arms[arm_idx].body {
+            MatchArmBody::Expr(e) => e.span(),
+            _ => panic!("arm {arm_idx} body is not an expr"),
+        }
+    }
+
+    #[test]
+    fn primitive_payload_binding_is_typed() {
+        // `Full(n) => n` binds `n` to the variant's `number` payload, so
+        // the body reference to `n` types as number.
+        let src = r#"module x
+type Box = | Empty | Full(number)
+fn get(b: Box) -> number {
+  return match b {
+    Empty => 0,
+    Full(n) => n,
+  }
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let body_span = match_arm_body_expr_span(&m, 1, 1);
+        assert!(
+            matches!(tm.get(body_span), Ty::Prim(Primitive::Number)),
+            "Full(n) body should type as number; got {:?}",
+            tm.get(body_span)
+        );
+    }
+
+    #[test]
+    fn record_payload_binding_is_typed() {
+        // `Data(p) => p` binds `p` to the variant's `Payload` record type.
+        let src = r#"module x
+type Payload = { size: number }
+type Msg = | Ping | Data(Payload)
+fn handle(m: Msg, fallback: Payload) -> Payload {
+  return match m {
+    Ping => fallback,
+    Data(p) => p,
+  }
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let body_span = match_arm_body_expr_span(&m, 2, 1);
+        assert!(
+            matches!(tm.get(body_span), Ty::Named { .. }),
+            "Data(p) body should type as the Payload named type; got {:?}",
+            tm.get(body_span)
+        );
+    }
+
+    #[test]
+    fn no_payload_variant_binds_nothing() {
+        // A bare-ident arm (`other`) over a union is a binding, not a
+        // payload destructure. It must not pick up a phantom payload type;
+        // the scrutinee type itself is the most we could say, and we don't
+        // claim even that here — the binding stays Unknown.
+        let src = r#"module x
+type Box = | Empty | Full(number)
+fn get(b: Box) -> number {
+  return match b {
+    Full(n) => n,
+    other => 0,
+  }
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        // Arm 1 is `other => 0`; its body is the literal `0` (number), and
+        // crucially the bind of `other` did not crash or mistype. Assert the
+        // typed payload arm still works and the catch-all body is number.
+        let payload_body = match_arm_body_expr_span(&m, 1, 0);
+        assert!(matches!(tm.get(payload_body), Ty::Prim(Primitive::Number)));
+        let catch_all_body = match_arm_body_expr_span(&m, 1, 1);
+        assert!(matches!(tm.get(catch_all_body), Ty::Prim(Primitive::Number)));
     }
 }

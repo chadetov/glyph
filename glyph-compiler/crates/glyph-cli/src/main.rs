@@ -68,7 +68,15 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out }) => match glyph_cli::build_project(&src, &out) {
+        Some(Command::Build { src, out }) => {
+            // ariadne's `auto-color` feature isn't enabled in our
+            // workspace, so it never auto-detects non-TTY at runtime.
+            // We detect explicitly: if stderr (where diagnostics go) is
+            // a terminal, render with color; otherwise (redirect, CI
+            // logs, file) render plain so the output stays usable.
+            use std::io::IsTerminal;
+            let with_color = std::io::stderr().is_terminal();
+            match glyph_cli::build::build_project_inner(&src, &out, with_color) {
             Ok(report) => {
                 for diag in &report.diagnostics {
                     eprintln!("{diag}");
@@ -93,7 +101,8 @@ fn main() {
                 eprintln!("glyph build: {e}");
                 std::process::exit(2);
             }
-        },
+            }
+        }
         Some(cmd) => {
             let name = match cmd {
                 Command::Build { .. } => unreachable!(),

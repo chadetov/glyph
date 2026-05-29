@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use glyph_cli::build_project;
+use glyph_cli::{build_project, build::build_project_inner};
 
 /// Build a uniquely-named temp directory rooted at the OS temp dir.
 /// Returns the path; the test is responsible for not relying on
@@ -133,6 +133,42 @@ fn build_fails_for_empty_directory() {
     std::fs::create_dir_all(&src).unwrap();
     let err = build_project(&src, &out).expect_err("empty dir should fail");
     assert!(matches!(err, glyph_cli::BuildError::NoSources(_)), "got: {err:?}");
+}
+
+#[test]
+fn diagnostics_include_source_context_via_ariadne() {
+    // Day-13 acceptance: instead of a one-line `app.glyph: import: ...`,
+    // diagnostics now show the failing source line with a caret pointer.
+    // We run with color disabled so the assertions are stable across
+    // terminals and CI environments.
+    let root = unique_tmp("ariadne");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\nfn helper() -> number { return 1 }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\nimport lib { helper, bogus }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert_eq!(report.diagnostics.len(), 1, "diagnostics: {:?}", report.diagnostics);
+    let d = &report.diagnostics[0];
+    // The message itself.
+    assert!(d.contains("bogus"), "missing offending name in:\n{d}");
+    assert!(d.contains("import"), "missing stage tag in:\n{d}");
+    // The source path appears in ariadne's location header.
+    assert!(d.contains("app"), "missing path in:\n{d}");
+    // The actual source line should appear — that's the whole point of
+    // ariadne rendering. With color disabled, the line text is literal.
+    assert!(
+        d.contains("import lib { helper, bogus }"),
+        "missing source line in:\n{d}"
+    );
 }
 
 #[test]

@@ -1824,3 +1824,73 @@ asks.
 | glyph-cli (integration) | 6 | unchanged |
 | glyph-emit, glyph-runtime | 1 each | unchanged |
 | **Total** | **165** | **All pass** (up from 164) |
+
+## Phase 1 week 2 day 13 status (shipped 2026-05-29)
+
+**Ariadne-rendered diagnostics.** `glyph build` now prints multi-line
+diagnostics with the failing source line, caret pointers, and ANSI
+color on TTYs. The one-line `app: import: bogus is not exported by lib`
+format from day 11 is gone; in its place is a proper compiler-quality
+diagnostic. An incremental step toward Phase 1 week 7's "Elm quality"
+audit — the audit will tighten messages and help text; today's work
+lays the rendering pipeline. 169 workspace tests pass (up from 165).
+
+### Implemented this slice
+
+- **`glyph-cli/src/render.rs`** (new): `render_parse_error` and
+  `render_resolve_error` produce ariadne reports as `String`s.
+  Internally builds a `Report::build(Error, path, offset)` + `Label`,
+  serializes to `Vec<u8>` via `Report::write`, and converts to UTF-8.
+- **`stage_label_for(ResolveError)`** maps each variant to a stage tag
+  (`collect`, `import`, `resolve`) so the report header has the
+  same diagnostic class info the day-11 one-liners carried.
+- **`clamp_range` + char-boundary fallback** so a malformed span
+  (which shouldn't happen but defensive) doesn't panic ariadne.
+- **`build_project_inner(src, out, with_color: bool)`** new public
+  entry; the existing `build_project` calls it with `true` to keep
+  the binary behavior. Tests use `false` for byte-stable assertions.
+- **Per-label color is conditional**: ariadne's `Config::with_color(false)`
+  affects margin/header colors but NOT explicit `Label::with_color(Color::Red)`.
+  The renderer applies the label color only when the caller wants color.
+  (Day-13 footgun found and documented.)
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| Parse error renders with path + stage + source context | `render::tests::renders_a_parse_error_with_source_context` |
+| Resolve error renders with path + stage + offending name | `render::tests::renders_a_resolve_error_with_source_context` |
+| Span clamping is defensive against bad spans | `render::tests::clamp_range_handles_out_of_bounds_spans` |
+| Real `build_project` output includes source-context line | `integration::diagnostics_include_source_context_via_ariadne` |
+
+Real-binary smoke test (interactive): bogus import → multi-line
+report with caret pointers + ANSI color on TTY.
+
+### Deferred to week 7+
+
+The day-13 work surfaces the rendering pipeline; the Phase 1 week 7
+"Elm quality" audit will:
+- Add help text and structured notes to every diagnostic
+- Allocate error codes (`E0042`-style)
+- Write `--explain CODE` long-form documentation
+- Audit every error path for actionable guidance
+
+Day-13 ships the plumbing; the audit ships the polish.
+
+### Test summary after week 2 day 13
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 25 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| glyph-db (lib) | 32 | unchanged |
+| **glyph-cli (lib)** | **5** | **+3**: render parse/resolve happy paths, clamp_range defensive |
+| **glyph-cli (integration)** | **7** | **+1**: diagnostics_include_source_context_via_ariadne |
+| glyph-emit, glyph-runtime | 1 each | unchanged |
+| **Total** | **169** | **All pass** (up from 165) |

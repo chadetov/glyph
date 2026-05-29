@@ -16,6 +16,8 @@ use glyph_db::{
     import_diagnostics, module_symbols, parse_module, resolve, type_map, CompilerDb, SourceFile,
 };
 
+use crate::render::{render_parse_error, render_resolve_error};
+
 /// Outcome of a build. Carries the rendered diagnostic strings so the
 /// binary can print them and the integration tests can assert on them.
 #[derive(Debug, Default)]
@@ -55,7 +57,23 @@ pub enum BuildError {
 /// Walk `src/`, register every `.glyph` file on a fresh `CompilerDb`, run
 /// the analysis pipeline, and return a report of any diagnostics. Creates
 /// the `out/` directory if it doesn't exist (TS emission lands later).
+///
+/// Diagnostics are ariadne-rendered with color enabled (multi-line, with
+/// caret pointers). For testing or non-TTY output, call
+/// `build_project_inner` directly with `with_color: false` — the public
+/// entry preserves the current binary behavior.
 pub fn build_project(src: &Path, out: &Path) -> Result<BuildReport, BuildError> {
+    build_project_inner(src, out, true)
+}
+
+/// Internal entry point that lets tests opt out of ANSI color so
+/// rendered diagnostics are stable text. Production callers go through
+/// `build_project` which leaves color on.
+pub fn build_project_inner(
+    src: &Path,
+    out: &Path,
+    with_color: bool,
+) -> Result<BuildReport, BuildError> {
     if !src.exists() {
         return Err(BuildError::SrcMissing(src.to_path_buf()));
     }
@@ -103,41 +121,59 @@ pub fn build_project(src: &Path, out: &Path) -> Result<BuildReport, BuildError> 
     db.set_project(entries.clone());
 
     // Run the pipeline for each file. Collect diagnostics in the same
-    // order as the file walk so the report is reproducible.
+    // order as the file walk so the report is reproducible. Each
+    // diagnostic is ariadne-rendered against the file's source so the
+    // output includes the failing line + a caret pointer.
     let mut report = BuildReport::default();
     for (module_path, sf) in &entries {
         report.modules.push(module_path.clone());
 
+        // Cache the source text once per file; rendering may use it
+        // multiple times if the file produces multiple diagnostics.
+        let source = sf.text(&db).clone();
+
         let parsed = parse_module(&db, *sf);
         if let Some(err) = parsed.error() {
-            report
-                .diagnostics
-                .push(format!("{module_path}: parse: {err}"));
-            // Salsa's downstream queries gracefully degrade on parse
-            // failure, but emitting their (necessarily empty) results
-            // adds noise. Skip them and move on.
+            report.diagnostics.push(render_parse_error(
+                module_path,
+                &source,
+                err,
+                with_color,
+            ));
+            // Downstream queries gracefully degrade on parse failure;
+            // their results are necessarily empty. Skip them so the
+            // report doesn't pile up redundant cascade-errors.
             continue;
         }
 
         let syms = module_symbols(&db, *sf);
         for e in syms.errors() {
-            report
-                .diagnostics
-                .push(format!("{module_path}: collect: {e}"));
+            report.diagnostics.push(render_resolve_error(
+                module_path,
+                &source,
+                e,
+                with_color,
+            ));
         }
 
         let diags = import_diagnostics(&db, *sf);
         for e in diags.errors() {
-            report
-                .diagnostics
-                .push(format!("{module_path}: import: {e}"));
+            report.diagnostics.push(render_resolve_error(
+                module_path,
+                &source,
+                e,
+                with_color,
+            ));
         }
 
         let r = resolve(&db, *sf);
         for e in r.errors() {
-            report
-                .diagnostics
-                .push(format!("{module_path}: resolve: {e}"));
+            report.diagnostics.push(render_resolve_error(
+                module_path,
+                &source,
+                e,
+                with_color,
+            ));
         }
 
         // type_map currently produces no diagnostics of its own — the

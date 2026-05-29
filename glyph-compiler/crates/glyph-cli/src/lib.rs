@@ -7,5 +7,6 @@
 #![forbid(unsafe_code)]
 
 pub mod build;
+pub mod render;
 
 pub use build::{build_project, BuildError, BuildReport};

@@ -39,11 +39,22 @@ impl<'a> Lowerer<'a> {
                     Some(ResolvedRef::Prelude(id)) => self.prelude_ty(id, head),
                     Some(ResolvedRef::Module(id)) => {
                         let sym = self.resolved.symbols.table.get(id).expect("symbol id valid");
-                        match sym.kind {
+                        match &sym.kind {
                             SymbolKind::Type { .. } | SymbolKind::Variant { .. } => Ty::Named {
                                 symbol: id.into(),
                                 path: segments.clone(),
                             },
+                            // `import std/result { Result }` resolves `Result`
+                            // to a module-level import symbol, but the name is
+                            // a prelude container (Q3: the stdlib re-exports
+                            // the prelude built-ins). Lower it to the same
+                            // prelude `Ty::Named` the un-imported reference
+                            // would produce, so `Result`/`Option` are
+                            // recognizable regardless of how they were brought
+                            // into scope.
+                            SymbolKind::ImportNamed { original, .. } => {
+                                self.imported_prelude_container(original).unwrap_or(Ty::Unknown)
+                            }
                             _ => Ty::Unknown,
                         }
                     }
@@ -136,6 +147,31 @@ impl<'a> Lowerer<'a> {
             Decl::Component(c) => self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false),
             Decl::Import(_) | Decl::Type(_) | Decl::Const(_) => Ty::Unknown,
         }
+    }
+
+    /// If `name` is a prelude container type (`Result`, `Option`, `Array`,
+    /// `Record`, `Schema`, `Component`), return its prelude `Ty::Named`.
+    /// Used to unify an imported reference (`import std/result { Result }`)
+    /// with the prelude built-in of the same name. Returns None for any
+    /// other imported name (a genuinely user-defined cross-module type),
+    /// which stays `Ty::Unknown` until cross-module type resolution lands.
+    fn imported_prelude_container(&self, name: &Ident) -> Option<Ty> {
+        let id = self.prelude.lookup(name.as_ref())?;
+        let sym = self.prelude.table.get(id)?;
+        let SymbolKind::Prelude { kind } = sym.kind else { return None };
+        matches!(
+            kind,
+            PreludeKind::Result
+                | PreludeKind::Option
+                | PreludeKind::Array
+                | PreludeKind::Record
+                | PreludeKind::Schema
+                | PreludeKind::Component
+        )
+        .then(|| Ty::Named {
+            symbol: id.into(),
+            path: vec![name.clone()],
+        })
     }
 
     fn prelude_ty(&self, id: glyph_resolver::SymbolId, name: &Ident) -> Ty {

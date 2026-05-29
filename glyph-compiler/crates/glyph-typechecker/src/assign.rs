@@ -527,15 +527,16 @@ impl Assigner<'_> {
         }
     }
 
-    // ----- day-14: match exhaustiveness for tagged unions -----
+    // ----- match exhaustiveness for tagged unions -----
 
-    /// If the scrutinee resolves to a user-defined tagged union (a
-    /// `type X = | A | B | ...` decl), check that the arms cover every
-    /// variant. Day-14 scope:
-    /// - Only `Ty::Named` scrutinees pointing at a `Decl::Type` whose
-    ///   body is a `TypeExpr::Union`. Prelude tagged unions (`Result`,
-    ///   `Option`) and parameterized `Ty::App` aren't checked yet —
-    ///   they need scrutinee inference (week-3 bidirectional checker).
+    /// If the scrutinee resolves to a tagged union — a user-defined
+    /// `type X = | A | B | ...` decl (day 14) or the prelude `Result`
+    /// (`Ok`/`Err`) and `Option` (`Some`/`None`) types (day 19) — check
+    /// that the arms cover every variant. Scope:
+    /// - User unions: `Ty::Named` pointing at a `Decl::Type` whose body is
+    ///   a `TypeExpr::Union`. Prelude unions: `Ty::App` over the prelude
+    ///   `Result`/`Option` symbol. Only the top-level variant set is
+    ///   checked; nested payload exhaustiveness is not.
     /// - Patterns recognized: `Variant(...)` (constructor, single- or
     ///   multi-segment path — last segment is the variant name),
     ///   bare `Variant` ident, `is TypeName` guard, `_` wildcard,
@@ -559,8 +560,9 @@ impl Assigner<'_> {
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
     ) {
-        // Resolve the scrutinee type to a named tagged-union type decl.
-        let Some((type_name, variants)) = self.named_union_variants(scrutinee_ty) else {
+        // Resolve the scrutinee to a tagged union (user-defined or a
+        // prelude Result/Option) and its required variant set.
+        let Some((type_name, variants)) = self.required_variants(scrutinee_ty) else {
             return;
         };
 
@@ -666,6 +668,34 @@ impl Assigner<'_> {
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
         let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
         Some((td.name.to_string(), names))
+    }
+
+    /// The exhaustiveness target for `ty`: a module-local tagged union, or
+    /// a prelude `Result` (`Ok`/`Err`) / `Option` (`Some`/`None`). Returns
+    /// the display name and the required variant names. Otherwise None.
+    fn required_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+        if let Some(found) = self.named_union_variants(ty) {
+            return Some(found);
+        }
+        // Prelude unions appear as `Ty::App` over the prelude symbol (e.g.
+        // `Result<T, E>`). The prelude and module symbol tables both number
+        // ids from 0, so an id match alone could collide with a user type
+        // that happens to share the numeric id. Require BOTH the lexical
+        // name on the base path AND the prelude id, so only a genuine
+        // prelude `Result`/`Option` matches.
+        let Ty::App { base, .. } = ty else { return None };
+        let Ty::Named { symbol, path } = base.as_ref() else { return None };
+        let name = path.last()?.as_ref();
+        let is_prelude = |n: &str| self.lowerer.prelude.lookup(n) == Some(SymbolId(symbol.0));
+        match name {
+            "Result" if is_prelude("Result") => {
+                Some(("Result".to_string(), vec!["Ok".into(), "Err".into()]))
+            }
+            "Option" if is_prelude("Option") => {
+                Some(("Option".to_string(), vec!["Some".into(), "None".into()]))
+            }
+            _ => None,
+        }
     }
 
     // ----- day-17: match-arm payload binding typing -----
@@ -1328,11 +1358,10 @@ async fn show() -> number {
     }
 
     #[test]
-    fn match_on_call_returning_prelude_result_is_not_flagged() {
-        // A call returning a prelude `Result` types as `Ty::App`, which the
-        // day-14 exhaustiveness check skips (prelude unions need the full
-        // bidirectional checker). Synthesizing the call type must not
-        // introduce a false positive here.
+    fn match_on_call_returning_prelude_result_covering_both_arms_passes() {
+        // A call returning a prelude `Result` types as `Ty::App` over the
+        // prelude Result symbol. Day-19 checks it for exhaustiveness; this
+        // match covers both `Ok` and `Err`, so it passes.
         let src = r#"module x
 fn current() -> Result<number, string> { return Ok(1) }
 fn show() -> number {
@@ -1343,7 +1372,7 @@ fn show() -> number {
 }
 "#;
         let errs = ty_errors_of(src);
-        assert!(errs.is_empty(), "prelude-Result call scrutinee must not be flagged; got: {errs:?}");
+        assert!(errs.is_empty(), "exhaustive prelude-Result match must pass; got: {errs:?}");
     }
 
     // ----- day-17: match-arm payload binding typing -----
@@ -1507,6 +1536,155 @@ fn f(e: E) -> number {
             matches!(tm.get(body), Ty::Prim(Primitive::Number)),
             "aliased binding `c` should take the `code` field type; got {:?}",
             tm.get(body)
+        );
+    }
+
+    // ----- day-19: exhaustiveness for prelude Result / Option -----
+
+    #[test]
+    fn non_exhaustive_prelude_result_match_is_flagged() {
+        // `Result` resolves to the prelude; a match missing `Err` is flagged.
+        let src = r#"module x
+fn run(r: Result<number, string>) -> number {
+  return match r {
+    Ok(n) => n,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                assert_eq!(type_name, "Result");
+                assert!(missing.contains("Err"), "missing: {missing}");
+            }
+            other => panic!("expected NonExhaustiveMatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn non_exhaustive_imported_result_match_is_flagged() {
+        // The example files `import std/result { Result }`, so the imported
+        // name must be recognized too (it lowers to the prelude Named).
+        let src = r#"module x
+import std/result { Result, Ok, Err }
+fn run(r: Result<number, string>) -> number {
+  return match r {
+    Err(_) => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(
+            matches!(&errs[0], TypeError::NonExhaustiveMatch { type_name, missing, .. }
+                if type_name == "Result" && missing.contains("Ok")),
+            "expected missing Ok on Result; got {:?}",
+            errs[0]
+        );
+    }
+
+    #[test]
+    fn exhaustive_prelude_result_passes() {
+        let src = r#"module x
+fn run(r: Result<number, string>) -> number {
+  return match r {
+    Ok(n) => n,
+    Err(_) => 0,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn prelude_result_with_wildcard_passes() {
+        // A wildcard covers the rest, so `Ok` alone + `_` is exhaustive.
+        let src = r#"module x
+fn run(r: Result<number, string>) -> number {
+  return match r {
+    Ok(n) => n,
+    _ => 0,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn non_exhaustive_prelude_option_match_is_flagged() {
+        let src = r#"module x
+fn run(o: Option<number>) -> number {
+  return match o {
+    Some(n) => n,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(
+            matches!(&errs[0], TypeError::NonExhaustiveMatch { type_name, missing, .. }
+                if type_name == "Option" && missing.contains("None")),
+            "expected missing None on Option; got {:?}",
+            errs[0]
+        );
+    }
+
+    #[test]
+    fn exhaustive_prelude_option_passes() {
+        let src = r#"module x
+fn run(o: Option<number>) -> number {
+  return match o {
+    Some(n) => n,
+    None => 0,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn generic_user_union_is_not_mistaken_for_prelude() {
+        // A generic user union appears as `Ty::App { base: Named(user) }`,
+        // the same shape as a prelude `Result`. The name guard in
+        // `required_variants` must keep them distinct: this match covers
+        // `Tree`'s own variants and must NOT be checked against `Ok`/`Err`
+        // (nor flagged as missing prelude variants), even if the user
+        // type's symbol id collides numerically with a prelude id.
+        let src = r#"module x
+type Tree<T> = | Leaf | Node(T)
+fn size(t: Tree<number>) -> number {
+  return match t {
+    Leaf => 0,
+    Node(n) => n,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "generic user union (App over a user Named) must not be treated as prelude Result; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn result_match_with_nested_err_arms_is_exhaustive() {
+        // Mirrors example 02: the outer Result variants are `Ok` and `Err`,
+        // even though the `Err` arms carry nested user-variant patterns.
+        // Only the top-level Result variant set is checked.
+        let src = r#"module x
+type E = | A | B
+fn run(r: Result<number, E>) -> number {
+  return match r {
+    Ok(n) => n,
+    Err(A) => 1,
+    Err(B) => 2,
+  }
+}
+"#;
+        assert!(
+            ty_errors_of(src).is_empty(),
+            "Ok + (multiple Err arms) covers the Result variant set"
         );
     }
 }

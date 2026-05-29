@@ -235,6 +235,37 @@ fn build_flags_question_operator_outside_result_fn() {
 }
 
 #[test]
+fn build_flags_non_exhaustive_prelude_result_match() {
+    // Day-19 acceptance: a `match` over a prelude `Result` (here imported,
+    // as the example files do) that misses a variant surfaces through
+    // type_map → BuildReport.
+    let root = unique_tmp("preludeexhaustive");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         import std/result { Result, Ok, Err }\n\
+         fn run(r: Result<number, string>) -> number {\n  \
+           return match r {\n    \
+             Ok(n) => n,\n  \
+           }\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("typecheck") && d.contains("Result") && d.contains("Err")),
+        "expected a non-exhaustive Result diagnostic mentioning Err; got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
 fn build_skips_hidden_and_target_directories() {
     let root = unique_tmp("skipped");
     let src = root.join("src");

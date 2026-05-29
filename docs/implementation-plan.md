@@ -1449,3 +1449,84 @@ cross-revision via salsa for `SalsaDeclTy`). 146 workspace tests pass
 | **glyph-db (lib)** | **21** | **+2**: type_map_warms_salsa_decl_ty_for_referenced_decls, type_map_consumes_decl_ty_so_body_edit_does_not_relower_other_fns |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **146** | **All pass** (up from 144) |
+
+## Phase 1 week 2 day 8 status (shipped 2026-05-29)
+
+**Per-decl input granularity lands.** Two new salsa queries —
+`decl_ast(file, k)` and `resolved_decl(file, k)` — slice the per-file
+AST and resolution map down to one declaration's signature. `decl_ty`
+depends on those slices instead of `parse_module` / `resolve`
+directly. Editing one fn's body no longer causes `decl_ty(file, k≠edited)`
+to re-execute — its body is served from the memo as a
+`DidValidateMemoizedValue` event. 147 workspace tests pass (up from 146).
+
+### Implemented this slice
+
+- **`glyph-resolver`**: re-exports `ResolutionMap`; new
+  `ResolvedModule::sliced(|span| keep) -> ResolvedModule` helper
+  produces a per-decl filtered resolution map.
+- **`glyph-db`**: new `DeclAst` and `ResolvedDecl` wrapper newtypes
+  with the standard `impl_wrapper_update!`. New `decl_ast(file, k)`
+  and `resolved_decl(file, k)` tracked queries; `decl_ty(file, k)`
+  rewired to depend on them instead of the whole-file queries. New
+  `collect_signature_spans` helper walks a `Decl`'s param/return
+  `TypeExpr`s and collects every span the `Lowerer` will query —
+  drives the slicing inside `resolved_decl`.
+
+### What changes about invalidation
+
+Day 7: `decl_ty(file, k)` depended on `parse_module(file)` +
+`resolve(file)`. Any file edit re-executed `decl_ty` for every `k`;
+backdating at the output level let downstream consumers skip.
+
+Day 8: `decl_ty(file, k)` depends on `decl_ast(file, k)` +
+`resolved_decl(file, k)`. A body-only edit to fn 5:
+- `decl_ast(file, 5)` content changes → not backdated.
+- `decl_ast(file, k≠5)` content equal → backdated.
+- `resolved_decl(file, 5)` slice changes if fn 5's signature spans
+  ended up shifted; otherwise content equal.
+- `resolved_decl(file, k≠5)` slice content equal → backdated.
+- `decl_ty(file, 5)` re-executes.
+- `decl_ty(file, k≠5)` served as a memo hit
+  (`DidValidateMemoizedValue`); only its cheap slicing dependencies
+  re-validate.
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| `decl_ty(file, k≠edited)` is a memo hit after a body-only edit | `editing_one_fn_body_skips_decl_ty_for_other_fns` — asserts ≤2 `WillExecute` (decl_ast + resolved_decl re-validation) and ≥1 `DidValidateMemoizedValue` (decl_ty served from cache) |
+| Existing per-file queries unchanged | 21 prior db tests still pass |
+
+### Caveat: span-shifting
+
+`Decl: Eq` is structural and includes `Span` values. If a file edit
+shifts the byte positions of later decls (e.g. inserting a line
+before them), `decl_ast(file, k>edited)`'s content compares
+unequal even when the decl text is the same — so backdating doesn't
+fire. The day-8 acceptance test uses an equal-length body swap
+(`a + 1` → `1 + a`) to exercise the win deterministically. A future
+span-insensitive equality (or per-decl normalized spans) would
+generalize the result; that's deferred.
+
+### Deferred to week 2 day 9+
+
+- **Span-insensitive equality on `DeclAst`** so byte shifts in
+  earlier decls don't invalidate later decls' slices.
+- **Filesystem-backed module graph** (still deferred from days 5–7).
+
+### Test summary after week 2 day 8
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 25 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| **glyph-db (lib)** | **22** | **+1**: editing_one_fn_body_skips_decl_ty_for_other_fns |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **147** | **All pass** (up from 146) |

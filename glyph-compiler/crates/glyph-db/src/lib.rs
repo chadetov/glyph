@@ -56,7 +56,9 @@ use std::sync::Arc;
 
 pub use salsa::Setter;
 
-use glyph_ast::Module;
+use std::collections::HashSet;
+
+use glyph_ast::{Decl, Module, TypeExpr};
 use glyph_parser::ParseError;
 use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, verify_imports, ModuleGraph,
@@ -434,6 +436,87 @@ impl DeclTy {
 impl_wrapper_update!(DeclTy);
 
 // ============================================================================
+// Stage 7 wrappers: DeclAst and ResolvedDecl (per-declaration input slices)
+// ============================================================================
+
+/// One top-level declaration extracted from a `ParsedModule`. The whole
+/// point of this wrapper is `Update`-by-`PartialEq` over the decl content:
+/// when a file edit changes some *other* decl, salsa re-runs `decl_ast`
+/// for every k, but the unchanged decls return content-equal wrappers, the
+/// Update returns false, and downstream consumers (like `decl_ty`) skip.
+///
+/// Spans are part of `Decl`'s `Eq`, so this only works cleanly when the
+/// edit doesn't shift byte positions of later decls. Tests use
+/// equal-length edits to exercise the win deterministically. A future
+/// span-insensitive equality (or per-decl normalized spans) would lift
+/// this restriction.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclAst {
+    inner: Arc<DeclAstInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DeclAstInner {
+    decl: Option<Decl>,
+}
+
+impl DeclAst {
+    pub fn new(decl: Option<Decl>) -> Self {
+        Self {
+            inner: Arc::new(DeclAstInner { decl }),
+        }
+    }
+
+    /// `Some` if the file parsed and `decl_idx` was in range, else `None`.
+    pub fn decl(&self) -> Option<&Decl> {
+        self.inner.decl.as_ref()
+    }
+}
+
+impl_wrapper_update!(DeclAst);
+
+/// The resolver output sliced to spans inside one declaration's signature.
+/// Carries a `ResolvedModule` whose `resolutions` map contains only the
+/// entries the `Lowerer` will query when typing this decl's params and
+/// return type — i.e. every `TypeExpr` path inside the signature.
+///
+/// When fn 5's body changes but its signature spans are stable, the slice
+/// for k=5 is content-equal across the edit (only the body's resolution
+/// entries differ, and those aren't included). For k≠5 the slice is
+/// usually content-equal too, assuming the edit didn't shift their byte
+/// positions.
+///
+/// **Caveat (same as `DeclAst`)**: the carried `ResolvedModule.symbols`
+/// table is cloned wholesale. Each `Symbol.span` covers an entire decl
+/// (fn-keyword through body). A non-equal-length edit shifts every later
+/// decl's symbol span, so `symbols` compares unequal even when the
+/// resolutions slice is stable — the day-8 invalidation win degrades to
+/// day-7-style output backdating for later decls in that case.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedDecl {
+    inner: Arc<ResolvedDeclInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedDeclInner {
+    resolved: Option<ResolvedModule>,
+}
+
+impl ResolvedDecl {
+    pub fn new(resolved: Option<ResolvedModule>) -> Self {
+        Self {
+            inner: Arc::new(ResolvedDeclInner { resolved }),
+        }
+    }
+
+    pub fn resolved(&self) -> Option<&ResolvedModule> {
+        self.inner.resolved.as_ref()
+    }
+}
+
+impl_wrapper_update!(ResolvedDecl);
+
+// ============================================================================
 // Tracked queries
 // ============================================================================
 
@@ -540,38 +623,125 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
     }
 }
 
-/// Lower the type of the `decl_idx`-th top-level declaration.
-///
-/// Per-decl granularity in salsa terms: any file edit invalidates
-/// `parse_module(file)` and `resolve(file)`, both of which this query
-/// depends on, so salsa re-executes `decl_ty(file, k)` for *every* `k`. The
-/// win is at the *output* level — when only fn bodies changed, each
-/// re-execution produces a structurally-equal `Ty`, the wrapper's
-/// `Update::maybe_update` returns false, and salsa backdates the
-/// `changed_at` revision so downstream consumers of `decl_ty(file, k)` for
-/// untouched decls observe "no change" and skip. True per-decl input
-/// granularity (re-executing only the touched `k`) would require slicing
-/// `parse_module`'s output into per-decl sub-queries; see week 2 day 7+.
-///
-/// `decl_idx` is the index into `module.items`. Out-of-range or
-/// non-callable decls return `DeclTy::new(Ty::Unknown)`.
+/// Extract the `decl_idx`-th top-level declaration from the parsed module.
+/// Returns `DeclAst::new(None)` if parsing failed or the index is out of
+/// range. The salsa-tracked memo gets backdated whenever this decl's
+/// content (including span values, since `Decl: Eq` is structural) is
+/// stable across a file edit — even when other parts of the file changed.
 #[salsa::tracked]
-pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
+pub fn decl_ast(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclAst {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
-        return DeclTy::new(Ty::Unknown);
+        return DeclAst::new(None);
+    };
+    DeclAst::new(module.items.get(decl_idx as usize).cloned())
+}
+
+/// Per-declaration slice of the resolver output. Contains a
+/// `ResolvedModule` whose `resolutions` map is restricted to spans inside
+/// `module.items[decl_idx]`'s signature (param types + return type). The
+/// `symbols` table is the full module table — module-level names a
+/// signature might reference (e.g. `fn f(x: User) -> Result<User, E>`)
+/// resolve through the unchanged-per-edit symbol table.
+#[salsa::tracked]
+pub fn resolved_decl(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ResolvedDecl {
+    let parsed = parse_module(db, file);
+    let Some(module) = parsed.module() else {
+        return ResolvedDecl::new(None);
+    };
+    let Some(decl) = module.items.get(decl_idx as usize) else {
+        return ResolvedDecl::new(None);
     };
     let resolved = resolve(db, file);
-    let Some(resolved_module) = resolved.resolved() else {
+    let Some(full) = resolved.resolved() else {
+        return ResolvedDecl::new(None);
+    };
+    let mut sig_spans: HashSet<(u32, u32)> = HashSet::new();
+    collect_signature_spans(decl, &mut sig_spans);
+    let sliced = full.sliced(|s| sig_spans.contains(&(s.start, s.end)));
+    ResolvedDecl::new(Some(sliced))
+}
+
+/// Lower the type of the `decl_idx`-th top-level declaration.
+///
+/// True per-decl input granularity (day 8): depends only on
+/// `decl_ast(file, decl_idx)` and `resolved_decl(file, decl_idx)`, not on
+/// the whole-file `parse_module`/`resolve` outputs. Editing fn 5's body
+/// makes `decl_ast(file, 5)` and `resolved_decl(file, 5)` change, but for
+/// k≠5 (with stable byte positions) both per-decl slices stay
+/// content-equal — Update returns false, and `decl_ty(file, k)` skips
+/// re-execution entirely (zero `WillExecute` in salsa's event log).
+///
+/// Out-of-range or non-callable decls return `DeclTy::new(Ty::Unknown)`.
+#[salsa::tracked]
+pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
+    let ast = decl_ast(db, file, decl_idx);
+    let Some(decl) = ast.decl() else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let rd = resolved_decl(db, file, decl_idx);
+    let Some(resolved_module) = rd.resolved() else {
         return DeclTy::new(Ty::Unknown);
     };
     let lowerer = Lowerer::new(resolved_module, db.prelude());
-    let ty = module
-        .items
-        .get(decl_idx as usize)
-        .map(|d| lowerer.lower_decl_signature(d))
-        .unwrap_or(Ty::Unknown);
-    DeclTy::new(ty)
+    DeclTy::new(lowerer.lower_decl_signature(decl))
+}
+
+/// Collect every span the `Lowerer` will query from the resolution map
+/// while lowering `decl`'s signature: every `TypeExpr::Path` span inside
+/// param types and the return type. Used by `resolved_decl` to slice the
+/// full per-file resolution map down to per-decl scope.
+fn collect_signature_spans(decl: &Decl, out: &mut HashSet<(u32, u32)>) {
+    let (params, return_ty) = match decl {
+        Decl::Fn(f) => (f.params.as_slice(), f.return_ty.as_ref()),
+        Decl::Component(c) => (c.params.as_slice(), c.return_ty.as_ref()),
+        // Non-callable decls have no signature spans to collect; the
+        // matching `decl_ty` arm returns `Ty::Unknown` and the Lowerer is
+        // never invoked, so the slice doesn't matter.
+        Decl::Import(_) | Decl::Type(_) | Decl::Const(_) => return,
+    };
+    for p in params {
+        collect_type_expr_spans(&p.ty, out);
+    }
+    if let Some(rt) = return_ty {
+        collect_type_expr_spans(rt, out);
+    }
+}
+
+fn collect_type_expr_spans(te: &TypeExpr, out: &mut HashSet<(u32, u32)>) {
+    match te {
+        TypeExpr::Path { span, .. } => {
+            out.insert((span.start, span.end));
+        }
+        TypeExpr::Generic { base, args, .. } => {
+            collect_type_expr_spans(base, out);
+            for a in args {
+                collect_type_expr_spans(a, out);
+            }
+        }
+        TypeExpr::Fn {
+            params, return_ty, ..
+        } => {
+            for p in params {
+                collect_type_expr_spans(&p.ty, out);
+            }
+            if let Some(rt) = return_ty.as_deref() {
+                collect_type_expr_spans(rt, out);
+            }
+        }
+        TypeExpr::Record { fields, .. } => {
+            for f in fields {
+                collect_type_expr_spans(&f.ty, out);
+            }
+        }
+        TypeExpr::Union { variants, .. } => {
+            for v in variants {
+                if let Some(p) = &v.payload {
+                    collect_type_expr_spans(p, out);
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -620,6 +790,18 @@ pub mod tests {
         events
             .iter()
             .filter(|e| matches!(e, salsa::EventKind::WillExecute { .. }))
+            .count()
+    }
+
+    /// Count `DidValidateMemoizedValue` events. Salsa fires this when a
+    /// query's memo is checked across a revision and found to be still
+    /// valid — i.e., the body did NOT re-execute. Used by day-8 tests to
+    /// confirm decl_ty was a memo hit even when its (cheaper) sibling
+    /// slicing queries fired WillExecute to re-validate themselves.
+    fn count_validated_memos(events: &[salsa::EventKind]) -> usize {
+        events
+            .iter()
+            .filter(|e| matches!(e, salsa::EventKind::DidValidateMemoizedValue { .. }))
             .count()
     }
 
@@ -1096,6 +1278,79 @@ fn use_helper(x: number) -> number { return helper(x) }
         assert!(
             count_will_execute(&main_events) >= 1,
             "decl_ty(main) should fire WillExecute (unreferenced — not warmed); events: {main_events:?}"
+        );
+    }
+
+    #[test]
+    fn editing_one_fn_body_skips_decl_ty_for_other_fns() {
+        // Day-8 acceptance: with per-decl input slicing in place
+        // (decl_ast + resolved_decl), editing fn 0's body must NOT cause
+        // decl_ty(file, 1) to re-execute. The previous regime had decl_ty
+        // re-running for every k on every edit and relying on output-level
+        // backdating to spare downstream consumers. Day 8 moves the win
+        // upstream: decl_ty(file, k≠edited) doesn't even run.
+        //
+        // Fixture is an equal-length body edit so neither decl's spans
+        // shift across the change. Without that the DeclAst Eq (which
+        // includes span values) would invalidate the unedited decl too.
+        let mut db = CompilerDb::with_default_stdlib();
+        let src_before = r#"module x
+fn helper(a: number) -> number { return a + 1 }
+fn use_helper(x: number) -> number { return helper(x) }
+"#;
+        let file = new_file(&db, "two.glyph", src_before);
+        // Prime decl_ty for both decls.
+        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, 1);
+        db.drain_events();
+        // Same-length body edit to `helper` only — `use_helper`'s body and
+        // signature are untouched and at the same byte positions.
+        let src_after = r#"module x
+fn helper(a: number) -> number { return 1 + a }
+fn use_helper(x: number) -> number { return helper(x) }
+"#;
+        file.set_text(&mut db).to(src_after.to_string());
+        // decl_ty for the EDITED fn should fire (its decl_ast changed).
+        let _ = decl_ty(&db, file, 0);
+        let edited_events = db.drain_events();
+        assert!(
+            count_will_execute(&edited_events) >= 1,
+            "decl_ty(helper) should re-execute after its body changed; events: {edited_events:?}"
+        );
+        // decl_ty for the UNEDITED fn — the day-8 win. Salsa walks the
+        // dep graph to verify freshness: decl_ast(file, 1) and
+        // resolved_decl(file, 1) re-execute as part of validation (they
+        // cheaply return content-equal values), but `decl_ty(file, 1)`'s
+        // own body does NOT re-run — salsa serves it as a memo hit. The
+        // tell is a `DidValidateMemoizedValue` event, not a `WillExecute`,
+        // for decl_ty's ingredient.
+        //
+        // What this catches: a regression where decl_ty was wired back to
+        // depend on parse_module/resolve directly would see decl_ty itself
+        // re-execute (WillExecute on ingredient 5), and no
+        // DidValidateMemoizedValue would fire for it.
+        let _ = decl_ty(&db, file, 1);
+        let unedited_events = db.drain_events();
+        let we = count_will_execute(&unedited_events);
+        let valid = count_validated_memos(&unedited_events);
+        // The two assertions below are **jointly load-bearing**. The
+        // documented regression — re-coupling decl_ty to parse_module/
+        // resolve directly — yields we=1 (decl_ty alone re-executing)
+        // and valid=0. The `we <= 2` bound admits we=1, so it does NOT
+        // catch the regression on its own; `valid >= 1` is what rejects
+        // it. Do not drop either assertion thinking the other suffices.
+        //
+        // The two re-validations counted under `we` are decl_ast(file, 1)
+        // and resolved_decl(file, 1) — both cheap (clone-a-Decl and
+        // filter-spans, respectively). Day-8's promise is that decl_ty's
+        // body is NOT among the re-executed queries.
+        assert!(
+            we <= 2,
+            "expected ≤2 WillExecute (decl_ast + resolved_decl validation); got {we} events: {unedited_events:?}"
+        );
+        assert!(
+            valid >= 1,
+            "expected ≥1 DidValidateMemoizedValue (decl_ty served from memo); got {valid} events: {unedited_events:?}"
         );
     }
 }

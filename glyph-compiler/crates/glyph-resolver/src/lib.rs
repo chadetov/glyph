@@ -35,7 +35,7 @@ pub use module_graph::{
     verify_imports, CompositeGraph, ModuleExports, ModuleGraph, StdlibStubs,
 };
 pub use prelude::{build_prelude, Prelude};
-pub use resolve::{resolve_module, ResolvedModule, ResolvedRef};
+pub use resolve::{resolve_module, ResolutionMap, ResolvedModule, ResolvedRef};
 pub use symbol::{PreludeKind, Symbol, SymbolId, SymbolKind, SymbolTable};
 
 #[cfg(test)]

@@ -17,7 +17,7 @@ use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
     ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild, JsxElement, MatchArm, MatchArmBody,
-    Module, ObjectField, Param, Pattern, Stmt, TemplatePart, TypeExpr,
+    Module, ObjectField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
@@ -25,6 +25,26 @@ use crate::lower::Lowerer;
 use crate::ty::{Primitive, Ty};
 use crate::type_map::TypeMap;
 use crate::TypeError;
+
+/// How the innermost enclosing callable's declared return type relates to
+/// the `?` operator's requirement (D + week-3 task 2). Pushed onto
+/// `Assigner::return_stack` when entering a `fn`/`component`/lambda body
+/// and popped on exit, so a `?` inside a nested lambda is checked against
+/// the lambda's return type rather than the outer function's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReturnClass {
+    /// Declared `-> Result<_, _>`. `?` is legal.
+    Result,
+    /// Declared a concrete non-`Result` type (e.g. `-> number`, `-> void`,
+    /// `-> Component`). `?` is an error.
+    NonResult,
+    /// No return annotation, or one whose type couldn't be resolved
+    /// (multi-segment path, generic parameter). Permissive: `?` is not
+    /// flagged here because we can't prove the return type isn't a
+    /// `Result`. D4 makes the return annotation optional, so this case is
+    /// common and must not produce false positives.
+    Unknown,
+}
 
 /// Source of per-declaration `Ty` answers. The Assigner queries the resolver
 /// every time it needs the type of a `fn`/`component` reference; injecting
@@ -129,6 +149,7 @@ pub fn assign_types_with_resolver(
         tm: &mut tm,
         errors: &mut errors,
         decl_ty_resolver,
+        return_stack: Vec::new(),
         local_tys: HashMap::new(),
     };
     for decl in &module.items {
@@ -161,6 +182,11 @@ struct Assigner<'a> {
     ///   above `SalsaDeclTy` could amortize the per-call cost — day-7
     ///   chose simplicity over this optimization.
     decl_ty_resolver: &'a dyn DeclTyResolver,
+    /// Return-type classification of each enclosing callable, innermost
+    /// last. Drives the `?`-operator check (`QuestionOutsideResultFn`).
+    /// Empty when walking a `const` initializer (no enclosing callable),
+    /// which makes a bare `?` there an error.
+    return_stack: Vec<ReturnClass>,
     /// Type of each locally-bound name, keyed by the def-site span start the
     /// resolver records in `ResolvedRef::Local`. Populated from typed function
     /// / component / lambda parameters and typed `let` bindings. For-loop
@@ -177,12 +203,18 @@ impl Assigner<'_> {
         match decl {
             Decl::Import(_) | Decl::Type(_) => {}
             Decl::Fn(f) => {
+                let class = self.classify_return(f.return_ty.as_ref());
+                self.return_stack.push(class);
                 self.bind_param_tys(&f.params);
                 self.walk_block(&f.body);
+                self.return_stack.pop();
             }
             Decl::Component(c) => {
+                let class = self.classify_return(c.return_ty.as_ref());
+                self.return_stack.push(class);
                 self.bind_param_tys(&c.params);
                 self.walk_block(&c.body);
+                self.return_stack.pop();
             }
             Decl::Const(c) => self.walk_expr(&c.value),
         }
@@ -260,8 +292,14 @@ impl Assigner<'_> {
                 let ty = self.type_of_ident_ref(*span);
                 self.tm.insert(*span, ty);
             }
+            Expr::Postfix { op, operand, span } => {
+                self.walk_expr(operand);
+                if matches!(op, PostfixOp::Try) {
+                    self.check_question_operator(*span);
+                }
+                self.tm.insert(*span, Ty::Unknown);
+            }
             Expr::Unary { operand: child, span, .. }
-            | Expr::Postfix { operand: child, span, .. }
             | Expr::Member { object: child, span, .. }
             | Expr::Await { expr: child, span } => {
                 self.walk_expr(child);
@@ -324,8 +362,11 @@ impl Assigner<'_> {
                 body,
                 span,
             } => {
+                let class = self.classify_return(return_ty.as_ref());
+                self.return_stack.push(class);
                 self.bind_param_tys(params);
                 self.walk_block(body);
+                self.return_stack.pop();
                 let ty = self
                     .lowerer
                     .lower_callable_signature(params, return_ty.as_ref(), false);
@@ -378,6 +419,85 @@ impl Assigner<'_> {
             // Prelude values (`Ok`, `Err`, etc.) need use-site generic
             // instantiation — week-3 bidirectional checker work.
             ResolvedRef::Prelude(_) => Ty::Unknown,
+        }
+    }
+
+    // ----- day-15: `?` operator typing rule -----
+
+    /// Classify a declared return type for the `?`-operator check. The rule
+    /// errs toward *permissive* — `?` is flagged only when the return type
+    /// is provably a concrete non-`Result`. `None` (no annotation, legal
+    /// under D4) and any type we can't fully resolve stay `Unknown`.
+    fn classify_return(&self, return_ty: Option<&TypeExpr>) -> ReturnClass {
+        let Some(te) = return_ty else {
+            return ReturnClass::Unknown;
+        };
+        if self.type_expr_is_result(te) {
+            return ReturnClass::Result;
+        }
+        // Not recognized as `Result`. Flag only when the type lowers to a
+        // concrete, fully-resolved non-`Result` type. Anything that lowers
+        // to `Unknown` — including a generic application over an unresolved
+        // base (e.g. an imported non-`Result` type) — stays permissive so
+        // we never emit a false positive.
+        if self.is_decidably_non_result(&self.lowerer.lower(te)) {
+            ReturnClass::NonResult
+        } else {
+            ReturnClass::Unknown
+        }
+    }
+
+    /// True if `te` names the `Result` type, applied (`Result<T, E>`) or
+    /// bare. Recognizes both the prelude `Result` and an `import std/result
+    /// { Result }` named import — the latter lowers to `Ty::Unknown` (imports
+    /// aren't resolved to `Ty::Named` yet), so this works from the syntactic
+    /// `TypeExpr` and consults the resolver directly rather than the lowered
+    /// `Ty`. A locally-declared `type Result` (a `Module`/`Type` resolution)
+    /// is intentionally NOT treated as the `?`-compatible `Result`.
+    fn type_expr_is_result(&self, te: &TypeExpr) -> bool {
+        let base = match te {
+            TypeExpr::Generic { base, .. } => base.as_ref(),
+            other => other,
+        };
+        let TypeExpr::Path { segments, span } = base else {
+            return false;
+        };
+        if segments.last().map(|s| s.as_ref()) != Some("Result") {
+            return false;
+        }
+        match self.resolved.resolutions.get(*span) {
+            Some(ResolvedRef::Prelude(id)) => self.lowerer.prelude.lookup("Result") == Some(id),
+            Some(ResolvedRef::Module(id)) => matches!(
+                self.resolved.symbols.table.get(id).map(|s| &s.kind),
+                Some(SymbolKind::ImportNamed { original, .. }) if original.as_ref() == "Result"
+            ),
+            _ => false,
+        }
+    }
+
+    /// True only when `ty` is a fully-resolved type that is definitively not
+    /// a `Result`. `Ty::Unknown`, an `App` over an `Unknown` base, and a
+    /// generic `Ty::Param` (which could instantiate to `Result`) are all
+    /// undecidable and return false.
+    fn is_decidably_non_result(&self, ty: &Ty) -> bool {
+        match ty {
+            Ty::Unknown => false,
+            Ty::App { base, .. } => !matches!(base.as_ref(), Ty::Unknown),
+            Ty::Param { .. } => false,
+            _ => true,
+        }
+    }
+
+    /// Flag a `?` whose innermost enclosing callable does not (provably)
+    /// return `Result`. An empty stack means the `?` sits in a `const`
+    /// initializer with no enclosing callable, which is always an error.
+    fn check_question_operator(&mut self, span: Span) {
+        let permitted = matches!(
+            self.return_stack.last(),
+            Some(ReturnClass::Result | ReturnClass::Unknown)
+        );
+        if !permitted {
+            self.errors.push(TypeError::QuestionOutsideResultFn { span });
         }
     }
 
@@ -747,6 +867,7 @@ fn show(f: Feed) -> number {
                     "missing list should mention Failed; got: {missing}"
                 );
             }
+            other => panic!("expected NonExhaustiveMatch, got {other:?}"),
         }
     }
 
@@ -794,7 +915,9 @@ fn x(t: Tri) -> number {
 "#;
         let errs = ty_errors_of(src);
         assert_eq!(errs.len(), 1, "errs: {errs:?}");
-        let TypeError::NonExhaustiveMatch { missing, .. } = &errs[0];
+        let TypeError::NonExhaustiveMatch { missing, .. } = &errs[0] else {
+            panic!("expected NonExhaustiveMatch, got {:?}", errs[0]);
+        };
         // `A` appears before `C` in the type decl, so the diagnostic
         // mentions them in that order.
         let a_pos = missing.find("A").expect("A in missing");
@@ -872,5 +995,143 @@ fn main(n: number) -> number {
 "#;
         let errs = ty_errors_of(src);
         assert!(errs.is_empty(), "non-union scrutinee should not be flagged; got: {errs:?}");
+    }
+
+    // ----- day-15: `?` operator typing rule -----
+
+    // The `?` operand is a parameter so it resolves cleanly (the
+    // `ty_errors_of` helper asserts the resolve pass is error-free). The
+    // operand's *type* doesn't matter to the day-15 check — only the
+    // enclosing function's return type does.
+
+    #[test]
+    fn question_in_result_returning_fn_passes() {
+        let src = r#"module x
+fn read(r: Result<string, string>) -> Result<string, string> {
+  let data = r?
+  return Ok(data)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "`?` inside a Result-returning fn should not error; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn question_in_non_result_fn_is_flagged() {
+        let src = r#"module x
+fn read(r: Result<string, string>) -> number {
+  let data = r?
+  return 1
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(
+            matches!(errs[0], TypeError::QuestionOutsideResultFn { .. }),
+            "expected QuestionOutsideResultFn, got {:?}",
+            errs[0]
+        );
+    }
+
+    #[test]
+    fn question_in_void_returning_fn_is_flagged() {
+        // Explicit `-> void` is a concrete non-Result return; `?` is illegal.
+        let src = r#"module x
+fn run(r: Result<string, string>) -> void {
+  let data = r?
+  return void
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(matches!(errs[0], TypeError::QuestionOutsideResultFn { .. }));
+    }
+
+    #[test]
+    fn question_in_unannotated_fn_is_permissive() {
+        // D4 makes the return annotation optional. Without one we can't
+        // prove the function doesn't return Result, so `?` is not flagged.
+        let src = r#"module x
+fn read(r: Result<string, string>) {
+  let data = r?
+  return data
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "`?` in an unannotated fn must not produce a false positive; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn question_in_const_initializer_is_flagged() {
+        // A `const` initializer has no enclosing callable, so the `?`
+        // cannot propagate anywhere — always an error.
+        let src = r#"module x
+const FALLIBLE: Result<number, string> = Ok(1)
+const VALUE = FALLIBLE?
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(matches!(errs[0], TypeError::QuestionOutsideResultFn { .. }));
+    }
+
+    #[test]
+    fn question_checked_against_innermost_lambda() {
+        // The `?` sits inside a lambda that returns `number`, NOT the
+        // outer Result-returning fn. The innermost frame governs, so it is
+        // flagged even though an enclosing fn returns Result.
+        let src = r#"module x
+fn outer(r: Result<string, string>) -> Result<number, string> {
+  let f = fn() -> number { r? }
+  return Ok(1)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(matches!(errs[0], TypeError::QuestionOutsideResultFn { .. }));
+    }
+
+    #[test]
+    fn question_passes_when_result_is_imported() {
+        // Regression: the four example files `import std/result { Result }`,
+        // so the return type's `Result` resolves to an `ImportNamed` symbol
+        // and lowers to `Ty::App { base: Unknown }`. The naive "base is the
+        // prelude Result symbol" check produced a false positive on every
+        // `?` in those files. `type_expr_is_result` recognizes the imported
+        // name syntactically and keeps the `?` legal.
+        let src = r#"module x
+import std/result { Result, Ok, Err }
+async fn fetch(r: Result<string, string>) -> Result<string, string> {
+  let v = r?
+  return Ok(v)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "`?` with an imported Result return type must not be flagged; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn question_in_result_returning_lambda_passes() {
+        // Inverse of the previous test: a Result-returning lambda nested in
+        // a non-Result fn. The innermost frame (the lambda) permits `?`.
+        let src = r#"module x
+fn outer(r: Result<string, string>) -> number {
+  let f = fn() -> Result<string, string> { r? }
+  return 1
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "`?` in a Result-returning lambda should pass; got: {errs:?}"
+        );
     }
 }

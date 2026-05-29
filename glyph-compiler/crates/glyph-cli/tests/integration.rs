@@ -206,6 +206,35 @@ fn build_flags_non_exhaustive_match_on_tagged_union() {
 }
 
 #[test]
+fn build_flags_question_operator_outside_result_fn() {
+    // Day-15 acceptance: the `?`-operator typing rule flows through
+    // type_map → BuildReport. A `?` in a function that does not return
+    // `Result` surfaces in `glyph build` output.
+    let root = unique_tmp("question");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         fn unwrap(r: Result<string, string>) -> number {\n  \
+           let v = r?\n  \
+           return 1\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("typecheck") && d.contains("`?`")),
+        "expected a `?`-operator typecheck diagnostic; got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
 fn build_skips_hidden_and_target_directories() {
     let root = unique_tmp("skipped");
     let src = root.join("src");

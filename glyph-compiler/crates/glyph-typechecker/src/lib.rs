@@ -54,12 +54,23 @@ pub enum TypeError {
         missing: String,
         span: Span,
     },
+
+    /// `expr?` used where the enclosing function does not return `Result`.
+    /// The `?` operator propagates the `Err` arm to the caller, so it is
+    /// only legal inside a function whose declared return type is
+    /// `Result<_, _>`. Day-15 scope is the enclosing-function side of the
+    /// rule (D + week-3 task 2); the operand-side check ("`expr` must be a
+    /// `Result` and its `E` must match the function's `E`") needs the
+    /// bidirectional checker and lands in a later day.
+    #[error("the `?` operator is only valid inside a function that returns `Result`")]
+    QuestionOutsideResultFn { span: Span },
 }
 
 impl TypeError {
     pub fn span(&self) -> Span {
         match self {
             TypeError::NonExhaustiveMatch { span, .. } => *span,
+            TypeError::QuestionOutsideResultFn { span } => *span,
         }
     }
 }

@@ -113,16 +113,33 @@ macro_rules! impl_wrapper_update {
 pub trait Db: salsa::Database {
     fn prelude(&self) -> &Prelude;
     fn module_graph(&self) -> &dyn ModuleGraph;
+    /// Lazy-init salsa input describing the project's files. Tracked
+    /// queries (notably `import_diagnostics`) read this to compose
+    /// cross-module verification atop the static `module_graph`.
+    fn project_files_input(&self) -> ProjectFiles;
 }
 
-/// Concrete database. Holds the salsa storage, a prelude, and a module
-/// graph. Multiple `CompilerDb`s can coexist; they don't share state.
+/// Concrete database. Holds the salsa storage, a prelude, the stdlib
+/// module graph, and a lazily-created `ProjectFiles` salsa input. Multiple
+/// `CompilerDb`s can coexist; they don't share state.
 #[salsa::db]
 #[derive(Clone)]
 pub struct CompilerDb {
     storage: salsa::Storage<Self>,
     prelude: Arc<Prelude>,
+    /// Static module graph for stdlib/third-party paths (Phase 5 package
+    /// manifest territory). Project-local files resolve through the
+    /// separate `project_files` salsa input.
     module_graph: Arc<dyn ModuleGraph + Send + Sync>,
+    /// Salsa input listing the project's `.glyph` files and their module
+    /// paths. **Invariant: always `Some` after `new()`.** The `Option`
+    /// is a structural concession (Rust can't have a struct field whose
+    /// constructor requires the partially-built struct), not a
+    /// nullability claim. Eager init in `new()` means every clone of
+    /// this db shares the same `ProjectFiles` ID — a lazy-init path
+    /// would let two clones independently create distinct inputs and
+    /// silently disagree on which `set_project` mutations to observe.
+    project_files: Option<ProjectFiles>,
     /// Test-only event log shared by every clone of this db. The salsa
     /// callback installed in `new()` pushes every `EventKind` into the
     /// underlying `Arc<Mutex<Vec<EventKind>>>`, so tests can `drain_events()`
@@ -152,13 +169,37 @@ impl CompilerDb {
         };
         #[cfg(not(test))]
         let storage = salsa::Storage::default();
-        Self {
+        // Two-step initialization: construct the db with `project_files:
+        // None`, then create the `ProjectFiles` salsa input against the
+        // live db, then assign. `ProjectFiles::new` requires `&dyn Db`,
+        // so the field can't be populated in the struct literal.
+        let mut db = Self {
             storage,
             prelude: Arc::new(prelude),
             module_graph,
+            project_files: None,
             #[cfg(test)]
             events,
-        }
+        };
+        db.project_files = Some(ProjectFiles::new(&db, Vec::new()));
+        db
+    }
+
+    /// Get the `ProjectFiles` salsa input. Cheap: returns a `Copy` salsa
+    /// ID. The same ID for every clone of this db (see the `project_files`
+    /// field doc).
+    pub fn project_files_input(&self) -> ProjectFiles {
+        self.project_files
+            .expect("project_files is set by `CompilerDb::new`; this should never fire")
+    }
+
+    /// Replace the project's file set. Salsa-invalidates any tracked query
+    /// that transitively depends on the file list — including
+    /// `project_exports` and any `import_diagnostics` that consults it.
+    /// One salsa revision per call.
+    pub fn set_project(&mut self, entries: Vec<(String, SourceFile)>) {
+        let pf = self.project_files_input();
+        pf.set_entries(self).to(entries);
     }
 }
 
@@ -173,6 +214,10 @@ impl Db for CompilerDb {
 
     fn module_graph(&self) -> &dyn ModuleGraph {
         &*self.module_graph
+    }
+
+    fn project_files_input(&self) -> ProjectFiles {
+        CompilerDb::project_files_input(self)
     }
 }
 
@@ -189,6 +234,21 @@ pub struct SourceFile {
     pub virtual_path: String,
     #[returns(ref)]
     pub text: String,
+}
+
+// ============================================================================
+// Salsa input: ProjectFiles
+// ============================================================================
+
+/// Salsa input representing the project's set of `.glyph` files. Each
+/// entry pairs a slash-joined module path (`"app/users"`) with the
+/// corresponding `SourceFile`. Mutated via `CompilerDb::set_project`;
+/// changes invalidate `project_exports` and any tracked query that
+/// transitively reads it.
+#[salsa::input]
+pub struct ProjectFiles {
+    #[returns(ref)]
+    pub entries: Vec<(String, SourceFile)>,
 }
 
 // ============================================================================
@@ -560,6 +620,65 @@ impl Exports {
 impl_wrapper_update!(Exports);
 
 // ============================================================================
+// Stage 9 wrapper: ProjectExports (salsa-tracked aggregate)
+// ============================================================================
+
+/// Salsa-tracked aggregation of every project file's `module_exports`,
+/// keyed by module path. Returned by the `project_exports(db, project)`
+/// query. Implements `ModuleGraph`, so `verify_imports` can consume it
+/// directly inside another tracked query like `import_diagnostics`.
+///
+/// Day-10 wiring: `import_diagnostics(db, file)` reads
+/// `project_exports(db, db.project_files_input())` and composes it with
+/// the static stdlib graph. When fn `helper` is removed from `lib.glyph`,
+/// salsa re-runs `module_exports(lib)`, which produces a different export
+/// set, which invalidates `project_exports`, which invalidates
+/// `import_diagnostics(app.glyph)` — `app.glyph`'s diagnostics
+/// auto-fire `UnknownExportedName` without the caller doing anything.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectExports {
+    inner: Arc<ProjectExportsInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProjectExportsInner {
+    by_path: std::collections::BTreeMap<String, ModuleExports>,
+}
+
+impl ProjectExports {
+    pub fn empty() -> Self {
+        Self {
+            inner: Arc::new(ProjectExportsInner {
+                by_path: std::collections::BTreeMap::new(),
+            }),
+        }
+    }
+
+    pub fn new(by_path: std::collections::BTreeMap<String, ModuleExports>) -> Self {
+        Self {
+            inner: Arc::new(ProjectExportsInner { by_path }),
+        }
+    }
+
+    /// Number of registered modules.
+    pub fn len(&self) -> usize {
+        self.inner.by_path.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.by_path.is_empty()
+    }
+}
+
+impl ModuleGraph for ProjectExports {
+    fn exports_of(&self, path: &ModulePath) -> Option<&ModuleExports> {
+        self.inner.by_path.get(&path_key(path))
+    }
+}
+
+impl_wrapper_update!(ProjectExports);
+
+// ============================================================================
 // ProjectGraph — a ModuleGraph backed by salsa-cached file exports
 // ============================================================================
 
@@ -567,14 +686,19 @@ impl_wrapper_update!(Exports);
 /// Construct via `ProjectGraph::build(db, [(module_path_str, SourceFile), ...])`
 /// — the build iterates and salsa-fetches each file's exports.
 ///
-/// The graph itself is NOT salsa-tracked; rebuilding it costs O(N) HashMap
-/// inserts but the per-file work is cached. Callers typically rebuild
-/// once per `glyph build` invocation (or once at LSP project-load and
-/// again on workspace-symbol-set change). Cross-file invalidation of
-/// `import_diagnostics` when a project file's exports change is not
-/// automatic today — it requires the caller to rebuild the graph and
-/// re-run `import_diagnostics`. A future salsa-tracked `ProjectExports`
-/// value with `impl ModuleGraph` could close that gap.
+/// **Day-10 note**: this is the *non-tracked* aggregator, kept for
+/// callers that need a `ModuleGraph` to hand to `verify_imports`
+/// directly (e.g. unit tests). For automatic cross-file invalidation,
+/// register the project on the db via `CompilerDb::set_project(...)`
+/// and call `import_diagnostics(db, file)` — that path uses the
+/// salsa-tracked `ProjectExports` and `project_exports` query, which
+/// invalidate dependent files' diagnostics automatically when any
+/// file's export set changes.
+///
+/// `ProjectGraph` itself is not salsa-tracked; rebuilding it costs
+/// O(N) HashMap inserts but the per-file `module_exports` work is
+/// cached. Use when you need the `ModuleGraph` shape outside the salsa
+/// query context.
 #[derive(Debug, Default, Clone)]
 pub struct ProjectGraph {
     by_path: HashMap<String, ModuleExports>,
@@ -694,16 +818,45 @@ pub fn module_exports(db: &dyn Db, file: SourceFile) -> Exports {
     Exports::new(ModuleExports::from_names(names))
 }
 
-/// Cross-module verification (`import M { N }` checks). Reads the module
-/// graph off the database. Returns the list of `UnknownExportedName`
-/// errors; empty on success.
+/// Aggregate every project file's `module_exports` into a single
+/// salsa-tracked `ProjectExports` value. Re-runs whenever any registered
+/// file's exports change OR when the project file list itself changes.
+/// When the new aggregate is content-equal to the cached one (the common
+/// case: a body edit that doesn't add or remove a top-level name), the
+/// wrapper's Update returns false and downstream consumers
+/// (`import_diagnostics`) backdate.
+#[salsa::tracked]
+pub fn project_exports(db: &dyn Db, project: ProjectFiles) -> ProjectExports {
+    let mut by_path = std::collections::BTreeMap::<String, ModuleExports>::new();
+    for (path, file) in project.entries(db).iter() {
+        let exports = module_exports(db, *file);
+        let prev = by_path.insert(path.clone(), exports.exports().clone());
+        debug_assert!(
+            prev.is_none(),
+            "project_exports: duplicate module path `{path}` in ProjectFiles \
+             entries — earlier file's exports silently overwritten. Match \
+             the safety contract of `ProjectGraph::build`."
+        );
+    }
+    ProjectExports::new(by_path)
+}
+
+/// Cross-module verification (`import M { N }` checks). Composes the
+/// static stdlib `module_graph` with the salsa-tracked
+/// `project_exports`, so editing a project file's exports auto-invalidates
+/// the dependent file's diagnostics — no manual graph rebuild needed.
 #[salsa::tracked]
 pub fn import_diagnostics(db: &dyn Db, file: SourceFile) -> Diagnostics {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
         return Diagnostics::new(Vec::new());
     };
-    let errs = verify_imports(module, db.module_graph());
+    let project = project_exports(db, db.project_files_input());
+    let composite = glyph_resolver::CompositeGraph {
+        first: db.module_graph(),
+        second: &project,
+    };
+    let errs = verify_imports(module, &composite);
     Diagnostics::new(errs)
 }
 
@@ -1561,6 +1714,134 @@ fn use_helper(x: number) -> number { return helper(x) }
         assert!(
             valid >= 1,
             "module_exports should be a memo hit; got valid={valid}, events: {events:?}"
+        );
+    }
+
+    #[test]
+    fn import_diagnostics_resolves_against_project_via_db_input() {
+        // The salsa-wired path: register `lib` on the db, then call
+        // import_diagnostics on `app` — no manual CompositeGraph/verify
+        // call needed. `helper` is exported by lib; the import resolves.
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nfn helper() -> number { return 1 }\n",
+        );
+        let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
+        db.set_project(vec![("lib".to_string(), lib)]);
+        let diags = import_diagnostics(&db, app);
+        assert!(diags.errors().is_empty(), "errors: {:?}", diags.errors());
+    }
+
+    #[test]
+    fn import_diagnostics_flags_unknown_project_export_via_db_input() {
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nfn helper() -> number { return 1 }\n",
+        );
+        let app = new_file(
+            &db,
+            "app.glyph",
+            "module app\nimport lib { helper, bogus }\n",
+        );
+        db.set_project(vec![("lib".to_string(), lib)]);
+        let diags = import_diagnostics(&db, app);
+        assert!(matches!(
+            diags.errors().iter().find(|e| matches!(
+                e,
+                ResolveError::UnknownExportedName { name, .. } if name == "bogus"
+            )),
+            Some(_)
+        ), "expected UnknownExportedName(bogus); got: {:?}", diags.errors());
+    }
+
+    #[test]
+    fn removing_a_lib_export_auto_invalidates_dependent_app_diagnostics() {
+        // Day-10 acceptance: edit lib.glyph to remove `helper`, then
+        // app.glyph's import_diagnostics auto-fires UnknownExportedName
+        // without the caller doing anything (no graph rebuild, no
+        // explicit invalidation). Salsa walks the chain
+        // app.import_diagnostics → project_exports → module_exports(lib);
+        // when module_exports(lib) changes, project_exports updates, and
+        // app's diagnostics re-execute against the new export set.
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nfn helper() -> number { return 1 }\n",
+        );
+        let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
+        db.set_project(vec![("lib".to_string(), lib)]);
+        let before = import_diagnostics(&db, app);
+        assert!(before.errors().is_empty(), "before: {:?}", before.errors());
+
+        // Remove `helper` from lib (replace with a differently-named fn).
+        lib.set_text(&mut db).to(
+            "module lib\nfn other() -> number { return 1 }\n".to_string(),
+        );
+        let after = import_diagnostics(&db, app);
+        assert!(
+            after.errors().iter().any(|e| matches!(
+                e,
+                ResolveError::UnknownExportedName { name, .. } if name == "helper"
+            )),
+            "expected UnknownExportedName(helper) after removal; got: {:?}",
+            after.errors()
+        );
+    }
+
+    #[test]
+    fn body_only_edit_to_lib_does_not_invalidate_app_diagnostics() {
+        // When only a body changes in lib, lib's exports don't change,
+        // so module_exports(lib) backdates, so project_exports backdates,
+        // so app's import_diagnostics is a memo hit. Verifies the
+        // per-stage backdating actually fires across the file boundary.
+        //
+        // The chain salsa re-validates on this edit: parse_module(lib),
+        // module_symbols(lib), module_exports(lib), project_exports —
+        // four re-executions where the upstream value differs but the
+        // downstream output is content-equal, so each backdates. Then
+        // import_diagnostics(app)'s dep is fresh, so import_diagnostics
+        // itself gets DidValidateMemoizedValue without re-executing.
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\nfn helper(a: number) -> number { return a + 1 }\n",
+        );
+        let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
+        db.set_project(vec![("lib".to_string(), lib)]);
+        let _ = import_diagnostics(&db, app);
+        // Same-length body swap, exports unchanged.
+        lib.set_text(&mut db).to(
+            "module lib\nfn helper(a: number) -> number { return 1 + a }\n".to_string(),
+        );
+        db.drain_events();
+        let _ = import_diagnostics(&db, app);
+        let events = db.drain_events();
+        let we = count_will_execute(&events);
+        let valid = count_validated_memos(&events);
+        // **Jointly load-bearing**: `we <= 4` excludes
+        // `import_diagnostics(app)` from the re-executed set (a
+        // regression where it re-ran would push the count to ≥5).
+        // `valid >= 1` confirms a memo hit fired — combined with the
+        // bound, it must be import_diagnostics(app)'s memo hit. Without
+        // the `we` bound, `valid >= 1` alone is satisfied by
+        // module_exports/project_exports' backdating without import_
+        // diagnostics actually being a hit.
+        assert!(
+            we <= 4,
+            "post-edit chain should fire at most parse_module(lib) + \
+             module_symbols(lib) + module_exports(lib) + project_exports \
+             — NOT import_diagnostics(app); got we={we}, events: {events:?}"
+        );
+        assert!(
+            valid >= 1,
+            "expected ≥1 DidValidateMemoizedValue (import_diagnostics(app) \
+             served from cache when lib's exports stable); events: {events:?}"
         );
     }
 

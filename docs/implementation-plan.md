@@ -1605,3 +1605,76 @@ is the explicit rebuild call, not redundant work.
 | **glyph-db (lib)** | **27** | **+5**: module_exports lists top-level decls only, module_exports includes union variants, ProjectGraph serves cross-module named imports, ProjectGraph flags unknown export, module_exports memoizes across body edits |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **152** | **All pass** (up from 147) |
+
+## Phase 1 week 2 day 10 status (shipped 2026-05-29)
+
+**Cross-file auto-invalidation lands.** A new `salsa::input ProjectFiles`
+lives on `CompilerDb` (lazy-init via `OnceLock`); the new salsa-tracked
+`project_exports(db, project)` query aggregates every project file's
+`module_exports` into a single `ProjectExports` value that impls
+`ModuleGraph`. `import_diagnostics` now composes the stdlib graph with
+`project_exports` — so editing `lib.glyph` to remove an export
+auto-invalidates `app.glyph`'s diagnostics without any explicit graph
+rebuild. 156 workspace tests pass (up from 152).
+
+### Implemented this slice
+
+- **`#[salsa::input] ProjectFiles { entries: Vec<(String, SourceFile)> }`**:
+  the project's file list as a tracked input. Mutated via
+  `CompilerDb::set_project(entries)`.
+- **`OnceLock<ProjectFiles>` field on `CompilerDb`**: lazy-creates the
+  input the first time `project_files_input()` is called. Sidesteps the
+  chicken-and-egg of "salsa-input creation requires the db to exist."
+- **`Db` trait gained `fn project_files_input(&self) -> ProjectFiles`**:
+  tracked queries fetch the input through the trait, so salsa records
+  the dependency.
+- **`ProjectExports` wrapper** (same `impl_wrapper_update!` pattern):
+  holds an `Arc<BTreeMap<String, ModuleExports>>` and impls
+  `ModuleGraph::exports_of` via the existing `path_key`. BTreeMap
+  rather than HashMap so the aggregate is order-independent and the
+  wrapper's `Eq` is content-only.
+- **`project_exports(db, project) salsa::tracked`**: iterates
+  `project.entries(db)`, fetches each file's `module_exports`, builds
+  the BTreeMap. Salsa tracks the per-file dependencies; when one file's
+  exports change, the aggregate re-runs.
+- **`import_diagnostics` rewired**: composes the static stdlib graph
+  (`db.module_graph()`) with the salsa-tracked `project_exports` via
+  `glyph_resolver::CompositeGraph`. Cross-file dependency is now
+  part of salsa's graph.
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| Project-registered file's exports resolve cross-module | `import_diagnostics_resolves_against_project_via_db_input` |
+| Bogus cross-module import auto-flagged via db input | `import_diagnostics_flags_unknown_project_export_via_db_input` |
+| Removing lib's export auto-invalidates app's diagnostics | `removing_a_lib_export_auto_invalidates_dependent_app_diagnostics` |
+| Body-only edit to lib does NOT invalidate app's diagnostics | `body_only_edit_to_lib_does_not_invalidate_app_diagnostics` (asserts ≥1 `DidValidateMemoizedValue`) |
+
+### Deferred to day 11+
+
+- **Span-insensitive `DeclAst`/`ResolvedDecl`** so non-equal-length
+  edits also benefit from day-8's win.
+- **D15 barrel-file detection** — diagnostic for files with zero
+  top-level decls (only imports).
+- **`CompilerDb::clone` semantics around `OnceLock`** — when cloning
+  a db whose project_files was set, the clone's `OnceLock` either
+  inherits the ProjectFiles ID via the `Clone` impl on OnceLock (when
+  initialized) or stays empty. Tests use a single db throughout; the
+  clone path isn't exercised here.
+
+### Test summary after week 2 day 10
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 25 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| **glyph-db (lib)** | **31** | **+4**: import_diagnostics_resolves_against_project_via_db_input, import_diagnostics_flags_unknown_project_export_via_db_input, removing_a_lib_export_auto_invalidates_dependent_app_diagnostics, body_only_edit_to_lib_does_not_invalidate_app_diagnostics |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **156** | **All pass** (up from 152) |

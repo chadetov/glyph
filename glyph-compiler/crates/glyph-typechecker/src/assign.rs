@@ -17,7 +17,8 @@ use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
     ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild, JsxElement, MatchArm, MatchArmBody,
-    Module, ObjectField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
+    Module, ObjectField, ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart,
+    TypeExpr,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
@@ -674,12 +675,16 @@ impl Assigner<'_> {
     /// the variant's payload type so references to `x` in the arm body
     /// resolve concretely (via the resolver's `Local` def-site key).
     ///
-    /// Scope: a single identifier payload (`Full(n)`). Destructuring
-    /// payloads (`NetworkError({ url, status })`, nested constructors) is
-    /// deferred — the object/array sub-patterns need field-by-field typing
-    /// against the payload's record type. Prelude unions (`Ok(x)`,
-    /// `Some(x)`) aren't handled either: their scrutinee lowers to
-    /// `Ty::App`, not the `Ty::Named` `union_variant_payload` requires.
+    /// Two payload shapes are typed:
+    /// - whole payload bound to one identifier (`Full(n)` → `n: payload`);
+    /// - a record payload destructured by an object pattern
+    ///   (`NetworkError({ url, status })` → each field bound to its record
+    ///   field type).
+    ///
+    /// Deferred: nested constructor payloads and array payloads. Prelude
+    /// unions (`Ok(x)`, `Some(x)`) aren't handled either: their scrutinee
+    /// lowers to `Ty::App`, not the `Ty::Named` `union_variant_payload`
+    /// requires.
     fn bind_arm_payloads(&mut self, scrutinee_ty: &Ty, pattern: &Pattern) {
         let Pattern::Constructor { path, args, .. } = pattern else {
             return;
@@ -687,12 +692,35 @@ impl Assigner<'_> {
         let Some(variant_name) = path.last() else {
             return;
         };
-        // Only the single-identifier payload shape for now.
-        let [Pattern::Ident { span, .. }] = args.as_slice() else {
+        let Some(payload_ty) = self.union_variant_payload(scrutinee_ty, variant_name) else {
             return;
         };
-        if let Some(payload_ty) = self.union_variant_payload(scrutinee_ty, variant_name) {
-            self.local_tys.insert(span.start, payload_ty);
+        match args.as_slice() {
+            // `Full(n)` — the whole payload binds to one name.
+            [Pattern::Ident { span, .. }] => {
+                self.local_tys.insert(span.start, payload_ty);
+            }
+            // `NetworkError({ url, status })` — destructure a record payload.
+            [Pattern::Object { fields, .. }] => {
+                self.bind_object_pattern_fields(fields, &payload_ty);
+            }
+            _ => {}
+        }
+    }
+
+    /// Bind each field of an object pattern to its type from the payload
+    /// record. The resolver binds `{ name }` and `{ name: alias }` at the
+    /// field's span, so the type is keyed by `field.span.start`. A field
+    /// the record doesn't declare is left untyped (a separate
+    /// unknown-field diagnostic is the bidirectional checker's job).
+    fn bind_object_pattern_fields(&mut self, fields: &[ObjectPatternField], payload_ty: &Ty) {
+        let Ty::Record { fields: rec_fields } = payload_ty else {
+            return;
+        };
+        for pf in fields {
+            if let Some(rf) = rec_fields.iter().find(|rf| rf.name == pf.key) {
+                self.local_tys.insert(pf.span.start, rf.ty.clone());
+            }
         }
     }
 
@@ -1414,5 +1442,71 @@ fn get(b: Box) -> number {
         assert!(matches!(tm.get(payload_body), Ty::Prim(Primitive::Number)));
         let catch_all_body = match_arm_body_expr_span(&m, 1, 1);
         assert!(matches!(tm.get(catch_all_body), Ty::Prim(Primitive::Number)));
+    }
+
+    // ----- day-18: object-pattern payload destructuring -----
+
+    #[test]
+    fn object_pattern_payload_string_field_typed() {
+        // `Info({ text }) => text` binds `text` to the record payload's
+        // `text: string` field. Mirrors example 04's `format_parse_error`.
+        let src = r#"module x
+type Log = | Info({ text: string }) | Code({ n: number })
+fn render(l: Log) -> string {
+  return match l {
+    Info({ text }) => text,
+    Code({ n }) => "x",
+  }
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let body = match_arm_body_expr_span(&m, 1, 0);
+        assert!(
+            matches!(tm.get(body), Ty::Prim(Primitive::String)),
+            "Info({{ text }}) body should type as string; got {:?}",
+            tm.get(body)
+        );
+    }
+
+    #[test]
+    fn object_pattern_payload_number_field_typed() {
+        // Same union, the other field: `Code({ n }) => n` binds `n: number`.
+        let src = r#"module x
+type Log = | Info({ text: string }) | Code({ n: number })
+fn pick(l: Log) -> number {
+  return match l {
+    Code({ n }) => n,
+    Info({ text }) => 0,
+  }
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let body = match_arm_body_expr_span(&m, 1, 0);
+        assert!(
+            matches!(tm.get(body), Ty::Prim(Primitive::Number)),
+            "Code({{ n }}) body should type as number; got {:?}",
+            tm.get(body)
+        );
+    }
+
+    #[test]
+    fn aliased_object_pattern_field_typed() {
+        // `Boom({ code: c }) => c` binds the alias `c` to the type of the
+        // record's `code` field, not the alias name.
+        let src = r#"module x
+type E = | Boom({ code: number })
+fn f(e: E) -> number {
+  return match e {
+    Boom({ code: c }) => c,
+  }
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let body = match_arm_body_expr_span(&m, 1, 0);
+        assert!(
+            matches!(tm.get(body), Ty::Prim(Primitive::Number)),
+            "aliased binding `c` should take the `code` field type; got {:?}",
+            tm.get(body)
+        );
     }
 }

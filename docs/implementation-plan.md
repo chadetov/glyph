@@ -1749,3 +1749,78 @@ confirming exit codes and stderr output match.
 | **glyph-cli (integration)** | **6** | **+6** (new): clean project, bogus import, subdirs, missing src, empty src, hidden+target skipped |
 | glyph-emit, glyph-runtime, glyph-cli (bin) | 1 each | unchanged (bin has 0 tests but counts the original stub bin test elsewhere) |
 | **Total** | **164** | **All pass** (up from 156) |
+
+## Phase 1 week 2 day 12 status (shipped 2026-05-29)
+
+**Span-insensitive caching lands for DeclAst and ResolvedDecl.** Both
+wrappers now use the **source bytes** covered by the decl's outer
+span as their canonical fingerprint. PartialEq compares only those
+bytes, so absolute-span shifts caused by length-changing edits to
+*other* decls no longer invalidate this decl's wrapper. The day-8
+"editing one fn body skips decl_ty for other fns" win now extends to
+non-equal-length edits. 165 workspace tests pass (up from 164).
+
+### Implemented this slice
+
+- `DeclAstInner` and `ResolvedDeclInner` each grew a
+  `canonical: Arc<str>` field carrying the source bytes covered by
+  the decl's outer span. The inner wrappers' `PartialEq` compares
+  this canonical only — not the carried `Decl` / `ResolvedModule`.
+- `DeclAst::new(decl, source, span)` and `ResolvedDecl::new(resolved,
+  source, span)` extract the canonical bytes at construction time.
+- `decl_ast` and `resolved_decl` salsa queries read `file.text(db)`
+  and pass it through `canonical_bytes(source, span)`. A defensive
+  helper checks `is_char_boundary` and bounds before slicing.
+- `decl_outer_span(d)` is a small helper that returns the outermost
+  span for any `Decl` variant.
+- Outer `DeclAst` / `ResolvedDecl` got hand-written `PartialEq` that
+  fast-paths on `Arc::ptr_eq` then falls through to the inner's
+  source-byte compare.
+
+### Acceptance
+
+`length_changing_body_edit_skips_decl_ty_for_other_fns` exercises
+the case day-8 explicitly couldn't: `return a` → `return a + 1 + 2
++ 3` (length-changing) on fn 0's body. After the edit, calling
+`decl_ty(&db, file, 1)` for the untouched `other` fn:
+- Fires 5 `WillExecute` events (parse_module, module_symbols,
+  resolve, decl_ast, resolved_decl all re-validate)
+- Fires 1 `DidValidateMemoizedValue` for `decl_ty` itself (it sees
+  its deps' Updates returned false and serves the cached Ty without
+  re-executing)
+
+The two assertions are jointly load-bearing — `we <= 5` excludes
+decl_ty from the re-executed set (a regression where decl_ty re-runs
+pushes the count to 6); `valid >= 1` confirms a memo hit.
+
+### Trade-off
+
+Source-byte canonical is broader than strictly necessary:
+- A comment-only edit within this decl changes the source bytes →
+  the wrapper invalidates and `decl_ty` re-executes (even though the
+  AST is semantically identical).
+- A whitespace-only edit within this decl: same.
+
+Both are practical non-issues (comments/whitespace rarely change
+without surrounding code changing too) and the trade-off is
+explicitly documented on the wrappers. A future structural span-strip
+implementation could tighten this — that's day-13+ work if anyone
+asks.
+
+### Test summary after week 2 day 12
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| glyph-typechecker (lib) | 25 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| **glyph-db (lib)** | **32** | **+1**: length_changing_body_edit_skips_decl_ty_for_other_fns |
+| glyph-cli (lib) | 2 | unchanged |
+| glyph-cli (integration) | 6 | unchanged |
+| glyph-emit, glyph-runtime | 1 each | unchanged |
+| **Total** | **165** | **All pass** (up from 164) |

@@ -500,35 +500,89 @@ impl_wrapper_update!(DeclTy);
 // Stage 7 wrappers: DeclAst and ResolvedDecl (per-declaration input slices)
 // ============================================================================
 
-/// One top-level declaration extracted from a `ParsedModule`. The whole
-/// point of this wrapper is `Update`-by-`PartialEq` over the decl content:
-/// when a file edit changes some *other* decl, salsa re-runs `decl_ast`
-/// for every k, but the unchanged decls return content-equal wrappers, the
-/// Update returns false, and downstream consumers (like `decl_ty`) skip.
+/// One top-level declaration extracted from a `ParsedModule`.
 ///
-/// Spans are part of `Decl`'s `Eq`, so this only works cleanly when the
-/// edit doesn't shift byte positions of later decls. Tests use
-/// equal-length edits to exercise the win deterministically. A future
-/// span-insensitive equality (or per-decl normalized spans) would lift
-/// this restriction.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// The wrapper carries the original `Decl` (for downstream consumers
+/// like the Lowerer) plus a **source-byte canonical**: the bytes the
+/// decl covers in the source file. `PartialEq` compares only the
+/// canonical, not the Decl values, so two `DeclAst`s are equal when
+/// their source text is identical — even if absolute byte positions
+/// shifted because of edits to *other* decls. This lifts day-8's
+/// equal-length restriction.
+///
+/// The trade-off: comment / whitespace edits *within* this decl change
+/// the source bytes and invalidate the wrapper, even when the AST is
+/// semantically identical. Acceptable in practice since comments rarely
+/// change without surrounding code changing too; a future "strip spans
+/// and compare structural AST" implementation could go finer.
+#[derive(Debug, Clone)]
 pub struct DeclAst {
     inner: Arc<DeclAstInner>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 struct DeclAstInner {
     decl: Option<Decl>,
+    /// Source bytes covered by `Decl`'s outer span. The fingerprint used
+    /// by salsa's Update; comparing two `DeclAst`s is just an Arc<str>
+    /// content compare.
+    canonical: Arc<str>,
 }
 
+impl PartialEq for DeclAstInner {
+    fn eq(&self, other: &Self) -> bool {
+        self.canonical == other.canonical
+    }
+}
+
+impl Eq for DeclAstInner {}
+
+impl PartialEq for DeclAst {
+    fn eq(&self, other: &Self) -> bool {
+        // Inner is Arc<...>; fast-path on Arc::ptr_eq, then fall through
+        // to inner PartialEq (which compares only the canonical bytes).
+        Arc::ptr_eq(&self.inner, &other.inner) || *self.inner == *other.inner
+    }
+}
+
+impl Eq for DeclAst {}
+
 impl DeclAst {
-    pub fn new(decl: Option<Decl>) -> Self {
+    /// Construct an empty `DeclAst` (no decl, no canonical). Used on
+    /// upstream-failure paths (parse failed, decl_idx out of range).
+    pub fn empty() -> Self {
         Self {
-            inner: Arc::new(DeclAstInner { decl }),
+            inner: Arc::new(DeclAstInner {
+                decl: None,
+                canonical: Arc::from(""),
+            }),
+        }
+    }
+
+    /// Construct with the decl + the canonical source bytes.
+    pub fn new(decl: Decl, source: &str, span: glyph_ast::Span) -> Self {
+        let bytes = canonical_bytes(source, span);
+        Self {
+            inner: Arc::new(DeclAstInner {
+                decl: Some(decl),
+                canonical: bytes,
+            }),
         }
     }
 
     /// `Some` if the file parsed and `decl_idx` was in range, else `None`.
+    ///
+    /// **Staleness contract**: under a backdated revision (when the
+    /// decl's source bytes match cached but other parts of the file
+    /// changed length), the returned `Decl` carries the spans of the
+    /// REVISION WHERE IT WAS LAST RE-EXECUTED, not the current
+    /// revision. Today's only consumer is `decl_ty` via the Lowerer,
+    /// which also reads `resolved_decl` — both wrappers backdate
+    /// together, so OLD `Decl` spans index correctly into OLD
+    /// resolution-map keys. A future caller that pairs `decl_ast` with
+    /// freshly-built current-revision data (e.g., a per-revision
+    /// `TypeMap`) must NOT trust the carried spans to align with
+    /// current source positions.
     pub fn decl(&self) -> Option<&Decl> {
         self.inner.decl.as_ref()
     }
@@ -541,41 +595,118 @@ impl_wrapper_update!(DeclAst);
 /// entries the `Lowerer` will query when typing this decl's params and
 /// return type — i.e. every `TypeExpr` path inside the signature.
 ///
-/// When fn 5's body changes but its signature spans are stable, the slice
-/// for k=5 is content-equal across the edit (only the body's resolution
-/// entries differ, and those aren't included). For k≠5 the slice is
-/// usually content-equal too, assuming the edit didn't shift their byte
-/// positions.
+/// Uses the same source-byte canonical as `DeclAst` for `PartialEq`. Two
+/// `ResolvedDecl`s are equal when their decl's source bytes match —
+/// independent of any absolute-span shifts in the carried
+/// `ResolvedModule`. The (Symbol.span values inside the cloned symbol
+/// table) and (absolute spans as keys in the resolution map) become
+/// invisible to salsa's change-detection.
 ///
-/// **Caveat (same as `DeclAst`)**: the carried `ResolvedModule.symbols`
-/// table is cloned wholesale. Each `Symbol.span` covers an entire decl
-/// (fn-keyword through body). A non-equal-length edit shifts every later
-/// decl's symbol span, so `symbols` compares unequal even when the
-/// resolutions slice is stable — the day-8 invalidation win degrades to
-/// day-7-style output backdating for later decls in that case.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Correctness rationale: when the source bytes of the decl are
+/// unchanged, the symbolic resolutions for the decl's signature are
+/// unchanged too (module structure is stable, `SymbolId` allocation is
+/// source-order, prelude is fixed). The Lowerer still queries the
+/// resolution map by absolute span, and those absolute spans match what
+/// the current revision's AST produces — so lowering still works.
+#[derive(Debug, Clone)]
 pub struct ResolvedDecl {
     inner: Arc<ResolvedDeclInner>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 struct ResolvedDeclInner {
     resolved: Option<ResolvedModule>,
+    canonical: Arc<str>,
 }
 
+impl PartialEq for ResolvedDeclInner {
+    fn eq(&self, other: &Self) -> bool {
+        self.canonical == other.canonical
+    }
+}
+
+impl Eq for ResolvedDeclInner {}
+
+impl PartialEq for ResolvedDecl {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner) || *self.inner == *other.inner
+    }
+}
+
+impl Eq for ResolvedDecl {}
+
 impl ResolvedDecl {
-    pub fn new(resolved: Option<ResolvedModule>) -> Self {
+    pub fn empty() -> Self {
         Self {
-            inner: Arc::new(ResolvedDeclInner { resolved }),
+            inner: Arc::new(ResolvedDeclInner {
+                resolved: None,
+                canonical: Arc::from(""),
+            }),
         }
     }
 
+    pub fn new(resolved: ResolvedModule, source: &str, span: glyph_ast::Span) -> Self {
+        let bytes = canonical_bytes(source, span);
+        Self {
+            inner: Arc::new(ResolvedDeclInner {
+                resolved: Some(resolved),
+                canonical: bytes,
+            }),
+        }
+    }
+
+    /// `Some` if the file parsed and `decl_idx` was in range, else `None`.
+    ///
+    /// **Staleness contract** (same as `DeclAst::decl`): under a
+    /// backdated revision, the carried `ResolvedModule`'s symbols and
+    /// resolutions are keyed by the spans of the REVISION WHERE THIS
+    /// WAS LAST RE-EXECUTED. Consumers pairing this with a freshly-
+    /// built per-revision `Decl` (with current-revision spans) will
+    /// see lookups miss. Today's consumer (`decl_ty`'s Lowerer) reads
+    /// only this resolved-module and a `Decl` from the
+    /// lockstep-backdated `DeclAst`, so the keys match.
     pub fn resolved(&self) -> Option<&ResolvedModule> {
         self.inner.resolved.as_ref()
     }
 }
 
 impl_wrapper_update!(ResolvedDecl);
+
+/// Extract the source-byte slice for a span. Used as the canonical
+/// fingerprint for `DeclAst` and `ResolvedDecl`. Falls back to an empty
+/// string on malformed spans so PartialEq can't panic in release, but
+/// `debug_assert!`s in test/debug builds — a malformed span here is a
+/// parser bug, and silently producing an empty canonical would make
+/// two mismatched malformed decls compare equal (Update returns false,
+/// salsa serves a stale `Ty`).
+fn canonical_bytes(source: &str, span: glyph_ast::Span) -> Arc<str> {
+    let start = span.start as usize;
+    let end = span.end as usize;
+    let valid = end >= start
+        && end <= source.len()
+        && source.is_char_boundary(start)
+        && source.is_char_boundary(end);
+    debug_assert!(
+        valid,
+        "canonical_bytes: malformed span {span:?} for source of length {} — parser bug",
+        source.len()
+    );
+    if !valid {
+        return Arc::from("");
+    }
+    Arc::from(&source[start..end])
+}
+
+/// The outermost source span of a top-level declaration.
+fn decl_outer_span(d: &Decl) -> glyph_ast::Span {
+    match d {
+        Decl::Import(i) => i.span,
+        Decl::Fn(f) => f.span,
+        Decl::Type(t) => t.span,
+        Decl::Const(c) => c.span,
+        Decl::Component(c) => c.span,
+    }
+}
 
 // ============================================================================
 // Stage 8 wrapper: Exports (per-file module exports)
@@ -925,43 +1056,51 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
     }
 }
 
-/// Extract the `decl_idx`-th top-level declaration from the parsed module.
-/// Returns `DeclAst::new(None)` if parsing failed or the index is out of
-/// range. The salsa-tracked memo gets backdated whenever this decl's
-/// content (including span values, since `Decl: Eq` is structural) is
-/// stable across a file edit — even when other parts of the file changed.
+/// Extract the `decl_idx`-th top-level declaration from the parsed
+/// module. The salsa memo gets backdated whenever the decl's source
+/// bytes are unchanged across a file edit — even when absolute byte
+/// positions shifted because of edits to other decls.
 #[salsa::tracked]
 pub fn decl_ast(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclAst {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
-        return DeclAst::new(None);
+        return DeclAst::empty();
     };
-    DeclAst::new(module.items.get(decl_idx as usize).cloned())
+    let Some(decl) = module.items.get(decl_idx as usize) else {
+        return DeclAst::empty();
+    };
+    let span = decl_outer_span(decl);
+    let source = file.text(db);
+    DeclAst::new(decl.clone(), source, span)
 }
 
 /// Per-declaration slice of the resolver output. Contains a
-/// `ResolvedModule` whose `resolutions` map is restricted to spans inside
-/// `module.items[decl_idx]`'s signature (param types + return type). The
-/// `symbols` table is the full module table — module-level names a
-/// signature might reference (e.g. `fn f(x: User) -> Result<User, E>`)
-/// resolve through the unchanged-per-edit symbol table.
+/// `ResolvedModule` whose `resolutions` map is restricted to spans
+/// inside `module.items[decl_idx]`'s signature (param types + return
+/// type). The wrapper's PartialEq compares the decl's source bytes only
+/// (same canonical as `DeclAst`); so when fn 0's body changes length,
+/// fn 1's `ResolvedDecl` is still considered equal — the carried
+/// `ResolvedModule` has different absolute spans but the bytes that
+/// produced it are unchanged.
 #[salsa::tracked]
 pub fn resolved_decl(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ResolvedDecl {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
-        return ResolvedDecl::new(None);
+        return ResolvedDecl::empty();
     };
     let Some(decl) = module.items.get(decl_idx as usize) else {
-        return ResolvedDecl::new(None);
+        return ResolvedDecl::empty();
     };
     let resolved = resolve(db, file);
     let Some(full) = resolved.resolved() else {
-        return ResolvedDecl::new(None);
+        return ResolvedDecl::empty();
     };
     let mut sig_spans: HashSet<(u32, u32)> = HashSet::new();
     collect_signature_spans(decl, &mut sig_spans);
     let sliced = full.sliced(|s| sig_spans.contains(&(s.start, s.end)));
-    ResolvedDecl::new(Some(sliced))
+    let span = decl_outer_span(decl);
+    let source = file.text(db);
+    ResolvedDecl::new(sliced, source, span)
 }
 
 /// Lower the type of the `decl_idx`-th top-level declaration.
@@ -1842,6 +1981,71 @@ fn use_helper(x: number) -> number { return helper(x) }
             valid >= 1,
             "expected ≥1 DidValidateMemoizedValue (import_diagnostics(app) \
              served from cache when lib's exports stable); events: {events:?}"
+        );
+    }
+
+    #[test]
+    fn length_changing_body_edit_skips_decl_ty_for_other_fns() {
+        // Day-12 acceptance: the source-byte canonical for `DeclAst` and
+        // `ResolvedDecl` makes their PartialEq immune to absolute-span
+        // shifts. So a length-changing edit to fn 0's body (which shifts
+        // every later decl's spans) no longer invalidates decl_ty for
+        // those later decls — their canonical bytes are unchanged.
+        //
+        // Day 8's `editing_one_fn_body_skips_decl_ty_for_other_fns` used
+        // an equal-length swap; this test exercises the genuinely
+        // length-changing case that day-8's wrapper could not handle.
+        let mut db = CompilerDb::with_default_stdlib();
+        let src_before = r#"module x
+fn helper(a: number) -> number { return a }
+fn other(x: number) -> number { return x }
+"#;
+        let file = new_file(&db, "two.glyph", src_before);
+        // Prime both decl_ty memos.
+        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, 1);
+        db.drain_events();
+        // Length-changing edit: `return a` → `return a + 1 + 2 + 3`.
+        // The original was 8 chars in the body content; the new one is
+        // 20 chars. `other`'s bytes shift later in the file accordingly.
+        let src_after = r#"module x
+fn helper(a: number) -> number { return a + 1 + 2 + 3 }
+fn other(x: number) -> number { return x }
+"#;
+        file.set_text(&mut db).to(src_after.to_string());
+        db.drain_events();
+        // decl_ty for `other` (decl_idx 1) should still be served from
+        // memo despite the absolute-span shift. The source bytes
+        // covered by `other`'s outer span are byte-identical to before;
+        // the canonical comparison detects that.
+        let _ = decl_ty(&db, file, 1);
+        let events = db.drain_events();
+        let we = count_will_execute(&events);
+        let valid = count_validated_memos(&events);
+        // **Exact count rather than upper bound.** The chain
+        // re-validates exactly five queries: parse_module, module_symbols,
+        // resolve, decl_ast(other_idx), resolved_decl(other_idx). Each
+        // runs to compute a new value; their Update impls check whether
+        // the new value matches the cached canonical. The day-12 win:
+        // decl_ast and resolved_decl produce content-equal canonicals
+        // (source bytes unchanged for the untouched decl), so backdating
+        // fires and decl_ty's deps are considered fresh — decl_ty's body
+        // does NOT re-execute.
+        //
+        // Why exact rather than `we <= 5`: a future tracked query inserted
+        // into the chain would push the count to 6 and a one-sided bound
+        // would still pass (or, in a regression where decl_ty also runs,
+        // count to 6 and would pass for the wrong reason). Pinning the
+        // count to 5 forces a deliberate retabulation when the chain
+        // changes — and confirms decl_ty (the 6th potential query in this
+        // walk) stayed out of the re-executed set.
+        assert_eq!(
+            we, 5,
+            "expected exactly 5 WillExecute (parse + symbols + resolve + decl_ast + resolved_decl, NOT decl_ty); events: {events:?}"
+        );
+        assert!(
+            valid >= 1,
+            "expected ≥1 DidValidateMemoizedValue (decl_ty served from memo across length-changing edit); got valid={valid}, events: {events:?}"
         );
     }
 

@@ -266,6 +266,33 @@ fn build_flags_non_exhaustive_prelude_result_match() {
 }
 
 #[test]
+fn build_flags_return_type_mismatch() {
+    // Day-21 acceptance: a `return` whose value is a concrete primitive
+    // that differs from the declared primitive return type surfaces through
+    // type_map -> BuildReport.
+    let root = unique_tmp("returnmismatch");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\nfn count() -> number {\n  return \"nope\"\n}\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("typecheck")
+                && d.contains("expected `number`")
+                && d.contains("found `string`")),
+        "expected a return type-mismatch diagnostic; got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
 fn build_skips_hidden_and_target_directories() {
     let root = unique_tmp("skipped");
     let src = root.join("src");

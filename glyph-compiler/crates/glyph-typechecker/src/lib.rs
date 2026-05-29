@@ -64,6 +64,20 @@ pub enum TypeError {
     /// bidirectional checker and lands in a later day.
     #[error("the `?` operator is only valid inside a function that returns `Result`")]
     QuestionOutsideResultFn { span: Span },
+
+    /// A value's type is incompatible with the type required at its
+    /// position. Day-21 emits this for `return` statements whose value is a
+    /// concrete primitive (`string`/`number`/`bool`/`void`) that differs
+    /// from the function's declared primitive return type. The check is
+    /// deliberately narrow — assignability over named, generic, record, and
+    /// function types is a later day — so it never fires on a type it can't
+    /// judge with certainty.
+    #[error("type mismatch: expected `{expected}`, found `{found}`")]
+    TypeMismatch {
+        expected: String,
+        found: String,
+        span: Span,
+    },
 }
 
 impl TypeError {
@@ -71,6 +85,7 @@ impl TypeError {
         match self {
             TypeError::NonExhaustiveMatch { span, .. } => *span,
             TypeError::QuestionOutsideResultFn { span } => *span,
+            TypeError::TypeMismatch { span, .. } => *span,
         }
     }
 }

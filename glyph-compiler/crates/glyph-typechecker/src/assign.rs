@@ -48,6 +48,18 @@ enum ReturnClass {
     Unknown,
 }
 
+/// The innermost enclosing callable's declared return type, tracked on a
+/// stack so nested lambdas check against their own return. Bundles the
+/// `ReturnClass` (for the `?` rule) with the lowered `Ty` (for return-type
+/// mismatch checking) so the two can never desync across push/pop sites.
+#[derive(Debug, Clone)]
+struct EnclosingReturn {
+    class: ReturnClass,
+    /// The lowered declared return type, or `Ty::Unknown` when there is no
+    /// annotation or it could not be resolved.
+    ty: Ty,
+}
+
 /// Source of per-declaration `Ty` answers. The Assigner queries the resolver
 /// every time it needs the type of a `fn`/`component` reference; injecting
 /// the lookup as a trait lets the salsa-aware caller in `glyph-db` route
@@ -188,7 +200,7 @@ struct Assigner<'a> {
     /// last. Drives the `?`-operator check (`QuestionOutsideResultFn`).
     /// Empty when walking a `const` initializer (no enclosing callable),
     /// which makes a bare `?` there an error.
-    return_stack: Vec<ReturnClass>,
+    return_stack: Vec<EnclosingReturn>,
     /// Type of each locally-bound name, keyed by the def-site span start the
     /// resolver records in `ResolvedRef::Local`. Populated from typed function
     /// / component / lambda parameters and typed `let` bindings. For-loop
@@ -205,15 +217,15 @@ impl Assigner<'_> {
         match decl {
             Decl::Import(_) | Decl::Type(_) => {}
             Decl::Fn(f) => {
-                let class = self.classify_return(f.return_ty.as_ref());
-                self.return_stack.push(class);
+                let er = self.enclosing_return(f.return_ty.as_ref());
+                self.return_stack.push(er);
                 self.bind_param_tys(&f.params);
                 self.walk_block(&f.body);
                 self.return_stack.pop();
             }
             Decl::Component(c) => {
-                let class = self.classify_return(c.return_ty.as_ref());
-                self.return_stack.push(class);
+                let er = self.enclosing_return(c.return_ty.as_ref());
+                self.return_stack.push(er);
                 self.bind_param_tys(&c.params);
                 self.walk_block(&c.body);
                 self.return_stack.pop();
@@ -262,6 +274,7 @@ impl Assigner<'_> {
             Stmt::Return(r) => {
                 if let Some(v) = &r.value {
                     self.walk_expr(v);
+                    self.check_return_type(v);
                 }
             }
             Stmt::For(f) => {
@@ -395,8 +408,8 @@ impl Assigner<'_> {
                 body,
                 span,
             } => {
-                let class = self.classify_return(return_ty.as_ref());
-                self.return_stack.push(class);
+                let er = self.enclosing_return(return_ty.as_ref());
+                self.return_stack.push(er);
                 self.bind_param_tys(params);
                 self.walk_block(body);
                 self.return_stack.pop();
@@ -457,27 +470,29 @@ impl Assigner<'_> {
 
     // ----- day-15: `?` operator typing rule -----
 
-    /// Classify a declared return type for the `?`-operator check. The rule
-    /// errs toward *permissive* — `?` is flagged only when the return type
-    /// is provably a concrete non-`Result`. `None` (no annotation, legal
-    /// under D4) and any type we can't fully resolve stay `Unknown`.
-    fn classify_return(&self, return_ty: Option<&TypeExpr>) -> ReturnClass {
+    /// Build the `EnclosingReturn` for a declared return type: its
+    /// `ReturnClass` (for the `?` rule) and its lowered `Ty` (for
+    /// return-type mismatch checking). Both err toward *permissive* — a
+    /// missing annotation (legal under D4) or one that can't be resolved
+    /// yields `ReturnClass::Unknown` and `Ty::Unknown`, so neither check
+    /// fires on a type it can't judge.
+    fn enclosing_return(&self, return_ty: Option<&TypeExpr>) -> EnclosingReturn {
         let Some(te) = return_ty else {
-            return ReturnClass::Unknown;
+            return EnclosingReturn { class: ReturnClass::Unknown, ty: Ty::Unknown };
         };
-        if self.type_expr_is_result(te) {
-            return ReturnClass::Result;
-        }
-        // Not recognized as `Result`. Flag only when the type lowers to a
-        // concrete, fully-resolved non-`Result` type. Anything that lowers
-        // to `Unknown` — including a generic application over an unresolved
-        // base (e.g. an imported non-`Result` type) — stays permissive so
-        // we never emit a false positive.
-        if self.is_decidably_non_result(&self.lowerer.lower(te)) {
+        let ty = self.lowerer.lower(te);
+        let class = if self.type_expr_is_result(te) {
+            ReturnClass::Result
+        } else if self.is_decidably_non_result(&ty) {
+            // A concrete, fully-resolved non-`Result` type. Anything that
+            // lowers to `Unknown` — including a generic application over an
+            // unresolved base (e.g. an imported non-`Result` type) — stays
+            // permissive so we never emit a false positive.
             ReturnClass::NonResult
         } else {
             ReturnClass::Unknown
-        }
+        };
+        EnclosingReturn { class, ty }
     }
 
     /// True if `te` names the `Result` type, applied (`Result<T, E>`) or
@@ -526,11 +541,32 @@ impl Assigner<'_> {
     /// initializer with no enclosing callable, which is always an error.
     fn check_question_operator(&mut self, span: Span) {
         let permitted = matches!(
-            self.return_stack.last(),
+            self.return_stack.last().map(|e| e.class),
             Some(ReturnClass::Result | ReturnClass::Unknown)
         );
         if !permitted {
             self.errors.push(TypeError::QuestionOutsideResultFn { span });
+        }
+    }
+
+    // ----- day-21: return-type mismatch -----
+
+    /// Flag a `return value` whose value type is provably incompatible with
+    /// the enclosing function's declared return type. Day-21 only judges
+    /// primitive-vs-primitive mismatches (see `definitely_incompatible`),
+    /// so it never fires on a type it can't decide — including every
+    /// `Unknown`, generic, named, or structural type.
+    fn check_return_type(&mut self, value: &Expr) {
+        let Some(expected) = self.return_stack.last().map(|e| e.ty.clone()) else {
+            return;
+        };
+        let found = self.tm.get(value.span()).clone();
+        if definitely_incompatible(&found, &expected) {
+            self.errors.push(TypeError::TypeMismatch {
+                expected: ty_display(&expected),
+                found: ty_display(&found),
+                span: value.span(),
+            });
         }
     }
 
@@ -770,6 +806,35 @@ impl Assigner<'_> {
         let variant = variants.iter().find(|v| &v.name == variant_name)?;
         let payload_te = variant.payload.as_ref()?;
         Some(self.lowerer.lower(payload_te))
+    }
+}
+
+// ----- day-21: assignability (conservative, primitives only) -----
+
+/// True only when `found` is *provably* not assignable to `expected`. The
+/// day-21 relation judges primitive-vs-primitive pairs (`string`, `number`,
+/// `bool`, `void`), which are unambiguous, and returns false for every other
+/// pairing — `Unknown`, `UnknownTop`, `Param`, named, generic, record, and
+/// function types — so the check never produces a false positive on a type
+/// it has not learned to compare. Assignability over those is a later day.
+fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
+    matches!(
+        (found, expected),
+        (Ty::Prim(a), Ty::Prim(b)) if a != b
+    )
+}
+
+/// Render a `Ty` for a diagnostic. Day-21 only formats the primitives that
+/// `definitely_incompatible` can flag; other shapes get a coarse label,
+/// which is acceptable because they are never the subject of a mismatch yet.
+fn ty_display(ty: &Ty) -> String {
+    match ty {
+        Ty::Prim(p) => p.as_str().to_string(),
+        Ty::UnknownTop => "unknown".to_string(),
+        Ty::Named { path, .. } if !path.is_empty() => {
+            path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
+        }
+        _ => "?".to_string(),
     }
 }
 
@@ -1854,5 +1919,87 @@ fn run(r: Result<number, E>) -> number {
             args: vec![Ty::Prim(Primitive::Number)],
         };
         assert_eq!(substitute_type_params(&t, &subst), t);
+    }
+
+    // ----- day-21: return-type mismatch -----
+
+    #[test]
+    fn return_string_in_number_fn_is_flagged() {
+        let errs = ty_errors_of("module x\nfn f() -> number { return \"hi\" }\n");
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::TypeMismatch { expected, found, .. } => {
+                assert_eq!(expected, "number");
+                assert_eq!(found, "string");
+            }
+            other => panic!("expected TypeMismatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn return_number_in_string_fn_is_flagged() {
+        let errs = ty_errors_of("module x\nfn f() -> string { return 5 }\n");
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::TypeMismatch { expected, found, .. }]
+                if expected == "string" && found == "number"
+        ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn return_number_in_void_fn_is_flagged() {
+        let errs = ty_errors_of("module x\nfn f() -> void { return 5 }\n");
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::TypeMismatch { expected, .. }] if expected == "void"
+        ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn matching_primitive_return_passes() {
+        assert!(ty_errors_of("module x\nfn f() -> number { return 5 }\n").is_empty());
+    }
+
+    #[test]
+    fn return_unknown_typed_value_is_not_flagged() {
+        // `x.length` is a member access, which types as Unknown. A mismatch
+        // can't be proven, so nothing is flagged.
+        let src = "module x\nfn f(x: string) -> number { return x.length }\n";
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn return_in_unannotated_fn_is_not_flagged() {
+        // No return annotation (legal under D4) => expected Unknown => the
+        // check stays silent regardless of the value's type.
+        assert!(ty_errors_of("module x\nfn f() { return 5 }\n").is_empty());
+    }
+
+    #[test]
+    fn return_primitive_against_named_type_is_not_flagged() {
+        // Conservative boundary: a primitive value against a named return
+        // type is not (yet) judged — assignability over named types is a
+        // later day. This locks the documented scope so a future change is
+        // a deliberate one.
+        let src = "module x\ntype U = { x: number }\nfn f() -> U { return 5 }\n";
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn return_mismatch_uses_innermost_lambda_return_type() {
+        // The inner lambda returns `number` but yields `"x"` (string) — one
+        // mismatch. The outer fn returns `string` and yields `"y"` — fine.
+        let src = r#"module x
+fn outer() -> string {
+  let f = fn() -> number { return "x" }
+  return "y"
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::TypeMismatch { expected, found, .. }]
+                if expected == "number" && found == "string"
+        ), "errs: {errs:?}");
     }
 }

@@ -1894,3 +1894,91 @@ Day-13 ships the plumbing; the audit ships the polish.
 | **glyph-cli (integration)** | **7** | **+1**: diagnostics_include_source_context_via_ariadne |
 | glyph-emit, glyph-runtime | 1 each | unchanged |
 | **Total** | **169** | **All pass** (up from 165) |
+
+## Phase 1 week 2 day 14 status (shipped 2026-05-29)
+
+**Maranget exhaustiveness for tagged unions — the first real type-system
+enforcement.** `match` expressions over user-defined tagged unions now
+require every variant to be covered (or have a wildcard / `else` catch
+the rest). Day-14 scope: variant-set exhaustiveness with flat patterns;
+nested-payload patterns, prelude tagged unions (`Result`, `Option`),
+and array/object patterns defer. 177 workspace tests pass (up from 170).
+
+### Implemented this slice
+
+- **`TypeError::NonExhaustiveMatch { type_name, missing, span }`** in
+  glyph-typechecker. Stub `NotImplemented` variant removed (it served
+  no production purpose). `TypeError::span()` accessor mirrors
+  ResolveError's pattern. `Clone, PartialEq, Eq, thiserror::Error`
+  derives so the wrapper-by-PartialEq pattern works for downstream.
+- **`assign_types` / `assign_types_with_resolver` now return
+  `(TypeMap, Vec<TypeError>)`.** All callers updated: typechecker
+  unit tests + examples integration + glyph-db's `type_map` query.
+- **`check_match_exhaustiveness`** on `Assigner` resolves the
+  scrutinee's `Ty` to a `Decl::Type` with a `TypeExpr::Union` body and
+  walks the arms. Patterns recognized: `Constructor(...)` (single
+  segment), bare `Ident` matching a known variant, `Wildcard`, `Else`.
+  An `Ident` that doesn't match any variant is treated as a binding
+  (which matches anything — same effect as a wildcard). Patterns the
+  day-14 scope doesn't model (nested, object, array) are skipped
+  conservatively so we don't false-positive.
+- **Missing variants are listed in declaration order**, not arm-walk
+  order, so the diagnostic is reproducible across runs.
+- **`glyph-db`'s `Types` wrapper** gained an `errors: Vec<TypeError>`
+  field and an `errors()` accessor. `Types::new(tm, errs)` and
+  `Types::empty()` cover the construction paths.
+- **`glyph-cli`'s `render::render_type_error`** mirrors the existing
+  `render_parse_error` / `render_resolve_error` — single-stage tag
+  (`typecheck`), full ariadne report with source context.
+- **`build.rs`** now drains `type_map(file).errors()` into
+  `BuildReport.diagnostics`. The day-13 TODO comment about wiring
+  type errors is replaced by real code.
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| Exhaustive match passes | `exhaustive_match_on_tagged_union_passes` |
+| Missing variant flagged | `non_exhaustive_match_on_tagged_union_is_flagged` |
+| Wildcard arm covers rest | `wildcard_arm_makes_match_exhaustive` |
+| `else` arm covers rest | `else_arm_makes_match_exhaustive` |
+| Missing list in declaration order | `missing_variants_listed_in_declaration_order` |
+| Non-union scrutinee not checked | `non_tagged_union_scrutinee_is_not_checked` |
+| Real `glyph build` flags it | `build_flags_non_exhaustive_match_on_tagged_union` |
+
+Real-binary smoke test in the day-14 session: bogus `match` over
+`type Feed = | Loading | Loaded | Failed` with only two arms produced
+the multi-line ariadne report mentioning `Feed` and `Failed`.
+
+### Deferred (week 3 days 15+)
+
+- **Prelude tagged unions**: `Result<T, E>` and `Option<T>` exhaustiveness
+  needs scrutinee type inference (the bidirectional checker) plus a
+  way to enumerate prelude-defined variants. Today these silently
+  skip.
+- **Nested payload patterns**: `Ok(Some(x))` — the day-14 scope
+  recognizes only flat single-segment `Constructor` patterns. Nested
+  pattern recursion lands when the bidirectional checker reaches
+  match-arm payload typing.
+- **Array / object patterns**: D9 array patterns with rest elements,
+  D6-style destructure. Currently skipped (conservative).
+- **`is TypeName` runtime descriptor**: Q8 lands with the
+  runtime-descriptors emission day.
+
+### Test summary after week 2 day 14
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| **glyph-typechecker (lib)** | **33** | **+8**: 5 exhaustiveness happy/sad paths, 1 non-union-skip, plus 2 post-review (`is Variant` covers, typo-binding regression-lock) |
+| glyph-typechecker (examples) | 2 | unchanged |
+| glyph-db (lib) | 32 | unchanged |
+| glyph-cli (lib) | 5 | unchanged |
+| **glyph-cli (integration)** | **8** | **+1**: build_flags_non_exhaustive_match_on_tagged_union |
+| glyph-emit, glyph-runtime | 1 each | unchanged |
+| **Total** | **179** | **All pass** (up from 170) |

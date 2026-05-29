@@ -16,7 +16,7 @@ use glyph_db::{
     import_diagnostics, module_symbols, parse_module, resolve, type_map, CompilerDb, SourceFile,
 };
 
-use crate::render::{render_parse_error, render_resolve_error};
+use crate::render::{render_parse_error, render_resolve_error, render_type_error};
 
 /// Outcome of a build. Carries the rendered diagnostic strings so the
 /// binary can print them and the integration tests can assert on them.
@@ -176,16 +176,19 @@ pub fn build_project_inner(
             ));
         }
 
-        // type_map currently produces no diagnostics of its own — the
-        // bidirectional checker that surfaces type errors lands week 3.
-        // Drive the query anyway so its salsa cache warms.
-        //
-        // TODO(week-3): when `Types` gains an `errors()` accessor (or
-        // diagnostics start landing via a salsa accumulator), wire them
-        // into `report.diagnostics` here. Silently swallowing future
-        // type errors is a real risk — the wiring isn't automatic, and
-        // this TODO is the explicit reminder.
-        let _ = type_map(&db, *sf);
+        // Day-14: type_map.errors() carries non-exhaustive match
+        // diagnostics. Future week-3 days add `?` mismatches, owned
+        // single-consumption violations, and the bidirectional
+        // checker's type errors.
+        let types = type_map(&db, *sf);
+        for e in types.errors() {
+            report.diagnostics.push(render_type_error(
+                module_path,
+                &source,
+                e,
+                with_color,
+            ));
+        }
     }
 
     Ok(report)

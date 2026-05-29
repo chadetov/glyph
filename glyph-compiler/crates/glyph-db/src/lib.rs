@@ -66,7 +66,7 @@ use glyph_resolver::{
     StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types_with_resolver, DeclTyResolver, Lowerer, Ty, TypeMap,
+    assign_types_with_resolver, DeclTyResolver, Lowerer, Ty, TypeError, TypeMap,
 };
 
 // ============================================================================
@@ -440,17 +440,30 @@ pub struct Types {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct TypesInner {
     type_map: TypeMap,
+    errors: Vec<TypeError>,
 }
 
 impl Types {
-    pub fn new(type_map: TypeMap) -> Self {
+    pub fn new(type_map: TypeMap, errors: Vec<TypeError>) -> Self {
         Self {
-            inner: Arc::new(TypesInner { type_map }),
+            inner: Arc::new(TypesInner { type_map, errors }),
         }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(TypeMap::new(), Vec::new())
     }
 
     pub fn type_map(&self) -> &TypeMap {
         &self.inner.type_map
+    }
+
+    /// Typechecker diagnostics. Day 14 surfaces the first real entries
+    /// (non-exhaustive match on tagged unions). Future weeks add
+    /// bidirectional-check errors, `?` mismatches, `owned`
+    /// single-consumption violations, and so on.
+    pub fn errors(&self) -> &[TypeError] {
+        &self.inner.errors
     }
 }
 
@@ -1026,20 +1039,20 @@ pub fn resolve(db: &dyn Db, file: SourceFile) -> Resolved {
 pub fn type_map(db: &dyn Db, file: SourceFile) -> Types {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
-        return Types::new(TypeMap::new());
+        return Types::empty();
     };
     let resolved = resolve(db, file);
     let Some(resolved_module) = resolved.resolved() else {
-        return Types::new(TypeMap::new());
+        return Types::empty();
     };
     let decl_ty_resolver = SalsaDeclTy { db, file };
-    let tm = assign_types_with_resolver(
+    let (tm, ty_errs) = assign_types_with_resolver(
         module,
         resolved_module,
         db.prelude(),
         &decl_ty_resolver,
     );
-    Types::new(tm)
+    Types::new(tm, ty_errs)
 }
 
 /// `DeclTyResolver` impl that fetches per-decl types from the salsa-tracked

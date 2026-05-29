@@ -14,6 +14,7 @@ use ariadne::{Color, Config, IndexType, Label, Report, ReportKind, Source};
 use glyph_ast::Span;
 use glyph_parser::ParseError;
 use glyph_resolver::ResolveError;
+use glyph_typechecker::TypeError;
 
 /// Render a `ParseError` as an ariadne report. `path` is the
 /// source-id used by ariadne's cache; `source` is the file's text.
@@ -43,6 +44,21 @@ pub fn render_resolve_error(
     let message = format!("{err}");
     let stage = stage_label_for(err);
     build_report(path, source, span, stage, &message, with_color)
+}
+
+/// Render a `TypeError` (day-14: non-exhaustive match) as an ariadne
+/// report. Single-stage tag (`typecheck`) for now; future
+/// bidirectional-checker errors can refine the tag if it helps the
+/// reader.
+pub fn render_type_error(
+    path: &str,
+    source: &str,
+    err: &TypeError,
+    with_color: bool,
+) -> String {
+    let span = err.span();
+    let message = format!("{err}");
+    build_report(path, source, span, "typecheck", &message, with_color)
 }
 
 /// Map each `ResolveError` variant to a stage tag that appears in the

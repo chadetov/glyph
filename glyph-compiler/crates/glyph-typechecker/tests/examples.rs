@@ -37,7 +37,7 @@ fn run_pipeline(name: &str) -> (Module, TypeMap) {
     let prelude = build_prelude();
     let (resolved, errors) = resolve_module(&module, symbols, &prelude);
     assert!(errors.is_empty(), "{name}: resolve errors: {errors:?}");
-    let tm = assign_types(&module, &resolved, &prelude);
+    let (tm, _ty_errs) = assign_types(&module, &resolved, &prelude);
     (module, tm)
 }
 

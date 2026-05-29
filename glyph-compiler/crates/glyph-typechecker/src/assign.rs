@@ -13,17 +13,18 @@
 //! `Number`.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, JsxAttr, JsxChild, JsxElement, MatchArmBody, Module,
-    ObjectField, Param, Stmt, TemplatePart,
+    ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild, JsxElement, MatchArm, MatchArmBody,
+    Module, ObjectField, Param, Pattern, Stmt, TemplatePart, TypeExpr,
 };
-use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolKind};
+use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
 use crate::lower::Lowerer;
 use crate::ty::{Primitive, Ty};
 use crate::type_map::TypeMap;
+use crate::TypeError;
 
 /// Source of per-declaration `Ty` answers. The Assigner queries the resolver
 /// every time it needs the type of a `fn`/`component` reference; injecting
@@ -95,7 +96,14 @@ impl DeclTyResolver for LocalDeclTy<'_> {
 /// `LocalDeclTy` resolver. Direct-call entry point for callers without a
 /// salsa `Db`; `glyph-db`'s `type_map` query goes through
 /// `assign_types_with_resolver` instead.
-pub fn assign_types(module: &Module, resolved: &ResolvedModule, prelude: &Prelude) -> TypeMap {
+///
+/// Returns the `TypeMap` plus any `TypeError`s the walker collected (as
+/// of day 14: non-exhaustive `match` on tagged unions).
+pub fn assign_types(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+) -> (TypeMap, Vec<TypeError>) {
     let lowerer = Lowerer::new(resolved, prelude);
     let resolver = LocalDeclTy::new(module, &lowerer);
     assign_types_with_resolver(module, resolved, prelude, &resolver)
@@ -111,25 +119,34 @@ pub fn assign_types_with_resolver(
     resolved: &ResolvedModule,
     prelude: &Prelude,
     decl_ty_resolver: &dyn DeclTyResolver,
-) -> TypeMap {
+) -> (TypeMap, Vec<TypeError>) {
     let mut tm = TypeMap::new();
+    let mut errors: Vec<TypeError> = Vec::new();
     let mut assigner = Assigner {
+        module,
         lowerer: Lowerer::new(resolved, prelude),
         resolved,
         tm: &mut tm,
+        errors: &mut errors,
         decl_ty_resolver,
         local_tys: HashMap::new(),
     };
     for decl in &module.items {
         assigner.walk_decl(decl);
     }
-    tm
+    (tm, errors)
 }
 
 struct Assigner<'a> {
+    /// The parsed module — needed to chase `Ty::Named` symbols back to
+    /// their `TypeDecl` for the day-14 match-exhaustiveness check.
+    module: &'a Module,
     lowerer: Lowerer<'a>,
     resolved: &'a ResolvedModule,
     tm: &'a mut TypeMap,
+    /// Diagnostics collected during the walk. Day 14 ships the first
+    /// real consumer: non-exhaustive match on tagged unions.
+    errors: &'a mut Vec<TypeError>,
     /// Plug-in source of `Ty::Fn` answers for module-level fn/component
     /// references. Each call returns the lowered Ty for the given decl_idx;
     /// the Assigner doesn't keep a local `decl_ty` map any more.
@@ -287,6 +304,12 @@ impl Assigner<'_> {
             }
             Expr::Match { scrutinee, arms, span } => {
                 self.walk_expr(scrutinee);
+                // Day-14 exhaustiveness check: when the scrutinee's type
+                // resolves to a user-defined tagged union, verify the
+                // arms cover every variant. Walk the scrutinee FIRST so
+                // its type is in `tm`; then look it up.
+                let scrutinee_ty = self.tm.get(scrutinee.span()).clone();
+                self.check_match_exhaustiveness(&scrutinee_ty, arms, *span);
                 for arm in arms {
                     match &arm.body {
                         MatchArmBody::Expr(e) => self.walk_expr(e),
@@ -357,6 +380,138 @@ impl Assigner<'_> {
             ResolvedRef::Prelude(_) => Ty::Unknown,
         }
     }
+
+    // ----- day-14: match exhaustiveness for tagged unions -----
+
+    /// If the scrutinee resolves to a user-defined tagged union (a
+    /// `type X = | A | B | ...` decl), check that the arms cover every
+    /// variant. Day-14 scope:
+    /// - Only `Ty::Named` scrutinees pointing at a `Decl::Type` whose
+    ///   body is a `TypeExpr::Union`. Prelude tagged unions (`Result`,
+    ///   `Option`) and parameterized `Ty::App` aren't checked yet —
+    ///   they need scrutinee inference (week-3 bidirectional checker).
+    /// - Patterns recognized: `Variant(...)` (constructor, single- or
+    ///   multi-segment path — last segment is the variant name),
+    ///   bare `Variant` ident, `is TypeName` guard, `_` wildcard,
+    ///   `else` catch-all.
+    /// - Patterns NOT recognized (silently skipped): nested patterns,
+    ///   object destructure, array patterns, literal patterns. The
+    ///   bidirectional checker (week 3+) refines.
+    ///
+    /// **Known trade-off**: a `Pattern::Ident { name }` whose name
+    /// doesn't match a variant is treated as a binding (catch-all).
+    /// This means a typo like `Loadign` (vs `Loading`) silently passes
+    /// exhaustiveness AND catches every input at runtime as a binding.
+    /// Fixing this properly needs scrutinee-aware resolver
+    /// disambiguation — when an ident's name shadows a hoisted Variant
+    /// of the scrutinee's type, the resolver could warn or escalate to
+    /// an error per the Glyph 'stricter-than-TS' posture. Deferred to
+    /// week 3.
+    fn check_match_exhaustiveness(
+        &mut self,
+        scrutinee_ty: &Ty,
+        arms: &[MatchArm],
+        match_span: glyph_ast::Span,
+    ) {
+        // Resolve the scrutinee type to a named tagged-union type decl.
+        let Some((type_name, variants)) = self.named_union_variants(scrutinee_ty) else {
+            return;
+        };
+
+        // Walk the arms and classify each pattern.
+        let mut covered: HashSet<Ident> = HashSet::new();
+        let mut has_catch_all = false;
+        for arm in arms {
+            match &arm.pattern {
+                Pattern::Wildcard { .. } | Pattern::Else { .. } => {
+                    has_catch_all = true;
+                }
+                Pattern::Constructor { path, .. } if !path.is_empty() => {
+                    // Take the LAST segment as the variant name. Bare
+                    // `Loading` → ["Loading"] → "Loading". Qualified
+                    // `Feed.Loading` → ["Feed", "Loading"] → "Loading".
+                    // The single-vs-multi-segment distinction matters
+                    // only for cross-module variant references (e.g.,
+                    // `fs.ErrorKind.NotFound`), which are out of
+                    // current day-14 scope (no `Ty::Named` from a
+                    // module path yet), but using last-segment here
+                    // keeps the check correct if and when those land.
+                    covered.insert(path.last().unwrap().clone());
+                }
+                Pattern::Ident { name, .. } => {
+                    // See the function-level docstring for the
+                    // typo-vs-binding trade-off. If `name` matches a
+                    // known variant, cover it; otherwise treat as a
+                    // binding (universal match).
+                    if variants.iter().any(|v| v == name) {
+                        covered.insert(name.clone());
+                    } else {
+                        has_catch_all = true;
+                    }
+                }
+                Pattern::IsType { ty, .. } => {
+                    // `is TypeName` (D9) guard. The inner TypeExpr is
+                    // typically a `Path` — extract the last segment as
+                    // the variant name when possible.
+                    if let TypeExpr::Path { segments, .. } = ty {
+                        if let Some(name) = segments.last() {
+                            if variants.iter().any(|v| v == name) {
+                                covered.insert(name.clone());
+                                continue;
+                            }
+                        }
+                    }
+                    // Non-Path TypeExpr (e.g., `is fn(x) -> y`) or a
+                    // path that doesn't name a variant of this union —
+                    // conservative: skip without marking catch-all.
+                }
+                // Patterns the day-14 scope doesn't model. Conservative
+                // assumption: skip — don't flag false-positive missing
+                // variants. The bidirectional checker / week-3 work
+                // will refine this.
+                _ => {}
+            }
+        }
+
+        if has_catch_all {
+            return;
+        }
+
+        // Missing variants, in declaration order so the diagnostic is
+        // reproducible.
+        let missing: Vec<&Ident> = variants
+            .iter()
+            .filter(|v| !covered.contains(*v))
+            .collect();
+        if missing.is_empty() {
+            return;
+        }
+
+        let missing_str = missing
+            .iter()
+            .map(|n| format!("`{n}`"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        self.errors.push(TypeError::NonExhaustiveMatch {
+            type_name,
+            missing: missing_str,
+            span: match_span,
+        });
+    }
+
+    /// If `ty` is a `Ty::Named` pointing at a module-local
+    /// `type X = | A | B | ...` declaration, return the type's name
+    /// and the ordered list of variant names. Otherwise None.
+    fn named_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+        let Ty::Named { symbol, .. } = ty else { return None };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        let SymbolKind::Type { decl_idx } = sym.kind else { return None };
+        let decl = self.module.items.get(decl_idx as usize)?;
+        let Decl::Type(td) = decl else { return None };
+        let TypeExpr::Union { variants, .. } = &td.body else { return None };
+        let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
+        Some((td.name.to_string(), names))
+    }
 }
 
 #[cfg(test)]
@@ -370,7 +525,7 @@ mod tests {
         let prelude = build_prelude();
         let (resolved, errs) = resolve_module(&m, syms, &prelude);
         assert!(errs.is_empty(), "errs: {errs:?}");
-        let tm = assign_types(&m, &resolved, &prelude);
+        let (tm, _ty_errs) = assign_types(&m, &resolved, &prelude);
         (m, resolved, tm)
     }
 
@@ -538,5 +693,184 @@ fn main() {
 "#;
         let (m, _, tm) = type_map_of(src);
         assert!(matches!(tm.get(first_let_value_span(&m)), Ty::Fn { .. }));
+    }
+
+    /// Helper for day-14 exhaustiveness tests: run assign_types and
+    /// return the collected `TypeError`s.
+    fn ty_errors_of(src: &str) -> Vec<TypeError> {
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
+        ty_errs
+    }
+
+    #[test]
+    fn exhaustive_match_on_tagged_union_passes() {
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+    Failed => 3,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "exhaustive match should not error; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn non_exhaustive_match_on_tagged_union_is_flagged() {
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                assert_eq!(type_name, "Feed");
+                assert!(
+                    missing.contains("Failed"),
+                    "missing list should mention Failed; got: {missing}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn wildcard_arm_makes_match_exhaustive() {
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    _ => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "wildcard should cover; got: {errs:?}");
+    }
+
+    #[test]
+    fn else_arm_makes_match_exhaustive() {
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    else => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "else should cover; got: {errs:?}");
+    }
+
+    #[test]
+    fn missing_variants_listed_in_declaration_order() {
+        // Reproducibility: the diagnostic lists missing variants in the
+        // order they appear in the type declaration, not arm-walk order.
+        let src = r#"module x
+type Tri = | A | B | C
+fn x(t: Tri) -> number {
+  return match t {
+    B => 2,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        let TypeError::NonExhaustiveMatch { missing, .. } = &errs[0];
+        // `A` appears before `C` in the type decl, so the diagnostic
+        // mentions them in that order.
+        let a_pos = missing.find("A").expect("A in missing");
+        let c_pos = missing.find("C").expect("C in missing");
+        assert!(a_pos < c_pos, "missing should be in decl order: {missing}");
+    }
+
+    #[test]
+    fn is_type_arms_cover_variants() {
+        // Day-14 review fix #1: `is TypeName` guard patterns previously
+        // fell through to the wildcard arm, producing a false-positive
+        // non-exhaustive diagnostic on syntactically-valid exhaustive
+        // code. After the fix, `is Loading | is Loaded | is Failed`
+        // covers the same set as bare variant arms.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    is Loading => 1,
+    is Loaded => 2,
+    is Failed => 3,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "`is Variant` arms should cover; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn typo_ident_is_treated_as_binding_and_passes_exhaustiveness() {
+        // Day-14 review finding #2: a typo'd bare variant name
+        // (`Loadign` vs `Loading`) is treated as a binding, which acts
+        // as a catch-all. The typechecker silently accepts the match.
+        // This test LOCKS that behavior so a future change to the
+        // ident-vs-variant disambiguation rule is deliberate (it will
+        // need to update this test along with the trade-off doc).
+        //
+        // Fixing this properly requires scrutinee-aware resolver
+        // disambiguation — when an ident's name lexically matches a
+        // hoisted Variant of the scrutinee's type, the resolver could
+        // warn or error. Out of day-14 scope.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+    Loadign => 999,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "current behavior: typo'd ident binds and acts as catch-all; \
+             see the function-level docstring on `check_match_exhaustiveness`. \
+             got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn non_tagged_union_scrutinee_is_not_checked() {
+        // Number scrutinees aren't tagged unions; day-14 scope skips
+        // them. Verify no false-positive diagnostic.
+        let src = r#"module x
+fn main(n: number) -> number {
+  return match n {
+    0 => 1,
+    1 => 2,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "non-union scrutinee should not be flagged; got: {errs:?}");
     }
 }

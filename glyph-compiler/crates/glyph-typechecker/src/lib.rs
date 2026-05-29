@@ -35,15 +35,33 @@ pub use lower::{lower_type_expr, Lowerer};
 pub use ty::{FnParam, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant};
 pub use type_map::TypeMap;
 
-#[derive(Debug, thiserror::Error)]
+use glyph_ast::Span;
+
+/// Errors emitted by the typechecker. Day-14 surfaces the first real
+/// variant: `NonExhaustiveMatch`, emitted when a `match` over a
+/// tagged-union scrutinee fails to cover every variant (D9). Further
+/// variants land in later week-3 days as the bidirectional checker,
+/// `?` typing, and `owned` analysis ship.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum TypeError {
-    #[error("typechecker week 3 stub: full check not yet implemented")]
-    NotImplemented,
+    /// `match X { ... }` where some variants of X's tagged-union type
+    /// have no covering arm and no wildcard / `else` catches the rest.
+    /// `missing` is a comma-separated list of variant names in
+    /// declaration order (so the diagnostic is reproducible).
+    #[error("non-exhaustive match on `{type_name}`: missing variants {missing}")]
+    NonExhaustiveMatch {
+        type_name: String,
+        missing: String,
+        span: Span,
+    },
 }
 
-/// Entry-point stub. Real implementation lands Phase 1 week 3.
-pub fn typecheck_module() -> Result<(), TypeError> {
-    Err(TypeError::NotImplemented)
+impl TypeError {
+    pub fn span(&self) -> Span {
+        match self {
+            TypeError::NonExhaustiveMatch { span, .. } => *span,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -52,7 +70,6 @@ mod tests {
 
     #[test]
     fn type_module_compiles() {
-        assert!(typecheck_module().is_err());
         let _t: Ty = Ty::unknown();
     }
 }

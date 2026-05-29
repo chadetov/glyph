@@ -172,6 +172,40 @@ fn diagnostics_include_source_context_via_ariadne() {
 }
 
 #[test]
+fn build_flags_non_exhaustive_match_on_tagged_union() {
+    // Day-14 acceptance: typechecker diagnostics flow through
+    // type_map → BuildReport. A non-exhaustive match on a tagged union
+    // surfaces in `glyph build` output.
+    let root = unique_tmp("nonexhaustive");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         type Feed = | Loading | Loaded | Failed\n\
+         fn show(f: Feed) -> number {\n  \
+           return match f {\n    \
+             Loading => 1,\n    \
+             Loaded => 2,\n  \
+           }\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("Feed") && d.contains("Failed")),
+        "expected non-exhaustive match diagnostic mentioning Feed + Failed; got: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("typecheck")),
+        "expected `typecheck` stage tag; got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
 fn build_skips_hidden_and_target_directories() {
     let root = unique_tmp("skipped");
     let src = root.join("src");

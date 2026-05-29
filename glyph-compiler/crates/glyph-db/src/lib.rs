@@ -62,7 +62,7 @@ use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, verify_imports, ModuleGraph,
     ModuleSymbols, Prelude, ResolveError, ResolvedModule, StdlibStubs,
 };
-use glyph_typechecker::{assign_types, TypeMap};
+use glyph_typechecker::{assign_types, Lowerer, Ty, TypeMap};
 
 // ============================================================================
 // Update macro for wrapper newtypes
@@ -118,6 +118,12 @@ pub struct CompilerDb {
     storage: salsa::Storage<Self>,
     prelude: Arc<Prelude>,
     module_graph: Arc<dyn ModuleGraph + Send + Sync>,
+    /// Test-only event log shared by every clone of this db. The salsa
+    /// callback installed in `new()` pushes every `EventKind` into the
+    /// underlying `Arc<Mutex<Vec<EventKind>>>`, so tests can `drain_events()`
+    /// to assert on cache hits, re-execution, and so on.
+    #[cfg(test)]
+    events: tests::EventLog,
 }
 
 impl CompilerDb {
@@ -130,10 +136,23 @@ impl CompilerDb {
 
     /// Build a database with the given prelude and graph.
     pub fn new(prelude: Prelude, module_graph: Arc<dyn ModuleGraph + Send + Sync>) -> Self {
+        #[cfg(test)]
+        let events = tests::EventLog::default();
+        #[cfg(test)]
+        let storage = {
+            let events = events.clone();
+            salsa::Storage::new(Some(Box::new(move |ev: salsa::Event| {
+                events.record(ev.kind);
+            })))
+        };
+        #[cfg(not(test))]
+        let storage = salsa::Storage::default();
         Self {
-            storage: salsa::Storage::default(),
+            storage,
             prelude: Arc::new(prelude),
             module_graph,
+            #[cfg(test)]
+            events,
         }
     }
 }
@@ -373,6 +392,46 @@ impl Types {
 impl_wrapper_update!(Types);
 
 // ============================================================================
+// Stage 6 wrapper: DeclTy (per-declaration intermediate)
+// ============================================================================
+
+/// Lowered `Ty` for a single top-level declaration, keyed by `decl_idx` into
+/// the parsed module's `items` Vec. Per-declaration granularity is what makes
+/// "edit one fn body, don't recompute the others' types" cheap — when
+/// `decl_ty(file, k)`'s body re-runs but produces a structurally-equal Ty,
+/// salsa's Update returns false and downstream queries that depend on
+/// `decl_ty(file, k)` stay cached.
+///
+/// `Fn` and `Component` lower to a `Ty::Fn`. Other declarations are
+/// `Ty::Unknown` here — `type` and `const` decls have their type information
+/// fed in through different channels (the resolver carries the `type` body;
+/// `const`'s annotation is read directly in week 3's bidirectional checker).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclTy {
+    inner: Arc<DeclTyInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DeclTyInner {
+    ty: Ty,
+}
+
+impl DeclTy {
+    pub fn new(ty: Ty) -> Self {
+        Self {
+            inner: Arc::new(DeclTyInner { ty }),
+        }
+    }
+
+    /// Returns the lowered type. Cheap (one Arc deref).
+    pub fn ty(&self) -> &Ty {
+        &self.inner.ty
+    }
+}
+
+impl_wrapper_update!(DeclTy);
+
+// ============================================================================
 // Tracked queries
 // ============================================================================
 
@@ -447,14 +506,87 @@ pub fn type_map(db: &dyn Db, file: SourceFile) -> Types {
     Types::new(tm)
 }
 
+/// Lower the type of the `decl_idx`-th top-level declaration.
+///
+/// Per-decl granularity in salsa terms: any file edit invalidates
+/// `parse_module(file)` and `resolve(file)`, both of which this query
+/// depends on, so salsa re-executes `decl_ty(file, k)` for *every* `k`. The
+/// win is at the *output* level — when only fn bodies changed, each
+/// re-execution produces a structurally-equal `Ty`, the wrapper's
+/// `Update::maybe_update` returns false, and salsa backdates the
+/// `changed_at` revision so downstream consumers of `decl_ty(file, k)` for
+/// untouched decls observe "no change" and skip. True per-decl input
+/// granularity (re-executing only the touched `k`) would require slicing
+/// `parse_module`'s output into per-decl sub-queries; see week 2 day 7+.
+///
+/// `decl_idx` is the index into `module.items`. Out-of-range or
+/// non-callable decls return `DeclTy::new(Ty::Unknown)`.
+#[salsa::tracked]
+pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
+    let parsed = parse_module(db, file);
+    let Some(module) = parsed.module() else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let resolved = resolve(db, file);
+    let Some(resolved_module) = resolved.resolved() else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let lowerer = Lowerer::new(resolved_module, db.prelude());
+    let ty = module
+        .items
+        .get(decl_idx as usize)
+        .map(|d| lowerer.lower_decl_signature(d))
+        .unwrap_or(Ty::Unknown);
+    DeclTy::new(ty)
+}
+
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use glyph_ast::{Decl, Expr, Span, Stmt};
     use glyph_typechecker::{Primitive, Ty};
+    use std::sync::Mutex;
+
+    /// Test-only log of salsa event kinds. Cloning the wrapper shares the
+    /// underlying Vec so the callback inside `CompilerDb::new` can write
+    /// while the test reads.
+    #[derive(Default, Clone)]
+    pub struct EventLog {
+        inner: Arc<Mutex<Vec<salsa::EventKind>>>,
+    }
+
+    impl EventLog {
+        pub fn record(&self, kind: salsa::EventKind) {
+            self.inner.lock().unwrap().push(kind);
+        }
+
+        pub fn drain(&self) -> Vec<salsa::EventKind> {
+            std::mem::take(&mut *self.inner.lock().unwrap())
+        }
+    }
+
+    impl CompilerDb {
+        /// Drain and return all salsa events recorded since the last drain.
+        /// Test-only.
+        pub fn drain_events(&self) -> Vec<salsa::EventKind> {
+            self.events.drain()
+        }
+    }
 
     fn new_file(db: &CompilerDb, name: &str, text: &str) -> SourceFile {
         SourceFile::new(db, name.to_string(), text.to_string())
+    }
+
+    /// Count all `WillExecute` events in a salsa event log. salsa's
+    /// `DatabaseKeyIndex` Debug renders as numeric ingredient/value ids
+    /// (`IngredientIndex(N), Id(M)`), so we don't try to filter by query
+    /// name — the test instead drains events between phases and asserts a
+    /// zero-execution second phase.
+    fn count_will_execute(events: &[salsa::EventKind]) -> usize {
+        events
+            .iter()
+            .filter(|e| matches!(e, salsa::EventKind::WillExecute { .. }))
+            .count()
     }
 
     #[test]
@@ -634,5 +766,173 @@ mod tests {
         // File B's parsed AST should still be the same Arc — salsa didn't
         // recompute it just because file A changed.
         assert!(Arc::ptr_eq(&b_first.inner, &b_second.inner));
+    }
+
+    #[test]
+    fn decl_ty_returns_lowered_fn_signature() {
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "ok.glyph",
+            "module x\nfn add(a: number, b: number) -> number { return a + b }\n",
+        );
+        let d = decl_ty(&db, file, 0);
+        match d.ty() {
+            Ty::Fn {
+                params, return_ty, ..
+            } => {
+                assert_eq!(params.len(), 2);
+                assert!(matches!(params[0].ty, Ty::Prim(Primitive::Number)));
+                assert!(matches!(params[1].ty, Ty::Prim(Primitive::Number)));
+                assert!(matches!(&**return_ty, Ty::Prim(Primitive::Number)));
+            }
+            other => panic!("expected Ty::Fn, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn decl_ty_unknown_for_non_callable_decl() {
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "ok.glyph",
+            "module x\ntype User = { name: string }\n",
+        );
+        // Type decls don't produce a Fn-shaped DeclTy in this query.
+        let d = decl_ty(&db, file, 0);
+        assert!(matches!(d.ty(), Ty::Unknown));
+    }
+
+    #[test]
+    fn decl_ty_unknown_for_out_of_range_idx() {
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "ok.glyph", "module x\nfn one() {}\n");
+        let d = decl_ty(&db, file, 99);
+        assert!(matches!(d.ty(), Ty::Unknown));
+    }
+
+    #[test]
+    fn decl_ty_memoizes_per_decl_index_within_a_revision() {
+        // First-phase calls fill the cache; the second-phase repeat calls
+        // must execute zero queries — salsa returns the memoized DeclTy for
+        // each (file, decl_idx) key without re-running any body.
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "two.glyph",
+            "module x\nfn add(a: number, b: number) -> number { return a + b }\nfn ident(x: string) -> string { return x }\n",
+        );
+        // Discard any events produced by `SourceFile::new` itself so the
+        // phase-1 count reflects only the decl_ty fetches.
+        db.drain_events();
+        // Phase 1: prime the cache.
+        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, 1);
+        let primed = db.drain_events();
+        // The two decl_ty calls drag in parse_module, module_symbols, resolve,
+        // plus decl_ty(0) and decl_ty(1) themselves — at least 4 WillExecute
+        // events. `>= 4` lets the assertion absorb harmless additions (like
+        // a future intermediate query) without going so loose that a
+        // regression that silently skipped decl_ty would still pass.
+        assert!(
+            count_will_execute(&primed) >= 4,
+            "phase-1 should run parse_module + module_symbols + resolve + decl_ty(0) + decl_ty(1); events: {primed:?}"
+        );
+        // Phase 2: repeat calls in the same revision. Should be cache hits.
+        let _ = decl_ty(&db, file, 0);
+        let _ = decl_ty(&db, file, 1);
+        let _ = decl_ty(&db, file, 0);
+        let repeats = db.drain_events();
+        assert_eq!(
+            count_will_execute(&repeats),
+            0,
+            "repeat calls should hit the per-decl memo; events: {repeats:?}"
+        );
+    }
+
+    #[test]
+    fn editing_one_fn_body_keeps_other_fn_decl_ty_content_equal() {
+        // Day-6 acceptance: changing the body of fn #0 must produce a
+        // *content-equal* DeclTy for fn #1 across the edit, so downstream
+        // consumers that depend on decl_ty(file, 1) can be backdated by
+        // salsa and skip re-execution. Salsa's backdating compares values
+        // via Update::maybe_update — when our wrapper's PartialEq returns
+        // true, downstream queries observe "no change."
+        //
+        // Note: salsa does NOT preserve memo Arc identity across re-execution
+        // (see `function/backdate.rs`); it preserves the `changed_at`
+        // revision instead. So Arc::ptr_eq does NOT hold here. The honest
+        // verification is content equality plus the per-decl memo test
+        // above, which exercises the same plumbing.
+        let mut db = CompilerDb::with_default_stdlib();
+        let src_before = r#"module x
+fn add(a: number, b: number) -> number { return a + b }
+fn ident(x: string) -> string { return x }
+"#;
+        let file = new_file(&db, "two.glyph", src_before);
+        let add_before = decl_ty(&db, file, 0);
+        let ident_before = decl_ty(&db, file, 1);
+        let src_after = r#"module x
+fn add(a: number, b: number) -> number { return b + a }
+fn ident(x: string) -> string { return x }
+"#;
+        file.set_text(&mut db).to(src_after.to_string());
+        let add_after = decl_ty(&db, file, 0);
+        let ident_after = decl_ty(&db, file, 1);
+        assert_eq!(add_before.ty(), add_after.ty());
+        assert_eq!(ident_before.ty(), ident_after.ty());
+    }
+
+    #[test]
+    fn changing_fn_signature_changes_its_decl_ty_content() {
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "one.glyph",
+            "module x\nfn id(a: number) -> number { return a }\n",
+        );
+        let before = decl_ty(&db, file, 0);
+        // Change `a: number` to `a: string`.
+        file.set_text(&mut db).to(
+            "module x\nfn id(a: string) -> number { return a }\n".to_string(),
+        );
+        let after = decl_ty(&db, file, 0);
+        assert_ne!(before.ty(), after.ty(), "signature change should change DeclTy");
+        match after.ty() {
+            Ty::Fn {
+                params, return_ty, ..
+            } => {
+                assert_eq!(params.len(), 1);
+                assert!(matches!(params[0].ty, Ty::Prim(Primitive::String)));
+                assert!(matches!(&**return_ty, Ty::Prim(Primitive::Number)));
+            }
+            other => panic!("expected Ty::Fn, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn decl_ty_for_component_returns_fn_shape() {
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "comp.glyph",
+            "module x\ncomponent Btn(label: string) -> Component { return <button></button> }\n",
+        );
+        let d = decl_ty(&db, file, 0);
+        match d.ty() {
+            Ty::Fn { params, .. } => {
+                assert_eq!(params.len(), 1);
+                assert!(matches!(params[0].ty, Ty::Prim(Primitive::String)));
+            }
+            other => panic!("expected Ty::Fn, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn decl_ty_unknown_for_const_decl() {
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "ok.glyph", "module x\nconst PI = 3.14\n");
+        let d = decl_ty(&db, file, 0);
+        assert!(matches!(d.ty(), Ty::Unknown));
     }
 }

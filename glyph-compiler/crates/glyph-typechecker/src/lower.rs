@@ -10,7 +10,7 @@
 
 use std::sync::Arc;
 
-use glyph_ast::{Ident, TypeExpr};
+use glyph_ast::{Decl, Ident, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
 use crate::ty::{FnParam, ParamOwner, Primitive, RecordField, Ty, UnionVariant};
@@ -95,6 +95,46 @@ impl<'a> Lowerer<'a> {
                     })
                     .collect(),
             },
+        }
+    }
+
+    /// Lower a callable signature (`fn` or `component`) to a `Ty::Fn`. Used
+    /// from `assign.rs` for `Expr::Lambda` and from `lower_decl_signature`;
+    /// downstream crates should call `lower_decl_signature` rather than this
+    /// helper directly.
+    pub(crate) fn lower_callable_signature(
+        &self,
+        params: &[Param],
+        return_ty: Option<&TypeExpr>,
+        is_async: bool,
+    ) -> Ty {
+        let params = params
+            .iter()
+            .map(|p| FnParam {
+                name: Some(p.name.clone()),
+                ty: self.lower(&p.ty),
+            })
+            .collect();
+        let return_ty = return_ty
+            .map(|rt| self.lower(rt))
+            .unwrap_or(Ty::Prim(Primitive::Void));
+        Ty::Fn {
+            params,
+            return_ty: Arc::new(return_ty),
+            is_async,
+        }
+    }
+
+    /// Lower the signature of a top-level declaration. `Fn` and `Component`
+    /// produce a `Ty::Fn`; `Import`/`Type`/`Const` are `Ty::Unknown` here
+    /// (their type information is fed into expression-typing via different
+    /// paths during week 3's bidirectional checker). No wildcard arm — when
+    /// a new `Decl` variant lands the compiler must force a decision here.
+    pub fn lower_decl_signature(&self, decl: &Decl) -> Ty {
+        match decl {
+            Decl::Fn(f) => self.lower_callable_signature(&f.params, f.return_ty.as_ref(), f.is_async),
+            Decl::Component(c) => self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false),
+            Decl::Import(_) | Decl::Type(_) | Decl::Const(_) => Ty::Unknown,
         }
     }
 
@@ -225,6 +265,39 @@ type T = { f: Result<User, FeedError> }
             }
             other => panic!("expected Fn, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn lower_decl_signature_for_fn() {
+        let src = "module x\nfn add(a: number, b: number) -> number { return a + b }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty());
+        let ty = Lowerer::new(&resolved, &prelude).lower_decl_signature(&m.items[0]);
+        match ty {
+            Ty::Fn {
+                params, return_ty, ..
+            } => {
+                assert_eq!(params.len(), 2);
+                assert!(matches!(params[0].ty, Ty::Prim(Primitive::Number)));
+                assert!(matches!(params[1].ty, Ty::Prim(Primitive::Number)));
+                assert!(matches!(&*return_ty, Ty::Prim(Primitive::Number)));
+            }
+            other => panic!("expected Ty::Fn, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lower_decl_signature_for_type_is_unknown() {
+        let src = "module x\ntype User = { name: string }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _) = resolve_module(&m, syms, &prelude);
+        let ty = Lowerer::new(&resolved, &prelude).lower_decl_signature(&m.items[0]);
+        assert!(matches!(ty, Ty::Unknown));
     }
 
     #[test]

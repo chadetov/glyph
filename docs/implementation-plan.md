@@ -1305,3 +1305,91 @@ call triggers re-parsing.
 | **glyph-db (lib)** | **11** | **new**: parse/symbols/imports/resolve/type_map happy paths, downstream short-circuit on parse error, memoization (Arc::ptr_eq), invalidation observed by every downstream stage (parse + collect + type_map), cross-file isolation (touching file A doesn't invalidate file B), import-diagnostics empty-success path, concrete-Ty assertion for the `42` literal span |
 | glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
 | **Total** | **134** | **All pass** (up from 123) |
+
+## Phase 1 week 2 day 6 status (shipped 2026-05-29)
+
+**Per-declaration tracked intermediates land (I4 second half).** A new
+`#[salsa::tracked] fn decl_ty(db, file, decl_idx) -> DeclTy` query lowers
+the signature of one top-level declaration. The shared lowering moved
+from `Assigner` (a method) to `Lowerer` (free method) so the salsa
+query and `assign_types` use the same implementation. 140 workspace
+tests pass (up from 134).
+
+### Implemented this slice
+
+**glyph-typechecker** — `Lowerer` gained two new methods (`lower.rs`):
+
+- `lower_callable_signature(params, return_ty, is_async) -> Ty` —
+  builds a `Ty::Fn` from raw parts.
+- `lower_decl_signature(&Decl) -> Ty` — dispatches on
+  `Decl::{Fn, Component}` returning the signature `Ty`; other decls
+  return `Ty::Unknown`.
+
+`Assigner::decl_ty_for` (`assign.rs`) and `Expr::Lambda` lowering both
+call the new `Lowerer` methods. The inline `fn_decl_ty` / `fn_ty`
+helpers in `Assigner` were deleted.
+
+**glyph-db** additions:
+
+- `DeclTy { inner: Arc<DeclTyInner> }` wrapper newtype, same
+  `impl_wrapper_update!` pattern as the other five wrappers.
+- `decl_ty(db, file, decl_idx) -> DeclTy` salsa-tracked query.
+- Test-only `EventLog` helper threaded through `CompilerDb::new`. The
+  db now installs a salsa event callback when built with `#[cfg(test)]`;
+  tests call `db.drain_events()` to read recorded `EventKind`s.
+
+### Acceptance
+
+| Behavior | Test | Mechanism |
+|---|---|---|
+| `decl_ty` returns the expected `Ty::Fn` for a callable decl | `decl_ty_returns_lowered_fn_signature` | direct assertion |
+| Non-callable decls return `Ty::Unknown` | `decl_ty_unknown_for_non_callable_decl` | direct assertion |
+| Out-of-range `decl_idx` returns `Ty::Unknown` | `decl_ty_unknown_for_out_of_range_idx` | direct assertion |
+| Per-decl memoization within a revision | `decl_ty_memoizes_per_decl_index_within_a_revision` | salsa event-log: phase-2 repeat calls produce zero `WillExecute` events |
+| Editing one fn's body produces content-equal `DeclTy` for other fns | `editing_one_fn_body_keeps_other_fn_decl_ty_content_equal` | `assert_eq!(ty_before, ty_after)` (salsa backdates the revision, downstream consumers will see "no change") |
+| Editing one fn's signature DOES change its `DeclTy` | `changing_fn_signature_changes_its_decl_ty_content` | `assert_ne!` |
+
+### What the backdating gives us (and what it doesn't)
+
+`salsa::function::backdate::backdate_if_appropriate` works at the
+`changed_at` revision level — when a re-executed query produces a
+content-equal value, salsa "backdates" the revision counter so
+downstream queries see "input unchanged" and can be skipped. It does
+NOT preserve the memo's `Arc` identity (the new value replaces the
+old in storage, just with a backdated revision). So testing the
+backdating effect via `Arc::ptr_eq` doesn't work; testing via content
+equality + downstream-skipping does.
+
+Day-6 doesn't ship a salsa-tracked downstream consumer of `decl_ty`,
+so the skip-downstream benefit is theoretical until week 3's
+bidirectional checker (per-decl `typecheck_decl(file, decl_idx)`)
+lands. The infrastructure is in place; the win compounds once
+consumers exist.
+
+### Deferred to week 2 day 7+
+
+- **Per-decl `resolved_decl(file, decl_idx) -> Resolved`** — slicing
+  the resolution map by decl. Enables truly per-decl invalidation
+  without the salsa-internal "re-execute and backdate" round trip.
+- **Filesystem-backed module graph** (still deferred from day 5).
+- **Threading `Db` through `Assigner`** so `assign_types` calls the
+  cached `decl_ty(file, k)` instead of re-lowering inside its own
+  `decl_ty_cache`. The two paths produce identical results today; the
+  refactor only matters once the next slice of per-decl tracked queries
+  reads from the cache.
+
+### Test summary after week 2 day 6
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| glyph-resolver (lib) | 29 | unchanged |
+| glyph-resolver (examples) | 5 | unchanged |
+| **glyph-typechecker (lib)** | **25** | **+2** (post-review): lower_decl_signature_for_fn, lower_decl_signature_for_type_is_unknown |
+| glyph-typechecker (examples) | 2 | unchanged |
+| **glyph-db (lib)** | **19** | **+8**: decl_ty happy path (1), decl_ty Unknown for type (1), Unknown for const (1, post-review), out-of-range idx (1), per-decl memoization via event log (1), body-edit preserves other fns' content (1), signature edit changes content (1), Component returns Fn shape (1, post-review) |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **144** | **All pass** (up from 134) |

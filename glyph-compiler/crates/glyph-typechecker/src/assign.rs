@@ -13,16 +13,15 @@
 //! `Number`.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, FnDecl, JsxAttr, JsxChild, JsxElement, MatchArmBody, Module,
+    ArrayElem, Block, Decl, Expr, JsxAttr, JsxChild, JsxElement, MatchArmBody, Module,
     ObjectField, Param, Stmt, TemplatePart,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolKind};
 
 use crate::lower::Lowerer;
-use crate::ty::{FnParam, Primitive, Ty};
+use crate::ty::{Primitive, Ty};
 use crate::type_map::TypeMap;
 
 pub fn assign_types(module: &Module, resolved: &ResolvedModule, prelude: &Prelude) -> TypeMap {
@@ -47,7 +46,11 @@ struct Assigner<'a> {
     resolved: &'a ResolvedModule,
     tm: &'a mut TypeMap,
     /// Memoize the `Ty::Fn` lowered from a `fn` or `component` declaration so
-    /// every reference to the same name pays the lowering cost once.
+    /// every reference to the same name pays the lowering cost once *within
+    /// this `assign_types` invocation*. The salsa-tracked `glyph_db::decl_ty`
+    /// query is the cross-revision source of truth for the same value; this
+    /// HashMap stays for callers that don't have a `Db` handle. Week 2 day 7+
+    /// will thread `Db` through `assign_types` and remove this layer.
     decl_ty_cache: HashMap<u32, Ty>,
     /// Type of each locally-bound name, keyed by the def-site span start the
     /// resolver records in `ResolvedRef::Local`. Populated from typed function
@@ -208,7 +211,9 @@ impl Assigner<'_> {
             } => {
                 self.bind_param_tys(params);
                 self.walk_block(body);
-                let ty = self.fn_ty(params, return_ty.as_ref(), false);
+                let ty = self
+                    .lowerer
+                    .lower_callable_signature(params, return_ty.as_ref(), false);
                 self.tm.insert(*span, ty);
             }
             Expr::Jsx(j) => {
@@ -263,40 +268,14 @@ impl Assigner<'_> {
         if let Some(ty) = self.decl_ty_cache.get(&decl_idx) {
             return ty.clone();
         }
-        let ty = match self.module.items.get(decl_idx as usize) {
-            Some(Decl::Fn(f)) => self.fn_decl_ty(f),
-            Some(Decl::Component(c)) => self.fn_ty(&c.params, c.return_ty.as_ref(), false),
-            _ => Ty::Unknown,
-        };
+        let ty = self
+            .module
+            .items
+            .get(decl_idx as usize)
+            .map(|d| self.lowerer.lower_decl_signature(d))
+            .unwrap_or(Ty::Unknown);
         self.decl_ty_cache.insert(decl_idx, ty.clone());
         ty
-    }
-
-    fn fn_decl_ty(&self, f: &FnDecl) -> Ty {
-        self.fn_ty(&f.params, f.return_ty.as_ref(), f.is_async)
-    }
-
-    fn fn_ty(
-        &self,
-        params: &[Param],
-        return_ty: Option<&glyph_ast::TypeExpr>,
-        is_async: bool,
-    ) -> Ty {
-        let params = params
-            .iter()
-            .map(|p| FnParam {
-                name: Some(p.name.clone()),
-                ty: self.lowerer.lower(&p.ty),
-            })
-            .collect();
-        let return_ty = return_ty
-            .map(|rt| self.lowerer.lower(rt))
-            .unwrap_or(Ty::Prim(Primitive::Void));
-        Ty::Fn {
-            params,
-            return_ty: Arc::new(return_ty),
-            is_async,
-        }
     }
 }
 

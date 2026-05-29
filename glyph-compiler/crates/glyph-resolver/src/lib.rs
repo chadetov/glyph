@@ -24,12 +24,16 @@
 
 mod collect;
 mod error;
+mod module_graph;
 mod prelude;
 mod resolve;
 mod symbol;
 
 pub use collect::{collect_module_symbols, ModuleSymbols};
 pub use error::ResolveError;
+pub use module_graph::{
+    verify_imports, CompositeGraph, ModuleExports, ModuleGraph, StdlibStubs,
+};
 pub use prelude::{build_prelude, Prelude};
 pub use resolve::{resolve_module, ResolvedModule, ResolvedRef};
 pub use symbol::{PreludeKind, Symbol, SymbolId, SymbolKind, SymbolTable};

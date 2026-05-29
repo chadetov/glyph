@@ -21,6 +21,13 @@ pub enum ResolveError {
 
     #[error("unresolved module path `{path}`")]
     UnresolvedModule { path: String, span: Span },
+
+    #[error("`{name}` is not exported by `{module}`")]
+    UnknownExportedName {
+        name: String,
+        module: String,
+        span: Span,
+    },
 }
 
 impl ResolveError {
@@ -31,6 +38,7 @@ impl ResolveError {
             ResolveError::RelativeImport { span } => *span,
             ResolveError::UnresolvedName { span, .. } => *span,
             ResolveError::UnresolvedModule { span, .. } => *span,
+            ResolveError::UnknownExportedName { span, .. } => *span,
         }
     }
 }

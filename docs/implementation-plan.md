@@ -1130,3 +1130,77 @@ read multiple times in the body.
   change) or accept that K and V are not differentiable in `local_tys`.
 - **Match-arm payload typing**. Needs scrutinee→pattern type flow, which is
   bidirectional-checker territory.
+
+## Phase 1 week 2 day 4 status (shipped 2026-05-29)
+
+**Cross-module verification lands.** `import std/result { Ok }` now checks
+that `Ok` is an export of `std/result`. The day-4 slice covers the import
+side of the module graph; full module-graph traversal (parsing other Glyph
+files in a project and using their actual exports) waits for the salsa
+wiring (day 5+).
+
+### Implemented this slice
+
+**glyph-resolver** additions (`module_graph.rs`, ~270 LoC, 8 lib tests + 2
+integration tests):
+
+- `ModuleGraph` trait with `exports_of(path) -> Option<&ModuleExports>`.
+  Permissive default: `None` means "unknown module, skip verification" so
+  third-party packages (`react`) and project-local modules (`api/users`)
+  don't error until the Phase 5 package manifest lands.
+- `ModuleExports { names: BTreeSet<Ident> }` carries the export surface.
+- `StdlibStubs` hard-codes the export surface of the Q3 stdlib bootstrap
+  modules (`std/result`, `std/option`, `std/array`, `std/string`, `std/io`,
+  `std/json`, `std/fs`, `std/time`) plus `std/http` and `std/process`
+  (Q3 calls them v1.1 but the examples reference them; stubbing avoids a
+  day-4 special case). Names listed are the actual exports the examples
+  consume, not a speculative surface.
+- `CompositeGraph` composes two graphs with first-then-second fallthrough.
+  The example tests use this to combine stdlib stubs with a tiny
+  project-local graph for `react` and `api/users`.
+- `verify_imports(module, &dyn ModuleGraph) -> Vec<ResolveError>` walks
+  every `ImportDecl::Named` and emits `ResolveError::UnknownExportedName`
+  for any name the target module doesn't export. `Namespace` and `Aliased`
+  imports skip name checks — member resolution remains typechecker
+  territory.
+- `ResolveError::UnknownExportedName { name, module, span }` — new variant.
+
+### Acceptance
+
+| File | Named imports verified | Errors |
+|---|---|---|
+| `01_validator.glyph` | `std/result { Result, Ok, Err }` | 0 |
+| `02_async_errors.glyph` | `std/result { Result, Ok, Err }` | 0 |
+| `03_react_component.glyph` | `std/result { Result, Ok, Err }`, `react { use_state, use_effect, use_memo, Component }`, `std/time { debounce, Duration }`, `api/users { search_users, SearchError }` | 0 |
+| `04_cli_tool.glyph` | `std/result { Result, Ok, Err }` | 0 |
+
+Negative path covered: `cross_module_unknown_export_is_flagged` patches
+`02_async_errors.glyph` to import `Boom` from `std/result` and asserts the
+verifier flags it.
+
+### Deferred to week 2 day 5+
+
+- **Salsa wiring (I4)**. Per-file inputs, per-declaration intermediates.
+  Pipeline is still pure-function pipe-by-hand; wrap parse → collect →
+  verify → resolve → typemap as salsa-tracked queries.
+- **Filesystem-backed module graph**. The day-4 graph is in-memory stubs.
+  Once `glyph build` walks a directory, the graph builder parses each `.glyph`
+  file, collects its top-level symbols, and surfaces the export set
+  automatically. This also unlocks D15 barrel-file detection.
+- **Aliased named imports** (`import std/result { Ok as O }`). D15 doesn't
+  reserve syntax for it yet; revisit if dogfooding produces a strong case.
+
+### Test summary after week 2 day 4
+
+| Crate | Tests | Notes |
+|---|---|---|
+| glyph-lexer | 9 | unchanged |
+| glyph-ast | 1 | unchanged |
+| glyph-parser (lib) | 46 | unchanged |
+| glyph-parser (snapshots) | 6 | unchanged |
+| **glyph-resolver (lib)** | **29** | **+8**: module_graph (8 — known/unknown name in known module, namespace/aliased skip, unknown module silently passes, composite graph fall-through and surfacing, Q3 module seed) |
+| **glyph-resolver (examples)** | **5** | **+2**: examples_pass_cross_module_verification, cross_module_unknown_export_is_flagged |
+| glyph-typechecker (lib) | 23 | unchanged |
+| glyph-typechecker (examples) | 2 | unchanged |
+| glyph-emit, glyph-runtime, glyph-cli | 1 each | unchanged |
+| **Total** | **123** | **All pass** (up from 113) |

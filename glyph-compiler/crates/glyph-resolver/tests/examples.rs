@@ -21,7 +21,10 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::PathBuf;
 
-use glyph_resolver::{build_prelude, collect_module_symbols, resolve_module, ResolveError};
+use glyph_resolver::{
+    build_prelude, collect_module_symbols, resolve_module, verify_imports, CompositeGraph,
+    ResolveError, StdlibStubs,
+};
 
 fn example_source(name: &str) -> String {
     let path: PathBuf = [
@@ -44,6 +47,28 @@ fn run_pipeline(name: &str) -> Vec<ResolveError> {
     let prelude = build_prelude();
     let (_, errors) = resolve_module(&module, symbols, &prelude);
     errors
+}
+
+/// Project-local module graph for the example files. Carries entries for the
+/// third-party + project-local imports the four examples reference
+/// (`react`, `api/users`). Stdlib paths fall through to `StdlibStubs`.
+fn example_project_graph() -> StdlibStubs {
+    let mut g = StdlibStubs::empty();
+    g.add("react", &["use_state", "use_effect", "use_memo", "Component"]);
+    g.add("api/users", &["search_users", "SearchError"]);
+    g
+}
+
+fn run_import_verify(name: &str) -> Vec<ResolveError> {
+    let source = example_source(name);
+    let module = glyph_parser::parse(&source).expect("parse failed");
+    let stdlib = StdlibStubs::new();
+    let project = example_project_graph();
+    let composite = CompositeGraph {
+        first: &stdlib,
+        second: &project,
+    };
+    verify_imports(&module, &composite)
 }
 
 /// Unique unresolved names — collapses repeated references to the same name
@@ -96,6 +121,55 @@ fn example_02_imports_and_locals_resolve() {
     // (c) it's brought in by an import statement, or (d) it's a local
     // binding. Print the diff so day-2 work can target it.
     println!("02 unresolved (day-1 slice): {:?}", unresolved);
+}
+
+#[test]
+fn examples_pass_cross_module_verification() {
+    // Day-4 acceptance: every named-import in every example file must resolve
+    // to a real export of the target module. Stdlib stubs back `std/*`; a
+    // tiny project graph backs `react` and `api/users`.
+    for name in [
+        "01_validator.glyph",
+        "02_async_errors.glyph",
+        "03_react_component.glyph",
+        "04_cli_tool.glyph",
+    ] {
+        let errors = run_import_verify(name);
+        assert!(
+            errors.is_empty(),
+            "{name}: cross-module verification errors: {errors:?}"
+        );
+    }
+}
+
+#[test]
+fn cross_module_unknown_export_is_flagged() {
+    // Sanity check the negative path against an example source patched with a
+    // bogus import.
+    let mut source = example_source("02_async_errors.glyph");
+    let bad_line = "import std/result { Result, Ok, Boom }\n";
+    let original = "import std/result { Result, Ok, Err }\n";
+    // Exact-count guard: if the example ever grows a second matching line,
+    // a global `str::replace` would silently mutate both. `replacen(..., 1)`
+    // plus this assertion keeps the test honest.
+    assert_eq!(
+        source.matches(original).count(),
+        1,
+        "fixture drift: expected exactly one matching import line"
+    );
+    source = source.replacen(original, bad_line, 1);
+
+    let module = glyph_parser::parse(&source).expect("parse failed");
+    let stdlib = StdlibStubs::new();
+    let errors = verify_imports(&module, &stdlib);
+    assert!(
+        errors.iter().any(|e| matches!(
+            e,
+            ResolveError::UnknownExportedName { name, module, .. }
+                if name == "Boom" && module == "std/result"
+        )),
+        "expected UnknownExportedName(Boom, std/result), got: {errors:?}"
+    );
 }
 
 #[test]

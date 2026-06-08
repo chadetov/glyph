@@ -474,11 +474,23 @@ impl<'a> Emitter<'a> {
     /// bare-identifier arm (a no-payload variant) from a binding. Resolves a
     /// module-local `Ty::Named` to its `type X = | A | B` declaration; prelude
     /// unions and non-union (or unknown) types return None.
+    ///
+    /// This `Ty::Named` → `TypeDecl` → union chain is the third copy (after
+    /// `assign.rs::resolve_named_union` and `owned.rs`); a public helper in
+    /// `glyph-typechecker` that all three consume is a worthwhile cleanup.
     fn union_variant_names(&self, ty: &Ty) -> Option<Vec<String>> {
-        let Ty::Named { symbol, .. } = ty else {
+        let Ty::Named { symbol, path } = ty else {
             return None;
         };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        // Prelude and module symbol tables both number ids from 0, so a
+        // prelude `Ty::Named` (e.g. a bare `Option`) could index an unrelated
+        // module symbol here. Require the resolved symbol's name to match the
+        // type's path, which a genuine prelude id never will (the same
+        // collision `assign.rs::prelude_app` and `owned.rs` guard).
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return None;
+        }
         let decl_idx = match &sym.kind {
             SymbolKind::Type { decl_idx } => *decl_idx,
             _ => return None,

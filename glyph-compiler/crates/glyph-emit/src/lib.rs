@@ -29,8 +29,9 @@
 //!
 //! Glyph's lexer permits TS reserved words (`class`, `default`, `new`, ...) as
 //! soft-keyword identifiers, and this emitter copies a binding/parameter/import
-//! name verbatim, so such a name produces TS that `tsc` rejects. (Object keys,
-//! record fields, and member access are safe — only binding positions break.)
+//! name (and a tagged-union variant's constructor name) verbatim, so such a
+//! name produces TS that `tsc` rejects. (Object keys, record fields, and member
+//! access are safe — only binding positions break.)
 //! The right fix is a resolver-level "stricter-than-TS" rule that rejects TS
 //! reserved words as identifier names, not emit-time mangling (which would
 //! break import name matching). Tracked for a later day; no example trips it.
@@ -57,6 +58,25 @@ impl EmitError {
         }
     }
 }
+
+/// The discriminant field of an emitted tagged-union value. Single-sourced
+/// here because the forthcoming `match` → `switch` and `?` lowering must read
+/// the same field these constructors write.
+///
+/// ## ADT representation contract (read before writing match/`?` lowering)
+///
+/// A variant value is a flat object `{ tag: "Variant", ...payload }`:
+/// - **No payload** → `{ tag: "Variant" }` (emitted as an exported `const`).
+/// - **Record payload** `Variant({ a, b })` → `{ tag: "Variant", a, b }` — the
+///   record fields are spread flat. A `Variant({ a })` object-pattern reads
+///   `scrutinee.a`; a whole-payload bind `Variant(p)` must reconstruct the
+///   record from those flat fields.
+/// - **Non-record payload** `Variant(T)` → `{ tag: "Variant", value: <T> }`;
+///   a `Variant(x)` bind reads `scrutinee.value`.
+///
+/// A payload field named `tag` would collide with the discriminant and is
+/// rejected at emit (see `emit_union`).
+const TAG: &str = "tag";
 
 /// Emit a whole module to a TypeScript source string.
 pub fn emit_module(module: &Module) -> Result<String, EmitError> {
@@ -192,6 +212,19 @@ impl Emitter {
     /// A record payload's fields are spread alongside the tag; a no-payload
     /// variant becomes a `const`, a payload variant a constructor function.
     fn emit_union(&mut self, name: &str, variants: &[UnionVariant]) -> Result<(), EmitError> {
+        // A record-payload field named `tag` collides with the discriminant —
+        // it would both duplicate the `tag` type member and let the spread
+        // overwrite the tag at runtime. Reject it rather than emit broken TS.
+        for v in variants {
+            if let Some(TypeExpr::Record { fields, span }) = &v.payload {
+                if fields.iter().any(|f| f.name.as_ref() == TAG) {
+                    return Err(EmitError::Unsupported {
+                        construct: "a union payload field named `tag` (reserved as the discriminant)",
+                        span: *span,
+                    });
+                }
+            }
+        }
         self.line(&format!("export type {name} ="));
         self.indent += 1;
         for (i, v) in variants.iter().enumerate() {
@@ -210,7 +243,7 @@ impl Emitter {
     /// The object-type members of a variant: the `tag` literal, plus a record
     /// payload's fields spread inline, or a non-record payload under `value`.
     fn variant_members(&self, v: &UnionVariant) -> Result<String, EmitError> {
-        let mut s = format!("tag: \"{}\"", v.name);
+        let mut s = format!("{TAG}: \"{}\"", v.name);
         match &v.payload {
             None => {}
             Some(TypeExpr::Record { fields, .. }) => {
@@ -232,14 +265,16 @@ impl Emitter {
         let name = &v.name;
         match &v.payload {
             None => self.line(&format!(
-                "export const {name}: {union} = {{ tag: \"{name}\" }};"
+                "export const {name}: {union} = {{ {TAG}: \"{name}\" }};"
             )),
+            // Spread the fields FIRST so the discriminant always wins, even if
+            // the record (somehow) carried a colliding key.
             Some(payload @ TypeExpr::Record { .. }) => self.line(&format!(
-                "export function {name}(fields: {}): {union} {{ return {{ tag: \"{name}\", ...fields }}; }}",
+                "export function {name}(fields: {}): {union} {{ return {{ ...fields, {TAG}: \"{name}\" }}; }}",
                 self.ty(payload)?
             )),
             Some(other) => self.line(&format!(
-                "export function {name}(value: {}): {union} {{ return {{ tag: \"{name}\", value }}; }}",
+                "export function {name}(value: {}): {union} {{ return {{ {TAG}: \"{name}\", value }}; }}",
                 self.ty(other)?
             )),
         }
@@ -750,8 +785,19 @@ mod tests {
             "{ts}"
         );
         assert!(
-            ts.contains("export function Loaded(fields: { users: number }): SearchState { return { tag: \"Loaded\", ...fields }; }"),
+            ts.contains("export function Loaded(fields: { users: number }): SearchState { return { ...fields, tag: \"Loaded\" }; }"),
             "{ts}"
+        );
+    }
+
+    #[test]
+    fn payload_field_named_tag_is_rejected() {
+        let err = emit_err(
+            "module x\ntype T =\n  | V({ tag: string })\n  | W\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("tag")),
+            "got {err:?}"
         );
     }
 

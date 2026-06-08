@@ -10,6 +10,7 @@ Glyph is a TypeScript-family language designed so AI agents can read, write, and
 - `language/grammar-status.md` — production Rust parser status + the role of the archived tree-sitter grammar as a reference spec
 - `roadmap/overview.md` — the 12-step plan with the current state of each step (higher-level than `implementation-plan.md`'s daily granularity)
 - `open-questions.md` — historical record of brainstorm resolutions (sessions 1, 2, 3) plus the original question framings
+- `autonomous-loop.md` — the unattended build-cycle brief: how to drive the implement/review/fix/commit/push routine on a schedule (cloud Routines), with the current stop-condition milestone
 
 ## Per-step roadmap notes
 

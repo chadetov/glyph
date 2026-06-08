@@ -26,11 +26,15 @@
 //! so `return` keeps its function semantics; in value position (`let x = match`,
 //! nested) it is wrapped in an immediately-invoked arrow.
 //!
+//! The `?` operator unwraps a `Result` at statement position (`let x = E?`, or
+//! a bare `E?`): it binds the operand to a temporary, returns it on `Err`, and
+//! reads the `Ok` payload. `?` nested inside a larger expression is deferred
+//! (it needs hoisting).
+//!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
-//! than emitting invalid TS: bare-identifier variant arms and value (literal)
-//! matches (both need the scrutinee type), block arm bodies, nested/`is`/array
-//! match patterns, the
-//! `?` operator's inlined unwrapping, generic tagged unions, the Q8 runtime
+//! than emitting invalid TS: value (literal) matches, binding catch-all arms,
+//! block arm bodies, nested/`is`/array match patterns, a nested `?`, generic
+//! tagged unions, the Q8 runtime
 //! descriptors that accompany type declarations, `component` + D6 JSX
 //! directive lowering, and the two-binding `for K, V in`.
 //!
@@ -393,8 +397,20 @@ impl<'a> Emitter<'a> {
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
-                let value = self.expr(&l.value)?;
-                self.line(&format!("let {}{ty} = {value};", l.name));
+                // `let x = E?` unwraps a `Result`: propagate `Err`, bind the
+                // `Ok` payload.
+                if let Expr::Postfix {
+                    op: PostfixOp::Try,
+                    operand,
+                    ..
+                } = &l.value
+                {
+                    let r = self.emit_try_unwrap(operand)?;
+                    self.line(&format!("let {}{ty} = {r}.{PAYLOAD};", l.name));
+                } else {
+                    let value = self.expr(&l.value)?;
+                    self.line(&format!("let {}{ty} = {value};", l.name));
+                }
             }
             Stmt::Mut(m) => {
                 let s = match &m.kind {
@@ -462,12 +478,34 @@ impl<'a> Emitter<'a> {
                 // and `break`s out of the switch.
                 self.emit_match_dispatch(scrutinee, arms, ArmTerm::Break)?;
             }
+            Stmt::Expr(Expr::Postfix {
+                op: PostfixOp::Try,
+                operand,
+                ..
+            }) => {
+                // A bare `E?` statement: propagate `Err`, discard the `Ok` value.
+                self.emit_try_unwrap(operand)?;
+            }
             Stmt::Expr(e) => {
                 let s = self.expr(e)?;
                 self.line(&format!("{s};"));
             }
         }
         Ok(())
+    }
+
+    /// Emit the inlined unwrap of a `?` operand: bind the operand `Result` to a
+    /// fresh temporary, propagate an `Err` by returning it from the enclosing
+    /// function, and return the temporary's name so the caller can read its
+    /// `Ok` payload (`<tmp>.value`). The typechecker has already proven the
+    /// operand is a `Result` and the function returns a compatible `Result`.
+    fn emit_try_unwrap(&mut self, operand: &Expr) -> Result<String, EmitError> {
+        let op = self.expr(operand)?;
+        let r = format!("__r{}", self.tmp_counter);
+        self.tmp_counter += 1;
+        self.line(&format!("const {r} = {op};"));
+        self.line(&format!("if ({r}.{TAG} === \"Err\") {{ return {r}; }}"));
+        Ok(r)
     }
 
     /// The variant names of the tagged union `ty` refers to, used to tell a
@@ -1088,6 +1126,47 @@ mod tests {
             ts.contains("default: throw new Error(\"non-exhaustive match\");"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn try_operator_in_let_unwraps_and_propagates() {
+        let ts = emit(
+            "module x\nfn parse(n: number) -> Result<number, string> { return Ok(n) }\nfn load(n: number) -> Result<number, string> {\n  let x = parse(n)?\n  return Ok(x)\n}\n",
+        );
+        assert!(ts.contains("const __r0 = parse(n);"), "{ts}");
+        assert!(
+            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            "{ts}"
+        );
+        assert!(ts.contains("let x = __r0.value;"), "{ts}");
+    }
+
+    #[test]
+    fn try_operator_as_statement_propagates_only() {
+        let ts = emit(
+            "module x\nfn step() -> Result<number, string> { return Ok(0) }\nfn run() -> Result<number, string> {\n  step()?\n  return Ok(1)\n}\n",
+        );
+        assert!(ts.contains("const __r0 = step();"), "{ts}");
+        assert!(
+            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            "{ts}"
+        );
+        // No value binding for a bare `?` statement.
+        assert!(!ts.contains(".value"), "{ts}");
+    }
+
+    #[test]
+    fn nested_try_in_expression_is_unsupported_for_now() {
+        let err = emit_err(
+            "module x\nfn p() -> Result<number, string> { return Ok(0) }\nfn run() -> Result<number, string> {\n  return Ok(p()?)\n}\n",
+        );
+        assert!(matches!(
+            err,
+            EmitError::Unsupported {
+                construct: "the `?` operator",
+                ..
+            }
+        ));
     }
 
     #[test]

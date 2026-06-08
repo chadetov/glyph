@@ -2,18 +2,23 @@
 
 Status: **🟨 Substep 5a started.** Full critique of the original framing in `archive/glyph_step5_notes.md`. For day-by-day progress, see `docs/implementation-plan.md`.
 
-## Implementation status (as of day 14)
+## Implementation status (as of day 24)
 
-Substep 5a has begun. The salsa-tracked typechecker substrate (the `Q5 hybrid` architecture) is built and end-to-end through the CLI: parse → collect → resolve → assign types → render diagnostics → exit code. The first real semantic check landed on day 14:
+Substep 5a is well underway. The salsa-tracked typechecker substrate (the `Q5 hybrid` architecture) is built and end-to-end through the CLI: parse → collect → resolve → assign types → render diagnostics → exit code. Semantic checks landed across days 14–24 (day-by-day record in git history; `docs/implementation-plan.md` carries the narrative through day 14 and the day-24 D25 slice):
 
-- **Variant-set exhaustiveness for `match` over user-defined tagged unions.** `match f { Loading => 1, Loaded => 2 }` on `type Feed = | Loading | Loaded | Failed` produces a `non-exhaustive match on \`Feed\`: missing variants \`Failed\`` diagnostic with caret pointers across the match expression. Patterns recognized: bare variant ident, `Variant(...)` constructor (any path length), `is Variant` guard (D9), `_`, `else`. Conservatively skipped (deferred): literal/nested/object/array patterns; prelude unions (`Result`, `Option`) pending scrutinee inference.
+- **Match exhaustiveness** for user-defined tagged unions (day 14) and prelude `Result`/`Option` (day 19). Patterns recognized: bare variant ident, `Variant(...)` constructor (any path length), `is Variant` guard (D9), `_`, `else`. Conservatively skipped (deferred): literal/nested/object/array patterns.
+- **`?` operator rule** (day 15) — `expr?` is rejected outside a function that returns `Result` (`QuestionOutsideResultFn`). The operand-side `E`-match check awaits fuller bidirectional inference.
+- **Call-expression + `await` synthesis** (day 16) — a call's type comes from the callee's signature; `await e` synthesizes `e`'s type (no user-visible `Promise<T>`).
+- **Match-arm payload typing** (days 17–18) — `Ok(v) => v` types `v`; object-pattern fields `Variant({ field })` typed from the variant payload.
+- **Generic instantiation at call sites** (day 20) — `fn id<T>(x: T) -> T` called with a `number` types as `number`.
+- **Return-type mismatch** (day 21) — a `return` of a concrete primitive that differs from the declared primitive return type is flagged (`TypeMismatch`); deliberately narrow so it never fires on a type it can't judge.
+- **`owned` single-consumption** (D25, day 24) — done. A `let owned h: ResourceType` handle must be consumed exactly once on every path; a consume is a *move* into an `owned` parameter (Model A). Emits `OwnedNotConsumed` (forget / return-while-live), `OwnedUsedAfterMove` (double-consume / use-after-move), and `OwnedRequiresResourceType`. v1 scope: free-function consumers, match + return branching; `?`/loop/method consumes and lambda capture deferred to dogfooding. Manifesto carve-out.
 
 What substep 5a still needs:
 
-- **Bidirectional checker** — typed scrutinees (especially `Result<T, E>` and `Option<T>` prelude unions), match-arm payload binding (so `Ok(v) => v` types `v` as `T`).
-- **`?` operator typing rule** — `expr?` requires `expr: Result<T, E>` and the enclosing function returns `Result<_, E>` with `E` matching exactly. No `From` conversion in v1 (per Q5 plan).
-- **`owned` single-consumption** (D25) — single-path analysis across function bodies. Manifesto carve-out.
-- **Runtime descriptors** (Q8) — every `type`/`record` declaration emits a runtime descriptor for `is TypeName` checks. Non-negotiable per Q8 resolution.
+- **Fuller bidirectional checker** — the operand-side `?` `E`-match, broader assignability beyond primitives, and a real unifier (generic instantiation today is call-site substitution, not full unification).
+- **Runtime descriptors** (Q8) — every `type`/`record` declaration emits a runtime descriptor for `is TypeName` checks. Non-negotiable per Q8 resolution. Still pending; it is the next major week-3 item after D25.
+- **Nested-pattern exhaustiveness** — `Ok(Some(x))` and array/object patterns.
 
 Substep 5c (narrowing + flow analysis) and substep 5b (deferred to v1.1 per Q1) come after 5a.
 

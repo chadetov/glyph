@@ -526,7 +526,7 @@ Decisions deliberately deferred to the coding session that hits them. Each has a
 
 | # | Decision | Default | Triggered in |
 |---|---|---|---|
-| I1 | `resource` keyword vs `@resource` annotation for D25 marker | `resource` keyword (consistent with `record`, `component`) | Phase 1 week 3 |
+| I1 | `resource` keyword vs `@resource` annotation for D25 marker | **Resolved (day 24): `resource` keyword** (consistent with `record`, `component`). Consume model also resolved: a move into an `owned` parameter (Model A), not a type-declared disposer method. See spec D25 and the day-24 status section. | Phase 1 week 3 |
 | I2 | `@example` with multiple expressions vs single `==` per line | Single `==` per line (D23 as written) | Phase 1 week 6 |
 | I3 | `glyph regen` generator adapter interface | Synchronous trait with three methods: `name()`, `generate(spec) -> Result<String, Err>`, `cost_estimate(spec)` | Phase 1 week 5 |
 | I4 | Salsa query granularity (per-file vs per-declaration) | Per-file inputs, per-declaration intermediates | Phase 1 week 2 |
@@ -1982,3 +1982,82 @@ the multi-line ariadne report mentioning `Feed` and `Failed`.
 | **glyph-cli (integration)** | **8** | **+1**: build_flags_non_exhaustive_match_on_tagged_union |
 | glyph-emit, glyph-runtime | 1 each | unchanged |
 | **Total** | **179** | **All pass** (up from 170) |
+
+## Phase 1 week 3 days 15–21 (recorded in git history)
+
+Days 15–21 continued substep 5a without per-day status sections in this
+file; the commit history at https://github.com/chadetov/glyph is the
+day-by-day record, and `docs/roadmap/05-typechecker.md` carries the
+consolidated narrative. In commit order: reject the `?` operator outside a
+`Result`-returning function; synthesize call-expression (and `await`) types
+from the callee signature; type match-arm payload bindings and
+object-pattern payload fields from the matched variant; check exhaustiveness
+for prelude `Result`/`Option` matches; instantiate generic type parameters
+at call sites; reject `return` statements with a mismatched primitive type.
+
+## Phase 1 week 3 day 24 — D25 `owned` single-consumption (shipped 2026-05-30)
+
+**The manifesto carve-out lands.** A `let owned h: ResourceType` handle is
+now tracked for single-consumption across every path, with a consume defined
+as a *move* into an `owned` parameter (Model A). Three commits; 237 workspace
+tests pass (up from the day-14 baseline of 179, spanning days 15–24).
+
+### The consume-model decision (resolving I1)
+
+The spec fixed the three D25 errors (forget / double-consume /
+return-without) but left two things open: the resource marker (I1: keyword
+vs annotation) and what counts as a *consume*. Both were resolved this slice
+after a pillar analysis (the manifesto's four pillars, wedge = verifiability
++ greppability):
+
+- **Marker → `resource` keyword** (`resource type X = ...`), consistent with
+  `record`/`component`.
+- **Consume → move into an `owned` parameter** (Model A), chosen over a
+  type-declared disposer method (Model B). Model A wins both wedge pillars:
+  it reuses the `owned` keyword so `grep -n "owned"` audits the entire
+  ownership surface (creation *and* consumption, paralleling D5's `grep
+  "mut"`), and it gives the more general, composable single-consumption
+  proof. Its one cost — a cold human reader must learn the one-sentence move
+  rule — is exactly the cost Glyph's agent-first readership, LSP hover, and
+  Elm-quality errors are built to absorb. Recorded in spec D25.
+
+### Implemented this slice
+
+- **`resource` marker** — `TypeDecl.is_resource`; `resource type X = ...`
+  parses (the keyword is legal only before `type`).
+- **`owned` parameters** — `Param.owned` + `FnParam.owned`, threaded through
+  lowering into `Ty::Fn` so call sites see which arguments are taken by
+  ownership. Lambda and function-type params borrow in v1.
+- **`glyph-typechecker/src/owned.rs`** — a second pass after type assignment
+  (it reads call-site callee `Ty::Fn` for per-parameter `owned` flags). It
+  tracks each handle's per-path `Live`/`Moved` state across straight-line
+  code, `match` arms (merged: consumed only if every falling arm consumes),
+  and `return` (every live handle leaks past a return). Emits
+  `OwnedNotConsumed`, `OwnedUsedAfterMove`, `OwnedRequiresResourceType`.
+  Renders through the existing ariadne `render_type_error` path; `glyph-db`
+  drains the errors automatically.
+
+### Acceptance
+
+| Behavior | Test |
+|---|---|
+| Consumed exactly once passes | `owned::tests::consumed_exactly_once_passes` |
+| Forgotten handle flagged | `forgotten_handle_is_flagged` |
+| Double-consume flagged | `double_consume_is_flagged` |
+| Use after move flagged | `use_after_move_is_flagged` |
+| Borrow (non-`owned` param) then consume passes | `borrow_then_consume_passes` |
+| `owned` on non-resource type flagged | `owned_on_non_resource_type_is_flagged` |
+| Consume in every match arm passes | `consume_in_every_match_arm_passes` |
+| Consume in only one arm leaks on the other | `consume_in_only_one_arm_leaks_on_the_other` |
+| Early return without consume flagged | `early_return_without_consume_is_flagged` |
+| Inference from producer return type tracks | `no_annotation_with_resource_value_is_tracked` |
+| Real `glyph build` renders the diagnostic | interactive smoke (caret under `let owned`) |
+
+### Deferred (dogfooding / later week 3)
+
+- **Method and namespaced consumes** (`h.close()`, `fs.close(h)`) need
+  member-access type synthesis or stdlib signatures; v1 sees only
+  free-function consumers.
+- **`?` as a consumption checkpoint**, **cross-iteration loop double-consume**,
+  and **lambda/JSX capture** are all conservative no-ops for v1.
+- **Runtime descriptors (Q8)** is the next major week-3 item.

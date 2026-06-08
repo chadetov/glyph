@@ -41,6 +41,15 @@ fn parse_await(p: &mut Cursor) -> Result<Expr, ParseError> {
         // inner expression first (yielding `await (x?)`). Rotate it back out so
         // the parse tree matches the precedence table: a trailing `?` on the
         // operand becomes a `?` on the whole `await`.
+        //
+        // Limitation: Glyph parentheses are not represented in the AST, so an
+        // explicitly-grouped `await (x?)` is indistinguishable from `await x?`
+        // and gets the same rotation. There is no way to express "unwrap, then
+        // await" (await of a try). This is unreachable in well-typed code: it
+        // would need a `Result<Promise<T>, E>`, but Glyph has no user-visible
+        // bare `Promise<T>` (`await` synthesizes the type; async returns a
+        // `Result`). Representing parens would fix it but is not worth the
+        // parser-wide churn for an unconstructable case.
         if let Expr::Postfix {
             op: PostfixOp::Try,
             operand,

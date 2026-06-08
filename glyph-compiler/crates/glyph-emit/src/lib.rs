@@ -19,15 +19,17 @@
 //! field plus a constructor per variant (a `const` for a no-payload variant,
 //! a function for a payload variant; record payloads spread their fields).
 //!
-//! A statement-position `match` (a `return match` or a bare `match` statement)
-//! over a tagged union lowers to a `switch` on the `tag` discriminant, with
-//! constructor-pattern arms (`Ok(x)`, `NetworkError({ url })`) binding the
-//! payload and `_`/`else` becoming `default`.
+//! A `match` over a tagged union lowers to a `switch` on the `tag`
+//! discriminant, with constructor-pattern arms (`Ok(x)`, `NetworkError({ url })`)
+//! binding the payload and `_`/`else` becoming `default`. In statement position
+//! (`return match`, or a bare `match` statement) the switch is emitted directly
+//! so `return` keeps its function semantics; in value position (`let x = match`,
+//! nested) it is wrapped in an immediately-invoked arrow.
 //!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
-//! than emitting invalid TS: `match` in value position (it needs an IIFE),
-//! bare-identifier variant arms and value (literal) matches (both need the
-//! scrutinee type), block arm bodies, nested/`is`/array match patterns, the
+//! than emitting invalid TS: bare-identifier variant arms and value (literal)
+//! matches (both need the scrutinee type), block arm bodies, nested/`is`/array
+//! match patterns, the
 //! `?` operator's inlined unwrapping, generic tagged unions, the Q8 runtime
 //! descriptors that accompany type declarations, `component` + D6 JSX
 //! directive lowering, and the two-binding `for K, V in`.
@@ -700,11 +702,21 @@ impl Emitter {
                 sub.emit_block(body)?;
                 format!("({params}){ret} => {}", sub.out)
             }
-            Expr::Match { span, .. } => {
-                return Err(EmitError::Unsupported {
-                    construct: "`match` expression",
-                    span: *span,
-                })
+            // A value-position `match` (`let x = match ...`, or nested in an
+            // expression) wraps the same statement lowering in an
+            // immediately-invoked arrow. Each arm `return`s from the arrow, so
+            // the IIFE evaluates to the matched value. (Expression arm bodies
+            // cannot contain a function-level `return`, so capturing it in the
+            // arrow is sound.)
+            Expr::Match { scrutinee, arms, .. } => {
+                let mut sub = Emitter {
+                    out: String::new(),
+                    indent: self.indent + 1,
+                    tmp_counter: self.tmp_counter,
+                };
+                sub.emit_match_dispatch(scrutinee, arms, ArmTerm::Return)?;
+                let pad = "  ".repeat(self.indent);
+                format!("(() => {{\n{}{pad}}})()", sub.out)
             }
             Expr::Jsx(j) => {
                 return Err(EmitError::Unsupported {
@@ -959,6 +971,17 @@ mod tests {
         assert!(ts.contains("const value = __m0.value;"), "{ts}");
         assert!(ts.contains("return value;"), "{ts}");
         assert!(ts.contains("case \"Err\": {"), "{ts}");
+    }
+
+    #[test]
+    fn value_position_match_wraps_in_an_iife() {
+        let ts = emit(
+            "module x\nfn f(r: Result<number, string>) -> string {\n  let label = match r {\n    Ok(n) => \"ok\",\n    Err(e) => \"err\",\n  }\n  return label\n}\n",
+        );
+        assert!(ts.contains("let label = (() => {"), "{ts}");
+        assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
+        assert!(ts.contains("return \"ok\";"), "{ts}");
+        assert!(ts.contains("})();"), "{ts}");
     }
 
     #[test]

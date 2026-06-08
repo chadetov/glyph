@@ -2,7 +2,7 @@
 
 Status: **🟨 Substep 5a started.** Full critique of the original framing in `archive/glyph_step5_notes.md`. For day-by-day progress, see `docs/implementation-plan.md`.
 
-## Implementation status (as of day 25)
+## Implementation status (as of day 26)
 
 Substep 5a is well underway. The salsa-tracked typechecker substrate (the `Q5 hybrid` architecture) is built and end-to-end through the CLI: parse → collect → resolve → assign types → render diagnostics → exit code. Semantic checks landed across days 14–24 (day-by-day record in git history; `docs/implementation-plan.md` carries the narrative through day 14 and the day-24 D25 slice):
 
@@ -14,12 +14,12 @@ Substep 5a is well underway. The salsa-tracked typechecker substrate (the `Q5 hy
 - **Return-type mismatch** (day 21) — a `return` of a concrete primitive that differs from the declared primitive return type is flagged (`TypeMismatch`); deliberately narrow so it never fires on a type it can't judge.
 - **`owned` single-consumption** (D25, day 24) — done. A `let owned h: ResourceType` handle must be consumed exactly once on every path; a consume is a *move* into an `owned` parameter (Model A). Emits `OwnedNotConsumed` (forget / return-while-live), `OwnedUsedAfterMove` (double-consume / use-after-move), and `OwnedRequiresResourceType`. v1 scope: free-function consumers, match + return branching; `?`/loop/method consumes and lambda capture deferred to dogfooding. Manifesto carve-out.
 - **Nested-pattern exhaustiveness** (day 25) — done for constructor nesting. A variant reached only through a single payload sub-pattern has that payload checked recursively, so `match r { Ok(Some(x)) => .., Err(e) => .. }` over `Result<Option<T>, E>` now flags the missing `Ok(None)`. Arbitrary depth; works for module-local unions and prelude `Result`/`Option`. Object/array/literal nested payloads and generic module-local unions applied through `Ty::App` are conservatively treated as fully covered (no false positives).
+- **Array-match exhaustiveness** (day 26) — done. A `match` over an array scrutinee (`App(Array, [T])`) must cover every length: `[]` covers the empty array, `[a, b]` exactly length two, `[a, ...rest]` every length ≥ its fixed prefix. Coverage is credited only for irrefutable elements, so the `04_cli_tool` idiom (literal-first arms plus a trailing `[other, ..._]` and `[]`) is exact with no false positive. Emits `NonExhaustiveArrayMatch` naming the smallest uncovered length. Object patterns over a record are single-shape, so they need no separate exhaustiveness check.
 
 What substep 5a still needs:
 
-- **Fuller bidirectional checker** — the operand-side `?` `E`-match, broader assignability beyond primitives, and a real unifier (generic instantiation today is call-site substitution, not full unification).
+- **Fuller bidirectional checker** — the operand-side `?` `E`-match, broader assignability beyond primitives, and a real unifier (generic instantiation today is call-site substitution, not full unification). The unifier also unblocks exhaustiveness for generic module-local unions applied through `Ty::App`, which are skipped today.
 - **Runtime descriptors** (Q8) — every `type`/`record` declaration emits a runtime descriptor for `is TypeName` checks. Non-negotiable per Q8 resolution. Still pending; it is the next major item, and it is coupled to week-4 TS emission (the emitter is still a Phase-0 stub).
-- **Array/object pattern exhaustiveness** — the remaining pattern shapes beyond constructor nesting.
 
 Substep 5c (narrowing + flow analysis) and substep 5b (deferred to v1.1 per Q1) come after 5a.
 

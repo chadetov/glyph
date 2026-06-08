@@ -34,9 +34,14 @@
 //! (it needs hoisting); `let x = await E?` is one such case (it parses with the
 //! `?` under the `await`) and is not yet unwrapped.
 //!
+//! A block-body match arm (`Variant => { stmts }`) emits its statements into
+//! the case; it is supported in statement position (where a block `return`
+//! returns from the function) but rejected in value position (an IIFE arrow
+//! would capture the return).
+//!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
 //! than emitting invalid TS: binding catch-all arms,
-//! block arm bodies, nested/`is`/array match patterns, a nested `?`, generic
+//! value-position block arms, nested/`is`/array match patterns, a nested `?`, generic
 //! tagged unions, the Q8 runtime
 //! descriptors that accompany type declarations, `component` + D6 JSX
 //! directive lowering, and the two-binding `for K, V in`.
@@ -618,12 +623,6 @@ impl<'a> Emitter<'a> {
                     })
                 }
             }
-            if let MatchArmBody::Block(b) = &arm.body {
-                return Err(EmitError::Unsupported {
-                    construct: "a block body in a match arm",
-                    span: b.span,
-                });
-            }
         }
 
         // Two catch-all arms would emit two `default:` clauses (invalid TS).
@@ -758,15 +757,37 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_arm_body(&mut self, body: &MatchArmBody, term: ArmTerm) -> Result<(), EmitError> {
-        let MatchArmBody::Expr(e) = body else {
-            unreachable!("block bodies were rejected above")
-        };
-        let s = self.expr(e)?;
-        match term {
-            ArmTerm::Return => self.line(&format!("return {s};")),
-            ArmTerm::Break => {
-                self.line(&format!("{s};"));
-                self.line("break;");
+        match body {
+            MatchArmBody::Expr(e) => {
+                let s = self.expr(e)?;
+                match term {
+                    ArmTerm::Return => self.line(&format!("return {s};")),
+                    ArmTerm::Break => {
+                        self.line(&format!("{s};"));
+                        self.line("break;");
+                    }
+                }
+            }
+            // A block arm emits its statements directly into the case. A block
+            // in a `return match` is expected to `return` (the typechecker
+            // requires the arm to yield the match value); a statement-position
+            // block runs for effect, so `break` out of the switch afterward.
+            // Block arms are rejected in value position (the IIFE) by the
+            // caller, since a block `return` there means function-return.
+            MatchArmBody::Block(b) => {
+                for stmt in &b.stmts {
+                    self.emit_stmt(stmt)?;
+                }
+                // Add a `break` only when the block can fall off its end — a
+                // block already ending in `return`/`break`/`continue` needs
+                // none (and a dead `break` after it reads as a mistake).
+                let diverges = matches!(
+                    b.stmts.last(),
+                    Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_))
+                );
+                if matches!(term, ArmTerm::Break) && !diverges {
+                    self.line("break;");
+                }
             }
         }
         Ok(())
@@ -891,6 +912,18 @@ impl<'a> Emitter<'a> {
             // cannot contain a function-level `return`, so capturing it in the
             // arrow is sound.)
             Expr::Match { scrutinee, arms, .. } => {
+                // A block arm's `return` means function-return; inside the IIFE
+                // arrow it would return from the arrow instead, so value-position
+                // block arms are rejected.
+                if let Some(b) = arms.iter().find_map(|a| match &a.body {
+                    MatchArmBody::Block(b) => Some(b),
+                    _ => None,
+                }) {
+                    return Err(EmitError::Unsupported {
+                        construct: "a block body in a value-position match arm",
+                        span: b.span,
+                    });
+                }
                 let mut sub = self.sub(self.indent + 1);
                 sub.emit_match_dispatch(scrutinee, arms, ArmTerm::Return)?;
                 let pad = "  ".repeat(self.indent);
@@ -1319,14 +1352,35 @@ mod tests {
     }
 
     #[test]
-    fn block_arm_body_match_is_unsupported_for_now() {
+    fn statement_block_arm_emits_block_statements() {
+        let ts = emit(
+            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  match e {\n    A => {\n      let x = 1\n      return x\n    },\n    B => {\n      return 2\n    },\n  }\n  return 0\n}\n",
+        );
+        assert!(ts.contains("case \"A\": {"), "{ts}");
+        assert!(ts.contains("let x = 1;"), "{ts}");
+        assert!(ts.contains("return x;"), "{ts}");
+        // The block returns, so no dead `break;` is appended after the return.
+        assert!(!ts.contains("return x;\n      break;"), "{ts}");
+    }
+
+    #[test]
+    fn statement_block_arm_without_return_gets_break() {
+        let ts = emit(
+            "module x\ntype E = A | B\nfn nop(n: number) -> void { return void }\nfn f(e: E) -> void {\n  match e {\n    A => {\n      nop(1)\n    },\n    B => {\n      nop(2)\n    },\n  }\n  return void\n}\n",
+        );
+        assert!(ts.contains("nop(1);"), "{ts}");
+        assert!(ts.contains("break;"), "{ts}");
+    }
+
+    #[test]
+    fn value_position_block_arm_is_unsupported() {
         let err = emit_err(
-            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  return match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n}\n",
+            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  let x = match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n  return x\n}\n",
         );
         assert!(matches!(
             err,
             EmitError::Unsupported {
-                construct: "a block body in a match arm",
+                construct: "a block body in a value-position match arm",
                 ..
             }
         ));

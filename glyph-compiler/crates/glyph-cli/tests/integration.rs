@@ -88,12 +88,12 @@ fn build_reports_emit_diagnostic_for_unsupported_construct() {
     let root = unique_tmp("emit_unsupported");
     let src = root.join("src");
     let out = root.join("dist");
-    // Block-body match arms are a later week-4 day; the build should surface a
-    // diagnostic and NOT write a .ts file for this module.
+    // A value-position block-body match arm is a later week-4 day; the build
+    // should surface a diagnostic and NOT write a .ts file for this module.
     write_file(
         &src,
         "main.glyph",
-        "module main\ntype E = A | B\nfn f(e: E) -> number {\n  return match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n}\n",
+        "module main\ntype E = A | B\nfn f(e: E) -> number {\n  let x = match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n  return x\n}\n",
     );
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");

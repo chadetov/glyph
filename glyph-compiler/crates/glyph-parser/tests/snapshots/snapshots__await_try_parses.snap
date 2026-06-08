@@ -1,0 +1,111 @@
+---
+source: crates/glyph-parser/tests/snapshots.rs
+expression: ast
+---
+Module {
+    module_path: Some(
+        ModulePath {
+            segments: [
+                "m",
+            ],
+            span: Span {
+                start: 0,
+                end: 8,
+            },
+        },
+    ),
+    items: [
+        Fn(
+            FnDecl {
+                name: "f",
+                annotations: [],
+                is_async: true,
+                generics: [],
+                params: [],
+                return_ty: Some(
+                    Path {
+                        segments: [
+                            "number",
+                        ],
+                        span: Span {
+                            start: 26,
+                            end: 32,
+                        },
+                    },
+                ),
+                body: Block {
+                    stmts: [
+                        Let(
+                            LetStmt {
+                                name: "x",
+                                owned: false,
+                                ty: None,
+                                value: Postfix {
+                                    op: Try,
+                                    operand: Await {
+                                        expr: Call {
+                                            callee: Ident {
+                                                name: "g",
+                                                span: Span {
+                                                    start: 51,
+                                                    end: 52,
+                                                },
+                                            },
+                                            type_args: [],
+                                            args: [],
+                                            span: Span {
+                                                start: 51,
+                                                end: 54,
+                                            },
+                                        },
+                                        span: Span {
+                                            start: 45,
+                                            end: 54,
+                                        },
+                                    },
+                                    span: Span {
+                                        start: 45,
+                                        end: 55,
+                                    },
+                                },
+                                span: Span {
+                                    start: 37,
+                                    end: 55,
+                                },
+                            },
+                        ),
+                        Return(
+                            ReturnStmt {
+                                value: Some(
+                                    Ident {
+                                        name: "x",
+                                        span: Span {
+                                            start: 65,
+                                            end: 66,
+                                        },
+                                    },
+                                ),
+                                span: Span {
+                                    start: 58,
+                                    end: 66,
+                                },
+                            },
+                        ),
+                    ],
+                    span: Span {
+                        start: 33,
+                        end: 68,
+                    },
+                },
+                span: Span {
+                    start: 16,
+                    end: 68,
+                },
+            },
+        ),
+    ],
+    span: Span {
+        start: 0,
+        end: 69,
+    },
+}

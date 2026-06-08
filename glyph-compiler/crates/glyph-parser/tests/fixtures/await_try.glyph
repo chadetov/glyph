@@ -1,0 +1,6 @@
+module m
+
+async fn f() -> number {
+  let x = await g()?
+  return x
+}

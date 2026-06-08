@@ -42,6 +42,18 @@ fn hello_world_parses() {
     insta::assert_debug_snapshot!(ast);
 }
 
+/// `await E?` must parse as `(await E)?` — a `Postfix { Try }` whose operand is
+/// the `Await` — not an `Await` wrapping the `Try`. D18 places `await` (level
+/// 11) tighter than the postfix `?` (level 2), so the `?` unwraps the awaited
+/// `Result`. This fixture locks the rotation so the shape can't silently
+/// regress to the buggy `Await { expr: Postfix { Try } }`.
+#[test]
+fn await_try_parses() {
+    let source = fixture("await_try.glyph");
+    let ast = glyph_parser::parse(&source).expect("await_try.glyph should parse");
+    insta::assert_debug_snapshot!(ast);
+}
+
 /// Try parsing the real example files. Each test reports the first parse
 /// error if it fails. This is the week-1 acceptance criterion: all 4 example
 /// files parse to AST with snapshots checked into git.

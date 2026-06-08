@@ -35,6 +35,29 @@ fn parse_await(p: &mut Cursor) -> Result<Expr, ParseError> {
         let kw_span = p.peek_span();
         p.advance();
         let expr = parse_await(p)?; // right-assoc
+        // D18 places `await` (level 11) tighter than the postfix `?` (level 2),
+        // so `await x?` means `(await x)?` — the `?` unwraps the awaited
+        // `Result`. The recursive operand parse, however, binds the `?` to the
+        // inner expression first (yielding `await (x?)`). Rotate it back out so
+        // the parse tree matches the precedence table: a trailing `?` on the
+        // operand becomes a `?` on the whole `await`.
+        if let Expr::Postfix {
+            op: PostfixOp::Try,
+            operand,
+            span: try_span,
+        } = expr
+        {
+            let awaited_end = operand.span().end;
+            let awaited = Expr::Await {
+                expr: operand,
+                span: Span::new(kw_span.start, awaited_end),
+            };
+            return Ok(Expr::Postfix {
+                op: PostfixOp::Try,
+                operand: Box::new(awaited),
+                span: Span::new(kw_span.start, try_span.end),
+            });
+        }
         let end = expr.span().end;
         return Ok(Expr::Await {
             expr: Box::new(expr),

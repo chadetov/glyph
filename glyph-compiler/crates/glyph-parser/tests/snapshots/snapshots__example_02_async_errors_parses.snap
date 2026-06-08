@@ -1710,10 +1710,10 @@ Module {
                                 name: "user",
                                 owned: false,
                                 ty: None,
-                                value: Await {
-                                    expr: Postfix {
-                                        op: Try,
-                                        operand: Call {
+                                value: Postfix {
+                                    op: Try,
+                                    operand: Await {
+                                        expr: Call {
                                             callee: Ident {
                                                 name: "fetch_user",
                                                 span: Span {
@@ -1737,8 +1737,8 @@ Module {
                                             },
                                         },
                                         span: Span {
-                                            start: 2276,
-                                            end: 2296,
+                                            start: 2270,
+                                            end: 2295,
                                         },
                                     },
                                     span: Span {
@@ -1757,10 +1757,10 @@ Module {
                                 name: "posts",
                                 owned: false,
                                 ty: None,
-                                value: Await {
-                                    expr: Postfix {
-                                        op: Try,
-                                        operand: Call {
+                                value: Postfix {
+                                    op: Try,
+                                    operand: Await {
+                                        expr: Call {
                                             callee: Ident {
                                                 name: "fetch_posts",
                                                 span: Span {
@@ -1792,8 +1792,8 @@ Module {
                                             },
                                         },
                                         span: Span {
-                                            start: 2317,
-                                            end: 2338,
+                                            start: 2311,
+                                            end: 2337,
                                         },
                                     },
                                     span: Span {

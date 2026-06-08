@@ -3803,10 +3803,10 @@ Module {
                                                             name: "file",
                                                             owned: false,
                                                             ty: None,
-                                                            value: Await {
-                                                                expr: Postfix {
-                                                                    op: Try,
-                                                                    operand: Call {
+                                                            value: Postfix {
+                                                                op: Try,
+                                                                operand: Await {
+                                                                    expr: Call {
                                                                         callee: Member {
                                                                             object: Call {
                                                                                 callee: Ident {
@@ -3854,8 +3854,8 @@ Module {
                                                                         },
                                                                     },
                                                                     span: Span {
-                                                                        start: 3942,
-                                                                        end: 3985,
+                                                                        start: 3936,
+                                                                        end: 3984,
                                                                     },
                                                                 },
                                                                 span: Span {
@@ -4035,10 +4035,10 @@ Module {
                                                         },
                                                     ),
                                                     Expr(
-                                                        Await {
-                                                            expr: Postfix {
-                                                                op: Try,
-                                                                operand: Call {
+                                                        Postfix {
+                                                            op: Try,
+                                                            operand: Await {
+                                                                expr: Call {
                                                                     callee: Member {
                                                                         object: Call {
                                                                             callee: Ident {
@@ -4093,8 +4093,8 @@ Module {
                                                                     },
                                                                 },
                                                                 span: Span {
-                                                                    start: 4203,
-                                                                    end: 4255,
+                                                                    start: 4197,
+                                                                    end: 4254,
                                                                 },
                                                             },
                                                             span: Span {
@@ -4281,10 +4281,10 @@ Module {
                                                             name: "file",
                                                             owned: false,
                                                             ty: None,
-                                                            value: Await {
-                                                                expr: Postfix {
-                                                                    op: Try,
-                                                                    operand: Call {
+                                                            value: Postfix {
+                                                                op: Try,
+                                                                operand: Await {
+                                                                    expr: Call {
                                                                         callee: Member {
                                                                             object: Call {
                                                                                 callee: Ident {
@@ -4332,8 +4332,8 @@ Module {
                                                                         },
                                                                     },
                                                                     span: Span {
-                                                                        start: 4400,
-                                                                        end: 4443,
+                                                                        start: 4394,
+                                                                        end: 4442,
                                                                     },
                                                                 },
                                                                 span: Span {
@@ -4879,10 +4879,10 @@ Module {
                                                             name: "file",
                                                             owned: false,
                                                             ty: None,
-                                                            value: Await {
-                                                                expr: Postfix {
-                                                                    op: Try,
-                                                                    operand: Call {
+                                                            value: Postfix {
+                                                                op: Try,
+                                                                operand: Await {
+                                                                    expr: Call {
                                                                         callee: Member {
                                                                             object: Call {
                                                                                 callee: Ident {
@@ -4930,8 +4930,8 @@ Module {
                                                                         },
                                                                     },
                                                                     span: Span {
-                                                                        start: 4950,
-                                                                        end: 4993,
+                                                                        start: 4944,
+                                                                        end: 4992,
                                                                     },
                                                                 },
                                                                 span: Span {
@@ -5409,10 +5409,10 @@ Module {
                                                                                     },
                                                                                 ),
                                                                                 Expr(
-                                                                                    Await {
-                                                                                        expr: Postfix {
-                                                                                            op: Try,
-                                                                                            operand: Call {
+                                                                                    Postfix {
+                                                                                        op: Try,
+                                                                                        operand: Await {
+                                                                                            expr: Call {
                                                                                                 callee: Member {
                                                                                                     object: Call {
                                                                                                         callee: Ident {
@@ -5467,8 +5467,8 @@ Module {
                                                                                                 },
                                                                                             },
                                                                                             span: Span {
-                                                                                                start: 5429,
-                                                                                                end: 5481,
+                                                                                                start: 5423,
+                                                                                                end: 5480,
                                                                                             },
                                                                                         },
                                                                                         span: Span {
@@ -5653,10 +5653,10 @@ Module {
                                                             name: "file",
                                                             owned: false,
                                                             ty: None,
-                                                            value: Await {
-                                                                expr: Postfix {
-                                                                    op: Try,
-                                                                    operand: Call {
+                                                            value: Postfix {
+                                                                op: Try,
+                                                                operand: Await {
+                                                                    expr: Call {
                                                                         callee: Member {
                                                                             object: Call {
                                                                                 callee: Ident {
@@ -5704,8 +5704,8 @@ Module {
                                                                         },
                                                                     },
                                                                     span: Span {
-                                                                        start: 5636,
-                                                                        end: 5679,
+                                                                        start: 5630,
+                                                                        end: 5678,
                                                                     },
                                                                 },
                                                                 span: Span {
@@ -6052,10 +6052,10 @@ Module {
                                                                         Block {
                                                                             stmts: [
                                                                                 Expr(
-                                                                                    Await {
-                                                                                        expr: Postfix {
-                                                                                            op: Try,
-                                                                                            operand: Call {
+                                                                                    Postfix {
+                                                                                        op: Try,
+                                                                                        operand: Await {
+                                                                                            expr: Call {
                                                                                                 callee: Member {
                                                                                                     object: Call {
                                                                                                         callee: Ident {
@@ -6110,8 +6110,8 @@ Module {
                                                                                                 },
                                                                                             },
                                                                                             span: Span {
-                                                                                                start: 6004,
-                                                                                                end: 6056,
+                                                                                                start: 5998,
+                                                                                                end: 6055,
                                                                                             },
                                                                                         },
                                                                                         span: Span {

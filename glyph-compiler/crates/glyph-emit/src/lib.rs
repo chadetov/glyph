@@ -40,11 +40,13 @@
 //! function semantics; in value position (`let x = match`, nested) it is
 //! wrapped in an immediately-invoked arrow.
 //!
-//! The `?` operator unwraps a `Result` at statement position (`let x = E?`, or
-//! a bare `E?`): it binds the operand to a temporary, returns it on `Err`, and
-//! reads the `Ok` payload. `?` nested inside a larger expression is deferred
-//! (it needs hoisting); `let x = await E?` is one such case (it parses with the
-//! `?` under the `await`) and is not yet unwrapped.
+//! The `?` operator unwraps a `Result` at statement position (`let x = E?`, a
+//! bare `E?`, or `let x = await E?`): it binds the operand to a temporary,
+//! returns it on `Err`, and reads the `Ok` payload. `await E?` works because
+//! the parser binds the trailing `?` to the whole `await` (D18 precedence), so
+//! the operand the emitter sees is `await E`. A `?` nested inside a larger
+//! expression — mid-chain (`await x?.foo()`) or as a sub-expression (`f(x?)`) —
+//! is still deferred; it needs hoisting.
 //!
 //! A block-body match arm (`Variant => { stmts }`) emits its statements into
 //! the case; it is supported in statement position (where a block `return`

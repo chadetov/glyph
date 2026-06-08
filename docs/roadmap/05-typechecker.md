@@ -19,7 +19,7 @@ Substep 5a is well underway. The salsa-tracked typechecker substrate (the `Q5 hy
 What substep 5a still needs:
 
 - **Fuller bidirectional checker** — the operand-side `?` `E`-match, broader assignability beyond primitives, and a real unifier (generic instantiation today is call-site substitution, not full unification). The unifier also unblocks exhaustiveness for generic module-local unions applied through `Ty::App`, which are skipped today.
-- **Runtime descriptors** (Q8) — every `type`/`record` declaration emits a runtime descriptor for `is TypeName` checks. Non-negotiable per Q8 resolution. Still pending; it is the next major item, and it is coupled to week-4 TS emission (the emitter is still a Phase-0 stub).
+- **Runtime descriptors** (Q8) — every `type`/`record` declaration emits a runtime descriptor for `is TypeName` checks. Non-negotiable per Q8 resolution. Still pending; it is coupled to week-4 TS emission, which has now started (the core emitter ships; tagged-union/record-descriptor emission is a forthcoming day).
 
 Substep 5c (narrowing + flow analysis) and substep 5b (deferred to v1.1 per Q1) come after 5a.
 

@@ -63,6 +63,8 @@ use glyph_ast::{
     MatchArmBody, Module, MutKind, ObjectField, Param, Pattern, PostfixOp, Span, Stmt,
     TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
+use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
+use glyph_typechecker::{Ty, TypeMap};
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum EmitError {
@@ -112,34 +114,50 @@ enum ArmTerm {
     Break,
 }
 
-/// Emit a whole module to a TypeScript source string.
-pub fn emit_module(module: &Module) -> Result<String, EmitError> {
+/// Emit a whole module to a TypeScript source string. `resolved` and `types`
+/// are the resolution and type-inference results for `module`; the emitter
+/// consults them where lowering needs the scrutinee's type (e.g. to tell a
+/// bare-identifier variant arm from a binding).
+pub fn emit_module(
+    module: &Module,
+    resolved: &ResolvedModule,
+    types: &TypeMap,
+) -> Result<String, EmitError> {
     let mut e = Emitter {
         out: String::new(),
         indent: 0,
         tmp_counter: 0,
+        module,
+        resolved,
+        types,
     };
-    e.emit_module(module)?;
+    e.emit_module()?;
     Ok(e.out)
 }
 
-struct Emitter {
+struct Emitter<'a> {
     out: String,
     indent: usize,
     /// Counter for synthesized scrutinee temporaries (`__m0`, `__m1`, ...), so
     /// two `match` statements in one function body don't redeclare the name.
     tmp_counter: usize,
+    module: &'a Module,
+    resolved: &'a ResolvedModule,
+    types: &'a TypeMap,
 }
 
-impl Emitter {
+impl<'a> Emitter<'a> {
     /// A fresh sub-emitter at the given indent, inheriting the temporary
     /// counter so synthesized names don't repeat. Used to render a lambda body
     /// or a value-position `match` into its own string before splicing it in.
-    fn sub(&self, indent: usize) -> Emitter {
+    fn sub(&self, indent: usize) -> Emitter<'a> {
         Emitter {
             out: String::new(),
             indent,
             tmp_counter: self.tmp_counter,
+            module: self.module,
+            resolved: self.resolved,
+            types: self.types,
         }
     }
 
@@ -158,7 +176,10 @@ impl Emitter {
 
     // ----- declarations -----
 
-    fn emit_module(&mut self, module: &Module) -> Result<(), EmitError> {
+    fn emit_module(&mut self) -> Result<(), EmitError> {
+        // Copy the `&Module` reference (references are `Copy`) so iterating it
+        // doesn't borrow `self` across the `&mut self` emit calls.
+        let module = self.module;
         for (i, decl) in module.items.iter().enumerate() {
             if i > 0 {
                 self.out.push('\n');
@@ -449,19 +470,49 @@ impl Emitter {
         Ok(())
     }
 
-    /// Lower a statement-position `match` over a tagged union to a `switch` on
-    /// the `tag` discriminant. Scoped to constructor-pattern arms (`Ok(x)`,
-    /// `NetworkError({ url })`, dotted `fs.ErrorKind.NotFound`) plus
-    /// `_`/`else`, with expression arm bodies. Bare-identifier variant arms
-    /// (which the resolver cannot distinguish from bindings without the
-    /// scrutinee type), value matches, block arm bodies, nested/`is`/array
-    /// patterns, and match in value position are deferred.
+    /// The variant names of the tagged union `ty` refers to, used to tell a
+    /// bare-identifier arm (a no-payload variant) from a binding. Resolves a
+    /// module-local `Ty::Named` to its `type X = | A | B` declaration; prelude
+    /// unions and non-union (or unknown) types return None.
+    fn union_variant_names(&self, ty: &Ty) -> Option<Vec<String>> {
+        let Ty::Named { symbol, .. } = ty else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        let decl_idx = match &sym.kind {
+            SymbolKind::Type { decl_idx } => *decl_idx,
+            _ => return None,
+        };
+        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        let TypeExpr::Union { variants, .. } = &td.body else {
+            return None;
+        };
+        Some(variants.iter().map(|v| v.name.to_string()).collect())
+    }
+
+    /// Lower a `match` over a tagged union to a `switch` on the `tag`
+    /// discriminant. Handles constructor-pattern arms (`Ok(x)`,
+    /// `NetworkError({ url })`, dotted `fs.ErrorKind.NotFound`), bare no-payload
+    /// variant arms (`Idle`, disambiguated from bindings via the scrutinee
+    /// type), and `_`/`else`, with expression arm bodies. Value (literal)
+    /// matches, binding catch-alls, block arm bodies, and nested/`is`/array
+    /// patterns are deferred.
     fn emit_match_dispatch(
         &mut self,
         scrutinee: &Expr,
         arms: &[MatchArm],
         term: ArmTerm,
     ) -> Result<(), EmitError> {
+        // Variant names of the scrutinee's union, when its type is known.
+        let variants = self.union_variant_names(self.types.get(scrutinee.span()));
+        let is_variant = |name: &str| {
+            variants
+                .as_ref()
+                .is_some_and(|vs| vs.iter().any(|v| v == name))
+        };
+
         for arm in arms {
             match &arm.pattern {
                 Pattern::Constructor { args, span, .. } => match args.as_slice() {
@@ -474,11 +525,16 @@ impl Emitter {
                     }
                 },
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => {}
-                Pattern::Ident { span, .. } => {
-                    return Err(EmitError::Unsupported {
-                        construct: "a bare-identifier match arm (needs the scrutinee type)",
-                        span: *span,
-                    })
+                // A bare identifier is a no-payload variant only when the
+                // scrutinee type confirms it; otherwise it is a binding
+                // (catch-all), which is deferred.
+                Pattern::Ident { name, span } => {
+                    if !is_variant(name) {
+                        return Err(EmitError::Unsupported {
+                            construct: "a binding match arm (a bare identifier that is not a variant)",
+                            span: *span,
+                        });
+                    }
                 }
                 Pattern::Literal { span, .. } => {
                     return Err(EmitError::Unsupported {
@@ -520,14 +576,16 @@ impl Emitter {
             });
         }
 
-        // A match with no constructor arm has nothing to discriminate on, so
-        // there is no `.tag` to switch over. Evaluate the scrutinee for any
-        // effect (parenthesized so an object-literal scrutinee isn't parsed as
-        // a block), then run the lone catch-all arm.
-        let has_ctor = arms
-            .iter()
-            .any(|a| matches!(a.pattern, Pattern::Constructor { .. }));
-        if !has_ctor {
+        // A match with no variant arm (only a catch-all) has nothing to
+        // discriminate on, so there is no `.tag` to switch over. Evaluate the
+        // scrutinee for any effect (parenthesized so an object-literal
+        // scrutinee isn't parsed as a block), then run the lone catch-all arm.
+        let has_variant_arm = arms.iter().any(|a| match &a.pattern {
+            Pattern::Constructor { .. } => true,
+            Pattern::Ident { name, .. } => is_variant(name),
+            _ => false,
+        });
+        if !has_variant_arm {
             let scrut = self.expr(scrutinee)?;
             self.line(&format!("({scrut});"));
             self.emit_arm_body(&arms[0].body, term)?;
@@ -547,6 +605,14 @@ impl Emitter {
                     self.line(&format!("case \"{variant}\": {{"));
                     self.indent += 1;
                     self.emit_arm_binds(&m, args);
+                    self.emit_arm_body(&arm.body, term)?;
+                    self.indent -= 1;
+                    self.line("}");
+                }
+                // A bare no-payload variant: a `case` with no payload binding.
+                Pattern::Ident { name, .. } => {
+                    self.line(&format!("case \"{name}\": {{"));
+                    self.indent += 1;
                     self.emit_arm_body(&arm.body, term)?;
                     self.indent -= 1;
                     self.line("}");
@@ -881,14 +947,33 @@ fn escape_template_text(s: &str) -> String {
 mod tests {
     use super::*;
 
-    fn emit(src: &str) -> String {
+    /// Parse, resolve, and typecheck `src`, then return the emitter's
+    /// (resolved module, type map) — tolerating resolve/type errors so test
+    /// snippets can reference undefined helpers (`log`, `fetch`); the emitter
+    /// only consults types where they are known.
+    fn pipeline(
+        src: &str,
+    ) -> (
+        glyph_ast::Module,
+        glyph_resolver::ResolvedModule,
+        glyph_typechecker::TypeMap,
+    ) {
         let module = glyph_parser::parse(src).expect("parse failed");
-        emit_module(&module).expect("emit failed")
+        let syms = glyph_resolver::collect_module_symbols(&module).expect("collect failed");
+        let prelude = glyph_resolver::build_prelude();
+        let (resolved, _errs) = glyph_resolver::resolve_module(&module, syms, &prelude);
+        let (types, _ty_errs) = glyph_typechecker::assign_types(&module, &resolved, &prelude);
+        (module, resolved, types)
+    }
+
+    fn emit(src: &str) -> String {
+        let (module, resolved, types) = pipeline(src);
+        emit_module(&module, &resolved, &types).expect("emit failed")
     }
 
     fn emit_err(src: &str) -> EmitError {
-        let module = glyph_parser::parse(src).expect("parse failed");
-        emit_module(&module).expect_err("expected emit error")
+        let (module, resolved, types) = pipeline(src);
+        emit_module(&module, &resolved, &types).expect_err("expected emit error")
     }
 
     #[test]
@@ -1051,17 +1136,27 @@ mod tests {
     }
 
     #[test]
-    fn bare_variant_match_is_unsupported_for_now() {
-        let err = emit_err(
+    fn bare_variant_match_lowers_to_cases() {
+        // With the scrutinee type known, `Idle`/`Busy` are recognized as
+        // no-payload variants and become `case` labels (not bindings).
+        let ts = emit(
             "module x\ntype S = Idle | Busy\nfn f(s: S) -> number {\n  return match s {\n    Idle => 0,\n    Busy => 1,\n  }\n}\n",
         );
-        assert!(matches!(
-            err,
-            EmitError::Unsupported {
-                construct: "a bare-identifier match arm (needs the scrutinee type)",
-                ..
-            }
-        ));
+        assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
+        assert!(ts.contains("case \"Idle\": {"), "{ts}");
+        assert!(ts.contains("case \"Busy\": {"), "{ts}");
+    }
+
+    #[test]
+    fn mixed_bare_and_payload_variant_match_lowers() {
+        // Example 03's SearchState shape: bare `Idle`/`Loading` plus payload
+        // `Loaded({ users })` / `Failed({ message })`.
+        let ts = emit(
+            "module x\ntype State =\n  | Idle\n  | Loading\n  | Loaded({ users: number })\n  | Failed({ message: string })\nfn show(s: State) -> number {\n  return match s {\n    Idle => 0,\n    Loading => 1,\n    Loaded({ users }) => users,\n    Failed({ message }) => 2,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"Idle\": {"), "{ts}");
+        assert!(ts.contains("case \"Loaded\": {"), "{ts}");
+        assert!(ts.contains("const users = __m0.users;"), "{ts}");
     }
 
     #[test]

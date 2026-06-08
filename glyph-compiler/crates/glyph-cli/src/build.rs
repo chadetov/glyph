@@ -202,7 +202,8 @@ pub fn build_project_inner(
             continue;
         }
         let Some(ast) = parsed.module() else { continue };
-        match glyph_emit::emit_module(ast) {
+        let Some(resolved) = r.resolved() else { continue };
+        match glyph_emit::emit_module(ast, resolved, types.type_map()) {
             Ok(ts) => {
                 let rel = format!("{module_path}.ts");
                 let ts_path = out.join(&rel);

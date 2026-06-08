@@ -10,6 +10,7 @@ description = "AST-to-TypeScript visitor. Dumb visitor, no IR (Q5 hybrid). D6 JS
 
 [dependencies]
 glyph-ast.workspace = true
+glyph-resolver.workspace = true
 glyph-typechecker.workspace = true
 thiserror.workspace = true
 

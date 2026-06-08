@@ -331,6 +331,7 @@ version = "0.1.0"
 dependencies = [
  "glyph-ast",
  "glyph-parser",
+ "glyph-resolver",
  "glyph-typechecker",
  "insta",
  "thiserror",

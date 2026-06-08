@@ -29,7 +29,8 @@
 //! The `?` operator unwraps a `Result` at statement position (`let x = E?`, or
 //! a bare `E?`): it binds the operand to a temporary, returns it on `Err`, and
 //! reads the `Ok` payload. `?` nested inside a larger expression is deferred
-//! (it needs hoisting).
+//! (it needs hoisting); `let x = await E?` is one such case (it parses with the
+//! `?` under the `await`) and is not yet unwrapped.
 //!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
 //! than emitting invalid TS: value (literal) matches, binding catch-all arms,
@@ -56,9 +57,10 @@
 //!   record payload bound whole (`Variant(p)`), where the fields are spread
 //!   flat. The corpus binds records with object patterns, so no example trips
 //!   it; the whole-record reconstruction needs the variant's declared shape.
-//! - `match` lowering synthesizes `__mN` scrutinee temporaries; a user
-//!   identifier literally named `__m0` would collide. A resolver rule
-//!   reserving the `__` prefix is the proper fix.
+//! - The lowering synthesizes `__`-prefixed temporaries (`__mN` for match
+//!   scrutinees, `__rN` for `?` operands); a user identifier with one of those
+//!   exact names would collide. A resolver rule reserving the `__` prefix is
+//!   the proper fix.
 
 #![forbid(unsafe_code)]
 
@@ -109,6 +111,11 @@ const TAG: &str = "tag";
 /// → `{ tag: "Ok", value: x }`. The sibling of `TAG`; single-sourced because
 /// the union constructors write it and `match` lowering reads it.
 const PAYLOAD: &str = "value";
+
+/// The error variant tag of the prelude `Result`. The `?` lowering tests it to
+/// propagate failures; single-sourced alongside `TAG`/`PAYLOAD` since it is
+/// part of the same `Result` wire-format contract.
+const RESULT_ERR: &str = "Err";
 
 /// How a lowered `match` arm yields control: `return` its value (the match is
 /// in return position) or run it for effect and `break` (statement position).
@@ -501,11 +508,18 @@ impl<'a> Emitter<'a> {
     /// operand is a `Result` and the function returns a compatible `Result`.
     fn emit_try_unwrap(&mut self, operand: &Expr) -> Result<String, EmitError> {
         let op = self.expr(operand)?;
-        let r = format!("__r{}", self.tmp_counter);
-        self.tmp_counter += 1;
+        let r = self.fresh_temp("__r");
         self.line(&format!("const {r} = {op};"));
-        self.line(&format!("if ({r}.{TAG} === \"Err\") {{ return {r}; }}"));
+        self.line(&format!("if ({r}.{TAG} === \"{RESULT_ERR}\") {{ return {r}; }}"));
         Ok(r)
+    }
+
+    /// A fresh synthesized temporary name (`__r0`, `__m1`, ...). Bumping the
+    /// counter here keeps every call site from forgetting it.
+    fn fresh_temp(&mut self, prefix: &str) -> String {
+        let name = format!("{prefix}{}", self.tmp_counter);
+        self.tmp_counter += 1;
+        name
     }
 
     /// The variant names of the tagged union `ty` refers to, used to tell a
@@ -643,8 +657,7 @@ impl<'a> Emitter<'a> {
         }
 
         let scrut = self.expr(scrutinee)?;
-        let m = format!("__m{}", self.tmp_counter);
-        self.tmp_counter += 1;
+        let m = self.fresh_temp("__m");
         self.line(&format!("const {m} = {scrut};"));
         self.line(&format!("switch ({m}.{TAG}) {{"));
         self.indent += 1;

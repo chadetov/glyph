@@ -18,8 +18,11 @@
 //! Tagged unions lower to a TS discriminated union on a `tag` field plus a
 //! constructor per variant (a `const` for a no-payload variant, a function for
 //! a payload variant; record payloads spread their fields). A generic union
-//! carries its type parameters on the alias and the constructor functions, and
-//! its no-payload `const`s are widened to `<never>` so they fit every
+//! carries its type parameters on the alias; each constructor is generic over
+//! only the parameters its own payload mentions, and the rest are widened to
+//! `never` in its return type (so `Left({ a: A })` of `Either<A, B>` emits
+//! `Left<A>(...): Either<A, never>`, and a no-payload variant becomes a `const`
+//! of `Either<never, never>`) — every constructor then fits every
 //! instantiation. A
 //! non-generic record type additionally emits a Q8 runtime descriptor — an
 //! `export const X = { is(v): v is X { ... } }` whose predicate shallowly
@@ -369,16 +372,6 @@ impl<'a> Emitter<'a> {
             }
         }
         let generics_str = self.generics(generics);
-        // The union applied to its own parameters (`Box<T>`) for constructor
-        // return types, and applied to `never` (`Box<never>`) for the widened
-        // no-payload `const`.
-        let applied = format!("{name}{generics_str}");
-        let widened = if generics.is_empty() {
-            name.to_string()
-        } else {
-            let nevers = generics.iter().map(|_| "never").collect::<Vec<_>>().join(", ");
-            format!("{name}<{nevers}>")
-        };
         self.line(&format!("export type {name}{generics_str} ="));
         self.indent += 1;
         for (i, v) in variants.iter().enumerate() {
@@ -389,7 +382,7 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.out.push('\n');
         for v in variants {
-            self.emit_variant_constructor(&generics_str, &applied, &widened, v)?;
+            self.emit_variant_constructor(name, generics, v)?;
         }
         Ok(())
     }
@@ -413,24 +406,48 @@ impl<'a> Emitter<'a> {
 
     fn emit_variant_constructor(
         &mut self,
-        generics_str: &str,
-        applied: &str,
-        widened: &str,
+        union: &str,
+        generics: &[GenericParam],
         v: &UnionVariant,
     ) -> Result<(), EmitError> {
         let name = &v.name;
+        // A constructor is generic only over the union parameters its payload
+        // actually mentions; the rest are widened to `never` in the return
+        // type. This keeps `Left({ a })` in `Either<A, B>` inferring
+        // `Either<A, never>` (assignable to any `Either<A, B>`) instead of
+        // leaving the unused `B` as `unknown`.
+        let used: Vec<bool> = generics
+            .iter()
+            .map(|g| {
+                v.payload
+                    .as_ref()
+                    .is_some_and(|p| type_mentions(p, g.name.as_ref()))
+            })
+            .collect();
+        let ret = apply_generics(union, generics, &used);
+        let ctor_generics = {
+            let names: Vec<&str> = generics
+                .iter()
+                .zip(&used)
+                .filter(|(_, &u)| u)
+                .map(|(g, _)| g.name.as_ref())
+                .collect();
+            if names.is_empty() {
+                String::new()
+            } else {
+                format!("<{}>", names.join(", "))
+            }
+        };
         match &v.payload {
-            None => self.line(&format!(
-                "export const {name}: {widened} = {{ {TAG}: \"{name}\" }};"
-            )),
+            None => self.line(&format!("export const {name}: {ret} = {{ {TAG}: \"{name}\" }};")),
             // Spread the fields FIRST so the discriminant always wins, even if
             // the record (somehow) carried a colliding key.
             Some(payload @ TypeExpr::Record { .. }) => self.line(&format!(
-                "export function {name}{generics_str}(fields: {}): {applied} {{ return {{ ...fields, {TAG}: \"{name}\" }}; }}",
+                "export function {name}{ctor_generics}(fields: {}): {ret} {{ return {{ ...fields, {TAG}: \"{name}\" }}; }}",
                 self.ty(payload)?
             )),
             Some(other) => self.line(&format!(
-                "export function {name}{generics_str}({PAYLOAD}: {}): {applied} {{ return {{ {TAG}: \"{name}\", {PAYLOAD} }}; }}",
+                "export function {name}{ctor_generics}({PAYLOAD}: {}): {ret} {{ return {{ {TAG}: \"{name}\", {PAYLOAD} }}; }}",
                 self.ty(other)?
             )),
         }
@@ -606,6 +623,13 @@ impl<'a> Emitter<'a> {
     /// `assign.rs::resolve_named_union` and `owned.rs`); a public helper in
     /// `glyph-typechecker` that all three consume is a worthwhile cleanup.
     fn union_variant_names(&self, ty: &Ty) -> Option<Vec<String>> {
+        // A generic union applied to type arguments (`Box<string>`) is a
+        // `Ty::App` over the union's `Ty::Named`; unwrap to the base so a match
+        // on a generic union resolves its variants like a monomorphic one.
+        let ty = match ty {
+            Ty::App { base, .. } => base.as_ref(),
+            other => other,
+        };
         let Ty::Named { symbol, path } = ty else {
             return None;
         };
@@ -1240,6 +1264,41 @@ fn record_field_check(field: &RecordTypeField) -> String {
     }
 }
 
+/// True if the type parameter `name` appears anywhere in the type `te`.
+fn type_mentions(te: &TypeExpr, name: &str) -> bool {
+    match te {
+        TypeExpr::Path { segments, .. } => {
+            segments.len() == 1 && segments[0].as_ref() == name
+        }
+        TypeExpr::Generic { base, args, .. } => {
+            type_mentions(base, name) || args.iter().any(|a| type_mentions(a, name))
+        }
+        TypeExpr::Fn { params, return_ty, .. } => {
+            params.iter().any(|p| type_mentions(&p.ty, name))
+                || return_ty.as_ref().is_some_and(|r| type_mentions(r, name))
+        }
+        TypeExpr::Record { fields, .. } => fields.iter().any(|f| type_mentions(&f.ty, name)),
+        TypeExpr::Union { variants, .. } => variants
+            .iter()
+            .any(|v| v.payload.as_ref().is_some_and(|p| type_mentions(p, name))),
+    }
+}
+
+/// Render `Name<...>` applying each generic parameter as itself when `used` is
+/// true, else widening it to `never`. A non-generic union is just its name.
+fn apply_generics(name: &str, generics: &[GenericParam], used: &[bool]) -> String {
+    if generics.is_empty() {
+        return name.to_string();
+    }
+    let args = generics
+        .iter()
+        .zip(used)
+        .map(|(g, &u)| if u { g.name.as_ref() } else { "never" })
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("{name}<{args}>")
+}
+
 /// The JS `typeof` string for a Glyph primitive type, or None for any
 /// non-primitive (which the descriptor checks by presence instead).
 fn js_typeof(te: &TypeExpr) -> Option<&'static str> {
@@ -1825,5 +1884,37 @@ mod tests {
             ts.contains("export const Empty: Box<never> = { tag: \"Empty\" };"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn generic_union_constructors_are_generic_only_over_used_params() {
+        let ts = emit(
+            "module x\ntype Either<A, B> =\n  | Left({ a: A })\n  | Right({ b: B })\n  | Neither\n",
+        );
+        // Each constructor is generic over only the param it uses; the rest
+        // are widened to `never` in the return type.
+        assert!(
+            ts.contains("export function Left<A>(fields: { a: A }): Either<A, never>"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("export function Right<B>(fields: { b: B }): Either<never, B>"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("export const Neither: Either<never, never> = { tag: \"Neither\" };"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn match_on_a_generic_union_resolves_bare_variants() {
+        let ts = emit(
+            "module x\ntype Box<T> =\n  | Full({ value: T })\n  | Empty\nfn f(b: Box<string>) -> string {\n  return match b {\n    Full({ value }) => value,\n    Empty => \"\",\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"Full\": {"), "{ts}");
+        // `Empty` (a bare no-payload variant) resolves even though the
+        // scrutinee type is `Box<string>` (a `Ty::App`).
+        assert!(ts.contains("case \"Empty\": {"), "{ts}");
     }
 }

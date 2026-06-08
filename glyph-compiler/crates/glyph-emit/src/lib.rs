@@ -299,8 +299,10 @@ impl<'a> Emitter<'a> {
     /// wire-format (the same `tag`/`value` contract the union lowering uses,
     /// single-sourced via `RESULT_OK`/`RESULT_ERR`) rather than referencing the
     /// prelude `Ok`/`Err` constructors, so the descriptor compiles even in a
-    /// module that never imports `std/result`. The only name it references is
-    /// the record type itself, which is declared in the same module.
+    /// module that never imports `std/result`. It reaches the sibling `is`
+    /// guard through `this` rather than by the descriptor's name, so it stays
+    /// correct even for a record whose name shadows the `parse` parameter (a
+    /// type literally named `value`).
     ///
     /// **Soundness limitation**: because a non-primitive field is only checked
     /// for presence, the `value is X` narrowing is stronger than the runtime
@@ -335,7 +337,12 @@ impl<'a> Emitter<'a> {
         let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
         self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
         self.indent += 1;
-        self.line(&format!("return {name}.is(value)"));
+        // Call the sibling guard through `this`, not by the descriptor's name:
+        // a record named after the `value` parameter (or any name) would
+        // otherwise be shadowed by the parameter and `.is` would dispatch on
+        // the `unknown` argument. `this` is the descriptor object at every call
+        // site the compiler emits (`T.parse(x)`).
+        self.line("return this.is(value)");
         self.indent += 1;
         self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
         self.line(&format!(
@@ -1536,8 +1543,9 @@ mod tests {
             ),
             "{ts}"
         );
-        // It reuses the `is` guard and wraps the value in `Ok`/`Err` literals.
-        assert!(ts.contains("return User.is(value)"), "{ts}");
+        // It reuses the `is` guard (reached via `this`, never by name) and
+        // wraps the value in `Ok`/`Err` literals.
+        assert!(ts.contains("return this.is(value)"), "{ts}");
         assert!(ts.contains("? { tag: \"Ok\", value: value }"), "{ts}");
         assert!(
             ts.contains(": { tag: \"Err\", value: \"expected User\" };"),
@@ -1545,6 +1553,16 @@ mod tests {
         );
         // No prelude import was pulled in for the descriptor.
         assert!(!ts.contains("from \"std/result\""), "{ts}");
+    }
+
+    #[test]
+    fn parse_does_not_shadow_a_record_named_value() {
+        // A record literally named `value` collides with the `parse` parameter.
+        // Reaching the guard via `this` (not `value.is(...)`) keeps the emitted
+        // TS valid: the parameter no longer shadows the descriptor binding.
+        let ts = emit("module x\ntype value = { id: string }\n");
+        assert!(ts.contains("return this.is(value)"), "{ts}");
+        assert!(!ts.contains("return value.is(value)"), "{ts}");
     }
 
     #[test]

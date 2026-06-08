@@ -152,6 +152,25 @@ impl Primitive {
     }
 }
 
+/// A short, human-readable rendering of a type for diagnostics
+/// (`TypeMismatch`, `OwnedRequiresResourceType`). Primitives and named types
+/// render precisely; composite types fall back to a category word, and
+/// anything else renders as `?`. The shared renderer for the whole crate.
+pub(crate) fn ty_display(ty: &Ty) -> String {
+    match ty {
+        Ty::Prim(p) => p.as_str().to_string(),
+        Ty::UnknownTop => "unknown".to_string(),
+        Ty::Named { path, .. } if !path.is_empty() => {
+            path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
+        }
+        Ty::Record { .. } => "record".to_string(),
+        Ty::Fn { .. } => "function".to_string(),
+        Ty::Union { .. } => "union".to_string(),
+        Ty::App { base, .. } => ty_display(base),
+        _ => "?".to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

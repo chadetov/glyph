@@ -35,15 +35,16 @@
 //!   (the loop may run zero times) nor is flagged as a cross-iteration double.
 //! - **Lambda and JSX bodies are opaque** to the walk (no capture tracking).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, LetStmt, Module, MutKind, ObjectField, Span, Stmt, TemplatePart,
+    ArrayElem, Block, Decl, Expr, Ident, LetStmt, Module, MutKind, ObjectField, Span, Stmt,
+    TemplatePart,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
 use crate::lower::Lowerer;
-use crate::ty::Ty;
+use crate::ty::{ty_display, Ty};
 use crate::type_map::TypeMap;
 use crate::TypeError;
 
@@ -63,6 +64,7 @@ pub fn check_owned(
         tm,
         errors: Vec::new(),
         bindings: HashMap::new(),
+        reported: HashSet::new(),
     };
     for decl in &module.items {
         match decl {
@@ -116,11 +118,16 @@ struct OwnedChecker<'a> {
     /// Bindings are added at their `let owned` site and removed when their
     /// declaring block exits.
     bindings: HashMap<u32, BindingInfo>,
+    /// Handles already reported as not-consumed in the current body. A handle
+    /// can leak on more than one path (a `return` arm and a fall-through arm);
+    /// without this, the same binding would be flagged once per leaking path.
+    reported: HashSet<u32>,
 }
 
 impl OwnedChecker<'_> {
     fn check_body(&mut self, body: &Block) {
         self.bindings.clear();
+        self.reported.clear();
         let mut state = FlowState::new();
         self.walk_block(body, &mut state);
     }
@@ -308,9 +315,16 @@ impl OwnedChecker<'_> {
                 }
                 Flow::Fall
             }
-            // Lambdas and JSX are opaque to v1 owned tracking; literals carry
-            // no handle uses.
-            _ => Flow::Fall,
+            // Leaves carry no handle uses; lambdas and JSX are opaque to v1
+            // owned tracking. Listed explicitly (no `_`) so a future `Expr`
+            // variant forces a compile error here, not a silent gap in
+            // consume tracking.
+            Expr::Number { .. }
+            | Expr::String { .. }
+            | Expr::Bool { .. }
+            | Expr::Void { .. }
+            | Expr::Lambda { .. }
+            | Expr::Jsx(_) => Flow::Fall,
         }
     }
 
@@ -336,21 +350,25 @@ impl OwnedChecker<'_> {
     fn merge(&self, state: &mut FlowState, fall_states: &[FlowState]) {
         let keys: Vec<u32> = state.keys().copied().collect();
         for key in keys {
-            let mut moved_at: Option<Span> = None;
-            let all_moved = fall_states.iter().all(|s| match s.get(&key) {
-                Some(Consume::Moved(at)) => {
-                    moved_at.get_or_insert(*at);
-                    true
-                }
-                _ => false,
-            });
-            if all_moved {
-                if let Some(at) = moved_at {
-                    state.insert(key, Consume::Moved(at));
-                }
+            let all_moved = fall_states
+                .iter()
+                .all(|s| matches!(s.get(&key), Some(Consume::Moved(_))));
+            let merged = if all_moved {
+                // Every falling arm moved it; carry a representative move span.
+                // `merge` is only called with a non-empty `fall_states`, so an
+                // all-moved key has at least one `Moved` span to find.
+                let at = fall_states
+                    .iter()
+                    .find_map(|s| match s.get(&key) {
+                        Some(Consume::Moved(at)) => Some(*at),
+                        _ => None,
+                    })
+                    .expect("all_moved over non-empty fall_states implies a Moved span");
+                Consume::Moved(at)
             } else {
-                state.insert(key, Consume::Live);
-            }
+                Consume::Live
+            };
+            state.insert(key, merged);
         }
     }
 
@@ -402,7 +420,7 @@ impl OwnedChecker<'_> {
             ResourceKind::NotResource => {
                 self.errors.push(TypeError::OwnedRequiresResourceType {
                     name: l.name.to_string(),
-                    ty: display_ty(&ty),
+                    ty: ty_display(&ty),
                     span: l.span,
                 });
                 None
@@ -415,10 +433,10 @@ impl OwnedChecker<'_> {
         match ty {
             Ty::Unknown => ResourceKind::Unknown,
             Ty::Param { .. } => ResourceKind::Unknown,
-            Ty::Named { symbol, .. } => self.named_is_resource(symbol.0),
+            Ty::Named { symbol, path } => self.named_is_resource(symbol.0, path),
             // A resource type could in principle be generic; judge by its base.
             Ty::App { base, .. } => match base.as_ref() {
-                Ty::Named { symbol, .. } => self.named_is_resource(symbol.0),
+                Ty::Named { symbol, path } => self.named_is_resource(symbol.0, path),
                 _ => ResourceKind::Unknown,
             },
             // Primitives, anonymous records, function and union types are all
@@ -427,7 +445,19 @@ impl OwnedChecker<'_> {
         }
     }
 
-    fn named_is_resource(&self, symbol_id: u32) -> ResourceKind {
+    fn named_is_resource(&self, symbol_id: u32, path: &[Ident]) -> ResourceKind {
+        // A prelude type (`Result`, `Option`, `Array`, ...) is never a
+        // resource. Its `SymbolId` indexes the *prelude* table, not the
+        // module table, and the two number ids from 0 independently — so
+        // blindly indexing the module table here would confuse a prelude id
+        // with an unrelated module symbol (the collision the day-19
+        // exhaustiveness check also guards). Match by name AND prelude id, as
+        // `required_variants` does.
+        if let Some(name) = path.last() {
+            if self.lowerer.prelude.lookup(name.as_ref()) == Some(SymbolId(symbol_id)) {
+                return ResourceKind::NotResource;
+            }
+        }
         let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol_id)) else {
             return ResourceKind::Unknown;
         };
@@ -444,6 +474,10 @@ impl OwnedChecker<'_> {
     // ----- diagnostics -----
 
     fn report_not_consumed(&mut self, key: u32) {
+        // A handle can reach more than one exit while live; report it once.
+        if !self.reported.insert(key) {
+            return;
+        }
         if let Some(info) = self.bindings.get(&key) {
             self.errors.push(TypeError::OwnedNotConsumed {
                 name: info.name.clone(),
@@ -453,12 +487,15 @@ impl OwnedChecker<'_> {
     }
 
     /// Report every still-live handle as leaking past the current exit.
+    /// Keys are sorted (binding key = def-site span start = source order) so
+    /// the diagnostic sequence is reproducible across runs.
     fn report_all_live(&mut self, state: &FlowState) {
-        let live: Vec<u32> = state
+        let mut live: Vec<u32> = state
             .iter()
             .filter(|(_, c)| matches!(c, Consume::Live))
             .map(|(k, _)| *k)
             .collect();
+        live.sort_unstable();
         for key in live {
             self.report_not_consumed(key);
         }
@@ -611,6 +648,48 @@ mod tests {
     }
 
     #[test]
+    fn owned_on_a_prelude_type_is_not_a_resource() {
+        // `Result` carries a prelude SymbolId; it must not be mistaken for a
+        // module resource type via a cross-table id collision. It is reported
+        // as a non-resource and never tracked.
+        let errs = owned_errors(
+            "fn use_it(r: Result<number, number>) -> void {\n  let owned x: Result<number, number> = r\n}\n",
+        );
+        assert!(
+            matches!(errs.as_slice(), [TypeError::OwnedRequiresResourceType { name, ty, .. }] if name == "x" && ty == "Result"),
+            "got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn leak_on_return_arm_and_fallthrough_arm_reports_once() {
+        // Err arm returns with f live; Ok arm borrows and falls through with f
+        // still live. Both are leak paths for the same binding — reported once.
+        let errs = owned_errors(
+            "fn use_it(r: Result<number, number>) -> void {\n  \
+               let owned f: FileHandle = make()\n  \
+               match r {\n    Err(e) => return void,\n    Ok(v) => read(f),\n  }\n}\n",
+        );
+        assert!(
+            matches!(errs.as_slice(), [TypeError::OwnedNotConsumed { name, .. }] if name == "f"),
+            "expected exactly one OwnedNotConsumed, got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn leak_on_two_return_arms_reports_once() {
+        let errs = owned_errors(
+            "fn use_it(r: Result<number, number>) -> void {\n  \
+               let owned f: FileHandle = make()\n  \
+               match r {\n    Err(e) => return void,\n    Ok(v) => return void,\n  }\n}\n",
+        );
+        assert!(
+            matches!(errs.as_slice(), [TypeError::OwnedNotConsumed { name, .. }] if name == "f"),
+            "expected exactly one OwnedNotConsumed, got {errs:?}"
+        );
+    }
+
+    #[test]
     fn no_annotation_with_resource_value_is_tracked() {
         // No annotation: the binding's type is taken from the producer's
         // return type (`make() -> FileHandle`), so it is still tracked.
@@ -623,18 +702,3 @@ mod tests {
     }
 }
 
-/// A short, human-readable rendering of a type for the resource-type error.
-fn display_ty(ty: &Ty) -> String {
-    match ty {
-        Ty::Prim(p) => format!("{p:?}").to_lowercase(),
-        Ty::Named { path, .. } => path
-            .last()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "?".to_string()),
-        Ty::Record { .. } => "record".to_string(),
-        Ty::Fn { .. } => "function".to_string(),
-        Ty::Union { .. } => "union".to_string(),
-        Ty::App { base, .. } => display_ty(base),
-        _ => "?".to_string(),
-    }
-}

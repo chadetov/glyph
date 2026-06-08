@@ -24,7 +24,7 @@ use glyph_ast::{
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
 use crate::lower::Lowerer;
-use crate::ty::{FnParam, Primitive, RecordField, Ty, UnionVariant};
+use crate::ty::{ty_display, FnParam, Primitive, RecordField, Ty, UnionVariant};
 use crate::type_map::TypeMap;
 use crate::TypeError;
 
@@ -831,19 +831,6 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     )
 }
 
-/// Render a `Ty` for a diagnostic. Day-21 only formats the primitives that
-/// `definitely_incompatible` can flag; other shapes get a coarse label,
-/// which is acceptable because they are never the subject of a mismatch yet.
-fn ty_display(ty: &Ty) -> String {
-    match ty {
-        Ty::Prim(p) => p.as_str().to_string(),
-        Ty::UnknownTop => "unknown".to_string(),
-        Ty::Named { path, .. } if !path.is_empty() => {
-            path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
-        }
-        _ => "?".to_string(),
-    }
-}
 
 // ----- day-20: generic instantiation (a minimal unifier) -----
 

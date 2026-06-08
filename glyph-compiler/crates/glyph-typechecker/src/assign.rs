@@ -621,13 +621,25 @@ impl Assigner<'_> {
         self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
     }
 
+    /// If `ty` is an application of the named prelude container type, return
+    /// its type arguments. The single collision-guarded prelude-app detector:
+    /// prelude and module symbol tables both number ids from 0, so an id match
+    /// alone could collide with an unrelated module symbol — require BOTH the
+    /// lexical name on the base path AND the prelude id. Shared by
+    /// `is_prelude_array` and `prelude_union`.
+    fn prelude_app<'a>(&self, ty: &'a Ty, name: &str) -> Option<&'a [Ty]> {
+        let Ty::App { base, args } = ty else { return None };
+        let Ty::Named { symbol, path } = base.as_ref() else { return None };
+        if path.last().map(|n| n.as_ref()) != Some(name) {
+            return None;
+        }
+        (self.lowerer.prelude.lookup(name) == Some(SymbolId(symbol.0))).then_some(args.as_slice())
+    }
+
     /// True if `ty` is an application of the prelude `Array` type
     /// (`Array<T>` → `App(Array, [T])`).
     fn is_prelude_array(&self, ty: &Ty) -> bool {
-        let Ty::App { base, .. } = ty else { return false };
-        let Ty::Named { symbol, path } = base.as_ref() else { return false };
-        path.last().map(|n| n.as_ref()) == Some("Array")
-            && self.lowerer.prelude.lookup("Array") == Some(SymbolId(symbol.0))
+        self.prelude_app(ty, "Array").is_some()
     }
 
     /// Exhaustiveness for a `match` over an array scrutinee: every length in
@@ -868,22 +880,17 @@ impl Assigner<'_> {
     }
 
     /// If `ty` is an application of the prelude `Result`/`Option` type,
-    /// return its display name and type arguments. Prelude unions appear as
-    /// `Ty::App` over the prelude symbol (e.g. `Result<T, E>`). The prelude
-    /// and module symbol tables both number ids from 0, so an id match alone
-    /// could collide with an unrelated module symbol; require BOTH the
-    /// lexical name on the base path AND the prelude id. The shared detector
-    /// behind `required_variants` and `variant_payload`.
+    /// return its display name and type arguments. The shared detector behind
+    /// `required_variants` and `variant_payload`; the collision-guarded
+    /// prelude-app match lives in `prelude_app`.
     fn prelude_union<'a>(&self, ty: &'a Ty) -> Option<(&'static str, &'a [Ty])> {
-        let Ty::App { base, args } = ty else { return None };
-        let Ty::Named { symbol, path } = base.as_ref() else { return None };
-        let name = path.last()?.as_ref();
-        let is_prelude = |n: &str| self.lowerer.prelude.lookup(n) == Some(SymbolId(symbol.0));
-        match name {
-            "Result" if is_prelude("Result") => Some(("Result", args.as_slice())),
-            "Option" if is_prelude("Option") => Some(("Option", args.as_slice())),
-            _ => None,
+        if let Some(args) = self.prelude_app(ty, "Result") {
+            return Some(("Result", args));
         }
+        if let Some(args) = self.prelude_app(ty, "Option") {
+            return Some(("Option", args));
+        }
+        None
     }
 
     // ----- day-17: match-arm payload binding typing -----
@@ -975,10 +982,16 @@ impl Assigner<'_> {
 }
 
 /// An array-pattern element/rest that matches any value of its position: a
-/// binding or `_`. Used by array exhaustiveness — only irrefutable elements
-/// let a pattern fully cover its length(s).
+/// binding, `_`, or an object destructure (Glyph object patterns only bind,
+/// they do not match field values, so they are total over their record type).
+/// A nested array pattern (`[a]`) is refutable — it constrains the inner
+/// length. Used by array exhaustiveness — only irrefutable elements let a
+/// pattern fully cover its length(s).
 fn is_irrefutable_pattern(p: &Pattern) -> bool {
-    matches!(p, Pattern::Ident { .. } | Pattern::Wildcard { .. })
+    matches!(
+        p,
+        Pattern::Ident { .. } | Pattern::Wildcard { .. } | Pattern::Object { .. }
+    )
 }
 
 // ----- day-21: assignability (conservative, primitives only) -----
@@ -1431,6 +1444,23 @@ fn f(argv: Array<string>) -> number {
     ["help", ..._] => 1,
     ["add", ...rest] => 2,
     [other, ..._] => 3,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn array_match_with_object_element_rest_is_exhaustive() {
+        // An object-destructure element binds any record value, so
+        // `[{id}, ...rest]` covers all non-empty arrays — together with `[]`
+        // the match is exhaustive and must not be flagged.
+        let src = r#"module x
+type Row = { id: number }
+fn f(rows: Array<Row>) -> number {
+  return match rows {
+    [] => 0,
+    [{ id }, ...rest] => id,
   }
 }
 "#;

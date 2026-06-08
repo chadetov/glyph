@@ -21,10 +21,12 @@
 //!
 //! A `match` over a tagged union lowers to a `switch` on the `tag`
 //! discriminant, with constructor-pattern arms (`Ok(x)`, `NetworkError({ url })`)
-//! binding the payload and `_`/`else` becoming `default`. In statement position
-//! (`return match`, or a bare `match` statement) the switch is emitted directly
-//! so `return` keeps its function semantics; in value position (`let x = match`,
-//! nested) it is wrapped in an immediately-invoked arrow.
+//! binding the payload and `_`/`else` becoming `default`. A `match` over a
+//! primitive with literal arms (`match n { 0 => .., else => .. }`) switches on
+//! the scrutinee value directly. In statement position (`return match`, or a
+//! bare `match` statement) the switch is emitted directly so `return` keeps its
+//! function semantics; in value position (`let x = match`, nested) it is
+//! wrapped in an immediately-invoked arrow.
 //!
 //! The `?` operator unwraps a `Result` at statement position (`let x = E?`, or
 //! a bare `E?`): it binds the operand to a temporary, returns it on `Err`, and
@@ -33,7 +35,7 @@
 //! `?` under the `await`) and is not yet unwrapped.
 //!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
-//! than emitting invalid TS: value (literal) matches, binding catch-all arms,
+//! than emitting invalid TS: binding catch-all arms,
 //! block arm bodies, nested/`is`/array match patterns, a nested `?`, generic
 //! tagged unions, the Q8 runtime
 //! descriptors that accompany type declarations, `component` + D6 JSX
@@ -65,8 +67,8 @@
 #![forbid(unsafe_code)]
 
 use glyph_ast::{
-    ArrayElem, BinOp, Block, Decl, Expr, GenericParam, ImportDecl, ImportKind, MatchArm,
-    MatchArmBody, Module, MutKind, ObjectField, Param, Pattern, PostfixOp, Span, Stmt,
+    ArrayElem, BinOp, Block, Decl, Expr, GenericParam, ImportDecl, ImportKind, LiteralPattern,
+    MatchArm, MatchArmBody, Module, MutKind, ObjectField, Param, Pattern, PostfixOp, Span, Stmt,
     TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
@@ -600,12 +602,9 @@ impl<'a> Emitter<'a> {
                         });
                     }
                 }
-                Pattern::Literal { span, .. } => {
-                    return Err(EmitError::Unsupported {
-                        construct: "a value match (literal pattern)",
-                        span: *span,
-                    })
-                }
+                // A literal pattern makes this a value match (a `switch` on the
+                // scrutinee value rather than its `tag`).
+                Pattern::Literal { .. } => {}
                 Pattern::Object { span, .. } | Pattern::Array { span, .. } => {
                     return Err(EmitError::Unsupported {
                         construct: "an object/array match pattern",
@@ -640,16 +639,22 @@ impl<'a> Emitter<'a> {
             });
         }
 
-        // A match with no variant arm (only a catch-all) has nothing to
-        // discriminate on, so there is no `.tag` to switch over. Evaluate the
-        // scrutinee for any effect (parenthesized so an object-literal
-        // scrutinee isn't parsed as a block), then run the lone catch-all arm.
+        // A match with no discriminating arm (only a catch-all) has nothing to
+        // switch over. Evaluate the scrutinee for any effect (parenthesized so
+        // an object-literal scrutinee isn't parsed as a block), then run the
+        // lone catch-all arm.
         let has_variant_arm = arms.iter().any(|a| match &a.pattern {
             Pattern::Constructor { .. } => true,
             Pattern::Ident { name, .. } => is_variant(name),
             _ => false,
         });
-        if !has_variant_arm {
+        // A literal arm switches on the scrutinee value directly; a variant arm
+        // switches on its `tag`. The two never mix (a primitive has no tag, a
+        // union has no literal values).
+        let is_value_match = arms
+            .iter()
+            .any(|a| matches!(a.pattern, Pattern::Literal { .. }));
+        if !has_variant_arm && !is_value_match {
             let scrut = self.expr(scrutinee)?;
             self.line(&format!("({scrut});"));
             self.emit_arm_body(&arms[0].body, term)?;
@@ -659,7 +664,12 @@ impl<'a> Emitter<'a> {
         let scrut = self.expr(scrutinee)?;
         let m = self.fresh_temp("__m");
         self.line(&format!("const {m} = {scrut};"));
-        self.line(&format!("switch ({m}.{TAG}) {{"));
+        let discriminant = if is_value_match {
+            m.clone()
+        } else {
+            format!("{m}.{TAG}")
+        };
+        self.line(&format!("switch ({discriminant}) {{"));
         self.indent += 1;
         for arm in arms {
             match &arm.pattern {
@@ -675,6 +685,14 @@ impl<'a> Emitter<'a> {
                 // A bare no-payload variant: a `case` with no payload binding.
                 Pattern::Ident { name, .. } => {
                     self.line(&format!("case \"{name}\": {{"));
+                    self.indent += 1;
+                    self.emit_arm_body(&arm.body, term)?;
+                    self.indent -= 1;
+                    self.line("}");
+                }
+                // A value-match literal: `case <literal>:`.
+                Pattern::Literal { value, .. } => {
+                    self.line(&format!("case {}: {{", literal_label(value)));
                     self.indent += 1;
                     self.emit_arm_body(&arm.body, term)?;
                     self.indent -= 1;
@@ -946,6 +964,16 @@ impl<'a> Emitter<'a> {
     }
 }
 
+/// Render a literal pattern as a TS `case` label.
+fn literal_label(value: &LiteralPattern) -> String {
+    match value {
+        LiteralPattern::Number(raw) => raw.clone(),
+        LiteralPattern::String(s) => escape_double_quoted(s),
+        LiteralPattern::Bool(b) => b.to_string(),
+        LiteralPattern::Void => "undefined".to_string(),
+    }
+}
+
 fn bin_op(op: BinOp) -> &'static str {
     match op {
         BinOp::NullishCoalesce => "??",
@@ -1169,6 +1197,41 @@ mod tests {
     }
 
     #[test]
+    fn value_match_switches_on_the_scrutinee() {
+        let ts = emit(
+            "module x\nfn sign(n: number) -> string {\n  return match n {\n    0 => \"zero\",\n    1 => \"one\",\n    else => \"many\",\n  }\n}\n",
+        );
+        assert!(ts.contains("const __m0 = n;"), "{ts}");
+        assert!(ts.contains("switch (__m0) {"), "{ts}");
+        assert!(ts.contains("case 0: {"), "{ts}");
+        assert!(ts.contains("return \"zero\";"), "{ts}");
+        assert!(ts.contains("default: {"), "{ts}");
+        // Switches on the value, not `.tag`.
+        assert!(!ts.contains(".tag"), "{ts}");
+    }
+
+    #[test]
+    fn bool_value_match_gets_exhaustiveness_default() {
+        let ts = emit(
+            "module x\nfn flag(b: bool) -> number {\n  return match b {\n    true => 1,\n    false => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("case true: {"), "{ts}");
+        assert!(ts.contains("case false: {"), "{ts}");
+        assert!(
+            ts.contains("default: throw new Error(\"non-exhaustive match\");"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn string_value_match_quotes_case_labels() {
+        let ts = emit(
+            "module x\nfn parse(s: string) -> number {\n  return match s {\n    \"yes\" => 1,\n    else => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"yes\": {"), "{ts}");
+    }
+
+    #[test]
     fn nested_try_in_expression_is_unsupported_for_now() {
         let err = emit_err(
             "module x\nfn p() -> Result<number, string> { return Ok(0) }\nfn run() -> Result<number, string> {\n  return Ok(p()?)\n}\n",
@@ -1226,14 +1289,14 @@ mod tests {
     }
 
     #[test]
-    fn value_match_is_unsupported_for_now() {
+    fn block_arm_body_match_is_unsupported_for_now() {
         let err = emit_err(
-            "module x\nfn f(n: number) -> number { return match n { 0 => 1, else => 2 } }\n",
+            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  return match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n}\n",
         );
         assert!(matches!(
             err,
             EmitError::Unsupported {
-                construct: "a value match (literal pattern)",
+                construct: "a block body in a match arm",
                 ..
             }
         ));

@@ -15,9 +15,12 @@
 //! literals with spread, lambdas), and type annotations (primitives, generic
 //! applications, function and record types).
 //!
-//! Monomorphic tagged unions lower to a TS discriminated union on a `tag`
-//! field plus a constructor per variant (a `const` for a no-payload variant,
-//! a function for a payload variant; record payloads spread their fields). A
+//! Tagged unions lower to a TS discriminated union on a `tag` field plus a
+//! constructor per variant (a `const` for a no-payload variant, a function for
+//! a payload variant; record payloads spread their fields). A generic union
+//! carries its type parameters on the alias and the constructor functions, and
+//! its no-payload `const`s are widened to `<never>` so they fit every
+//! instantiation. A
 //! non-generic record type additionally emits a Q8 runtime descriptor — an
 //! `export const X = { is(v): v is X { ... } }` whose predicate shallowly
 //! validates each field (primitives by `typeof`, others by presence) — so
@@ -51,8 +54,7 @@
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
 //! than emitting invalid TS: binding catch-all arms,
 //! value-position block arms, nested-constructor/array match patterns,
-//! `is` checks on union/generic/imported types, a nested `?`, generic
-//! tagged unions, the Q8 runtime
+//! `is` checks on union/generic/imported types, a nested `?`, the Q8 runtime
 //! descriptors that accompany type declarations, `component` + D6 JSX
 //! directive lowering, and the two-binding `for K, V in`.
 //!
@@ -254,16 +256,7 @@ impl<'a> Emitter<'a> {
             }
             Decl::Type(t) => {
                 if let TypeExpr::Union { variants, .. } = &t.body {
-                    // Generic tagged unions (no-payload variants of a generic
-                    // union need a widened constructor type) land on a later
-                    // day; the corpus's user unions are all monomorphic.
-                    if !t.generics.is_empty() {
-                        return Err(EmitError::Unsupported {
-                            construct: "generic tagged union type declaration",
-                            span: t.span,
-                        });
-                    }
-                    return self.emit_union(&t.name, variants);
+                    return self.emit_union(&t.name, &t.generics, variants);
                 }
                 let generics = self.generics(&t.generics);
                 let body = self.ty(&t.body)?;
@@ -349,11 +342,19 @@ impl<'a> Emitter<'a> {
         Ok(())
     }
 
-    /// Emit a (monomorphic) tagged union as a TS discriminated union plus a
-    /// constructor per variant. The discriminant is a `tag` string literal.
-    /// A record payload's fields are spread alongside the tag; a no-payload
-    /// variant becomes a `const`, a payload variant a constructor function.
-    fn emit_union(&mut self, name: &str, variants: &[UnionVariant]) -> Result<(), EmitError> {
+    /// Emit a tagged union as a TS discriminated union plus a constructor per
+    /// variant. The discriminant is a `tag` string literal. A record payload's
+    /// fields are spread alongside the tag; a no-payload variant becomes a
+    /// `const`, a payload variant a constructor function. A generic union's
+    /// alias and constructor functions carry its type parameters; a no-payload
+    /// variant `const` is typed at `<never>` so it is assignable to every
+    /// instantiation.
+    fn emit_union(
+        &mut self,
+        name: &str,
+        generics: &[GenericParam],
+        variants: &[UnionVariant],
+    ) -> Result<(), EmitError> {
         // A record-payload field named `tag` collides with the discriminant —
         // it would both duplicate the `tag` type member and let the spread
         // overwrite the tag at runtime. Reject it rather than emit broken TS.
@@ -367,7 +368,18 @@ impl<'a> Emitter<'a> {
                 }
             }
         }
-        self.line(&format!("export type {name} ="));
+        let generics_str = self.generics(generics);
+        // The union applied to its own parameters (`Box<T>`) for constructor
+        // return types, and applied to `never` (`Box<never>`) for the widened
+        // no-payload `const`.
+        let applied = format!("{name}{generics_str}");
+        let widened = if generics.is_empty() {
+            name.to_string()
+        } else {
+            let nevers = generics.iter().map(|_| "never").collect::<Vec<_>>().join(", ");
+            format!("{name}<{nevers}>")
+        };
+        self.line(&format!("export type {name}{generics_str} ="));
         self.indent += 1;
         for (i, v) in variants.iter().enumerate() {
             let term = if i + 1 == variants.len() { ";" } else { "" };
@@ -377,7 +389,7 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.out.push('\n');
         for v in variants {
-            self.emit_variant_constructor(name, v)?;
+            self.emit_variant_constructor(&generics_str, &applied, &widened, v)?;
         }
         Ok(())
     }
@@ -401,22 +413,24 @@ impl<'a> Emitter<'a> {
 
     fn emit_variant_constructor(
         &mut self,
-        union: &str,
+        generics_str: &str,
+        applied: &str,
+        widened: &str,
         v: &UnionVariant,
     ) -> Result<(), EmitError> {
         let name = &v.name;
         match &v.payload {
             None => self.line(&format!(
-                "export const {name}: {union} = {{ {TAG}: \"{name}\" }};"
+                "export const {name}: {widened} = {{ {TAG}: \"{name}\" }};"
             )),
             // Spread the fields FIRST so the discriminant always wins, even if
             // the record (somehow) carried a colliding key.
             Some(payload @ TypeExpr::Record { .. }) => self.line(&format!(
-                "export function {name}(fields: {}): {union} {{ return {{ ...fields, {TAG}: \"{name}\" }}; }}",
+                "export function {name}{generics_str}(fields: {}): {applied} {{ return {{ ...fields, {TAG}: \"{name}\" }}; }}",
                 self.ty(payload)?
             )),
             Some(other) => self.line(&format!(
-                "export function {name}({PAYLOAD}: {}): {union} {{ return {{ {TAG}: \"{name}\", {PAYLOAD} }}; }}",
+                "export function {name}{generics_str}({PAYLOAD}: {}): {applied} {{ return {{ {TAG}: \"{name}\", {PAYLOAD} }}; }}",
                 self.ty(other)?
             )),
         }
@@ -1797,16 +1811,19 @@ mod tests {
     }
 
     #[test]
-    fn generic_tagged_union_is_unsupported_for_now() {
-        let err = emit_err(
-            "module x\ntype Box<T> =\n  | Full({ value: T })\n  | Empty\n",
+    fn generic_tagged_union_emits_with_type_params() {
+        let ts = emit("module x\ntype Box<T> =\n  | Full({ value: T })\n  | Empty\n");
+        assert!(ts.contains("export type Box<T> ="), "{ts}");
+        assert!(ts.contains("| { tag: \"Full\"; value: T }"), "{ts}");
+        // Payload constructor is generic and returns the applied type.
+        assert!(
+            ts.contains("export function Full<T>(fields: { value: T }): Box<T> { return { ...fields, tag: \"Full\" }; }"),
+            "{ts}"
         );
-        assert!(matches!(
-            err,
-            EmitError::Unsupported {
-                construct: "generic tagged union type declaration",
-                ..
-            }
-        ));
+        // No-payload variant is a `const` widened to `Box<never>`.
+        assert!(
+            ts.contains("export const Empty: Box<never> = { tag: \"Empty\" };"),
+            "{ts}"
+        );
     }
 }

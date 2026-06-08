@@ -780,23 +780,28 @@ impl Assigner<'_> {
         if let Some(found) = self.named_union_variants(ty) {
             return Some(found);
         }
-        // Prelude unions appear as `Ty::App` over the prelude symbol (e.g.
-        // `Result<T, E>`). The prelude and module symbol tables both number
-        // ids from 0, so an id match alone could collide with a user type
-        // that happens to share the numeric id. Require BOTH the lexical
-        // name on the base path AND the prelude id, so only a genuine
-        // prelude `Result`/`Option` matches.
-        let Ty::App { base, .. } = ty else { return None };
+        match self.prelude_union(ty)? {
+            ("Result", _) => Some(("Result".to_string(), vec!["Ok".into(), "Err".into()])),
+            ("Option", _) => Some(("Option".to_string(), vec!["Some".into(), "None".into()])),
+            _ => None,
+        }
+    }
+
+    /// If `ty` is an application of the prelude `Result`/`Option` type,
+    /// return its display name and type arguments. Prelude unions appear as
+    /// `Ty::App` over the prelude symbol (e.g. `Result<T, E>`). The prelude
+    /// and module symbol tables both number ids from 0, so an id match alone
+    /// could collide with an unrelated module symbol; require BOTH the
+    /// lexical name on the base path AND the prelude id. The shared detector
+    /// behind `required_variants` and `variant_payload`.
+    fn prelude_union<'a>(&self, ty: &'a Ty) -> Option<(&'static str, &'a [Ty])> {
+        let Ty::App { base, args } = ty else { return None };
         let Ty::Named { symbol, path } = base.as_ref() else { return None };
         let name = path.last()?.as_ref();
         let is_prelude = |n: &str| self.lowerer.prelude.lookup(n) == Some(SymbolId(symbol.0));
         match name {
-            "Result" if is_prelude("Result") => {
-                Some(("Result".to_string(), vec!["Ok".into(), "Err".into()]))
-            }
-            "Option" if is_prelude("Option") => {
-                Some(("Option".to_string(), vec!["Some".into(), "None".into()]))
-            }
+            "Result" if is_prelude("Result") => Some(("Result", args.as_slice())),
+            "Option" if is_prelude("Option") => Some(("Option", args.as_slice())),
             _ => None,
         }
     }
@@ -880,14 +885,10 @@ impl Assigner<'_> {
         if let Some(p) = self.union_variant_payload(ty, variant) {
             return Some(p);
         }
-        let Ty::App { base, args } = ty else { return None };
-        let Ty::Named { symbol, path } = base.as_ref() else { return None };
-        let name = path.last()?.as_ref();
-        let is_prelude = |n: &str| self.lowerer.prelude.lookup(n) == Some(SymbolId(symbol.0));
-        match (name, variant.as_ref()) {
-            ("Result", "Ok") if is_prelude("Result") => args.first().cloned(),
-            ("Result", "Err") if is_prelude("Result") => args.get(1).cloned(),
-            ("Option", "Some") if is_prelude("Option") => args.first().cloned(),
+        match (self.prelude_union(ty)?, variant.as_ref()) {
+            (("Result", args), "Ok") => args.first().cloned(),
+            (("Result", args), "Err") => args.get(1).cloned(),
+            (("Option", args), "Some") => args.first().cloned(),
             _ => None,
         }
     }
@@ -1233,6 +1234,23 @@ fn run(r: Result<Option<number>, string>) -> number {
             }
             other => panic!("expected NonExhaustiveMatch, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn whole_variant_cover_wins_over_a_nested_arm() {
+        // `Ok` (bare) fully covers the variant; a sibling `Ok(Some(y))` arm
+        // also classifies it as nested. The whole-variant cover must win, so
+        // no inner `Option` check runs and `Ok(None)` is not reported missing.
+        let src = r#"module x
+fn run(r: Result<Option<number>, string>) -> number {
+  return match r {
+    Ok => 0,
+    Ok(Some(y)) => y,
+    Err(e) => 1,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
     }
 
     #[test]

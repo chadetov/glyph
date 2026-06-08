@@ -42,6 +42,17 @@
 //! The right fix is a resolver-level "stricter-than-TS" rule that rejects TS
 //! reserved words as identifier names, not emit-time mangling (which would
 //! break import name matching). Tracked for a later day; no example trips it.
+//!
+//! Two more gaps in the same family, both fixed once type context is threaded
+//! into the emitter (or by a resolver rule):
+//! - A single-identifier payload bind `Variant(x)` reads `.value`, which is
+//!   correct for a non-record payload (`Ok(x)`, `Some(x)`) but wrong for a
+//!   record payload bound whole (`Variant(p)`), where the fields are spread
+//!   flat. The corpus binds records with object patterns, so no example trips
+//!   it; the whole-record reconstruction needs the variant's declared shape.
+//! - `match` lowering synthesizes `__mN` scrutinee temporaries; a user
+//!   identifier literally named `__m0` would collide. A resolver rule
+//!   reserving the `__` prefix is the proper fix.
 
 #![forbid(unsafe_code)]
 
@@ -85,6 +96,11 @@ impl EmitError {
 /// A payload field named `tag` would collide with the discriminant and is
 /// rejected at emit (see `emit_union`).
 const TAG: &str = "tag";
+
+/// The field a non-record (single-value) payload is stored under, e.g. `Ok(x)`
+/// → `{ tag: "Ok", value: x }`. The sibling of `TAG`; single-sourced because
+/// the union constructors write it and `match` lowering reads it.
+const PAYLOAD: &str = "value";
 
 /// How a lowered `match` arm yields control: `return` its value (the match is
 /// in return position) or run it for effect and `break` (statement position).
@@ -272,7 +288,7 @@ impl Emitter {
                     s.push_str(&format!("; {}{opt}: {}", f.name, self.ty(&f.ty)?));
                 }
             }
-            Some(other) => s.push_str(&format!("; value: {}", self.ty(other)?)),
+            Some(other) => s.push_str(&format!("; {PAYLOAD}: {}", self.ty(other)?)),
         }
         Ok(s)
     }
@@ -294,7 +310,7 @@ impl Emitter {
                 self.ty(payload)?
             )),
             Some(other) => self.line(&format!(
-                "export function {name}(value: {}): {union} {{ return {{ {TAG}: \"{name}\", value }}; }}",
+                "export function {name}({PAYLOAD}: {}): {union} {{ return {{ {TAG}: \"{name}\", {PAYLOAD} }}; }}",
                 self.ty(other)?
             )),
         }
@@ -478,15 +494,29 @@ impl Emitter {
             }
         }
 
+        // Two catch-all arms would emit two `default:` clauses (invalid TS).
+        // The typechecker does not yet reject the redundant arm, so guard here.
+        if let Some(extra) = arms
+            .iter()
+            .filter(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }))
+            .nth(1)
+        {
+            return Err(EmitError::Unsupported {
+                construct: "a match with more than one catch-all arm",
+                span: extra.span,
+            });
+        }
+
         // A match with no constructor arm has nothing to discriminate on, so
         // there is no `.tag` to switch over. Evaluate the scrutinee for any
-        // effect, then run the lone catch-all arm.
+        // effect (parenthesized so an object-literal scrutinee isn't parsed as
+        // a block), then run the lone catch-all arm.
         let has_ctor = arms
             .iter()
             .any(|a| matches!(a.pattern, Pattern::Constructor { .. }));
         if !has_ctor {
             let scrut = self.expr(scrutinee)?;
-            self.line(&format!("{scrut};"));
+            self.line(&format!("({scrut});"));
             self.emit_arm_body(&arms[0].body, term)?;
             return Ok(());
         }
@@ -528,7 +558,7 @@ impl Emitter {
     /// reads the non-record `value` field; no args binds nothing.
     fn emit_arm_binds(&mut self, m: &str, args: &[Pattern]) {
         match args {
-            [Pattern::Ident { name, .. }] => self.line(&format!("const {name} = {m}.value;")),
+            [Pattern::Ident { name, .. }] => self.line(&format!("const {name} = {m}.{PAYLOAD};")),
             [Pattern::Object { fields, .. }] => {
                 for f in fields {
                     let binding = f.binding.as_ref().unwrap_or(&f.key);
@@ -949,6 +979,18 @@ mod tests {
         );
         assert!(ts.contains("const __m0 = a;"), "{ts}");
         assert!(ts.contains("const __m1 = b;"), "{ts}");
+    }
+
+    #[test]
+    fn two_catch_all_arms_are_rejected() {
+        // Two `else` arms would emit two `default:` clauses (TS1113).
+        let err = emit_err(
+            "module x\ntype E =\n  | A({ x: number })\n  | B({ y: number })\nfn f(e: E) -> number {\n  return match e {\n    A({ x }) => x,\n    else => 1,\n    else => 2,\n  }\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
+            "got {err:?}"
+        );
     }
 
     #[test]

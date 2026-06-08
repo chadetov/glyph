@@ -132,6 +132,17 @@ struct Emitter {
 }
 
 impl Emitter {
+    /// A fresh sub-emitter at the given indent, inheriting the temporary
+    /// counter so synthesized names don't repeat. Used to render a lambda body
+    /// or a value-position `match` into its own string before splicing it in.
+    fn sub(&self, indent: usize) -> Emitter {
+        Emitter {
+            out: String::new(),
+            indent,
+            tmp_counter: self.tmp_counter,
+        }
+    }
+
     fn pad(&mut self) {
         for _ in 0..self.indent {
             self.out.push_str("  ");
@@ -550,6 +561,17 @@ impl Emitter {
                 _ => unreachable!("patterns were validated above"),
             }
         }
+        // Without a catch-all arm, append an exhaustiveness assertion: it makes
+        // every path return-or-throw (so a value-position arrow infers `T`, not
+        // `T | undefined`, and `noImplicitReturns` is satisfied) regardless of
+        // how precisely TS types the scrutinee. The Glyph typechecker has
+        // already proven the match exhaustive, so the throw is unreachable.
+        let has_catch_all = arms
+            .iter()
+            .any(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }));
+        if !has_catch_all {
+            self.line("default: throw new Error(\"non-exhaustive match\");");
+        }
         self.indent -= 1;
         self.line("}");
         Ok(())
@@ -694,11 +716,7 @@ impl Emitter {
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
-                let mut sub = Emitter {
-                    out: String::new(),
-                    indent: self.indent,
-                    tmp_counter: self.tmp_counter,
-                };
+                let mut sub = self.sub(self.indent);
                 sub.emit_block(body)?;
                 format!("({params}){ret} => {}", sub.out)
             }
@@ -709,11 +727,7 @@ impl Emitter {
             // cannot contain a function-level `return`, so capturing it in the
             // arrow is sound.)
             Expr::Match { scrutinee, arms, .. } => {
-                let mut sub = Emitter {
-                    out: String::new(),
-                    indent: self.indent + 1,
-                    tmp_counter: self.tmp_counter,
-                };
+                let mut sub = self.sub(self.indent + 1);
                 sub.emit_match_dispatch(scrutinee, arms, ArmTerm::Return)?;
                 let pad = "  ".repeat(self.indent);
                 format!("(() => {{\n{}{pad}}})()", sub.out)
@@ -971,6 +985,12 @@ mod tests {
         assert!(ts.contains("const value = __m0.value;"), "{ts}");
         assert!(ts.contains("return value;"), "{ts}");
         assert!(ts.contains("case \"Err\": {"), "{ts}");
+        // No catch-all → an exhaustiveness assertion makes the switch total
+        // from TS's view (so the function/arrow provably returns).
+        assert!(
+            ts.contains("default: throw new Error(\"non-exhaustive match\");"),
+            "{ts}"
+        );
     }
 
     #[test]

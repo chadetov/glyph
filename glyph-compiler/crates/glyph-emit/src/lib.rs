@@ -649,11 +649,26 @@ impl<'a> Emitter<'a> {
             _ => false,
         });
         // A literal arm switches on the scrutinee value directly; a variant arm
-        // switches on its `tag`. The two never mix (a primitive has no tag, a
-        // union has no literal values).
+        // switches on its `tag`. The two should never mix (a primitive has no
+        // tag, a union no literal values) — but the typechecker does not yet
+        // reject the mix, so guard rather than emit a switch that discriminates
+        // some arms by value and others by tag.
         let is_value_match = arms
             .iter()
             .any(|a| matches!(a.pattern, Pattern::Literal { .. }));
+        if has_variant_arm && is_value_match {
+            let span = arms
+                .iter()
+                .find_map(|a| match &a.pattern {
+                    Pattern::Literal { span, .. } => Some(*span),
+                    _ => None,
+                })
+                .unwrap_or(arms[0].span);
+            return Err(EmitError::Unsupported {
+                construct: "a match mixing literal and variant patterns",
+                span,
+            });
+        }
         if !has_variant_arm && !is_value_match {
             let scrut = self.expr(scrutinee)?;
             self.line(&format!("({scrut});"));
@@ -711,8 +726,10 @@ impl<'a> Emitter<'a> {
         // Without a catch-all arm, append an exhaustiveness assertion: it makes
         // every path return-or-throw (so a value-position arrow infers `T`, not
         // `T | undefined`, and `noImplicitReturns` is satisfied) regardless of
-        // how precisely TS types the scrutinee. The Glyph typechecker has
-        // already proven the match exhaustive, so the throw is unreachable.
+        // how precisely TS types the scrutinee. For a tagged union the
+        // typechecker has proven exhaustiveness, so the throw is unreachable;
+        // for a value match without an `else` it is the runtime fallback for an
+        // unlisted value (value-match exhaustiveness is not yet checked).
         let has_catch_all = arms
             .iter()
             .any(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }));
@@ -1220,6 +1237,19 @@ mod tests {
         assert!(
             ts.contains("default: throw new Error(\"non-exhaustive match\");"),
             "{ts}"
+        );
+    }
+
+    #[test]
+    fn mixed_literal_and_variant_match_is_rejected() {
+        // A literal arm and a variant arm in one match would switch some arms
+        // on the value and others on the tag; reject rather than misemit.
+        let err = emit_err(
+            "module x\ntype S = Idle | Busy\nfn f(s: S) -> number {\n  return match s {\n    0 => 1,\n    Idle => 2,\n    else => 9,\n  }\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("mixing")),
+            "got {err:?}"
         );
     }
 

@@ -89,6 +89,7 @@ Module {
                 params: [
                     Param {
                         name: "a",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "number",
@@ -105,6 +106,7 @@ Module {
                     },
                     Param {
                         name: "b",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "number",
@@ -185,6 +187,7 @@ Module {
                 params: [
                     Param {
                         name: "name",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",

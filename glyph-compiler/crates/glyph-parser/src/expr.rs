@@ -475,6 +475,9 @@ fn parse_lambda(p: &mut Cursor, start_span: Span) -> Result<Expr, ParseError> {
         let end = ty.span().end;
         Ok(glyph_ast::Param {
             name,
+            // D25: lambda parameters borrow in v1; `owned` consumers are
+            // declared `fn`s. A lambda taking ownership is forward-compatible.
+            owned: false,
             ty,
             span: Span::new(param_start.start, end),
         })

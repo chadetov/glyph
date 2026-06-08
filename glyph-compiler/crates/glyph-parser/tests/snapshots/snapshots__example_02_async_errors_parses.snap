@@ -626,6 +626,7 @@ Module {
                 params: [
                     Param {
                         name: "url",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",
@@ -642,6 +643,7 @@ Module {
                     },
                     Param {
                         name: "schema",
+                        owned: false,
                         ty: Generic {
                             base: Path {
                                 segments: [
@@ -772,6 +774,7 @@ Module {
                                                 params: [
                                                     Param {
                                                         name: "e",
+                                                        owned: false,
                                                         ty: Path {
                                                             segments: [
                                                                 "unknown",
@@ -1114,6 +1117,7 @@ Module {
                 params: [
                     Param {
                         name: "id",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",
@@ -1264,6 +1268,7 @@ Module {
                 params: [
                     Param {
                         name: "user_id",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",
@@ -1454,6 +1459,7 @@ Module {
                 params: [
                     Param {
                         name: "post_id",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",
@@ -1644,6 +1650,7 @@ Module {
                 params: [
                     Param {
                         name: "user_id",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",
@@ -1853,6 +1860,7 @@ Module {
                                                         params: [
                                                             Param {
                                                                 name: "post",
+                                                                owned: false,
                                                                 ty: Path {
                                                                     segments: [
                                                                         "unknown",
@@ -2028,6 +2036,7 @@ Module {
                                             params: [
                                                 Param {
                                                     name: "post",
+                                                    owned: false,
                                                     ty: Path {
                                                         segments: [
                                                             "unknown",
@@ -2044,6 +2053,7 @@ Module {
                                                 },
                                                 Param {
                                                     name: "comments",
+                                                    owned: false,
                                                     ty: Path {
                                                         segments: [
                                                             "unknown",
@@ -2214,6 +2224,7 @@ Module {
                 params: [
                     Param {
                         name: "user_id",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",

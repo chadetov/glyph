@@ -342,14 +342,23 @@ fn parse_generic_params(p: &mut Cursor) -> Result<Vec<GenericParam>, ParseError>
 }
 
 fn parse_param(p: &mut Cursor) -> Result<Param, ParseError> {
-    let (name, name_span) = p.expect_ident("parameter name")?;
+    // D25: an optional leading `owned` marks the parameter as taking
+    // ownership of its argument. The span starts at `owned` when present.
+    let (start, owned) = if matches!(p.peek(), Token::Owned) {
+        let owned_span = p.expect(&Token::Owned, "`owned`")?;
+        (owned_span.start, true)
+    } else {
+        (p.peek_span().start, false)
+    };
+    let (name, _) = p.expect_ident("parameter name")?;
     p.expect(&Token::Colon, "`:` after parameter name")?;
     let ty = types::parse_type(p)?;
     let end = ty.span().end;
     Ok(Param {
         name,
+        owned,
         ty,
-        span: Span::new(name_span.start, end),
+        span: Span::new(start, end),
     })
 }
 

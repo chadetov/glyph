@@ -76,6 +76,9 @@ impl<'a> Lowerer<'a> {
                     .iter()
                     .map(|p| FnParam {
                         name: p.name.clone(),
+                        // Function-type params (`fn(x: T) -> U`) borrow in v1;
+                        // `fn(owned x: T)` type syntax is forward-compatible.
+                        owned: false,
                         ty: self.lower(&p.ty),
                     })
                     .collect(),
@@ -123,6 +126,7 @@ impl<'a> Lowerer<'a> {
             .iter()
             .map(|p| FnParam {
                 name: Some(p.name.clone()),
+                owned: p.owned,
                 ty: self.lower(&p.ty),
             })
             .collect();

@@ -396,6 +396,7 @@ Module {
                 params: [
                     Param {
                         name: "props",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "Props",
@@ -580,6 +581,7 @@ Module {
                                                                             params: [
                                                                                 Param {
                                                                                     name: "q",
+                                                                                    owned: false,
                                                                                     ty: Path {
                                                                                         segments: [
                                                                                             "string",
@@ -1013,6 +1015,7 @@ Module {
                                                                     params: [
                                                                         Param {
                                                                             name: "event",
+                                                                            owned: false,
                                                                             ty: Path {
                                                                                 segments: [
                                                                                     "unknown",
@@ -1279,6 +1282,7 @@ Module {
                 params: [
                     Param {
                         name: "props",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "ResultsListProps",
@@ -1894,6 +1898,7 @@ Module {
                 params: [
                     Param {
                         name: "query",
+                        owned: false,
                         ty: Path {
                             segments: [
                                 "string",
@@ -1910,6 +1915,7 @@ Module {
                     },
                     Param {
                         name: "set",
+                        owned: false,
                         ty: Fn {
                             params: [
                                 FnTypeParam {

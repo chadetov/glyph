@@ -191,6 +191,30 @@ mod smoke {
     }
 
     #[test]
+    fn owned_param_d25() {
+        let m = parse_or_panic(
+            "module x\nfn close(owned h: FileHandle) -> void { return void }\n",
+        );
+        match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => {
+                assert_eq!(f.params.len(), 1);
+                assert_eq!(f.params[0].name.as_ref(), "h");
+                assert!(f.params[0].owned);
+            }
+            other => panic!("expected Fn, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn plain_param_is_not_owned() {
+        let m = parse_or_panic("module x\nfn read(h: FileHandle) -> string { return \"\" }\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => assert!(!f.params[0].owned),
+            other => panic!("expected Fn, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn async_fn_decl() {
         let m = parse_or_panic("module x\nasync fn fetch() -> number { return 0 }\n");
         match &m.items[0] {

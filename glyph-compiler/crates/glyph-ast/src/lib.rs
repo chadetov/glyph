@@ -102,6 +102,11 @@ pub struct GenericParam {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Param {
     pub name: Ident,
+    /// D25: an `owned` parameter takes ownership of its argument. Passing an
+    /// `owned`-bound resource handle to an `owned` parameter is the single
+    /// consume (a move); the binding cannot be used afterward. Non-`owned`
+    /// parameters borrow and do not consume.
+    pub owned: bool,
     pub ty: TypeExpr,
     pub span: Span,
 }

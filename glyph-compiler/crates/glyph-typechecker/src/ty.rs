@@ -100,6 +100,10 @@ pub struct RecordField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FnParam {
     pub name: Option<Ident>,
+    /// D25: this parameter takes ownership of its argument (a move). Drives
+    /// the single-consumption analysis: passing an `owned`-bound handle into
+    /// an `owned` parameter is the consume.
+    pub owned: bool,
     pub ty: Ty,
 }
 

@@ -881,6 +881,7 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                 .iter()
                 .map(|p| FnParam {
                     name: p.name.clone(),
+                    owned: p.owned,
                     ty: substitute_type_params(&p.ty, subst),
                 })
                 .collect(),

@@ -345,6 +345,7 @@ Module {
                                                     params: [
                                                         Param {
                                                             name: "input",
+                                                            owned: false,
                                                             ty: Path {
                                                                 segments: [
                                                                     "unknown",
@@ -605,6 +606,7 @@ Module {
                                                     params: [
                                                         Param {
                                                             name: "input",
+                                                            owned: false,
                                                             ty: Path {
                                                                 segments: [
                                                                     "unknown",
@@ -821,6 +823,7 @@ Module {
                 params: [
                     Param {
                         name: "shape",
+                        owned: false,
                         ty: Generic {
                             base: Path {
                                 segments: [
@@ -934,6 +937,7 @@ Module {
                                                     params: [
                                                         Param {
                                                             name: "input",
+                                                            owned: false,
                                                             ty: Path {
                                                                 segments: [
                                                                     "unknown",
@@ -1692,6 +1696,7 @@ Module {
                 params: [
                     Param {
                         name: "element",
+                        owned: false,
                         ty: Generic {
                             base: Path {
                                 segments: [
@@ -1796,6 +1801,7 @@ Module {
                                                     params: [
                                                         Param {
                                                             name: "input",
+                                                            owned: false,
                                                             ty: Path {
                                                                 segments: [
                                                                     "unknown",

@@ -43,9 +43,15 @@
 //! returns from the function) but rejected in value position (an IIFE arrow
 //! would capture the return).
 //!
+//! A type-guard `match` (`is TypeName` arms) lowers to an `if`/`else if` chain:
+//! `is string` → `typeof __m === "string"`, `is User` → `User.is(__m)` (the Q8
+//! record descriptor), `is Record<...>`/`is Array<...>` → an object /
+//! `Array.isArray` check; a missing `else` throws.
+//!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
 //! than emitting invalid TS: binding catch-all arms,
-//! value-position block arms, nested/`is`/array match patterns, a nested `?`, generic
+//! value-position block arms, nested-constructor/array match patterns,
+//! `is` checks on union/generic/imported types, a nested `?`, generic
 //! tagged unions, the Q8 runtime
 //! descriptors that accompany type declarations, `component` + D6 JSX
 //! directive lowering, and the two-binding `for K, V in`.
@@ -624,6 +630,12 @@ impl<'a> Emitter<'a> {
         arms: &[MatchArm],
         term: ArmTerm,
     ) -> Result<(), EmitError> {
+        // An `is TypeName` arm makes this a type-guard match, lowered to an
+        // `if`/`else if` chain rather than a `switch`.
+        if arms.iter().any(|a| matches!(a.pattern, Pattern::IsType { .. })) {
+            return self.emit_is_chain(scrutinee, arms, term);
+        }
+
         // Variant names of the scrutinee's union, when its type is known.
         let variants = self.union_variant_names(self.types.get(scrutinee.span()));
         let is_variant = |name: &str| {
@@ -786,6 +798,130 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.line("}");
         Ok(())
+    }
+
+    /// Lower a type-guard `match` (`is TypeName` arms) to an `if`/`else if`
+    /// chain. Each `is T` becomes a runtime check: `typeof __m === "..."` for a
+    /// primitive, `T.is(__m)` for a record type (the Q8 descriptor), an object
+    /// check for `Record<...>`, `Array.isArray` for `Array<...>`. The chain is
+    /// exclusive, so no `break` is needed; a missing `else` throws.
+    fn emit_is_chain(
+        &mut self,
+        scrutinee: &Expr,
+        arms: &[MatchArm],
+        term: ArmTerm,
+    ) -> Result<(), EmitError> {
+        let scrut = self.expr(scrutinee)?;
+        let m = self.fresh_temp("__m");
+        self.line(&format!("const {m} = {scrut};"));
+
+        let mut first = true;
+        let mut else_arm: Option<&MatchArm> = None;
+        for arm in arms {
+            match &arm.pattern {
+                Pattern::IsType { ty, span } => {
+                    let check = self.is_check(ty, &m).ok_or(EmitError::Unsupported {
+                        construct: "an `is` check on an unsupported type",
+                        span: *span,
+                    })?;
+                    let opener = if first {
+                        format!("if ({check}) {{")
+                    } else {
+                        format!("}} else if ({check}) {{")
+                    };
+                    first = false;
+                    self.line(&opener);
+                    self.indent += 1;
+                    self.emit_is_arm_body(&arm.body, term)?;
+                    self.indent -= 1;
+                }
+                Pattern::Wildcard { .. } | Pattern::Else { .. } => else_arm = Some(arm),
+                _ => {
+                    return Err(EmitError::Unsupported {
+                        construct: "a match mixing `is` and other patterns",
+                        span: arm.span,
+                    })
+                }
+            }
+        }
+
+        self.line("} else {");
+        self.indent += 1;
+        match else_arm {
+            Some(arm) => self.emit_is_arm_body(&arm.body, term)?,
+            None => self.line("throw new Error(\"non-exhaustive match\");"),
+        }
+        self.indent -= 1;
+        self.line("}");
+        Ok(())
+    }
+
+    /// Emit an `is`-chain arm body. The chain is already exclusive (one branch
+    /// runs), so a statement-position arm needs no `break`; a return-position
+    /// block must still end in `return`.
+    fn emit_is_arm_body(&mut self, body: &MatchArmBody, term: ArmTerm) -> Result<(), EmitError> {
+        match body {
+            MatchArmBody::Expr(e) => {
+                let s = self.expr(e)?;
+                match term {
+                    ArmTerm::Return => self.line(&format!("return {s};")),
+                    ArmTerm::Break => self.line(&format!("{s};")),
+                }
+            }
+            MatchArmBody::Block(b) => {
+                let diverges = matches!(
+                    b.stmts.last(),
+                    Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_))
+                );
+                if matches!(term, ArmTerm::Return) && !diverges {
+                    return Err(EmitError::Unsupported {
+                        construct: "a `return match` block arm that does not end in `return`",
+                        span: b.span,
+                    });
+                }
+                for stmt in &b.stmts {
+                    self.emit_stmt(stmt)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// The runtime check for an `is T` pattern against the temporary `m`, or
+    /// None for a type the emitter cannot check yet (a union, a generic, an
+    /// imported or non-record named type).
+    fn is_check(&self, ty: &TypeExpr, m: &str) -> Option<String> {
+        match ty {
+            TypeExpr::Path { segments, .. } if segments.len() == 1 => {
+                if let Some(jt) = js_typeof(ty) {
+                    Some(format!("typeof {m} === \"{jt}\""))
+                } else if self.is_local_record_type(segments[0].as_ref()) {
+                    Some(format!("{}.is({m})", segments[0]))
+                } else {
+                    None
+                }
+            }
+            TypeExpr::Generic { base, .. } => match base.as_ref() {
+                TypeExpr::Path { segments, .. } => match segments.last().map(|s| s.as_ref()) {
+                    Some("Record") => Some(format!("(typeof {m} === \"object\" && {m} !== null)")),
+                    Some("Array") => Some(format!("Array.isArray({m})")),
+                    _ => None,
+                },
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// True if `name` is a module-local non-generic record type — one with an
+    /// emitted `is` descriptor this `is` check can call.
+    fn is_local_record_type(&self, name: &str) -> bool {
+        self.module.items.iter().any(|d| {
+            matches!(d, Decl::Type(t)
+                if t.name.as_ref() == name
+                    && t.generics.is_empty()
+                    && matches!(t.body, TypeExpr::Record { .. }))
+        })
     }
 
     /// Bind a constructor arm's payload from the scrutinee temporary `m`: an
@@ -1406,6 +1542,55 @@ mod tests {
         assert!(
             ts.contains("default: throw new Error(\"non-exhaustive match\");"),
             "{ts}"
+        );
+    }
+
+    #[test]
+    fn is_match_lowers_to_an_if_chain_and_calls_the_descriptor() {
+        let ts = emit(
+            "module x\ntype User = { id: string }\nfn check(v: unknown) -> string {\n  return match v {\n    is string => \"str\",\n    is number => \"num\",\n    is User => \"user\",\n    else => \"other\",\n  }\n}\n",
+        );
+        assert!(ts.contains("if (typeof __m0 === \"string\") {"), "{ts}");
+        assert!(ts.contains("} else if (typeof __m0 === \"number\") {"), "{ts}");
+        // The `is User` arm consumes the Q8 record descriptor.
+        assert!(ts.contains("} else if (User.is(__m0)) {"), "{ts}");
+        assert!(ts.contains("} else {"), "{ts}");
+        assert!(ts.contains("return \"other\";"), "{ts}");
+        // It is an if-chain, not a switch.
+        assert!(!ts.contains("switch"), "{ts}");
+    }
+
+    #[test]
+    fn is_match_without_else_throws() {
+        let ts = emit(
+            "module x\nfn f(v: unknown) -> string {\n  return match v {\n    is string => \"s\",\n    is number => \"n\",\n  }\n}\n",
+        );
+        assert!(
+            ts.contains("} else {\n    throw new Error(\"non-exhaustive match\");"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn is_record_and_array_checks() {
+        let ts = emit(
+            "module x\nfn f(v: unknown) -> string {\n  return match v {\n    is Array<string> => \"arr\",\n    is Record<string, unknown> => \"obj\",\n    else => \"x\",\n  }\n}\n",
+        );
+        assert!(ts.contains("if (Array.isArray(__m0)) {"), "{ts}");
+        assert!(
+            ts.contains("} else if ((typeof __m0 === \"object\" && __m0 !== null)) {"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn is_check_on_unsupported_type_is_rejected() {
+        let err = emit_err(
+            "module x\ntype S = A | B\nfn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("`is` check")),
+            "got {err:?}"
         );
     }
 

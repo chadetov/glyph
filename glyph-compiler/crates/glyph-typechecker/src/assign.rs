@@ -585,15 +585,18 @@ impl Assigner<'_> {
     /// that the arms cover every variant. Scope:
     /// - User unions: `Ty::Named` pointing at a `Decl::Type` whose body is
     ///   a `TypeExpr::Union`. Prelude unions: `Ty::App` over the prelude
-    ///   `Result`/`Option` symbol. Only the top-level variant set is
-    ///   checked; nested payload exhaustiveness is not.
+    ///   `Result`/`Option` symbol. The top-level variant set is checked, and
+    ///   a variant covered ONLY by a nested constructor pattern recurses into
+    ///   its payload (e.g. `Ok(Some(x))` forces a check of `Ok(None)`) — see
+    ///   `check_patterns_exhaustive`.
     /// - Patterns recognized: `Variant(...)` (constructor, single- or
     ///   multi-segment path — last segment is the variant name),
     ///   bare `Variant` ident, `is TypeName` guard, `_` wildcard,
-    ///   `else` catch-all.
-    /// - Patterns NOT recognized (silently skipped): nested patterns,
-    ///   object destructure, array patterns, literal patterns. The
-    ///   bidirectional checker (week 3+) refines.
+    ///   `else` catch-all, and arbitrarily-deep single-payload nesting
+    ///   (`Ok(Some(x))`, `Ok(Some(Ok(y)))`).
+    /// - Patterns NOT recognized (silently skipped at the top level): object
+    ///   destructure, array patterns, literal patterns. A single-payload arm
+    ///   whose sub-pattern is a binding fully covers its variant.
     ///
     /// **Known trade-off**: a `Pattern::Ident { name }` whose name
     /// doesn't match a variant is treated as a binding (catch-all).
@@ -610,31 +613,66 @@ impl Assigner<'_> {
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
     ) {
+        let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
+        self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+    }
+
+    /// Recursive core of exhaustiveness. Given the scrutinee type and the
+    /// patterns matched against it, verify the tagged-union variant set is
+    /// covered, then recurse into the payload of any variant covered ONLY by
+    /// a nested constructor pattern. `match r { Ok(Some(x)) => .., Err(e) =>
+    /// .. }` over `Result<Option<T>, E>` reaches `Ok` via `Some(x)` alone, so
+    /// the payload `Option<T>` is checked too and `Ok(None)` is reported
+    /// missing. Recursion is arbitrary-depth and reuses the same payload
+    /// resolution for module-local unions and the prelude `Result`/`Option`.
+    fn check_patterns_exhaustive(
+        &mut self,
+        scrutinee_ty: &Ty,
+        patterns: &[&Pattern],
+        match_span: glyph_ast::Span,
+    ) {
         // Resolve the scrutinee to a tagged union (user-defined or a
         // prelude Result/Option) and its required variant set.
         let Some((type_name, variants)) = self.required_variants(scrutinee_ty) else {
             return;
         };
 
-        // Walk the arms and classify each pattern.
+        // `covered`: variants whose whole payload is matched (a binding,
+        // wildcard, object/array destructure, or no-payload form) — no deeper
+        // check needed. `nested`: variants covered ONLY by a constructor
+        // sub-pattern, mapped to those sub-patterns for a recursive check.
         let mut covered: HashSet<Ident> = HashSet::new();
+        let mut nested: HashMap<Ident, Vec<&Pattern>> = HashMap::new();
         let mut has_catch_all = false;
-        for arm in arms {
-            match &arm.pattern {
+        for pat in patterns {
+            match pat {
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => {
                     has_catch_all = true;
                 }
-                Pattern::Constructor { path, .. } if !path.is_empty() => {
+                Pattern::Constructor { path, args, .. } if !path.is_empty() => {
                     // Take the LAST segment as the variant name. Bare
                     // `Loading` → ["Loading"] → "Loading". Qualified
                     // `Feed.Loading` → ["Feed", "Loading"] → "Loading".
-                    // The single-vs-multi-segment distinction matters
-                    // only for cross-module variant references (e.g.,
-                    // `fs.ErrorKind.NotFound`), which are out of
-                    // current day-14 scope (no `Ty::Named` from a
-                    // module path yet), but using last-segment here
-                    // keeps the check correct if and when those land.
-                    covered.insert(path.last().unwrap().clone());
+                    let variant = path.last().unwrap();
+                    if !variants.iter().any(|v| v == variant) {
+                        continue;
+                    }
+                    match args.as_slice() {
+                        // A single payload sub-pattern is collected for a
+                        // recursive check. Whether it actually covers the
+                        // payload (a binding `Ok(x)`) or only part of it (a
+                        // nested variant `Ok(Some(x))`, or the no-arg variant
+                        // `Ok(None)` which parses as an ident) is decided by
+                        // the recursion, which knows the payload's variants.
+                        [sub] => {
+                            nested.entry(variant.clone()).or_default().push(sub);
+                        }
+                        // No-arg (`fs.ErrorKind.NotFound`) or multi-arg
+                        // payloads fully cover the variant at this level.
+                        _ => {
+                            covered.insert(variant.clone());
+                        }
+                    }
                 }
                 Pattern::Ident { name, .. } => {
                     // See the function-level docstring for the
@@ -663,10 +701,9 @@ impl Assigner<'_> {
                     // path that doesn't name a variant of this union —
                     // conservative: skip without marking catch-all.
                 }
-                // Patterns the day-14 scope doesn't model. Conservative
-                // assumption: skip — don't flag false-positive missing
-                // variants. The bidirectional checker / week-3 work
-                // will refine this.
+                // Top-level literal/object/array patterns over a union
+                // scrutinee are not modeled. Conservative assumption: skip —
+                // don't flag false-positive missing variants.
                 _ => {}
             }
         }
@@ -675,12 +712,28 @@ impl Assigner<'_> {
             return;
         }
 
-        // Missing variants, in declaration order so the diagnostic is
-        // reproducible.
-        let missing: Vec<&Ident> = variants
-            .iter()
-            .filter(|v| !covered.contains(*v))
-            .collect();
+        // A variant covered by a binding/wildcard wins over any nested arms.
+        // Recurse into the rest; collect variants no arm mentions at all, in
+        // declaration order so the diagnostic is reproducible.
+        let mut missing: Vec<&Ident> = Vec::new();
+        for v in &variants {
+            if covered.contains(v) {
+                continue;
+            }
+            match nested.get(v) {
+                Some(subs) => {
+                    // The variant IS present (a `V(...)` arm exists); recurse
+                    // into its payload to check the nested patterns. A payload
+                    // that isn't a tagged union makes `required_variants`
+                    // return None and the recursion a no-op.
+                    if let Some(payload_ty) = self.variant_payload(scrutinee_ty, v) {
+                        self.check_patterns_exhaustive(&payload_ty, subs, match_span);
+                    }
+                }
+                None => missing.push(v),
+            }
+        }
+
         if missing.is_empty() {
             return;
         }
@@ -813,6 +866,30 @@ impl Assigner<'_> {
         let variant = variants.iter().find(|v| &v.name == variant_name)?;
         let payload_te = variant.payload.as_ref()?;
         Some(self.lowerer.lower(payload_te))
+    }
+
+    /// The payload type of `variant` in the tagged union `ty`, for both
+    /// module-local unions (via `union_variant_payload`) and the prelude
+    /// `Result`/`Option` — whose payloads are the `Ty::App` type arguments
+    /// (`Ok` → arg 0, `Err` → arg 1, `Some` → arg 0). Drives nested
+    /// exhaustiveness recursion. None when there is no such payload-carrying
+    /// variant. A generic module-local union applied via `Ty::App` is not
+    /// substituted here (conservative: no recursion), since `resolve_named_union`
+    /// requires a bare `Ty::Named`.
+    fn variant_payload(&self, ty: &Ty, variant: &Ident) -> Option<Ty> {
+        if let Some(p) = self.union_variant_payload(ty, variant) {
+            return Some(p);
+        }
+        let Ty::App { base, args } = ty else { return None };
+        let Ty::Named { symbol, path } = base.as_ref() else { return None };
+        let name = path.last()?.as_ref();
+        let is_prelude = |n: &str| self.lowerer.prelude.lookup(n) == Some(SymbolId(symbol.0));
+        match (name, variant.as_ref()) {
+            ("Result", "Ok") if is_prelude("Result") => args.first().cloned(),
+            ("Result", "Err") if is_prelude("Result") => args.get(1).cloned(),
+            ("Option", "Some") if is_prelude("Option") => args.first().cloned(),
+            _ => None,
+        }
     }
 }
 
@@ -1096,6 +1173,80 @@ fn main() {
         assert!(errs.is_empty(), "errs: {errs:?}");
         let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
         ty_errs
+    }
+
+    #[test]
+    fn nested_missing_inner_variant_is_flagged() {
+        // `Ok(Some(n))` covers Ok only through the `Some` arm, so the payload
+        // `Option<number>` must also be exhaustive — `Ok(None)` is missing.
+        let src = r#"module x
+fn run(r: Result<Option<number>, string>) -> number {
+  return match r {
+    Ok(Some(n)) => n,
+    Err(e) => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                assert_eq!(type_name, "Option");
+                assert!(missing.contains("None"), "missing: {missing}");
+            }
+            other => panic!("expected NonExhaustiveMatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn nested_all_inner_variants_covered_passes() {
+        let src = r#"module x
+fn run(r: Result<Option<number>, string>) -> number {
+  return match r {
+    Ok(Some(n)) => n,
+    Ok(None) => 0,
+    Err(e) => 1,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn nested_no_arg_variant_does_not_over_cover() {
+        // `Ok(None)` must not be mistaken for a payload binding: the `Some`
+        // arm of the inner `Option` is still missing.
+        let src = r#"module x
+fn run(r: Result<Option<number>, string>) -> number {
+  return match r {
+    Ok(None) => 0,
+    Err(e) => 1,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                assert_eq!(type_name, "Option");
+                assert!(missing.contains("Some"), "missing: {missing}");
+            }
+            other => panic!("expected NonExhaustiveMatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn binding_payload_does_not_trigger_nested_check() {
+        // `Ok(opt)` binds the whole `Option` payload, so no inner check runs.
+        let src = r#"module x
+fn run(r: Result<Option<number>, string>) -> number {
+  return match r {
+    Ok(opt) => 0,
+    Err(e) => 1,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
     }
 
     #[test]

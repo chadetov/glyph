@@ -54,9 +54,10 @@
 //!
 //! Glyph's lexer permits TS reserved words (`class`, `default`, `new`, ...) as
 //! soft-keyword identifiers, and this emitter copies a binding/parameter/import
-//! name (and a tagged-union variant's constructor name) verbatim, so such a
-//! name produces TS that `tsc` rejects. (Object keys, record fields, and member
-//! access are safe — only binding positions break.)
+//! name (a tagged-union variant's constructor name, and a record type's
+//! descriptor `const` name) verbatim, so such a name produces TS that `tsc`
+//! rejects. (Object keys, record fields, and member access are safe — only
+//! binding positions break.)
 //! The right fix is a resolver-level "stricter-than-TS" rule that rejects TS
 //! reserved words as identifier names, not emit-time mangling (which would
 //! break import name matching). Tracked for a later day; no example trips it.
@@ -283,6 +284,13 @@ impl<'a> Emitter<'a> {
     /// doing shallow validation (each primitive field checked by `typeof`,
     /// each other field checked for presence). Deep/recursive validation and
     /// the `parse` entry point (which returns a `Result`) are later work.
+    ///
+    /// **Soundness limitation**: because a non-primitive field is only checked
+    /// for presence, the `value is X` narrowing is stronger than the runtime
+    /// proof — `User.is({ parent: 42, ... })` returns true even though `parent`
+    /// is not a `User`. This is the documented v1 "shallow validation" scope
+    /// (`docs/roadmap/04-transpiler.md`); recursing into a named-record field's
+    /// own `is` would close the gap and is the path to full soundness.
     fn emit_record_descriptor(&mut self, name: &Ident, fields: &[RecordTypeField]) {
         let checks: Vec<String> = fields.iter().map(record_field_check).collect();
         self.line(&format!("export const {name} = {{"));

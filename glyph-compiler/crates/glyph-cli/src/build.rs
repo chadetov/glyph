@@ -2,9 +2,10 @@
 //! salsa-backed `CompilerDb`, run the analysis pipeline (parse, collect,
 //! verify-imports, resolve, type_map) for each, and report diagnostics.
 //!
-//! TS emission is still phase 1 week 4 work, so the `--out` directory is
-//! created if missing but no files are written yet. The command's purpose
-//! today is "check the source tree" — analogous to `cargo check`.
+//! After a module type-checks cleanly, its TypeScript is emitted to a
+//! `.ts` file under the `--out` directory; a module that produced any
+//! diagnostic (or uses a construct the emitter does not support yet) is
+//! reported and not written.
 //!
 //! The function is split out into a library entry point so integration
 //! tests can call it directly (no subprocess) and assert on the returned
@@ -95,10 +96,9 @@ pub fn build_project_inner(
         return Err(BuildError::NoSources(src.to_path_buf()));
     }
 
-    // Prepare the out/ directory. Today it's just created; future work
-    // writes emitted .ts files into it. Reject the case where `out` is
-    // an existing regular file — current code wouldn't notice, but
-    // week-4 TS emission would fail with a confusing IO error.
+    // Prepare the out/ directory; emitted `.ts` files are written into it
+    // below. Reject the case where `out` is an existing regular file so the
+    // per-module write fails up front rather than with a confusing IO error.
     if out.exists() {
         if !out.is_dir() {
             return Err(BuildError::OutNotDir(out.to_path_buf()));

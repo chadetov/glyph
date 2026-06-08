@@ -20,6 +20,16 @@
 //! inlined unwrapping, tagged-union (`type X = A | B`) lowering to discriminated
 //! unions plus Q8 runtime descriptors, `component` + D6 JSX directive lowering,
 //! and the two-binding `for K, V in`.
+//!
+//! ## Known gap: reserved-word identifiers
+//!
+//! Glyph's lexer permits TS reserved words (`class`, `default`, `new`, ...) as
+//! soft-keyword identifiers, and this emitter copies a binding/parameter/import
+//! name verbatim, so such a name produces TS that `tsc` rejects. (Object keys,
+//! record fields, and member access are safe — only binding positions break.)
+//! The right fix is a resolver-level "stricter-than-TS" rule that rejects TS
+//! reserved words as identifier names, not emit-time mangling (which would
+//! break import name matching). Tracked for a later day; no example trips it.
 
 #![forbid(unsafe_code)]
 
@@ -369,7 +379,11 @@ impl Emitter {
                         ObjectField::Spread { value, .. } => format!("...{}", self.expr(value)?),
                     });
                 }
-                format!("{{ {} }}", fs.join(", "))
+                if fs.is_empty() {
+                    "{}".to_string()
+                } else {
+                    format!("{{ {} }}", fs.join(", "))
+                }
             }
             Expr::Lambda {
                 params,
@@ -511,6 +525,12 @@ fn escape_double_quoted(s: &str) -> String {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
+            // U+2028 / U+2029 are JS LineTerminators and illegal raw inside a
+            // string literal; the remaining C0 controls (NUL, vertical tab,
+            // form feed, ...) are also unsafe. Escape all of them as `\uXXXX`.
+            '\u{2028}' => out.push_str("\\u2028"),
+            '\u{2029}' => out.push_str("\\u2029"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
             _ => out.push(c),
         }
     }
@@ -614,6 +634,21 @@ mod tests {
         assert!(ts.contains("for (const x of xs) {"), "{ts}");
         assert!(ts.contains("let o = { a: 1, b: 2 };"), "{ts}");
         assert!(ts.contains("return undefined;"), "{ts}");
+    }
+
+    #[test]
+    fn string_escapes_line_separators_and_controls() {
+        // The lexer de-escapes `\u{2028}` to a raw LINE SEPARATOR, which is an
+        // unterminated-string error in TS unless re-escaped.
+        let ts = emit("module x\nconst s: string = \"a\\u{2028}b\\u{0}c\"\n");
+        assert!(ts.contains("\"a\\u2028b\\u0000c\""), "{ts}");
+        assert!(!ts.contains('\u{2028}'), "raw U+2028 leaked: {ts}");
+    }
+
+    #[test]
+    fn empty_object_literal_has_no_double_space() {
+        let ts = emit("module x\nconst o = {}\n");
+        assert!(ts.contains("export const o = {};"), "{ts}");
     }
 
     #[test]

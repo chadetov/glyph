@@ -156,19 +156,26 @@ pub fn assign_types_with_resolver(
 ) -> (TypeMap, Vec<TypeError>) {
     let mut tm = TypeMap::new();
     let mut errors: Vec<TypeError> = Vec::new();
-    let mut assigner = Assigner {
-        module,
-        lowerer: Lowerer::new(resolved, prelude),
-        resolved,
-        tm: &mut tm,
-        errors: &mut errors,
-        decl_ty_resolver,
-        return_stack: Vec::new(),
-        local_tys: HashMap::new(),
-    };
-    for decl in &module.items {
-        assigner.walk_decl(decl);
+    {
+        let mut assigner = Assigner {
+            module,
+            lowerer: Lowerer::new(resolved, prelude),
+            resolved,
+            tm: &mut tm,
+            errors: &mut errors,
+            decl_ty_resolver,
+            return_stack: Vec::new(),
+            local_tys: HashMap::new(),
+        };
+        for decl in &module.items {
+            assigner.walk_decl(decl);
+        }
     }
+    // D25: a second pass over the completed `TypeMap`. `owned` single-
+    // consumption analysis reads each call site's callee `Ty::Fn` (with its
+    // per-parameter `owned` flags), so it must run after assignment fills the
+    // map rather than interleaved with it.
+    errors.extend(crate::owned::check_owned(module, resolved, prelude, &tm));
     (tm, errors)
 }
 

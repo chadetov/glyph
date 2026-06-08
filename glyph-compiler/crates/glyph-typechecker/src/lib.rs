@@ -25,6 +25,7 @@
 
 pub mod assign;
 pub mod lower;
+pub mod owned;
 pub mod ty;
 pub mod type_map;
 
@@ -78,6 +79,33 @@ pub enum TypeError {
         found: String,
         span: Span,
     },
+
+    /// `let owned x: T = ...` where `T` is not a type declared with the
+    /// `resource` marker (D25). The `owned` modifier is the narrow carve-out
+    /// for resource handles only; binding a non-resource value with `owned`
+    /// has no meaning. Fires only when `T` is decidably non-resource — a
+    /// binding whose type can't be judged is left untracked, never flagged.
+    #[error("`owned` requires a resource type, but `{name}` has non-resource type `{ty}`")]
+    OwnedRequiresResourceType {
+        name: String,
+        ty: String,
+        span: Span,
+    },
+
+    /// An `owned` resource handle (D25) is still live on a path that exits
+    /// the function — either a `return` reached while the handle is
+    /// unconsumed, or fall-through to the end of the body. The handle must
+    /// be consumed (moved into an `owned` parameter) exactly once on every
+    /// path. `span` points at the `let owned` binding.
+    #[error("`owned` resource `{name}` is not consumed on every path before the function returns")]
+    OwnedNotConsumed { name: String, span: Span },
+
+    /// An `owned` resource handle (D25) is used after it was moved (consumed).
+    /// Covers both double-consume (moved into a second `owned` parameter) and
+    /// any read of the handle after the move. `span` points at the offending
+    /// use; the move site is named in the message.
+    #[error("`owned` resource `{name}` is used after it was consumed")]
+    OwnedUsedAfterMove { name: String, span: Span },
 }
 
 impl TypeError {
@@ -86,6 +114,9 @@ impl TypeError {
             TypeError::NonExhaustiveMatch { span, .. } => *span,
             TypeError::QuestionOutsideResultFn { span } => *span,
             TypeError::TypeMismatch { span, .. } => *span,
+            TypeError::OwnedRequiresResourceType { span, .. } => *span,
+            TypeError::OwnedNotConsumed { span, .. } => *span,
+            TypeError::OwnedUsedAfterMove { span, .. } => *span,
         }
     }
 }

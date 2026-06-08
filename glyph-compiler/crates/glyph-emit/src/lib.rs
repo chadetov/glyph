@@ -737,7 +737,10 @@ impl<'a> Emitter<'a> {
         for arm in arms {
             match &arm.pattern {
                 Pattern::Constructor { args, span, .. } => match args.as_slice() {
-                    [] | [Pattern::Ident { .. }] | [Pattern::Object { .. }] => {}
+                    []
+                    | [Pattern::Ident { .. }]
+                    | [Pattern::Wildcard { .. }]
+                    | [Pattern::Object { .. }] => {}
                     _ => {
                         return Err(EmitError::Unsupported {
                             construct: "a nested or multi-argument pattern in a match arm",
@@ -1140,7 +1143,8 @@ impl<'a> Emitter<'a> {
 
     /// Bind a constructor arm's payload from the scrutinee temporary `m`: an
     /// object pattern reads each spread field by name; a single identifier
-    /// reads the non-record `value` field; no args binds nothing.
+    /// reads the non-record `value` field; no args and a `_` wildcard
+    /// (`Err(_)`) bind nothing.
     fn emit_arm_binds(&mut self, m: &str, args: &[Pattern]) {
         match args {
             [Pattern::Ident { name, .. }] => self.line(&format!("const {name} = {m}.{PAYLOAD};")),
@@ -2093,6 +2097,19 @@ mod tests {
         assert!(ts.contains("case \"Idle\": {"), "{ts}");
         assert!(ts.contains("case \"Loaded\": {"), "{ts}");
         assert!(ts.contains("const users = __m0.users;"), "{ts}");
+    }
+
+    #[test]
+    fn wildcard_constructor_arg_binds_nothing() {
+        // `Ok(_)` matches the variant and discards its payload: a `case` with
+        // no binding, like a no-payload variant.
+        let ts = emit(
+            "module x\ntype R =\n  | Ok(number)\n  | Bad(string)\nfn f(r: R) -> string {\n  return match r {\n    Ok(_) => \"ok\",\n    Bad(msg) => msg,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"Ok\": {"), "{ts}");
+        // No payload binding is emitted for the discarded `_`.
+        assert!(!ts.contains("__m0.value;\n      return \"ok\""), "{ts}");
+        assert!(ts.contains("const msg = __m0.value;"), "{ts}");
     }
 
     #[test]

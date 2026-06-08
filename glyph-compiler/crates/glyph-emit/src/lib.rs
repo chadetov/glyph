@@ -19,11 +19,18 @@
 //! field plus a constructor per variant (a `const` for a no-payload variant,
 //! a function for a payload variant; record payloads spread their fields).
 //!
+//! A statement-position `match` (a `return match` or a bare `match` statement)
+//! over a tagged union lowers to a `switch` on the `tag` discriminant, with
+//! constructor-pattern arms (`Ok(x)`, `NetworkError({ url })`) binding the
+//! payload and `_`/`else` becoming `default`.
+//!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
-//! than emitting invalid TS: `match` lowering to `switch`, the `?` operator's
-//! inlined unwrapping, generic tagged unions, the Q8 runtime descriptors that
-//! accompany type declarations, `component` + D6 JSX directive lowering, and
-//! the two-binding `for K, V in`.
+//! than emitting invalid TS: `match` in value position (it needs an IIFE),
+//! bare-identifier variant arms and value (literal) matches (both need the
+//! scrutinee type), block arm bodies, nested/`is`/array match patterns, the
+//! `?` operator's inlined unwrapping, generic tagged unions, the Q8 runtime
+//! descriptors that accompany type declarations, `component` + D6 JSX
+//! directive lowering, and the two-binding `for K, V in`.
 //!
 //! ## Known gap: reserved-word identifiers
 //!
@@ -39,8 +46,9 @@
 #![forbid(unsafe_code)]
 
 use glyph_ast::{
-    ArrayElem, BinOp, Block, Decl, Expr, GenericParam, ImportDecl, ImportKind, Module, MutKind,
-    ObjectField, Param, PostfixOp, Span, Stmt, TemplatePart, TypeExpr, UnaryOp, UnionVariant,
+    ArrayElem, BinOp, Block, Decl, Expr, GenericParam, ImportDecl, ImportKind, MatchArm,
+    MatchArmBody, Module, MutKind, ObjectField, Param, Pattern, PostfixOp, Span, Stmt,
+    TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
@@ -78,11 +86,20 @@ impl EmitError {
 /// rejected at emit (see `emit_union`).
 const TAG: &str = "tag";
 
+/// How a lowered `match` arm yields control: `return` its value (the match is
+/// in return position) or run it for effect and `break` (statement position).
+#[derive(Clone, Copy)]
+enum ArmTerm {
+    Return,
+    Break,
+}
+
 /// Emit a whole module to a TypeScript source string.
 pub fn emit_module(module: &Module) -> Result<String, EmitError> {
     let mut e = Emitter {
         out: String::new(),
         indent: 0,
+        tmp_counter: 0,
     };
     e.emit_module(module)?;
     Ok(e.out)
@@ -91,6 +108,9 @@ pub fn emit_module(module: &Module) -> Result<String, EmitError> {
 struct Emitter {
     out: String,
     indent: usize,
+    /// Counter for synthesized scrutinee temporaries (`__m0`, `__m1`, ...), so
+    /// two `match` statements in one function body don't redeclare the name.
+    tmp_counter: usize,
 }
 
 impl Emitter {
@@ -353,6 +373,12 @@ impl Emitter {
                 self.line(&s);
             }
             Stmt::Return(r) => match &r.value {
+                // A `return match { ... }` lowers to a `switch` statement so
+                // that `return` keeps its function-return semantics (an IIFE
+                // would capture the return). Each arm returns its value.
+                Some(Expr::Match { scrutinee, arms, .. }) => {
+                    self.emit_match_dispatch(scrutinee, arms, ArmTerm::Return)?;
+                }
                 Some(v) => {
                     let v = self.expr(v)?;
                     self.line(&format!("return {v};"));
@@ -381,9 +407,148 @@ impl Emitter {
             }
             Stmt::Break(_) => self.line("break;"),
             Stmt::Continue(_) => self.line("continue;"),
+            Stmt::Expr(Expr::Match { scrutinee, arms, .. }) => {
+                // A statement-position `match` runs each arm for its effects
+                // and `break`s out of the switch.
+                self.emit_match_dispatch(scrutinee, arms, ArmTerm::Break)?;
+            }
             Stmt::Expr(e) => {
                 let s = self.expr(e)?;
                 self.line(&format!("{s};"));
+            }
+        }
+        Ok(())
+    }
+
+    /// Lower a statement-position `match` over a tagged union to a `switch` on
+    /// the `tag` discriminant. Scoped to constructor-pattern arms (`Ok(x)`,
+    /// `NetworkError({ url })`, dotted `fs.ErrorKind.NotFound`) plus
+    /// `_`/`else`, with expression arm bodies. Bare-identifier variant arms
+    /// (which the resolver cannot distinguish from bindings without the
+    /// scrutinee type), value matches, block arm bodies, nested/`is`/array
+    /// patterns, and match in value position are deferred.
+    fn emit_match_dispatch(
+        &mut self,
+        scrutinee: &Expr,
+        arms: &[MatchArm],
+        term: ArmTerm,
+    ) -> Result<(), EmitError> {
+        for arm in arms {
+            match &arm.pattern {
+                Pattern::Constructor { args, span, .. } => match args.as_slice() {
+                    [] | [Pattern::Ident { .. }] | [Pattern::Object { .. }] => {}
+                    _ => {
+                        return Err(EmitError::Unsupported {
+                            construct: "a nested or multi-argument pattern in a match arm",
+                            span: *span,
+                        })
+                    }
+                },
+                Pattern::Wildcard { .. } | Pattern::Else { .. } => {}
+                Pattern::Ident { span, .. } => {
+                    return Err(EmitError::Unsupported {
+                        construct: "a bare-identifier match arm (needs the scrutinee type)",
+                        span: *span,
+                    })
+                }
+                Pattern::Literal { span, .. } => {
+                    return Err(EmitError::Unsupported {
+                        construct: "a value match (literal pattern)",
+                        span: *span,
+                    })
+                }
+                Pattern::Object { span, .. } | Pattern::Array { span, .. } => {
+                    return Err(EmitError::Unsupported {
+                        construct: "an object/array match pattern",
+                        span: *span,
+                    })
+                }
+                Pattern::IsType { span, .. } => {
+                    return Err(EmitError::Unsupported {
+                        construct: "an `is` type pattern in a match",
+                        span: *span,
+                    })
+                }
+            }
+            if let MatchArmBody::Block(b) = &arm.body {
+                return Err(EmitError::Unsupported {
+                    construct: "a block body in a match arm",
+                    span: b.span,
+                });
+            }
+        }
+
+        // A match with no constructor arm has nothing to discriminate on, so
+        // there is no `.tag` to switch over. Evaluate the scrutinee for any
+        // effect, then run the lone catch-all arm.
+        let has_ctor = arms
+            .iter()
+            .any(|a| matches!(a.pattern, Pattern::Constructor { .. }));
+        if !has_ctor {
+            let scrut = self.expr(scrutinee)?;
+            self.line(&format!("{scrut};"));
+            self.emit_arm_body(&arms[0].body, term)?;
+            return Ok(());
+        }
+
+        let scrut = self.expr(scrutinee)?;
+        let m = format!("__m{}", self.tmp_counter);
+        self.tmp_counter += 1;
+        self.line(&format!("const {m} = {scrut};"));
+        self.line(&format!("switch ({m}.{TAG}) {{"));
+        self.indent += 1;
+        for arm in arms {
+            match &arm.pattern {
+                Pattern::Constructor { path, args, .. } => {
+                    let variant = path.last().expect("constructor path is non-empty");
+                    self.line(&format!("case \"{variant}\": {{"));
+                    self.indent += 1;
+                    self.emit_arm_binds(&m, args);
+                    self.emit_arm_body(&arm.body, term)?;
+                    self.indent -= 1;
+                    self.line("}");
+                }
+                Pattern::Wildcard { .. } | Pattern::Else { .. } => {
+                    self.line("default: {");
+                    self.indent += 1;
+                    self.emit_arm_body(&arm.body, term)?;
+                    self.indent -= 1;
+                    self.line("}");
+                }
+                _ => unreachable!("patterns were validated above"),
+            }
+        }
+        self.indent -= 1;
+        self.line("}");
+        Ok(())
+    }
+
+    /// Bind a constructor arm's payload from the scrutinee temporary `m`: an
+    /// object pattern reads each spread field by name; a single identifier
+    /// reads the non-record `value` field; no args binds nothing.
+    fn emit_arm_binds(&mut self, m: &str, args: &[Pattern]) {
+        match args {
+            [Pattern::Ident { name, .. }] => self.line(&format!("const {name} = {m}.value;")),
+            [Pattern::Object { fields, .. }] => {
+                for f in fields {
+                    let binding = f.binding.as_ref().unwrap_or(&f.key);
+                    self.line(&format!("const {binding} = {m}.{};", f.key));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn emit_arm_body(&mut self, body: &MatchArmBody, term: ArmTerm) -> Result<(), EmitError> {
+        let MatchArmBody::Expr(e) = body else {
+            unreachable!("block bodies were rejected above")
+        };
+        let s = self.expr(e)?;
+        match term {
+            ArmTerm::Return => self.line(&format!("return {s};")),
+            ArmTerm::Break => {
+                self.line(&format!("{s};"));
+                self.line("break;");
             }
         }
         Ok(())
@@ -500,6 +665,7 @@ impl Emitter {
                 let mut sub = Emitter {
                     out: String::new(),
                     indent: self.indent,
+                    tmp_counter: self.tmp_counter,
                 };
                 sub.emit_block(body)?;
                 format!("({params}){ret} => {}", sub.out)
@@ -753,12 +919,61 @@ mod tests {
     }
 
     #[test]
-    fn match_is_unsupported_for_now() {
-        let err = emit_err("module x\nfn f(n: number) -> number { return match n { else => 0 } }\n");
+    fn return_match_lowers_to_switch_on_tag() {
+        let ts = emit(
+            "module x\nfn classify(r: Result<number, string>) -> number {\n  return match r {\n    Ok(value) => value,\n    Err(msg) => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("const __m0 = r;"), "{ts}");
+        assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
+        assert!(ts.contains("case \"Ok\": {"), "{ts}");
+        assert!(ts.contains("const value = __m0.value;"), "{ts}");
+        assert!(ts.contains("return value;"), "{ts}");
+        assert!(ts.contains("case \"Err\": {"), "{ts}");
+    }
+
+    #[test]
+    fn match_object_pattern_binds_spread_fields() {
+        let ts = emit(
+            "module x\ntype E =\n  | NetworkError({ url: string, status: number })\n  | NotFound({ id: string })\nfn show(e: E) -> string {\n  return match e {\n    NetworkError({ url, status }) => url,\n    NotFound({ id }) => id,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"NetworkError\": {"), "{ts}");
+        assert!(ts.contains("const url = __m0.url;"), "{ts}");
+        assert!(ts.contains("const status = __m0.status;"), "{ts}");
+        assert!(ts.contains("return url;"), "{ts}");
+    }
+
+    #[test]
+    fn two_match_statements_use_distinct_temporaries() {
+        let ts = emit(
+            "module x\nfn f(a: Result<number, string>, b: Result<number, string>) -> number {\n  match a {\n    Ok(x) => log(x),\n    Err(e) => log(e),\n  }\n  return match b {\n    Ok(y) => y,\n    Err(e) => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("const __m0 = a;"), "{ts}");
+        assert!(ts.contains("const __m1 = b;"), "{ts}");
+    }
+
+    #[test]
+    fn value_match_is_unsupported_for_now() {
+        let err = emit_err(
+            "module x\nfn f(n: number) -> number { return match n { 0 => 1, else => 2 } }\n",
+        );
         assert!(matches!(
             err,
             EmitError::Unsupported {
-                construct: "`match` expression",
+                construct: "a value match (literal pattern)",
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn bare_variant_match_is_unsupported_for_now() {
+        let err = emit_err(
+            "module x\ntype S = Idle | Busy\nfn f(s: S) -> number {\n  return match s {\n    Idle => 0,\n    Busy => 1,\n  }\n}\n",
+        );
+        assert!(matches!(
+            err,
+            EmitError::Unsupported {
+                construct: "a bare-identifier match arm (needs the scrutinee type)",
                 ..
             }
         ));

@@ -88,12 +88,12 @@ fn build_reports_emit_diagnostic_for_unsupported_construct() {
     let root = unique_tmp("emit_unsupported");
     let src = root.join("src");
     let out = root.join("dist");
-    // `match` emission is a later week-4 day; the build should surface a
+    // Value-match emission is a later week-4 day; the build should surface a
     // diagnostic and NOT write a .ts file for this module.
     write_file(
         &src,
         "main.glyph",
-        "module main\nfn f(n: number) -> number { return match n { else => 0 } }\n",
+        "module main\nfn f(n: number) -> number { return match n { 0 => 1, else => 2 } }\n",
     );
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");

@@ -731,7 +731,8 @@ impl<'a> Emitter<'a> {
         if !has_variant_arm && !is_value_match {
             let scrut = self.expr(scrutinee)?;
             self.line(&format!("({scrut});"));
-            self.emit_arm_body(&arms[0].body, term)?;
+            // No switch here, so no `break`.
+            self.emit_arm_body(&arms[0].body, term, false)?;
             return Ok(());
         }
 
@@ -752,7 +753,7 @@ impl<'a> Emitter<'a> {
                     self.line(&format!("case \"{variant}\": {{"));
                     self.indent += 1;
                     self.emit_arm_binds(&m, args);
-                    self.emit_arm_body(&arm.body, term)?;
+                    self.emit_arm_body(&arm.body, term, true)?;
                     self.indent -= 1;
                     self.line("}");
                 }
@@ -760,7 +761,7 @@ impl<'a> Emitter<'a> {
                 Pattern::Ident { name, .. } => {
                     self.line(&format!("case \"{name}\": {{"));
                     self.indent += 1;
-                    self.emit_arm_body(&arm.body, term)?;
+                    self.emit_arm_body(&arm.body, term, true)?;
                     self.indent -= 1;
                     self.line("}");
                 }
@@ -768,14 +769,14 @@ impl<'a> Emitter<'a> {
                 Pattern::Literal { value, .. } => {
                     self.line(&format!("case {}: {{", literal_label(value)));
                     self.indent += 1;
-                    self.emit_arm_body(&arm.body, term)?;
+                    self.emit_arm_body(&arm.body, term, true)?;
                     self.indent -= 1;
                     self.line("}");
                 }
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => {
                     self.line("default: {");
                     self.indent += 1;
-                    self.emit_arm_body(&arm.body, term)?;
+                    self.emit_arm_body(&arm.body, term, true)?;
                     self.indent -= 1;
                     self.line("}");
                 }
@@ -811,6 +812,19 @@ impl<'a> Emitter<'a> {
         arms: &[MatchArm],
         term: ArmTerm,
     ) -> Result<(), EmitError> {
+        // Two catch-all arms would silently drop the earlier one (the chain
+        // keeps only the last `else`); reject, as the switch path does.
+        if let Some(extra) = arms
+            .iter()
+            .filter(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }))
+            .nth(1)
+        {
+            return Err(EmitError::Unsupported {
+                construct: "a match with more than one catch-all arm",
+                span: extra.span,
+            });
+        }
+
         let scrut = self.expr(scrutinee)?;
         let m = self.fresh_temp("__m");
         self.line(&format!("const {m} = {scrut};"));
@@ -832,7 +846,8 @@ impl<'a> Emitter<'a> {
                     first = false;
                     self.line(&opener);
                     self.indent += 1;
-                    self.emit_is_arm_body(&arm.body, term)?;
+                    // No `break`: the if-chain is already exclusive.
+                    self.emit_arm_body(&arm.body, term, false)?;
                     self.indent -= 1;
                 }
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => else_arm = Some(arm),
@@ -848,42 +863,11 @@ impl<'a> Emitter<'a> {
         self.line("} else {");
         self.indent += 1;
         match else_arm {
-            Some(arm) => self.emit_is_arm_body(&arm.body, term)?,
+            Some(arm) => self.emit_arm_body(&arm.body, term, false)?,
             None => self.line("throw new Error(\"non-exhaustive match\");"),
         }
         self.indent -= 1;
         self.line("}");
-        Ok(())
-    }
-
-    /// Emit an `is`-chain arm body. The chain is already exclusive (one branch
-    /// runs), so a statement-position arm needs no `break`; a return-position
-    /// block must still end in `return`.
-    fn emit_is_arm_body(&mut self, body: &MatchArmBody, term: ArmTerm) -> Result<(), EmitError> {
-        match body {
-            MatchArmBody::Expr(e) => {
-                let s = self.expr(e)?;
-                match term {
-                    ArmTerm::Return => self.line(&format!("return {s};")),
-                    ArmTerm::Break => self.line(&format!("{s};")),
-                }
-            }
-            MatchArmBody::Block(b) => {
-                let diverges = matches!(
-                    b.stmts.last(),
-                    Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_))
-                );
-                if matches!(term, ArmTerm::Return) && !diverges {
-                    return Err(EmitError::Unsupported {
-                        construct: "a `return match` block arm that does not end in `return`",
-                        span: b.span,
-                    });
-                }
-                for stmt in &b.stmts {
-                    self.emit_stmt(stmt)?;
-                }
-            }
-        }
         Ok(())
     }
 
@@ -903,7 +887,12 @@ impl<'a> Emitter<'a> {
             }
             TypeExpr::Generic { base, .. } => match base.as_ref() {
                 TypeExpr::Path { segments, .. } => match segments.last().map(|s| s.as_ref()) {
-                    Some("Record") => Some(format!("(typeof {m} === \"object\" && {m} !== null)")),
+                    // A Glyph record is a plain object, not an array; exclude
+                    // arrays so an `is Array<...>` arm after `is Record<...>`
+                    // isn't dead.
+                    Some("Record") => Some(format!(
+                        "typeof {m} === \"object\" && {m} !== null && !Array.isArray({m})"
+                    )),
                     Some("Array") => Some(format!("Array.isArray({m})")),
                     _ => None,
                 },
@@ -940,7 +929,15 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    fn emit_arm_body(&mut self, body: &MatchArmBody, term: ArmTerm) -> Result<(), EmitError> {
+    /// Emit a match-arm body. `break_on_fall` adds a `break;` after a
+    /// fall-through (statement-position) arm — needed inside a `switch` case,
+    /// but not in the exclusive `if`/`else if` chain of an `is`-match.
+    fn emit_arm_body(
+        &mut self,
+        body: &MatchArmBody,
+        term: ArmTerm,
+        break_on_fall: bool,
+    ) -> Result<(), EmitError> {
         match body {
             MatchArmBody::Expr(e) => {
                 let s = self.expr(e)?;
@@ -948,16 +945,17 @@ impl<'a> Emitter<'a> {
                     ArmTerm::Return => self.line(&format!("return {s};")),
                     ArmTerm::Break => {
                         self.line(&format!("{s};"));
-                        self.line("break;");
+                        if break_on_fall {
+                            self.line("break;");
+                        }
                     }
                 }
             }
-            // A block arm emits its statements directly into the case. A block
-            // in a `return match` is expected to `return` (the typechecker
-            // requires the arm to yield the match value); a statement-position
-            // block runs for effect, so `break` out of the switch afterward.
-            // Block arms are rejected in value position (the IIFE) by the
-            // caller, since a block `return` there means function-return.
+            // A block arm emits its statements directly into the case/branch. A
+            // block in a `return match` is expected to `return`; a statement-
+            // position block runs for effect and, inside a `switch`, breaks
+            // afterward. Block arms are rejected in value position (the IIFE) by
+            // the caller, since a block `return` there means function-return.
             MatchArmBody::Block(b) => {
                 // Conservative divergence check: does the block end in a
                 // statement that exits? It under-approximates (a trailing
@@ -970,9 +968,9 @@ impl<'a> Emitter<'a> {
                     Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_))
                 );
                 // In return position the arm must yield the match value, so a
-                // non-diverging block would fall through to the next case with
-                // no value. Reject rather than emit that fall-through; the
-                // typechecker does not yet require return-arm divergence.
+                // non-diverging block would fall through with no value. Reject
+                // rather than emit that fall-through; the typechecker does not
+                // yet require return-arm divergence.
                 if matches!(term, ArmTerm::Return) && !diverges {
                     return Err(EmitError::Unsupported {
                         construct: "a `return match` block arm that does not end in `return`",
@@ -982,9 +980,7 @@ impl<'a> Emitter<'a> {
                 for stmt in &b.stmts {
                     self.emit_stmt(stmt)?;
                 }
-                // A statement-position block runs for effect; `break` out of
-                // the switch unless the block already exits.
-                if matches!(term, ArmTerm::Break) && !diverges {
+                if matches!(term, ArmTerm::Break) && !diverges && break_on_fall {
                     self.line("break;");
                 }
             }
@@ -1577,9 +1573,21 @@ mod tests {
             "module x\nfn f(v: unknown) -> string {\n  return match v {\n    is Array<string> => \"arr\",\n    is Record<string, unknown> => \"obj\",\n    else => \"x\",\n  }\n}\n",
         );
         assert!(ts.contains("if (Array.isArray(__m0)) {"), "{ts}");
+        // `is Record` excludes arrays so an `is Array` arm isn't shadowed.
         assert!(
-            ts.contains("} else if ((typeof __m0 === \"object\" && __m0 !== null)) {"),
+            ts.contains("} else if (typeof __m0 === \"object\" && __m0 !== null && !Array.isArray(__m0)) {"),
             "{ts}"
+        );
+    }
+
+    #[test]
+    fn is_match_with_two_catch_alls_is_rejected() {
+        let err = emit_err(
+            "module x\nfn f(v: unknown) -> number {\n  return match v {\n    is string => 1,\n    else => 2,\n    else => 3,\n  }\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
+            "got {err:?}"
         );
     }
 

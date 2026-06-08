@@ -25,9 +25,11 @@
 //! of `Either<never, never>`) — every constructor then fits every
 //! instantiation. A
 //! non-generic record type additionally emits a Q8 runtime descriptor — an
-//! `export const X = { is(v): v is X { ... } }` whose predicate shallowly
-//! validates each field (primitives by `typeof`, others by presence) — so
-//! `is TypeName` checks can hold at runtime.
+//! `export const X = { is(v): v is X { ... }, parse(v) { ... } }` whose `is`
+//! predicate shallowly validates each field (primitives by `typeof`, others by
+//! presence) so `is TypeName` checks hold at runtime, and whose `parse` reuses
+//! that guard to validate an `unknown` into a `Result` (the inline `Ok`/`Err`
+//! shape, so the descriptor needs no `std/result` import).
 //!
 //! A `match` over a tagged union lowers to a `switch` on the `tag`
 //! discriminant, with constructor-pattern arms (`Ok(x)`, `NetworkError({ url })`)
@@ -139,6 +141,11 @@ const PAYLOAD: &str = "value";
 /// propagate failures; single-sourced alongside `TAG`/`PAYLOAD` since it is
 /// part of the same `Result` wire-format contract.
 const RESULT_ERR: &str = "Err";
+
+/// The success variant tag of the prelude `Result`. A record descriptor's
+/// `parse` builds an `Ok` of the validated value; single-sourced with
+/// `RESULT_ERR` since both are the same `Result` wire-format contract.
+const RESULT_OK: &str = "Ok";
 
 /// How a lowered `match` arm yields control: `return` its value (the match is
 /// in return position) or run it for effect and `break` (statement position).
@@ -284,15 +291,24 @@ impl<'a> Emitter<'a> {
 
     /// Emit the Q8 runtime descriptor for a record type: an `is` type guard
     /// doing shallow validation (each primitive field checked by `typeof`,
-    /// each other field checked for presence). Deep/recursive validation and
-    /// the `parse` entry point (which returns a `Result`) are later work.
+    /// each other field checked for presence), plus a `parse` entry point that
+    /// validates an `unknown` and returns a `Result` (`Ok` of the value, or an
+    /// `Err` describing the failure). Deep/recursive validation is later work.
+    ///
+    /// `parse` is deliberately self-contained: it inlines the `Result`
+    /// wire-format (the same `tag`/`value` contract the union lowering uses,
+    /// single-sourced via `RESULT_OK`/`RESULT_ERR`) rather than referencing the
+    /// prelude `Ok`/`Err` constructors, so the descriptor compiles even in a
+    /// module that never imports `std/result`. The only name it references is
+    /// the record type itself, which is declared in the same module.
     ///
     /// **Soundness limitation**: because a non-primitive field is only checked
     /// for presence, the `value is X` narrowing is stronger than the runtime
     /// proof — `User.is({ parent: 42, ... })` returns true even though `parent`
-    /// is not a `User`. This is the documented v1 "shallow validation" scope
-    /// (`docs/roadmap/04-transpiler.md`); recursing into a named-record field's
-    /// own `is` would close the gap and is the path to full soundness.
+    /// is not a `User` (and `User.parse` inherits the same gap). This is the
+    /// documented v1 "shallow validation" scope (`docs/roadmap/04-transpiler.md`);
+    /// recursing into a named-record field's own `is` would close the gap and is
+    /// the path to full soundness.
     fn emit_record_descriptor(&mut self, name: &Ident, fields: &[RecordTypeField]) {
         let checks: Vec<String> = fields.iter().map(record_field_check).collect();
         self.line(&format!("export const {name} = {{"));
@@ -310,6 +326,22 @@ impl<'a> Emitter<'a> {
             }
             self.indent -= 1;
         }
+        self.indent -= 1;
+        self.line("},");
+        // The `parse` entry point reuses the `is` guard, then wraps the value in
+        // a `Result`. The return type and the values are the inline `Result`
+        // shape; `Ok`'s payload is the narrowed value, `Err`'s is a message.
+        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
+        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
+        self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
+        self.indent += 1;
+        self.line(&format!("return {name}.is(value)"));
+        self.indent += 1;
+        self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
+        self.line(&format!(
+            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: \"expected {name}\" }};"
+        ));
+        self.indent -= 1;
         self.indent -= 1;
         self.line("},");
         self.indent -= 1;
@@ -1490,6 +1522,29 @@ mod tests {
         );
         // Non-primitive field: presence check only (shallow).
         assert!(ts.contains("&& \"parent\" in (value as object);"), "{ts}");
+    }
+
+    #[test]
+    fn record_descriptor_emits_a_self_contained_parse() {
+        let ts = emit("module x\ntype User = { id: string }\n");
+        // `parse` returns the inline `Result` shape — no `std/result` import,
+        // no `Ok`/`Err` constructor reference; the only name it mentions is the
+        // record type itself.
+        assert!(
+            ts.contains(
+                "parse(value: unknown): { tag: \"Ok\"; value: User } | { tag: \"Err\"; value: string } {"
+            ),
+            "{ts}"
+        );
+        // It reuses the `is` guard and wraps the value in `Ok`/`Err` literals.
+        assert!(ts.contains("return User.is(value)"), "{ts}");
+        assert!(ts.contains("? { tag: \"Ok\", value: value }"), "{ts}");
+        assert!(
+            ts.contains(": { tag: \"Err\", value: \"expected User\" };"),
+            "{ts}"
+        );
+        // No prelude import was pulled in for the descriptor.
+        assert!(!ts.contains("from \"std/result\""), "{ts}");
     }
 
     #[test]

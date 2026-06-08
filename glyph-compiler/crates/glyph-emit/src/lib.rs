@@ -775,16 +775,31 @@ impl<'a> Emitter<'a> {
             // Block arms are rejected in value position (the IIFE) by the
             // caller, since a block `return` there means function-return.
             MatchArmBody::Block(b) => {
-                for stmt in &b.stmts {
-                    self.emit_stmt(stmt)?;
-                }
-                // Add a `break` only when the block can fall off its end — a
-                // block already ending in `return`/`break`/`continue` needs
-                // none (and a dead `break` after it reads as a mistake).
+                // Conservative divergence check: does the block end in a
+                // statement that exits? It under-approximates (a trailing
+                // `loop {}` or exhaustive nested `match` also diverges), which
+                // is safe — it only ever adds a redundant `break` or rejects a
+                // valid arm, never falls through. A precise CFG check (cf.
+                // `owned.rs`) is the proper future fix.
                 let diverges = matches!(
                     b.stmts.last(),
                     Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_))
                 );
+                // In return position the arm must yield the match value, so a
+                // non-diverging block would fall through to the next case with
+                // no value. Reject rather than emit that fall-through; the
+                // typechecker does not yet require return-arm divergence.
+                if matches!(term, ArmTerm::Return) && !diverges {
+                    return Err(EmitError::Unsupported {
+                        construct: "a `return match` block arm that does not end in `return`",
+                        span: b.span,
+                    });
+                }
+                for stmt in &b.stmts {
+                    self.emit_stmt(stmt)?;
+                }
+                // A statement-position block runs for effect; `break` out of
+                // the switch unless the block already exits.
                 if matches!(term, ArmTerm::Break) && !diverges {
                     self.line("break;");
                 }
@@ -1370,6 +1385,19 @@ mod tests {
         );
         assert!(ts.contains("nop(1);"), "{ts}");
         assert!(ts.contains("break;"), "{ts}");
+    }
+
+    #[test]
+    fn return_match_block_arm_without_return_is_rejected() {
+        // A non-returning block arm in a `return match` would fall through to
+        // the next case; reject rather than emit that.
+        let err = emit_err(
+            "module x\ntype E = A | B\nfn nop(n: number) -> void { return void }\nfn f(e: E) -> number {\n  return match e {\n    A => { nop(1) },\n    B => { return 2 },\n  }\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("does not end in `return`")),
+            "got {err:?}"
+        );
     }
 
     #[test]

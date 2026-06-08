@@ -159,6 +159,7 @@ Module {
                 name: "Todo",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -229,6 +230,7 @@ Module {
                 name: "TodoFile",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -299,6 +301,7 @@ Module {
                 name: "LoadError",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Union {
                     variants: [
                         UnionVariant {
@@ -420,6 +423,7 @@ Module {
                 name: "SaveError",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Union {
                     variants: [
                         UnionVariant {
@@ -490,6 +494,7 @@ Module {
                 name: "Command",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Union {
                     variants: [
                         UnionVariant {
@@ -653,6 +658,7 @@ Module {
                 name: "ParseError",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Union {
                     variants: [
                         UnionVariant {

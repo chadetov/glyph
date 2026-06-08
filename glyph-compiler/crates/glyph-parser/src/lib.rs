@@ -298,6 +298,39 @@ mod smoke {
     }
 
     #[test]
+    fn plain_type_decl_is_not_a_resource() {
+        let m = parse_or_panic("module x\ntype User = { name: string }\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Type(t) => {
+                assert_eq!(t.name.as_ref(), "User");
+                assert!(!t.is_resource);
+            }
+            other => panic!("expected Type decl, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resource_type_decl_d25() {
+        let m = parse_or_panic("module x\nresource type FileHandle = { fd: number }\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Type(t) => {
+                assert_eq!(t.name.as_ref(), "FileHandle");
+                assert!(t.is_resource);
+                // The decl span starts at `resource` (byte 9), not `type`.
+                assert_eq!(t.span.start, 9);
+            }
+            other => panic!("expected Type decl, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resource_without_type_is_rejected() {
+        // `resource` is only legal immediately before `type` at the top level.
+        let err = parse("module x\nresource Foo = 1\n");
+        assert!(err.is_err(), "expected `resource Foo` to be a parse error");
+    }
+
+    #[test]
     fn type_decl_multiline_union_with_payloads_d8() {
         let src = r#"module x
 type FeedError =

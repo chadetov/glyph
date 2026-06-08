@@ -83,6 +83,7 @@ Module {
                 name: "Issue",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -162,6 +163,7 @@ Module {
                         },
                     },
                 ],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -2537,6 +2539,7 @@ Module {
                 name: "User",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {

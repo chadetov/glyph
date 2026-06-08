@@ -102,6 +102,7 @@ Module {
                 name: "User",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -155,6 +156,7 @@ Module {
                 name: "Post",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -225,6 +227,7 @@ Module {
                 name: "Comment",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -295,6 +298,7 @@ Module {
                 name: "PostWithComments",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -365,6 +369,7 @@ Module {
                 name: "Feed",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -435,6 +440,7 @@ Module {
                 name: "FeedError",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Union {
                     variants: [
                         UnionVariant {

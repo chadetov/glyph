@@ -119,6 +119,7 @@ Module {
                 name: "User",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -189,6 +190,7 @@ Module {
                 name: "SearchState",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Union {
                     variants: [
                         UnionVariant {
@@ -309,6 +311,7 @@ Module {
                 name: "Props",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {
@@ -1191,6 +1194,7 @@ Module {
                 name: "ResultsListProps",
                 annotations: [],
                 generics: [],
+                is_resource: false,
                 body: Record {
                     fields: [
                         RecordTypeField {

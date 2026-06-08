@@ -111,6 +111,10 @@ pub struct TypeDecl {
     pub name: Ident,
     pub annotations: Vec<Annotation>,
     pub generics: Vec<GenericParam>,
+    /// D25: `resource type X = ...`. A value of a resource type may be bound
+    /// with `let owned` and is then tracked for single-consumption. Plain
+    /// `type X = ...` leaves this `false`.
+    pub is_resource: bool,
     pub body: TypeExpr,
     pub span: Span,
 }

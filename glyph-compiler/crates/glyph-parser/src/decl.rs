@@ -106,6 +106,9 @@ fn parse_top_level(p: &mut Cursor) -> Result<Decl, ParseError> {
             parse_fn(p, true, annotations).map(Decl::Fn)
         }
         Token::Type => parse_type_decl(p, annotations).map(Decl::Type),
+        // D25: `resource type X = ...` marks a resource handle type. The
+        // `resource` keyword only precedes `type`; anything else is an error.
+        Token::Resource => parse_type_decl(p, annotations).map(Decl::Type),
         Token::Const => parse_const_decl(p, annotations).map(Decl::Const),
         Token::Component => parse_component(p, annotations).map(Decl::Component),
         // record (top-level `record X { ... }`) — deferred to v1.1 cleanup;
@@ -171,7 +174,16 @@ fn parse_component(
 }
 
 fn parse_type_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<TypeDecl, ParseError> {
-    let type_span = p.expect(&Token::Type, "`type`")?;
+    // D25: an optional leading `resource` marks the type as a resource handle.
+    // The declaration still starts at `resource` when present so the span
+    // covers the whole form.
+    let (start, is_resource) = if matches!(p.peek(), Token::Resource) {
+        let res_span = p.expect(&Token::Resource, "`resource`")?;
+        (res_span.start, true)
+    } else {
+        (p.peek_span().start, false)
+    };
+    p.expect(&Token::Type, "`type`")?;
     let (name, _) = p.expect_ident("type name")?;
     let generics = if matches!(p.peek(), Token::LAngle) {
         parse_generic_params(p)?
@@ -188,8 +200,9 @@ fn parse_type_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<TypeD
         name,
         annotations,
         generics,
+        is_resource,
         body,
-        span: Span::new(type_span.start, end),
+        span: Span::new(start, end),
     })
 }
 

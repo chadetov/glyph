@@ -32,6 +32,27 @@ TypeScript via `glyph build`, and each emitted `.ts` passes
 Update this section whenever the milestone advances (see
 `docs/roadmap/overview.md` for the live status table).
 
+### Remaining head-blockers (as of `ce2d0fc`)
+
+Each example currently stops at its first unsupported construct; clearing one
+reveals the next, so re-probe with `glyph build` every run. Ordered roughly
+easiest to hardest:
+
+- **04_cli_tool** — a binding match arm: a bare-identifier catch-all (`other =>
+  ...`) that is not a union variant. Lower it like `_`/`else` (bind the
+  scrutinee, run the arm).
+- **01_validator** — two-binding `for K, V in` over a `Record<K, V>`. A Glyph
+  record is a plain object, so this is `for (const [k, v] of Object.entries(m))`
+  (confirm the iterand is an object record, not a `Map`, before committing to
+  `Object.entries`).
+- **02_async_errors** — a mid-chain `?` (`await x?.map_err(...)`): the `?` is not
+  the trailing postfix, so the trailing-`?` rotation does not apply. Needs
+  expression hoisting (bind the `?` operand to a temp, propagate `Err`, continue
+  the chain on the `Ok` value). The largest correctness-sensitive piece.
+- **03_react_component** — `component` declaration + D6 JSX directive lowering
+  (`<if>`/`<for>`/`<match>` → ternary/`.map`/IIFE). Multi-cycle; tackle the
+  declaration shell and element lowering as separate slices.
+
 ## Routine prompt
 
 ```

@@ -15,11 +15,15 @@
 //! literals with spread, lambdas), and type annotations (primitives, generic
 //! applications, function and record types).
 //!
+//! Monomorphic tagged unions lower to a TS discriminated union on a `tag`
+//! field plus a constructor per variant (a `const` for a no-payload variant,
+//! a function for a payload variant; record payloads spread their fields).
+//!
 //! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
 //! than emitting invalid TS: `match` lowering to `switch`, the `?` operator's
-//! inlined unwrapping, tagged-union (`type X = A | B`) lowering to discriminated
-//! unions plus Q8 runtime descriptors, `component` + D6 JSX directive lowering,
-//! and the two-binding `for K, V in`.
+//! inlined unwrapping, generic tagged unions, the Q8 runtime descriptors that
+//! accompany type declarations, `component` + D6 JSX directive lowering, and
+//! the two-binding `for K, V in`.
 //!
 //! ## Known gap: reserved-word identifiers
 //!
@@ -35,7 +39,7 @@
 
 use glyph_ast::{
     ArrayElem, BinOp, Block, Decl, Expr, GenericParam, ImportDecl, ImportKind, Module, MutKind,
-    ObjectField, Param, PostfixOp, Span, Stmt, TemplatePart, TypeExpr, UnaryOp,
+    ObjectField, Param, PostfixOp, Span, Stmt, TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
@@ -130,14 +134,17 @@ impl Emitter {
                 Ok(())
             }
             Decl::Type(t) => {
-                // Tagged unions become discriminated unions + descriptors in a
-                // later day; only plain aliases (including record-typed ones)
-                // emit here.
-                if let TypeExpr::Union { span, .. } = &t.body {
-                    return Err(EmitError::Unsupported {
-                        construct: "tagged union type declaration",
-                        span: *span,
-                    });
+                if let TypeExpr::Union { variants, .. } = &t.body {
+                    // Generic tagged unions (no-payload variants of a generic
+                    // union need a widened constructor type) land on a later
+                    // day; the corpus's user unions are all monomorphic.
+                    if !t.generics.is_empty() {
+                        return Err(EmitError::Unsupported {
+                            construct: "generic tagged union type declaration",
+                            span: t.span,
+                        });
+                    }
+                    return self.emit_union(&t.name, variants);
                 }
                 let generics = self.generics(&t.generics);
                 let body = self.ty(&t.body)?;
@@ -177,6 +184,65 @@ impl Emitter {
             }
         };
         self.line(&line);
+        Ok(())
+    }
+
+    /// Emit a (monomorphic) tagged union as a TS discriminated union plus a
+    /// constructor per variant. The discriminant is a `tag` string literal.
+    /// A record payload's fields are spread alongside the tag; a no-payload
+    /// variant becomes a `const`, a payload variant a constructor function.
+    fn emit_union(&mut self, name: &str, variants: &[UnionVariant]) -> Result<(), EmitError> {
+        self.line(&format!("export type {name} ="));
+        self.indent += 1;
+        for (i, v) in variants.iter().enumerate() {
+            let term = if i + 1 == variants.len() { ";" } else { "" };
+            let members = self.variant_members(v)?;
+            self.line(&format!("| {{ {members} }}{term}"));
+        }
+        self.indent -= 1;
+        self.out.push('\n');
+        for v in variants {
+            self.emit_variant_constructor(name, v)?;
+        }
+        Ok(())
+    }
+
+    /// The object-type members of a variant: the `tag` literal, plus a record
+    /// payload's fields spread inline, or a non-record payload under `value`.
+    fn variant_members(&self, v: &UnionVariant) -> Result<String, EmitError> {
+        let mut s = format!("tag: \"{}\"", v.name);
+        match &v.payload {
+            None => {}
+            Some(TypeExpr::Record { fields, .. }) => {
+                for f in fields {
+                    let opt = if f.optional { "?" } else { "" };
+                    s.push_str(&format!("; {}{opt}: {}", f.name, self.ty(&f.ty)?));
+                }
+            }
+            Some(other) => s.push_str(&format!("; value: {}", self.ty(other)?)),
+        }
+        Ok(s)
+    }
+
+    fn emit_variant_constructor(
+        &mut self,
+        union: &str,
+        v: &UnionVariant,
+    ) -> Result<(), EmitError> {
+        let name = &v.name;
+        match &v.payload {
+            None => self.line(&format!(
+                "export const {name}: {union} = {{ tag: \"{name}\" }};"
+            )),
+            Some(payload @ TypeExpr::Record { .. }) => self.line(&format!(
+                "export function {name}(fields: {}): {union} {{ return {{ tag: \"{name}\", ...fields }}; }}",
+                self.ty(payload)?
+            )),
+            Some(other) => self.line(&format!(
+                "export function {name}(value: {}): {union} {{ return {{ tag: \"{name}\", value }}; }}",
+                self.ty(other)?
+            )),
+        }
         Ok(())
     }
 
@@ -664,12 +730,47 @@ mod tests {
     }
 
     #[test]
-    fn tagged_union_decl_is_unsupported_for_now() {
-        let err = emit_err("module x\ntype Feed = Loading | Loaded | Failed\n");
+    fn tagged_union_emits_discriminated_union_and_constructors() {
+        let ts = emit(
+            "module x\ntype SearchState =\n  | Idle\n  | Loaded({ users: number })\n  | Failed({ message: string })\n",
+        );
+        assert!(ts.contains("export type SearchState ="), "{ts}");
+        assert!(ts.contains("| { tag: \"Idle\" }"), "{ts}");
+        assert!(
+            ts.contains("| { tag: \"Loaded\"; users: number }"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("| { tag: \"Failed\"; message: string };"),
+            "{ts}"
+        );
+        // No-payload variant → const; payload variant → constructor function.
+        assert!(
+            ts.contains("export const Idle: SearchState = { tag: \"Idle\" };"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("export function Loaded(fields: { users: number }): SearchState { return { tag: \"Loaded\", ...fields }; }"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn single_line_no_payload_union_emits_consts() {
+        let ts = emit("module x\ntype Color = Red | Green | Blue\n");
+        assert!(ts.contains("export const Red: Color = { tag: \"Red\" };"), "{ts}");
+        assert!(ts.contains("| { tag: \"Blue\" };"), "{ts}");
+    }
+
+    #[test]
+    fn generic_tagged_union_is_unsupported_for_now() {
+        let err = emit_err(
+            "module x\ntype Box<T> =\n  | Full({ value: T })\n  | Empty\n",
+        );
         assert!(matches!(
             err,
             EmitError::Unsupported {
-                construct: "tagged union type declaration",
+                construct: "generic tagged union type declaration",
                 ..
             }
         ));

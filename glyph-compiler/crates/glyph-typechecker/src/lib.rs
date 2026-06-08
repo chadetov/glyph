@@ -106,6 +106,15 @@ pub enum TypeError {
     /// use; the move site is named in the message.
     #[error("`owned` resource `{name}` is used after it was consumed")]
     OwnedUsedAfterMove { name: String, span: Span },
+
+    /// A `match` over an array scrutinee does not cover every length. Array
+    /// patterns cover lengths: `[]` covers the empty array, `[a, b]` covers
+    /// exactly length 2, and `[a, ...rest]` covers every length ≥ 1 — but only
+    /// when the fixed elements are irrefutable (bindings/wildcards), since a
+    /// literal element like `["help"]` matches only some arrays of that length.
+    /// `missing` names the smallest uncovered case.
+    #[error("non-exhaustive array match: {missing} not covered")]
+    NonExhaustiveArrayMatch { missing: String, span: Span },
 }
 
 impl TypeError {
@@ -117,6 +126,7 @@ impl TypeError {
             TypeError::OwnedRequiresResourceType { span, .. } => *span,
             TypeError::OwnedNotConsumed { span, .. } => *span,
             TypeError::OwnedUsedAfterMove { span, .. } => *span,
+            TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
         }
     }
 }

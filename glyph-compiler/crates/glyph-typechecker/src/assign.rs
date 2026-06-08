@@ -613,8 +613,88 @@ impl Assigner<'_> {
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
     ) {
+        if self.is_prelude_array(scrutinee_ty) {
+            self.check_array_exhaustiveness(arms, match_span);
+            return;
+        }
         let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
         self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+    }
+
+    /// True if `ty` is an application of the prelude `Array` type
+    /// (`Array<T>` → `App(Array, [T])`).
+    fn is_prelude_array(&self, ty: &Ty) -> bool {
+        let Ty::App { base, .. } = ty else { return false };
+        let Ty::Named { symbol, path } = base.as_ref() else { return false };
+        path.last().map(|n| n.as_ref()) == Some("Array")
+            && self.lowerer.prelude.lookup("Array") == Some(SymbolId(symbol.0))
+    }
+
+    /// Exhaustiveness for a `match` over an array scrutinee: every length in
+    /// `[0, ∞)` must be covered. A pattern credits coverage only when all its
+    /// fixed elements (and its rest, if any) are irrefutable bindings or
+    /// wildcards — a literal element like `["help"]` matches only some arrays
+    /// of its length, so it is not counted. `[]` covers length 0, `[a, b]`
+    /// covers exactly length 2, and `[a, ...rest]` covers every length ≥ 1.
+    /// The smallest uncovered length is reported.
+    fn check_array_exhaustiveness(&mut self, arms: &[MatchArm], match_span: glyph_ast::Span) {
+        let mut covered_lengths: HashSet<usize> = HashSet::new();
+        // The smallest fixed-prefix length of an irrefutable rest pattern; it
+        // covers every length at or above that value.
+        let mut rest_min: Option<usize> = None;
+        for arm in arms {
+            match &arm.pattern {
+                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. } => {
+                    // A whole-array binding or catch-all covers every length.
+                    return;
+                }
+                Pattern::Array { elements, rest, .. } => {
+                    if !elements.iter().all(is_irrefutable_pattern) {
+                        continue;
+                    }
+                    match rest {
+                        None => {
+                            covered_lengths.insert(elements.len());
+                        }
+                        Some(r) if is_irrefutable_pattern(r) => {
+                            let k = elements.len();
+                            rest_min = Some(rest_min.map_or(k, |m| m.min(k)));
+                        }
+                        // A refutable rest (unusual) credits nothing.
+                        Some(_) => {}
+                    }
+                }
+                // Other pattern shapes over an array scrutinee are not modeled.
+                _ => {}
+            }
+        }
+
+        // Find the smallest length that is neither an exactly-covered fixed
+        // length nor at/above the rest threshold.
+        let mut len = 0usize;
+        loop {
+            if covered_lengths.contains(&len) {
+                len += 1;
+                continue;
+            }
+            if rest_min.is_some_and(|k| len >= k) {
+                // Everything from here up is covered by a rest pattern.
+                return;
+            }
+            break;
+        }
+
+        let missing = if len == 0 {
+            "the empty array".to_string()
+        } else if rest_min.is_none() && covered_lengths.iter().all(|&c| c < len) {
+            format!("arrays of length {len} or longer")
+        } else {
+            format!("arrays of length {len}")
+        };
+        self.errors.push(TypeError::NonExhaustiveArrayMatch {
+            missing,
+            span: match_span,
+        });
     }
 
     /// Recursive core of exhaustiveness. Given the scrutinee type and the
@@ -892,6 +972,13 @@ impl Assigner<'_> {
             _ => None,
         }
     }
+}
+
+/// An array-pattern element/rest that matches any value of its position: a
+/// binding or `_`. Used by array exhaustiveness — only irrefutable elements
+/// let a pattern fully cover its length(s).
+fn is_irrefutable_pattern(p: &Pattern) -> bool {
+    matches!(p, Pattern::Ident { .. } | Pattern::Wildcard { .. })
 }
 
 // ----- day-21: assignability (conservative, primitives only) -----
@@ -1261,6 +1348,102 @@ fn run(r: Result<Option<number>, string>) -> number {
   return match r {
     Ok(opt) => 0,
     Err(e) => 1,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn array_match_empty_and_rest_is_exhaustive() {
+        let src = r#"module x
+fn f(xs: Array<string>) -> number {
+  return match xs {
+    [] => 0,
+    [head, ...rest] => 1,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn array_match_missing_empty_is_flagged() {
+        let src = r#"module x
+fn f(xs: Array<string>) -> number {
+  return match xs {
+    [head, ...rest] => 1,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::NonExhaustiveArrayMatch { missing, .. }] if missing.contains("empty")),
+            "got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn array_match_missing_long_arrays_is_flagged() {
+        let src = r#"module x
+fn f(xs: Array<string>) -> number {
+  return match xs {
+    [] => 0,
+    [a] => 1,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::NonExhaustiveArrayMatch { missing, .. }] if missing.contains("length 2")),
+            "got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn array_match_with_literal_arms_still_needs_a_catch_all() {
+        // Literal-element patterns do not cover their whole length; without an
+        // irrefutable rest or catch-all, the empty array is uncovered.
+        let src = r#"module x
+fn f(xs: Array<string>) -> number {
+  return match xs {
+    ["help"] => 0,
+    ["version"] => 1,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::NonExhaustiveArrayMatch { .. }]),
+            "got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn array_match_cli_idiom_is_exhaustive() {
+        // The `04_cli_tool` shape: literal-first arms are not credited, but a
+        // trailing binding-first rest arm `[other, ..._]` covers all non-empty
+        // lengths, and `[]` covers the empty case.
+        let src = r#"module x
+fn f(argv: Array<string>) -> number {
+  return match argv {
+    [] => 0,
+    ["help", ..._] => 1,
+    ["add", ...rest] => 2,
+    [other, ..._] => 3,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn array_match_with_catch_all_is_exhaustive() {
+        let src = r#"module x
+fn f(xs: Array<string>) -> number {
+  return match xs {
+    [] => 0,
+    other => 1,
   }
 }
 "#;

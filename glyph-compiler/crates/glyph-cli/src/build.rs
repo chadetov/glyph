@@ -16,7 +16,9 @@ use glyph_db::{
     import_diagnostics, module_symbols, parse_module, resolve, type_map, CompilerDb, SourceFile,
 };
 
-use crate::render::{render_parse_error, render_resolve_error, render_type_error};
+use crate::render::{
+    render_emit_error, render_parse_error, render_resolve_error, render_type_error,
+};
 
 /// Outcome of a build. Carries the rendered diagnostic strings so the
 /// binary can print them and the integration tests can assert on them.
@@ -27,6 +29,9 @@ pub struct BuildReport {
     pub diagnostics: Vec<String>,
     /// Module paths the build saw, in deterministic (lexicographic) order.
     pub modules: Vec<String>,
+    /// Relative paths of the `.ts` files written to the out directory, in the
+    /// same order. A module is emitted only when it produced no diagnostics.
+    pub emitted: Vec<String>,
 }
 
 impl BuildReport {
@@ -127,6 +132,7 @@ pub fn build_project_inner(
     let mut report = BuildReport::default();
     for (module_path, sf) in &entries {
         report.modules.push(module_path.clone());
+        let diag_start = report.diagnostics.len();
 
         // Cache the source text once per file; rendering may use it
         // multiple times if the file produces multiple diagnostics.
@@ -188,6 +194,35 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+        }
+
+        // Emit TS only for a module that produced no diagnostics — never
+        // write code derived from a program the compiler rejected.
+        if report.diagnostics.len() != diag_start {
+            continue;
+        }
+        let Some(ast) = parsed.module() else { continue };
+        match glyph_emit::emit_module(ast) {
+            Ok(ts) => {
+                let rel = format!("{module_path}.ts");
+                let ts_path = out.join(&rel);
+                if let Some(parent) = ts_path.parent() {
+                    std::fs::create_dir_all(parent).map_err(|e| BuildError::Io {
+                        path: parent.to_path_buf(),
+                        source: e,
+                    })?;
+                }
+                std::fs::write(&ts_path, ts).map_err(|e| BuildError::Io {
+                    path: ts_path.clone(),
+                    source: e,
+                })?;
+                report.emitted.push(rel);
+            }
+            Err(e) => {
+                report
+                    .diagnostics
+                    .push(render_emit_error(module_path, &source, &e, with_color));
+            }
         }
     }
 

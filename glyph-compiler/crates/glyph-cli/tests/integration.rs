@@ -61,6 +61,53 @@ fn build_reports_no_diagnostics_on_clean_project() {
 }
 
 #[test]
+fn build_emits_typescript_for_a_clean_module() {
+    let root = unique_tmp("emit");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn add(a: number, b: number) -> number { return a + b }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    assert_eq!(report.emitted, vec!["main.ts".to_string()]);
+
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts written");
+    assert!(
+        ts.contains("export function add(a: number, b: number): number {"),
+        "{ts}"
+    );
+    assert!(ts.contains("return (a + b);"), "{ts}");
+}
+
+#[test]
+fn build_reports_emit_diagnostic_for_unsupported_construct() {
+    let root = unique_tmp("emit_unsupported");
+    let src = root.join("src");
+    let out = root.join("dist");
+    // `match` emission is a later week-4 day; the build should surface a
+    // diagnostic and NOT write a .ts file for this module.
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn f(n: number) -> number { return match n { else => 0 } }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(report.has_errors(), "expected an emit diagnostic");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("emit")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+    assert!(report.emitted.is_empty());
+    assert!(!out.join("main.ts").exists(), "no .ts for a rejected module");
+}
+
+#[test]
 fn build_flags_unknown_cross_module_export() {
     let root = unique_tmp("badimport");
     let src = root.join("src");

@@ -330,6 +330,7 @@ name = "glyph-emit"
 version = "0.1.0"
 dependencies = [
  "glyph-ast",
+ "glyph-parser",
  "glyph-typechecker",
  "insta",
  "thiserror",

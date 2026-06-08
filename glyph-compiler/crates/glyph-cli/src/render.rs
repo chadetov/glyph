@@ -12,6 +12,7 @@
 use ariadne::{Color, Config, IndexType, Label, Report, ReportKind, Source};
 
 use glyph_ast::Span;
+use glyph_emit::EmitError;
 use glyph_parser::ParseError;
 use glyph_resolver::ResolveError;
 use glyph_typechecker::TypeError;
@@ -59,6 +60,19 @@ pub fn render_type_error(
     let span = err.span();
     let message = format!("{err}");
     build_report(path, source, span, "typecheck", &message, with_color)
+}
+
+/// Render an `EmitError` (a construct whose TS emission isn't implemented
+/// yet) as an ariadne report under the `emit` stage tag.
+pub fn render_emit_error(
+    path: &str,
+    source: &str,
+    err: &EmitError,
+    with_color: bool,
+) -> String {
+    let span = err.span();
+    let message = format!("{err}");
+    build_report(path, source, span, "emit", &message, with_color)
 }
 
 /// Map each `ResolveError` variant to a stage tag that appears in the

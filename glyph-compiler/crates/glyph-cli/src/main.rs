@@ -90,10 +90,10 @@ fn main() {
                     std::process::exit(1);
                 }
                 eprintln!(
-                    "glyph build: {} module(s) checked, no diagnostics. \
-                     (TS emission is week-4 work; --out directory created \
-                     but no files written yet.)",
-                    report.modules.len()
+                    "glyph build: {} module(s) checked, no diagnostics; \
+                     {} TypeScript file(s) emitted.",
+                    report.modules.len(),
+                    report.emitted.len()
                 );
                 std::process::exit(0);
             }

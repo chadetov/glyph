@@ -56,12 +56,18 @@
 //! record descriptor), `is Record<...>`/`is Array<...>` → an object /
 //! `Array.isArray` check; a missing `else` throws.
 //!
-//! Deferred to later week-4 days, surfaced as `EmitError::Unsupported` rather
-//! than emitting invalid TS: binding catch-all arms,
-//! value-position block arms, nested-constructor/array match patterns,
-//! `is` checks on union/generic/imported types, a nested `?`, the Q8 runtime
-//! descriptors that accompany type declarations, `component` + D6 JSX
-//! directive lowering, and the two-binding `for K, V in`.
+//! An array `match` (`[]`, `["add", ...rest]`, `[a, b]`) also lowers to an
+//! `if`/`else if` chain: each arm is a length check (`=== n`, or `>= n` with a
+//! `...rest`) joined with an equality check per literal element; identifier
+//! elements bind by index and a `...rest` binds `slice(n)`. Source order is
+//! match order; a missing `_`/`else` throws (the typechecker proves array
+//! exhaustiveness, so the throw is unreachable for a well-typed match).
+//!
+//! Deferred, surfaced as `EmitError::Unsupported` rather than emitting invalid
+//! TS: binding catch-all arms, value-position block arms, object match patterns
+//! and nested patterns inside a constructor or array arm, `is` checks on
+//! union/generic/imported types, a nested `?`, `component` + D6 JSX directive
+//! lowering, and the two-binding `for K, V in`.
 //!
 //! ## Known gap: reserved-word identifiers
 //!
@@ -713,6 +719,13 @@ impl<'a> Emitter<'a> {
             return self.emit_is_chain(scrutinee, arms, term);
         }
 
+        // An array pattern arm makes this an array match, lowered to a length-
+        // and element-check `if`/`else if` chain (a primitive array has no tag
+        // to switch on).
+        if arms.iter().any(|a| matches!(a.pattern, Pattern::Array { .. })) {
+            return self.emit_array_chain(scrutinee, arms, term);
+        }
+
         // Variant names of the scrutinee's union, when its type is known.
         let variants = self.union_variant_names(self.types.get(scrutinee.span()));
         let is_variant = |name: &str| {
@@ -946,6 +959,141 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.line("}");
         Ok(())
+    }
+
+    /// Lower a `match` over an array scrutinee to an `if`/`else if` chain. Each
+    /// `Pattern::Array` arm becomes a length check (`=== n` for a fixed-length
+    /// pattern, `>= n` when a `...rest` element is present) plus an equality
+    /// check for every literal element; identifier elements bind by index and a
+    /// `...rest` binds `slice(n)`. The chain is exclusive — source order is
+    /// match order — so no `break` is needed. A missing catch-all throws; the
+    /// typechecker has proven array-length exhaustiveness, so for a well-typed
+    /// match the throw is unreachable.
+    fn emit_array_chain(
+        &mut self,
+        scrutinee: &Expr,
+        arms: &[MatchArm],
+        term: ArmTerm,
+    ) -> Result<(), EmitError> {
+        // A second catch-all would drop the earlier one (the chain keeps only
+        // the last `else`); reject, as the switch and `is`-chain paths do.
+        if let Some(extra) = arms
+            .iter()
+            .filter(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }))
+            .nth(1)
+        {
+            return Err(EmitError::Unsupported {
+                construct: "a match with more than one catch-all arm",
+                span: extra.span,
+            });
+        }
+
+        let scrut = self.expr(scrutinee)?;
+        let m = self.fresh_temp("__m");
+        self.line(&format!("const {m} = {scrut};"));
+
+        let mut first = true;
+        let mut else_arm: Option<&MatchArm> = None;
+        for arm in arms {
+            match &arm.pattern {
+                Pattern::Array {
+                    elements,
+                    rest,
+                    span,
+                } => {
+                    let cond = self.array_pattern_condition(&m, elements, rest, *span)?;
+                    let opener = if first {
+                        format!("if ({cond}) {{")
+                    } else {
+                        format!("}} else if ({cond}) {{")
+                    };
+                    first = false;
+                    self.line(&opener);
+                    self.indent += 1;
+                    self.emit_array_binds(&m, elements, rest);
+                    // No `break`: the if-chain is already exclusive.
+                    self.emit_arm_body(&arm.body, term, false)?;
+                    self.indent -= 1;
+                }
+                Pattern::Wildcard { .. } | Pattern::Else { .. } => else_arm = Some(arm),
+                _ => {
+                    return Err(EmitError::Unsupported {
+                        construct: "a match mixing array and other patterns",
+                        span: arm.span,
+                    })
+                }
+            }
+        }
+
+        self.line("} else {");
+        self.indent += 1;
+        match else_arm {
+            Some(arm) => self.emit_arm_body(&arm.body, term, false)?,
+            None => self.line("throw new Error(\"non-exhaustive match\");"),
+        }
+        self.indent -= 1;
+        self.line("}");
+        Ok(())
+    }
+
+    /// Build the boolean guard for one array pattern: a length check joined with
+    /// an equality check per literal element. Identifier and wildcard elements
+    /// contribute no check (they bind, see `emit_array_binds`). A nested element
+    /// pattern or a non-identifier rest is not supported yet.
+    fn array_pattern_condition(
+        &self,
+        m: &str,
+        elements: &[Pattern],
+        rest: &Option<Box<Pattern>>,
+        span: Span,
+    ) -> Result<String, EmitError> {
+        if let Some(r) = rest {
+            if !matches!(r.as_ref(), Pattern::Ident { .. } | Pattern::Wildcard { .. }) {
+                return Err(EmitError::Unsupported {
+                    construct: "a non-identifier rest pattern in an array match",
+                    span,
+                });
+            }
+        }
+        let n = elements.len();
+        let len_check = if rest.is_some() {
+            format!("{m}.length >= {n}")
+        } else {
+            format!("{m}.length === {n}")
+        };
+        let mut checks = vec![len_check];
+        for (i, el) in elements.iter().enumerate() {
+            match el {
+                Pattern::Literal { value, .. } => {
+                    checks.push(format!("{m}[{i}] === {}", literal_label(value)));
+                }
+                Pattern::Ident { .. } | Pattern::Wildcard { .. } => {}
+                _ => {
+                    return Err(EmitError::Unsupported {
+                        construct: "a nested pattern inside an array match pattern",
+                        span,
+                    })
+                }
+            }
+        }
+        Ok(checks.join(" && "))
+    }
+
+    /// Bind the identifier elements and `...rest` of an array pattern from the
+    /// scrutinee temporary `m`. Literal and wildcard elements bind nothing; a
+    /// wildcard rest binds nothing. Element validity was checked while building
+    /// the condition.
+    fn emit_array_binds(&mut self, m: &str, elements: &[Pattern], rest: &Option<Box<Pattern>>) {
+        for (i, el) in elements.iter().enumerate() {
+            if let Pattern::Ident { name, .. } = el {
+                self.line(&format!("const {name} = {m}[{i}];"));
+            }
+        }
+        if let Some(r) = rest {
+            if let Pattern::Ident { name, .. } = r.as_ref() {
+                self.line(&format!("const {name} = {m}.slice({});", elements.len()));
+            }
+        }
     }
 
     /// The runtime check for an `is T` pattern against the temporary `m`, or
@@ -1711,6 +1859,55 @@ mod tests {
             ts.contains("} else {\n    throw new Error(\"non-exhaustive match\");"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn array_match_lowers_to_a_length_and_element_if_chain() {
+        let ts = emit(
+            "module x\nfn f(argv: Array<string>) -> string {\n  return match argv {\n    [] => \"empty\",\n    [\"add\", ...rest] => \"add\",\n    [\"list\", \"--all\"] => \"la\",\n    [\"get\", id] => id,\n    [other, ..._] => other,\n  }\n}\n",
+        );
+        // Empty array: exact length zero.
+        assert!(ts.contains("if (__m0.length === 0) {"), "{ts}");
+        // Literal head + `...rest`: a `>=` length check, and `rest` binds slice.
+        assert!(
+            ts.contains("} else if (__m0.length >= 1 && __m0[0] === \"add\") {"),
+            "{ts}"
+        );
+        assert!(ts.contains("const rest = __m0.slice(1);"), "{ts}");
+        // Two fixed literals: exact length and both elements checked.
+        assert!(
+            ts.contains(
+                "} else if (__m0.length === 2 && __m0[0] === \"list\" && __m0[1] === \"--all\") {"
+            ),
+            "{ts}"
+        );
+        // Literal head + identifier element: the identifier binds by index.
+        assert!(
+            ts.contains("} else if (__m0.length === 2 && __m0[0] === \"get\") {"),
+            "{ts}"
+        );
+        assert!(ts.contains("const id = __m0[1];"), "{ts}");
+        // Identifier head + wildcard rest: head binds, rest does not.
+        assert!(ts.contains("const other = __m0[0];"), "{ts}");
+        assert!(!ts.contains("const _ ="), "{ts}");
+        // No `_`/`else` arm, so the chain ends with the exhaustiveness throw.
+        assert!(
+            ts.contains("} else {\n    throw new Error(\"non-exhaustive match\");"),
+            "{ts}"
+        );
+        // It is an if-chain, not a switch.
+        assert!(!ts.contains("switch"), "{ts}");
+    }
+
+    #[test]
+    fn array_match_with_an_else_arm_omits_the_throw() {
+        let ts = emit(
+            "module x\nfn f(argv: Array<string>) -> string {\n  return match argv {\n    [] => \"empty\",\n    else => \"other\",\n  }\n}\n",
+        );
+        assert!(ts.contains("if (__m0.length === 0) {"), "{ts}");
+        assert!(ts.contains("} else {"), "{ts}");
+        assert!(ts.contains("return \"other\";"), "{ts}");
+        assert!(!ts.contains("non-exhaustive match"), "{ts}");
     }
 
     #[test]

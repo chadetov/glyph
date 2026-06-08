@@ -17,7 +17,11 @@
 //!
 //! Monomorphic tagged unions lower to a TS discriminated union on a `tag`
 //! field plus a constructor per variant (a `const` for a no-payload variant,
-//! a function for a payload variant; record payloads spread their fields).
+//! a function for a payload variant; record payloads spread their fields). A
+//! non-generic record type additionally emits a Q8 runtime descriptor — an
+//! `export const X = { is(v): v is X { ... } }` whose predicate shallowly
+//! validates each field (primitives by `typeof`, others by presence) — so
+//! `is TypeName` checks can hold at runtime.
 //!
 //! A `match` over a tagged union lowers to a `switch` on the `tag`
 //! discriminant, with constructor-pattern arms (`Ok(x)`, `NetworkError({ url })`)
@@ -72,9 +76,9 @@
 #![forbid(unsafe_code)]
 
 use glyph_ast::{
-    ArrayElem, BinOp, Block, Decl, Expr, GenericParam, ImportDecl, ImportKind, LiteralPattern,
-    MatchArm, MatchArmBody, Module, MutKind, ObjectField, Param, Pattern, PostfixOp, Span, Stmt,
-    TemplatePart, TypeExpr, UnaryOp, UnionVariant,
+    ArrayElem, BinOp, Block, Decl, Expr, GenericParam, Ident, ImportDecl, ImportKind,
+    LiteralPattern, MatchArm, MatchArmBody, Module, MutKind, ObjectField, Param, Pattern,
+    PostfixOp, RecordTypeField, Span, Stmt, TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
 use glyph_typechecker::{Ty, TypeMap};
@@ -257,6 +261,15 @@ impl<'a> Emitter<'a> {
                 let generics = self.generics(&t.generics);
                 let body = self.ty(&t.body)?;
                 self.line(&format!("export type {}{generics} = {body};", t.name));
+                // Q8: a non-generic record type also emits a runtime descriptor
+                // whose `is` predicate makes `is TypeName` checks work at
+                // runtime (no type erasure). Generic records need their type
+                // arguments at the call site and are deferred.
+                if let TypeExpr::Record { fields, .. } = &t.body {
+                    if t.generics.is_empty() {
+                        self.emit_record_descriptor(&t.name, fields);
+                    }
+                }
                 Ok(())
             }
             Decl::Component(c) => Err(EmitError::Unsupported {
@@ -264,6 +277,33 @@ impl<'a> Emitter<'a> {
                 span: c.span,
             }),
         }
+    }
+
+    /// Emit the Q8 runtime descriptor for a record type: an `is` type guard
+    /// doing shallow validation (each primitive field checked by `typeof`,
+    /// each other field checked for presence). Deep/recursive validation and
+    /// the `parse` entry point (which returns a `Result`) are later work.
+    fn emit_record_descriptor(&mut self, name: &Ident, fields: &[RecordTypeField]) {
+        let checks: Vec<String> = fields.iter().map(record_field_check).collect();
+        self.line(&format!("export const {name} = {{"));
+        self.indent += 1;
+        self.line(&format!("is(value: unknown): value is {name} {{"));
+        self.indent += 1;
+        if checks.is_empty() {
+            self.line("return typeof value === \"object\" && value !== null;");
+        } else {
+            self.line("return typeof value === \"object\" && value !== null");
+            self.indent += 1;
+            for (i, c) in checks.iter().enumerate() {
+                let term = if i + 1 == checks.len() { ";" } else { "" };
+                self.line(&format!("&& {c}{term}"));
+            }
+            self.indent -= 1;
+        }
+        self.indent -= 1;
+        self.line("},");
+        self.indent -= 1;
+        self.line("};");
     }
 
     fn emit_import(&mut self, im: &ImportDecl) -> Result<(), EmitError> {
@@ -1029,6 +1069,41 @@ impl<'a> Emitter<'a> {
     }
 }
 
+/// One field's runtime check inside a record descriptor's `is` predicate.
+/// Primitive fields are checked by `typeof`; other fields by presence
+/// (shallow validation). An optional field passes when it is absent.
+fn record_field_check(field: &RecordTypeField) -> String {
+    let access = format!("(value as Record<string, unknown>).{}", field.name);
+    let present = format!("\"{}\" in (value as object)", field.name);
+    let check = match js_typeof(&field.ty) {
+        Some(jt) => format!("typeof {access} === \"{jt}\""),
+        None => present.clone(),
+    };
+    if field.optional {
+        format!("(!({present}) || {check})")
+    } else {
+        check
+    }
+}
+
+/// The JS `typeof` string for a Glyph primitive type, or None for any
+/// non-primitive (which the descriptor checks by presence instead).
+fn js_typeof(te: &TypeExpr) -> Option<&'static str> {
+    let TypeExpr::Path { segments, .. } = te else {
+        return None;
+    };
+    match segments.as_slice() {
+        [seg] => match seg.as_ref() {
+            "string" => Some("string"),
+            "number" => Some("number"),
+            "bool" => Some("boolean"),
+            "void" => Some("undefined"),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 /// Render a literal pattern as a TS `case` label.
 fn literal_label(value: &LiteralPattern) -> String {
     match value {
@@ -1178,6 +1253,44 @@ mod tests {
             ts.contains("export type User = { name: string; age?: number };"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn record_type_emits_an_is_descriptor() {
+        let ts = emit(
+            "module x\ntype User = { id: string, age: number, admin?: bool, parent: User }\n",
+        );
+        assert!(ts.contains("export const User = {"), "{ts}");
+        assert!(ts.contains("is(value: unknown): value is User {"), "{ts}");
+        assert!(
+            ts.contains("typeof (value as Record<string, unknown>).id === \"string\""),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("typeof (value as Record<string, unknown>).age === \"number\""),
+            "{ts}"
+        );
+        // Optional field: passes when absent.
+        assert!(
+            ts.contains("(!(\"admin\" in (value as object)) || typeof (value as Record<string, unknown>).admin === \"boolean\")"),
+            "{ts}"
+        );
+        // Non-primitive field: presence check only (shallow).
+        assert!(ts.contains("&& \"parent\" in (value as object);"), "{ts}");
+    }
+
+    #[test]
+    fn primitive_alias_gets_no_descriptor() {
+        let ts = emit("module x\ntype Sku = string\n");
+        assert!(ts.contains("export type Sku = string;"), "{ts}");
+        assert!(!ts.contains("export const Sku"), "{ts}");
+    }
+
+    #[test]
+    fn generic_record_gets_no_descriptor() {
+        let ts = emit("module x\ntype Box<T> = { value: T }\n");
+        assert!(ts.contains("export type Box<T> = { value: T };"), "{ts}");
+        assert!(!ts.contains("export const Box"), "{ts}");
     }
 
     #[test]

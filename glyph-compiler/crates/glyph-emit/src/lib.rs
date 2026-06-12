@@ -899,6 +899,74 @@ impl<'a> Emitter<'a> {
     /// catches exactly the variants no `case` lists, so a binding arm remains
     /// runtime-correct even when the scrutinee type is unknown. Value (literal)
     /// matches are handled too; `is`/array patterns route to their own chains.
+    /// Rewrite arms so each outer variant carrying nested constructor patterns
+    /// dispatches its payload through an inner `match`. `Err(NetworkError({ s
+    /// }))` and `Err(DecodeError({ u }))` become a single `Err(__pN) => match
+    /// __pN { NetworkError({ s }) => .., DecodeError({ u }) => .. }`. Arms with
+    /// no nested argument are preserved in place; a nested group takes the
+    /// position of its first arm and collects later arms of the same outer
+    /// variant. Order is otherwise preserved. Deeper nesting is handled when the
+    /// synthesized inner `match` is itself emitted.
+    fn degroup_nested_arms(&mut self, arms: &[MatchArm]) -> Vec<MatchArm> {
+        // Outer variant tag -> index in `out` of its synthesized grouping arm.
+        let mut group_at: Vec<(String, usize)> = Vec::new();
+        let mut out: Vec<MatchArm> = Vec::new();
+        for arm in arms {
+            let (path, inner) = match &arm.pattern {
+                Pattern::Constructor { path, args, .. }
+                    if matches!(args.as_slice(), [Pattern::Constructor { .. }]) =>
+                {
+                    (path, &args[0])
+                }
+                // Not a nested-constructor arm: keep it as is.
+                _ => {
+                    out.push(arm.clone());
+                    continue;
+                }
+            };
+            let tag = path
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<_>>()
+                .join(".");
+            let inner_arm = MatchArm {
+                pattern: inner.clone(),
+                body: arm.body.clone(),
+                span: arm.span,
+            };
+            if let Some((_, idx)) = group_at.iter().find(|(t, _)| *t == tag) {
+                if let MatchArmBody::Expr(Expr::Match { arms, .. }) = &mut out[*idx].body {
+                    arms.push(inner_arm);
+                }
+            } else {
+                let p = self.fresh_temp("__p");
+                let bind = Arc::from(p.as_str());
+                let new_arm = MatchArm {
+                    pattern: Pattern::Constructor {
+                        path: path.clone(),
+                        args: vec![Pattern::Ident {
+                            name: Arc::clone(&bind),
+                            span: arm.span,
+                        }],
+                        span: arm.span,
+                    },
+                    body: MatchArmBody::Expr(Expr::Match {
+                        scrutinee: Box::new(Expr::Ident {
+                            name: bind,
+                            span: arm.span,
+                        }),
+                        arms: vec![inner_arm],
+                        span: arm.span,
+                    }),
+                    span: arm.span,
+                };
+                group_at.push((tag, out.len()));
+                out.push(new_arm);
+            }
+        }
+        out
+    }
+
     fn emit_match_dispatch(
         &mut self,
         scrutinee: &Expr,
@@ -916,6 +984,16 @@ impl<'a> Emitter<'a> {
         // to switch on).
         if arms.iter().any(|a| matches!(a.pattern, Pattern::Array { .. })) {
             return self.emit_array_chain(scrutinee, arms, term);
+        }
+
+        // A nested constructor pattern (`Err(NetworkError({ status }))`) needs a
+        // switch on the inner payload's tag. Rewrite each outer variant with
+        // nested arms into one arm whose payload is dispatched by an inner
+        // `match`, then re-emit: the inner match lowers through the tail-match
+        // path, and deeper nesting recurses through this same rewrite.
+        if arms.iter().any(arm_has_nested_constructor) {
+            let rewritten = self.degroup_nested_arms(arms);
+            return self.emit_match_dispatch(scrutinee, &rewritten, term);
         }
 
         // Variant names of the scrutinee's union, when its type is known.
@@ -1920,6 +1998,17 @@ fn escape_double_quoted(s: &str) -> String {
     out
 }
 
+/// Whether `arm` is a constructor pattern carrying a single nested constructor
+/// argument (`Err(NetworkError({ status }))`), which needs an inner switch on
+/// the payload's tag. A whole-payload bind (`Err(e)`), an object destructure
+/// (`Err({ ... })`), or a wildcard (`Err(_)`) is not nested.
+fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
+    matches!(
+        &arm.pattern,
+        Pattern::Constructor { args, .. } if matches!(args.as_slice(), [Pattern::Constructor { .. }])
+    )
+}
+
 /// Whether `e` contains a `?` operator that must be hoisted before the
 /// enclosing statement (any `?`, since `hoist_tries`/`emit_value` treat a
 /// whole-value `?` the same as a nested one). Does not look inside a lambda
@@ -2594,6 +2683,23 @@ mod tests {
         assert!(ts.contains("case \"Idle\": {"), "{ts}");
         assert!(ts.contains("case \"Loaded\": {"), "{ts}");
         assert!(ts.contains("const users = __m0.users;"), "{ts}");
+    }
+
+    #[test]
+    fn nested_constructor_pattern_emits_a_grouped_inner_switch() {
+        // Example 02's shape: `Err(NetworkError({ status }))` over `Result<T,
+        // FeedError>` dispatches the outer Ok/Err tag, then the Err payload's
+        // inner FeedError tag. The three `Err(..)` arms collapse to one outer
+        // `case "Err"` carrying an inner switch.
+        let ts = emit(
+            "module x\ntype FeedError =\n  | NetworkError({ status: number })\n  | DecodeError({ reason: string })\nfn handle(r: Result<number, FeedError>) -> number {\n  return match r {\n    Ok(v) => v,\n    Err(NetworkError({ status })) => status,\n    Err(DecodeError({ reason })) => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"Ok\": {"), "{ts}");
+        assert!(ts.contains("case \"NetworkError\": {"), "{ts}");
+        assert!(ts.contains("case \"DecodeError\": {"), "{ts}");
+        assert!(ts.contains("const status = "), "{ts}");
+        // The three `Err(..)` arms collapse to a single outer `case "Err"`.
+        assert_eq!(ts.matches("case \"Err\"").count(), 1, "{ts}");
     }
 
     #[test]

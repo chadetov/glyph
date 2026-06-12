@@ -121,6 +121,8 @@ use glyph_ast::{
 };
 use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
 use glyph_typechecker::{Ty, TypeMap};
+use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
@@ -173,6 +175,15 @@ const RESULT_ERR: &str = "Err";
 /// `RESULT_ERR` since both are the same `Result` wire-format contract.
 const RESULT_OK: &str = "Ok";
 
+/// The local name the `?` lowering binds the prelude `Err` constructor to, used
+/// to re-wrap a propagated error (`return __glyph_err(__r.value)`). Re-wrapping
+/// yields a `Result<never, E>`, which is assignable to any `Result<Y, E>` the
+/// enclosing function returns — required because `Result` now carries
+/// `T`-dependent combinator methods (`map`/`map_err`). Aliased so it never
+/// collides with a user import of `Err`. A module that uses `?` gets a
+/// generated `import { Err as __glyph_err } from "std/result"`.
+const ERR_CTOR: &str = "__glyph_err";
+
 /// How a lowered `match` arm yields control: `return` its value (the match is
 /// in return position) or run it for effect and `break` (statement position).
 #[derive(Clone, Copy)]
@@ -194,6 +205,7 @@ pub fn emit_module(
         out: String::new(),
         indent: 0,
         tmp_counter: 0,
+        used_try: Rc::new(Cell::new(false)),
         module,
         resolved,
         types,
@@ -208,6 +220,11 @@ struct Emitter<'a> {
     /// Counter for synthesized scrutinee temporaries (`__m0`, `__m1`, ...), so
     /// two `match` statements in one function body don't redeclare the name.
     tmp_counter: usize,
+    /// Set once any `?` is lowered (including inside a lambda or value-position
+    /// match rendered by a sub-emitter), so the module gets the generated `Err`
+    /// import the re-wrap needs. Shared across the main emitter and every
+    /// sub-emitter via the `Rc<Cell>`.
+    used_try: Rc<Cell<bool>>,
     module: &'a Module,
     resolved: &'a ResolvedModule,
     types: &'a TypeMap,
@@ -222,6 +239,7 @@ impl<'a> Emitter<'a> {
             out: String::new(),
             indent,
             tmp_counter: self.tmp_counter,
+            used_try: Rc::clone(&self.used_try),
             module: self.module,
             resolved: self.resolved,
             types: self.types,
@@ -263,6 +281,15 @@ impl<'a> Emitter<'a> {
                 self.out.push('\n');
             }
             self.emit_decl(decl)?;
+        }
+        // A module that lowered any `?` re-wraps the propagated error with the
+        // prelude `Err`. Prepend the (aliased) import now that emission has set
+        // the flag — it can only be known after walking the bodies.
+        if self.used_try.get() {
+            self.out.insert_str(
+                0,
+                &format!("import {{ {RESULT_ERR} as {ERR_CTOR} }} from \"std/result\";\n\n"),
+            );
         }
         Ok(())
     }
@@ -720,7 +747,15 @@ impl<'a> Emitter<'a> {
         let op = self.expr(operand)?;
         let r = self.fresh_temp("__r");
         self.line(&format!("const {r} = {op};"));
-        self.line(&format!("if ({r}.{TAG} === \"{RESULT_ERR}\") {{ return {r}; }}"));
+        // Propagate by re-wrapping the error (`Err(__r.value)`, a
+        // `Result<never, E>`) rather than returning `__r` itself. The re-wrap is
+        // assignable to any `Result<Y, E>` the enclosing function returns, which
+        // `return __r` is not once `Result` carries `T`-dependent combinator
+        // methods. `used_try` triggers the generated `Err` import.
+        self.used_try.set(true);
+        self.line(&format!(
+            "if ({r}.{TAG} === \"{RESULT_ERR}\") {{ return {ERR_CTOR}({r}.{PAYLOAD}); }}"
+        ));
         Ok(r)
     }
 
@@ -2925,9 +2960,14 @@ mod tests {
         let ts = emit(
             "module x\nfn parse(n: number) -> Result<number, string> { return Ok(n) }\nfn load(n: number) -> Result<number, string> {\n  let x = parse(n)?\n  return Ok(x)\n}\n",
         );
+        // A module using `?` gets the aliased `Err` import the re-wrap needs.
+        assert!(
+            ts.starts_with("import { Err as __glyph_err } from \"std/result\";"),
+            "{ts}"
+        );
         assert!(ts.contains("const __r0 = parse(n);"), "{ts}");
         assert!(
-            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            ts.contains("if (__r0.tag === \"Err\") { return __glyph_err(__r0.value); }"),
             "{ts}"
         );
         assert!(ts.contains("let x = __r0.value;"), "{ts}");
@@ -2940,11 +2980,12 @@ mod tests {
         );
         assert!(ts.contains("const __r0 = step();"), "{ts}");
         assert!(
-            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            ts.contains("if (__r0.tag === \"Err\") { return __glyph_err(__r0.value); }"),
             "{ts}"
         );
-        // No value binding for a bare `?` statement.
-        assert!(!ts.contains(".value"), "{ts}");
+        // A bare `?` statement discards the `Ok` payload: no `= __r0.value`
+        // binding (the re-wrap still reads `__r0.value` for the propagated Err).
+        assert!(!ts.contains("= __r0.value"), "{ts}");
     }
 
     #[test]
@@ -3114,7 +3155,7 @@ mod tests {
         );
         assert!(ts.contains("const __r0 = p();"), "{ts}");
         assert!(
-            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            ts.contains("if (__r0.tag === \"Err\") { return __glyph_err(__r0.value); }"),
             "{ts}"
         );
         assert!(ts.contains("return Ok(__r0.value);"), "{ts}");
@@ -3133,7 +3174,7 @@ mod tests {
         );
         assert!(ts.contains("const __r0 = (await get(url));"), "{ts}");
         assert!(
-            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            ts.contains("if (__r0.tag === \"Err\") { return __glyph_err(__r0.value); }"),
             "{ts}"
         );
         assert!(ts.contains("__r0.value.map_err"), "{ts}");

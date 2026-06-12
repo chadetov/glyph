@@ -11,7 +11,11 @@ declare module "std/array" {
   export function find<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): Option<T>;
   export function filter<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): Array<T>;
   export function map<T, U>(xs: ReadonlyArray<T>, f: (x: T) => U): Array<U>;
-  export function zip<A, B>(a: ReadonlyArray<A>, b: ReadonlyArray<B>): Array<[A, B]>;
+  export function zip<A, B, C>(
+    a: ReadonlyArray<A>,
+    b: ReadonlyArray<B>,
+    combine: (a: A, b: B) => C,
+  ): Array<C>;
 }
 
 declare module "std/string" {

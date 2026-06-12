@@ -70,10 +70,23 @@ stubs**:
 - **React JSX prop typing** — DONE. The React stub now types `createElement`'s
   props so an inline `on_*` handler's `event` parameter infers; **`03` passes.**
 
+- **`is`-match narrowing** — DONE (emitter side). An `is`-match now checks a
+  plain-identifier scrutinee directly (so `typeof input === "string"` narrows
+  `input` in the arm bodies) and emits an `is Record<K, V>` check as a
+  type-predicate IIFE (so the scrutinee narrows to the indexable record type,
+  not `{}`). This cleared four of `01`'s five errors. (Glyph's *own* typechecker
+  narrowing — substep 5c, for Glyph diagnostics/LSP — is a separate, still-open
+  feature; it does not affect the emitted TS.)
+
 So the `tsc` half stands at: corpus passes; **`02_async_errors`,
-`03_react_component`, and `04_cli_tool` pass**; only `01_validator` remains (5
-errors), gated on Phase-2 flow narrowing (`is`-narrowing). Once that lands the
-gate is fully met. The emitter itself is done for these examples. Re-probe with
+`03_react_component`, and `04_cli_tool` pass**; `01_validator` is down to **1**
+error — the `object_schema<Out>` parse builds a `Record<string, unknown>` and
+returns it as the caller's generic `Out`, which TypeScript rightly rejects.
+This is the documented **infer_shape (Q1)** limitation, not a narrowing gap:
+the validator's own comment flags it as the v1.1 plan (replace `<Out>` with
+`Schema<infer_shape<Shape>>`). Closing it needs `infer_shape`, a sound cast
+construct (Glyph deliberately has none), or contextual-type-driven cast
+emission. The emitter is otherwise done for these examples. Re-probe with
 `glyph build` plus a `tsc` run against `glyph-compiler/runtime/` (see that
 directory's README) every run.
 

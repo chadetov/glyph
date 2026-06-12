@@ -62,5 +62,7 @@ The self-contained `examples/corpus/` programs (which use no stdlib) pass
 `tsc --strict` standalone, and **three of the four hard-case examples —
 `02_async_errors`, `03_react_component`, and `04_cli_tool` — pass** linked
 against this runtime (and the React/`api/users` stubs in `examples/.types/`).
-Only `01_validator` remains, with **5** errors gated on flow narrowing
-(Phase 2) — not an emitter defect.
+`01_validator` is down to **1** error — `object_schema<Out>` returns a
+`Record<string, unknown>` as the caller's generic `Out`, the documented
+infer_shape (Q1) limitation (the validator's own comment flags it as v1.1),
+not an emitter or narrowing defect.

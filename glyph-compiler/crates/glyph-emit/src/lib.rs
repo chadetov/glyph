@@ -259,7 +259,7 @@ impl<'a> Emitter<'a> {
                 self.pad();
                 self.out
                     .push_str(&format!("{prefix} {}{generics}({params}){ret} ", f.name));
-                self.emit_block(&f.body)?;
+                self.emit_fn_block(&f.body, returns_value(&f.return_ty))?;
                 self.out.push('\n');
                 Ok(())
             }
@@ -529,6 +529,26 @@ impl<'a> Emitter<'a> {
         for stmt in &block.stmts {
             self.emit_stmt(stmt)?;
         }
+        self.indent -= 1;
+        self.pad();
+        self.out.push('}');
+        Ok(())
+    }
+
+    /// Emit a function body, applying implicit tail returns when the function
+    /// yields a value (a non-`void` return type). The body's final expression
+    /// is the returned value (`return expr`); a `void` or unannotated function
+    /// runs its tail for effect. A function body is never inside a `switch`, so
+    /// no fall-through break is emitted.
+    fn emit_fn_block(&mut self, block: &Block, returns_value: bool) -> Result<(), EmitError> {
+        self.out.push_str("{\n");
+        self.indent += 1;
+        let term = if returns_value {
+            ArmTerm::Return
+        } else {
+            ArmTerm::Break
+        };
+        self.emit_value_block_stmts(&block.stmts, term, false)?;
         self.indent -= 1;
         self.pad();
         self.out.push('}');
@@ -1177,6 +1197,98 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// Emit the statements of a value block (a function body, or a block match
+    /// arm). Every statement but the last emits plainly; the last sits in tail
+    /// position, handled by `emit_tail_stmt` per `term`:
+    /// - `Return`: the block's value is its final expression (an implicit
+    ///   return, like Rust) — a tail bare expression becomes `return expr`, a
+    ///   tail `match` lowers in return position, a tail `E?` returns its `Ok`
+    ///   payload.
+    /// - `Break`: the block runs for effect; a non-diverging tail gets a
+    ///   trailing `break;` when `break_on_fall` (inside a `switch` case).
+    fn emit_value_block_stmts(
+        &mut self,
+        stmts: &[Stmt],
+        term: ArmTerm,
+        break_on_fall: bool,
+    ) -> Result<(), EmitError> {
+        let Some((last, init)) = stmts.split_last() else {
+            // An empty block yields nothing; only a `switch` case needs a break.
+            if matches!(term, ArmTerm::Break) && break_on_fall {
+                self.line("break;");
+            }
+            return Ok(());
+        };
+        for stmt in init {
+            self.emit_stmt(stmt)?;
+        }
+        self.emit_tail_stmt(last, term, break_on_fall)
+    }
+
+    /// Emit the final statement of a value block in tail position. See
+    /// `emit_value_block_stmts` for the `term` contract.
+    fn emit_tail_stmt(
+        &mut self,
+        stmt: &Stmt,
+        term: ArmTerm,
+        break_on_fall: bool,
+    ) -> Result<(), EmitError> {
+        match stmt {
+            // A tail `match` inherits the position: its arms `return` the value
+            // in return position or run for effect in statement position. It
+            // breaks its own arms; a statement-position nested switch still
+            // needs the outer break after it.
+            Stmt::Expr(Expr::Match { scrutinee, arms, .. }) => {
+                self.emit_match_dispatch(scrutinee, arms, term)?;
+                if matches!(term, ArmTerm::Break) && break_on_fall {
+                    self.line("break;");
+                }
+            }
+            // A tail `E?`: propagate an `Err`; in value position the block's
+            // value is the unwrapped `Ok` payload.
+            Stmt::Expr(Expr::Postfix {
+                op: PostfixOp::Try,
+                operand,
+                ..
+            }) => {
+                let r = self.emit_try_unwrap(operand)?;
+                match term {
+                    ArmTerm::Return => self.line(&format!("return {r}.{PAYLOAD};")),
+                    ArmTerm::Break => {
+                        if break_on_fall {
+                            self.line("break;");
+                        }
+                    }
+                }
+            }
+            // A tail bare expression is the block's value.
+            Stmt::Expr(e) => {
+                let v = self.expr(e)?;
+                match term {
+                    ArmTerm::Return => self.line(&format!("return {v};")),
+                    ArmTerm::Break => {
+                        self.line(&format!("{v};"));
+                        if break_on_fall {
+                            self.line("break;");
+                        }
+                    }
+                }
+            }
+            // A tail that already exits the function or loop emits unchanged; no
+            // break is reachable after it.
+            Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_) => self.emit_stmt(stmt)?,
+            // Any other tail (let/mut/for/loop) yields no value; emit it and, in
+            // a `switch` case, break afterward.
+            other => {
+                self.emit_stmt(other)?;
+                if matches!(term, ArmTerm::Break) && break_on_fall {
+                    self.line("break;");
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Emit a match-arm body. `break_on_fall` adds a `break;` after a
     /// fall-through (statement-position) arm — needed inside a `switch` case,
     /// but not in the exclusive `if`/`else if` chain of an `is`-match.
@@ -1218,39 +1330,13 @@ impl<'a> Emitter<'a> {
                     }
                 }
             }
-            // A block arm emits its statements directly into the case/branch. A
-            // block in a `return match` is expected to `return`; a statement-
-            // position block runs for effect and, inside a `switch`, breaks
-            // afterward. Block arms are rejected in value position (the IIFE) by
-            // the caller, since a block `return` there means function-return.
-            MatchArmBody::Block(b) => {
-                // Conservative divergence check: does the block end in a
-                // statement that exits? It under-approximates (a trailing
-                // `loop {}` or exhaustive nested `match` also diverges), which
-                // is safe — it only ever adds a redundant `break` or rejects a
-                // valid arm, never falls through. A precise CFG check (cf.
-                // `owned.rs`) is the proper future fix.
-                let diverges = matches!(
-                    b.stmts.last(),
-                    Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_))
-                );
-                // In return position the arm must yield the match value, so a
-                // non-diverging block would fall through with no value. Reject
-                // rather than emit that fall-through; the typechecker does not
-                // yet require return-arm divergence.
-                if matches!(term, ArmTerm::Return) && !diverges {
-                    return Err(EmitError::Unsupported {
-                        construct: "a `return match` block arm that does not end in `return`",
-                        span: b.span,
-                    });
-                }
-                for stmt in &b.stmts {
-                    self.emit_stmt(stmt)?;
-                }
-                if matches!(term, ArmTerm::Break) && !diverges && break_on_fall {
-                    self.line("break;");
-                }
-            }
+            // A block arm emits its statements into the case/branch as a value
+            // block: in return position its final expression is the matched
+            // value (implicit return); in statement position it runs for effect
+            // and, inside a `switch`, breaks afterward. Block arms are rejected
+            // in value position (the IIFE) by the caller, since a block `return`
+            // there means function-return.
+            MatchArmBody::Block(b) => self.emit_value_block_stmts(&b.stmts, term, break_on_fall)?,
         }
         Ok(())
     }
@@ -1598,6 +1684,19 @@ fn escape_double_quoted(s: &str) -> String {
     }
     out.push('"');
     out
+}
+
+/// Whether a function with this return type yields a value through its tail
+/// expression (an implicit return). A `void` or unannotated return does not:
+/// its body runs for effect.
+fn returns_value(return_ty: &Option<TypeExpr>) -> bool {
+    match return_ty {
+        Some(TypeExpr::Path { segments, .. }) => {
+            !(segments.len() == 1 && segments[0].as_ref() == "void")
+        }
+        Some(_) => true,
+        None => false,
+    }
 }
 
 /// Escape the literal-text segment of a template so backticks, backslashes,
@@ -2087,16 +2186,49 @@ mod tests {
     }
 
     #[test]
-    fn return_match_block_arm_without_return_is_rejected() {
-        // A non-returning block arm in a `return match` would fall through to
-        // the next case; reject rather than emit that.
-        let err = emit_err(
-            "module x\ntype E = A | B\nfn nop(n: number) -> void { return void }\nfn f(e: E) -> number {\n  return match e {\n    A => { nop(1) },\n    B => { return 2 },\n  }\n}\n",
+    fn return_match_block_arm_implicitly_returns_its_tail() {
+        // A block arm in a `return match` whose last statement is a bare
+        // expression implicitly returns that value (like Rust), rather than
+        // being rejected for not ending in `return`.
+        let ts = emit(
+            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  return match e {\n    A => {\n      let x = 1\n      x\n    },\n    B => 2,\n  }\n}\n",
         );
-        assert!(
-            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("does not end in `return`")),
-            "got {err:?}"
+        assert!(ts.contains("case \"A\": {"), "{ts}");
+        assert!(ts.contains("let x = 1;"), "{ts}");
+        assert!(ts.contains("return x;"), "{ts}");
+        assert!(ts.contains("return 2;"), "{ts}");
+    }
+
+    #[test]
+    fn function_body_implicitly_returns_its_tail_expression() {
+        // A non-void function whose body ends in a bare expression returns that
+        // value (implicit tail return). Without this the value is dropped and
+        // the function falls off the end, which `tsc --strict` rejects (TS2355).
+        let ts = emit("module x\nfn f() -> number {\n  let y = 1\n  y + 41\n}\n");
+        assert!(ts.contains("let y = 1;"), "{ts}");
+        assert!(ts.contains("return (y + 41);"), "{ts}");
+    }
+
+    #[test]
+    fn tail_match_in_a_function_body_returns_each_arm_value() {
+        // Example 04's `run` shape: the function body is a bare `match` whose
+        // arms end in bare expressions. The match is in tail position, so each
+        // arm `return`s its value rather than dropping it.
+        let ts = emit(
+            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  match e {\n    A => 0,\n    B => 1,\n  }\n}\n",
         );
+        assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
+        assert!(ts.contains("return 0;"), "{ts}");
+        assert!(ts.contains("return 1;"), "{ts}");
+    }
+
+    #[test]
+    fn void_function_runs_its_tail_for_effect() {
+        // A `void` function does not implicitly return; its tail expression
+        // runs for effect.
+        let ts = emit("module x\nfn f() -> void {\n  log(1)\n}\n");
+        assert!(ts.contains("log(1);"), "{ts}");
+        assert!(!ts.contains("return"), "{ts}");
     }
 
     #[test]

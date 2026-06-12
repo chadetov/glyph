@@ -658,15 +658,20 @@ impl<'a> Emitter<'a> {
                 match f.bindings.as_slice() {
                     // `for x in xs` over an array/iterable: a `for...of`.
                     [v] => self.out.push_str(&format!("for (const {v} of {iter}) ")),
-                    // `for k, v in rec` over a record's key/value pairs. A Glyph
-                    // `Record<K, V>` is a plain object, so its pairs are
-                    // `Object.entries(rec)` destructured as `[k, v]`. (v1 has no
-                    // `Map`, the other key/value iterable; when it lands this
-                    // must check the iterand type and emit `rec.entries()`
-                    // instead.)
-                    [k, v] => self.out.push_str(&format!(
-                        "for (const [{k}, {v}] of Object.entries({iter})) "
-                    )),
+                    // `for k, v in it` over key/value pairs. An array's pairs are
+                    // `it.entries()` — the index is a NUMBER. A record is a plain
+                    // object, so its pairs are `Object.entries(it)` — the key is a
+                    // STRING. The two differ (numeric vs string index), so pick by
+                    // the iterand type, defaulting to a record when it is unknown.
+                    [k, v] => {
+                        let pairs = if self.iter_is_array(&f.iter) {
+                            format!("{iter}.entries()")
+                        } else {
+                            format!("Object.entries({iter})")
+                        };
+                        self.out
+                            .push_str(&format!("for (const [{k}, {v}] of {pairs}) "));
+                    }
                     _ => {
                         return Err(EmitError::Unsupported {
                             construct: "a `for` loop with more than two bindings",
@@ -904,6 +909,20 @@ impl<'a> Emitter<'a> {
     /// This `Ty::Named` → `TypeDecl` → union chain is the third copy (after
     /// `assign.rs::resolve_named_union` and `owned.rs`); a public helper in
     /// `glyph-typechecker` that all three consume is a worthwhile cleanup.
+    /// Whether `iter`'s inferred type is the prelude `Array` (`Array<T>` lowers
+    /// to `App(Array, [T])`). Used to choose `it.entries()` (numeric index) over
+    /// `Object.entries(it)` (string key) for a two-binding `for`. An unknown
+    /// type (e.g. a value narrowed by an `is Array<..>` arm, before flow
+    /// narrowing tracks it) answers false and falls back to the record form.
+    fn iter_is_array(&self, iter: &Expr) -> bool {
+        matches!(
+            self.types.get(iter.span()),
+            Ty::App { base, .. }
+                if matches!(base.as_ref(), Ty::Named { path, .. }
+                    if path.last().map(|n| n.as_ref()) == Some("Array"))
+        )
+    }
+
     fn union_variant_names(&self, ty: &Ty) -> Option<Vec<String>> {
         // A generic union applied to type arguments (`Box<string>`) is a
         // `Ty::App` over the union's `Ty::Named`; unwrap to the base so a match
@@ -2849,6 +2868,20 @@ mod tests {
         );
         assert!(
             ts.contains("for (const [k, v] of Object.entries(rec)) {"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn two_binding_for_over_an_array_uses_numeric_entries() {
+        // An array's key/value pairs are `xs.entries()` with a NUMERIC index,
+        // not `Object.entries(xs)` (string keys). The iterand type picks the
+        // form.
+        let ts = emit(
+            "module x\nfn f(xs: Array<string>) -> void {\n  for i, item in xs {\n    log(i)\n  }\n  return void\n}\n",
+        );
+        assert!(
+            ts.contains("for (const [i, item] of xs.entries()) {"),
             "{ts}"
         );
     }

@@ -66,10 +66,9 @@
 //! exhaustiveness, so the throw is unreachable for a well-typed match).
 //!
 //! Deferred, surfaced as `EmitError::Unsupported` rather than emitting invalid
-//! TS: binding catch-all arms, value-position block arms, object match patterns
-//! and nested patterns inside a constructor or array arm, `is` checks on
-//! union/generic/imported types, a nested `?`, `component` + D6 JSX directive
-//! lowering, and the two-binding `for K, V in`.
+//! TS: value-position block arms, object match patterns and nested patterns
+//! inside a constructor or array arm, `is` checks on union/generic/imported
+//! types, a nested `?`, and `component` + D6 JSX directive lowering.
 //!
 //! ## Known gap: reserved-word identifiers
 //!
@@ -618,16 +617,27 @@ impl<'a> Emitter<'a> {
                 None => self.line("return;"),
             },
             Stmt::For(f) => {
-                if f.bindings.len() != 1 {
-                    return Err(EmitError::Unsupported {
-                        construct: "two-binding `for K, V in`",
-                        span: f.span,
-                    });
-                }
                 let iter = self.expr(&f.iter)?;
                 self.pad();
-                self.out
-                    .push_str(&format!("for (const {} of {iter}) ", f.bindings[0]));
+                match f.bindings.as_slice() {
+                    // `for x in xs` over an array/iterable: a `for...of`.
+                    [v] => self.out.push_str(&format!("for (const {v} of {iter}) ")),
+                    // `for k, v in rec` over a record's key/value pairs. A Glyph
+                    // `Record<K, V>` is a plain object, so its pairs are
+                    // `Object.entries(rec)` destructured as `[k, v]`. (v1 has no
+                    // `Map`, the other key/value iterable; when it lands this
+                    // must check the iterand type and emit `rec.entries()`
+                    // instead.)
+                    [k, v] => self.out.push_str(&format!(
+                        "for (const [{k}, {v}] of Object.entries({iter})) "
+                    )),
+                    _ => {
+                        return Err(EmitError::Unsupported {
+                            construct: "a `for` loop with more than two bindings",
+                            span: f.span,
+                        })
+                    }
+                }
                 self.emit_block(&f.body)?;
                 self.out.push('\n');
             }
@@ -1886,6 +1896,20 @@ mod tests {
         assert!(ts.contains("for (const x of xs) {"), "{ts}");
         assert!(ts.contains("let o = { a: 1, b: 2 };"), "{ts}");
         assert!(ts.contains("return undefined;"), "{ts}");
+    }
+
+    #[test]
+    fn two_binding_for_iterates_record_entries() {
+        // `for k, v in rec` over a record lowers to `Object.entries` with an
+        // array-destructure binding. This is example 01's `for key, sub_schema
+        // in shape` shape.
+        let ts = emit(
+            "module x\nfn f(rec: Record<string, number>) -> void {\n  for k, v in rec {\n    log(k)\n    log(v)\n  }\n  return void\n}\n",
+        );
+        assert!(
+            ts.contains("for (const [k, v] of Object.entries(rec)) {"),
+            "{ts}"
+        );
     }
 
     #[test]

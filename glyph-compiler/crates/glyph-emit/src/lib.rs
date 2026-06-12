@@ -1332,9 +1332,22 @@ impl<'a> Emitter<'a> {
             });
         }
 
-        let scrut = self.expr(scrutinee)?;
-        let m = self.fresh_temp("__m");
-        self.line(&format!("const {m} = {scrut};"));
+        // When the scrutinee is a plain identifier, run the `is` checks on it
+        // directly rather than binding a temporary: a `typeof x === "..."` /
+        // `Array.isArray(x)` / `T.is(x)` check on the identifier narrows it for
+        // TypeScript, so the arm bodies (which reference the identifier) see the
+        // narrowed type. A non-identifier scrutinee is bound to a temporary to
+        // evaluate it once; the arm bodies cannot name it, so narrowing it would
+        // not help anyway.
+        let m = match scrutinee {
+            Expr::Ident { name, .. } => name.to_string(),
+            _ => {
+                let scrut = self.expr(scrutinee)?;
+                let t = self.fresh_temp("__m");
+                self.line(&format!("const {t} = {scrut};"));
+                t
+            }
+        };
 
         let mut first = true;
         let mut else_arm: Option<&MatchArm> = None;
@@ -1531,10 +1544,16 @@ impl<'a> Emitter<'a> {
                 TypeExpr::Path { segments, .. } => match segments.last().map(|s| s.as_ref()) {
                     // A Glyph record is a plain object, not an array; exclude
                     // arrays so an `is Array<...>` arm after `is Record<...>`
-                    // isn't dead.
-                    Some("Record") => Some(format!(
-                        "typeof {m} === \"object\" && {m} !== null && !Array.isArray({m})"
-                    )),
+                    // isn't dead. Emit the check as a type-predicate IIFE so it
+                    // narrows the scrutinee to the record type (indexable), not
+                    // just to `{}` — a bare `typeof x === "object"` would leave
+                    // `x[key]` an implicit-any index error.
+                    Some("Record") => {
+                        let rec = self.ty(ty).ok()?;
+                        Some(format!(
+                            "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !Array.isArray(__x))({m})"
+                        ))
+                    }
                     Some("Array") => Some(format!("Array.isArray({m})")),
                     _ => None,
                 },
@@ -3067,14 +3086,17 @@ mod tests {
         let ts = emit(
             "module x\ntype User = { id: string }\nfn check(v: unknown) -> string {\n  return match v {\n    is string => \"str\",\n    is number => \"num\",\n    is User => \"user\",\n    else => \"other\",\n  }\n}\n",
         );
-        assert!(ts.contains("if (typeof __m0 === \"string\") {"), "{ts}");
-        assert!(ts.contains("} else if (typeof __m0 === \"number\") {"), "{ts}");
+        // An identifier scrutinee is checked directly (no temporary) so the
+        // checks narrow it for the arm bodies.
+        assert!(ts.contains("if (typeof v === \"string\") {"), "{ts}");
+        assert!(ts.contains("} else if (typeof v === \"number\") {"), "{ts}");
         // The `is User` arm consumes the Q8 record descriptor.
-        assert!(ts.contains("} else if (User.is(__m0)) {"), "{ts}");
+        assert!(ts.contains("} else if (User.is(v)) {"), "{ts}");
         assert!(ts.contains("} else {"), "{ts}");
         assert!(ts.contains("return \"other\";"), "{ts}");
-        // It is an if-chain, not a switch.
+        // It is an if-chain, not a switch; no scrutinee temporary for an ident.
         assert!(!ts.contains("switch"), "{ts}");
+        assert!(!ts.contains("const __m0 = v;"), "{ts}");
     }
 
     #[test]
@@ -3142,10 +3164,15 @@ mod tests {
         let ts = emit(
             "module x\nfn f(v: unknown) -> string {\n  return match v {\n    is Array<string> => \"arr\",\n    is Record<string, unknown> => \"obj\",\n    else => \"x\",\n  }\n}\n",
         );
-        assert!(ts.contains("if (Array.isArray(__m0)) {"), "{ts}");
-        // `is Record` excludes arrays so an `is Array` arm isn't shadowed.
+        // Identifier scrutinee is checked directly so it narrows in the arms.
+        assert!(ts.contains("if (Array.isArray(v)) {"), "{ts}");
+        // `is Record` excludes arrays so an `is Array` arm isn't shadowed, and
+        // is a type-predicate IIFE so the scrutinee narrows to the record type
+        // (indexable), not just `{}`.
         assert!(
-            ts.contains("} else if (typeof __m0 === \"object\" && __m0 !== null && !Array.isArray(__m0)) {"),
+            ts.contains(
+                "} else if (((__x: unknown): __x is Record<string, unknown> => typeof __x === \"object\" && __x !== null && !Array.isArray(__x))(v)) {"
+            ),
             "{ts}"
         );
     }

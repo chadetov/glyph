@@ -114,10 +114,10 @@
 #![forbid(unsafe_code)]
 
 use glyph_ast::{
-    ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, GenericParam, Ident, ImportDecl,
-    ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm, MatchArmBody, Module,
-    MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt, TemplatePart,
-    TypeExpr, UnaryOp, UnionVariant,
+    ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, FnTypeParam, GenericParam, Ident,
+    ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm, MatchArmBody,
+    Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
+    TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
 use glyph_typechecker::{Ty, TypeMap};
@@ -213,6 +213,7 @@ pub fn emit_module(
         tmp_counter: 0,
         used_try: Rc::new(Cell::new(false)),
         used_schema: Rc::new(Cell::new(false)),
+        return_cast: None,
         module,
         resolved,
         types,
@@ -235,6 +236,12 @@ struct Emitter<'a> {
     /// Set once any record descriptor is emitted, so the module gets the
     /// generated `schema` factory import its `T.schema` member needs.
     used_schema: Rc<Cell<bool>>,
+    /// The declared return type (rendered) the current function's `return`
+    /// values must be cast to, set only when that type references one of the
+    /// function's generic parameters (the infer_shape stand-in). `None`
+    /// otherwise, and reset for lambdas and value-position match IIFEs (their
+    /// returns are not the enclosing function's return).
+    return_cast: Option<String>,
     module: &'a Module,
     resolved: &'a ResolvedModule,
     types: &'a TypeMap,
@@ -251,6 +258,10 @@ impl<'a> Emitter<'a> {
             tmp_counter: self.tmp_counter,
             used_try: Rc::clone(&self.used_try),
             used_schema: Rc::clone(&self.used_schema),
+            // A sub-emitter (lambda body, value-position match IIFE) does not
+            // inherit the function's return cast; its returns are not the
+            // function's. `emit_fn_block` sets it from the lambda's own type.
+            return_cast: None,
             module: self.module,
             resolved: self.resolved,
             types: self.types,
@@ -268,6 +279,15 @@ impl<'a> Emitter<'a> {
         self.pad();
         self.out.push_str(s);
         self.out.push('\n');
+    }
+
+    /// Emit `return <value>;`, appending the function's generic return cast
+    /// (`as RetType`) when one is in effect (see `return_cast`).
+    fn emit_return(&mut self, value: &str) {
+        match self.return_cast.clone() {
+            Some(c) => self.line(&format!("return {value} as {c};")),
+            None => self.line(&format!("return {value};")),
+        }
     }
 
     // ----- declarations -----
@@ -334,7 +354,8 @@ impl<'a> Emitter<'a> {
                 self.pad();
                 self.out
                     .push_str(&format!("{prefix} {}{generics}({params}){ret} ", f.name));
-                self.emit_fn_block(&f.body, returns_value(&f.return_ty))?;
+                let cast = self.fn_return_cast(&f.return_ty, &f.generics)?;
+                self.emit_fn_block(&f.body, returns_value(&f.return_ty), cast)?;
                 self.out.push('\n');
                 Ok(())
             }
@@ -639,7 +660,30 @@ impl<'a> Emitter<'a> {
     /// is the returned value (`return expr`); a `void` or unannotated function
     /// runs its tail for effect. A function body is never inside a `switch`, so
     /// no fall-through break is emitted.
-    fn emit_fn_block(&mut self, block: &Block, returns_value: bool) -> Result<(), EmitError> {
+    /// The rendered return type a function's `return` values are cast to, or
+    /// `None`. A cast is emitted only when the function yields a value AND its
+    /// declared return type references one of its own generic parameters — the
+    /// infer_shape stand-in (Q1). Non-generic returns stay precisely checked.
+    fn fn_return_cast(
+        &self,
+        return_ty: &Option<TypeExpr>,
+        generics: &[GenericParam],
+    ) -> Result<Option<String>, EmitError> {
+        match return_ty {
+            Some(te) if returns_value(return_ty) && type_references_generic(te, generics) => {
+                Ok(Some(self.ty(te)?))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn emit_fn_block(
+        &mut self,
+        block: &Block,
+        returns_value: bool,
+        return_cast: Option<String>,
+    ) -> Result<(), EmitError> {
+        let saved = std::mem::replace(&mut self.return_cast, return_cast);
         self.out.push_str("{\n");
         self.indent += 1;
         let term = if returns_value {
@@ -651,6 +695,7 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.pad();
         self.out.push('}');
+        self.return_cast = saved;
         Ok(())
     }
 
@@ -703,7 +748,7 @@ impl<'a> Emitter<'a> {
                 }
                 Some(v) => {
                     let v = self.emit_value(v)?;
-                    self.line(&format!("return {v};"));
+                    self.emit_return(&v);
                 }
                 None => self.line("return;"),
             },
@@ -1659,7 +1704,7 @@ impl<'a> Emitter<'a> {
             Stmt::Expr(e) => {
                 let v = self.emit_value(e)?;
                 match term {
-                    ArmTerm::Return => self.line(&format!("return {v};")),
+                    ArmTerm::Return => self.emit_return(&v),
                     ArmTerm::Break => {
                         self.line(&format!("{v};"));
                         if break_on_fall {
@@ -1919,8 +1964,10 @@ impl<'a> Emitter<'a> {
                     Some(te) => !is_void_type(te),
                     None => true,
                 };
+                // A lambda has no generic parameters of its own, so its returns
+                // never need the enclosing function's generic return cast.
                 let mut sub = self.sub(self.indent);
-                sub.emit_fn_block(body, rv)?;
+                sub.emit_fn_block(body, rv, None)?;
                 format!("({params}){ret} => {}", sub.out)
             }
             // A value-position `match` (`let x = match ...`, or nested in an
@@ -1982,7 +2029,8 @@ impl<'a> Emitter<'a> {
         self.pad();
         self.out
             .push_str(&format!("export function {}{generics}({params}){ret} ", c.name));
-        self.emit_fn_block(&c.body, true)?;
+        let cast = self.fn_return_cast(&c.return_ty, &c.generics)?;
+        self.emit_fn_block(&c.body, true, cast)?;
         self.out.push('\n');
         Ok(())
     }
@@ -2704,6 +2752,40 @@ fn single_element_child(children: &[JsxChild]) -> Option<&JsxElement> {
     found
 }
 
+/// Whether `te` references any of `generics` by name. A function whose declared
+/// return type mentions one of its own type parameters and whose body builds a
+/// concrete value (e.g. `object_schema<Out>` returning a `Record` as `Out`)
+/// asserts that value matches the caller's type parameter — the v1 stand-in for
+/// `infer_shape` (Q1). The emitter casts such a return to its declared type;
+/// non-generic returns are checked precisely with no cast.
+fn type_references_generic(te: &TypeExpr, generics: &[GenericParam]) -> bool {
+    if generics.is_empty() {
+        return false;
+    }
+    let is_gen = |name: &str| generics.iter().any(|g| g.name.as_ref() == name);
+    match te {
+        TypeExpr::Path { segments, .. } => segments.iter().any(|s| is_gen(s)),
+        TypeExpr::Generic { base, args, .. } => {
+            type_references_generic(base, generics)
+                || args.iter().any(|a| type_references_generic(a, generics))
+        }
+        TypeExpr::Fn {
+            params, return_ty, ..
+        } => {
+            params
+                .iter()
+                .any(|p: &FnTypeParam| type_references_generic(&p.ty, generics))
+                || return_ty
+                    .as_ref()
+                    .is_some_and(|r| type_references_generic(r, generics))
+        }
+        TypeExpr::Record { fields, .. } => {
+            fields.iter().any(|f| type_references_generic(&f.ty, generics))
+        }
+        TypeExpr::Union { .. } => false,
+    }
+}
+
 /// Whether `te` is the single-segment type named `name` (`void`, `unknown`).
 fn is_named_type(te: &TypeExpr, name: &str) -> bool {
     matches!(te, TypeExpr::Path { segments, .. } if segments.len() == 1 && segments[0].as_ref() == name)
@@ -3408,6 +3490,37 @@ mod tests {
         let ts = emit("module x\nfn f() -> void {\n  log(1)\n}\n");
         assert!(ts.contains("log(1);"), "{ts}");
         assert!(!ts.contains("return"), "{ts}");
+    }
+
+    #[test]
+    fn generic_return_casts_the_returned_value() {
+        // A function whose return type references its own generic parameter
+        // casts its return value to that type — the v1 infer_shape stand-in, so
+        // a value the body cannot prove matches the caller's type parameter
+        // (e.g. `object_schema<Out>` returning a `Record` as `Out`) type-checks.
+        let ts = emit("module x\nfn id<T>(x: T) -> T { return x }\n");
+        assert!(ts.contains("return x as T;"), "{ts}");
+    }
+
+    #[test]
+    fn non_generic_return_is_not_cast() {
+        // A non-generic return type is checked precisely, no cast.
+        let ts = emit("module x\nfn f() -> number { return 1 }\n");
+        assert!(ts.contains("return 1;"), "{ts}");
+        assert!(!ts.contains(" as number"), "{ts}");
+    }
+
+    #[test]
+    fn a_returned_lambda_body_does_not_inherit_the_generic_cast() {
+        // The cast sits on the function's own returned value; a lambda the
+        // function returns keeps its own (un-cast) returns — the outer cast
+        // already covers the lambda field's mismatch.
+        let ts = emit(
+            "module x\nfn mk<T>(v: T) -> fn() -> T {\n  return fn() { v }\n}\n",
+        );
+        // The function return is cast; the lambda's `v` is not.
+        assert!(ts.contains("as () => T;"), "{ts}");
+        assert!(!ts.contains("v as T"), "{ts}");
     }
 
     #[test]

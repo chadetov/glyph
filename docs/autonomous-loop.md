@@ -63,18 +63,17 @@ stubs**:
 - **`T.schema` descriptor member** — DONE. Record descriptors now emit a
   `Schema<T>` `schema` member (built by the `std/schema` factory), so `02`'s
   `User.schema` / `Post.schema.array()` type-check.
-- **Example structure** — `02`'s remaining 3 errors are all its own
-  `await http.get(url)?.map_err(...)`: the `?` runs before `.map_err`, so it
-  propagates the pre-conversion `HttpError` where the function returns
-  `FeedError`. Fixing it means reordering to `.map_err(...)?` in the example.
+- **`02` map_err/`?` order** — DONE. The example mapped the error after `?`
+  (`await http.get(url)? .map_err(...)`), propagating the raw `HttpError`;
+  reordered to `.map_err(...)?` so it propagates the `FeedError` the signature
+  promises. **`02_async_errors` now passes.**
 - **React JSX prop typing** — `03` is one error away (an untyped JSX event
   handler param), needing the real React type surface, not our stubs.
 
-So the `tsc` half stands at: corpus passes; `04_cli_tool` passes; `02` is 3
-errors away (its own `?`/`.map_err` order); `03` is one React-typing error away;
-`01` is gated on Phase-2 flow narrowing (`is`-narrowing, the dominant blocker).
-The emitter itself is done for these examples (the corpus and `04` prove it
-emits fully `tsc`-clean TS). Re-probe with `glyph build` plus a `tsc` run against
+So the `tsc` half stands at: corpus passes; **`02_async_errors` and
+`04_cli_tool` pass**; `03` is one React-typing error away; `01` is gated on
+Phase-2 flow narrowing (`is`-narrowing, the dominant blocker). The emitter itself
+is done for these examples. Re-probe with `glyph build` plus a `tsc` run against
 `glyph-compiler/runtime/` (see that directory's README) every run.
 
 ## Routine prompt

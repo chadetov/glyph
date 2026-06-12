@@ -87,28 +87,23 @@ This is the floor, not the ceiling.
 
 The step-4 plan ships v0 with annotations-required, no real inference, no advanced generics, and a documented limitation around `infer_shape`. That's consistent with **substep 5a only** — substeps 5b and 5c would come *after* step 4 ships and the dogfooding loop (step 6) starts producing pressure. This reframing makes the timeline workable if we accept that "v1 typechecker" is really substep 5a, and 5b/5c are v1.1.
 
-## `Result`/`Option` combinator methods vs. the `?` operator (open design item)
+## `Result`/`Option` combinator methods vs. the `?` operator (resolved)
 
-Surfaced when typing the emitted examples against the real runtime prelude
-(`glyph-compiler/runtime/`). The examples call `result.map_err(f)` (and would
-call `.map`, `.and_then`, ...), which are method calls on a `Result` value. But
-the prelude `Result` cannot carry `T`-dependent methods today: the `?` operator
-lowers to `return __r`, propagating an `Err` of `Result<X, E>` from a function
-returning `Result<Y, E>`, so an `Err` must be assignable across success types.
-A `map<U>(f: (value: T) => U)` (or a `map_err` returning `Result<T, F>`) makes
-`Result` vary in `T`, which breaks that assignability — `Result<TodoFile, E>`'s
-`Err` is then not assignable to `Result<void, E>`.
+The examples call `result.map_err(f)` — a method on a `Result` value — so the
+prelude `Result` carries `map`/`map_err`. Those methods make `Result` vary in
+`T`, which would clash with the `?` operator: `?` propagates an `Err` of
+`Result<X, E>` from a function returning `Result<Y, E>`, so an `Err` must be
+assignable across success types, and a `map<U>(f: (value: T) => U)` breaks that.
 
-The clean resolution is to have the **`?` lowering re-wrap the error**:
-`if (__r.tag === "Err") { return Err(__r.value); }` instead of `return __r`, so
-the propagated value is `Result<never, E>` (assignable to any `Result<Y, E>`)
-and the prelude `Result` can then carry combinator methods. This needs the
-emitter to bring `Err` into scope (a generated prelude import when `?` is used)
-plus an update to the `?` lowering and its tests. Until it lands, the prelude
-`Result` stays method-free (the clean wire format) and `.map_err` does not
-type-check on the four hard-case examples. The `T.schema` descriptor member
-(`User.schema`, `Post.schema.array()`) is coupled to this: its `parse` must
-return the same `Result`/`Schema` shape.
+**Resolved by re-wrapping the propagated error.** The `?` lowering emits
+`if (__r.tag === "Err") { return Err(__r.value); }` (an aliased `__glyph_err`)
+rather than `return __r`, so the propagated value is `Result<never, E>` —
+`never` in the success position is assignable to any `Result<Y, E>` regardless
+of the methods. A module that uses `?` gets a generated `import { Err as
+__glyph_err } from "std/result"`. With this, `04_cli_tool` passes `tsc
+--strict`. Still open and coupled to this: the `T.schema` descriptor member
+(`User.schema`, `Post.schema.array()`), whose `parse` must return the same
+`Result`/`Schema` shape.
 
 ## Other open questions
 

@@ -55,27 +55,26 @@ stubs**:
   `is string` / `is Array<..>` arms but the narrowed type is not yet tracked,
   so `Ok(input)` types as `Ok<unknown>` against `Schema<string>`. The dominant
   blocker; cascades into `02`/`04`.
-- **`Result` combinators vs `?`** — `02`/`04` call `result.map_err(f)`, but a
-  `map`/`map_err` method makes `Result` `T`-dependent and breaks the `?`
-  operator's cross-success-type propagation (`return __r` of `Result<X, E>` from
-  a `Result<Y, E>` function). Resolving this needs a combinator design — most
-  likely `?` re-wrapping the error (`return Err(__r.value)`) so the propagated
-  value is `Result<never, E>`. See `docs/roadmap/05-typechecker.md`.
+- **`Result` combinators vs `?`** — RESOLVED. `02`/`04` call
+  `result.map_err(f)`; `Result` now carries `map`/`map_err`, and the `?`
+  lowering re-wraps the propagated error (`return __glyph_err(__r.value)`, a
+  `Result<never, E>`) so it stays assignable across success types. **`04_cli_tool`
+  now passes `tsc --strict`.**
 - **Example structure** — `02`'s `await http.get(url)?.map_err(...)` runs the
   `?` before `.map_err`, so it propagates the pre-conversion `HttpError` where
   the function returns `FeedError`. An example-level quirk.
-- **React JSX prop typing** — `03` is two errors away (an untyped JSX event
-  handler param and a `User[]` element type), both needing the real React type
-  surface, not our stubs.
+- **React JSX prop typing** — `03` is one error away (an untyped JSX event
+  handler param), needing the real React type surface, not our stubs.
 - **`T.schema` descriptor member** — `02` uses `User.schema` / `Post.schema.array()`;
   the record descriptor does not yet emit a `.schema` member (an emitter slice,
-  coupled to the `Schema`/`Result` design above).
+  coupled to the `Schema`/`Result` shape above).
 
-So the gate's `tsc` half is no longer "write stubs" — it is the Phase-2
-flow-narrowing work plus the `Result` combinator design. The emitter itself is
-done for these examples (the corpus proves it emits fully `tsc`-clean TS).
-Re-probe with `glyph build` plus a `tsc` run against `glyph-compiler/runtime/`
-(see that directory's README) every run.
+So the `tsc` half stands at: corpus passes; `04_cli_tool` passes; `03` is one
+React-typing error away; `01`/`02` are gated on Phase-2 flow narrowing (`01`'s
+`is`-narrowing, the dominant blocker) plus the `02` example quirk. The emitter
+itself is done for these examples (the corpus and `04` prove it emits fully
+`tsc`-clean TS). Re-probe with `glyph build` plus a `tsc` run against
+`glyph-compiler/runtime/` (see that directory's README) every run.
 
 ## Routine prompt
 

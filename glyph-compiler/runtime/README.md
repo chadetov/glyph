@@ -18,16 +18,18 @@ runtime); the rest are `.d.ts` type stubs until the stdlib is implemented in
 Glyph source (Q3). The wire format is single-sourced here and in the emitter
 (`glyph-emit`'s `TAG`/`PAYLOAD` constants).
 
-## The wire format and the `?` operator
+## The wire format, combinators, and the `?` operator
 
 A `Result`/`Option` is a flat object discriminated by a string `tag`, payload
-under `value`. The `?` operator propagates an `Err` by returning it, so an `Err`
-of `Result<X, E>` must be assignable to a function returning `Result<Y, E>` for
-any `X`, `Y`. That requires the payload to stay a plain value with **no
-`T`-dependent methods** — so `Result` carries no `map`/`map_err` methods yet.
-Combinator methods are a separate design item (they conflict with `?`'s
-cross-success-type propagation unless `?` re-wraps the error); see
-`docs/roadmap/05-typechecker.md`.
+under `value`. `Result` also carries the combinator methods `map`/`map_err`, so
+`result.map_err(f)` works directly.
+
+Those methods make `Result` vary in `T`, which would clash with the `?`
+operator — `?` propagates an `Err` of `Result<X, E>` from a function returning
+`Result<Y, E>`. It is sound because the `?` lowering **re-wraps** the error
+(`return Err(__r.value)`, a `Result<never, E>`): `never` in the success position
+is assignable to any `Result<Y, E>` regardless of the methods. The emitter
+generates the `Err` import this needs. See `docs/roadmap/05-typechecker.md`.
 
 ## Typechecking emitted output
 
@@ -55,7 +57,8 @@ the emitted `.ts` against these types today, point `tsc` at a config that maps
 A program with external dependencies also supplies their types; the example
 programs' React and `api/users` stubs live in `examples/.types/`.
 
-The self-contained `examples/corpus/` programs (which use no stdlib) already
-pass `tsc --strict` standalone. The four hard-case examples link this runtime;
-their remaining `tsc` errors are documented language gaps — chiefly flow
-narrowing (Phase 2) and the `Result` combinator design — not emitter defects.
+The self-contained `examples/corpus/` programs (which use no stdlib) pass
+`tsc --strict` standalone, and **`04_cli_tool` passes** linked against this
+runtime. The other three hard-case examples' remaining `tsc` errors are
+documented language gaps — chiefly flow narrowing (Phase 2), the `02` example's
+`?`/`.map_err` order, and React JSX prop typing for `03` — not emitter defects.

@@ -6,7 +6,27 @@
 
 declare module "react" {
   export type Component = unknown;
-  export function createElement(type: unknown, props: unknown, ...children: unknown[]): Component;
+
+  // A DOM-ish event handed to a Glyph JSX event handler.
+  type GlyphEvent = { target: { value: string }; currentTarget: { value: string } };
+
+  // Element props: arbitrary attributes (the index signature), with the common
+  // `on_*` handlers typed so an inline handler's `event` parameter infers
+  // instead of being an implicit `any`. A real React binding would type each
+  // intrinsic element precisely; this is enough to type the examples.
+  type ElementProps = {
+    [attribute: string]: unknown;
+    on_input?: (event: GlyphEvent) => void;
+    on_change?: (event: GlyphEvent) => void;
+    on_submit?: (event: GlyphEvent) => void;
+    on_click?: (event: GlyphEvent) => void;
+  };
+
+  export function createElement(
+    type: unknown,
+    props: ElementProps | null,
+    ...children: unknown[]
+  ): Component;
   export function use_state<T>(initial: T): { value: T; set: (next: T) => void };
   export function use_effect(effect: () => void, deps: ReadonlyArray<unknown>): void;
   export function use_memo<T>(factory: () => T, deps: ReadonlyArray<unknown>): T;

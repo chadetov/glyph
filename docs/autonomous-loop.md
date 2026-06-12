@@ -32,26 +32,25 @@ TypeScript via `glyph build`, and each emitted `.ts` passes
 Update this section whenever the milestone advances (see
 `docs/roadmap/overview.md` for the live status table).
 
-### Remaining head-blockers (as of `ce2d0fc`)
+### Status: the "emit" half is met
 
-Each example currently stops at its first unsupported construct; clearing one
-reveals the next, so re-probe with `glyph build` every run. Ordered roughly
-easiest to hardest:
+**All four `examples/*.glyph` now emit TypeScript via `glyph build` with no
+diagnostics.** The former head-blockers are cleared: binding match arms, the
+two-binding `for K, V in`, the mid-chain `?` (via expression hoisting), nested
+constructor patterns, `component` + D6 JSX (elements + `<if>`/`<for>`/`<match>`
+directives), plus implicit tail returns (functions, blocks, and lambdas) and
+colorless-async `await` placement found along the way.
 
-- **04_cli_tool** — a binding match arm: a bare-identifier catch-all (`other =>
-  ...`) that is not a union variant. Lower it like `_`/`else` (bind the
-  scrutinee, run the arm).
-- **01_validator** — two-binding `for K, V in` over a `Record<K, V>`. A Glyph
-  record is a plain object, so this is `for (const [k, v] of Object.entries(m))`
-  (confirm the iterand is an object record, not a `Map`, before committing to
-  `Object.entries`).
-- **02_async_errors** — a mid-chain `?` (`await x?.map_err(...)`): the `?` is not
-  the trailing postfix, so the trailing-`?` rotation does not apply. Needs
-  expression hoisting (bind the `?` operand to a temp, propagate `Err`, continue
-  the chain on the `Ok` value). The largest correctness-sensitive piece.
-- **03_react_component** — `component` declaration + D6 JSX directive lowering
-  (`<if>`/`<for>`/`<match>` → ternary/`.map`/IIFE). Multi-cycle; tackle the
-  declaration shell and element lowering as separate slices.
+The remaining gate condition is **each emitted `.ts` passing `tsc --strict
+--noEmit`**. That is now blocked only on the real stdlib type stubs, not on the
+emitter: with permissive ambient `std/*`/`react` declarations the emitted code
+is structurally well-formed, and the residual `tsc` errors are all
+untyped-stdlib/prelude gaps — un-inferable callback params, untyped generic
+stdlib calls, the `par`/`print` prelude namespaces, `http.Response`, and the
+auto-generated `T.schema` descriptor member (a separate Q8 feature). The next
+slice is the **stdlib type stubs** (or a generated `tsconfig`/ambient `.d.ts`
+shipped by `glyph build`) so the gate can be verified end-to-end. Re-probe with
+`glyph build` plus `tsc` every run.
 
 ## Routine prompt
 

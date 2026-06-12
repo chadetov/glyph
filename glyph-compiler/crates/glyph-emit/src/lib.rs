@@ -40,13 +40,14 @@
 //! function semantics; in value position (`let x = match`, nested) it is
 //! wrapped in an immediately-invoked arrow.
 //!
-//! The `?` operator unwraps a `Result` at statement position (`let x = E?`, a
-//! bare `E?`, or `let x = await E?`): it binds the operand to a temporary,
-//! returns it on `Err`, and reads the `Ok` payload. `await E?` works because
-//! the parser binds the trailing `?` to the whole `await` (D18 precedence), so
-//! the operand the emitter sees is `await E`. A `?` nested inside a larger
-//! expression — mid-chain (`await x?.foo()`) or as a sub-expression (`f(x?)`) —
-//! is still deferred; it needs hoisting.
+//! The `?` operator unwraps a `Result`: it binds the operand to a temporary,
+//! returns it on `Err`, and reads the `Ok` payload. A `?` nested inside a
+//! larger expression — mid-chain (`await x?.foo()`), an argument (`f(x?)`), a
+//! template — is hoisted out to a preceding statement first (`hoist_tries`),
+//! and the `?` node is replaced by a read of the temporary's `Ok` payload; a
+//! whole-value `?` goes through the same path. Glyph async is colorless, so
+//! `await` on a method chain is placed on the head async call of the receiver
+//! spine (`(await load(p)).map_err(f)`), not the whole chain.
 //!
 //! A block-body match arm (`Variant => { stmts }`) emits its statements into
 //! the case; it is supported in statement position (where a block `return`
@@ -65,10 +66,26 @@
 //! match order; a missing `_`/`else` throws (the typechecker proves array
 //! exhaustiveness, so the throw is unreachable for a well-typed match).
 //!
+//! A non-`void` function, lambda, or block implicitly returns its tail
+//! expression (Glyph block value, like Rust): a bare tail expression becomes
+//! `return expr`, a tail `match` returns each arm's value, a tail `E?` returns
+//! its `Ok` payload. A `void`/unannotated function runs its tail for effect.
+//!
+//! A nested constructor pattern (`Err(NetworkError({ s }))`) is rewritten so
+//! each outer variant with nested arms dispatches its payload through an inner
+//! `match` (the `Err(..)` arms collapse to one `case "Err"` with an inner
+//! switch); deeper nesting recurses through the same rewrite.
+//!
+//! A `component` (D19) emits as a React function component; JSX (D6) lowers to
+//! `React.createElement(tag, props, ...children)`. The directives lower
+//! structurally: `<if>`/`<else>` → a ternary, `<for x in={xs}>` → `xs.map`,
+//! `<match value={v}>` with `<case V bind={x}>` arms → a switch-returning IIFE
+//! binding `x` to the same-named payload field.
+//!
 //! Deferred, surfaced as `EmitError::Unsupported` rather than emitting invalid
-//! TS: value-position block arms, object match patterns and nested patterns
-//! inside a constructor or array arm, `is` checks on union/generic/imported
-//! types, a nested `?`, and `component` + D6 JSX directive lowering.
+//! TS: value-position block arms, object match patterns and nested
+//! non-constructor patterns inside a constructor or array arm, and `is` checks
+//! on union/generic/imported types.
 //!
 //! ## Known gap: reserved-word identifiers
 //!

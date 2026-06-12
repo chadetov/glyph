@@ -1187,6 +1187,25 @@ impl<'a> Emitter<'a> {
         break_on_fall: bool,
     ) -> Result<(), EmitError> {
         match body {
+            // A nested `match` that is the whole arm body sits in tail position:
+            // it inherits the arm's termination (Return stays Return so its arms
+            // `return` the value; Break stays Break) and lowers as a statement
+            // switch, not a value IIFE. This is what lets the inner arms use
+            // block bodies or `return` (e.g. example 04's `Ok(cmd) => match
+            // await run(cmd) { Ok(_) => return 0, Err(m) => { ...; return 1 } }`),
+            // which the IIFE path rejects. A `match` used as a sub-expression (an
+            // argument, an operand) is not an arm body and still routes through
+            // `expr`'s value IIFE.
+            MatchArmBody::Expr(Expr::Match { scrutinee, arms, .. }) => {
+                self.emit_match_dispatch(scrutinee, arms, term)?;
+                // Inside a `switch` case, break the OUTER switch after the nested
+                // one: the nested arms only `break` themselves. When the nested
+                // match diverges (every arm returns/throws) this break is
+                // unreachable but valid.
+                if matches!(term, ArmTerm::Break) && break_on_fall {
+                    self.line("break;");
+                }
+            }
             MatchArmBody::Expr(e) => {
                 let s = self.expr(e)?;
                 match term {
@@ -2116,6 +2135,22 @@ mod tests {
         assert!(ts.contains("case \"Idle\": {"), "{ts}");
         assert!(ts.contains("case \"Loaded\": {"), "{ts}");
         assert!(ts.contains("const users = __m0.users;"), "{ts}");
+    }
+
+    #[test]
+    fn nested_match_in_an_arm_tail_lowers_as_a_statement_switch() {
+        // Example 04's `main` shape: a `match` that is the whole body of an arm
+        // sits in tail position and inherits the arm's termination, lowering as
+        // a nested statement `switch` rather than a value IIFE. That is what
+        // lets the inner arms use `return`/block bodies; the IIFE path rejects
+        // them.
+        let ts = emit(
+            "module x\ntype C = A | B\nfn run(c: C) -> number {\n  return match c {\n    A => match c {\n      A => 0,\n      B => 1,\n    },\n    B => 2,\n  }\n}\n",
+        );
+        // Two switches (outer + nested), no value IIFE wrapper.
+        assert_eq!(ts.matches("switch (").count(), 2, "{ts}");
+        assert!(!ts.contains("(() =>"), "{ts}");
+        assert!(ts.contains("return 0;") && ts.contains("return 1;"), "{ts}");
     }
 
     #[test]

@@ -41,16 +41,41 @@ constructor patterns, `component` + D6 JSX (elements + `<if>`/`<for>`/`<match>`
 directives), plus implicit tail returns (functions, blocks, and lambdas) and
 colorless-async `await` placement found along the way.
 
-The remaining gate condition is **each emitted `.ts` passing `tsc --strict
---noEmit`**. That is now blocked only on the real stdlib type stubs, not on the
-emitter: with permissive ambient `std/*`/`react` declarations the emitted code
-is structurally well-formed, and the residual `tsc` errors are all
-untyped-stdlib/prelude gaps — un-inferable callback params, untyped generic
-stdlib calls, the `par`/`print` prelude namespaces, `http.Response`, and the
-auto-generated `T.schema` descriptor member (a separate Q8 feature). The next
-slice is the **stdlib type stubs** (or a generated `tsconfig`/ambient `.d.ts`
-shipped by `glyph build`) so the gate can be verified end-to-end. Re-probe with
-`glyph build` plus `tsc` every run.
+### Status: the runtime prelude is in; the `tsc` half has known language blockers
+
+The runtime prelude and stdlib type surface now exist (`glyph-compiler/runtime/`
++ `examples/.types/` for the examples' external imports). With them the four
+examples' imports **resolve and type precisely** (no more `any`), and the
+self-contained `examples/corpus/` programs pass `tsc --strict` standalone.
+Probing the four hard-case examples against the real types surfaced that **full
+`tsc` passing is gated on language features beyond the emitter, not on more
+stubs**:
+
+- **Flow narrowing (Phase 2)** — `01_validator` narrows `input` with
+  `is string` / `is Array<..>` arms but the narrowed type is not yet tracked,
+  so `Ok(input)` types as `Ok<unknown>` against `Schema<string>`. The dominant
+  blocker; cascades into `02`/`04`.
+- **`Result` combinators vs `?`** — `02`/`04` call `result.map_err(f)`, but a
+  `map`/`map_err` method makes `Result` `T`-dependent and breaks the `?`
+  operator's cross-success-type propagation (`return __r` of `Result<X, E>` from
+  a `Result<Y, E>` function). Resolving this needs a combinator design — most
+  likely `?` re-wrapping the error (`return Err(__r.value)`) so the propagated
+  value is `Result<never, E>`. See `docs/roadmap/05-typechecker.md`.
+- **Example structure** — `02`'s `await http.get(url)?.map_err(...)` runs the
+  `?` before `.map_err`, so it propagates the pre-conversion `HttpError` where
+  the function returns `FeedError`. An example-level quirk.
+- **React JSX prop typing** — `03` is two errors away (an untyped JSX event
+  handler param and a `User[]` element type), both needing the real React type
+  surface, not our stubs.
+- **`T.schema` descriptor member** — `02` uses `User.schema` / `Post.schema.array()`;
+  the record descriptor does not yet emit a `.schema` member (an emitter slice,
+  coupled to the `Schema`/`Result` design above).
+
+So the gate's `tsc` half is no longer "write stubs" — it is the Phase-2
+flow-narrowing work plus the `Result` combinator design. The emitter itself is
+done for these examples (the corpus proves it emits fully `tsc`-clean TS).
+Re-probe with `glyph build` plus a `tsc` run against `glyph-compiler/runtime/`
+(see that directory's README) every run.
 
 ## Routine prompt
 

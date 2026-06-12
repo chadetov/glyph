@@ -706,9 +706,12 @@ impl<'a> Emitter<'a> {
     /// discriminant. Handles constructor-pattern arms (`Ok(x)`,
     /// `NetworkError({ url })`, dotted `fs.ErrorKind.NotFound`), bare no-payload
     /// variant arms (`Idle`, disambiguated from bindings via the scrutinee
-    /// type), and `_`/`else`, with expression arm bodies. Value (literal)
-    /// matches, binding catch-alls, block arm bodies, and nested/`is`/array
-    /// patterns are deferred.
+    /// type), `_`/`else`, and binding catch-alls (a bare identifier the
+    /// scrutinee type does not confirm as a variant — lowered to a `default:`
+    /// that binds the scrutinee to the name). In a `tag` switch a `default`
+    /// catches exactly the variants no `case` lists, so a binding arm remains
+    /// runtime-correct even when the scrutinee type is unknown. Value (literal)
+    /// matches are handled too; `is`/array patterns route to their own chains.
     fn emit_match_dispatch(
         &mut self,
         scrutinee: &Expr,
@@ -751,17 +754,10 @@ impl<'a> Emitter<'a> {
                     }
                 },
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => {}
-                // A bare identifier is a no-payload variant only when the
-                // scrutinee type confirms it; otherwise it is a binding
-                // (catch-all), which is deferred.
-                Pattern::Ident { name, span } => {
-                    if !is_variant(name) {
-                        return Err(EmitError::Unsupported {
-                            construct: "a binding match arm (a bare identifier that is not a variant)",
-                            span: *span,
-                        });
-                    }
-                }
+                // A bare identifier is either a no-payload variant (when the
+                // scrutinee type confirms it) or a binding catch-all. Both
+                // lower below; the catch-all count guards against two bindings.
+                Pattern::Ident { .. } => {}
                 // A literal pattern makes this a value match (a `switch` on the
                 // scrutinee value rather than its `tag`).
                 Pattern::Literal { .. } => {}
@@ -780,13 +776,18 @@ impl<'a> Emitter<'a> {
             }
         }
 
+        // A bare identifier that is not a variant is a binding catch-all,
+        // equivalent to `_`/`else` but binding the scrutinee to its name. It
+        // counts as a catch-all in the guards below.
+        let is_catch_all = |a: &MatchArm| match &a.pattern {
+            Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
+            Pattern::Ident { name, .. } => !is_variant(name),
+            _ => false,
+        };
+
         // Two catch-all arms would emit two `default:` clauses (invalid TS).
         // The typechecker does not yet reject the redundant arm, so guard here.
-        if let Some(extra) = arms
-            .iter()
-            .filter(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }))
-            .nth(1)
-        {
+        if let Some(extra) = arms.iter().filter(|a| is_catch_all(a)).nth(1) {
             return Err(EmitError::Unsupported {
                 construct: "a match with more than one catch-all arm",
                 span: extra.span,
@@ -825,7 +826,13 @@ impl<'a> Emitter<'a> {
         }
         if !has_variant_arm && !is_value_match {
             let scrut = self.expr(scrutinee)?;
-            self.line(&format!("({scrut});"));
+            // A lone binding arm (`x => ...`) binds the scrutinee to its name;
+            // a lone `_`/`else` evaluates it for effect (parenthesized so an
+            // object-literal scrutinee isn't parsed as a block).
+            match &arms[0].pattern {
+                Pattern::Ident { name, .. } => self.line(&format!("const {name} = {scrut};")),
+                _ => self.line(&format!("({scrut});")),
+            }
             // No switch here, so no `break`.
             self.emit_arm_body(&arms[0].body, term, false)?;
             return Ok(());
@@ -852,13 +859,25 @@ impl<'a> Emitter<'a> {
                     self.indent -= 1;
                     self.line("}");
                 }
-                // A bare no-payload variant: a `case` with no payload binding.
+                // A bare identifier is a no-payload variant when the scrutinee
+                // type confirms it (a `case "Name":` with no payload binding),
+                // otherwise a binding catch-all: a `default:` that binds the
+                // scrutinee to the name so the arm body can read it.
                 Pattern::Ident { name, .. } => {
-                    self.line(&format!("case \"{name}\": {{"));
-                    self.indent += 1;
-                    self.emit_arm_body(&arm.body, term, true)?;
-                    self.indent -= 1;
-                    self.line("}");
+                    if is_variant(name) {
+                        self.line(&format!("case \"{name}\": {{"));
+                        self.indent += 1;
+                        self.emit_arm_body(&arm.body, term, true)?;
+                        self.indent -= 1;
+                        self.line("}");
+                    } else {
+                        self.line("default: {");
+                        self.indent += 1;
+                        self.line(&format!("const {name} = {m};"));
+                        self.emit_arm_body(&arm.body, term, true)?;
+                        self.indent -= 1;
+                        self.line("}");
+                    }
                 }
                 // A value-match literal: `case <literal>:`.
                 Pattern::Literal { value, .. } => {
@@ -885,9 +904,7 @@ impl<'a> Emitter<'a> {
         // typechecker has proven exhaustiveness, so the throw is unreachable;
         // for a value match without an `else` it is the runtime fallback for an
         // unlisted value (value-match exhaustiveness is not yet checked).
-        let has_catch_all = arms
-            .iter()
-            .any(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }));
+        let has_catch_all = arms.iter().any(is_catch_all);
         if !has_catch_all {
             self.line("default: throw new Error(\"non-exhaustive match\");");
         }
@@ -2099,6 +2116,47 @@ mod tests {
         assert!(ts.contains("case \"Idle\": {"), "{ts}");
         assert!(ts.contains("case \"Loaded\": {"), "{ts}");
         assert!(ts.contains("const users = __m0.users;"), "{ts}");
+    }
+
+    #[test]
+    fn binding_arm_alongside_a_variant_lowers_to_a_default() {
+        // Example 04's shape: `array.find` is untyped (no stdlib), so the
+        // scrutinee type is unknown and the bare `None` arm cannot be proven a
+        // variant. It lowers as a binding catch-all (`default`) while the
+        // payload `Some(_)` arm stays a `case`. At runtime the `default` catches
+        // exactly the tags no `case` lists, so a `None` value still routes here.
+        let ts = emit(
+            "module x\nfn f() -> number {\n  return match find() {\n    None => 0,\n    Some(_) => 1,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"Some\": {"), "{ts}");
+        assert!(ts.contains("default: {"), "{ts}");
+        assert!(ts.contains("const None = __m0;"), "{ts}");
+        // The binding catch-all is the only `default`; no synthetic throw.
+        assert!(!ts.contains("non-exhaustive match"), "{ts}");
+    }
+
+    #[test]
+    fn lone_binding_arm_binds_the_scrutinee() {
+        // A match whose only arm is a binding has no tag to switch on: bind the
+        // scrutinee to the name and run the body.
+        let ts = emit(
+            "module x\nfn f() -> number {\n  return match find() {\n    other => other,\n  }\n}\n",
+        );
+        assert!(ts.contains("const other = find();"), "{ts}");
+        assert!(!ts.contains("switch"), "{ts}");
+    }
+
+    #[test]
+    fn two_binding_arms_are_rejected_as_two_catch_alls() {
+        // Without scrutinee type information two bare bindings are both
+        // catch-alls, which would emit two `default:` clauses; reject instead.
+        let err = emit_err(
+            "module x\nfn f() -> number {\n  return match find() {\n    a => 0,\n    b => 1,\n  }\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
+            "{err:?}"
+        );
     }
 
     #[test]

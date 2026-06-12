@@ -1353,6 +1353,75 @@ impl<'a> Emitter<'a> {
 
     // ----- expressions -----
 
+    /// The emitted call suffix: optional `<T, ...>` type arguments followed by
+    /// the `(arg, ...)` list. Shared by plain call emission and the await-spine
+    /// walk so both render a call the same way.
+    fn call_suffix(&self, type_args: &[TypeExpr], args: &[Expr]) -> Result<String, EmitError> {
+        let targs = if type_args.is_empty() {
+            String::new()
+        } else {
+            let mut ts = Vec::with_capacity(type_args.len());
+            for t in type_args {
+                ts.push(self.ty(t)?);
+            }
+            format!("<{}>", ts.join(", "))
+        };
+        let mut a = Vec::with_capacity(args.len());
+        for arg in args {
+            a.push(self.expr(arg)?);
+        }
+        Ok(format!("{targs}({})", a.join(", ")))
+    }
+
+    /// Emit the operand of an `await`, inserting the `await` at the async call
+    /// that heads the receiver spine rather than around the whole chain. Returns
+    /// the emitted string and whether an `await` was inserted.
+    ///
+    /// Glyph async is colorless (a call's type is its awaited type), so
+    /// `await load(p).map_err(f)` parses with `await` wrapping the chain, but
+    /// the async call is `load(p)`; the chained `.map_err` runs on the awaited
+    /// `Result`. Walking the receiver spine (a call's callee, a member/index's
+    /// object) to the innermost call and awaiting it there yields
+    /// `(await load(p)).map_err(f)`. A spine with no call (e.g. `await x`) is
+    /// reported as not-awaited so the caller wraps it directly.
+    fn emit_await_spine(&self, e: &Expr) -> Result<(String, bool), EmitError> {
+        match e {
+            Expr::Call {
+                callee,
+                type_args,
+                args,
+                ..
+            } => {
+                let (callee_str, awaited) = self.emit_await_spine(callee)?;
+                let call = format!("{callee_str}{}", self.call_suffix(type_args, args)?);
+                // If a deeper call already took the `await`, leave it; otherwise
+                // this call is the spine head — await it.
+                if awaited {
+                    Ok((call, true))
+                } else {
+                    Ok((format!("(await {call})"), true))
+                }
+            }
+            Expr::Member {
+                object,
+                field,
+                optional,
+                ..
+            } => {
+                let (obj, awaited) = self.emit_await_spine(object)?;
+                let dot = if *optional { "?." } else { "." };
+                Ok((format!("{obj}{dot}{field}"), awaited))
+            }
+            Expr::Index { object, index, .. } => {
+                let (obj, awaited) = self.emit_await_spine(object)?;
+                Ok((format!("{obj}[{}]", self.expr(index)?), awaited))
+            }
+            // Spine bottom (an identifier, a literal, a parenthesized
+            // expression): no call here, so no `await` is inserted.
+            _ => Ok((self.expr(e)?, false)),
+        }
+    }
+
     fn expr(&self, e: &Expr) -> Result<String, EmitError> {
         Ok(match e {
             Expr::Number { raw, .. } => raw.clone(),
@@ -1393,22 +1462,7 @@ impl<'a> Emitter<'a> {
                 type_args,
                 args,
                 ..
-            } => {
-                let targs = if type_args.is_empty() {
-                    String::new()
-                } else {
-                    let mut ts = Vec::with_capacity(type_args.len());
-                    for t in type_args {
-                        ts.push(self.ty(t)?);
-                    }
-                    format!("<{}>", ts.join(", "))
-                };
-                let mut a = Vec::with_capacity(args.len());
-                for arg in args {
-                    a.push(self.expr(arg)?);
-                }
-                format!("{}{targs}({})", self.expr(callee)?, a.join(", "))
-            }
+            } => format!("{}{}", self.expr(callee)?, self.call_suffix(type_args, args)?),
             Expr::Member {
                 object,
                 field,
@@ -1421,7 +1475,20 @@ impl<'a> Emitter<'a> {
             Expr::Index { object, index, .. } => {
                 format!("{}[{}]", self.expr(object)?, self.expr(index)?)
             }
-            Expr::Await { expr, .. } => format!("(await {})", self.expr(expr)?),
+            // Glyph async is colorless: a call's declared type is its awaited
+            // type and `await` may syntactically wrap a whole method chain
+            // (`await load(p).map_err(f)`). The emitted async function returns a
+            // `Promise`, so the `await` must apply to the async call at the head
+            // of the receiver spine, not the chain as a whole — otherwise the
+            // chained method is called on a `Promise`. See `emit_await_spine`.
+            Expr::Await { expr, .. } => {
+                let (chain, awaited) = self.emit_await_spine(expr)?;
+                if awaited {
+                    chain
+                } else {
+                    format!("(await {chain})")
+                }
+            }
             Expr::Array { elements, .. } => {
                 let mut els = Vec::with_capacity(elements.len());
                 for el in elements {
@@ -1896,6 +1963,27 @@ mod tests {
         assert!(ts.contains("for (const x of xs) {"), "{ts}");
         assert!(ts.contains("let o = { a: 1, b: 2 };"), "{ts}");
         assert!(ts.contains("return undefined;"), "{ts}");
+    }
+
+    #[test]
+    fn await_on_a_method_chain_awaits_the_head_call() {
+        // Glyph async is colorless: `await load().map_err(id)` must await the
+        // async call `load()`, not the whole chain, so the chained `.map_err`
+        // runs on the awaited `Result` and not on a `Promise`.
+        let ts = emit(
+            "module x\nasync fn load() -> Result<number, string> { return Ok(0) }\nfn id(e: string) -> string { return e }\nasync fn run() -> Result<number, string> {\n  let r = await load().map_err(id)\n  return r\n}\n",
+        );
+        assert!(ts.contains("(await load()).map_err(id)"), "{ts}");
+        assert!(!ts.contains("(await load().map_err"), "{ts}");
+    }
+
+    #[test]
+    fn plain_await_of_a_call_is_unchanged() {
+        // A bare `await f()` still awaits the call directly.
+        let ts = emit(
+            "module x\nasync fn f() -> number { return 1 }\nasync fn run() -> number {\n  return await f()\n}\n",
+        );
+        assert!(ts.contains("return (await f());"), "{ts}");
     }
 
     #[test]

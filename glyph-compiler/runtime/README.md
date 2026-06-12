@@ -34,29 +34,19 @@ generates the `Err` import this needs. See `docs/roadmap/05-typechecker.md`.
 
 ## Typechecking emitted output
 
-`glyph build` does not yet generate a `tsconfig.json` (a later slice). To check
-the emitted `.ts` against these types today, point `tsc` at a config that maps
-`std/*` to this directory and includes the prelude declarations:
+`glyph build src/ --out dist/` writes this runtime into `dist/.glyph-runtime/`,
+copies any `<src>/.types/` ambient declarations into `dist/.types/`, and
+generates `dist/tsconfig.json` (these files are embedded in the `glyph` binary
+via `glyph-cli/src/runtime.rs`). So the output is self-contained:
 
-```jsonc
-{
-  "compilerOptions": {
-    "strict": true, "noEmit": true,
-    "target": "es2022", "lib": ["es2022", "dom"],
-    "module": "esnext", "moduleResolution": "bundler",
-    "baseUrl": "<glyph-compiler/runtime>",
-    "paths": { "std/*": ["std/*"] }
-  },
-  "include": [
-    "<dist>/**/*.ts",
-    "<glyph-compiler/runtime>/*.d.ts",
-    "<glyph-compiler/runtime>/std/*.ts"
-  ]
-}
+```
+tsc -p dist/tsconfig.json     # or: glyph build src/ --out dist/ --check
 ```
 
-A program with external dependencies also supplies their types; the example
-programs' React and `api/users` stubs live in `examples/.types/`.
+A program with external dependencies (npm packages, sibling modules) supplies
+their ambient declarations in `<src>/.types/`; the example programs' React and
+`api/users` stubs live in `examples/.types/`, copied into the output and picked
+up by the generated config.
 
 The self-contained `examples/corpus/` programs (which use no stdlib) pass
 `tsc --strict` standalone, and **all four hard-case examples pass** linked

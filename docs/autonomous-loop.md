@@ -88,13 +88,15 @@ stubs**:
 
 ## Gate met
 
-**The Phase 1 Week 4 emission gate is fully met.** All four `examples/*.glyph`
-emit TypeScript via `glyph build` with no diagnostics, and every emitted `.ts`
-passes `tsc --strict --noEmit` linked against `glyph-compiler/runtime/` (and the
-`examples/.types/` stubs for the examples' external React / `api/users`
-imports); the nine self-contained `examples/corpus/` programs pass standalone.
-Re-probe with `glyph build` plus a `tsc` run against `glyph-compiler/runtime/`
-(see that directory's README) on any future emitter change to keep it met.
+**The Phase 1 Week 4 emission gate is fully met, end to end through the
+toolchain.** `glyph build src/ --out dist/` now writes the bundled runtime
+(`dist/.glyph-runtime/`), copies `<src>/.types/` ambient declarations
+(`dist/.types/`), and generates `dist/tsconfig.json`, so the output is
+self-contained and `tsc -p dist/tsconfig.json` (or `glyph build --check`) types
+it against real types. All four `examples/*.glyph` emit with no diagnostics and
+**pass `tsc --strict --noEmit`**; the nine `examples/corpus/` programs pass too.
+Re-probe any future emitter change with `glyph build examples --out <dir>
+--check` (tsc on PATH) to keep the gate met.
 
 ## Routine prompt
 

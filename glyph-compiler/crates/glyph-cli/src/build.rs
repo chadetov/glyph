@@ -227,6 +227,17 @@ pub fn build_project_inner(
         }
     }
 
+    // Write the bundled runtime + a generated `tsconfig.json` next to the
+    // emitted output (plus any `<src>/.types/` ambient declarations) so
+    // `tsc -p <out>/tsconfig.json` can type-check the result. Skip it when
+    // nothing emitted — there is no output to check.
+    if !report.emitted.is_empty() {
+        crate::runtime::write_build_support(out, src).map_err(|e| BuildError::Io {
+            path: out.to_path_buf(),
+            source: e,
+        })?;
+    }
+
     Ok(report)
 }
 

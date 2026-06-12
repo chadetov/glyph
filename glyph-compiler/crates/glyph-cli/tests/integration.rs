@@ -414,4 +414,67 @@ fn repo_examples_emit_typescript_without_diagnostics() {
         "corpus not emitted: {:?}",
         report.emitted
     );
+    // The build is self-checking: it writes the runtime, a generated tsconfig,
+    // and the examples' external (`.types/`) stubs so `tsc -p` can type it.
+    assert!(out.join("tsconfig.json").is_file(), "tsconfig.json missing");
+    assert!(
+        out.join(".glyph-runtime/std/result.ts").is_file(),
+        "bundled runtime missing"
+    );
+    assert!(
+        out.join(".types/glyph-externals.d.ts").is_file(),
+        "examples/.types not copied into the output"
+    );
+}
+
+#[test]
+fn build_writes_the_runtime_and_a_tsconfig() {
+    let root = unique_tmp("support");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn add(a: number, b: number) -> number { return a + b }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    // The generated config and bundled runtime sit next to the emitted output.
+    assert!(out.join("tsconfig.json").is_file(), "tsconfig.json");
+    for rel in [
+        ".glyph-runtime/std/result.ts",
+        ".glyph-runtime/std/option.ts",
+        ".glyph-runtime/std/schema.ts",
+        ".glyph-runtime/glyph-prelude.d.ts",
+        ".glyph-runtime/glyph-stdlib.d.ts",
+    ] {
+        assert!(out.join(rel).is_file(), "missing bundled runtime file {rel}");
+    }
+}
+
+#[test]
+fn build_copies_src_types_into_the_output() {
+    let root = unique_tmp("dottypes");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn f() -> number { return 1 }\n",
+    );
+    // A project supplies ambient declarations for its external deps in
+    // `<src>/.types/`; the build copies them alongside the output.
+    write_file(
+        &src,
+        ".types/ext.d.ts",
+        "declare module \"ext\" { export const x: number; }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    assert!(
+        out.join(".types/ext.d.ts").is_file(),
+        ".types/ not copied into the output"
+    );
 }

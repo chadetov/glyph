@@ -1,7 +1,9 @@
 //! Glyph CLI — stub for Phase 0.
 //!
 //! Commands (per `docs/implementation-plan.md §Phase 1 week 5`):
-//! - `glyph build src/ --out dist/`  walk module graph, typecheck, emit TS, shell to tsc
+//! - `glyph build src/ --out dist/ [--check]`  walk module graph, typecheck,
+//!   emit TS, write the bundled runtime + a generated `tsconfig.json` (and copy
+//!   `<src>/.types/` ambient declarations); `--check` then runs `tsc`
 //! - `glyph run path.glyph [args]`   build then run via node
 //! - `glyph fmt [path]`              format-in-place (also called by LSP format-on-save)
 //! - `glyph regen <fn>`              regenerate a function body from its @generate spec (Q40)
@@ -33,6 +35,9 @@ enum Command {
         src: std::path::PathBuf,
         #[arg(long, value_name = "OUT")]
         out: std::path::PathBuf,
+        /// After emitting, type-check the output with `tsc` (must be on PATH).
+        #[arg(long)]
+        check: bool,
     },
     /// Build then run a Glyph program via node.
     Run {
@@ -68,7 +73,7 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out }) => {
+        Some(Command::Build { src, out, check }) => {
             // ariadne's `auto-color` feature isn't enabled in our
             // workspace, so it never auto-detects non-TTY at runtime.
             // We detect explicitly: if stderr (where diagnostics go) is
@@ -95,6 +100,30 @@ fn main() {
                     report.modules.len(),
                     report.emitted.len()
                 );
+                if check {
+                    use glyph_cli::runtime::TscOutcome;
+                    match glyph_cli::runtime::check_with_tsc(&out) {
+                        Ok(TscOutcome::Passed) => {
+                            eprintln!("glyph build: tsc --strict passed.");
+                        }
+                        Ok(TscOutcome::Failed(msg)) => {
+                            eprint!("{msg}");
+                            eprintln!("glyph build: tsc reported type errors.");
+                            std::process::exit(1);
+                        }
+                        Ok(TscOutcome::NotFound) => {
+                            eprintln!(
+                                "glyph build: tsc not found on PATH; run \
+                                 `tsc -p {}/tsconfig.json` to type-check.",
+                                out.display()
+                            );
+                        }
+                        Err(e) => {
+                            eprintln!("glyph build: failed to run tsc: {e}");
+                            std::process::exit(2);
+                        }
+                    }
+                }
                 std::process::exit(0);
             }
             Err(e) => {

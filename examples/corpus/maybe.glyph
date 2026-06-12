@@ -1,0 +1,13 @@
+// A generic option-like type matched exhaustively.
+module maybe
+
+type Maybe<T> =
+  | Just({ value: T })
+  | Nothing
+
+fn or_else(m: Maybe<number>, fallback: number) -> number {
+  return match m {
+    Just({ value }) => value,
+    Nothing => fallback,
+  }
+}

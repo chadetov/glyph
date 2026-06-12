@@ -1,0 +1,10 @@
+// A `for` loop accumulating into a `mut` binding.
+module sum
+
+fn total(xs: Array<number>) -> number {
+  let acc = 0
+  for x in xs {
+    mut acc = (acc + x)
+  }
+  return acc
+}

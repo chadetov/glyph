@@ -1,0 +1,9 @@
+// Array-pattern matching with a rest binding.
+module list_ops
+
+fn head_or_zero(xs: Array<number>) -> number {
+  return match xs {
+    [] => 0,
+    [head, ...rest] => head,
+  }
+}

@@ -1,0 +1,16 @@
+// Records and higher-order functions with lambdas.
+module higher_order
+
+type Pair = { first: number, second: number }
+
+fn swap(p: Pair) -> Pair {
+  return { first: p.second, second: p.first }
+}
+
+fn apply_twice(f: fn(n: number) -> number, x: number) -> number {
+  return f(f(x))
+}
+
+fn demo() -> number {
+  return apply_twice(fn(n) { n + 1 }, 10)
+}

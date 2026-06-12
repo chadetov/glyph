@@ -367,3 +367,51 @@ fn build_skips_hidden_and_target_directories() {
         "only the real source should be visited"
     );
 }
+
+#[test]
+fn repo_examples_emit_typescript_without_diagnostics() {
+    // Every program under the repo's `examples/` tree — the four hard-case
+    // examples plus the self-contained `corpus/` programs — must build and emit
+    // TypeScript with no diagnostics. This is the Phase 1 Week 4 emission gate;
+    // it guards against an emitter regression silently breaking an example.
+    let examples = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../examples"));
+    assert!(
+        examples.is_dir(),
+        "examples dir not found at {examples:?}"
+    );
+    let out = unique_tmp("examples").join("dist");
+
+    let report = build_project_inner(examples, &out, false).expect("build examples ok");
+    assert!(
+        !report.has_errors(),
+        "examples produced diagnostics: {:?}",
+        report.diagnostics
+    );
+    // Every clean module emits a `.ts`, so emitted count matches module count.
+    assert_eq!(
+        report.emitted.len(),
+        report.modules.len(),
+        "every checked module should emit; modules={:?} emitted={:?}",
+        report.modules,
+        report.emitted
+    );
+    // The four canonical hard-case examples specifically must be present.
+    for name in [
+        "01_validator.ts",
+        "02_async_errors.ts",
+        "03_react_component.ts",
+        "04_cli_tool.ts",
+    ] {
+        assert!(
+            report.emitted.iter().any(|e| e == name),
+            "missing {name} in emitted: {:?}",
+            report.emitted
+        );
+    }
+    // The corpus is exercised too.
+    assert!(
+        report.emitted.iter().any(|e| e == "corpus/shapes.ts"),
+        "corpus not emitted: {:?}",
+        report.emitted
+    );
+}

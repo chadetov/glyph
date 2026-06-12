@@ -1,0 +1,10 @@
+// A value (literal) match with a catch-all.
+module classify
+
+fn name_of(n: number) -> string {
+  return match n {
+    0 => "zero",
+    1 => "one",
+    else => "many",
+  }
+}

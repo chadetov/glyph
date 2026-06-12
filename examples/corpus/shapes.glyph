@@ -1,0 +1,15 @@
+// A tagged union and exhaustive match over user-defined variants.
+module shapes
+
+type Shape =
+  | Circle({ radius: number })
+  | Square({ side: number })
+  | Rect({ width: number, height: number })
+
+fn area(s: Shape) -> number {
+  return match s {
+    Circle({ radius }) => (radius * radius),
+    Square({ side }) => (side * side),
+    Rect({ width, height }) => (width * height),
+  }
+}

@@ -8,8 +8,9 @@ of `glyph build` against real types rather than `any`.
 
 | File | What |
 |---|---|
-| `std/result.ts` | The `Result<T, E>` type + `Ok`/`Err`. Real runtime: the flat `{ tag, value }` wire format the emitter targets. |
+| `std/result.ts` | The `Result<T, E>` type + `Ok`/`Err`, with `map`/`map_err`. Real runtime: the flat `{ tag, value }` wire format the emitter targets. |
 | `std/option.ts` | The `Option<T>` type + `Some`/`None`, same wire format. |
+| `std/schema.ts` | The `schema()` factory behind a record type's auto-generated `T.schema` member (it carries the recursive `array()`). |
 | `glyph-prelude.d.ts` | The names usable without an import: `par`, `print`, the `number` namespace, and the `Schema<T>` / `Issue` types. |
 | `glyph-stdlib.d.ts` | Type declarations for the v1 stdlib modules (`std/array`, `string`, `io`, `json`, `fs`, `process`, `http`, `time`). Higher-order functions are generic so callback parameters infer from the call site. |
 
@@ -59,6 +60,8 @@ programs' React and `api/users` stubs live in `examples/.types/`.
 
 The self-contained `examples/corpus/` programs (which use no stdlib) pass
 `tsc --strict` standalone, and **`04_cli_tool` passes** linked against this
-runtime. The other three hard-case examples' remaining `tsc` errors are
-documented language gaps — chiefly flow narrowing (Phase 2), the `02` example's
-`?`/`.map_err` order, and React JSX prop typing for `03` — not emitter defects.
+runtime. The others are close: `02_async_errors` is down to **3** errors (all
+the example's own `await http.get(url)?.map_err(...)` quirk, where `?` runs
+before `.map_err` and propagates the pre-conversion error type), `03` to **1**
+(an untyped JSX event-handler param needing the real React types), and
+`01_validator` to **5** (flow narrowing, Phase 2). None are emitter defects.

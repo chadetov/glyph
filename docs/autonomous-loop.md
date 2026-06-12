@@ -60,20 +60,21 @@ stubs**:
   lowering re-wraps the propagated error (`return __glyph_err(__r.value)`, a
   `Result<never, E>`) so it stays assignable across success types. **`04_cli_tool`
   now passes `tsc --strict`.**
-- **Example structure** — `02`'s `await http.get(url)?.map_err(...)` runs the
-  `?` before `.map_err`, so it propagates the pre-conversion `HttpError` where
-  the function returns `FeedError`. An example-level quirk.
+- **`T.schema` descriptor member** — DONE. Record descriptors now emit a
+  `Schema<T>` `schema` member (built by the `std/schema` factory), so `02`'s
+  `User.schema` / `Post.schema.array()` type-check.
+- **Example structure** — `02`'s remaining 3 errors are all its own
+  `await http.get(url)?.map_err(...)`: the `?` runs before `.map_err`, so it
+  propagates the pre-conversion `HttpError` where the function returns
+  `FeedError`. Fixing it means reordering to `.map_err(...)?` in the example.
 - **React JSX prop typing** — `03` is one error away (an untyped JSX event
   handler param), needing the real React type surface, not our stubs.
-- **`T.schema` descriptor member** — `02` uses `User.schema` / `Post.schema.array()`;
-  the record descriptor does not yet emit a `.schema` member (an emitter slice,
-  coupled to the `Schema`/`Result` shape above).
 
-So the `tsc` half stands at: corpus passes; `04_cli_tool` passes; `03` is one
-React-typing error away; `01`/`02` are gated on Phase-2 flow narrowing (`01`'s
-`is`-narrowing, the dominant blocker) plus the `02` example quirk. The emitter
-itself is done for these examples (the corpus and `04` prove it emits fully
-`tsc`-clean TS). Re-probe with `glyph build` plus a `tsc` run against
+So the `tsc` half stands at: corpus passes; `04_cli_tool` passes; `02` is 3
+errors away (its own `?`/`.map_err` order); `03` is one React-typing error away;
+`01` is gated on Phase-2 flow narrowing (`is`-narrowing, the dominant blocker).
+The emitter itself is done for these examples (the corpus and `04` prove it
+emits fully `tsc`-clean TS). Re-probe with `glyph build` plus a `tsc` run against
 `glyph-compiler/runtime/` (see that directory's README) every run.
 
 ## Routine prompt

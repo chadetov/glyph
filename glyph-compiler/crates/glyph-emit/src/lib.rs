@@ -727,7 +727,13 @@ impl<'a> Emitter<'a> {
     /// also handled here, so the statement emitter need not special-case it.
     fn emit_value(&mut self, e: &Expr) -> Result<String, EmitError> {
         if contains_hoistable_try(e) {
-            let lifted = self.hoist_tries(e)?;
+            // Place each `await` on the head async call of its spine BEFORE
+            // hoisting, so a mid-chain `?` whose operand is that call hoists the
+            // AWAITED result (`const __r = await load(p)`), not the pending
+            // Promise. Without this the `Err` guard tests `Promise.tag` (always
+            // false) and the chain reads `Promise.value` (a runtime crash).
+            let placed = place_awaits(e);
+            let lifted = self.hoist_tries(&placed)?;
             self.expr(&lifted)
         } else {
             self.expr(e)
@@ -744,11 +750,9 @@ impl<'a> Emitter<'a> {
     /// belongs to that construct's own statement context and is hoisted when it
     /// is emitted.
     ///
-    /// Limitation: the `?` operand is bound without regard to an enclosing
-    /// `await`, so `await call()?.method()` awaits the method chain
-    /// (`(await __r.value.method())`) rather than `call()`. With v1's untyped
-    /// stdlib both read as `any`, so the emitted TS is well-formed; precise
-    /// await placement across a `?` is a later refinement.
+    /// `emit_value` runs `place_awaits` first, so when a `?` operand is an
+    /// awaited call the `await` already sits on that call and the hoisted temp
+    /// holds the awaited `Result` rather than a pending Promise.
     fn hoist_tries(&mut self, e: &Expr) -> Result<Expr, EmitError> {
         Ok(match e {
             Expr::Postfix {
@@ -2311,6 +2315,179 @@ fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
     )
 }
 
+/// Whether the receiver spine of `e` (a call's callee, a member/index's
+/// object, a `?`'s operand) bottoms out at a call.
+fn spine_has_call(e: &Expr) -> bool {
+    match e {
+        Expr::Call { .. } => true,
+        Expr::Member { object, .. } | Expr::Index { object, .. } => spine_has_call(object),
+        Expr::Postfix { operand, .. } => spine_has_call(operand),
+        _ => false,
+    }
+}
+
+/// Wrap the head call of `e`'s receiver spine in an `await`, descending through
+/// a call's callee, a member/index's object, and a `?`'s operand to reach it.
+/// Glyph async is colorless and `await` may syntactically wrap a whole chain,
+/// but the async call is the spine head; awaiting it there keeps a mid-chain
+/// `?` unwrapping the AWAITED result. A spine with no call awaits the whole
+/// expression. Only the receiver spine is followed, never arguments, so a
+/// second async call in an argument keeps its own `await`.
+fn await_head(e: &Expr, await_span: Span) -> Expr {
+    match e {
+        Expr::Call {
+            callee,
+            type_args,
+            args,
+            span,
+        } if spine_has_call(callee) => Expr::Call {
+            callee: Box::new(await_head(callee, await_span)),
+            type_args: type_args.clone(),
+            args: args.clone(),
+            span: *span,
+        },
+        Expr::Member {
+            object,
+            field,
+            optional,
+            span,
+        } if spine_has_call(object) => Expr::Member {
+            object: Box::new(await_head(object, await_span)),
+            field: field.clone(),
+            optional: *optional,
+            span: *span,
+        },
+        Expr::Index {
+            object,
+            index,
+            span,
+        } if spine_has_call(object) => Expr::Index {
+            object: Box::new(await_head(object, await_span)),
+            index: index.clone(),
+            span: *span,
+        },
+        Expr::Postfix { op, operand, span } => Expr::Postfix {
+            op: *op,
+            operand: Box::new(await_head(operand, await_span)),
+            span: *span,
+        },
+        // The spine head (a call with no deeper spine call) or a non-call: this
+        // is what the `await` applies to.
+        _ => Expr::Await {
+            expr: Box::new(e.clone()),
+            span: await_span,
+        },
+    }
+}
+
+/// Relocate every `await` in `e` onto the async call at the head of its spine
+/// (see `await_head`). Run before `hoist_tries` on a statement value that
+/// contains a `?`, so a `?` whose operand is an awaited call hoists the awaited
+/// result. Only `await` nodes move; the tree is otherwise preserved.
+fn place_awaits(e: &Expr) -> Expr {
+    match e {
+        Expr::Await { expr, span } => await_head(&place_awaits(expr), *span),
+        Expr::Postfix { op, operand, span } => Expr::Postfix {
+            op: *op,
+            operand: Box::new(place_awaits(operand)),
+            span: *span,
+        },
+        Expr::Binary {
+            op,
+            left,
+            right,
+            span,
+        } => Expr::Binary {
+            op: *op,
+            left: Box::new(place_awaits(left)),
+            right: Box::new(place_awaits(right)),
+            span: *span,
+        },
+        Expr::Unary { op, operand, span } => Expr::Unary {
+            op: *op,
+            operand: Box::new(place_awaits(operand)),
+            span: *span,
+        },
+        Expr::Call {
+            callee,
+            type_args,
+            args,
+            span,
+        } => Expr::Call {
+            callee: Box::new(place_awaits(callee)),
+            type_args: type_args.clone(),
+            args: args.iter().map(place_awaits).collect(),
+            span: *span,
+        },
+        Expr::Member {
+            object,
+            field,
+            optional,
+            span,
+        } => Expr::Member {
+            object: Box::new(place_awaits(object)),
+            field: field.clone(),
+            optional: *optional,
+            span: *span,
+        },
+        Expr::Index {
+            object,
+            index,
+            span,
+        } => Expr::Index {
+            object: Box::new(place_awaits(object)),
+            index: Box::new(place_awaits(index)),
+            span: *span,
+        },
+        Expr::Array { elements, span } => Expr::Array {
+            elements: elements
+                .iter()
+                .map(|el| match el {
+                    ArrayElem::Expr(e) => ArrayElem::Expr(place_awaits(e)),
+                    ArrayElem::Spread(e) => ArrayElem::Spread(place_awaits(e)),
+                })
+                .collect(),
+            span: *span,
+        },
+        Expr::Object { fields, span } => Expr::Object {
+            fields: fields
+                .iter()
+                .map(|f| match f {
+                    ObjectField::KeyValue { key, value, span } => ObjectField::KeyValue {
+                        key: key.clone(),
+                        value: place_awaits(value),
+                        span: *span,
+                    },
+                    ObjectField::Spread { value, span } => ObjectField::Spread {
+                        value: place_awaits(value),
+                        span: *span,
+                    },
+                })
+                .collect(),
+            span: *span,
+        },
+        Expr::TemplateString { parts, span } => Expr::TemplateString {
+            parts: parts
+                .iter()
+                .map(|p| match p {
+                    TemplatePart::Text { content, span } => TemplatePart::Text {
+                        content: content.clone(),
+                        span: *span,
+                    },
+                    TemplatePart::Expr { value, span } => TemplatePart::Expr {
+                        value: place_awaits(value),
+                        span: *span,
+                    },
+                })
+                .collect(),
+            span: *span,
+        },
+        // Leaves, and the opaque lambda/match/JSX constructs (their `await`s
+        // belong to their own statement context).
+        other => other.clone(),
+    }
+}
+
 /// Whether `e` contains a `?` operator that must be hoisted before the
 /// enclosing statement (any `?`, since `hoist_tries`/`emit_value` treat a
 /// whole-value `?` the same as a nested one). Does not look inside a lambda
@@ -2914,17 +3091,21 @@ mod tests {
     fn mid_chain_try_under_await_is_hoisted() {
         // Example 02's shape: `await get(url)?` then `.map_err(f)` on the next
         // line — the `?` is mid-chain (on `get(url)`, before `.map_err`), not the
-        // trailing postfix, and not the `?.` optional-chaining token. It hoists
-        // before the statement, and `.map_err` runs on the unwrapped payload.
+        // trailing postfix, and not the `?.` optional-chaining token. The `await`
+        // is placed on the async head call `get(url)` so the hoisted temp holds
+        // the AWAITED `Result` (its `tag`/`value` are real, not a Promise's), and
+        // `.map_err` runs on the unwrapped payload with no outer await.
         let ts = emit(
             "module x\nasync fn run(url: string) -> Result<number, string> {\n  let response = await get(url)?\n    .map_err(fn(e) { return e })\n  return Ok(0)\n}\n",
         );
-        assert!(ts.contains("const __r0 = get(url);"), "{ts}");
+        assert!(ts.contains("const __r0 = (await get(url));"), "{ts}");
         assert!(
             ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
             "{ts}"
         );
         assert!(ts.contains("__r0.value.map_err"), "{ts}");
+        // The chain past the `?` is not re-awaited.
+        assert!(!ts.contains("(await __r0.value"), "{ts}");
     }
 
     #[test]

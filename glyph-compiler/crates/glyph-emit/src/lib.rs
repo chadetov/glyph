@@ -3142,6 +3142,50 @@ mod tests {
     }
 
     #[test]
+    fn multiple_tries_in_arguments_hoist_in_evaluation_order() {
+        // `s(a()?, b()?)` hoists the left argument's `?` before the right's, so
+        // the unwraps run in source order.
+        let ts = emit(
+            "module x\nfn a() -> Result<number, string> { return Ok(1) }\nfn b() -> Result<number, string> { return Ok(2) }\nfn s(x: number, y: number) -> number { return x }\nfn f() -> Result<number, string> {\n  return Ok(s(a()?, b()?))\n}\n",
+        );
+        let i0 = ts.find("const __r0 = a();").expect("r0 hoist");
+        let i1 = ts.find("const __r1 = b();").expect("r1 hoist");
+        assert!(i0 < i1, "left arg hoists first: {ts}");
+        assert!(
+            ts.contains("return Ok(s(__r0.value, __r1.value));"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn try_inside_an_array_literal_is_hoisted() {
+        let ts = emit(
+            "module x\nfn a() -> Result<number, string> { return Ok(1) }\nfn f() -> Result<Array<number>, string> {\n  return Ok([a()?, a()?])\n}\n",
+        );
+        assert!(ts.contains("return Ok([__r0.value, __r1.value]);"), "{ts}");
+    }
+
+    #[test]
+    fn empty_jsx_element_emits_null_props_and_no_children() {
+        let ts = emit(
+            "module x\nimport react { Component }\ncomponent V() -> Component {\n  return <div></div>\n}\n",
+        );
+        assert!(ts.contains("React.createElement(\"div\", null)"), "{ts}");
+    }
+
+    #[test]
+    fn nested_jsx_for_inside_if_lowers() {
+        // A `<for>` nested inside an `<if>` branch, paired with an `<else>`.
+        let ts = emit(
+            "module x\nimport react { Component }\ncomponent V(xs: Array<string>) -> Component {\n  return <ul>\n    <if cond={true}>\n      <for x in={xs}><li>{x}</li></for>\n    </if>\n    <else><p>empty</p></else>\n  </ul>\n}\n",
+        );
+        assert!(
+            ts.contains("(true ? xs.map((x) => React.createElement(\"li\", null, x)) : React.createElement(\"p\", null, \"empty\"))"),
+            "{ts}"
+        );
+    }
+
+    #[test]
     fn value_position_match_wraps_in_an_iife() {
         let ts = emit(
             "module x\nfn f(r: Result<number, string>) -> string {\n  let label = match r {\n    Ok(n) => \"ok\",\n    Err(e) => \"err\",\n  }\n  return label\n}\n",

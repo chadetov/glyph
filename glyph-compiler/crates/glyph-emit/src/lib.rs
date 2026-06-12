@@ -184,6 +184,12 @@ const RESULT_OK: &str = "Ok";
 /// generated `import { Err as __glyph_err } from "std/result"`.
 const ERR_CTOR: &str = "__glyph_err";
 
+/// The local name a record descriptor binds the prelude `schema` factory to,
+/// for its auto-generated `T.schema` member (`T.schema = __glyph_schema<T>(...)`).
+/// Aliased so it never collides with a user binding; a module that emits any
+/// record descriptor gets `import { schema as __glyph_schema } from "std/schema"`.
+const SCHEMA_FACTORY: &str = "__glyph_schema";
+
 /// How a lowered `match` arm yields control: `return` its value (the match is
 /// in return position) or run it for effect and `break` (statement position).
 #[derive(Clone, Copy)]
@@ -206,6 +212,7 @@ pub fn emit_module(
         indent: 0,
         tmp_counter: 0,
         used_try: Rc::new(Cell::new(false)),
+        used_schema: Rc::new(Cell::new(false)),
         module,
         resolved,
         types,
@@ -225,6 +232,9 @@ struct Emitter<'a> {
     /// import the re-wrap needs. Shared across the main emitter and every
     /// sub-emitter via the `Rc<Cell>`.
     used_try: Rc<Cell<bool>>,
+    /// Set once any record descriptor is emitted, so the module gets the
+    /// generated `schema` factory import its `T.schema` member needs.
+    used_schema: Rc<Cell<bool>>,
     module: &'a Module,
     resolved: &'a ResolvedModule,
     types: &'a TypeMap,
@@ -240,6 +250,7 @@ impl<'a> Emitter<'a> {
             indent,
             tmp_counter: self.tmp_counter,
             used_try: Rc::clone(&self.used_try),
+            used_schema: Rc::clone(&self.used_schema),
             module: self.module,
             resolved: self.resolved,
             types: self.types,
@@ -282,9 +293,17 @@ impl<'a> Emitter<'a> {
             }
             self.emit_decl(decl)?;
         }
-        // A module that lowered any `?` re-wraps the propagated error with the
-        // prelude `Err`. Prepend the (aliased) import now that emission has set
-        // the flag — it can only be known after walking the bodies.
+        // A module that emitted any record descriptor needs the `schema`
+        // factory for its `T.schema` member; and a module that lowered any `?`
+        // re-wraps the propagated error with the prelude `Err`. Prepend the
+        // (aliased) imports now that emission has set the flags. `?`'s import is
+        // inserted last so it ends up first.
+        if self.used_schema.get() {
+            self.out.insert_str(
+                0,
+                &format!("import {{ schema as {SCHEMA_FACTORY} }} from \"std/schema\";\n\n"),
+            );
+        }
         if self.used_try.get() {
             self.out.insert_str(
                 0,
@@ -412,6 +431,15 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.indent -= 1;
         self.line("},");
+        // Q8/Q40 `T.schema`: a `Schema<T>` built from the `is` guard by the
+        // prelude factory (the factory carries the recursive `array()`). The
+        // guard references the descriptor by name in a lazy closure — `this` is
+        // not the descriptor object inside this object literal, but the closure
+        // only runs once the `const` is initialized.
+        self.used_schema.set(true);
+        self.line(&format!(
+            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
+        ));
         self.indent -= 1;
         self.line("};");
     }
@@ -2824,8 +2852,27 @@ mod tests {
             ts.contains(": { tag: \"Err\", value: \"expected User\" };"),
             "{ts}"
         );
-        // No prelude import was pulled in for the descriptor.
+        // `parse` itself pulls in no `std/result` import (it inlines the shape).
         assert!(!ts.contains("from \"std/result\""), "{ts}");
+    }
+
+    #[test]
+    fn record_descriptor_emits_a_schema_member() {
+        let ts = emit("module x\ntype User = { id: string }\n");
+        // `T.schema` is a `Schema<T>` built by the prelude factory from the `is`
+        // guard (referenced by name in a lazy closure, since `this` is not the
+        // descriptor object inside the object literal).
+        assert!(
+            ts.contains(
+                "schema: __glyph_schema<User>(\"User\", (v): v is User => User.is(v)),"
+            ),
+            "{ts}"
+        );
+        // The module that emits a descriptor gets the aliased factory import.
+        assert!(
+            ts.starts_with("import { schema as __glyph_schema } from \"std/schema\";"),
+            "{ts}"
+        );
     }
 
     #[test]

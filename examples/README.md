@@ -27,5 +27,8 @@ The other three files are faithful transfers, with template literals (D22) used 
 | `list_ops.glyph` | Array-pattern match with a `...rest` binding |
 | `classify.glyph` | Value (literal) match with an `else` catch-all |
 | `higher_order.glyph` | Records + higher-order functions + lambdas |
+| `generics.glyph` | Generic functions + explicit call-site type arguments |
+| `tree.glyph` | Recursive tagged union + recursive function |
+| `async_chain.glyph` | `async`/`await` functions awaited in sequence |
 
 `repo_examples_emit_typescript_without_diagnostics` (in `glyph-cli`'s integration tests) builds the whole `examples/` tree — these plus the four hard-case files — and asserts every module emits with no diagnostics.

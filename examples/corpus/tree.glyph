@@ -1,0 +1,13 @@
+// A recursive tagged union with a recursive function over it.
+module tree
+
+type Tree =
+  | Leaf({ value: number })
+  | Node({ left: Tree, right: Tree })
+
+fn count_leaves(t: Tree) -> number {
+  return match t {
+    Leaf({ value }) => 1,
+    Node({ left, right }) => (count_leaves(left) + count_leaves(right)),
+  }
+}

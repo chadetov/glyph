@@ -82,6 +82,7 @@ This is the floor, not the ceiling.
 - Mapped types deferred to v1.1.
 - `01_validator.glyph` was rewritten with an explicit output type parameter before substep 5a began.
 - Substep 5b is **not** on the v1 critical path.
+- **v1 stand-in (emitter):** the explicit-`<Out>` validator builds a `Record<string, unknown>` and returns it as the caller's `Out`. With no `as` in Glyph, the emitter casts a generic function's return value to its declared return type when that type references one of the function's type parameters (`return { ... } as Schema<Out>`), so the asserted (caller-responsible) value type-checks. Gated to generic returns, so non-generic returns stay precisely checked. v1.1's `infer_shape` makes the assertion unnecessary by deriving `Out` from the shape.
 
 ## Tension with step 4 (transpiler)
 

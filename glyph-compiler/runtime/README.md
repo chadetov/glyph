@@ -59,10 +59,9 @@ A program with external dependencies also supplies their types; the example
 programs' React and `api/users` stubs live in `examples/.types/`.
 
 The self-contained `examples/corpus/` programs (which use no stdlib) pass
-`tsc --strict` standalone, and **three of the four hard-case examples —
-`02_async_errors`, `03_react_component`, and `04_cli_tool` — pass** linked
+`tsc --strict` standalone, and **all four hard-case examples pass** linked
 against this runtime (and the React/`api/users` stubs in `examples/.types/`).
-`01_validator` is down to **1** error — `object_schema<Out>` returns a
-`Record<string, unknown>` as the caller's generic `Out`, the documented
-infer_shape (Q1) limitation (the validator's own comment flags it as v1.1),
-not an emitter or narrowing defect.
+That is the Phase 1 Week 4 gate, fully met. (`01_validator`'s `object_schema<Out>`
+returns a `Record<string, unknown>` as the caller's `Out`; with no `as` in
+Glyph, the emitter casts a generic function's return to its declared type — the
+v1 stand-in for infer_shape, Q1.)

@@ -78,17 +78,23 @@ stubs**:
   narrowing — substep 5c, for Glyph diagnostics/LSP — is a separate, still-open
   feature; it does not affect the emitted TS.)
 
-So the `tsc` half stands at: corpus passes; **`02_async_errors`,
-`03_react_component`, and `04_cli_tool` pass**; `01_validator` is down to **1**
-error — the `object_schema<Out>` parse builds a `Record<string, unknown>` and
-returns it as the caller's generic `Out`, which TypeScript rightly rejects.
-This is the documented **infer_shape (Q1)** limitation, not a narrowing gap:
-the validator's own comment flags it as the v1.1 plan (replace `<Out>` with
-`Schema<infer_shape<Shape>>`). Closing it needs `infer_shape`, a sound cast
-construct (Glyph deliberately has none), or contextual-type-driven cast
-emission. The emitter is otherwise done for these examples. Re-probe with
-`glyph build` plus a `tsc` run against `glyph-compiler/runtime/` (see that
-directory's README) every run.
+- **`object_schema<Out>` / infer_shape (Q1)** — DONE (v1 stand-in). The parse
+  builds a `Record<string, unknown>` and returns it as the caller's generic
+  `Out`; with no `as` in Glyph, the emitter now casts a function's return value
+  to its declared return type when that type references one of the function's
+  generic parameters (`return { ... } as Schema<Out>`). Non-generic returns stay
+  precisely checked. This is the v1 stand-in for `infer_shape` (whose v1.1 plan
+  is to derive `Out` from the shape so no assertion is needed).
+
+## Gate met
+
+**The Phase 1 Week 4 emission gate is fully met.** All four `examples/*.glyph`
+emit TypeScript via `glyph build` with no diagnostics, and every emitted `.ts`
+passes `tsc --strict --noEmit` linked against `glyph-compiler/runtime/` (and the
+`examples/.types/` stubs for the examples' external React / `api/users`
+imports); the nine self-contained `examples/corpus/` programs pass standalone.
+Re-probe with `glyph build` plus a `tsc` run against `glyph-compiler/runtime/`
+(see that directory's README) on any future emitter change to keep it met.
 
 ## Routine prompt
 

@@ -530,6 +530,24 @@ impl<'a> Emitter<'a> {
         Ok(out.join(", "))
     }
 
+    /// Emit lambda parameters. An un-annotated lambda parameter (which the
+    /// parser records as type `unknown`) is emitted without a type so
+    /// TypeScript infers it from the lambda's call-site context — the
+    /// higher-order function's signature. Annotating it `unknown` would instead
+    /// force every use of the parameter to fail. An explicitly typed parameter
+    /// keeps its annotation.
+    fn lambda_params(&self, params: &[Param]) -> Result<String, EmitError> {
+        let mut out = Vec::with_capacity(params.len());
+        for p in params {
+            if is_unknown_type(&p.ty) {
+                out.push(p.name.to_string());
+            } else {
+                out.push(format!("{}: {}", p.name, self.ty(&p.ty)?));
+            }
+        }
+        Ok(out.join(", "))
+    }
+
     // ----- statements -----
 
     fn emit_block(&mut self, block: &Block) -> Result<(), EmitError> {
@@ -1765,13 +1783,22 @@ impl<'a> Emitter<'a> {
                 body,
                 ..
             } => {
-                let params = self.params(params)?;
+                let params = self.lambda_params(params)?;
                 let ret = match return_ty {
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
+                // Like a function, a lambda yields its tail expression (Glyph
+                // block value). A `void`-annotated lambda runs its tail for
+                // effect; any other (including an unannotated lambda) returns
+                // it. Returning a `void` value stays valid TS, so defaulting an
+                // unannotated lambda to "returns a value" is safe.
+                let rv = match return_ty {
+                    Some(te) => !is_void_type(te),
+                    None => true,
+                };
                 let mut sub = self.sub(self.indent);
-                sub.emit_block(body)?;
+                sub.emit_fn_block(body, rv)?;
                 format!("({params}){ret} => {}", sub.out)
             }
             // A value-position `match` (`let x = match ...`, or nested in an
@@ -2382,15 +2409,28 @@ fn single_element_child(children: &[JsxChild]) -> Option<&JsxElement> {
     found
 }
 
+/// Whether `te` is the single-segment type named `name` (`void`, `unknown`).
+fn is_named_type(te: &TypeExpr, name: &str) -> bool {
+    matches!(te, TypeExpr::Path { segments, .. } if segments.len() == 1 && segments[0].as_ref() == name)
+}
+
+/// Whether `te` is the `void` type.
+fn is_void_type(te: &TypeExpr) -> bool {
+    is_named_type(te, "void")
+}
+
+/// Whether `te` is the `unknown` type (what the parser records for an
+/// un-annotated lambda parameter).
+fn is_unknown_type(te: &TypeExpr) -> bool {
+    is_named_type(te, "unknown")
+}
+
 /// Whether a function with this return type yields a value through its tail
 /// expression (an implicit return). A `void` or unannotated return does not:
 /// its body runs for effect.
 fn returns_value(return_ty: &Option<TypeExpr>) -> bool {
     match return_ty {
-        Some(TypeExpr::Path { segments, .. }) => {
-            !(segments.len() == 1 && segments[0].as_ref() == "void")
-        }
-        Some(_) => true,
+        Some(te) => !is_void_type(te),
         None => false,
     }
 }
@@ -3033,6 +3073,26 @@ mod tests {
         assert!(ts.contains("const status = "), "{ts}");
         // The three `Err(..)` arms collapse to a single outer `case "Err"`.
         assert_eq!(ts.matches("case \"Err\"").count(), 1, "{ts}");
+    }
+
+    #[test]
+    fn lambda_returns_its_tail_and_infers_unannotated_params() {
+        // A lambda yields its tail expression like a function, and an
+        // un-annotated parameter emits without a type so TS infers it from the
+        // call-site context rather than being pinned to `unknown`.
+        let ts = emit(
+            "module x\nfn apply(f: fn(n: number) -> number) -> number { return f(1) }\nfn use_it() -> number {\n  return apply(fn(n) { n + 1 })\n}\n",
+        );
+        assert!(ts.contains("(n) => {"), "{ts}");
+        assert!(ts.contains("return (n + 1);"), "{ts}");
+    }
+
+    #[test]
+    fn explicitly_typed_lambda_param_keeps_its_annotation() {
+        let ts = emit(
+            "module x\nfn apply(f: fn(n: number) -> number) -> number { return f(1) }\nfn use_it() -> number {\n  return apply(fn(n: number) { n + 1 })\n}\n",
+        );
+        assert!(ts.contains("(n: number) => {"), "{ts}");
     }
 
     #[test]

@@ -67,14 +67,15 @@ stubs**:
   (`await http.get(url)? .map_err(...)`), propagating the raw `HttpError`;
   reordered to `.map_err(...)?` so it propagates the `FeedError` the signature
   promises. **`02_async_errors` now passes.**
-- **React JSX prop typing** — `03` is one error away (an untyped JSX event
-  handler param), needing the real React type surface, not our stubs.
+- **React JSX prop typing** — DONE. The React stub now types `createElement`'s
+  props so an inline `on_*` handler's `event` parameter infers; **`03` passes.**
 
-So the `tsc` half stands at: corpus passes; **`02_async_errors` and
-`04_cli_tool` pass**; `03` is one React-typing error away; `01` is gated on
-Phase-2 flow narrowing (`is`-narrowing, the dominant blocker). The emitter itself
-is done for these examples. Re-probe with `glyph build` plus a `tsc` run against
-`glyph-compiler/runtime/` (see that directory's README) every run.
+So the `tsc` half stands at: corpus passes; **`02_async_errors`,
+`03_react_component`, and `04_cli_tool` pass**; only `01_validator` remains (5
+errors), gated on Phase-2 flow narrowing (`is`-narrowing). Once that lands the
+gate is fully met. The emitter itself is done for these examples. Re-probe with
+`glyph build` plus a `tsc` run against `glyph-compiler/runtime/` (see that
+directory's README) every run.
 
 ## Routine prompt
 

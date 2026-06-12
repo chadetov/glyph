@@ -59,8 +59,8 @@ A program with external dependencies also supplies their types; the example
 programs' React and `api/users` stubs live in `examples/.types/`.
 
 The self-contained `examples/corpus/` programs (which use no stdlib) pass
-`tsc --strict` standalone, and **`02_async_errors` and `04_cli_tool` pass**
-linked against this runtime. The last two are close: `03_react_component` has
-**1** error (an untyped JSX event-handler param needing the real React types)
-and `01_validator` has **5** (flow narrowing, Phase 2). Neither is an emitter
-defect.
+`tsc --strict` standalone, and **three of the four hard-case examples —
+`02_async_errors`, `03_react_component`, and `04_cli_tool` — pass** linked
+against this runtime (and the React/`api/users` stubs in `examples/.types/`).
+Only `01_validator` remains, with **5** errors gated on flow narrowing
+(Phase 2) — not an emitter defect.

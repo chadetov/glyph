@@ -97,9 +97,10 @@
 #![forbid(unsafe_code)]
 
 use glyph_ast::{
-    ArrayElem, BinOp, Block, Decl, Expr, GenericParam, Ident, ImportDecl, ImportKind,
-    LiteralPattern, MatchArm, MatchArmBody, Module, MutKind, ObjectField, Param, Pattern,
-    PostfixOp, RecordTypeField, Span, Stmt, TemplatePart, TypeExpr, UnaryOp, UnionVariant,
+    ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, GenericParam, Ident, ImportDecl,
+    ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm, MatchArmBody, Module,
+    MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt, TemplatePart,
+    TypeExpr, UnaryOp, UnionVariant,
 };
 use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
 use glyph_typechecker::{Ty, TypeMap};
@@ -229,6 +230,17 @@ impl<'a> Emitter<'a> {
         // Copy the `&Module` reference (references are `Copy`) so iterating it
         // doesn't borrow `self` across the `&mut self` emit calls.
         let module = self.module;
+        // A `component` lowers to React `createElement` calls, which need the
+        // React namespace in scope. The Glyph source imports named hooks from
+        // `react` but not React itself, so add the namespace import here.
+        if module
+            .items
+            .iter()
+            .any(|d| matches!(d, Decl::Component(_)))
+        {
+            self.line("import * as React from \"react\";");
+            self.out.push('\n');
+        }
         for (i, decl) in module.items.iter().enumerate() {
             if i > 0 {
                 self.out.push('\n');
@@ -290,10 +302,7 @@ impl<'a> Emitter<'a> {
                 }
                 Ok(())
             }
-            Decl::Component(c) => Err(EmitError::Unsupported {
-                construct: "component declaration",
-                span: c.span,
-            }),
+            Decl::Component(c) => self.emit_component(c),
         }
     }
 
@@ -1789,12 +1798,7 @@ impl<'a> Emitter<'a> {
                 let pad = "  ".repeat(self.indent);
                 format!("(() => {{\n{}{pad}}})()", sub.out)
             }
-            Expr::Jsx(j) => {
-                return Err(EmitError::Unsupported {
-                    construct: "JSX",
-                    span: j.span,
-                })
-            }
+            Expr::Jsx(j) => self.emit_jsx(j)?,
         })
     }
 
@@ -1812,6 +1816,260 @@ impl<'a> Emitter<'a> {
         }
         out.push('`');
         Ok(out)
+    }
+
+    // ----- JSX (D6) + components (D19) -----
+
+    /// Emit a `component` declaration (D19) as a React function component. The
+    /// body returns JSX, so it emits with implicit tail returns like a non-void
+    /// function.
+    fn emit_component(&mut self, c: &ComponentDecl) -> Result<(), EmitError> {
+        let generics = self.generics(&c.generics);
+        let params = self.params(&c.params)?;
+        let ret = match &c.return_ty {
+            Some(te) => format!(": {}", self.ty(te)?),
+            None => String::new(),
+        };
+        self.pad();
+        self.out
+            .push_str(&format!("export function {}{generics}({params}){ret} ", c.name));
+        self.emit_fn_block(&c.body, true)?;
+        self.out.push('\n');
+        Ok(())
+    }
+
+    /// Lower a JSX element (D6). Intrinsic (`<div>`) and component (`<Foo>`)
+    /// elements become `React.createElement` calls; the `<if>`/`<for>`/`<match>`
+    /// directives lower to a ternary / `.map` / a switch-returning IIFE.
+    /// `<else>` and `<case>` are only meaningful inside their directive and are
+    /// consumed there.
+    fn emit_jsx(&self, j: &JsxElement) -> Result<String, EmitError> {
+        match JsxKind::classify(&j.name) {
+            JsxKind::Match => self.emit_jsx_match(j),
+            JsxKind::For => self.emit_jsx_for(j),
+            // A standalone `<if>` (not paired with a sibling `<else>`, which is
+            // handled in `jsx_children`) has an empty alternative.
+            JsxKind::If => {
+                let cond = self.jsx_attr_expr(j, "cond")?;
+                let then = self.jsx_node(&j.children)?;
+                Ok(format!("({cond} ? {then} : null)"))
+            }
+            JsxKind::Else => Err(EmitError::Unsupported {
+                construct: "an `<else>` without a preceding `<if>`",
+                span: j.span,
+            }),
+            JsxKind::Case => Err(EmitError::Unsupported {
+                construct: "a `<case>` outside a `<match>`",
+                span: j.span,
+            }),
+            JsxKind::Intrinsic | JsxKind::Component => self.emit_jsx_element(j, None),
+        }
+    }
+
+    /// Emit an intrinsic or component element as `React.createElement(tag,
+    /// props, ...children)`. An intrinsic's tag is its name as a string
+    /// literal; a component's tag is the identifier. `extra_prop` injects an
+    /// extra prop (used to push a `<for key={...}>` onto the mapped element).
+    fn emit_jsx_element(
+        &self,
+        j: &JsxElement,
+        extra_prop: Option<(&str, String)>,
+    ) -> Result<String, EmitError> {
+        let tag = match JsxKind::classify(&j.name) {
+            JsxKind::Intrinsic => escape_double_quoted(&j.name),
+            JsxKind::Component => j.name.to_string(),
+            _ => unreachable!("directives route through emit_jsx"),
+        };
+        let props = self.jsx_props(&j.attrs, extra_prop)?;
+        let children = self.jsx_children(&j.children)?;
+        if children.is_empty() {
+            Ok(format!("React.createElement({tag}, {props})"))
+        } else {
+            Ok(format!(
+                "React.createElement({tag}, {props}, {})",
+                children.join(", ")
+            ))
+        }
+    }
+
+    /// Build the props object for an element: `{ name: value, ... }`, or `null`
+    /// when there are no attributes. A string attribute becomes a quoted value;
+    /// an expression attribute emits its expression. A positional attribute is
+    /// only valid on a directive (handled there), so it is rejected here.
+    fn jsx_props(
+        &self,
+        attrs: &[JsxAttr],
+        extra_prop: Option<(&str, String)>,
+    ) -> Result<String, EmitError> {
+        let mut fields: Vec<String> = Vec::new();
+        if let Some((k, v)) = extra_prop {
+            fields.push(format!("{k}: {v}"));
+        }
+        for a in attrs {
+            match a {
+                JsxAttr::String { name, value, .. } => {
+                    fields.push(format!("{name}: {}", escape_double_quoted(value)))
+                }
+                JsxAttr::Expr { name, value, .. } => {
+                    fields.push(format!("{name}: {}", self.expr(value)?))
+                }
+                JsxAttr::Positional { span, .. } => {
+                    return Err(EmitError::Unsupported {
+                        construct: "a positional attribute on a non-directive JSX element",
+                        span: *span,
+                    })
+                }
+            }
+        }
+        if fields.is_empty() {
+            Ok("null".to_string())
+        } else {
+            Ok(format!("{{ {} }}", fields.join(", ")))
+        }
+    }
+
+    /// Emit a child list, pairing an `<if>` with a following `<else>` sibling
+    /// (skipping the whitespace between) into a single ternary. Whitespace-only
+    /// text is dropped; other text becomes a quoted string; an `{expr}` child
+    /// emits its expression.
+    fn jsx_children(&self, children: &[JsxChild]) -> Result<Vec<String>, EmitError> {
+        let mut out: Vec<String> = Vec::new();
+        let mut i = 0;
+        while i < children.len() {
+            match &children[i] {
+                JsxChild::Text { content, .. } => {
+                    let t = normalize_jsx_text(content);
+                    if !t.is_empty() {
+                        out.push(escape_double_quoted(&t));
+                    }
+                }
+                JsxChild::Expr(e) => out.push(self.expr(e)?),
+                JsxChild::Element(el) => match JsxKind::classify(&el.name) {
+                    JsxKind::If => {
+                        let cond = self.jsx_attr_expr(el, "cond")?;
+                        let then = self.jsx_node(&el.children)?;
+                        // A following `<else>` sibling (past whitespace) is the
+                        // alternative; otherwise the alternative is `null`.
+                        let (alt, else_idx) = self.find_else(children, i + 1)?;
+                        out.push(format!("({cond} ? {then} : {alt})"));
+                        if let Some(e) = else_idx {
+                            i = e;
+                        }
+                    }
+                    JsxKind::Else => {
+                        return Err(EmitError::Unsupported {
+                            construct: "an `<else>` without a preceding `<if>`",
+                            span: el.span,
+                        })
+                    }
+                    _ => out.push(self.emit_jsx(el)?),
+                },
+            }
+            i += 1;
+        }
+        Ok(out)
+    }
+
+    /// Scan from `start` past whitespace-only text for an `<else>`; return its
+    /// emitted node and index when found, else (`"null"`, None).
+    fn find_else(
+        &self,
+        children: &[JsxChild],
+        start: usize,
+    ) -> Result<(String, Option<usize>), EmitError> {
+        let mut j = start;
+        while j < children.len() {
+            match &children[j] {
+                JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {
+                    j += 1
+                }
+                JsxChild::Element(el) if JsxKind::classify(&el.name) == JsxKind::Else => {
+                    return Ok((self.jsx_node(&el.children)?, Some(j)));
+                }
+                _ => break,
+            }
+        }
+        Ok(("null".to_string(), None))
+    }
+
+    /// Combine a child list into a single React node: `null` for none, the lone
+    /// child for one, an array literal for several. Used for the branches of an
+    /// `<if>`/`<else>` and the body of a `<for>`.
+    fn jsx_node(&self, children: &[JsxChild]) -> Result<String, EmitError> {
+        let parts = self.jsx_children(children)?;
+        Ok(match parts.len() {
+            0 => "null".to_string(),
+            1 => parts.into_iter().next().expect("len checked"),
+            _ => format!("[{}]", parts.join(", ")),
+        })
+    }
+
+    /// Lower `<match value={v}> <case V bind={x}>..</case> .. </match>` to a
+    /// switch-returning IIFE: `((__v) => { switch (__v.tag) { case "V": {
+    /// const x = __v.x; return ..; } .. } })(v)`. A `<case Variant>` with no
+    /// `bind` returns its node directly; `bind={x}` binds `x` to the same-named
+    /// payload field (variant payloads are spread flat onto the value).
+    fn emit_jsx_match(&self, j: &JsxElement) -> Result<String, EmitError> {
+        let value = self.jsx_attr_expr(j, "value")?;
+        let mut cases = String::new();
+        for child in &j.children {
+            match child {
+                JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {}
+                JsxChild::Element(el) if JsxKind::classify(&el.name) == JsxKind::Case => {
+                    let variant = first_positional(&el.attrs).ok_or(EmitError::Unsupported {
+                        construct: "a `<case>` without a variant name",
+                        span: el.span,
+                    })?;
+                    let node = self.jsx_node(&el.children)?;
+                    match find_expr_attr(&el.attrs, "bind") {
+                        Some(Expr::Ident { name, .. }) => cases.push_str(&format!(
+                            "case \"{variant}\": {{ const {name} = __v.{name}; return {node}; }} "
+                        )),
+                        _ => cases.push_str(&format!("case \"{variant}\": return {node}; ")),
+                    }
+                }
+                _ => {
+                    return Err(EmitError::Unsupported {
+                        construct: "a non-`<case>` child in a `<match>`",
+                        span: j.span,
+                    })
+                }
+            }
+        }
+        Ok(format!(
+            "((__v) => {{ switch (__v.tag) {{ {cases}default: throw new Error(\"non-exhaustive match\"); }} }})({value})"
+        ))
+    }
+
+    /// Lower `<for x in={xs} key={k}>BODY</for>` to `xs.map((x) => BODY)`. When
+    /// a `key` is present and the body is a single element, the key is pushed
+    /// onto that element's props (React keys map entries).
+    fn emit_jsx_for(&self, j: &JsxElement) -> Result<String, EmitError> {
+        let var = first_positional(&j.attrs).ok_or(EmitError::Unsupported {
+            construct: "a `<for>` without a loop variable",
+            span: j.span,
+        })?;
+        let iter = self.jsx_attr_expr(j, "in")?;
+        let key = match find_expr_attr(&j.attrs, "key") {
+            Some(e) => Some(self.expr(e)?),
+            None => None,
+        };
+        let body = match (key, single_element_child(&j.children)) {
+            (Some(k), Some(el)) => self.emit_jsx_element(el, Some(("key", k)))?,
+            _ => self.jsx_node(&j.children)?,
+        };
+        Ok(format!("{iter}.map(({var}) => {body})"))
+    }
+
+    /// Emit the named expression attribute of `el`, or reject if it is missing.
+    fn jsx_attr_expr(&self, el: &JsxElement, name: &str) -> Result<String, EmitError> {
+        match find_expr_attr(&el.attrs, name) {
+            Some(e) => self.expr(e),
+            None => Err(EmitError::Unsupported {
+                construct: "a directive missing its required attribute",
+                span: el.span,
+            }),
+        }
     }
 
     // ----- types -----
@@ -2047,6 +2305,81 @@ fn contains_hoistable_try(e: &Expr) -> bool {
         // Leaves and opaque constructs (lambda/match/JSX).
         _ => false,
     }
+}
+
+/// Classification of a JSX element name (mirrors the resolver's `JsxKind`):
+/// the compiler-owned directives, an intrinsic (lowercase HTML element), or a
+/// component reference (capitalized).
+#[derive(PartialEq, Eq)]
+enum JsxKind {
+    Intrinsic,
+    Component,
+    If,
+    Else,
+    For,
+    Match,
+    Case,
+}
+
+impl JsxKind {
+    fn classify(name: &Ident) -> Self {
+        match name.as_ref() {
+            "if" => JsxKind::If,
+            "else" => JsxKind::Else,
+            "for" => JsxKind::For,
+            "match" => JsxKind::Match,
+            "case" => JsxKind::Case,
+            other => {
+                if other.chars().next().is_some_and(|c| c.is_ascii_lowercase()) {
+                    JsxKind::Intrinsic
+                } else {
+                    JsxKind::Component
+                }
+            }
+        }
+    }
+}
+
+/// The value expression of the named `name={expr}` attribute, if present.
+fn find_expr_attr<'a>(attrs: &'a [JsxAttr], name: &str) -> Option<&'a Expr> {
+    attrs.iter().find_map(|a| match a {
+        JsxAttr::Expr { name: n, value, .. } if n.as_ref() == name => Some(value),
+        _ => None,
+    })
+}
+
+/// The name of the first positional attribute (`<case Loaded>` → `Loaded`,
+/// `<for user ...>` → `user`), if any.
+fn first_positional(attrs: &[JsxAttr]) -> Option<&Ident> {
+    attrs.iter().find_map(|a| match a {
+        JsxAttr::Positional { name, .. } => Some(name),
+        _ => None,
+    })
+}
+
+/// Normalize JSX text: whitespace-only runs (the newlines and indentation
+/// between tags) become empty and are dropped by the caller; other text is
+/// trimmed with internal whitespace runs collapsed to a single space.
+fn normalize_jsx_text(content: &str) -> String {
+    if content.trim().is_empty() {
+        return String::new();
+    }
+    content.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// The single element child of a child list, ignoring whitespace-only text;
+/// None if there is not exactly one element child.
+fn single_element_child(children: &[JsxChild]) -> Option<&JsxElement> {
+    let mut found = None;
+    for c in children {
+        match c {
+            JsxChild::Text { content, .. } if normalize_jsx_text(content).is_empty() => {}
+            JsxChild::Element(el) if found.is_none() => found = Some(el),
+            // A second element, or any non-whitespace text / expr child.
+            _ => return None,
+        }
+    }
+    found
 }
 
 /// Whether a function with this return type yields a value through its tail
@@ -2700,6 +3033,61 @@ mod tests {
         assert!(ts.contains("const status = "), "{ts}");
         // The three `Err(..)` arms collapse to a single outer `case "Err"`.
         assert_eq!(ts.matches("case \"Err\"").count(), 1, "{ts}");
+    }
+
+    #[test]
+    fn component_emits_a_react_function_with_create_element() {
+        let ts = emit(
+            "module x\ncomponent Greeting(name: string) -> Component {\n  return <div class=\"g\">{name}</div>\n}\n",
+        );
+        assert!(ts.contains("import * as React from \"react\";"), "{ts}");
+        assert!(
+            ts.contains("export function Greeting(name: string): Component {"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("return React.createElement(\"div\", { class: \"g\" }, name);"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn jsx_match_lowers_to_a_switch_returning_iife() {
+        let ts = emit(
+            "module x\ntype S =\n  | Idle\n  | Loaded({ items: number })\ncomponent V(s: S) -> Component {\n  return <match value={s}>\n    <case Idle><p>idle</p></case>\n    <case Loaded bind={items}><p>{items}</p></case>\n  </match>\n}\n",
+        );
+        assert!(ts.contains("((__v) => { switch (__v.tag) {"), "{ts}");
+        assert!(
+            ts.contains("case \"Idle\": return React.createElement(\"p\", null, \"idle\");"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("case \"Loaded\": { const items = __v.items; return"),
+            "{ts}"
+        );
+        assert!(ts.contains("})(s)"), "{ts}");
+    }
+
+    #[test]
+    fn jsx_if_else_lowers_to_a_ternary() {
+        let ts = emit(
+            "module x\ncomponent V(flag: bool) -> Component {\n  return <div>\n    <if cond={flag}><p>yes</p></if>\n    <else><p>no</p></else>\n  </div>\n}\n",
+        );
+        assert!(
+            ts.contains("(flag ? React.createElement(\"p\", null, \"yes\") : React.createElement(\"p\", null, \"no\"))"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn jsx_for_lowers_to_map_with_key_merged() {
+        let ts = emit(
+            "module x\ncomponent V(xs: Array<string>) -> Component {\n  return <ul>\n    <for x in={xs} key={x}><li>{x}</li></for>\n  </ul>\n}\n",
+        );
+        assert!(
+            ts.contains("xs.map((x) => React.createElement(\"li\", { key: x }, x))"),
+            "{ts}"
+        );
     }
 
     #[test]

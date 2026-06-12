@@ -51,8 +51,8 @@ type FeedError =
 // ---------------------------------------------------------------------------
 
 async fn fetch_json<T>(url: string, schema: Schema<T>) -> Result<T, FeedError> {
-  let response = await http.get(url)?
-    .map_err(fn(e) { NetworkError({ url: url, status: e.status }) })
+  let response = await http.get(url)
+    .map_err(fn(e) { NetworkError({ url: url, status: e.status }) })?
 
   match schema.parse(response.body) {
     Ok(value) => Ok(value),

@@ -720,12 +720,12 @@ Module {
                                 name: "response",
                                 owned: false,
                                 ty: None,
-                                value: Await {
-                                    expr: Call {
-                                        callee: Member {
-                                            object: Postfix {
-                                                op: Try,
-                                                operand: Call {
+                                value: Postfix {
+                                    op: Try,
+                                    operand: Await {
+                                        expr: Call {
+                                            callee: Member {
+                                                object: Call {
                                                     callee: Member {
                                                         object: Ident {
                                                             name: "http",
@@ -756,120 +756,120 @@ Module {
                                                         end: 1333,
                                                     },
                                                 },
+                                                field: "map_err",
+                                                optional: false,
                                                 span: Span {
                                                     start: 1320,
-                                                    end: 1334,
+                                                    end: 1346,
                                                 },
                                             },
-                                            field: "map_err",
-                                            optional: false,
-                                            span: Span {
-                                                start: 1320,
-                                                end: 1347,
-                                            },
-                                        },
-                                        type_args: [],
-                                        args: [
-                                            Lambda {
-                                                params: [
-                                                    Param {
-                                                        name: "e",
-                                                        owned: false,
-                                                        ty: Path {
-                                                            segments: [
-                                                                "unknown",
-                                                            ],
-                                                            span: Span {
-                                                                start: 1351,
-                                                                end: 1352,
-                                                            },
-                                                        },
-                                                        span: Span {
-                                                            start: 1351,
-                                                            end: 1352,
-                                                        },
-                                                    },
-                                                ],
-                                                return_ty: None,
-                                                body: Block {
-                                                    stmts: [
-                                                        Expr(
-                                                            Call {
-                                                                callee: Ident {
-                                                                    name: "NetworkError",
-                                                                    span: Span {
-                                                                        start: 1356,
-                                                                        end: 1368,
-                                                                    },
-                                                                },
-                                                                type_args: [],
-                                                                args: [
-                                                                    Object {
-                                                                        fields: [
-                                                                            KeyValue {
-                                                                                key: "url",
-                                                                                value: Ident {
-                                                                                    name: "url",
-                                                                                    span: Span {
-                                                                                        start: 1376,
-                                                                                        end: 1379,
-                                                                                    },
-                                                                                },
-                                                                                span: Span {
-                                                                                    start: 1371,
-                                                                                    end: 1379,
-                                                                                },
-                                                                            },
-                                                                            KeyValue {
-                                                                                key: "status",
-                                                                                value: Member {
-                                                                                    object: Ident {
-                                                                                        name: "e",
-                                                                                        span: Span {
-                                                                                            start: 1389,
-                                                                                            end: 1390,
-                                                                                        },
-                                                                                    },
-                                                                                    field: "status",
-                                                                                    optional: false,
-                                                                                    span: Span {
-                                                                                        start: 1389,
-                                                                                        end: 1397,
-                                                                                    },
-                                                                                },
-                                                                                span: Span {
-                                                                                    start: 1381,
-                                                                                    end: 1397,
-                                                                                },
-                                                                            },
-                                                                        ],
-                                                                        span: Span {
-                                                                            start: 1369,
-                                                                            end: 1399,
-                                                                        },
-                                                                    },
+                                            type_args: [],
+                                            args: [
+                                                Lambda {
+                                                    params: [
+                                                        Param {
+                                                            name: "e",
+                                                            owned: false,
+                                                            ty: Path {
+                                                                segments: [
+                                                                    "unknown",
                                                                 ],
                                                                 span: Span {
-                                                                    start: 1356,
-                                                                    end: 1400,
+                                                                    start: 1350,
+                                                                    end: 1351,
                                                                 },
                                                             },
-                                                        ),
+                                                            span: Span {
+                                                                start: 1350,
+                                                                end: 1351,
+                                                            },
+                                                        },
                                                     ],
+                                                    return_ty: None,
+                                                    body: Block {
+                                                        stmts: [
+                                                            Expr(
+                                                                Call {
+                                                                    callee: Ident {
+                                                                        name: "NetworkError",
+                                                                        span: Span {
+                                                                            start: 1355,
+                                                                            end: 1367,
+                                                                        },
+                                                                    },
+                                                                    type_args: [],
+                                                                    args: [
+                                                                        Object {
+                                                                            fields: [
+                                                                                KeyValue {
+                                                                                    key: "url",
+                                                                                    value: Ident {
+                                                                                        name: "url",
+                                                                                        span: Span {
+                                                                                            start: 1375,
+                                                                                            end: 1378,
+                                                                                        },
+                                                                                    },
+                                                                                    span: Span {
+                                                                                        start: 1370,
+                                                                                        end: 1378,
+                                                                                    },
+                                                                                },
+                                                                                KeyValue {
+                                                                                    key: "status",
+                                                                                    value: Member {
+                                                                                        object: Ident {
+                                                                                            name: "e",
+                                                                                            span: Span {
+                                                                                                start: 1388,
+                                                                                                end: 1389,
+                                                                                            },
+                                                                                        },
+                                                                                        field: "status",
+                                                                                        optional: false,
+                                                                                        span: Span {
+                                                                                            start: 1388,
+                                                                                            end: 1396,
+                                                                                        },
+                                                                                    },
+                                                                                    span: Span {
+                                                                                        start: 1380,
+                                                                                        end: 1396,
+                                                                                    },
+                                                                                },
+                                                                            ],
+                                                                            span: Span {
+                                                                                start: 1368,
+                                                                                end: 1398,
+                                                                            },
+                                                                        },
+                                                                    ],
+                                                                    span: Span {
+                                                                        start: 1355,
+                                                                        end: 1399,
+                                                                    },
+                                                                },
+                                                            ),
+                                                        ],
+                                                        span: Span {
+                                                            start: 1353,
+                                                            end: 1401,
+                                                        },
+                                                    },
                                                     span: Span {
-                                                        start: 1354,
-                                                        end: 1402,
+                                                        start: 1347,
+                                                        end: 1401,
                                                     },
                                                 },
-                                                span: Span {
-                                                    start: 1348,
-                                                    end: 1402,
-                                                },
+                                            ],
+                                            span: Span {
+                                                start: 1320,
+                                                end: 1402,
                                             },
-                                        ],
+                                        },
                                         span: Span {
-                                            start: 1320,
-                                            end: 1403,
+                                            start: 1314,
+                                            end: 1402,
                                         },
                                     },
                                     span: Span {

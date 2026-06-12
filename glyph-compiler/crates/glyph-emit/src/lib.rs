@@ -103,6 +103,7 @@ use glyph_ast::{
 };
 use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
 use glyph_typechecker::{Ty, TypeMap};
+use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum EmitError {
@@ -562,20 +563,11 @@ impl<'a> Emitter<'a> {
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
-                // `let x = E?` unwraps a `Result`: propagate `Err`, bind the
-                // `Ok` payload.
-                if let Expr::Postfix {
-                    op: PostfixOp::Try,
-                    operand,
-                    ..
-                } = &l.value
-                {
-                    let r = self.emit_try_unwrap(operand)?;
-                    self.line(&format!("let {}{ty} = {r}.{PAYLOAD};", l.name));
-                } else {
-                    let value = self.expr(&l.value)?;
-                    self.line(&format!("let {}{ty} = {value};", l.name));
-                }
+                // `emit_value` hoists any `?` in the initializer first, so both
+                // a whole-value `?` (`let x = E?`) and a mid-chain `?` (`let x =
+                // await f()?.g()`) propagate the `Err` and bind the `Ok` payload.
+                let value = self.emit_value(&l.value)?;
+                self.line(&format!("let {}{ty} = {value};", l.name));
             }
             Stmt::Mut(m) => {
                 let s = match &m.kind {
@@ -611,7 +603,7 @@ impl<'a> Emitter<'a> {
                     self.emit_match_dispatch(scrutinee, arms, ArmTerm::Return)?;
                 }
                 Some(v) => {
-                    let v = self.expr(v)?;
+                    let v = self.emit_value(v)?;
                     self.line(&format!("return {v};"));
                 }
                 None => self.line("return;"),
@@ -663,7 +655,7 @@ impl<'a> Emitter<'a> {
                 self.emit_try_unwrap(operand)?;
             }
             Stmt::Expr(e) => {
-                let s = self.expr(e)?;
+                let s = self.emit_value(e)?;
                 self.line(&format!("{s};"));
             }
         }
@@ -681,6 +673,171 @@ impl<'a> Emitter<'a> {
         self.line(&format!("const {r} = {op};"));
         self.line(&format!("if ({r}.{TAG} === \"{RESULT_ERR}\") {{ return {r}; }}"));
         Ok(r)
+    }
+
+    /// Emit an expression that is a statement's value (a `let`/`return`/tail
+    /// value, or a bare expression statement). Any `?` nested inside it (a
+    /// mid-chain `?`, a `?` in an argument, etc.) is first hoisted to preceding
+    /// statements; the returned string is the value with each `?` replaced by
+    /// its unwrapped `Ok` payload. A `?` that is the whole statement value is
+    /// also handled here, so the statement emitter need not special-case it.
+    fn emit_value(&mut self, e: &Expr) -> Result<String, EmitError> {
+        if contains_hoistable_try(e) {
+            let lifted = self.hoist_tries(e)?;
+            self.expr(&lifted)
+        } else {
+            self.expr(e)
+        }
+    }
+
+    /// Hoist every `?` nested in `e` out to a preceding statement: for each, in
+    /// evaluation order, emit its inlined unwrap (`emit_try_unwrap`) and replace
+    /// the `?` with a read of the temporary's `Ok` payload (`__rN.value`).
+    /// Returns the rewritten expression, which is free of `?` and so emits
+    /// through `expr` directly.
+    ///
+    /// Does not descend into a lambda body or a nested `match`/JSX: a `?` there
+    /// belongs to that construct's own statement context and is hoisted when it
+    /// is emitted.
+    ///
+    /// Limitation: the `?` operand is bound without regard to an enclosing
+    /// `await`, so `await call()?.method()` awaits the method chain
+    /// (`(await __r.value.method())`) rather than `call()`. With v1's untyped
+    /// stdlib both read as `any`, so the emitted TS is well-formed; precise
+    /// await placement across a `?` is a later refinement.
+    fn hoist_tries(&mut self, e: &Expr) -> Result<Expr, EmitError> {
+        Ok(match e {
+            Expr::Postfix {
+                op: PostfixOp::Try,
+                operand,
+                span,
+            } => {
+                let operand = self.hoist_tries(operand)?;
+                let r = self.emit_try_unwrap(&operand)?;
+                Expr::Member {
+                    object: Box::new(Expr::Ident {
+                        name: Arc::from(r.as_str()),
+                        span: *span,
+                    }),
+                    field: Arc::from(PAYLOAD),
+                    optional: false,
+                    span: *span,
+                }
+            }
+            Expr::Binary {
+                op,
+                left,
+                right,
+                span,
+            } => Expr::Binary {
+                op: *op,
+                left: Box::new(self.hoist_tries(left)?),
+                right: Box::new(self.hoist_tries(right)?),
+                span: *span,
+            },
+            Expr::Unary { op, operand, span } => Expr::Unary {
+                op: *op,
+                operand: Box::new(self.hoist_tries(operand)?),
+                span: *span,
+            },
+            Expr::Call {
+                callee,
+                type_args,
+                args,
+                span,
+            } => {
+                let callee = Box::new(self.hoist_tries(callee)?);
+                let mut new_args = Vec::with_capacity(args.len());
+                for a in args {
+                    new_args.push(self.hoist_tries(a)?);
+                }
+                Expr::Call {
+                    callee,
+                    type_args: type_args.clone(),
+                    args: new_args,
+                    span: *span,
+                }
+            }
+            Expr::Member {
+                object,
+                field,
+                optional,
+                span,
+            } => Expr::Member {
+                object: Box::new(self.hoist_tries(object)?),
+                field: field.clone(),
+                optional: *optional,
+                span: *span,
+            },
+            Expr::Index {
+                object,
+                index,
+                span,
+            } => Expr::Index {
+                object: Box::new(self.hoist_tries(object)?),
+                index: Box::new(self.hoist_tries(index)?),
+                span: *span,
+            },
+            Expr::Await { expr, span } => Expr::Await {
+                expr: Box::new(self.hoist_tries(expr)?),
+                span: *span,
+            },
+            Expr::Array { elements, span } => {
+                let mut els = Vec::with_capacity(elements.len());
+                for el in elements {
+                    els.push(match el {
+                        ArrayElem::Expr(e) => ArrayElem::Expr(self.hoist_tries(e)?),
+                        ArrayElem::Spread(e) => ArrayElem::Spread(self.hoist_tries(e)?),
+                    });
+                }
+                Expr::Array {
+                    elements: els,
+                    span: *span,
+                }
+            }
+            Expr::Object { fields, span } => {
+                let mut fs = Vec::with_capacity(fields.len());
+                for f in fields {
+                    fs.push(match f {
+                        ObjectField::KeyValue { key, value, span } => ObjectField::KeyValue {
+                            key: key.clone(),
+                            value: self.hoist_tries(value)?,
+                            span: *span,
+                        },
+                        ObjectField::Spread { value, span } => ObjectField::Spread {
+                            value: self.hoist_tries(value)?,
+                            span: *span,
+                        },
+                    });
+                }
+                Expr::Object {
+                    fields: fs,
+                    span: *span,
+                }
+            }
+            Expr::TemplateString { parts, span } => {
+                let mut ps = Vec::with_capacity(parts.len());
+                for p in parts {
+                    ps.push(match p {
+                        TemplatePart::Text { content, span } => TemplatePart::Text {
+                            content: content.clone(),
+                            span: *span,
+                        },
+                        TemplatePart::Expr { value, span } => TemplatePart::Expr {
+                            value: self.hoist_tries(value)?,
+                            span: *span,
+                        },
+                    });
+                }
+                Expr::TemplateString {
+                    parts: ps,
+                    span: *span,
+                }
+            }
+            // Leaves, and the opaque lambda/match/JSX constructs, carry no
+            // hoistable `?` of their own: clone unchanged.
+            other => other.clone(),
+        })
     }
 
     /// A fresh synthesized temporary name (`__r0`, `__m1`, ...). Bumping the
@@ -1273,7 +1430,7 @@ impl<'a> Emitter<'a> {
             }
             // A tail bare expression is the block's value.
             Stmt::Expr(e) => {
-                let v = self.expr(e)?;
+                let v = self.emit_value(e)?;
                 match term {
                     ArmTerm::Return => self.line(&format!("return {v};")),
                     ArmTerm::Break => {
@@ -1763,6 +1920,46 @@ fn escape_double_quoted(s: &str) -> String {
     out
 }
 
+/// Whether `e` contains a `?` operator that must be hoisted before the
+/// enclosing statement (any `?`, since `hoist_tries`/`emit_value` treat a
+/// whole-value `?` the same as a nested one). Does not look inside a lambda
+/// body or a nested `match`/JSX — those carry their own statement context.
+fn contains_hoistable_try(e: &Expr) -> bool {
+    match e {
+        Expr::Postfix {
+            op: PostfixOp::Try, ..
+        } => true,
+        Expr::Binary { left, right, .. } => {
+            contains_hoistable_try(left) || contains_hoistable_try(right)
+        }
+        Expr::Index {
+            object: a,
+            index: b,
+            ..
+        } => contains_hoistable_try(a) || contains_hoistable_try(b),
+        Expr::Unary { operand: x, .. } | Expr::Await { expr: x, .. } | Expr::Member { object: x, .. } => {
+            contains_hoistable_try(x)
+        }
+        Expr::Call { callee, args, .. } => {
+            contains_hoistable_try(callee) || args.iter().any(contains_hoistable_try)
+        }
+        Expr::Array { elements, .. } => elements.iter().any(|el| match el {
+            ArrayElem::Expr(e) | ArrayElem::Spread(e) => contains_hoistable_try(e),
+        }),
+        Expr::Object { fields, .. } => fields.iter().any(|f| match f {
+            ObjectField::KeyValue { value, .. } | ObjectField::Spread { value, .. } => {
+                contains_hoistable_try(value)
+            }
+        }),
+        Expr::TemplateString { parts, .. } => parts.iter().any(|p| match p {
+            TemplatePart::Expr { value, .. } => contains_hoistable_try(value),
+            TemplatePart::Text { .. } => false,
+        }),
+        // Leaves and opaque constructs (lambda/match/JSX).
+        _ => false,
+    }
+}
+
 /// Whether a function with this return type yields a value through its tail
 /// expression (an implicit return). A `void` or unannotated return does not:
 /// its body runs for effect.
@@ -2220,17 +2417,35 @@ mod tests {
     }
 
     #[test]
-    fn nested_try_in_expression_is_unsupported_for_now() {
-        let err = emit_err(
+    fn nested_try_in_an_argument_is_hoisted() {
+        // A `?` nested inside a call argument hoists its unwrap before the
+        // statement and substitutes the `Ok` payload.
+        let ts = emit(
             "module x\nfn p() -> Result<number, string> { return Ok(0) }\nfn run() -> Result<number, string> {\n  return Ok(p()?)\n}\n",
         );
-        assert!(matches!(
-            err,
-            EmitError::Unsupported {
-                construct: "the `?` operator",
-                ..
-            }
-        ));
+        assert!(ts.contains("const __r0 = p();"), "{ts}");
+        assert!(
+            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            "{ts}"
+        );
+        assert!(ts.contains("return Ok(__r0.value);"), "{ts}");
+    }
+
+    #[test]
+    fn mid_chain_try_under_await_is_hoisted() {
+        // Example 02's shape: `await get(url)?` then `.map_err(f)` on the next
+        // line — the `?` is mid-chain (on `get(url)`, before `.map_err`), not the
+        // trailing postfix, and not the `?.` optional-chaining token. It hoists
+        // before the statement, and `.map_err` runs on the unwrapped payload.
+        let ts = emit(
+            "module x\nasync fn run(url: string) -> Result<number, string> {\n  let response = await get(url)?\n    .map_err(fn(e) { return e })\n  return Ok(0)\n}\n",
+        );
+        assert!(ts.contains("const __r0 = get(url);"), "{ts}");
+        assert!(
+            ts.contains("if (__r0.tag === \"Err\") { return __r0; }"),
+            "{ts}"
+        );
+        assert!(ts.contains("__r0.value.map_err"), "{ts}");
     }
 
     #[test]

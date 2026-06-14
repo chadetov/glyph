@@ -30,12 +30,44 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/schema.ts"),
     ),
     (
+        ".glyph-runtime/std/array.ts",
+        include_str!("../../../runtime/std/array.ts"),
+    ),
+    (
+        ".glyph-runtime/std/string.ts",
+        include_str!("../../../runtime/std/string.ts"),
+    ),
+    (
+        ".glyph-runtime/std/io.ts",
+        include_str!("../../../runtime/std/io.ts"),
+    ),
+    (
+        ".glyph-runtime/std/json.ts",
+        include_str!("../../../runtime/std/json.ts"),
+    ),
+    (
+        ".glyph-runtime/std/fs.ts",
+        include_str!("../../../runtime/std/fs.ts"),
+    ),
+    (
+        ".glyph-runtime/std/process.ts",
+        include_str!("../../../runtime/std/process.ts"),
+    ),
+    (
+        ".glyph-runtime/glyph-bootstrap.ts",
+        include_str!("../../../runtime/glyph-bootstrap.ts"),
+    ),
+    (
         ".glyph-runtime/glyph-prelude.d.ts",
         include_str!("../../../runtime/glyph-prelude.d.ts"),
     ),
     (
         ".glyph-runtime/glyph-stdlib.d.ts",
         include_str!("../../../runtime/glyph-stdlib.d.ts"),
+    ),
+    (
+        ".glyph-runtime/glyph-node-shims.d.ts",
+        include_str!("../../../runtime/glyph-node-shims.d.ts"),
     ),
 ];
 

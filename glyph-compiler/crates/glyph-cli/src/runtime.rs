@@ -62,6 +62,14 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/test.ts"),
     ),
     (
+        ".glyph-runtime/std/time.ts",
+        include_str!("../../../runtime/std/time.ts"),
+    ),
+    (
+        ".glyph-runtime/std/http.ts",
+        include_str!("../../../runtime/std/http.ts"),
+    ),
+    (
         ".glyph-runtime/glyph-bootstrap.ts",
         include_str!("../../../runtime/glyph-bootstrap.ts"),
     ),
@@ -173,4 +181,81 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RUNTIME_FILES;
+    use glyph_resolver::StdlibStubs;
+    use std::collections::BTreeSet;
+
+    /// Top-level names a runtime `.ts` exports, parsed from `export <kind> NAME`
+    /// declarations. Covers the direct forms the bundled stdlib uses (`function`,
+    /// `async function`, `const`, `let`, `type`, `class`, `interface`); a type
+    /// and a value sharing a name (e.g. `fs.ErrorKind`) collapse to one entry.
+    fn exported_names(ts: &str) -> BTreeSet<String> {
+        const KINDS: [&str; 7] = [
+            "async function ",
+            "function ",
+            "const ",
+            "let ",
+            "type ",
+            "class ",
+            "interface ",
+        ];
+        let mut out = BTreeSet::new();
+        for line in ts.lines() {
+            let Some(rest) = line.trim_start().strip_prefix("export ") else {
+                continue;
+            };
+            for kw in KINDS {
+                if let Some(after) = rest.strip_prefix(kw) {
+                    let name: String = after
+                        .chars()
+                        .take_while(|c| c.is_alphanumeric() || *c == '_')
+                        .collect();
+                    if !name.is_empty() {
+                        out.insert(name);
+                    }
+                    break;
+                }
+            }
+        }
+        out
+    }
+
+    fn runtime_source(path: &str) -> Option<&'static str> {
+        let rel = format!(".glyph-runtime/{path}.ts");
+        RUNTIME_FILES
+            .iter()
+            .find(|(r, _)| *r == rel)
+            .map(|(_, c)| *c)
+    }
+
+    /// Every name the resolver advertises for an `std/*` module must actually be
+    /// exported by that module's bundled runtime `.ts`. This is the single guard
+    /// that keeps `StdlibStubs` (what resolves) and the runtime (what exists)
+    /// from drifting: a stub name with no implementation would be a "silent
+    /// green" build that crashes at run time (gap G8).
+    #[test]
+    fn stdlib_stubs_match_the_bundled_runtime() {
+        let stubs = StdlibStubs::new();
+        let mut missing: Vec<String> = Vec::new();
+        for (path, exports) in stubs.iter() {
+            if !path.starts_with("std/") {
+                continue;
+            }
+            let Some(src) = runtime_source(path) else {
+                missing.push(format!("{path}: no bundled runtime .ts"));
+                continue;
+            };
+            let actual = exported_names(src);
+            for name in &exports.names {
+                if !actual.contains(name.as_ref()) {
+                    missing.push(format!("{path}: stub promises `{name}`, runtime does not export it"));
+                }
+            }
+        }
+        assert!(missing.is_empty(), "stdlib stub/runtime drift:\n{}", missing.join("\n"));
+    }
 }

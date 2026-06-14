@@ -33,3 +33,25 @@ export function zip<A, B, C>(
   }
   return out;
 }
+
+export function len<T>(xs: ReadonlyArray<T>): number {
+  return xs.length;
+}
+
+// `push`/`concat`/`reverse` are value-oriented: they return a new array and
+// never mutate the input. In-place mutation is the `mut xs.push(x)` statement.
+export function push<T>(xs: ReadonlyArray<T>, x: T): Array<T> {
+  return [...xs, x];
+}
+
+export function concat<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>): Array<T> {
+  return [...a, ...b];
+}
+
+export function reverse<T>(xs: ReadonlyArray<T>): Array<T> {
+  return [...xs].reverse();
+}
+
+export function slice<T>(xs: ReadonlyArray<T>, start: number, end?: number): Array<T> {
+  return xs.slice(start, end);
+}

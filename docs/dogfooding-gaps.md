@@ -72,13 +72,18 @@ the most exposed.
   without an explicit import. Explicitly imported names resolve to a module
   symbol, not the prelude, so they are never double-imported. Verified end to end
   (a program with no `std/result`/`std/option` import now passes `tsc --strict`).*
-- **G8. The resolver's stdlib stubs over-promise the runtime.** `StdlibStubs`
-  lists `array.reverse/slice/concat/reduce/len/push`, `string.split/trim/lower/
-  upper/contains/...`, `std/time.now/sleep/Duration` — but the runtime `.ts`
-  implements only `array.{find,filter,map,zip}`, `string.{from,join}`, and
-  `std/time` has no runtime at all. Those names resolve clean, then fail `tsc`
-  or crash at runtime under `glyph run`. *Fix: make the stubs match the runtime
-  (or implement the promised functions).*
+- **G8. [FIXED] The resolver's stdlib stubs over-promise the runtime.**
+  `StdlibStubs` listed `array.reverse/slice/concat/len/push`,
+  `string.split/trim/lower/upper/contains/...`, `std/time.now/sleep/Duration` —
+  but the runtime `.ts` implemented only `array.{find,filter,map,zip}`,
+  `string.{from,join}`, and `std/time`/`std/http` had no runtime at all (just
+  type-only ambient stubs). Those names resolved clean, then failed `tsc` or
+  crashed at runtime. *Fixed: the runtime now implements every promised name —
+  array `len`/`push`/`concat`/`reverse`/`slice`, the full `string` set, io
+  `read_line`/`read_to_string`, fs `exists`/`remove`, process `env`/`cwd`, and
+  real `std/time` + `std/http` modules (replacing the type-only declarations). A
+  reconciliation test asserts every `StdlibStubs` name is exported by the
+  bundled runtime, so the two can no longer drift. Verified end to end.*
 - **G9. `glyph run` / `glyph build` skip `tsc`, so G7/G8 become runtime
   crashes.** Only `--check` runs `tsc`. An agent iterating with `glyph run` sees
   `X is not a function` / `Cannot find module`, not a stdlib-coverage
@@ -143,6 +148,6 @@ catch — they should be fixed first. Then the "silent green" cluster **G7/G8/G9
 the verifiability pair **G3/G6**. **G11** (fmt escape corruption) is a quick,
 self-contained correctness fix.
 
-**Progress:** G1, G2, G11, and G7 are fixed. Remaining in the "silent green"
-cluster: G8 (resolver stubs match the runtime) and G9 (type-check by default).
-After that, the verifiability pair G3/G6 (which needs the unifier).
+**Progress:** G1, G2, G11, G7, and G8 are fixed. Remaining in the "silent green"
+cluster: G9 (type-check by default) and G10 (multi-file imports). After that, the
+verifiability pair G3/G6 (which needs the unifier).

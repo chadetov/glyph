@@ -5,7 +5,7 @@
 // the result (awaiting a non-Promise is a no-op).
 
 import { Result, Ok, Err } from "./result";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 export type ErrorKind = { tag: string };
 export type FsError = { kind: ErrorKind; message: string };
@@ -25,6 +25,19 @@ export function read_text(path: string): Result<string, FsError> {
 export function write_text(path: string, contents: string): Result<void, FsError> {
   try {
     writeFileSync(path, contents, "utf8");
+    return Ok(undefined);
+  } catch (e: unknown) {
+    return Err(to_fs_error(e));
+  }
+}
+
+export function exists(path: string): boolean {
+  return existsSync(path);
+}
+
+export function remove(path: string): Result<void, FsError> {
+  try {
+    rmSync(path, { force: false });
     return Ok(undefined);
   } catch (e: unknown) {
     return Err(to_fs_error(e));

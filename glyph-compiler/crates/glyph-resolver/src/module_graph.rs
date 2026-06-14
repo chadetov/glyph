@@ -158,6 +158,14 @@ impl StdlibStubs {
     pub fn knows(&self, path: &ModulePath) -> bool {
         self.by_path.contains_key(&path_key(path))
     }
+
+    /// Iterate every seeded module path and its export surface. The runtime
+    /// reconciliation test uses this to assert every promised name is actually
+    /// implemented by a bundled `.ts`, so the stub surface and the runtime
+    /// cannot drift (the resolver's "this name exists" must imply it really does).
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &ModuleExports)> {
+        self.by_path.iter().map(|(k, v)| (k.as_str(), v))
+    }
 }
 
 impl ModuleGraph for StdlibStubs {

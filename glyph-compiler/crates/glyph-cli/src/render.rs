@@ -29,7 +29,17 @@ pub fn render_parse_error(
 ) -> String {
     let span = err.span();
     let message = format!("{err}");
-    build_report(path, source, span, "parse", &message, with_color)
+    build_report(
+        path,
+        source,
+        span,
+        "parse",
+        &message,
+        err.code(),
+        err.help(),
+        None,
+        with_color,
+    )
 }
 
 /// Render a `ResolveError` (covers DuplicateName, RelativeImport,
@@ -44,7 +54,17 @@ pub fn render_resolve_error(
     let span = err.span();
     let message = format!("{err}");
     let stage = stage_label_for(err);
-    build_report(path, source, span, stage, &message, with_color)
+    build_report(
+        path,
+        source,
+        span,
+        stage,
+        &message,
+        err.code(),
+        err.help(),
+        None,
+        with_color,
+    )
 }
 
 /// Render a `TypeError` (day-14: non-exhaustive match) as an ariadne
@@ -59,7 +79,17 @@ pub fn render_type_error(
 ) -> String {
     let span = err.span();
     let message = format!("{err}");
-    build_report(path, source, span, "typecheck", &message, with_color)
+    build_report(
+        path,
+        source,
+        span,
+        "typecheck",
+        &message,
+        err.code(),
+        err.help(),
+        err.note(),
+        with_color,
+    )
 }
 
 /// Render an `EmitError` (a construct whose TS emission isn't implemented
@@ -72,7 +102,17 @@ pub fn render_emit_error(
 ) -> String {
     let span = err.span();
     let message = format!("{err}");
-    build_report(path, source, span, "emit", &message, with_color)
+    build_report(
+        path,
+        source,
+        span,
+        "emit",
+        &message,
+        err.code(),
+        err.help(),
+        None,
+        with_color,
+    )
 }
 
 /// Map each `ResolveError` variant to a stage tag that appears in the
@@ -91,13 +131,19 @@ fn stage_label_for(err: &ResolveError) -> &'static str {
     }
 }
 
-/// Build and render an ariadne report for one diagnostic.
+/// Build and render an ariadne report for one diagnostic, including its stable
+/// code (`[E0042]` in the header), an actionable `help` line, and an optional
+/// background `note`.
+#[allow(clippy::too_many_arguments)]
 fn build_report(
     path: &str,
     source: &str,
     span: Span,
     stage: &str,
     message: &str,
+    code: &str,
+    help: Option<&str>,
+    note: Option<&str>,
     with_color: bool,
 ) -> String {
     let path_owned = path.to_string();
@@ -129,11 +175,18 @@ fn build_report(
     let config = Config::default()
         .with_color(with_color)
         .with_index_type(IndexType::Byte);
-    let report = Report::build(ReportKind::Error, path_owned.clone(), start)
+    let mut builder = Report::build(ReportKind::Error, path_owned.clone(), start)
+        .with_code(code)
         .with_message(format!("{stage}: {message}"))
         .with_label(label)
-        .with_config(config)
-        .finish();
+        .with_config(config);
+    if let Some(help) = help {
+        builder = builder.with_help(help);
+    }
+    if let Some(note) = note {
+        builder = builder.with_note(note);
+    }
+    let report = builder.finish();
 
     let mut buf: Vec<u8> = Vec::new();
     // The cache's source-id type must match the Report's S::SourceId,

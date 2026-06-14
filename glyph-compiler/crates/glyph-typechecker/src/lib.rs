@@ -169,6 +169,73 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
         }
     }
+
+    /// Stable diagnostic code. Typechecker codes live in the `E02xx` range
+    /// (see `docs/error-codes.md`). `--explain <code>` documents each one.
+    pub fn code(&self) -> &'static str {
+        match self {
+            TypeError::NonExhaustiveMatch { .. } => "E0200",
+            TypeError::QuestionOutsideResultFn { .. } => "E0201",
+            TypeError::QuestionOnNonResult { .. } => "E0202",
+            TypeError::QuestionErrorTypeMismatch { .. } => "E0203",
+            TypeError::TypeMismatch { .. } => "E0204",
+            TypeError::OwnedRequiresResourceType { .. } => "E0205",
+            TypeError::OwnedNotConsumed { .. } => "E0206",
+            TypeError::OwnedUsedAfterMove { .. } => "E0207",
+            TypeError::NonExhaustiveArrayMatch { .. } => "E0208",
+            TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
+        }
+    }
+
+    /// A one-line, actionable fix (the Elm-quality bar): what to change.
+    pub fn help(&self) -> Option<&'static str> {
+        Some(match self {
+            TypeError::NonExhaustiveMatch { .. } => {
+                "Add an arm for each missing variant, or an `else` arm to catch the rest."
+            }
+            TypeError::QuestionOutsideResultFn { .. } => {
+                "Use `?` only inside a function that returns `Result<_, _>`, or handle the error with `match`."
+            }
+            TypeError::QuestionOnNonResult { .. } => {
+                "`?` unwraps a `Result`; this operand is not one. Drop the `?`, or make the expression return a `Result`."
+            }
+            TypeError::QuestionErrorTypeMismatch { .. } => {
+                "v1 has no automatic error conversion. Map the error first (e.g. `.map_err(...)`) so its `E` matches the function's."
+            }
+            TypeError::TypeMismatch { .. } => {
+                "Change the value, or the declared type, so the two agree."
+            }
+            TypeError::OwnedRequiresResourceType { .. } => {
+                "`owned` is only for `resource`-marked types. Drop `owned`, or mark the type `resource`."
+            }
+            TypeError::OwnedNotConsumed { .. } => {
+                "Consume the handle on every path (move it into an `owned` parameter) before the function returns."
+            }
+            TypeError::OwnedUsedAfterMove { .. } => {
+                "A consumed handle cannot be used again. Reorder so every use comes before the consume."
+            }
+            TypeError::NonExhaustiveArrayMatch { .. } => {
+                "Add an arm for the missing length, a `[first, ...rest]` arm, or a catch-all binding."
+            }
+            TypeError::NonExhaustiveBoolMatch { .. } => {
+                "Cover both `true` and `false`, or add an `else` arm."
+            }
+        })
+    }
+
+    /// An optional background note (the "why").
+    pub fn note(&self) -> Option<&'static str> {
+        match self {
+            TypeError::NonExhaustiveMatch { .. } => Some(
+                "Tagged unions are sealed (D9): adding a variant forces every match to be updated. \
+                 A `_`/`else` catch-all is allowed but forfeits that guarantee.",
+            ),
+            TypeError::OwnedNotConsumed { .. } | TypeError::OwnedUsedAfterMove { .. } => Some(
+                "`owned` is the D25 resource-handle carve-out: a handle is consumed exactly once on every path.",
+            ),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

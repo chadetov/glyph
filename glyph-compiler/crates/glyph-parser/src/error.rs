@@ -35,4 +35,33 @@ impl ParseError {
             | ParseError::NotImplemented { span } => *span,
         }
     }
+
+    /// Stable diagnostic code (parser range `E000x`; see
+    /// `docs/error-codes.md`).
+    pub fn code(&self) -> &'static str {
+        match self {
+            ParseError::Lex { .. } => "E0001",
+            ParseError::Expected { .. } => "E0002",
+            ParseError::Unexpected { .. } => "E0003",
+            ParseError::ExpectedEof { .. } => "E0004",
+            ParseError::NotImplemented { .. } => "E0005",
+        }
+    }
+
+    /// A one-line, actionable fix.
+    pub fn help(&self) -> Option<&'static str> {
+        Some(match self {
+            ParseError::Lex { .. } => {
+                "Check for an unterminated string, an invalid escape, or a stray character."
+            }
+            ParseError::Expected { .. } => {
+                "Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`)."
+            }
+            ParseError::Unexpected { .. } => "Remove or correct this token; it can't appear here.",
+            ParseError::ExpectedEof { .. } => {
+                "Only declarations appear at the top level. Check for a missing brace or an extra token."
+            }
+            ParseError::NotImplemented { .. } => "This construct is not supported yet.",
+        })
+    }
 }

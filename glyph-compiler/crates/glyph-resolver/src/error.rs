@@ -49,4 +49,41 @@ impl ResolveError {
             ResolveError::UnknownExportedName { span, .. } => *span,
         }
     }
+
+    /// Stable diagnostic code (resolver range `E01xx`; see
+    /// `docs/error-codes.md`).
+    pub fn code(&self) -> &'static str {
+        match self {
+            ResolveError::DuplicateName { .. } => "E0100",
+            ResolveError::RelativeImport { .. } => "E0101",
+            ResolveError::BarrelFile { .. } => "E0102",
+            ResolveError::UnresolvedName { .. } => "E0103",
+            ResolveError::UnresolvedModule { .. } => "E0104",
+            ResolveError::UnknownExportedName { .. } => "E0105",
+        }
+    }
+
+    /// A one-line, actionable fix.
+    pub fn help(&self) -> Option<&'static str> {
+        Some(match self {
+            ResolveError::DuplicateName { .. } => {
+                "Rename one of them. Every top-level name must be unique (greppability)."
+            }
+            ResolveError::RelativeImport { .. } => {
+                "Use an absolute module path (e.g. `std/io` or `myapp/feature`); relative imports are not allowed (D15)."
+            }
+            ResolveError::BarrelFile { .. } => {
+                "Add a declaration, or remove this file. A module that only imports re-exports nothing (D15: no barrel files)."
+            }
+            ResolveError::UnresolvedName { .. } => {
+                "Declare it, import it, or fix the spelling."
+            }
+            ResolveError::UnresolvedModule { .. } => {
+                "Check the module path and that the module exists in the project or stdlib."
+            }
+            ResolveError::UnknownExportedName { .. } => {
+                "Check the spelling, and that the module actually exports this name."
+            }
+        })
+    }
 }

@@ -139,6 +139,22 @@ impl EmitError {
             EmitError::Unsupported { span, .. } => *span,
         }
     }
+
+    /// Stable diagnostic code (emit range `E03xx`; see `docs/error-codes.md`).
+    pub fn code(&self) -> &'static str {
+        match self {
+            EmitError::Unsupported { .. } => "E0300",
+        }
+    }
+
+    /// A one-line, actionable fix.
+    pub fn help(&self) -> Option<&'static str> {
+        match self {
+            EmitError::Unsupported { .. } => {
+                Some("Rewrite using a construct the v1 emitter supports; see the spec for the supported forms.")
+            }
+        }
+    }
 }
 
 /// The discriminant field of an emitted tagged-union value. Single-sourced

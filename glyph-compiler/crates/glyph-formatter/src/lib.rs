@@ -17,6 +17,9 @@
 
 #![forbid(unsafe_code)]
 
+mod canonical;
+pub use canonical::{canonical_view, CanonicalError};
+
 use glyph_ast::{
     Annotation, ArrayElem, BinOp, Block, Comment, ComponentDecl, ConstDecl, Decl, Expr, FnDecl,
     FnTypeParam, GenericParam, ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern,

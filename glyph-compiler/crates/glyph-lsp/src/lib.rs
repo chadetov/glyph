@@ -405,10 +405,48 @@ fn outline_to_document_symbol(index: &LineIndex, text: &str, s: &OutlineSymbol) 
     }
 }
 
+/// Response to the custom `glyph/canonicalView` request (Q32). Exactly one of
+/// the two fields is set: `content` when the open document parsed (the canonical
+/// agent view), `error` when it did not (the parse-error message) or the
+/// document is not open.
+#[derive(Debug, serde::Serialize)]
+struct CanonicalViewResponse {
+    content: Option<String>,
+    error: Option<String>,
+}
+
 impl Backend {
     /// The current text of an open document, if any.
     fn doc_text(&self, uri: &Url) -> Option<String> {
         self.docs.lock().expect("docs mutex").get(uri).cloned()
+    }
+
+    /// Custom request `glyph/canonicalView`: return the canonical agent view
+    /// (Q32) of an open document — the `glyph fmt` layout with stable `Lddd`
+    /// line numbers and per-declaration content fingerprints. An agent reads
+    /// this instead of the raw buffer to get position- and reformat-stable
+    /// references. The view is computed by the same pure function the `glyph
+    /// canonical` CLI uses.
+    async fn canonical_view_request(
+        &self,
+        params: TextDocumentIdentifier,
+    ) -> Result<CanonicalViewResponse> {
+        let Some(text) = self.doc_text(&params.uri) else {
+            return Ok(CanonicalViewResponse {
+                content: None,
+                error: Some("document not open".to_string()),
+            });
+        };
+        Ok(match glyph_formatter::canonical_view(&text) {
+            Ok(view) => CanonicalViewResponse {
+                content: Some(view),
+                error: None,
+            },
+            Err(e) => CanonicalViewResponse {
+                content: None,
+                error: Some(e.to_string()),
+            },
+        })
     }
 
     /// Resolve an imported `module_path` to its file under the workspace root and
@@ -449,7 +487,9 @@ pub fn run_stdio() {
     runtime.block_on(async {
         let stdin = tokio::io::stdin();
         let stdout = tokio::io::stdout();
-        let (service, socket) = LspService::new(Backend::new);
+        let (service, socket) = LspService::build(Backend::new)
+            .custom_method("glyph/canonicalView", Backend::canonical_view_request)
+            .finish();
         Server::new(stdin, stdout, socket).serve(service).await;
     });
 }

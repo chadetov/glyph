@@ -84,15 +84,35 @@ Go-to-definition is now complete (within-file + cross-module). Navigation —
 diagnostics, hover, both definition modes, completion, document + workspace
 symbols, format-on-save — is the full editor experience minus rename/find-refs.
 
+## Increment 6 (shipped): canonical agent view (Q32, tractable core)
+
+`glyph_formatter::canonical_view(source) -> Result<String, _>` is the
+agent-facing rendering of a file: the `glyph fmt` layout, every content line
+tagged with a stable `Lddd` number, and a per-declaration content fingerprint
+(FNV-1a/64 over the declaration's *canonical* bytes — invariant under
+reformatting and whitespace, moving only when the declaration's content does;
+the start is pulled back to cover any leading annotations). The line numbers are
+decoupled from physical position (the `#`-prefixed fingerprint/header lines sit
+*between* numbered lines), giving the future position mapper a stable coordinate.
+
+It is one pure function with two surfaces: the `glyph canonical <file>` CLI
+command and a custom LSP request `glyph/canonicalView` (`{ uri }` →
+`{ content, error }`). Verified end to end over JSON-RPC (a `fn add` view with
+its fingerprint) and by unit tests (numbering, per-decl fingerprints, stability
+under reformatting, content-sensitivity, annotation coverage).
+
+**This lands the tractable Q32 core.** The research-heavy parts — SSA-like value
+renaming (`$0`, `$1`, …) and the bidirectional text↔canonical *position* mapper
+— remain a deliberate v1.1 increment.
+
 **Remaining step-7 v1 scope (the AI-agent-channel pieces — deserve a focused
 session, not a tired one):**
 
-- **Q32 — `agent://…canonical` virtual document.** The clear, tractable core is
-  a canonical view (the `glyph fmt` layout + stable `L001` line numbers + a
-  per-declaration content hash), exposed as a custom LSP request and/or a `glyph
-  canonical` CLI command, both pure-function-backed and testable. The
-  research-heavy parts — SSA-like value renaming and the bidirectional text↔
-  canonical position mapper — should be a deliberate later increment.
+- **Q32 — SSA renaming + position mapper.** The canonical view (layout + line
+  numbers + per-declaration fingerprints) ships above. What remains is the
+  research-heavy tail: SSA-like value names and a bidirectional text↔canonical
+  position mapper, so an agent's edit in canonical coordinates maps back to a
+  buffer edit. Deliberate v1.1 increment.
 - **Q29 — `applyEdit` RPC.** ⚠️ **Needs design reconciliation before building.**
   The sketched `edit { … } @verify { … }` block syntax is on CLAUDE.md's
   explicitly-abandoned "signature-rich direction" list. An `applyEdit` RPC can

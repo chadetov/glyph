@@ -16,3 +16,4 @@ glyph-parser.workspace = true
 glyph-resolver.workspace = true
 glyph-typechecker.workspace = true
 glyph-formatter.workspace = true
+serde.workspace = true

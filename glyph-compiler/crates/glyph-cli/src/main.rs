@@ -66,6 +66,12 @@ enum Command {
     },
     /// Run the language server over stdio (spawned by an editor extension).
     Lsp,
+    /// Print a file's canonical agent view (Q32): the `glyph fmt` layout with
+    /// stable `Lddd` line numbers and a per-declaration content fingerprint.
+    Canonical {
+        #[arg(value_name = "FILE")]
+        file: std::path::PathBuf,
+    },
     /// Regenerate a function body from its `@generate` spec block.
     Regen {
         #[arg(value_name = "FN")]
@@ -264,9 +270,32 @@ fn main() {
             glyph_lsp::run_stdio();
             std::process::exit(0);
         }
+        Some(Command::Canonical { file }) => {
+            let src = match std::fs::read_to_string(&file) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("glyph canonical: cannot read {}: {e}", file.display());
+                    std::process::exit(2);
+                }
+            };
+            match glyph_formatter::canonical_view(&src) {
+                Ok(view) => {
+                    print!("{view}");
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("glyph canonical: {} did not parse ({e})", file.display());
+                    std::process::exit(1);
+                }
+            }
+        }
         Some(cmd) => {
             let name = match cmd {
-                Command::Build { .. } | Command::Run { .. } | Command::Fmt { .. } | Command::Lsp => {
+                Command::Build { .. }
+                | Command::Run { .. }
+                | Command::Fmt { .. }
+                | Command::Lsp
+                | Command::Canonical { .. } => {
                     unreachable!()
                 }
                 Command::Regen { .. } => "regen",

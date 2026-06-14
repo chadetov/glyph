@@ -1,6 +1,10 @@
 # Step 6 — Dogfooding
 
-Status: **planned, target chosen.** Full session log in `archive/glyph_step6_session.md`.
+Status: **in progress.** The fridge app (`examples/apps/fridge.glyph`) is built,
+runs end to end via `glyph run`, passes `tsc --strict`, and its `@example` tests
+pass. The concrete gap list it produced is in [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md)
+(20 gaps, several silent-miscompile bugs). Remaining: fix the top gaps, then use
+the app for real. Full session log in `archive/glyph_step6_session.md`.
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

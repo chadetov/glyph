@@ -84,10 +84,25 @@ Go-to-definition is now complete (within-file + cross-module). Navigation —
 diagnostics, hover, both definition modes, completion, document + workspace
 symbols, format-on-save — is the full editor experience minus rename/find-refs.
 
-**Remaining step-7 v1 scope:** the `agent://` canonical virtual document (Q32)
-and the `applyEdit` RPC (Q29) — the AI-agent-channel pieces. Rename +
-find-references remain v1.1. The analysis will move onto the salsa `glyph-db`
-queries for incremental multi-file work later (the substrate is already there).
+**Remaining step-7 v1 scope (the AI-agent-channel pieces — deserve a focused
+session, not a tired one):**
+
+- **Q32 — `agent://…canonical` virtual document.** The clear, tractable core is
+  a canonical view (the `glyph fmt` layout + stable `L001` line numbers + a
+  per-declaration content hash), exposed as a custom LSP request and/or a `glyph
+  canonical` CLI command, both pure-function-backed and testable. The
+  research-heavy parts — SSA-like value renaming and the bidirectional text↔
+  canonical position mapper — should be a deliberate later increment.
+- **Q29 — `applyEdit` RPC.** ⚠️ **Needs design reconciliation before building.**
+  The sketched `edit { … } @verify { … }` block syntax is on CLAUDE.md's
+  explicitly-abandoned "signature-rich direction" list. An `applyEdit` RPC can
+  still exist, but its surface must be re-derived in TS-family terms (e.g. a
+  plain structured edit + a re-run of the existing `@example`/`--test` gate),
+  not the abandoned annotation block. Do not build it as originally sketched.
+
+Rename + find-references remain v1.1. The analysis will move onto the salsa
+`glyph-db` queries for incremental multi-file work later (the substrate is
+already there).
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

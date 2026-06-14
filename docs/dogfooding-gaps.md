@@ -19,20 +19,26 @@ the most exposed.
 
 ## Critical — silent miscompiles (pass `glyph build` + `tsc`, wrong at runtime)
 
-- **G1. `None` in nested patterns miscompiles.** The match emitter doesn't treat
-  the prelude `None` as a tag discriminant: a `None` arm becomes a `default:`
-  with a junk `const None = __m0` binding. Flat `Option` matches survive by
-  accident (default catches the one remaining case), but nested patterns
-  (`Result<Option<T>>`, `Option<Option<T>>` with `Ok(None)`/`Some(None)`) emit a
-  duplicate `case`, compile the inner `None` as a binding, and `throw` at runtime
-  on the `None` value. Passes `tsc --strict`. *Fix: recognize prelude `Some`/
-  `None` as discriminant tags in the match lowering, like user variants.*
-- **G2. `break` inside `match` inside `loop` hangs.** `match` lowers to `switch`
-  and emits an unlabeled `break`, which escapes the switch, not the loop. Since
-  `match` is the only conditional, `loop { match cond { true => break, ... } }`
-  is *the* idiom for a guarded loop — and it compiles, passes `tsc`, then loops
-  forever. (This very bug wedged the gap-audit workflow.) *Fix: emit a labeled
-  loop + labeled `break`, or detect `break`/`continue` inside a match-in-loop.*
+- **G1. [FIXED] `None` in nested patterns miscompiles.** The match emitter didn't
+  treat the prelude `None` as a tag discriminant: a `None` arm became a `default:`
+  with a junk `const None = __m0` binding. Flat `Option` matches survived by
+  accident (default caught the one remaining case), but nested patterns
+  (`Result<Option<T>>`, `Option<Option<T>>` with `Ok(None)`/`Some(None)`) emitted a
+  duplicate `case`, compiled the inner `None` as a binding, and `throw`-ed at
+  runtime on the `None` value. *Fixed: the prelude constructors `Ok`/`Err`/`Some`/
+  `None` are recognized as discriminant tags unconditionally, and nested grouping
+  treats a bare prelude variant (`Ok(None)`) as a payload pattern, so it groups
+  with `Ok(Some(x))` under one `case`. Verified end to end on `Result<Option<T>>`
+  and `Option<Option<T>>`.*
+- **G2. [FIXED] `break` inside `match` inside `loop` hangs.** `match` lowered to
+  `switch` and emitted an unlabeled `break`, which escaped the switch, not the
+  loop. Since `match` is the only conditional, `loop { match cond { true => break,
+  ... } }` is *the* idiom for a guarded loop — and it compiled, passed `tsc`, then
+  looped forever. (This very bug wedged the gap-audit workflow.) *Fixed: a loop is
+  labeled when its body has a `break`/`continue` buried in a `match` arm, and
+  those jumps emit the labeled form so they reach the loop past the switch. The
+  synthetic switch-`break` is untouched. Verified end to end (a guarded loop now
+  terminates).*
 
 ## High — verifiability holes and "silent green"
 
@@ -79,11 +85,14 @@ the most exposed.
   only `std/*` is mapped. Any second module fails `glyph run` (tsx can't resolve)
   and `tsc` (TS2307); plain `glyph build` is a false green. *Fix: emit a path
   mapping (or relative specifiers) for project modules.*
-- **G11. `glyph fmt` corrupts string escapes.** The formatter re-emits a decoded
-  string value, turning `\t` into a literal TAB and `\n` into a raw newline that
-  splits the source line (while `\\`/`\"` are preserved — inconsistent). A no-op
-  format rewrites string contents. *Fix: re-escape `\n`/`\t`/`\r` in
-  `escape_string` rather than emitting raw control bytes.*
+- **G11. [FIXED] `glyph fmt` corrupts string escapes.** The formatter re-emitted a
+  decoded string value, turning `\t` into a literal TAB and `\n` into a raw newline
+  that split the source line (while `\\`/`\"` were preserved — inconsistent). A
+  no-op format rewrote string contents. *Fixed: plain string literals are copied
+  verbatim from source by span, so escapes and D12 multi-line strings round-trip
+  exactly; the re-escape fallback (template text, JSX attrs, `format_expr`) now
+  also escapes `\n`/`\t`/`\r`. A no-op `glyph fmt` no longer touches string
+  contents.*
 - **G12. No associative collection (Map / dict).** No `Map`, no index-signature
   record, no dynamic record indexing. Grouping (e.g. items by category) has
   nowhere to put results — a language-level gap, not just a missing stdlib fn.
@@ -129,3 +138,8 @@ catch — they should be fixed first. Then the "silent green" cluster **G7/G8/G9
 (close the resolve-vs-runtime gap so a clean build means a working program), and
 the verifiability pair **G3/G6**. **G11** (fmt escape corruption) is a quick,
 self-contained correctness fix.
+
+**Progress:** G1, G2, and G11 are fixed (the three correctness bugs `tsc` could
+not catch). Next up is the "silent green" cluster — G7 (emitter auto-imports the
+prelude values it references) and G8 (resolver stubs match the runtime) — then
+the verifiability pair G3/G6 (which needs the unifier).

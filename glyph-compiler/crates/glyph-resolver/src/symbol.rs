@@ -112,6 +112,9 @@ pub enum PreludeKind {
     Par,
     /// `print` (used in examples; will become `io.println` once stdlib lands).
     Print,
+    /// `assert(condition)` — used inside `@doc @run` blocks (D26); a failed
+    /// assertion throws and fails the build.
+    Assert,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

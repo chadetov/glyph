@@ -88,6 +88,32 @@ mod tests {
     }
 
     #[test]
+    fn triple_quoted_string_is_one_raw_token() {
+        let toks = tokenize("\"\"\"line one\nline two\"\"\"\n").unwrap();
+        let strings: Vec<&str> = toks
+            .iter()
+            .filter_map(|t| match &t.token {
+                Token::String(s) => Some(s.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(strings, vec!["line one\nline two"]);
+    }
+
+    #[test]
+    fn empty_string_is_not_triple() {
+        let toks = tokenize("\"\" \"x\"\n").unwrap();
+        let strings: Vec<&str> = toks
+            .iter()
+            .filter_map(|t| match &t.token {
+                Token::String(s) => Some(s.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(strings, vec!["", "x"]);
+    }
+
+    #[test]
     fn keyword_recognition() {
         let tokens = tokenize("fn type record component const let mut owned resource").unwrap();
         let kinds: Vec<_> = tokens.iter().map(|t| &t.token).collect();

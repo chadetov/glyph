@@ -10,6 +10,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use glyph_ast::{Decl, Expr};
 use glyph_formatter::format_expr;
@@ -52,8 +53,10 @@ impl ExampleReport {
 struct FileExamples {
     rel: PathBuf,
     module_path: String,
-    /// `(lhs_src, rhs_src)` for each example, already rendered to Glyph text.
+    /// `(lhs_src, rhs_src)` for each `@example`, already rendered to Glyph text.
     cases: Vec<(String, String)>,
+    /// Glyph code for each ` ```glyph @run ``` ` block in a `@doc` (D26).
+    runs: Vec<String>,
     /// Malformed `@example` argument strings that did not parse.
     malformed: Vec<String>,
 }
@@ -74,11 +77,11 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
             // here so the example runner does not double-report.
             continue;
         };
-        let (cases, malformed) = collect_examples(&module);
-        if cases.is_empty() && malformed.is_empty() {
+        let (cases, runs, malformed) = collect_tests(&module);
+        if cases.is_empty() && runs.is_empty() && malformed.is_empty() {
             continue;
         }
-        total += cases.len();
+        total += cases.len() + runs.len();
         malformed_total += malformed.len();
         let rel = f.strip_prefix(src).unwrap_or(f).to_path_buf();
         let module_path = module_path_of(&rel);
@@ -86,6 +89,7 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
             rel,
             module_path,
             cases,
+            runs,
             malformed,
         });
     }
@@ -108,8 +112,12 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
         return Ok(report);
     }
 
-    // Augment a throwaway copy of the project and build it.
-    let root = std::env::temp_dir().join(format!("glyph-examples-{}", std::process::id()));
+    // Augment a throwaway copy of the project and build it. The directory is
+    // unique per call (pid + a monotonic counter) so concurrent runs — e.g.
+    // parallel tests in one process — do not clobber each other.
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let root = std::env::temp_dir().join(format!("glyph-examples-{}-{n}", std::process::id()));
     let tsrc = root.join("src");
     let tout = root.join("out");
     if root.exists() {
@@ -117,7 +125,7 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
     }
     copy_dir(src, &tsrc)?;
     for fe in &per_file {
-        if fe.cases.is_empty() {
+        if fe.cases.is_empty() && fe.runs.is_empty() {
             continue;
         }
         let path = tsrc.join(&fe.rel);
@@ -126,6 +134,9 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
             text.push_str(&format!(
                 "\nfn __glyph_example_{i}() {{\n  return {{ lhs: {l}, rhs: {r} }}\n}}\n"
             ));
+        }
+        for (i, code) in fe.runs.iter().enumerate() {
+            text.push_str(&format!("\nfn __glyph_run_{i}() -> void {{\n{code}\n}}\n"));
         }
         write(&path, &text)?;
     }
@@ -167,30 +178,66 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
     }
 }
 
-/// Collect `(lhs, rhs)` source pairs for each `@example` in a module, plus any
-/// `@example` whose argument failed to parse.
-fn collect_examples(module: &glyph_ast::Module) -> (Vec<(String, String)>, Vec<String>) {
+/// For a module, collect: `@example` `(lhs, rhs)` pairs (rendered to Glyph
+/// text), `@doc` `@run` code blocks, and any `@example` whose argument failed to
+/// parse.
+fn collect_tests(
+    module: &glyph_ast::Module,
+) -> (Vec<(String, String)>, Vec<String>, Vec<String>) {
     let mut cases = Vec::new();
+    let mut runs = Vec::new();
     let mut malformed = Vec::new();
     for decl in &module.items {
         for ann in decl_annotations(decl) {
-            if ann.name.as_ref() != "example" {
-                continue;
-            }
-            match glyph_parser::parse_expression(&ann.raw_args) {
-                Ok(Expr::Binary {
-                    op: glyph_ast::BinOp::Eq,
-                    left,
-                    right,
-                    ..
-                }) => cases.push((format_expr(&left), format_expr(&right))),
-                // A non-equality example asserts the expression is `true`.
-                Ok(other) => cases.push((format_expr(&other), "true".to_string())),
-                Err(_) => malformed.push(ann.raw_args.clone()),
+            match ann.name.as_ref() {
+                "example" => match glyph_parser::parse_expression(&ann.raw_args) {
+                    Ok(Expr::Binary {
+                        op: glyph_ast::BinOp::Eq,
+                        left,
+                        right,
+                        ..
+                    }) => cases.push((format_expr(&left), format_expr(&right))),
+                    // A non-equality example asserts the expression is `true`.
+                    Ok(other) => cases.push((format_expr(&other), "true".to_string())),
+                    Err(_) => malformed.push(ann.raw_args.clone()),
+                },
+                "doc" => runs.extend(extract_run_blocks(doc_body(&ann.raw_args))),
+                _ => {}
             }
         }
     }
-    (cases, malformed)
+    (cases, runs, malformed)
+}
+
+/// Strip the surrounding `"""` from a `@doc` block's raw argument, leaving the
+/// Markdown body.
+fn doc_body(raw: &str) -> &str {
+    raw.strip_prefix("\"\"\"")
+        .and_then(|s| s.strip_suffix("\"\"\""))
+        .unwrap_or(raw)
+}
+
+/// Extract the code of each ` ```glyph @run ``` ` fenced block from a Markdown
+/// body. The opening fence is a line whose backtick run is tagged `glyph` and
+/// `@run`; the block ends at the next bare ``` ``` `` line.
+fn extract_run_blocks(markdown: &str) -> Vec<String> {
+    let mut blocks = Vec::new();
+    let mut lines = markdown.lines();
+    while let Some(line) = lines.next() {
+        let t = line.trim_start();
+        if t.starts_with("```") && t.contains("glyph") && t.contains("@run") {
+            let mut code = String::new();
+            for inner in lines.by_ref() {
+                if inner.trim() == "```" {
+                    break;
+                }
+                code.push_str(inner);
+                code.push('\n');
+            }
+            blocks.push(code);
+        }
+    }
+    blocks
 }
 
 fn decl_annotations(d: &Decl) -> &[glyph_ast::Annotation] {
@@ -208,20 +255,30 @@ fn decl_annotations(d: &Decl) -> &[glyph_ast::Annotation] {
 fn generate_harness(per_file: &[FileExamples]) -> String {
     let mut out = String::new();
     out.push_str("import \"./.glyph-runtime/glyph-bootstrap.ts\";\n");
-    let with_cases: Vec<&FileExamples> = per_file.iter().filter(|f| !f.cases.is_empty()).collect();
-    for (k, fe) in with_cases.iter().enumerate() {
+    let with_tests: Vec<&FileExamples> = per_file
+        .iter()
+        .filter(|f| !f.cases.is_empty() || !f.runs.is_empty())
+        .collect();
+    for (k, fe) in with_tests.iter().enumerate() {
         out.push_str(&format!("import * as m{k} from \"./{}.ts\";\n", fe.module_path));
     }
     out.push_str(DEEP_EQUAL);
     out.push_str("let failed = 0;\nlet total = 0;\n");
-    for (k, fe) in with_cases.iter().enumerate() {
+    for (k, fe) in with_tests.iter().enumerate() {
         for (i, (l, r)) in fe.cases.iter().enumerate() {
-            let label = js_string(&format!("{} #{i}", fe.module_path));
+            let label = js_string(&format!("{} example #{i}", fe.module_path));
             let detail = js_string(&format!("({}) != ({})", one_line(l), one_line(r)));
             out.push_str(&format!(
                 "total++;\ntry {{\n  const __e = m{k}.__glyph_example_{i}();\n  \
                  if (!deepEqual(__e.lhs, __e.rhs)) {{ console.log(\"FAIL \" + {label} + \": \" + {detail}); failed++; }}\n\
                  }} catch (err) {{ console.log(\"FAIL \" + {label} + \": threw \" + String(err)); failed++; }}\n"
+            ));
+        }
+        for i in 0..fe.runs.len() {
+            let label = js_string(&format!("{} doc-run #{i}", fe.module_path));
+            out.push_str(&format!(
+                "total++;\ntry {{\n  m{k}.__glyph_run_{i}();\n\
+                 }} catch (err) {{ console.log(\"FAIL \" + {label} + \": \" + String(err)); failed++; }}\n"
             ));
         }
     }

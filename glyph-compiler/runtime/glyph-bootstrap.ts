@@ -39,7 +39,14 @@ function print(message: string): void {
   console.log(message);
 }
 
+function assert(condition: boolean): void {
+  if (!condition) {
+    throw new Error("assertion failed");
+  }
+}
+
 const g = globalThis as unknown as Record<string, unknown>;
 g.number = number;
 g.par = par;
 g.print = print;
+g.assert = assert;

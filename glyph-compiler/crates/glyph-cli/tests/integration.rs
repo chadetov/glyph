@@ -532,6 +532,36 @@ fn examples_run_and_report_pass_and_fail() {
 }
 
 #[test]
+fn doc_run_blocks_execute_and_assert() {
+    // A ```glyph @run``` block in a @doc executes; a failing `assert` is a
+    // failure. Requires node + tsx; skipped otherwise.
+    if !js_toolchain_available() {
+        eprintln!("skipping doc-run assertion: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("docrun");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "m.glyph",
+        "module m\n\
+         @doc \"\"\"\n```glyph @run\nassert(double(3) == 6)\nassert(double(2) == 5)\n```\n\"\"\"\n\
+         fn double(n: number) -> number { return n * 2 }\n",
+    );
+    let report = glyph_cli::examples::run_examples(&src).expect("run ok");
+    assert!(report.ran);
+    assert!(report.build_failed.is_none(), "augmented build should compile");
+    assert_eq!(report.total, 1, "one @run block");
+    assert_eq!(
+        report.failures.len(),
+        1,
+        "the block's second assert fails: {:?}",
+        report.failures
+    );
+    assert!(report.failures[0].contains("doc-run"), "{:?}", report.failures);
+}
+
+#[test]
 fn run_executes_main_and_propagates_exit_code() {
     // A program's `main(argv) -> number` return value becomes the process exit
     // code. Requires `node` + `tsx`; when absent the run is skipped so CI

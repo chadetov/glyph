@@ -203,7 +203,8 @@ impl<'a> Lowerer<'a> {
             | PreludeKind::Some
             | PreludeKind::None
             | PreludeKind::Par
-            | PreludeKind::Print => Ty::Unknown,
+            | PreludeKind::Print
+            | PreludeKind::Assert => Ty::Unknown,
         }
     }
 }

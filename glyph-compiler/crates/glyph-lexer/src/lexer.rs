@@ -112,6 +112,12 @@ impl<'a> Lexer<'a> {
     // -- Atoms ----------------------------------------------------------------
 
     fn lex_string(&mut self, start: usize) -> Result<Spanned<Token>, LexError> {
+        // Triple-quoted string (D26 `@doc """ ... """` blocks): raw content,
+        // no escape processing, read verbatim until the closing `"""`. A plain
+        // empty string `""` is not affected — the third `"` must be present.
+        if self.peek_at(1) == Some(b'"') && self.peek_at(2) == Some(b'"') {
+            return self.lex_triple_string(start);
+        }
         self.advance(); // opening "
         let mut content = String::new();
 
@@ -386,6 +392,30 @@ impl<'a> Lexer<'a> {
                 b' ' | b'\t' | b'\r' => self.advance(),
                 _ => break,
             }
+        }
+    }
+
+    /// Lex a `""" ... """` triple-quoted string. Content is raw (newlines and
+    /// backslashes verbatim), suiting Markdown `@doc` bodies. The token's value
+    /// is the inner text; its span covers both delimiters.
+    fn lex_triple_string(&mut self, start: usize) -> Result<Spanned<Token>, LexError> {
+        self.advance();
+        self.advance();
+        self.advance(); // opening """
+        let content_start = self.pos;
+        loop {
+            let Some(ch) = self.peek() else {
+                return Err(LexError::UnterminatedString { offset: start as u32 });
+            };
+            if ch == b'"' && self.peek_at(1) == Some(b'"') && self.peek_at(2) == Some(b'"') {
+                let content = self.source[content_start..self.pos].to_string();
+                self.advance();
+                self.advance();
+                self.advance(); // closing """
+                let end = self.pos;
+                return Ok(self.spanned(Token::String(content), start, end));
+            }
+            self.advance();
         }
     }
 

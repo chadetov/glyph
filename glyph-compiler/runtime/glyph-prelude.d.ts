@@ -16,6 +16,10 @@ declare const par: {
 /// Print a line to standard output (the prelude logging primitive).
 declare function print(message: string): void;
 
+/// Assert a condition (D26 `@doc @run` blocks). A false condition throws,
+/// failing the build that runs the doc example.
+declare function assert(condition: boolean): void;
+
 /// The `number` prelude namespace (used without an import). `parse` validates a
 /// string into a `Result` (the examples match its `Ok`/`Err`).
 declare const number: {

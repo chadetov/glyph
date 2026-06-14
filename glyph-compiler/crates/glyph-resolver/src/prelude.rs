@@ -66,6 +66,7 @@ pub fn build_prelude() -> Prelude {
         ("par", PreludeKind::Par),
         // Built-in
         ("print", PreludeKind::Print),
+        ("assert", PreludeKind::Assert),
     ];
 
     let mut table = SymbolTable::new();

@@ -1,6 +1,10 @@
 # Step 7 — LSP
 
-Status: **in progress — increment 1 shipped.** Full discussion in `archive/glyph-lsp-discussion.md`.
+Status: **v1 complete.** All eight v1 deliverables shipped (diagnostics, hover,
+go-to-definition, completion, format-on-save, document + workspace symbols, the
+Q32 canonical agent view, and the Q29 gated structured edit); rename,
+find-references, and the Q32/Q29 research tails are explicit v1.1 increments.
+Full discussion in `archive/glyph-lsp-discussion.md`.
 
 ## Increment 1 (shipped): diagnostics + formatting
 
@@ -105,20 +109,48 @@ under reformatting, content-sensitivity, annotation coverage).
 renaming (`$0`, `$1`, …) and the bidirectional text↔canonical *position* mapper
 — remain a deliberate v1.1 increment.
 
-**Remaining step-7 v1 scope (the AI-agent-channel pieces — deserve a focused
-session, not a tired one):**
+## Increment 7 (shipped): gated structured edit (Q29 reconciled)
+
+The custom LSP request `glyph/applyEdit` (`{ uri, edits: [TextEdit] }` →
+`{ ok, content, rejected, diagnostics }`) applies a set of standard LSP text
+edits to an open document and accepts them *only if the result type-checks
+clean*. On success it returns the verified new text (the caller applies it and
+syncs through the normal `didChange`); on rejection it changes nothing and
+returns the errors the edit would have introduced. This makes "the agent broke
+the file" a structured rejection rather than a saved edit — the workflow the
+manifesto's verifiability pillar is for.
+
+**Q29 design reconciliation.** The original sketch was an `edit { … } @verify {
+… }` *source-level* block, which is on CLAUDE.md's abandoned "signature-rich
+direction" list. The shipped surface re-derives the idea in TS-family terms:
+the edit is plain `TextEdit`s (no new language syntax) and the verification is
+the compiler's own front-end gate (parse → resolve → typecheck), not an
+in-source annotation. The edit set is applied atomically — overlapping or
+out-of-bounds ranges are rejected before anything is spliced.
+
+v1 gate semantics are crisp: the *result* must have no errors (a "lands a clean
+change" guarantee). Running the `@example`/property tests as part of the gate is
+a v1.1 enhancement; it needs the `glyph build`/test pipeline factored into a
+library the server can call, since today `glyph-cli` depends on `glyph-lsp` (for
+`run_stdio`), so the server cannot depend back on the cli's build code without a
+dependency cycle. Verified end to end over JSON-RPC (an `a * b` edit accepted
+with new content; a string-for-number edit rejected with `E0204`) and by unit
+tests (single/multi-edit splicing, overlap and out-of-bounds rejection, the
+clean-vs-broken gate).
+
+**Step 7's v1 deliverable list is now complete:** diagnostics, hover types,
+go-to-definition (within-file + cross-module), completion, format-on-save,
+document + workspace symbols, the canonical agent view (Q32 core), and the gated
+structured edit (Q29). The two remaining items are explicit v1.1 increments:
 
 - **Q32 — SSA renaming + position mapper.** The canonical view (layout + line
   numbers + per-declaration fingerprints) ships above. What remains is the
   research-heavy tail: SSA-like value names and a bidirectional text↔canonical
   position mapper, so an agent's edit in canonical coordinates maps back to a
-  buffer edit. Deliberate v1.1 increment.
-- **Q29 — `applyEdit` RPC.** ⚠️ **Needs design reconciliation before building.**
-  The sketched `edit { … } @verify { … }` block syntax is on CLAUDE.md's
-  explicitly-abandoned "signature-rich direction" list. An `applyEdit` RPC can
-  still exist, but its surface must be re-derived in TS-family terms (e.g. a
-  plain structured edit + a re-run of the existing `@example`/`--test` gate),
-  not the abandoned annotation block. Do not build it as originally sketched.
+  buffer edit.
+- **Q29 — test-gated `applyEdit`.** The typecheck gate ships; gating on the
+  `@example`/property suite as well awaits the build-pipeline library extraction
+  noted above.
 
 Rename + find-references remain v1.1. The analysis will move onto the salsa
 `glyph-db` queries for incremental multi-file work later (the substrate is

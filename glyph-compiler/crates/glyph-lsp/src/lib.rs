@@ -415,6 +415,28 @@ struct CanonicalViewResponse {
     error: Option<String>,
 }
 
+/// Parameters of the custom `glyph/applyEdit` request (Q29). A set of standard
+/// LSP text edits to apply atomically to an open document, gated on the result
+/// type-checking clean.
+#[derive(Debug, serde::Deserialize)]
+struct ApplyEditParams {
+    uri: Url,
+    edits: Vec<TextEdit>,
+}
+
+/// Response to `glyph/applyEdit`. On success `content` is the verified new
+/// document text and `diagnostics` is empty; on rejection `content` is absent,
+/// `rejected` names the reason, and `diagnostics` carries the errors the edit
+/// would have introduced (empty for a structural rejection like overlapping
+/// edits).
+#[derive(Debug, serde::Serialize)]
+struct ApplyEditResponse {
+    ok: bool,
+    content: Option<String>,
+    rejected: Option<String>,
+    diagnostics: Vec<Diagnostic>,
+}
+
 impl Backend {
     /// The current text of an open document, if any.
     fn doc_text(&self, uri: &Url) -> Option<String> {
@@ -449,6 +471,42 @@ impl Backend {
         })
     }
 
+    /// Custom request `glyph/applyEdit` (Q29): apply structured text edits to an
+    /// open document and accept them only if the result type-checks clean. This
+    /// is the TS-family reconciliation of the abandoned `edit { … } @verify { … }`
+    /// source syntax: the edit is plain LSP `TextEdit`s and the verification is
+    /// the compiler's own front-end gate (parse → resolve → typecheck), not a
+    /// new language construct. A successful call returns the verified new text
+    /// (the caller applies it and syncs via the normal `didChange`); a rejected
+    /// call changes nothing and returns the errors the edit would have caused,
+    /// making "the agent broke the file" a rejection rather than a saved edit.
+    ///
+    /// v1 gate: the result must have *no* errors (a crisp "lands a clean
+    /// change" guarantee). Running the `@example`/property tests as part of the
+    /// gate is a v1.1 enhancement (it needs the build pipeline factored into a
+    /// library the server can call without the current cli→lsp dependency cycle).
+    async fn apply_edit_request(&self, params: ApplyEditParams) -> Result<ApplyEditResponse> {
+        let Some(text) = self.doc_text(&params.uri) else {
+            return Ok(reject("document_not_open", Vec::new()));
+        };
+        let candidate = match apply_text_edits(&text, &params.edits) {
+            Ok(c) => c,
+            Err(reason) => return Ok(reject(&reason, Vec::new())),
+        };
+        let diags = analyze(&candidate);
+        if diags.is_empty() {
+            Ok(ApplyEditResponse {
+                ok: true,
+                content: Some(candidate),
+                rejected: None,
+                diagnostics: Vec::new(),
+            })
+        } else {
+            let lsp = to_lsp_diagnostics(&candidate, diags);
+            Ok(reject("verification_failed", lsp))
+        }
+    }
+
     /// Resolve an imported `module_path` to its file under the workspace root and
     /// locate the declaration named `name` in it (a `.glyph` whose path mirrors
     /// the module path, e.g. `sub/b` → `<root>/sub/b.glyph`). `None` if there is
@@ -464,6 +522,56 @@ impl Backend {
         let (start, end) = find_symbol_span(&outline_of(&text), name)?;
         Some(location_in(&uri, &text, start, end))
     }
+}
+
+/// A rejected `glyph/applyEdit` response carrying a reason and any diagnostics.
+fn reject(reason: &str, diagnostics: Vec<Diagnostic>) -> ApplyEditResponse {
+    ApplyEditResponse {
+        ok: false,
+        content: None,
+        rejected: Some(reason.to_string()),
+        diagnostics,
+    }
+}
+
+/// Apply LSP `TextEdit`s to `text`, producing the candidate document. Edits are
+/// resolved to byte offsets, checked for overlap, and spliced from the end
+/// backwards so earlier offsets stay valid. Returns `Err(reason)` for an
+/// out-of-bounds range or overlapping edits (the edit set is then applied
+/// atomically: all or nothing).
+fn apply_text_edits(text: &str, edits: &[TextEdit]) -> std::result::Result<String, String> {
+    let index = LineIndex::new(text);
+    // The highest valid line index. `LineIndex::offset` silently clamps an
+    // out-of-range line to EOF, which would mis-apply an edit instead of failing;
+    // reject such ranges explicitly so a bogus position is a rejection, not a
+    // corrupt splice.
+    let max_line = text.bytes().filter(|&b| b == b'\n').count();
+    let mut spans: Vec<(usize, usize, &str)> = Vec::with_capacity(edits.len());
+    for e in edits {
+        if e.range.start.line as usize > max_line || e.range.end.line as usize > max_line {
+            return Err("edit_out_of_bounds".to_string());
+        }
+        let start = index.offset(text, e.range.start.line, e.range.start.character);
+        let end = index.offset(text, e.range.end.line, e.range.end.character);
+        if start > end || end > text.len() {
+            return Err("edit_out_of_bounds".to_string());
+        }
+        if !text.is_char_boundary(start) || !text.is_char_boundary(end) {
+            return Err("edit_not_on_char_boundary".to_string());
+        }
+        spans.push((start, end, e.new_text.as_str()));
+    }
+    spans.sort_by_key(|s| s.0);
+    for pair in spans.windows(2) {
+        if pair[0].1 > pair[1].0 {
+            return Err("overlapping_edits".to_string());
+        }
+    }
+    let mut out = text.to_string();
+    for (start, end, new_text) in spans.into_iter().rev() {
+        out.replace_range(start..end, new_text);
+    }
+    Ok(out)
 }
 
 /// A `Location` for byte range `[start, end)` in `text` at `uri`.
@@ -489,7 +597,71 @@ pub fn run_stdio() {
         let stdout = tokio::io::stdout();
         let (service, socket) = LspService::build(Backend::new)
             .custom_method("glyph/canonicalView", Backend::canonical_view_request)
+            .custom_method("glyph/applyEdit", Backend::apply_edit_request)
             .finish();
         Server::new(stdin, stdout, socket).serve(service).await;
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn edit(sl: u32, sc: u32, el: u32, ec: u32, new_text: &str) -> TextEdit {
+        TextEdit {
+            range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
+            new_text: new_text.to_string(),
+        }
+    }
+
+    #[test]
+    fn applies_a_single_edit() {
+        let text = "fn a() -> number {\n  return 1\n}\n";
+        let out = apply_text_edits(text, &[edit(1, 9, 1, 10, "2")]).unwrap();
+        assert_eq!(out, "fn a() -> number {\n  return 2\n}\n");
+    }
+
+    #[test]
+    fn applies_multiple_edits_back_to_front() {
+        let text = "ab\ncd\n";
+        // Replace `a`→`X` (0,0-0,1) and `d`→`Y` (1,1-1,2) in one call.
+        let out = apply_text_edits(text, &[edit(0, 0, 0, 1, "X"), edit(1, 1, 1, 2, "Y")]).unwrap();
+        assert_eq!(out, "Xb\ncY\n");
+    }
+
+    #[test]
+    fn rejects_overlapping_edits() {
+        let text = "abcdef";
+        let err = apply_text_edits(text, &[edit(0, 0, 0, 3, "X"), edit(0, 2, 0, 5, "Y")]).unwrap_err();
+        assert_eq!(err, "overlapping_edits");
+    }
+
+    #[test]
+    fn rejects_out_of_bounds_edit() {
+        let text = "abc";
+        let err = apply_text_edits(text, &[edit(9, 0, 9, 1, "X")]).unwrap_err();
+        assert_eq!(err, "edit_out_of_bounds");
+    }
+
+    #[test]
+    fn an_edit_that_typechecks_clean_has_no_diagnostics() {
+        // The gate the RPC applies: a clean result yields no diagnostics.
+        let candidate = apply_text_edits(
+            "fn a() -> number {\n  return 1\n}\n",
+            &[edit(1, 9, 1, 10, "42")],
+        )
+        .unwrap();
+        assert!(analyze(&candidate).is_empty());
+    }
+
+    #[test]
+    fn an_edit_that_breaks_types_produces_diagnostics() {
+        // Replacing the numeric body with a string must fail the gate.
+        let candidate = apply_text_edits(
+            "fn a() -> number {\n  return 1\n}\n",
+            &[edit(1, 9, 1, 10, "\"oops\"")],
+        )
+        .unwrap();
+        assert!(!analyze(&candidate).is_empty());
+    }
 }

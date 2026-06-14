@@ -241,6 +241,12 @@ pub fn build_project_inner(
     // `tsc -p <out>/tsconfig.json` can type-check the result. Skip it when
     // nothing emitted — there is no output to check.
     if !report.emitted.is_empty() {
+        // Prune project `.ts` left from a previous build of the same out dir: a
+        // module renamed or removed from the source would otherwise leave a
+        // stale `.ts` that `tsc` and sibling imports still pick up (G17). Only
+        // emitted module files are pruned — the bundled `.glyph-runtime/` tree,
+        // any `.d.ts`, and the `glyph run` entrypoint are left untouched.
+        prune_stale_outputs(out, &report.emitted)?;
         crate::runtime::write_build_support(out, src).map_err(|e| BuildError::Io {
             path: out.to_path_buf(),
             source: e,
@@ -248,6 +254,64 @@ pub fn build_project_inner(
     }
 
     Ok(report)
+}
+
+/// Delete emitted-module `.ts` files in `out` that are not in `kept` (the set of
+/// rel paths emitted by this build), so a removed/renamed module does not leave
+/// a stale file behind. Recurses the out tree but skips dot-directories (the
+/// bundled `.glyph-runtime/`, `.types/`); never touches `.d.ts` or the
+/// `glyph run` entrypoint.
+fn prune_stale_outputs(out: &Path, kept: &[String]) -> Result<(), BuildError> {
+    let kept: std::collections::HashSet<&str> = kept.iter().map(String::as_str).collect();
+    let mut found = Vec::new();
+    collect_ts_outputs(out, out, &mut found)?;
+    for (abs, rel) in found {
+        if !kept.contains(rel.as_str()) {
+            let _ = std::fs::remove_file(&abs);
+        }
+    }
+    Ok(())
+}
+
+fn collect_ts_outputs(
+    root: &Path,
+    dir: &Path,
+    out: &mut Vec<(PathBuf, String)>,
+) -> Result<(), BuildError> {
+    let entries = std::fs::read_dir(dir).map_err(|e| BuildError::Io {
+        path: dir.to_path_buf(),
+        source: e,
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|e| BuildError::Io {
+            path: dir.to_path_buf(),
+            source: e,
+        })?;
+        let path = entry.path();
+        let meta = entry.metadata().map_err(|e| BuildError::Io {
+            path: path.clone(),
+            source: e,
+        })?;
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if meta.is_dir() {
+            if name.starts_with('.') {
+                continue;
+            }
+            collect_ts_outputs(root, &path, out)?;
+        } else if meta.is_file()
+            && name.ends_with(".ts")
+            && !name.ends_with(".d.ts")
+            && name != "__glyph_run.ts"
+        {
+            let rel = path
+                .strip_prefix(root)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .replace('\\', "/");
+            out.push((path.clone(), rel));
+        }
+    }
+    Ok(())
 }
 
 /// Recursive walker for `.glyph` files. Skips directories whose names

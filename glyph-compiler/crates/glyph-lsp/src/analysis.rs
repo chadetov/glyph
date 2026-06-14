@@ -9,7 +9,7 @@
 use glyph_ast::{Decl, Module, TypeExpr};
 use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, verify_imports, ResolvedModule,
-    ResolvedRef, StdlibStubs,
+    ResolvedRef, StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{assign_types, display_ty, TypeMap};
 
@@ -138,6 +138,29 @@ pub struct OutlineSymbol {
     pub children: Vec<OutlineSymbol>,
 }
 
+/// Where a go-to-definition target lives.
+pub enum Definition {
+    /// In the current file, at byte range `[start, end)`.
+    Here(u32, u32),
+    /// In another module — the server resolves `module_path` to a file and
+    /// finds the declaration named `name`.
+    InModule { module_path: String, name: String },
+}
+
+/// Find a top-level declaration (or union variant) named `name` in an outline,
+/// returning its byte span. Used to locate a cross-module definition target.
+pub fn find_symbol_span(outline: &[OutlineSymbol], name: &str) -> Option<(u32, u32)> {
+    for sym in outline {
+        if sym.name == name {
+            return Some(sym.span);
+        }
+        if let Some(span) = find_symbol_span(&sym.children, name) {
+            return Some(span);
+        }
+    }
+    None
+}
+
 /// Glyph keywords offered in completion.
 const KEYWORDS: &[&str] = &[
     "module", "import", "fn", "type", "component", "const", "let", "mut", "match", "return",
@@ -162,11 +185,11 @@ impl Analysis {
         best.map(|(_, rendered)| rendered).filter(|s| s != "?")
     }
 
-    /// The definition location (byte `[start, end)`) of the name reference
-    /// covering `offset`, for go-to-definition. A local binding or module-level
-    /// declaration resolves within this file; a prelude built-in (or no
-    /// reference) yields `None`. Cross-module targets await workspace support.
-    pub fn definition(&self, offset: usize) -> Option<(u32, u32)> {
+    /// Where the name reference covering `offset` is defined, for
+    /// go-to-definition: within this file (`Here`), or in another module (an
+    /// imported name — `InModule`, which the server resolves to a file). A
+    /// prelude built-in or no reference yields `None`.
+    pub fn definition(&self, offset: usize) -> Option<Definition> {
         let mut best: Option<(u32, ResolvedRef)> = None;
         for (span, r) in self.resolved.resolutions.iter() {
             if (span.start as usize) <= offset && offset < (span.end as usize) {
@@ -177,10 +200,24 @@ impl Analysis {
             }
         }
         match best.map(|(_, r)| r)? {
-            ResolvedRef::Local(def_start) => Some((def_start, def_start)),
+            ResolvedRef::Local(def_start) => Some(Definition::Here(def_start, def_start)),
             ResolvedRef::Module(id) => {
                 let sym = self.resolved.symbols.table.get(id)?;
-                Some((sym.span.start, sym.span.start))
+                match &sym.kind {
+                    // An imported name: jump to its declaration in the target
+                    // module's file (resolved by the server over the workspace).
+                    SymbolKind::ImportNamed { path, original } => Some(Definition::InModule {
+                        module_path: path
+                            .segments
+                            .iter()
+                            .map(|s| s.as_ref())
+                            .collect::<Vec<_>>()
+                            .join("/"),
+                        name: original.to_string(),
+                    }),
+                    // A module-level declaration in this file.
+                    _ => Some(Definition::Here(sym.span.start, sym.span.start)),
+                }
             }
             ResolvedRef::Prelude(_) => None,
         }
@@ -448,9 +485,12 @@ mod tests {
         let text = "module x\nfn helper() -> number {\n  return 1\n}\nfn main() -> number {\n  return helper()\n}\n";
         let a = analyze_full(text).expect("parses");
         let call = text.rfind("helper").unwrap(); // the call site
-        let def = a.definition(call).expect("resolves");
-        // The definition points at the `helper` declaration, before the call.
-        assert!(def.0 < call as u32, "def {def:?} should precede call at {call}");
+        match a.definition(call).expect("resolves") {
+            Definition::Here(start, _) => {
+                assert!(start < call as u32, "def at {start} should precede call at {call}");
+            }
+            Definition::InModule { .. } => panic!("a same-file call should resolve Here"),
+        }
     }
 
     #[test]

@@ -22,8 +22,8 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 use analysis::{
-    analyze, analyze_full, base_completions, outline_of, CompletionTag, LineIndex, OutlineKind,
-    OutlineSymbol,
+    analyze, analyze_full, base_completions, find_symbol_span, outline_of, CompletionTag,
+    Definition, LineIndex, OutlineKind, OutlineSymbol,
 };
 
 struct Backend {
@@ -208,14 +208,14 @@ impl LanguageServer for Backend {
         };
         let index = LineIndex::new(&text);
         let offset = index.offset(&text, pos.position.line, pos.position.character);
-        Ok(analysis.definition(offset).map(|(start, end)| {
-            let (sl, sc) = index.position(&text, start as usize);
-            let (el, ec) = index.position(&text, end as usize);
-            GotoDefinitionResponse::Scalar(Location {
-                uri,
-                range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
-            })
-        }))
+        let location = match analysis.definition(offset) {
+            None => None,
+            Some(Definition::Here(start, end)) => Some(location_in(&uri, &text, start, end)),
+            Some(Definition::InModule { module_path, name }) => {
+                self.resolve_cross_module(&module_path, &name)
+            }
+        };
+        Ok(location.map(GotoDefinitionResponse::Scalar))
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
@@ -409,6 +409,33 @@ impl Backend {
     /// The current text of an open document, if any.
     fn doc_text(&self, uri: &Url) -> Option<String> {
         self.docs.lock().expect("docs mutex").get(uri).cloned()
+    }
+
+    /// Resolve an imported `module_path` to its file under the workspace root and
+    /// locate the declaration named `name` in it (a `.glyph` whose path mirrors
+    /// the module path, e.g. `sub/b` → `<root>/sub/b.glyph`). `None` if there is
+    /// no workspace root, no such file (a `std/*` import has no project source),
+    /// or the declaration is not found.
+    fn resolve_cross_module(&self, module_path: &str, name: &str) -> Option<Location> {
+        let root = self.root.lock().expect("root mutex").clone()?;
+        let file = root.join(module_path).with_extension("glyph");
+        let uri = Url::from_file_path(&file).ok()?;
+        let text = self
+            .doc_text(&uri)
+            .or_else(|| std::fs::read_to_string(&file).ok())?;
+        let (start, end) = find_symbol_span(&outline_of(&text), name)?;
+        Some(location_in(&uri, &text, start, end))
+    }
+}
+
+/// A `Location` for byte range `[start, end)` in `text` at `uri`.
+fn location_in(uri: &Url, text: &str, start: u32, end: u32) -> Location {
+    let index = LineIndex::new(text);
+    let (sl, sc) = index.position(text, start as usize);
+    let (el, ec) = index.position(text, end as usize);
+    Location {
+        uri: uri.clone(),
+        range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
     }
 }
 

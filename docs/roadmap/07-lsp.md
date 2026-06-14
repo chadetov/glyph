@@ -70,12 +70,24 @@ activation is verified by launching it in VS Code (cannot be exercised in CI).
   importable from where" — verified across a two-file workspace (`alpha` from one
   file, `Bravo`/`CHARLIE` from another).
 
-**Remaining step-7 v1 scope:** cross-module go-to-definition (jump into the
-imported file — the within-file case ships; this needs import→file resolution
-over the workspace model just added), the `agent://` canonical virtual document
-(Q32), and the `applyEdit` RPC (Q29). Rename + find-references remain v1.1. The
-analysis will move onto the salsa `glyph-db` queries for incremental
-multi-file work later (the substrate is already there).
+## Increment 5 (shipped): cross-module go-to-definition
+
+Go-to-definition on an imported name now jumps into the *target file*: an
+`ImportNamed` reference carries its module path and original name, which the
+server resolves to a `.glyph` under the workspace root (`sub/b` →
+`<root>/sub/b.glyph`, preferring an open buffer over disk) and locates the
+declaration in. Within-file definitions still resolve locally; a `std/*` import
+(no project source) or unresolved target yields nothing. Verified end to end: a
+`greet` call in `app.glyph` jumps to its `fn greet` in `lib.glyph`.
+
+Go-to-definition is now complete (within-file + cross-module). Navigation —
+diagnostics, hover, both definition modes, completion, document + workspace
+symbols, format-on-save — is the full editor experience minus rename/find-refs.
+
+**Remaining step-7 v1 scope:** the `agent://` canonical virtual document (Q32)
+and the `applyEdit` RPC (Q29) — the AI-agent-channel pieces. Rename +
+find-references remain v1.1. The analysis will move onto the salsa `glyph-db`
+queries for incremental multi-file work later (the substrate is already there).
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

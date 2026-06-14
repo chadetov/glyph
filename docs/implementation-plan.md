@@ -2174,4 +2174,26 @@ source of Glyph semantics.
 Known limitations: an `@example`/`@run` comparing to a prelude constructor must
 import it (`import std/result { Ok }`) — the emitter does not auto-import prelude
 values. Multi-line `@doc` execution depends on triple-quoted strings (now
-lexed). `glyph regen` (Q40) and `--explain` content (week 7) remain deferred.
+lexed). `glyph regen` (Q40) remains deferred.
+
+## Phase 1 week 7 complete — error-message audit (Elm-quality bar)
+
+Every compiler error now carries a stable code, a one-line actionable `help`,
+and (where useful) a background `note`, all rendered into the ariadne report:
+
+    [E0200] Error: typecheck: non-exhaustive match on `Feed`: missing `Loaded`, `Failed`
+    Help: Add an arm for each missing variant, or an `else` arm.
+    Note: Tagged unions are sealed (D9) ...
+
+- **Codes** are allocated by phase (parser `E000x`, resolver `E01xx`,
+  typechecker `E02xx`, emitter `E03xx`) and live as `code()`/`help()`/`note()`
+  methods on each error enum, next to the variants and their data.
+- **`glyph --explain <code>`** prints a long-form explanation (meaning, why,
+  before/after fix) for any code; case-insensitive, with a catalogue pointer for
+  unknown codes.
+- **`docs/error-codes.md`** catalogues every code and documents the allocation
+  rule for new error paths.
+
+The original plan capped `--explain` content at the top 20 codes; since there
+are only ~22, all are documented. `glyph regen` (Q40) stays deferred to a later
+phase.

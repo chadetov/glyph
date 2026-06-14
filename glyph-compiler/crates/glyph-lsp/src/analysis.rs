@@ -120,6 +120,24 @@ pub struct Completion {
     pub tag: CompletionTag,
 }
 
+/// The kind of a document-outline / workspace symbol — maps to an editor icon.
+#[derive(Clone, Copy)]
+pub enum OutlineKind {
+    Function,
+    Type,
+    Constant,
+    Variant,
+}
+
+/// One node in the document outline. `span` is the declaration's byte range
+/// (used for both the symbol range and its selection range).
+pub struct OutlineSymbol {
+    pub name: String,
+    pub kind: OutlineKind,
+    pub span: (u32, u32),
+    pub children: Vec<OutlineSymbol>,
+}
+
 /// Glyph keywords offered in completion.
 const KEYWORDS: &[&str] = &[
     "module", "import", "fn", "type", "component", "const", "let", "mut", "match", "return",
@@ -168,6 +186,13 @@ impl Analysis {
         }
     }
 
+    /// The document outline: this module's top-level declarations, with a tagged
+    /// union's variant constructors nested as children. Used for the editor
+    /// outline, breadcrumbs, and the symbol picker.
+    pub fn document_symbols(&self) -> Vec<OutlineSymbol> {
+        module_outline(&self.module)
+    }
+
     /// Completion candidates: Glyph keywords, this module's top-level
     /// declarations (and a union's variant constructors), and the prelude names.
     /// A flat list the editor filters by the typed prefix; member completion
@@ -210,6 +235,67 @@ impl Analysis {
 
         out
     }
+}
+
+/// The top-level outline of a parsed module (used for both per-file document
+/// symbols and the workspace symbol index). A tagged union's variants nest as
+/// children.
+pub fn module_outline(module: &glyph_ast::Module) -> Vec<OutlineSymbol> {
+    let mut out = Vec::new();
+    for decl in &module.items {
+        let sym = match decl {
+            Decl::Fn(f) => OutlineSymbol {
+                name: f.name.to_string(),
+                kind: OutlineKind::Function,
+                span: (f.span.start, f.span.end),
+                children: Vec::new(),
+            },
+            Decl::Component(c) => OutlineSymbol {
+                name: c.name.to_string(),
+                kind: OutlineKind::Function,
+                span: (c.span.start, c.span.end),
+                children: Vec::new(),
+            },
+            Decl::Const(c) => OutlineSymbol {
+                name: c.name.to_string(),
+                kind: OutlineKind::Constant,
+                span: (c.span.start, c.span.end),
+                children: Vec::new(),
+            },
+            Decl::Type(t) => {
+                let children = match &t.body {
+                    TypeExpr::Union { variants, .. } => variants
+                        .iter()
+                        .map(|v| OutlineSymbol {
+                            name: v.name.to_string(),
+                            kind: OutlineKind::Variant,
+                            span: (v.span.start, v.span.end),
+                            children: Vec::new(),
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                };
+                OutlineSymbol {
+                    name: t.name.to_string(),
+                    kind: OutlineKind::Type,
+                    span: (t.span.start, t.span.end),
+                    children,
+                }
+            }
+            Decl::Import(_) => continue,
+        };
+        out.push(sym);
+    }
+    out
+}
+
+/// Parse `text` and return its top-level outline, or an empty list if it does
+/// not parse. Parse-only (no resolve/typecheck) — fast enough to run over every
+/// file for the workspace symbol index.
+pub fn outline_of(text: &str) -> Vec<OutlineSymbol> {
+    glyph_parser::parse(text)
+        .map(|m| module_outline(&m))
+        .unwrap_or_default()
 }
 
 /// Keyword and prelude completions, independent of any document. The server
@@ -377,6 +463,20 @@ mod tests {
         for want in ["fn", "paint", "Color", "Red", "Result", "Ok"] {
             assert!(labels.iter().any(|l| l == want), "missing {want} in {labels:?}");
         }
+    }
+
+    #[test]
+    fn document_symbols_list_decls_and_nested_variants() {
+        let a = analyze_full(
+            "module x\ntype Color = Red | Blue\nfn paint() -> number {\n  return 1\n}\nconst N = 5\n",
+        )
+        .expect("parses");
+        let syms = a.document_symbols();
+        let names: Vec<&str> = syms.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"Color") && names.contains(&"paint") && names.contains(&"N"), "{names:?}");
+        let color = syms.iter().find(|s| s.name == "Color").unwrap();
+        let kids: Vec<&str> = color.children.iter().map(|c| c.name.as_str()).collect();
+        assert_eq!(kids, ["Red", "Blue"]);
     }
 
     #[test]

@@ -58,11 +58,24 @@ This makes the language server actually usable in an editor — the "ship the
 LSP" bar — and is the editor-support prerequisite for any external trial. Full
 activation is verified by launching it in VS Code (cannot be exercised in CI).
 
-**Remaining step-7 v1 scope (the brainstorm additions):** the `agent://`
-canonical virtual document (Q32), the `applyEdit` RPC (Q29), and the workspace
-symbol index (Q12). Rename + find-references remain v1.1. The single-file
-analysis will move onto the salsa `glyph-db` queries when multi-file/workspace
-support lands (the incremental substrate is already there).
+## Increment 4 (shipped): document symbols + workspace symbol index (Q12)
+
+- **Document symbols** — `textDocument/documentSymbol` returns the file outline
+  (fn/component/type/const, with a union's variants nested), powering the editor
+  outline, breadcrumbs, and in-file picker.
+- **Workspace symbol index (Q12)** — `workspace/symbol` walks every `.glyph`
+  under the workspace root (captured at `initialize`), parses each (parse-only,
+  preferring an open buffer over disk), and returns all top-level declarations
+  filtered by the query, each with its file location. This answers "what's
+  importable from where" — verified across a two-file workspace (`alpha` from one
+  file, `Bravo`/`CHARLIE` from another).
+
+**Remaining step-7 v1 scope:** cross-module go-to-definition (jump into the
+imported file — the within-file case ships; this needs import→file resolution
+over the workspace model just added), the `agent://` canonical virtual document
+(Q32), and the `applyEdit` RPC (Q29). Rename + find-references remain v1.1. The
+analysis will move onto the salsa `glyph-db` queries for incremental
+multi-file work later (the substrate is already there).
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

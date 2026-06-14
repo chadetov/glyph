@@ -160,10 +160,42 @@ fn main() {
                 }
             }
         }
+        Some(Command::Fmt { path }) => {
+            let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::fmt::format_path(&target) {
+                Ok(report) => {
+                    for (file, reason) in &report.failed {
+                        eprintln!("glyph fmt: skipped {} (parse error: {reason})", file.display());
+                    }
+                    for file in &report.skipped_comments {
+                        eprintln!(
+                            "glyph fmt: skipped {} (contains comments; not yet preserved)",
+                            file.display()
+                        );
+                    }
+                    for file in &report.formatted {
+                        eprintln!("formatted {}", file.display());
+                    }
+                    eprintln!(
+                        "glyph fmt: {} formatted, {} already formatted, {} with comments skipped, {} failed",
+                        report.formatted.len(),
+                        report.unchanged.len(),
+                        report.skipped_comments.len(),
+                        report.failed.len()
+                    );
+                    // A parse failure is a real problem; surface it as non-zero.
+                    // Comment-skips are an expected v1 limitation, not an error.
+                    std::process::exit(if report.failed.is_empty() { 0 } else { 1 });
+                }
+                Err(e) => {
+                    eprintln!("glyph fmt: {e}");
+                    std::process::exit(2);
+                }
+            }
+        }
         Some(cmd) => {
             let name = match cmd {
-                Command::Build { .. } | Command::Run { .. } => unreachable!(),
-                Command::Fmt { .. } => "fmt",
+                Command::Build { .. } | Command::Run { .. } | Command::Fmt { .. } => unreachable!(),
                 Command::Regen { .. } => "regen",
                 Command::Publish => "publish",
             };

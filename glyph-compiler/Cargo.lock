@@ -303,6 +303,7 @@ dependencies = [
  "glyph-ast",
  "glyph-db",
  "glyph-emit",
+ "glyph-formatter",
  "glyph-lexer",
  "glyph-parser",
  "glyph-resolver",
@@ -335,6 +336,18 @@ dependencies = [
  "glyph-typechecker",
  "insta",
  "thiserror",
+]
+
+[[package]]
+name = "glyph-formatter"
+version = "0.1.0"
+dependencies = [
+ "glyph-ast",
+ "glyph-emit",
+ "glyph-parser",
+ "glyph-resolver",
+ "glyph-typechecker",
+ "insta",
 ]
 
 [[package]]

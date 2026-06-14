@@ -23,6 +23,7 @@ glyph-resolver.workspace = true
 glyph-typechecker.workspace = true
 glyph-db.workspace = true
 glyph-emit.workspace = true
+glyph-formatter.workspace = true
 glyph-runtime.workspace = true
 
 clap.workspace = true

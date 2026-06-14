@@ -8,6 +8,7 @@ members = [
     "crates/glyph-typechecker",
     "crates/glyph-db",
     "crates/glyph-emit",
+    "crates/glyph-formatter",
     "crates/glyph-runtime",
     "crates/glyph-cli",
 ]
@@ -63,6 +64,7 @@ glyph-resolver    = { path = "crates/glyph-resolver" }
 glyph-typechecker = { path = "crates/glyph-typechecker" }
 glyph-db          = { path = "crates/glyph-db" }
 glyph-emit        = { path = "crates/glyph-emit" }
+glyph-formatter   = { path = "crates/glyph-formatter" }
 glyph-runtime     = { path = "crates/glyph-runtime" }
 
 [profile.release]

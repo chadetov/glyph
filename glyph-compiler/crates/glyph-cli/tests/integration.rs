@@ -479,11 +479,29 @@ fn build_copies_src_types_into_the_output() {
     );
 }
 
+/// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
+/// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
+/// run fail for environmental reasons, not a real defect.
+fn js_toolchain_available() -> bool {
+    fn ok(cmd: &str) -> bool {
+        std::process::Command::new(cmd)
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
+    ok("node") && ok("tsx")
+}
+
 #[test]
 fn run_executes_main_and_propagates_exit_code() {
     // A program's `main(argv) -> number` return value becomes the process exit
-    // code. Requires `tsx` (and node) on PATH; when absent the run is skipped so
-    // CI without a JS toolchain stays green.
+    // code. Requires `node` + `tsx`; when absent the run is skipped so CI
+    // without a JS toolchain stays green.
+    if !js_toolchain_available() {
+        eprintln!("skipping run assertion: node/tsx not available");
+        return;
+    }
     let root = unique_tmp("run");
     write_file(
         &root,
@@ -502,6 +520,42 @@ fn run_executes_main_and_propagates_exit_code() {
             panic!("unexpected build failure: {:?}", r.diagnostics);
         }
     }
+}
+
+#[test]
+fn fmt_normalizes_a_comment_free_file_in_place() {
+    let root = unique_tmp("fmt");
+    write_file(
+        &root,
+        "messy.glyph",
+        "module messy\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n",
+    );
+    let file = root.join("messy.glyph");
+    let report = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    assert_eq!(report.formatted.len(), 1, "expected one file formatted");
+    assert!(report.skipped_comments.is_empty());
+
+    let after = std::fs::read_to_string(&file).unwrap();
+    assert_ne!(after, "module messy\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n");
+    assert!(glyph_parser::parse(&after).is_ok(), "formatted file must parse");
+
+    // Idempotent: a second pass changes nothing.
+    let report2 = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    assert_eq!(report2.formatted.len(), 0, "second pass should be a no-op");
+    assert_eq!(report2.unchanged.len(), 1);
+}
+
+#[test]
+fn fmt_skips_files_with_comments_without_touching_them() {
+    let root = unique_tmp("fmtcomment");
+    let original = "module c\n// keep this comment\nfn f() -> number { return 1 }\n";
+    write_file(&root, "commented.glyph", original);
+    let file = root.join("commented.glyph");
+    let report = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    assert_eq!(report.skipped_comments.len(), 1, "comment file should be skipped");
+    assert!(report.formatted.is_empty());
+    // The file is left exactly as written — no silent comment deletion.
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), original);
 }
 
 #[test]

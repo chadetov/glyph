@@ -1,0 +1,19 @@
+[package]
+name = "glyph-formatter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "AST-to-Glyph source formatter. One canonical layout: 2-space indent, trailing commas, one-element-per-line past two elements, no line-length reflow (diff stability)."
+
+[dependencies]
+glyph-ast.workspace = true
+
+[dev-dependencies]
+glyph-parser.workspace = true
+glyph-emit.workspace = true
+glyph-resolver.workspace = true
+glyph-typechecker.workspace = true
+insta.workspace = true

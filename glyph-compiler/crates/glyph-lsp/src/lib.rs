@@ -20,7 +20,7 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-use analysis::{analyze, analyze_full, LineIndex};
+use analysis::{analyze, analyze_full, base_completions, CompletionTag, LineIndex};
 
 struct Backend {
     client: Client,
@@ -87,6 +87,7 @@ impl LanguageServer for Backend {
                 document_formatting_provider: Some(OneOf::Left(true)),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
+                completion_provider: Some(CompletionOptions::default()),
                 ..Default::default()
             },
         })
@@ -193,6 +194,32 @@ impl LanguageServer for Backend {
                 range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
             })
         }))
+    }
+
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        let uri = params.text_document_position.text_document.uri;
+        // Use the parsed document's full candidate set; fall back to keywords +
+        // prelude when the file is unknown or does not parse (mid-edit), which
+        // is exactly when completion matters most.
+        let completions = self
+            .doc_text(&uri)
+            .and_then(|text| analyze_full(&text).map(|a| a.completions()))
+            .unwrap_or_else(base_completions);
+        let items = completions
+            .into_iter()
+            .map(|c| CompletionItem {
+                kind: Some(match c.tag {
+                    CompletionTag::Keyword => CompletionItemKind::KEYWORD,
+                    CompletionTag::Function => CompletionItemKind::FUNCTION,
+                    CompletionTag::Type => CompletionItemKind::CLASS,
+                    CompletionTag::Variant => CompletionItemKind::ENUM_MEMBER,
+                    CompletionTag::Value => CompletionItemKind::VALUE,
+                }),
+                label: c.label,
+                ..Default::default()
+            })
+            .collect();
+        Ok(Some(CompletionResponse::Array(items)))
     }
 
     async fn shutdown(&self) -> Result<()> {

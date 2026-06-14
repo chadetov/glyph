@@ -6,6 +6,7 @@
 //! runtime. The server (`lib.rs`) converts `GlyphDiagnostic` to the protocol
 //! type using `LineIndex`.
 
+use glyph_ast::{Decl, Module, TypeExpr};
 use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, verify_imports, ResolvedModule,
     ResolvedRef, StdlibStubs,
@@ -85,6 +86,7 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
 /// means the document did not parse. (Neither table borrows the AST — spans are
 /// plain byte offsets — so the `Module` is dropped after analysis.)
 pub struct Analysis {
+    module: Module,
     resolved: ResolvedModule,
     types: TypeMap,
 }
@@ -97,8 +99,33 @@ pub fn analyze_full(text: &str) -> Option<Analysis> {
     let prelude = build_prelude();
     let (resolved, _errs) = resolve_module(&module, symbols, &prelude);
     let (types, _terrs) = assign_types(&module, &resolved, &prelude);
-    Some(Analysis { resolved, types })
+    Some(Analysis {
+        module,
+        resolved,
+        types,
+    })
 }
+
+/// What kind of thing a completion item names — maps to an editor icon.
+pub enum CompletionTag {
+    Keyword,
+    Function,
+    Type,
+    Variant,
+    Value,
+}
+
+pub struct Completion {
+    pub label: String,
+    pub tag: CompletionTag,
+}
+
+/// Glyph keywords offered in completion.
+const KEYWORDS: &[&str] = &[
+    "module", "import", "fn", "type", "component", "const", "let", "mut", "match", "return",
+    "loop", "for", "in", "break", "continue", "async", "await", "owned", "resource", "is",
+    "else", "true", "false", "void",
+];
 
 impl Analysis {
     /// The rendered type of the innermost typed expression covering `offset`,
@@ -140,6 +167,81 @@ impl Analysis {
             ResolvedRef::Prelude(_) => None,
         }
     }
+
+    /// Completion candidates: Glyph keywords, this module's top-level
+    /// declarations (and a union's variant constructors), and the prelude names.
+    /// A flat list the editor filters by the typed prefix; member completion
+    /// (after `.`) is a later increment.
+    pub fn completions(&self) -> Vec<Completion> {
+        let mut out = base_completions();
+
+        for decl in &self.module.items {
+            match decl {
+                Decl::Fn(f) => out.push(Completion {
+                    label: f.name.to_string(),
+                    tag: CompletionTag::Function,
+                }),
+                Decl::Component(c) => out.push(Completion {
+                    label: c.name.to_string(),
+                    tag: CompletionTag::Function,
+                }),
+                Decl::Const(c) => out.push(Completion {
+                    label: c.name.to_string(),
+                    tag: CompletionTag::Value,
+                }),
+                Decl::Type(t) => {
+                    out.push(Completion {
+                        label: t.name.to_string(),
+                        tag: CompletionTag::Type,
+                    });
+                    // A tagged union's variants are constructors in value scope.
+                    if let TypeExpr::Union { variants, .. } = &t.body {
+                        for v in variants {
+                            out.push(Completion {
+                                label: v.name.to_string(),
+                                tag: CompletionTag::Variant,
+                            });
+                        }
+                    }
+                }
+                Decl::Import(_) => {}
+            }
+        }
+
+        out
+    }
+}
+
+/// Keyword and prelude completions, independent of any document. The server
+/// falls back to these when the open file does not parse — exactly when
+/// completion is most useful (mid-edit).
+pub fn base_completions() -> Vec<Completion> {
+    let mut out: Vec<Completion> = KEYWORDS
+        .iter()
+        .map(|k| Completion {
+            label: (*k).to_string(),
+            tag: CompletionTag::Keyword,
+        })
+        .collect();
+
+    // Prelude names (`Result`, `Ok`, `Option`, `string`, `print`, …). Tag by a
+    // light case heuristic: the prelude tagged-union constructors are variants,
+    // other uppercase-initial names are types, the rest values.
+    for name in build_prelude().by_name.keys() {
+        let s = name.as_ref();
+        let tag = if matches!(s, "Ok" | "Err" | "Some" | "None") {
+            CompletionTag::Variant
+        } else if s.chars().next().is_some_and(|c| c.is_uppercase()) {
+            CompletionTag::Type
+        } else {
+            CompletionTag::Value
+        };
+        out.push(Completion {
+            label: s.to_string(),
+            tag,
+        });
+    }
+    out
 }
 
 fn resolve_diag(e: &glyph_resolver::ResolveError) -> GlyphDiagnostic {
@@ -263,6 +365,25 @@ mod tests {
         let def = a.definition(call).expect("resolves");
         // The definition points at the `helper` declaration, before the call.
         assert!(def.0 < call as u32, "def {def:?} should precede call at {call}");
+    }
+
+    #[test]
+    fn completions_include_keywords_decls_and_prelude() {
+        let a = analyze_full(
+            "module x\ntype Color = Red | Blue\nfn paint() -> number {\n  return 1\n}\n",
+        )
+        .expect("parses");
+        let labels: Vec<String> = a.completions().into_iter().map(|c| c.label).collect();
+        for want in ["fn", "paint", "Color", "Red", "Result", "Ok"] {
+            assert!(labels.iter().any(|l| l == want), "missing {want} in {labels:?}");
+        }
+    }
+
+    #[test]
+    fn base_completions_have_keywords_and_prelude() {
+        let labels: Vec<String> = base_completions().into_iter().map(|c| c.label).collect();
+        assert!(labels.iter().any(|l| l == "match"));
+        assert!(labels.iter().any(|l| l == "Option"));
     }
 
     #[test]

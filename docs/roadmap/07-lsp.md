@@ -35,12 +35,24 @@ exchange (an `E0210` field-typo squiggle with the right range).
 Verified end to end: hovering a literal shows `number`, and a call jumps to its
 `fn` declaration.
 
-**Next increments:** completion (keywords, in-scope names, stdlib members). Then
-the v1 additions: the `agent://` canonical virtual document (Q32), the
-`applyEdit` RPC (Q29), and the workspace symbol index (Q12). Rename +
-find-references remain v1.1. The single-file analysis will move onto the salsa
-`glyph-db` queries when multi-file/workspace support lands (the incremental
-substrate is already there).
+## Increment 3 (shipped): completion
+
+A flat candidate list the editor filters by prefix: Glyph keywords, the open
+module's top-level declarations (and a union's variant constructors), and the
+prelude names (`Result`/`Ok`/`Option`/`string`/`print`/…), each with an editor
+icon kind. It falls back to keywords + prelude when the file does not parse —
+exactly when completion matters most (mid-edit). Verified end to end (43
+candidates including a module `fn`, a keyword, and prelude `Result`/`Ok`).
+
+**The revised v1 LSP core is complete: diagnostics, hover, go-to-definition,
+completion, and format-on-save.** Member completion after `.` is a refinement
+left for later.
+
+**Remaining step-7 v1 scope (the brainstorm additions):** the `agent://`
+canonical virtual document (Q32), the `applyEdit` RPC (Q29), and the workspace
+symbol index (Q12). Rename + find-references remain v1.1. The single-file
+analysis will move onto the salsa `glyph-db` queries when multi-file/workspace
+support lands (the incremental substrate is already there).
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

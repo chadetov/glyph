@@ -636,9 +636,11 @@ fn run_executes_main_and_propagates_exit_code() {
 
 #[test]
 fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
-    // G9: `glyph run` type-checks before running. A field typo passes Glyph's
-    // own resolve/typecheck and emits, but `tsc` rejects it — so the run is
-    // refused (TypeCheckFailed) instead of crashing at run time. Needs tsc.
+    // G9: `glyph run` type-checks before running. Assigning a stdlib call's
+    // result (which Glyph types as `unknown`, so its own checker stays silent)
+    // to a mistyped `let` passes Glyph and emits, but `tsc` rejects it — so the
+    // run is refused (TypeCheckFailed) instead of running. The mistyped binding
+    // is otherwise harmless at run time, so `--no-check` still runs to exit 0.
     if !js_toolchain_available() || !tsc_available() {
         eprintln!("skipping: node/tsx/tsc not all available");
         return;
@@ -647,12 +649,12 @@ fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
     write_file(
         &root,
         "broken.glyph",
-        "module broken\ntype User = { name: string }\nfn label(u: User) -> string {\n  return u.naem\n}\nfn main(argv: Array<string>) -> number {\n  return 0\n}\n",
+        "module broken\nimport std/string\nimport std/io\nfn main(argv: Array<string>) -> number {\n  let n: number = string.upper(\"hi\")\n  io.println(\"done\")\n  return 0\n}\n",
     );
     let file = root.join("broken.glyph");
     match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
-            assert!(msg.contains("naem") || msg.contains("error"), "tsc output: {msg}");
+            assert!(msg.to_lowercase().contains("error"), "tsc output: {msg}");
         }
         glyph_cli::run::RunOutcome::Ran(code) => {
             panic!("tsc-broken code must not run; got exit {code}");

@@ -53,6 +53,8 @@ below.
 | `E0207` | `owned` resource used after it was consumed (D25) |
 | `E0208` | Non-exhaustive `match` on an array (length not covered) |
 | `E0209` | Non-exhaustive `match` on a `bool` |
+| `E0210` | Field access on a record type that has no such field |
+| `E0211` | Call argument type does not match the parameter type |
 
 ### Emitter — `E03xx`
 

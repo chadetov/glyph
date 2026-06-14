@@ -143,6 +143,32 @@ pub enum TypeError {
     #[error("non-exhaustive array match: {missing} not covered")]
     NonExhaustiveArrayMatch { missing: String, span: Span },
 
+    /// `x.field` where `x`'s type is decidably a record (or a named record
+    /// type) that has no field named `field`. Fires only when the object's type
+    /// resolves to a concrete record whose field set is known — a typo'd or
+    /// renamed field. An object whose type can't be judged (`Unknown`, a generic
+    /// parameter, a non-record like `Array`/a namespace) is left unchecked, so
+    /// the check never produces a false positive.
+    #[error("type `{type_name}` has no field `{field}`")]
+    UnknownField {
+        field: String,
+        type_name: String,
+        span: Span,
+    },
+
+    /// A call argument's type is decidably incompatible with the parameter type
+    /// it is passed to. Fires only when both types are fully resolved and
+    /// provably distinct (primitive mismatches, different named types, a generic
+    /// application over a different base) — an argument or parameter whose type
+    /// can't be judged stays permissive, so the check never produces a false
+    /// positive.
+    #[error("argument type mismatch: expected `{expected}`, found `{found}`")]
+    ArgumentTypeMismatch {
+        expected: String,
+        found: String,
+        span: Span,
+    },
+
     /// A `match` over a `bool` scrutinee covers neither both `true` and
     /// `false` nor a catch-all (`_`, `else`, or a binding). D3 makes `match`
     /// the only conditional, so an open boolean match is a real gap rather
@@ -167,6 +193,8 @@ impl TypeError {
             TypeError::OwnedUsedAfterMove { span, .. } => *span,
             TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
+            TypeError::UnknownField { span, .. } => *span,
+            TypeError::ArgumentTypeMismatch { span, .. } => *span,
         }
     }
 
@@ -184,6 +212,8 @@ impl TypeError {
             TypeError::OwnedUsedAfterMove { .. } => "E0207",
             TypeError::NonExhaustiveArrayMatch { .. } => "E0208",
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
+            TypeError::UnknownField { .. } => "E0210",
+            TypeError::ArgumentTypeMismatch { .. } => "E0211",
         }
     }
 
@@ -219,6 +249,12 @@ impl TypeError {
             }
             TypeError::NonExhaustiveBoolMatch { .. } => {
                 "Cover both `true` and `false`, or add an `else` arm."
+            }
+            TypeError::UnknownField { .. } => {
+                "Check the field name for a typo, or add the field to the type."
+            }
+            TypeError::ArgumentTypeMismatch { .. } => {
+                "Pass a value of the expected type, or change the parameter's type."
             }
         })
     }

@@ -56,12 +56,17 @@ the most exposed.
   `{"tag":"None"}` / `{"tag":"Some","value":n}`. A human or tool writing
   `"quantity": null` or `"quantity": 2` is rejected by neither the cast nor
   `T.parse`; the value reaches a `match` on `.tag` and `null.tag` throws.
-- **G6. The typechecker doesn't check field existence or argument types.** A
-  typo'd field (`u.naem`) and a wrong-typed argument both build with zero Glyph
-  diagnostics; only `tsc --check` catches them, in emitted-`.ts` coordinates and
-  TS terms. For a verifiability-first language, two of the most common mistakes
-  are delegated to an optional downstream tool. *Fix: member-access + call-arg
-  checking in the typechecker (needs the unifier).*
+- **G6. [FIXED] The typechecker didn't check field existence or argument
+  types.** A typo'd field (`u.naem`) and a wrong-typed argument both built with
+  zero Glyph diagnostics; only `tsc --check` caught them, in emitted-`.ts`
+  coordinates and TS terms. *Fixed: the typechecker now resolves an object's
+  record type and flags an unknown field (E0210), and checks each call argument
+  against its (generic-substituted) parameter type with a conservative
+  assignability relation (E0211, primitives + nominal named types + generic
+  applications; undecidable and cross-shape pairs stay permissive so there are no
+  false positives). Both surface as Glyph diagnostics with carets, before `tsc`.
+  Verified: the examples still type-check clean; a field typo and a wrong-typed
+  argument are now caught at the Glyph level.*
 - **G7. [FIXED] The prelude-import trap.** `Option`/`Some`/`None` and
   `Result`/`Ok`/`Err` used without an explicit `import` resolved cleanly (they're
   in the prelude) but the emitter never injected their import, so `tsc` failed
@@ -154,6 +159,7 @@ catch — they should be fixed first. Then the "silent green" cluster **G7/G8/G9
 the verifiability pair **G3/G6**. **G11** (fmt escape corruption) is a quick,
 self-contained correctness fix.
 
-**Progress:** G1, G2, G11, G7, G8, G9, and G10 are fixed — the entire "silent
-green" cluster is closed and multi-file programs work. Next: the verifiability
-pair G3/G6 (which needs the unifier).
+**Progress:** G1, G2, G11, G7, G8, G9, G10, and G6 are fixed — the "silent green"
+cluster is closed, multi-file programs work, and the typechecker now catches
+field and argument errors in Glyph terms. Next: G3 (validating `json.parse`),
+which pairs with G4 (descriptor recursion).

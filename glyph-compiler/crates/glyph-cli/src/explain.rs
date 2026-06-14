@@ -128,6 +128,20 @@ pub fn explain(code: &str) -> Option<&'static str> {
               false => ...,\n\
             }",
 
+        "E0210" => "E0210: no such field\n\n\
+            A field access `x.field` where `x`'s type is a record (or named record \
+            type) that has no field by that name — usually a typo or a renamed \
+            field.\n\n\
+            Check the field name, or add the field to the type. Only a value whose \
+            type resolves to a concrete record is checked; access on an \
+            unknown-typed or non-record value is left alone.",
+        "E0211" => "E0211: argument type mismatch\n\n\
+            A call argument's type is incompatible with the parameter it is passed \
+            to. v1 reports this only when both types are fully known and provably \
+            differ (primitives, different named types, a generic over a different \
+            base).\n\n\
+            Pass a value of the expected type, or change the parameter's type.",
+
         // ----- emitter (E03xx) -----
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -144,7 +158,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
 pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0100", "E0101", "E0102", "E0103", "E0104",
     "E0105", "E0200", "E0201", "E0202", "E0203", "E0204", "E0205", "E0206", "E0207", "E0208",
-    "E0209", "E0300",
+    "E0209", "E0210", "E0211", "E0300",
 ];
 
 #[cfg(test)]

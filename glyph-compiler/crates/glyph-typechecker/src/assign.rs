@@ -335,10 +335,32 @@ impl Assigner<'_> {
                 };
                 self.tm.insert(*span, ty);
             }
-            Expr::Unary { operand: child, span, .. }
-            | Expr::Member { object: child, span, .. } => {
+            Expr::Unary { operand: child, span, .. } => {
                 self.walk_expr(child);
                 self.tm.insert(*span, Ty::Unknown);
+            }
+            Expr::Member { object, field, span, .. } => {
+                self.walk_expr(object);
+                let obj_ty = self.tm.get(object.span()).clone();
+                // When the object's type is decidably a record, the field must
+                // exist; report a typo'd/renamed field and propagate the field's
+                // type so chained accesses keep checking. A non-record or
+                // undecidable object type is left unchecked (no false positive).
+                let member_ty = match self.record_fields_of(&obj_ty) {
+                    Some(fields) => match fields.iter().find(|f| &f.name == field) {
+                        Some(f) => f.ty.clone(),
+                        None => {
+                            self.errors.push(TypeError::UnknownField {
+                                field: field.to_string(),
+                                type_name: ty_display(&obj_ty),
+                                span: *span,
+                            });
+                            Ty::Unknown
+                        }
+                    },
+                    None => Ty::Unknown,
+                };
+                self.tm.insert(*span, member_ty);
             }
             Expr::Await { expr, span } => {
                 // A Glyph `async fn -> T` is awaited to a `T` (the declared
@@ -376,15 +398,32 @@ impl Assigner<'_> {
                 // `fn id<T>(x: T) -> T` called with a `number` argument
                 // types as `number`. Any non-`Fn` callee (member-access
                 // method, an unresolved name) leaves the call `Unknown`.
-                let call_ty = match self.tm.get(callee.span()) {
-                    Ty::Fn { params, return_ty, .. } => {
-                        let mut subst: HashMap<Ident, Ty> = HashMap::new();
-                        for (p, a) in params.iter().zip(args.iter()) {
-                            collect_type_param_bindings(&p.ty, self.tm.get(a.span()), &mut subst);
-                        }
-                        substitute_type_params(return_ty, &subst)
+                // Clone the callee's signature so the borrow of `self.tm` ends
+                // before the per-argument checks (which read `self.tm` and push
+                // to `self.errors`).
+                let callee_ty = self.tm.get(callee.span()).clone();
+                let call_ty = if let Ty::Fn { params, return_ty, .. } = &callee_ty {
+                    let mut subst: HashMap<Ident, Ty> = HashMap::new();
+                    for (p, a) in params.iter().zip(args.iter()) {
+                        collect_type_param_bindings(&p.ty, self.tm.get(a.span()), &mut subst);
                     }
-                    _ => Ty::Unknown,
+                    // Check each argument against its parameter type (with any
+                    // inferred generics substituted in). Reports only a provable
+                    // mismatch; an undecidable argument or parameter is silent.
+                    for (p, a) in params.iter().zip(args.iter()) {
+                        let expected = substitute_type_params(&p.ty, &subst);
+                        let found = self.tm.get(a.span()).clone();
+                        if definitely_incompatible(&found, &expected) {
+                            self.errors.push(TypeError::ArgumentTypeMismatch {
+                                expected: ty_display(&expected),
+                                found: ty_display(&found),
+                                span: a.span(),
+                            });
+                        }
+                    }
+                    substitute_type_params(return_ty, &subst)
+                } else {
+                    Ty::Unknown
                 };
                 self.tm.insert(*span, call_ty);
             }
@@ -972,6 +1011,67 @@ impl Assigner<'_> {
         matches!(&td.body, TypeExpr::Union { .. }).then_some(td)
     }
 
+    /// The field set of `ty` when it is decidably a record: a structural
+    /// `Ty::Record`, a `Ty::Named` pointing at a module-local `type X = { ... }`
+    /// record declaration, or a generic record application `Ty::App` (whose type
+    /// arguments are substituted into the field types). Returns `None` for any
+    /// non-record or undecidable type, so callers (member-access checking) never
+    /// flag a field on a type they cannot resolve.
+    fn record_fields_of(&self, ty: &Ty) -> Option<Vec<RecordField>> {
+        match ty {
+            Ty::Record { fields } => Some(fields.clone()),
+            Ty::Named { .. } => self.named_record_fields(ty, &[]),
+            Ty::App { base, args } => self.named_record_fields(base, args),
+            _ => None,
+        }
+    }
+
+    /// The field set of a `Ty::Named` record declaration, with any generic
+    /// parameters substituted by `args`. Guards against the prelude/module
+    /// symbol-id collision (a prelude `Ty::Named` like `Array` could otherwise
+    /// index an unrelated module record) by requiring the resolved symbol's name
+    /// to match the type's lexical path — the same guard the emitter uses.
+    fn named_record_fields(&self, ty: &Ty, args: &[Ty]) -> Option<Vec<RecordField>> {
+        let Ty::Named { symbol, path } = ty else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return None;
+        }
+        let SymbolKind::Type { decl_idx } = sym.kind else {
+            return None;
+        };
+        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        if !matches!(&td.body, TypeExpr::Record { .. }) {
+            return None;
+        }
+        let Ty::Record { fields } = self.lowerer.lower(&td.body) else {
+            return None;
+        };
+        if td.generics.is_empty() || args.is_empty() {
+            return Some(fields);
+        }
+        // Substitute the declaration's generic parameters with the application's
+        // type arguments (`type Box<T> = { value: T }` applied to `<number>`).
+        let mut subst: HashMap<Ident, Ty> = HashMap::new();
+        for (g, a) in td.generics.iter().zip(args.iter()) {
+            subst.insert(g.name.clone(), a.clone());
+        }
+        Some(
+            fields
+                .into_iter()
+                .map(|f| RecordField {
+                    name: f.name,
+                    ty: substitute_type_params(&f.ty, &subst),
+                    optional: f.optional,
+                })
+                .collect(),
+        )
+    }
+
     /// If `ty` is a module-local tagged union, return the type's name and
     /// the ordered list of variant names. Otherwise None.
     fn named_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
@@ -1110,19 +1210,45 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
     )
 }
 
-// ----- day-21: assignability (conservative, primitives only) -----
+// ----- assignability (conservative) -----
 
-/// True only when `found` is *provably* not assignable to `expected`. The
-/// day-21 relation judges primitive-vs-primitive pairs (`string`, `number`,
-/// `bool`, `void`), which are unambiguous, and returns false for every other
-/// pairing — `Unknown`, `UnknownTop`, `Param`, named, generic, record, and
-/// function types — so the check never produces a false positive on a type
-/// it has not learned to compare. Assignability over those is a later day.
+/// True only when `found` is *provably* not assignable to `expected`. Used for
+/// return-type and call-argument checking. The relation stays conservative — it
+/// returns false whenever either side is undecidable (`Unknown`, an open generic
+/// `Param`, an `App` over an unresolved base) or for shape pairs it does not
+/// judge — so it never produces a false positive:
+///
+/// - `unknown` (the top type) as the expected type accepts any value;
+/// - two primitives are incompatible iff they differ;
+/// - two named types are incompatible iff their lexical paths differ (nominal,
+///   Q15) — comparing paths rather than symbol ids sidesteps the prelude/module
+///   id collision and matches what the diagnostic shows;
+/// - two generic applications are incompatible if their arity, base, or any
+///   argument is incompatible;
+/// - every cross-shape pair (a primitive where a record is expected, a newtype
+///   alias, a function type, …) stays permissive — judging those is future work.
 fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
-    matches!(
-        (found, expected),
-        (Ty::Prim(a), Ty::Prim(b)) if a != b
-    )
+    if matches!(expected, Ty::UnknownTop) {
+        return false;
+    }
+    if !ty_is_decidable(found) || !ty_is_decidable(expected) {
+        return false;
+    }
+    match (found, expected) {
+        (Ty::Prim(a), Ty::Prim(b)) => a != b,
+        (Ty::Named { path: a, .. }, Ty::Named { path: b, .. }) => {
+            !a.is_empty() && !b.is_empty() && a != b
+        }
+        (Ty::App { base: fb, args: fa }, Ty::App { base: eb, args: ea }) => {
+            fa.len() != ea.len()
+                || definitely_incompatible(fb, eb)
+                || fa
+                    .iter()
+                    .zip(ea.iter())
+                    .any(|(f, e)| definitely_incompatible(f, e))
+        }
+        _ => false,
+    }
 }
 
 /// True when `ty` is resolved enough to compare for equality or to judge
@@ -2777,5 +2903,138 @@ fn outer() -> string {
             [TypeError::TypeMismatch { expected, found, .. }]
                 if expected == "number" && found == "string"
         ), "errs: {errs:?}");
+    }
+
+    // ----- G6a: member-access field checking -----
+
+    #[test]
+    fn member_typo_on_a_record_is_flagged() {
+        // `u.naem` on a `User` record (no such field) is an UnknownField error.
+        let src = r#"module x
+type User = { name: string }
+fn label(u: User) -> string {
+  return u.naem
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::UnknownField { field, type_name, .. }]
+                if field == "naem" && type_name == "User"
+        ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn valid_member_access_is_not_flagged() {
+        // `u.name` exists; no error, and the member types as the field's type.
+        let src = r#"module x
+type User = { name: string }
+fn label(u: User) -> string {
+  return u.name
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn member_on_a_non_record_is_not_flagged() {
+        // `.length` on an `Array` and a member on an unknown-typed value must
+        // not false-positive: only a decidable record's fields are checked.
+        let src = r#"module x
+fn count(xs: Array<number>) -> number {
+  return xs.length
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn nested_member_access_is_checked_through_field_types() {
+        // `fridge.items` types as `Array<Item>`; `.bogus` on the Item record
+        // (reached via a further access) is still checked once the field type
+        // is a record. Here the typo is on the outer record's field.
+        let src = r#"module x
+type Item = { name: string }
+type Bag = { items: Item }
+fn f(b: Bag) -> string {
+  return b.items.naem
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::UnknownField { field, type_name, .. }]
+                if field == "naem" && type_name == "Item"
+        ), "errs: {errs:?}");
+    }
+
+    // ----- G6b: call-argument type checking -----
+
+    #[test]
+    fn argument_type_mismatch_is_flagged() {
+        // Passing a `string` where a `number` is expected.
+        let src = r#"module x
+fn takes_number(n: number) -> number {
+  return n
+}
+fn f() -> number {
+  return takes_number("hi")
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::ArgumentTypeMismatch { expected, found, .. }]
+                if expected == "number" && found == "string"
+        ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn correct_argument_is_not_flagged() {
+        let src = r#"module x
+fn takes_number(n: number) -> number {
+  return n
+}
+fn f() -> number {
+  return takes_number(5)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn generic_argument_is_not_flagged() {
+        // A generic parameter accepts any concrete argument — no false positive.
+        let src = r#"module x
+fn id<T>(x: T) -> T {
+  return x
+}
+fn f() -> number {
+  return id(5)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty());
+    }
+
+    #[test]
+    fn named_type_argument_mismatch_is_flagged() {
+        // Distinct named types are nominally incompatible (Q15).
+        let src = r#"module x
+type A = { x: number }
+type B = { y: number }
+fn takes_a(a: A) -> number {
+  return a.x
+}
+fn f(b: B) -> number {
+  return takes_a(b)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "errs: {errs:?}"
+        );
     }
 }

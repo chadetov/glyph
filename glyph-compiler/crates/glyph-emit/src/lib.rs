@@ -256,6 +256,7 @@ pub fn emit_module(
         used_try: Rc::new(Cell::new(false)),
         used_schema: Rc::new(Cell::new(false)),
         return_cast: None,
+        loop_labels: Vec::new(),
         module,
         resolved,
         types,
@@ -284,6 +285,13 @@ struct Emitter<'a> {
     /// otherwise, and reset for lambdas and value-position match IIFEs (their
     /// returns are not the enclosing function's return).
     return_cast: Option<String>,
+    /// Stack of enclosing loops, innermost last. Each entry is the loop's TS
+    /// label when it needs one (a `break`/`continue` buried in a `match` arm,
+    /// which lowers to a `switch` that would otherwise capture the jump), or
+    /// `None` when a plain unlabeled jump suffices. `break`/`continue`
+    /// statements read the top entry. A sub-emitter starts empty: a `break`
+    /// inside a lambda or value-position match cannot target an outer loop.
+    loop_labels: Vec<Option<String>>,
     module: &'a Module,
     resolved: &'a ResolvedModule,
     types: &'a TypeMap,
@@ -304,6 +312,9 @@ impl<'a> Emitter<'a> {
             // inherit the function's return cast; its returns are not the
             // function's. `emit_fn_block` sets it from the lambda's own type.
             return_cast: None,
+            // A sub-emitter is a fresh function scope: an inner `break`/
+            // `continue` cannot reach a loop in the enclosing emitter.
+            loop_labels: Vec::new(),
             module: self.module,
             resolved: self.resolved,
             types: self.types,
@@ -860,10 +871,9 @@ impl<'a> Emitter<'a> {
             },
             Stmt::For(f) => {
                 let iter = self.expr(&f.iter)?;
-                self.pad();
-                match f.bindings.as_slice() {
+                let header = match f.bindings.as_slice() {
                     // `for x in xs` over an array/iterable: a `for...of`.
-                    [v] => self.out.push_str(&format!("for (const {v} of {iter}) ")),
+                    [v] => format!("for (const {v} of {iter}) "),
                     // `for k, v in it` over key/value pairs. An array's pairs are
                     // `it.entries()` — the index is a NUMBER. A record is a plain
                     // object, so its pairs are `Object.entries(it)` — the key is a
@@ -875,8 +885,7 @@ impl<'a> Emitter<'a> {
                         } else {
                             format!("Object.entries({iter})")
                         };
-                        self.out
-                            .push_str(&format!("for (const [{k}, {v}] of {pairs}) "));
+                        format!("for (const [{k}, {v}] of {pairs}) ")
                     }
                     _ => {
                         return Err(EmitError::Unsupported {
@@ -884,18 +893,17 @@ impl<'a> Emitter<'a> {
                             span: f.span,
                         })
                     }
-                }
-                self.emit_block(&f.body)?;
-                self.out.push('\n');
+                };
+                self.emit_loop(&header, &f.body)?;
             }
             Stmt::Loop(l) => {
-                self.pad();
-                self.out.push_str("while (true) ");
-                self.emit_block(&l.body)?;
-                self.out.push('\n');
+                self.emit_loop("while (true) ", &l.body)?;
             }
-            Stmt::Break(_) => self.line("break;"),
-            Stmt::Continue(_) => self.line("continue;"),
+            // A user `break`/`continue` always targets the enclosing loop. When
+            // that loop is labeled (the jump is buried in a `match`, i.e. a
+            // `switch`, that would otherwise capture it), emit the labeled form.
+            Stmt::Break(_) => self.line(&self.loop_jump("break")),
+            Stmt::Continue(_) => self.line(&self.loop_jump("continue")),
             Stmt::Expr(Expr::Match { scrutinee, arms, .. }) => {
                 // A statement-position `match` runs each arm for its effects
                 // and `break`s out of the switch.
@@ -915,6 +923,40 @@ impl<'a> Emitter<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Emit a loop (`while`/`for`) given its already-rendered header (ending in a
+    /// space) and body. The loop is labeled iff its body contains a
+    /// `break`/`continue` that a lowered `match` (a `switch`) would capture, so
+    /// the labeled jump reaches the loop instead of breaking only the switch.
+    /// The label (or `None`) is pushed for the body so `break`/`continue` read
+    /// it, then popped.
+    fn emit_loop(&mut self, header: &str, body: &Block) -> Result<(), EmitError> {
+        let label = if loop_body_needs_label(body) {
+            Some(self.fresh_temp("__loop"))
+        } else {
+            None
+        };
+        self.pad();
+        if let Some(l) = &label {
+            self.out.push_str(&format!("{l}: "));
+        }
+        self.out.push_str(header);
+        self.loop_labels.push(label);
+        let r = self.emit_block(body);
+        self.loop_labels.pop();
+        r?;
+        self.out.push('\n');
+        Ok(())
+    }
+
+    /// Render a `break`/`continue` statement for the innermost enclosing loop,
+    /// labeled when that loop carries a label (see `emit_loop`).
+    fn loop_jump(&self, kw: &str) -> String {
+        match self.loop_labels.last() {
+            Some(Some(label)) => format!("{kw} {label};"),
+            _ => format!("{kw};"),
+        }
     }
 
     /// Emit the inlined unwrap of a `?` operand: bind the operand `Result` to a
@@ -2576,6 +2618,39 @@ fn escape_double_quoted(s: &str) -> String {
 /// argument (`Err(NetworkError({ status }))`), which needs an inner switch on
 /// the payload's tag. A whole-payload bind (`Err(e)`), an object destructure
 /// (`Err({ ... })`), or a wildcard (`Err(_)`) is not nested.
+/// Whether a loop with this body needs a TS label so user `break`/`continue`
+/// can target it. A `match` lowers to a `switch`, and an unlabeled `break`
+/// inside a `switch` escapes only the switch — so a jump buried in a match arm
+/// needs a labeled jump to the loop. Nested loops are not descended into: their
+/// `break`/`continue` target themselves, not this loop.
+fn loop_body_needs_label(block: &Block) -> bool {
+    block.stmts.iter().any(|s| stmt_has_captured_jump(s, false))
+}
+
+fn stmt_has_captured_jump(stmt: &Stmt, in_switch: bool) -> bool {
+    match stmt {
+        Stmt::Break(_) | Stmt::Continue(_) => in_switch,
+        // A nested loop owns its own break/continue.
+        Stmt::Loop(_) | Stmt::For(_) => false,
+        Stmt::Expr(e) => expr_has_captured_jump(e),
+        Stmt::Return(r) => r.value.as_ref().is_some_and(expr_has_captured_jump),
+        Stmt::Let(_) | Stmt::Mut(_) => false,
+    }
+}
+
+/// Whether emitting `e` puts a `break`/`continue` inside a `switch`. Only a
+/// `match` (which lowers to a `switch`) does so; its arm bodies are scanned with
+/// the jump now considered captured.
+fn expr_has_captured_jump(e: &Expr) -> bool {
+    match e {
+        Expr::Match { arms, .. } => arms.iter().any(|a| match &a.body {
+            MatchArmBody::Expr(e) => expr_has_captured_jump(e),
+            MatchArmBody::Block(b) => b.stmts.iter().any(|s| stmt_has_captured_jump(s, true)),
+        }),
+        _ => false,
+    }
+}
+
 fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
     matches!(
         &arm.pattern,
@@ -3137,6 +3212,41 @@ mod tests {
         assert!(ts.contains("for (const x of xs) {"), "{ts}");
         assert!(ts.contains("let o = { a: 1, b: 2 };"), "{ts}");
         assert!(ts.contains("return undefined;"), "{ts}");
+    }
+
+    #[test]
+    fn break_inside_match_inside_loop_is_labeled() {
+        // G2: a `break`/`continue` buried in a `match` (a `switch`) must target
+        // the loop, not the switch — otherwise the loop spins forever. The loop
+        // is labeled and the jumps carry the label.
+        let ts = emit(
+            "module x\nfn f(c: bool) -> void {\n  loop {\n    match c {\n      true => break,\n      false => continue,\n    }\n  }\n  return void\n}\n",
+        );
+        assert!(ts.contains("__loop0: while (true) {"), "{ts}");
+        assert!(ts.contains("break __loop0;"), "{ts}");
+        assert!(ts.contains("continue __loop0;"), "{ts}");
+    }
+
+    #[test]
+    fn break_directly_in_loop_body_is_not_labeled() {
+        // A `break` directly in the loop body (not inside a `match`) breaks the
+        // loop already, so no label is emitted.
+        let ts = emit(
+            "module x\nfn f() -> void {\n  loop {\n    log(1)\n    break\n  }\n  return void\n}\n",
+        );
+        assert!(ts.contains("while (true) {"), "{ts}");
+        assert!(!ts.contains("__loop"), "should not label a plain loop:\n{ts}");
+        assert!(ts.contains("break;"), "{ts}");
+    }
+
+    #[test]
+    fn break_in_match_in_for_loop_labels_the_for() {
+        // The same applies to `for` loops.
+        let ts = emit(
+            "module x\nfn f(xs: Array<bool>) -> void {\n  for c in xs {\n    match c {\n      true => break,\n      false => log(0),\n    }\n  }\n  return void\n}\n",
+        );
+        assert!(ts.contains("__loop0: for (const c of xs) {"), "{ts}");
+        assert!(ts.contains("break __loop0;"), "{ts}");
     }
 
     #[test]

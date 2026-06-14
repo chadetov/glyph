@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Test + type-check examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Rust toolchain is pinned by rust-toolchain.toml; rustup installs it
+      # on the first cargo invocation. Cache the registry + build dir to keep CI
+      # fast.
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            glyph-compiler/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('glyph-compiler/Cargo.lock') }}
+
+      # node + tsx + tsc let the toolchain-dependent tests (glyph run, @example /
+      # @doc @run execution) and the `--check` step actually run rather than skip.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install -g tsx typescript
+
+      - name: Workspace tests
+        working-directory: glyph-compiler
+        run: cargo test --workspace --locked
+
+      - name: Type-check the examples with tsc --strict
+        working-directory: glyph-compiler
+        run: cargo run -q -- build ../examples --out "$RUNNER_TEMP/dist" --check

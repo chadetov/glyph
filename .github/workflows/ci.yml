@@ -37,4 +37,5 @@ jobs:
 
       - name: Type-check the examples with tsc --strict
         working-directory: glyph-compiler
-        run: cargo run -q -- build ../examples --out "$RUNNER_TEMP/dist" --check
+        # `glyph build` type-checks with tsc by default; --no-check would skip it.
+        run: cargo run -q -- build ../examples --out "$RUNNER_TEMP/dist"

@@ -35,6 +35,10 @@ pub enum RunOutcome {
     /// The build did not produce the target module (it or a dependency was
     /// rejected). The report's diagnostics explain why; nothing ran.
     BuildFailed(BuildReport),
+    /// Type-checking the emitted output with `tsc` reported errors; carries the
+    /// `tsc` output. Nothing ran — the type errors are surfaced instead of
+    /// becoming runtime crashes.
+    TypeCheckFailed(String),
     /// `tsx` was not found on `PATH`.
     TsxNotFound,
 }
@@ -45,7 +49,17 @@ pub enum RunOutcome {
 /// and a `.types/` directory resolve); the program runs only if `file`'s own
 /// module emitted cleanly. Sibling modules that failed to compile are not a
 /// hard error here — they simply are not available to import at run time.
-pub fn run_file(file: &Path, args: &[String], with_color: bool) -> Result<RunOutcome, RunError> {
+///
+/// When `check` is set (the default), the emitted output is type-checked with
+/// `tsc` before running: type errors are reported and nothing runs, so they
+/// surface as diagnostics rather than runtime crashes. If `tsc` is not on
+/// `PATH` a warning is printed and the program runs anyway.
+pub fn run_file(
+    file: &Path,
+    args: &[String],
+    with_color: bool,
+    check: bool,
+) -> Result<RunOutcome, RunError> {
     if !file.exists() {
         return Err(RunError::FileMissing(file.to_path_buf()));
     }
@@ -73,6 +87,23 @@ pub fn run_file(file: &Path, args: &[String], with_color: bool) -> Result<RunOut
     let target_rel = format!("{stem}.ts");
     if !report.emitted.iter().any(|e| e == &target_rel) {
         return Ok(RunOutcome::BuildFailed(report));
+    }
+
+    // Type-check before running so type errors surface as diagnostics rather
+    // than runtime crashes. A missing `tsc` is a warning, not a hard stop —
+    // `tsx` can still run the program.
+    if check {
+        use crate::runtime::TscOutcome;
+        match crate::runtime::check_with_tsc(&out)? {
+            TscOutcome::Passed => {}
+            TscOutcome::Failed(msg) => return Ok(RunOutcome::TypeCheckFailed(msg)),
+            TscOutcome::NotFound => {
+                eprintln!(
+                    "glyph run: tsc not found on PATH; running without a type check. \
+                     Install TypeScript (`npm install -g typescript`) or pass --no-check."
+                );
+            }
+        }
     }
 
     let entry = out.join("__glyph_run.ts");

@@ -84,11 +84,14 @@ the most exposed.
   real `std/time` + `std/http` modules (replacing the type-only declarations). A
   reconciliation test asserts every `StdlibStubs` name is exported by the
   bundled runtime, so the two can no longer drift. Verified end to end.*
-- **G9. `glyph run` / `glyph build` skip `tsc`, so G7/G8 become runtime
-  crashes.** Only `--check` runs `tsc`. An agent iterating with `glyph run` sees
-  `X is not a function` / `Cannot find module`, not a stdlib-coverage
-  diagnostic. *Fix: type-check by default, or make the resolver/runtime the
-  single source of truth so "resolves" implies "exists".*
+- **G9. [FIXED] `glyph run` / `glyph build` skipped `tsc`, so type errors became
+  runtime crashes.** Only the opt-in `--check` ran `tsc`. An agent iterating with
+  `glyph run` saw `X is not a function` / `Cannot find module`, not a diagnostic.
+  *Fixed: `glyph build` and `glyph run` now type-check with `tsc` by default;
+  `--no-check` opts out. `glyph run` refuses to run code `tsc` rejects (surfacing
+  the error instead of crashing), and a missing `tsc` is a warning, not a block.
+  The old `--check` flag is accepted but redundant. Verified: a field typo that
+  Glyph's own checker misses is now caught before the program runs.*
 - **G10. Multi-file programs don't run or `--check`.** Sibling-module imports
   emit bare TS specifiers (`from "helpers"`) with no `./` and no path mapping;
   only `std/*` is mapped. Any second module fails `glyph run` (tsx can't resolve)
@@ -148,6 +151,6 @@ catch — they should be fixed first. Then the "silent green" cluster **G7/G8/G9
 the verifiability pair **G3/G6**. **G11** (fmt escape corruption) is a quick,
 self-contained correctness fix.
 
-**Progress:** G1, G2, G11, G7, and G8 are fixed. Remaining in the "silent green"
-cluster: G9 (type-check by default) and G10 (multi-file imports). After that, the
-verifiability pair G3/G6 (which needs the unifier).
+**Progress:** G1, G2, G11, G7, G8, and G9 are fixed — the "silent green" cluster
+is closed except G10 (multi-file imports). After that, the verifiability pair
+G3/G6 (which needs the unifier).

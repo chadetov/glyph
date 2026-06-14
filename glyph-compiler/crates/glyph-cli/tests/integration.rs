@@ -493,6 +493,14 @@ fn js_toolchain_available() -> bool {
     ok("node") && ok("tsx")
 }
 
+fn tsc_available() -> bool {
+    std::process::Command::new("tsc")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 #[test]
 fn examples_run_and_report_pass_and_fail() {
     // `@example expr == expr` runs at build time; a passing one is counted, a
@@ -610,7 +618,7 @@ fn run_executes_main_and_propagates_exit_code() {
         "module runprog\nfn main(argv: Array<string>) -> number {\n  return 7\n}\n",
     );
     let file = root.join("runprog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 7, "main's return value should be the exit code");
         }
@@ -620,6 +628,54 @@ fn run_executes_main_and_propagates_exit_code() {
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);
         }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("unexpected type-check failure (run was --no-check): {msg}");
+        }
+    }
+}
+
+#[test]
+fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
+    // G9: `glyph run` type-checks before running. A field typo passes Glyph's
+    // own resolve/typecheck and emits, but `tsc` rejects it — so the run is
+    // refused (TypeCheckFailed) instead of crashing at run time. Needs tsc.
+    if !js_toolchain_available() || !tsc_available() {
+        eprintln!("skipping: node/tsx/tsc not all available");
+        return;
+    }
+    let root = unique_tmp("runcheck");
+    write_file(
+        &root,
+        "broken.glyph",
+        "module broken\ntype User = { name: string }\nfn label(u: User) -> string {\n  return u.naem\n}\nfn main(argv: Array<string>) -> number {\n  return 0\n}\n",
+    );
+    let file = root.join("broken.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            assert!(msg.contains("naem") || msg.contains("error"), "tsc output: {msg}");
+        }
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            panic!("tsc-broken code must not run; got exit {code}");
+        }
+        other => panic!("expected TypeCheckFailed, got a different outcome: {}", outcome_name(&other)),
+    }
+
+    // With checking off, the same program runs (its return value is 0).
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(0) => {}
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping --no-check run assertion: tsx not found");
+        }
+        other => panic!("--no-check should run the program; got {}", outcome_name(&other)),
+    }
+}
+
+fn outcome_name(o: &glyph_cli::run::RunOutcome) -> &'static str {
+    match o {
+        glyph_cli::run::RunOutcome::Ran(_) => "Ran",
+        glyph_cli::run::RunOutcome::BuildFailed(_) => "BuildFailed",
+        glyph_cli::run::RunOutcome::TypeCheckFailed(_) => "TypeCheckFailed",
+        glyph_cli::run::RunOutcome::TsxNotFound => "TsxNotFound",
     }
 }
 
@@ -685,7 +741,7 @@ fn run_reports_build_failure_for_a_broken_target() {
          fn main(argv: Array<string>) -> number {\n  return 0\n}\n",
     );
     let file = root.join("brokenprog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
         glyph_cli::run::RunOutcome::BuildFailed(report) => {
             assert!(
                 !report.diagnostics.is_empty(),
@@ -697,6 +753,9 @@ fn run_reports_build_failure_for_a_broken_target() {
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
             panic!("build failure must be detected before invoking tsx");
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("a Glyph build failure must precede any tsc check: {msg}");
         }
     }
 }

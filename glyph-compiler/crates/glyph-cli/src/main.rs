@@ -1,10 +1,12 @@
 //! Glyph CLI — stub for Phase 0.
 //!
 //! Commands (per `docs/implementation-plan.md §Phase 1 week 5`):
-//! - `glyph build src/ --out dist/ [--check]`  walk module graph, typecheck,
+//! - `glyph build src/ --out dist/ [--no-check]`  walk module graph, typecheck,
 //!   emit TS, write the bundled runtime + a generated `tsconfig.json` (and copy
-//!   `<src>/.types/` ambient declarations); `--check` then runs `tsc`
-//! - `glyph run path.glyph [args]`   build then run via node
+//!   `<src>/.types/` ambient declarations); type-checks the output with `tsc` by
+//!   default, `--no-check` skips it
+//! - `glyph run path.glyph [args]`   type-check then build and run via node
+//!   (`--no-check` to run without the tsc gate)
 //! - `glyph fmt [path]`              format-in-place (also called by LSP format-on-save)
 //! - `glyph regen <fn>`              regenerate a function body from its @generate spec (Q40)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
@@ -35,8 +37,12 @@ enum Command {
         src: std::path::PathBuf,
         #[arg(long, value_name = "OUT")]
         out: std::path::PathBuf,
-        /// After emitting, type-check the output with `tsc` (must be on PATH).
+        /// Skip type-checking the emitted output with `tsc`. By default `glyph
+        /// build` type-checks (tsc must be on PATH); pass this to emit without it.
         #[arg(long)]
+        no_check: bool,
+        /// Deprecated: type-checking is now the default. Accepted for compatibility.
+        #[arg(long, hide = true)]
         check: bool,
         /// After emitting, run every `@example` (D23) via `tsx` (must be on PATH).
         #[arg(long)]
@@ -46,6 +52,10 @@ enum Command {
     Run {
         #[arg(value_name = "FILE")]
         file: std::path::PathBuf,
+        /// Skip type-checking with `tsc` before running. By default `glyph run`
+        /// type-checks first so type errors surface as diagnostics, not crashes.
+        #[arg(long)]
+        no_check: bool,
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
@@ -87,7 +97,10 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out, check, test }) => {
+        Some(Command::Build { src, out, no_check, check: _, test }) => {
+            // Type-checking is the default (verifiability is the lead pillar);
+            // `--no-check` opts out. The old `--check` flag is now redundant.
+            let do_check = !no_check;
             // ariadne's `auto-color` feature isn't enabled in our
             // workspace, so it never auto-detects non-TTY at runtime.
             // We detect explicitly: if stderr (where diagnostics go) is
@@ -114,7 +127,7 @@ fn main() {
                     report.modules.len(),
                     report.emitted.len()
                 );
-                if check {
+                if do_check {
                     use glyph_cli::runtime::TscOutcome;
                     match glyph_cli::runtime::check_with_tsc(&out) {
                         Ok(TscOutcome::Passed) => {
@@ -185,10 +198,10 @@ fn main() {
             }
             }
         }
-        Some(Command::Run { file, args }) => {
+        Some(Command::Run { file, no_check, args }) => {
             use std::io::IsTerminal;
             let with_color = std::io::stderr().is_terminal();
-            match glyph_cli::run::run_file(&file, &args, with_color) {
+            match glyph_cli::run::run_file(&file, &args, with_color, !no_check) {
                 Ok(glyph_cli::run::RunOutcome::Ran(code)) => std::process::exit(code),
                 Ok(glyph_cli::run::RunOutcome::BuildFailed(report)) => {
                     for diag in &report.diagnostics {
@@ -198,6 +211,11 @@ fn main() {
                         "glyph run: build failed; {} diagnostic(s)",
                         report.diagnostics.len()
                     );
+                    std::process::exit(1);
+                }
+                Ok(glyph_cli::run::RunOutcome::TypeCheckFailed(msg)) => {
+                    eprint!("{msg}");
+                    eprintln!("glyph run: tsc reported type errors; not running. Pass --no-check to run anyway.");
                     std::process::exit(1);
                 }
                 Ok(glyph_cli::run::RunOutcome::TsxNotFound) => {

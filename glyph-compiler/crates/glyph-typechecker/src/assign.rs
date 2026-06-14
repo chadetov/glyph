@@ -261,8 +261,19 @@ impl Assigner<'_> {
         match s {
             Stmt::Let(l) => {
                 self.walk_expr(&l.value);
-                if let Some(te) = &l.ty {
-                    let ty = self.lowerer.lower(te);
+                // Record the binding's type so later references resolve
+                // concretely. An explicit annotation wins; otherwise infer
+                // from the initializer's type (week-2 task 5, local `let`
+                // inference). When unannotated and the initializer types as
+                // `Unknown`, record nothing — leaving the binding open rather
+                // than pinning it to `Unknown`, mirroring how
+                // `collect_type_param_bindings` declines to bind an `Unknown`
+                // argument.
+                let ty = match &l.ty {
+                    Some(te) => self.lowerer.lower(te),
+                    None => self.tm.get(l.value.span()).clone(),
+                };
+                if l.ty.is_some() || !ty.is_unknown() {
                     self.local_tys.insert(l.span.start, ty);
                 }
             }
@@ -1205,13 +1216,58 @@ fn main() -> string {
     }
 
     #[test]
-    fn untyped_let_local_stays_unknown() {
-        // `let x = 42` has no annotation; week-2 doesn't infer from the
-        // initializer, so refs to `x` are Unknown until the week-3 checker.
+    fn untyped_let_infers_from_initializer() {
+        // Week-2 task 5: `let x = 42` (no annotation) infers `number` from the
+        // initializer, so later refs to `x` resolve concretely.
         let src = r#"module x
 fn main() -> number {
   let x = 42
   return x
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let f = match &m.items[0] {
+            Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let ret_val = match &f.body.stmts[1] {
+            Stmt::Return(r) => r.value.as_ref().unwrap(),
+            _ => panic!(),
+        };
+        assert!(matches!(tm.get(ret_val.span()), Ty::Prim(Primitive::Number)));
+    }
+
+    #[test]
+    fn untyped_let_infers_through_call() {
+        // Inference reads the initializer's synthesized type, so a call to a
+        // string-returning fn makes the binding `string`.
+        let src = r#"module x
+fn greet() -> string { return "hi" }
+fn main() -> string {
+  let g = greet()
+  return g
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let main = match &m.items[1] {
+            Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let ret_val = match &main.body.stmts[1] {
+            Stmt::Return(r) => r.value.as_ref().unwrap(),
+            _ => panic!(),
+        };
+        assert!(matches!(tm.get(ret_val.span()), Ty::Prim(Primitive::String)));
+    }
+
+    #[test]
+    fn untyped_let_from_unknown_initializer_stays_open() {
+        // When the initializer types as Unknown (a member access here), the
+        // binding records nothing and refs stay Unknown — no false pinning.
+        let src = r#"module x
+fn main(s: string) -> number {
+  let n = s.length
+  return n
 }
 "#;
         let (m, _, tm) = type_map_of(src);

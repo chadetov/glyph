@@ -8,11 +8,13 @@ This directory instruments that claim from day one (brainstorm Q10 resolution: b
 
 For each function, the same task is implemented in **Glyph, TypeScript, Python, Rust**. Per commit on `main`, the measure script computes:
 
-- **Token count** — primary metric. Lower is denser.
+- **Token count** — primary metric. Lower is denser. (Currently an approximate, dependency-free count; see methodology.)
 - **Line count** — secondary metric. Lower is shorter.
-- **Diff size** — measures a controlled edit (add a field to a record, add an error variant). Lower is more diff-stable.
+- **Diff size** — how localized a controlled edit stays (the diff-stability pillar). The `diff_size` field in the harness is not yet populated; diff stability is instead demonstrated live and measured in the playground (`playground/`), where a one-line Glyph edit produces a one-line TypeScript diff. A cross-language harness metric is future work.
 
-Results are written to `results/<commit-sha>.json` and checked into git so the trajectory is visible.
+A companion **verifiability** demo lives in `verifiability/`: paired programs where Glyph rejects a bug at compile time that `tsc --strict` accepts (`verifiability/check.sh` asserts the invariant).
+
+Results are written to `results/<timestamp>.json` and checked into git so the trajectory is visible. The synthesized findings are in `FINDINGS.md`.
 
 ## The first three functions (Phase 0)
 
@@ -37,7 +39,7 @@ Output: `results/<timestamp>.json` plus a one-line summary to stdout.
 
 ## Methodology notes
 
-- Token counts use OpenAI's `tiktoken` (cl100k_base) as the canonical tokenizer. Anthropic's tokenizer would shift the absolute numbers but not the relative ranking.
+- Token counts are an **approximate, dependency-free** proxy (`measure.sh`): each identifier/number run is one token and each standalone symbol is one. This is a stable density proxy, not a tiktoken-exact count. A real tokenizer (e.g. `tiktoken` cl100k_base, or Anthropic's) would shift the absolute numbers but not the relative ranking; wiring one in is a future enhancement.
 - Line counts exclude blank lines and comments. The point is to measure semantic density, not coding style.
-- Diff size is measured by `git diff --stat` after applying a controlled edit defined in `edits/<function>.patch`.
-- Each implementation must pass equivalent unit tests (`tests/<function>.json` with input/expected pairs).
+- Diff stability is currently demonstrated in the playground (a measured one-line-edit → one-line-diff), not yet by this harness; a cross-language formatted-diff metric (apply a controlled edit, reformat with each language's canonical formatter, count changed lines) is the planned `diff_size` implementation.
+- Honesty over flattery: these are structural metrics (density, verifiability, diff locality). They are the *drivers* the manifesto bets make agents more productive; the productivity claim itself is a hypothesis to be validated with a real agent study (future work), not asserted here.

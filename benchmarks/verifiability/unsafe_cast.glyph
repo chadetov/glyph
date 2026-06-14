@@ -1,0 +1,16 @@
+module unsafe_cast
+
+type User = {
+  name: string,
+}
+
+// An agent wants to treat untyped input as a `User` without checking it. In
+// Glyph there is no cast expression: you cannot assert a type the way TypeScript
+// `as` does. This program does not compile — the only way to get a `User` from
+// `unknown` is to validate it (an `is` match, or `json.parse` against a schema,
+// which returns a `Result`). The type system has no escape hatch, so a `User`
+// value is always really a `User`. Compare unsafe_cast.ts, which tsc --strict
+// accepts.
+fn coerce(input: unknown) -> User {
+  return input as User
+}

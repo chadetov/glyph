@@ -1,0 +1,16 @@
+module exhaustiveness
+
+// An agent added the `Triangle` variant but forgot to handle it in `area`.
+// Glyph refuses to compile: `match` must be exhaustive, and the error names the
+// missing `Triangle` case. Compare exhaustiveness.ts, which tsc --strict accepts.
+type Shape =
+  | Circle({ radius: number })
+  | Square({ side: number })
+  | Triangle({ base: number, height: number })
+
+fn area(s: Shape) -> number {
+  return match s {
+    Circle({ radius }) => 3.14159 * radius * radius,
+    Square({ side }) => side * side,
+  }
+}

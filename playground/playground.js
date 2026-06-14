@@ -184,4 +184,7 @@ async function main() {
 main().catch((e) => {
   document.getElementById("ts").querySelector("code").textContent =
     "failed to load the Glyph compiler: " + e;
+  // Clear the loading state so the error is not dimmed and assistive tech does
+  // not keep announcing "busy".
+  $("app").setAttribute("aria-busy", "false");
 });

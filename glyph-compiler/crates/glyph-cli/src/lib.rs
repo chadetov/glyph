@@ -8,6 +8,8 @@
 
 pub mod build;
 pub mod render;
+pub mod run;
 pub mod runtime;
 
 pub use build::{build_project, BuildError, BuildReport};
+pub use run::{run_file, RunError, RunOutcome};

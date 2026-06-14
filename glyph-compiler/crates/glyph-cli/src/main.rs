@@ -132,10 +132,37 @@ fn main() {
             }
             }
         }
+        Some(Command::Run { file, args }) => {
+            use std::io::IsTerminal;
+            let with_color = std::io::stderr().is_terminal();
+            match glyph_cli::run::run_file(&file, &args, with_color) {
+                Ok(glyph_cli::run::RunOutcome::Ran(code)) => std::process::exit(code),
+                Ok(glyph_cli::run::RunOutcome::BuildFailed(report)) => {
+                    for diag in &report.diagnostics {
+                        eprintln!("{diag}");
+                    }
+                    eprintln!(
+                        "glyph run: build failed; {} diagnostic(s)",
+                        report.diagnostics.len()
+                    );
+                    std::process::exit(1);
+                }
+                Ok(glyph_cli::run::RunOutcome::TsxNotFound) => {
+                    eprintln!(
+                        "glyph run: `tsx` not found on PATH. Install it with \
+                         `npm install -g tsx` to run Glyph programs."
+                    );
+                    std::process::exit(127);
+                }
+                Err(e) => {
+                    eprintln!("glyph run: {e}");
+                    std::process::exit(2);
+                }
+            }
+        }
         Some(cmd) => {
             let name = match cmd {
-                Command::Build { .. } => unreachable!(),
-                Command::Run { .. } => "run",
+                Command::Build { .. } | Command::Run { .. } => unreachable!(),
                 Command::Fmt { .. } => "fmt",
                 Command::Regen { .. } => "regen",
                 Command::Publish => "publish",

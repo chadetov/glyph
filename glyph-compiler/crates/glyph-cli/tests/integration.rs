@@ -478,3 +478,59 @@ fn build_copies_src_types_into_the_output() {
         ".types/ not copied into the output"
     );
 }
+
+#[test]
+fn run_executes_main_and_propagates_exit_code() {
+    // A program's `main(argv) -> number` return value becomes the process exit
+    // code. Requires `tsx` (and node) on PATH; when absent the run is skipped so
+    // CI without a JS toolchain stays green.
+    let root = unique_tmp("run");
+    write_file(
+        &root,
+        "runprog.glyph",
+        "module runprog\nfn main(argv: Array<string>) -> number {\n  return 7\n}\n",
+    );
+    let file = root.join("runprog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 7, "main's return value should be the exit code");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping run assertion: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+    }
+}
+
+#[test]
+fn run_reports_build_failure_for_a_broken_target() {
+    // A non-exhaustive match makes the module fail to compile, so it never
+    // emits and the program is never run. This path is reached before `tsx` is
+    // invoked, so it holds with or without a JS toolchain.
+    let root = unique_tmp("runbad");
+    write_file(
+        &root,
+        "brokenprog.glyph",
+        "module brokenprog\n\
+         type Feed = | Loading | Loaded | Failed\n\
+         fn pick(f: Feed) -> number {\n  return match f {\n    Loading => 1,\n  }\n}\n\
+         fn main(argv: Array<string>) -> number {\n  return 0\n}\n",
+    );
+    let file = root.join("brokenprog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::BuildFailed(report) => {
+            assert!(
+                !report.diagnostics.is_empty(),
+                "a build failure should carry diagnostics"
+            );
+        }
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            panic!("a broken program should not run; got exit {code}");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            panic!("build failure must be detected before invoking tsx");
+        }
+    }
+}

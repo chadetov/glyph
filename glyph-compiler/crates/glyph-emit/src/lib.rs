@@ -533,7 +533,71 @@ impl<'a> Emitter<'a> {
         for v in variants {
             self.emit_variant_constructor(name, generics, v)?;
         }
+        // Q8: a non-generic tagged union also emits a runtime descriptor so
+        // `is TypeName` and `TypeName.parse` work at runtime (no type erasure).
+        // Skipped for a generic union (its type arguments live at the call
+        // site) and when a variant shares the union's name (the descriptor
+        // `const` would collide with that variant's constructor `const`).
+        if generics.is_empty() && union_descriptor_name_free(name, variants) {
+            self.emit_union_descriptor(name, variants);
+        }
         Ok(())
+    }
+
+    /// Emit the Q8 runtime descriptor for a non-generic tagged union: an `is`
+    /// type guard that checks `value` is an object whose `tag` is one of the
+    /// union's variant tags, a self-contained `parse` returning a `Result`, and
+    /// a `T.schema` member. Mirrors `emit_record_descriptor`.
+    ///
+    /// **Soundness limitation** (same as the record descriptor): the guard is
+    /// shallow — it checks the discriminant tag but not each variant's payload,
+    /// so `X.is({ tag: "A" })` holds even when `A`'s payload fields are absent
+    /// or wrong. This is the documented v1 shallow-validation scope; recursing
+    /// into each variant's payload would close the gap (later work).
+    fn emit_union_descriptor(&mut self, name: &str, variants: &[UnionVariant]) {
+        self.line(&format!("export const {name} = {{"));
+        self.indent += 1;
+        // is(): an object whose discriminant tag names a variant.
+        self.line(&format!("is(value: unknown): value is {name} {{"));
+        self.indent += 1;
+        self.line("if (typeof value !== \"object\" || value === null) {");
+        self.indent += 1;
+        self.line("return false;");
+        self.indent -= 1;
+        self.line("}");
+        self.line(&format!(
+            "const {TAG} = (value as {{ {TAG}?: unknown }}).{TAG};"
+        ));
+        let tag_checks: Vec<String> = variants
+            .iter()
+            .map(|v| format!("{TAG} === \"{}\"", v.name))
+            .collect();
+        self.line(&format!("return {};", tag_checks.join(" || ")));
+        self.indent -= 1;
+        self.line("},");
+        // parse(): reuse the guard, wrap the narrowed value in a Result shape.
+        // Inlined wire-format (not the prelude Ok/Err) so the descriptor
+        // compiles without a `std/result` import, exactly like the record one.
+        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
+        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
+        self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
+        self.indent += 1;
+        self.line("return this.is(value)");
+        self.indent += 1;
+        self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
+        self.line(&format!(
+            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: \"expected {name}\" }};"
+        ));
+        self.indent -= 1;
+        self.indent -= 1;
+        self.line("},");
+        // Q8/Q40 `T.schema`: a `Schema<T>` built from the `is` guard.
+        self.used_schema.set(true);
+        self.line(&format!(
+            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
+        ));
+        self.indent -= 1;
+        self.line("};");
     }
 
     /// The object-type members of a variant: the `tag` literal, plus a record
@@ -1579,7 +1643,7 @@ impl<'a> Emitter<'a> {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
                 if let Some(jt) = js_typeof(ty) {
                     Some(format!("typeof {m} === \"{jt}\""))
-                } else if self.is_local_record_type(segments[0].as_ref()) {
+                } else if self.has_local_descriptor(segments[0].as_ref()) {
                     Some(format!("{}.is({m})", segments[0]))
                 } else {
                     None
@@ -1608,14 +1672,18 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// True if `name` is a module-local non-generic record type — one with an
-    /// emitted `is` descriptor this `is` check can call.
-    fn is_local_record_type(&self, name: &str) -> bool {
-        self.module.items.iter().any(|d| {
-            matches!(d, Decl::Type(t)
-                if t.name.as_ref() == name
-                    && t.generics.is_empty()
-                    && matches!(t.body, TypeExpr::Record { .. }))
+    /// True if `name` is a module-local type with an emitted runtime descriptor
+    /// whose `is` guard this `is` check can call — a non-generic record, or a
+    /// non-generic tagged union (whose descriptor `const` name is free). Mirrors
+    /// the emission guards in `emit_decl`/`emit_union`.
+    fn has_local_descriptor(&self, name: &str) -> bool {
+        self.module.items.iter().any(|d| match d {
+            Decl::Type(t) if t.name.as_ref() == name && t.generics.is_empty() => match &t.body {
+                TypeExpr::Record { .. } => true,
+                TypeExpr::Union { variants, .. } => union_descriptor_name_free(name, variants),
+                _ => false,
+            },
+            _ => false,
         })
     }
 
@@ -2344,6 +2412,14 @@ fn record_field_check(field: &RecordTypeField) -> String {
     } else {
         check
     }
+}
+
+/// True when a tagged union's descriptor `const <name>` would not collide with
+/// any variant constructor `const`/`function`. A union with a variant sharing
+/// its own name cannot also carry a descriptor under that name, so the
+/// descriptor is skipped in that degenerate case.
+fn union_descriptor_name_free(name: &str, variants: &[UnionVariant]) -> bool {
+    variants.iter().all(|v| v.name.as_ref() != name)
 }
 
 /// True if the type parameter `name` appears anywhere in the type `te`.
@@ -3272,13 +3348,66 @@ mod tests {
 
     #[test]
     fn is_check_on_unsupported_type_is_rejected() {
+        // A generic union has no runtime descriptor (its type arguments live at
+        // the call site), so `is S` over one is still unsupported.
         let err = emit_err(
-            "module x\ntype S = A | B\nfn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
+            "module x\ntype S<T> = A | B(T)\nfn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("`is` check")),
             "got {err:?}"
         );
+    }
+
+    #[test]
+    fn union_type_emits_an_is_descriptor() {
+        let ts = emit("module x\ntype S = A | B\nfn f() {}\n");
+        assert!(ts.contains("export const S = {"), "{ts}");
+        assert!(ts.contains("is(value: unknown): value is S {"), "{ts}");
+        assert!(ts.contains("=== \"A\""), "{ts}");
+        assert!(ts.contains("=== \"B\""), "{ts}");
+    }
+
+    #[test]
+    fn union_descriptor_emits_parse_and_schema() {
+        let ts = emit("module x\ntype S = A | B\nfn f() {}\n");
+        assert!(ts.contains("parse(value: unknown):"), "{ts}");
+        assert!(ts.contains("return this.is(value)"), "{ts}");
+        assert!(ts.contains("schema: __glyph_schema<S>(\"S\""), "{ts}");
+    }
+
+    #[test]
+    fn is_union_type_calls_its_descriptor() {
+        let ts = emit(
+            "module x\ntype S = A | B\nfn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("S.is("), "{ts}");
+    }
+
+    #[test]
+    fn generic_union_emits_no_descriptor() {
+        // The alias and constructors are generic; no `const S = {` descriptor.
+        let ts = emit("module x\ntype S<T> = A | B(T)\nfn f() {}\n");
+        assert!(!ts.contains("export const S = {"), "{ts}");
+    }
+
+    #[test]
+    fn union_descriptor_name_free_guards_self_named_variant() {
+        // A variant sharing the union's name would make the descriptor `const`
+        // collide with that variant's constructor `const`. (Such a module is
+        // already rejected at collection as a duplicate name, so this guard is
+        // defensive — exercised directly here rather than through the pipeline.)
+        let span = glyph_ast::Span::new(0, 0);
+        let collide = [
+            UnionVariant { name: "S".into(), payload: None, span },
+            UnionVariant { name: "B".into(), payload: None, span },
+        ];
+        let free = [
+            UnionVariant { name: "A".into(), payload: None, span },
+            UnionVariant { name: "B".into(), payload: None, span },
+        ];
+        assert!(!union_descriptor_name_free("S", &collide));
+        assert!(union_descriptor_name_free("S", &free));
     }
 
     #[test]

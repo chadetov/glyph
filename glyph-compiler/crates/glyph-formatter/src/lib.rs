@@ -230,13 +230,18 @@ impl Printer {
     /// preserve a blank line between a trailing comment block and the item it
     /// precedes.
     fn flush_comments_before(&mut self, offset: u32) -> Option<u32> {
-        let mut last_end = None;
+        let mut last_end: Option<u32> = None;
         while self.cidx < self.comments.len() && self.comments[self.cidx].span.start < offset {
-            let c = &self.comments[self.cidx];
-            let text = c.text.clone();
-            last_end = Some(c.span.end);
+            let start = self.comments[self.cidx].span.start;
+            let end = self.comments[self.cidx].span.end;
+            let text = self.comments[self.cidx].text.clone();
+            // Preserve a blank line the author left between two comments.
+            if last_end.is_some_and(|prev| self.blank_line_in_source(prev, start)) {
+                self.blank_line();
+            }
             self.push(&text);
             self.newline();
+            last_end = Some(end);
             self.cidx += 1;
         }
         last_end

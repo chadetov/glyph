@@ -355,7 +355,52 @@ pub fn source_fingerprint(src: &Path) -> Result<String, BuildError> {
         rel.to_string_lossy().hash(&mut hasher);
         text.hash(&mut hasher);
     }
+    // `<src>/.types/**/*.d.ts` ambient declarations are build inputs too — they
+    // are copied into the out dir and type-checked — so a change to them must
+    // bust the cache. `walk_glyph_files` skips dot-directories and non-`.glyph`
+    // files, so collect them separately.
+    let types_dir = src.join(".types");
+    if types_dir.is_dir() {
+        let mut dts = Vec::new();
+        collect_dts_files(&types_dir, &mut dts)?;
+        dts.sort();
+        for path in &dts {
+            let text = std::fs::read_to_string(path).map_err(|e| BuildError::Io {
+                path: path.clone(),
+                source: e,
+            })?;
+            let rel = path.strip_prefix(src).unwrap_or(path);
+            rel.to_string_lossy().hash(&mut hasher);
+            text.hash(&mut hasher);
+        }
+    }
     Ok(format!("{:016x}", hasher.finish()))
+}
+
+/// Collect every `.d.ts` file under `dir` (recursively) into `out`.
+fn collect_dts_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError> {
+    for entry in std::fs::read_dir(dir).map_err(|e| BuildError::Io {
+        path: dir.to_path_buf(),
+        source: e,
+    })? {
+        let entry = entry.map_err(|e| BuildError::Io {
+            path: dir.to_path_buf(),
+            source: e,
+        })?;
+        let path = entry.path();
+        let meta = entry.metadata().map_err(|e| BuildError::Io {
+            path: path.clone(),
+            source: e,
+        })?;
+        if meta.is_dir() {
+            collect_dts_files(&path, out)?;
+        } else if meta.is_file()
+            && path.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(".d.ts"))
+        {
+            out.push(path);
+        }
+    }
+    Ok(())
 }
 
 fn walk_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError> {
@@ -420,5 +465,22 @@ mod tests {
         let src = Path::new("/tmp/proj/src");
         let file = Path::new("/tmp/proj/src/main.glyph");
         assert_eq!(derive_module_path(src, file), "main");
+    }
+
+    #[test]
+    fn fingerprint_changes_when_types_dts_changes() {
+        // A change to `<src>/.types/*.d.ts` (a real build input) must bust the
+        // `glyph run` cache fingerprint, not just a change to a `.glyph` file.
+        let root = std::env::temp_dir().join(format!("glyph-fp-test-{}", std::process::id()));
+        let types = root.join(".types");
+        std::fs::create_dir_all(&types).unwrap();
+        std::fs::write(root.join("main.glyph"), "module main\n").unwrap();
+        std::fs::write(types.join("ext.d.ts"), "declare module \"ext\" { export const v: number; }\n").unwrap();
+        let fp1 = source_fingerprint(&root).unwrap();
+        // Same .glyph, changed ambient declaration.
+        std::fs::write(types.join("ext.d.ts"), "declare module \"ext\" { export const v: string; }\n").unwrap();
+        let fp2 = source_fingerprint(&root).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert_ne!(fp1, fp2, "fingerprint must change when a .types/*.d.ts changes");
     }
 }

@@ -89,8 +89,12 @@ pub fn run_file(
         None => std::env::temp_dir().join(format!("glyph-run-{stem}-{}", std::process::id())),
     };
     let tsc_marker = out.join(".glyph-tsc-ok");
-    // A cache hit requires a fingerprint and the target module already emitted.
-    let build_cached = fingerprint.is_some() && out.join(&target_rel).exists();
+    // Cache validity is signalled by a marker written only after a build runs to
+    // completion — not by the target `.ts` merely existing, so a build that
+    // errored after writing the target (or a partially-deleted dir) is not
+    // mistaken for a hit.
+    let build_marker = out.join(".glyph-build-ok");
+    let build_cached = fingerprint.is_some() && build_marker.exists();
 
     if !build_cached {
         // Fresh build: clean the dir first so no stale emitted or runtime file
@@ -102,8 +106,9 @@ pub fn run_file(
         if !report.emitted.iter().any(|e| e == &target_rel) {
             return Ok(RunOutcome::BuildFailed(report));
         }
-        // The fresh output has not been type-checked yet.
+        // The fresh output has not been type-checked yet; mark the build complete.
         let _ = std::fs::remove_file(&tsc_marker);
+        let _ = std::fs::write(&build_marker, b"");
     }
 
     // Type-check before running so type errors surface as diagnostics rather

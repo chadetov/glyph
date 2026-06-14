@@ -4,10 +4,13 @@
 //
 // `parse<T>` decodes and casts (no shape check) — the escape hatch. The
 // validating path is `parse_with`, which runs the decoded value through a
-// `Schema<T>` (a type's auto-generated `T.schema`). The emitter rewrites
-// `json.parse<T>(text)` to `json.parse_with(text, T.schema)` whenever `T` has a
-// descriptor, so a typed parse validates against the type rather than trusting
-// the input.
+// `Schema<T>` (a type's auto-generated `T.schema`). The emitter rewrites the
+// namespace form `json.parse<T>(text)` to `json.parse_with(text, <schema>)`
+// when a schema can be derived for `T` — a record/union descriptor (`T.schema`)
+// or an `Array<T>` thereof (`T.schema.array()`). A type with no descriptor (a
+// primitive, an imported type) keeps the casting `parse`. (The named-import
+// form `import std/json { parse }; parse<T>(...)` is not rewritten; use the
+// `json.parse<T>` namespace form to get validation.)
 
 import { Result, Ok, Err } from "./result";
 

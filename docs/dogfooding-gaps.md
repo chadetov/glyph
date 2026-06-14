@@ -263,3 +263,31 @@ The earlier critical/high tier (G1, G2, G11; G3, G4, G6, G7, G8, G9, G10) was
 fixed before round 2. Nothing on the gap list is now an open bug; the deferrals
 are forward-compatible (adding them later won't change existing parse trees or
 semantics).
+
+### Round 3 — adversarial review of the round-2 fixes
+
+A multi-agent adversarial review of the round-2 changes (with independent
+verification of each claim) found and confirmed several defects, all now fixed:
+
+- **`glyph run` cache could serve stale output.** The fingerprint omitted
+  `<src>/.types/**/*.d.ts` (a real build input, copied + type-checked), so
+  editing an ambient declaration didn't bust the cache; and cache validity keyed
+  on the target `.ts` merely existing, so a build that errored after writing it
+  poisoned the cache. *Fixed: the fingerprint now hashes the `.types` tree, and a
+  `.glyph-build-ok` marker (written only on a complete build) gates cache hits.*
+  (Concurrent runs of the same program racing the shared cache dir remains a
+  known, low-likelihood limitation.)
+- **`mut` accepted invalid lvalues.** `mut x?.field = v` (optional chain) emitted
+  invalid TS, and `mut foo()` / `mut xs[0]()` (non-method calls) slipped past
+  D5's method-call form. *Fixed: optional-chain lvalues are rejected and the
+  method-call form requires a `x.method(...)` callee.*
+- **`?` in a `mut` RHS errored.** `mut x = g()?` reached the non-hoisting path.
+  *Fixed: the RHS now lowers `?` like `let`/`return`.*
+- **Descriptor recursion was incomplete.** An inline-record field type
+  (`{ a: number }`) and the `is Array<E>` match arm validated only shallowly,
+  inconsistent with the rest of G4. *Fixed: both now recurse/element-check.*
+- **`json.parse<T>` under-fired.** Only the bare-record namespace form was
+  rewritten. *Fixed: `json.parse<Array<T>>` now validates via `T.schema.array()`;
+  the doc is corrected (the named-import `parse<T>` form is documented as not
+  rewritten — use the `json.parse` namespace form).*
+- **`glyph fmt` lost blanks between consecutive comments.** *Fixed.*

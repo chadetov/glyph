@@ -975,9 +975,14 @@ impl<'a> Emitter<'a> {
             Stmt::Mut(m) => {
                 let s = match &m.kind {
                     MutKind::Assign { target, value } => {
-                        format!("{} = {};", self.expr(target)?, self.expr(value)?)
+                        // `emit_value` hoists any `?` in the RHS (like `let`),
+                        // emitting the unwrap before this assignment; the target
+                        // is a plain lvalue and needs no hoisting.
+                        let t = self.expr(target)?;
+                        let v = self.emit_value(value)?;
+                        format!("{t} = {v};")
                     }
-                    MutKind::MethodCall { call } => format!("{};", self.expr(call)?),
+                    MutKind::MethodCall { call } => format!("{};", self.emit_value(call)?),
                 };
                 self.line(&s);
             }
@@ -1859,7 +1864,7 @@ impl<'a> Emitter<'a> {
                     None
                 }
             }
-            TypeExpr::Generic { base, .. } => match base.as_ref() {
+            TypeExpr::Generic { base, args, .. } => match base.as_ref() {
                 TypeExpr::Path { segments, .. } => match segments.last().map(|s| s.as_ref()) {
                     // A Glyph record is a plain object, not an array; exclude
                     // arrays so an `is Array<...>` arm after `is Record<...>`
@@ -1873,7 +1878,18 @@ impl<'a> Emitter<'a> {
                             "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !Array.isArray(__x))({m})"
                         ))
                     }
-                    Some("Array") => Some(format!("Array.isArray({m})")),
+                    // Element-check the array so `is Array<E>` is as sound as the
+                    // descriptor's `Array<E>` check; fall back to a shallow
+                    // `Array.isArray` when the element type has no checkable form.
+                    Some("Array") => match args.as_slice() {
+                        [elem] => match self.is_check(elem, "__e") {
+                            Some(ec) => Some(format!(
+                                "Array.isArray({m}) && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {ec})"
+                            )),
+                            None => Some(format!("Array.isArray({m})")),
+                        },
+                        _ => Some(format!("Array.isArray({m})")),
+                    },
                     _ => None,
                 },
                 _ => None,
@@ -1977,6 +1993,26 @@ impl<'a> Emitter<'a> {
                     }
                     _ => format!("{access} !== undefined"),
                 }
+            }
+            // An inline record type (`{ a: number, b: T }`) as a field's type:
+            // validate it is a non-null object and recurse into each field, so
+            // the descriptor's recursion is not silently shallow here.
+            TypeExpr::Record { fields, .. } => {
+                let mut checks = vec![
+                    format!("typeof {access} === \"object\""),
+                    format!("{access} !== null"),
+                ];
+                for f in fields {
+                    let sub = format!("({access} as Record<string, unknown>).{}", f.name);
+                    let c = self.field_value_check(&f.ty, &sub);
+                    if f.optional {
+                        let present = format!("\"{}\" in ({access} as object)", f.name);
+                        checks.push(format!("(!({present}) || {c})"));
+                    } else {
+                        checks.push(c);
+                    }
+                }
+                format!("({})", checks.join(" && "))
             }
             _ => format!("{access} !== undefined"),
         }
@@ -2193,18 +2229,42 @@ impl<'a> Emitter<'a> {
         let ([type_arg], [arg]) = (type_args, args) else {
             return Ok(None);
         };
-        let TypeExpr::Path { segments, .. } = type_arg else {
+        let Some(schema) = self.schema_expr_for(type_arg) else {
             return Ok(None);
         };
-        let [tname] = segments.as_slice() else {
-            return Ok(None);
-        };
-        if !self.has_local_descriptor(tname.as_ref()) {
-            return Ok(None);
-        }
         let obj = self.expr(object)?;
         let arg_str = self.expr(arg)?;
-        Ok(Some(format!("{obj}.parse_with({arg_str}, {tname}.schema)")))
+        Ok(Some(format!("{obj}.parse_with({arg_str}, {schema})")))
+    }
+
+    /// A `Schema<T>` expression for `json.parse<T>`'s type argument, when one can
+    /// be derived: a record/union type's descriptor `T.schema`, or `Array<T>`
+    /// (and nested arrays) via the schema factory's `.array()` combinator.
+    /// `None` for a type with no descriptor (a primitive, an imported or generic
+    /// type), where the casting `parse<T>` is kept as the escape hatch.
+    fn schema_expr_for(&self, ty: &TypeExpr) -> Option<String> {
+        match ty {
+            TypeExpr::Path { segments, .. } => {
+                let [name] = segments.as_slice() else {
+                    return None;
+                };
+                self.has_local_descriptor(name.as_ref())
+                    .then(|| format!("{name}.schema"))
+            }
+            TypeExpr::Generic { base, args, .. } => {
+                let TypeExpr::Path { segments, .. } = base.as_ref() else {
+                    return None;
+                };
+                if segments.last().map(|s| s.as_ref()) != Some("Array") {
+                    return None;
+                }
+                let [elem] = args.as_slice() else {
+                    return None;
+                };
+                Some(format!("{}.array()", self.schema_expr_for(elem)?))
+            }
+            _ => None,
+        }
     }
 
     /// Whether `name` is the local binding of a `std/json` namespace import
@@ -3561,6 +3621,28 @@ mod tests {
     }
 
     #[test]
+    fn inline_record_field_descriptor_recurses() {
+        // A field typed as an inline record validates its nested fields, not
+        // just presence (review finding #11).
+        let ts = emit(
+            "module x\ntype Shape = { name: string, origin: { x: number, y: number } }\nfn f(s: Shape) -> number {\n  return 0\n}\n",
+        );
+        assert!(
+            ts.contains("typeof ((value as Record<string, unknown>).origin as Record<string, unknown>).x === \"number\""),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn json_parse_array_routes_through_schema_array() {
+        // `json.parse<Array<T>>` validates via `T.schema.array()` (review #12).
+        let ts = emit(
+            "module x\nimport std/json\ntype User = { name: string }\nfn load(text: string) -> Result<Array<User>, Array<Issue>> {\n  return json.parse<Array<User>>(text)\n}\n",
+        );
+        assert!(ts.contains("json.parse_with(text, User.schema.array())"), "{ts}");
+    }
+
+    #[test]
     fn json_parse_with_descriptor_routes_through_schema() {
         // G3: `json.parse<T>(text)` for a type with a descriptor validates via
         // `T.schema`; a type without one keeps the plain (casting) parse.
@@ -3819,8 +3901,14 @@ mod tests {
         let ts = emit(
             "module x\nfn f(v: unknown) -> string {\n  return match v {\n    is Array<string> => \"arr\",\n    is Record<string, unknown> => \"obj\",\n    else => \"x\",\n  }\n}\n",
         );
-        // Identifier scrutinee is checked directly so it narrows in the arms.
-        assert!(ts.contains("if (Array.isArray(v)) {"), "{ts}");
+        // Identifier scrutinee is checked directly so it narrows in the arms;
+        // `is Array<string>` also element-checks (sound, like the descriptor).
+        assert!(
+            ts.contains(
+                "if (Array.isArray(v) && (v as ReadonlyArray<unknown>).every((__e: unknown) => typeof __e === \"string\")) {"
+            ),
+            "{ts}"
+        );
         // `is Record` excludes arrays so an `is Array` arm isn't shadowed, and
         // is a type-predicate IIFE so the scrutinee narrows to the record type
         // (indexable), not just `{}`.

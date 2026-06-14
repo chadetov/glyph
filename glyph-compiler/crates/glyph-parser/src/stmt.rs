@@ -88,8 +88,10 @@ fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
                 span: Span::new(mut_span.start, end),
             })
         }
-        // `mut <method call>` — D5's method-call mutation form.
-        _ if matches!(target, Expr::Call { .. }) => {
+        // `mut <method call>` — D5's method-call mutation form: the call must be
+        // a *method* call (`x.method(args)`), not a free function or an
+        // index-element call.
+        _ if is_method_call(&target) => {
             let end = target.span().end;
             Ok(MutStmt {
                 kind: MutKind::MethodCall { call: target },
@@ -97,23 +99,35 @@ fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
             })
         }
         other => Err(ParseError::Expected {
-            expected: "`=` after the assignment target, or a method call (D5)",
+            expected: "`=` after the assignment target, or a method call `x.method(...)` (D5)",
             found: format!("{other:?}"),
             span: p.peek_span(),
         }),
     }
 }
 
-/// Whether `e` is an assignable place (an lvalue): a name, or a chain of field
-/// accesses and index subscripts bottoming out at one. Calls, literals, and
-/// operator expressions are not assignable.
+/// Whether `e` is an assignable place (an lvalue): a name, or a chain of plain
+/// (non-optional) field accesses and index subscripts bottoming out at one.
+/// Calls, literals, operator expressions, and optional-chain (`?.`) accesses are
+/// not assignable.
 fn is_lvalue(e: &Expr) -> bool {
     match e {
         Expr::Ident { .. } => true,
-        Expr::Member { object, .. } => is_lvalue(object),
+        Expr::Member { object, optional, .. } => !optional && is_lvalue(object),
         Expr::Index { object, .. } => is_lvalue(object),
         _ => false,
     }
+}
+
+/// Whether `e` is a method call `<lvalue>.method(args)` — a call whose callee is
+/// a plain field access. Excludes free-function calls and calls on an index
+/// element, which D5 does not permit as `mut` statements.
+fn is_method_call(e: &Expr) -> bool {
+    matches!(
+        e,
+        Expr::Call { callee, .. }
+            if matches!(callee.as_ref(), Expr::Member { optional: false, .. })
+    )
 }
 
 /// D21: `for X in expr { body }` and `for K, V in expr { body }`.

@@ -1,0 +1,6 @@
+module neg
+
+fn use_it() -> void {
+  let owned x: number = 5
+  return void
+}

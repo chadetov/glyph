@@ -1,0 +1,10 @@
+module neg
+
+type S<T> = A | B(T)
+
+fn f(v: unknown) -> number {
+  return match v {
+    is S => 1,
+    else => 0,
+  }
+}

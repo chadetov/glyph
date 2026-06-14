@@ -1,0 +1,5 @@
+module neg
+
+fn main() -> number {
+  return undeclared_thing
+}

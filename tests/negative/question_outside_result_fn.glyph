@@ -1,0 +1,12 @@
+module neg
+
+import std/result { Result, Ok, Err }
+
+fn get() -> Result<number, string> {
+  return Ok(1)
+}
+
+fn use_it() -> number {
+  let x = get()?
+  return x
+}

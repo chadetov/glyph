@@ -1,0 +1,4 @@
+module neg
+
+import std/io
+import std/result { Result, Ok, Err }

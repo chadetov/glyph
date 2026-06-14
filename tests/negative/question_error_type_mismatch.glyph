@@ -1,0 +1,12 @@
+module neg
+
+import std/result { Result, Ok, Err }
+
+fn inner() -> Result<number, string> {
+  return Ok(1)
+}
+
+fn outer() -> Result<number, number> {
+  let x = inner()?
+  return Ok(x)
+}

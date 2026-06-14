@@ -1,0 +1,5 @@
+module neg
+
+fn f() -> number {
+  return "hi"
+}

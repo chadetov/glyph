@@ -1,0 +1,7 @@
+module neg
+
+import std/result { Bogus }
+
+fn main() -> number {
+  return 0
+}

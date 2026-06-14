@@ -1,0 +1,12 @@
+module neg
+
+resource type FileHandle = { fd: number }
+
+fn make() -> FileHandle {
+  return { fd: 0 }
+}
+
+fn use_it() -> void {
+  let owned h: FileHandle = make()
+  return void
+}

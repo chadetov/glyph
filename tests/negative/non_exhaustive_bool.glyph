@@ -1,0 +1,7 @@
+module neg
+
+fn pick(ready: bool) -> number {
+  return match ready {
+    true => 1,
+  }
+}

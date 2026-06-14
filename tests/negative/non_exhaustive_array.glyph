@@ -1,0 +1,7 @@
+module neg
+
+fn first(xs: Array<string>) -> number {
+  return match xs {
+    [head, ...rest] => 1,
+  }
+}

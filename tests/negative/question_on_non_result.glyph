@@ -1,0 +1,8 @@
+module neg
+
+import std/result { Result, Ok }
+
+fn use_it(n: number) -> Result<number, string> {
+  let x = n?
+  return Ok(x)
+}

@@ -1,0 +1,6 @@
+module neg
+
+fn main() -> number {
+  const s = "oops
+  return 0
+}

@@ -1,0 +1,12 @@
+module neg
+
+type Feed =
+  | A
+  | B
+  | C
+
+fn handle(f: Feed) -> number {
+  return match f {
+    A => 1,
+  }
+}

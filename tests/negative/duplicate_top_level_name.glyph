@@ -1,0 +1,9 @@
+module neg
+
+fn dup() -> number {
+  return 1
+}
+
+fn dup() -> number {
+  return 2
+}

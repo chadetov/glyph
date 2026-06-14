@@ -32,6 +32,10 @@ Verifiability and greppability are the wedge. Abstraction and diff stability are
 
 | If you want to | Read |
 |---|---|
+| See the whole language in five minutes | [`docs/guide/tour.md`](docs/guide/tour.md) |
+| Install Glyph and run your first program | [`docs/guide/getting-started.md`](docs/guide/getting-started.md) |
+| Map your TypeScript knowledge onto Glyph | [`docs/guide/for-typescript-developers.md`](docs/guide/for-typescript-developers.md) |
+| Build something real (a todo CLI) | [`docs/guide/tutorial.md`](docs/guide/tutorial.md) |
 | Understand the project's thesis | [`docs/manifesto.md`](docs/manifesto.md) |
 | See concrete Glyph programs | [`examples/`](examples/) |
 | Read the language specification | [`docs/language/spec.md`](docs/language/spec.md) |

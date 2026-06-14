@@ -4,6 +4,7 @@ Glyph is a TypeScript-family language designed so AI agents can read, write, and
 
 ## Start here
 
+- `guide/` — **task-oriented documentation for people using Glyph:** a five-minute tour, install + first program, a "Glyph for TypeScript developers" delta sheet, and a 30-minute todo-CLI tutorial. Every snippet compiles. Start here if you want to *use* the language rather than read its design history.
 - `manifesto.md` — the four pillars and the bet (post-brainstorm: includes one narrow carve-out for `owned` resource discipline)
 - `implementation-plan.md` — **the canonical 40-week sequence from current state to v1.0 launch, with day-by-day status sections appended as work ships.** Read this for the live record of what's done, what's next, and which tests pass.
 - `language/spec.md` — the 27 numbered grammar decisions (D1–D27)
@@ -22,7 +23,7 @@ These exist for steps whose scope has changed beyond the original strategy doc:
 - `roadmap/07-lsp.md`
 - `roadmap/08-09-packaging.md`
 
-Steps 1–3 are partially done (see `roadmap/overview.md`). Steps 10–12 (docs, killer demo, launch) have not been re-scoped — refer to `archive/glyph-strategy.md` for the original framing.
+Steps 1–3 are partially done (see `roadmap/overview.md`). Step 10's user-facing docs ship in `guide/` (tour, getting-started, TS-developer guide, tutorial) plus `book-outline.md`; steps 11–12 (killer demo, launch) have not been re-scoped — refer to `archive/glyph-strategy.md` for the original framing.
 
 ## Where the original wording lives
 

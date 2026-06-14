@@ -42,6 +42,8 @@ Verifiability and greppability are the wedge. Abstraction and diff stability are
 | See the roadmap | [`docs/roadmap/overview.md`](docs/roadmap/overview.md) |
 | See the full implementation plan | [`docs/implementation-plan.md`](docs/implementation-plan.md) |
 | Compare Glyph against TS, Python, Rust | [`benchmarks/`](benchmarks/) |
+| See what the benchmarks show (honestly) | [`benchmarks/FINDINGS.md`](benchmarks/FINDINGS.md) |
+| See bugs Glyph catches that `tsc --strict` misses | [`benchmarks/verifiability/`](benchmarks/verifiability/) |
 
 ## Building
 

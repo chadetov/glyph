@@ -259,6 +259,41 @@ pub fn build_project_inner(
 /// recursion. Symlinks of any kind are skipped — Phase 5's package
 /// metadata work can decide whether to follow them once the project
 /// graph has explicit boundary information.
+/// A content fingerprint of every `.glyph` source under `src`, plus the running
+/// compiler binary's mtime. `glyph run` keys its build cache on this so an
+/// unchanged program reuses the previous build (and its `tsc` result) instead of
+/// rebuilding and re-type-checking on every invocation; the binary mtime busts
+/// the cache when the compiler itself changes.
+pub fn source_fingerprint(src: &Path) -> Result<String, BuildError> {
+    use std::hash::{Hash, Hasher};
+    let mut files = Vec::new();
+    walk_glyph_files(src, &mut files)?;
+    files.sort();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    env!("CARGO_PKG_VERSION").hash(&mut hasher);
+    // Bust the cache when the compiler binary is rebuilt (its emitted output may
+    // change even when sources do not).
+    if let Ok(exe) = std::env::current_exe() {
+        if let Ok(meta) = std::fs::metadata(&exe) {
+            if let Ok(mtime) = meta.modified() {
+                if let Ok(d) = mtime.duration_since(std::time::UNIX_EPOCH) {
+                    d.as_nanos().hash(&mut hasher);
+                }
+            }
+        }
+    }
+    for path in &files {
+        let text = std::fs::read_to_string(path).map_err(|e| BuildError::Io {
+            path: path.clone(),
+            source: e,
+        })?;
+        let rel = path.strip_prefix(src).unwrap_or(path);
+        rel.to_string_lossy().hash(&mut hasher);
+        text.hash(&mut hasher);
+    }
+    Ok(format!("{:016x}", hasher.finish()))
+}
+
 fn walk_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError> {
     let entries = std::fs::read_dir(dir).map_err(|e| BuildError::Io {
         path: dir.to_path_buf(),

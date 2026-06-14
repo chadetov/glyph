@@ -75,27 +75,47 @@ pub fn run_file(
         .unwrap_or_else(|| Path::new("."));
     let stem = file.file_stem().and_then(|s| s.to_str()).unwrap_or("main");
 
-    // A fresh output directory, removed first so no stale emitted or runtime
-    // file from a previous run lingers (`build` writes into, but never cleans,
-    // its out dir).
-    let out = std::env::temp_dir().join(format!("glyph-run-{stem}-{}", std::process::id()));
-    if out.exists() {
-        std::fs::remove_dir_all(&out)?;
-    }
-
-    let report = build_project_inner(src, &out, with_color)?;
     let target_rel = format!("{stem}.ts");
-    if !report.emitted.iter().any(|e| e == &target_rel) {
-        return Ok(RunOutcome::BuildFailed(report));
+
+    // Cache the build so a repeated `glyph run` of an unchanged program skips
+    // both the rebuild and the `tsc` type-check (the dominant per-invocation
+    // cost). The cache directory is keyed by a fingerprint of the sources plus
+    // the compiler binary, so any source or compiler change rebuilds. Without a
+    // fingerprint (e.g. an unreadable source tree) fall back to a fresh
+    // pid-scoped dir, the previous always-rebuild behavior.
+    let fingerprint = crate::build::source_fingerprint(src).ok();
+    let out = match &fingerprint {
+        Some(fp) => std::env::temp_dir().join("glyph-run-cache").join(fp),
+        None => std::env::temp_dir().join(format!("glyph-run-{stem}-{}", std::process::id())),
+    };
+    let tsc_marker = out.join(".glyph-tsc-ok");
+    // A cache hit requires a fingerprint and the target module already emitted.
+    let build_cached = fingerprint.is_some() && out.join(&target_rel).exists();
+
+    if !build_cached {
+        // Fresh build: clean the dir first so no stale emitted or runtime file
+        // lingers (a failed earlier build, a renamed module).
+        if out.exists() {
+            std::fs::remove_dir_all(&out)?;
+        }
+        let report = build_project_inner(src, &out, with_color)?;
+        if !report.emitted.iter().any(|e| e == &target_rel) {
+            return Ok(RunOutcome::BuildFailed(report));
+        }
+        // The fresh output has not been type-checked yet.
+        let _ = std::fs::remove_file(&tsc_marker);
     }
 
     // Type-check before running so type errors surface as diagnostics rather
-    // than runtime crashes. A missing `tsc` is a warning, not a hard stop —
+    // than runtime crashes. Skip it when a cached build already passed `tsc`
+    // (recorded by the marker). A missing `tsc` is a warning, not a hard stop —
     // `tsx` can still run the program.
-    if check {
+    if check && !(build_cached && tsc_marker.exists()) {
         use crate::runtime::TscOutcome;
         match crate::runtime::check_with_tsc(&out)? {
-            TscOutcome::Passed => {}
+            TscOutcome::Passed => {
+                let _ = std::fs::write(&tsc_marker, b"");
+            }
             TscOutcome::Failed(msg) => return Ok(RunOutcome::TypeCheckFailed(msg)),
             TscOutcome::NotFound => {
                 eprintln!(

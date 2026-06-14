@@ -77,8 +77,11 @@ enum Command {
         #[arg(value_name = "FN")]
         function: String,
     },
-    /// Build, test, and emit an npm-publishable Glyph package.
-    Publish,
+    /// Build, type-check, and audit-gate a Glyph package for npm publishing.
+    Publish {
+        #[arg(value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+    },
 }
 
 fn main() {
@@ -270,6 +273,88 @@ fn main() {
             glyph_lsp::run_stdio();
             std::process::exit(0);
         }
+        Some(Command::Publish { dir }) => {
+            use glyph_cli::publish::{self, PublishError, TscStatus};
+            use std::io::IsTerminal;
+            let dir = dir.unwrap_or_else(|| std::path::PathBuf::from("."));
+            let with_color = std::io::stderr().is_terminal();
+            match publish::prepare(&dir, with_color) {
+                Ok(report) => {
+                    for diag in &report.diagnostics {
+                        eprintln!("{diag}");
+                    }
+                    if report.has_build_errors {
+                        eprintln!(
+                            "glyph publish: {} diagnostic(s); package not built.",
+                            report.diagnostics.len()
+                        );
+                        std::process::exit(1);
+                    }
+                    for w in &report.warnings {
+                        eprintln!("glyph publish: warning: {}", publish::describe_stale(w));
+                    }
+                    match &report.tsc {
+                        TscStatus::Failed(msg) => {
+                            eprint!("{msg}");
+                            eprintln!("glyph publish: tsc reported type errors.");
+                            std::process::exit(1);
+                        }
+                        TscStatus::Skipped => {
+                            eprintln!(
+                                "glyph publish: tsc not found on PATH; type-check skipped \
+                                 (run `tsc -p {}/tsconfig.json`).",
+                                report.dist.display()
+                            );
+                        }
+                        TscStatus::Passed => {
+                            eprintln!("glyph publish: tsc --strict passed.");
+                        }
+                    }
+                    eprintln!(
+                        "glyph publish: {} module(s) checked, {} file(s) emitted to {}.",
+                        report.modules_checked,
+                        report.emitted,
+                        report.dist.display()
+                    );
+                    eprintln!(
+                        "glyph publish: audit current{}; package ready. Run `npm publish` to ship it.",
+                        if report.warnings.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" ({} warning(s))", report.warnings.len())
+                        }
+                    );
+                    std::process::exit(0);
+                }
+                Err(PublishError::NoPackageJson(path)) => {
+                    eprintln!(
+                        "glyph publish: no package.json at {}. A Glyph package is an npm \
+                         package; add one (npm init).",
+                        path.display()
+                    );
+                    std::process::exit(1);
+                }
+                Err(PublishError::Config(msg)) => {
+                    eprintln!("glyph publish: {msg}");
+                    std::process::exit(1);
+                }
+                Err(PublishError::AuditFailed(stale)) => {
+                    eprintln!("glyph publish: audit-currency check failed (Q22):");
+                    for s in &stale {
+                        eprintln!("  - {}", publish::describe_stale(&s));
+                    }
+                    eprintln!(
+                        "glyph publish: review the imports above and update `glyph.imports.*.last_reviewed`, \
+                         or set `glyph.audit.enforce` to false to downgrade to warnings."
+                    );
+                    std::process::exit(1);
+                }
+                Err(PublishError::Build(msg)) => {
+                    eprintln!("glyph publish: {msg}");
+                    std::process::exit(2);
+                }
+            }
+        }
         Some(Command::Canonical { file }) => {
             let src = match std::fs::read_to_string(&file) {
                 Ok(s) => s,
@@ -295,11 +380,11 @@ fn main() {
                 | Command::Run { .. }
                 | Command::Fmt { .. }
                 | Command::Lsp
-                | Command::Canonical { .. } => {
+                | Command::Canonical { .. }
+                | Command::Publish { .. } => {
                     unreachable!()
                 }
                 Command::Regen { .. } => "regen",
-                Command::Publish => "publish",
             };
             eprintln!("phase 0 stub: `glyph {}` not yet implemented", name);
             std::process::exit(1);

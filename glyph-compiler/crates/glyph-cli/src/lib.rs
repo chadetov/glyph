@@ -7,9 +7,11 @@
 #![forbid(unsafe_code)]
 
 pub mod build;
+pub mod config;
 pub mod examples;
 pub mod explain;
 pub mod fmt;
+pub mod publish;
 pub mod render;
 pub mod run;
 pub mod runtime;

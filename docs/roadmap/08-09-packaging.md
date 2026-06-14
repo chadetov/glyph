@@ -21,10 +21,24 @@ shipped — see below). Step 9 planned. Full notes in `archive/glyph-day-0-parse
   and exit codes; 7 resolver unit tests pass). **The one remaining step is the
   user running the publish** (needs the npm account + `NPM_TOKEN`); everything
   up to `npm publish` is automated.
-- **Still to do for step 8:** the `"glyph"` key in `package.json` (Q22 audit
-  metadata + Q41 FFI-wrapper declarations) and `glyph publish` (build + test +
-  audit-currency check + emit an npm-publishable Glyph *library* package — the
-  `glyph regen`/Q40 path is separate).
+- **`"glyph"` key + `glyph publish` audit gate — shipped.** The `"glyph"` key in
+  `package.json` is read by a typed config layer (`glyph-cli/src/config.rs`): an
+  `imports` map carrying per-import `audit` (`first-party`/`third-party`/
+  `internal`) + `last_reviewed`, and an `audit` policy (`max_age_months` default
+  6, `enforce` default true). `glyph publish [dir]` runs the Q22 audit-currency
+  gate (third-party imports must be reviewed within the window — a stale or
+  never-reviewed one fails an enforcing policy, warns otherwise), then builds and
+  `tsc`-checks the project into `dist/` and reports it ready for `npm publish`.
+  The date math is dependency-free (Hinnant civil-from-days); the gate is a pure,
+  unit-tested function. Verified end to end (a 29-months-stale import fails; a
+  current one builds clean and reports ready).
+- **Still to do for step 8:** producing a fully *standalone* npm tarball from a
+  Glyph library — the emitted JS still imports `std/*` by bare specifier, which
+  resolves via the build's `tsconfig` paths but not for an arbitrary consumer, so
+  shipping a self-contained package needs specifier rewriting / bundling (shared
+  work with `glyph run`'s runtime bundling). Deferred until there are Glyph
+  libraries to publish. Q41 FFI-wrapper audit declarations reuse the same
+  `imports` schema; the `glyph regen`/Q40 path is separate.
 
 ## Step 8 — Formatter and package story
 

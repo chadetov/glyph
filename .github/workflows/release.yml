@@ -1,0 +1,99 @@
+name: Release
+
+# Build the glyph binary for every supported platform, stage each into its
+# `@glyph/<platform>` package, and publish the platform packages plus the
+# `glyph` launcher to npm. Triggered by pushing a `v*` tag (e.g. `v0.1.0`) or
+# manually. Publishing requires the `NPM_TOKEN` secret; without it the build
+# matrix still runs and uploads artifacts, but the publish job is skipped.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.key }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: darwin-arm64
+            os: macos-14
+          - key: darwin-x64
+            os: macos-13
+          - key: linux-x64
+            os: ubuntu-latest
+          - key: linux-arm64
+            os: ubuntu-24.04-arm
+          - key: win32-x64
+            os: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release binary
+        working-directory: glyph-compiler
+        run: cargo build --release --locked -p glyph-cli
+
+      - name: Stage binary into its platform package (unix)
+        if: matrix.key != 'win32-x64'
+        run: node npm/scripts/stage.mjs ${{ matrix.key }} glyph-compiler/target/release/glyph
+
+      - name: Stage binary into its platform package (windows)
+        if: matrix.key == 'win32-x64'
+        run: node npm/scripts/stage.mjs ${{ matrix.key }} glyph-compiler/target/release/glyph.exe
+
+      - name: Upload staged platform package
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-${{ matrix.key }}
+          path: npm/platform/${{ matrix.key }}
+
+  publish:
+    name: Publish to npm
+    needs: build
+    runs-on: ubuntu-latest
+    # `secrets` is not available in `if` expressions, so map the token to `env`
+    # at the job level and gate the publish steps on `env.NPM_TOKEN`.
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      # Restore each platform package's staged binary over the (binary-less)
+      # checked-in package directories.
+      - name: Download staged platform packages
+        uses: actions/download-artifact@v4
+        with:
+          path: staged
+
+      - name: Place staged binaries
+        run: |
+          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
+            cp -R "staged/platform-$key/." "npm/platform/$key/"
+          done
+
+      - name: Verify the launcher resolves
+        run: node --test npm/scripts/resolve.test.mjs
+
+      # Publish the platform packages first so the launcher's optional
+      # dependencies exist when it is published.
+      - name: Publish platform packages
+        if: ${{ env.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
+            npm publish "npm/platform/$key" --access public
+          done
+
+      - name: Publish the glyph launcher
+        if: ${{ env.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish npm/glyph --access public

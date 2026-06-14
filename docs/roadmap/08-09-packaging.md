@@ -1,6 +1,30 @@
 # Steps 8–9 — Formatter, package story, installer, playground
 
-Status: **planned, partial rescoping.** Full notes in `archive/glyph-day-0-parser.md §Part 1`.
+Status: **step 8 in progress** (formatter shipped in Phase 1; npm CLI distribution
+shipped — see below). Step 9 planned. Full notes in `archive/glyph-day-0-parser.md §Part 1`.
+
+## Step 8 progress
+
+- **Formatter — done** (Phase 1 week 5): the `glyph-formatter` crate + `glyph fmt`
+  reprint the AST in one canonical, round-tripping, comment-preserving layout.
+- **npm CLI distribution — shipped** (`npm/`): `glyph` is packaged the
+  esbuild/swc way — a tiny launcher package (`npm/glyph`, published as `glyph`)
+  with one prebuilt-binary optional dependency per platform
+  (`npm/platform/<key>`, published as `@glyph/<key>` for darwin-x64/arm64,
+  linux-x64/arm64, win32-x64). The launcher (`bin/glyph.js` + a unit-tested
+  `bin/resolve.js`) resolves the matching binary and forwards argv, propagating
+  the exit code; a `GLYPH_BINARY` override makes it testable against a local
+  build. `npm/scripts/stage.mjs` stages a built binary into its platform package
+  and `.github/workflows/release.yml` builds all five on native runners and
+  publishes on a `v*` tag (gated on an `NPM_TOKEN` secret). End user story:
+  `npm install -g glyph` / `npx glyph`. Verified locally (launcher passes argv
+  and exit codes; 7 resolver unit tests pass). **The one remaining step is the
+  user running the publish** (needs the npm account + `NPM_TOKEN`); everything
+  up to `npm publish` is automated.
+- **Still to do for step 8:** the `"glyph"` key in `package.json` (Q22 audit
+  metadata + Q41 FFI-wrapper declarations) and `glyph publish` (build + test +
+  audit-currency check + emit an npm-publishable Glyph *library* package — the
+  `glyph regen`/Q40 path is separate).
 
 ## Step 8 — Formatter and package story
 

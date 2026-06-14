@@ -1,0 +1,35 @@
+{
+  "name": "glyph",
+  "version": "0.1.0",
+  "description": "The Glyph compiler: a statically typed language that transpiles to TypeScript, designed so AI agents can read, write, and modify code safely.",
+  "bin": {
+    "glyph": "bin/glyph.js"
+  },
+  "files": [
+    "bin/glyph.js",
+    "bin/resolve.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@glyph/darwin-x64": "0.1.0",
+    "@glyph/darwin-arm64": "0.1.0",
+    "@glyph/linux-x64": "0.1.0",
+    "@glyph/linux-arm64": "0.1.0",
+    "@glyph/win32-x64": "0.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chadetov/glyph.git"
+  },
+  "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "glyph",
+    "typescript",
+    "compiler",
+    "language",
+    "transpiler",
+    "ai-agents"
+  ]
+}

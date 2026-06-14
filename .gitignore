@@ -47,3 +47,9 @@ NOTES.local.md
 
 # Transient files produced by running the example CLI
 **/.todos.json
+
+# npm distribution: the per-platform binaries are staged into these dirs by the
+# release pipeline (npm/scripts/stage.mjs), never committed. Only the package.json
+# templates are tracked.
+npm/platform/*/bin/
+npm/**/node_modules/

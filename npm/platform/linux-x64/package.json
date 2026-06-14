@@ -1,0 +1,13 @@
+{
+  "name": "@glyph/linux-x64",
+  "version": "0.1.0",
+  "description": "Prebuilt glyph compiler binary for Linux (x86_64).",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["bin/"],
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chadetov/glyph.git"
+  }
+}

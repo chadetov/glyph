@@ -2,8 +2,10 @@
 # measure.sh — token count, line count, diff size per function × language.
 # Output: results/<timestamp>.json
 #
-# Phase 0 stub: counts lines only. Token counting (tiktoken) and diff-size
-# measurement (against edits/<function>.patch) wire up in phase 1 week 8.
+# Counts lines and an approximate token count (identifier/number runs plus
+# standalone symbols — dependency-free, a stable proxy for code density; not
+# tiktoken-exact). Diff-size (against edits/<function>.patch) remains a later
+# enhancement.
 #
 # Usage:
 #   ./measure.sh                    # measure all functions × all languages
@@ -32,6 +34,14 @@ count_lines() {
   esac
 }
 
+count_tokens() {
+  # Approximate LLM token count: each identifier/number run is one token, and
+  # each standalone symbol is one. Dependency-free; a stable proxy for density,
+  # not a tiktoken-exact count.
+  local file="$1"
+  grep -oE '[A-Za-z0-9_]+|[^[:space:][:alnum:]_]' "$file" | wc -l | tr -d ' '
+}
+
 discover_functions() {
   # Take filenames from glyph/ as the canonical set.
   for f in glyph/*.glyph; do
@@ -57,10 +67,11 @@ discover_functions() {
         continue
       fi
       lines=$(count_lines "$file")
+      tokens=$(count_tokens "$file")
       [[ $FIRST -eq 0 ]] && echo ","
       FIRST=0
-      printf '    {"function": "%s", "language": "%s", "file": "%s", "lines": %s, "tokens": null, "diff_size": null}' \
-        "$fn" "$lang" "$file" "$lines"
+      printf '    {"function": "%s", "language": "%s", "file": "%s", "lines": %s, "tokens": %s, "diff_size": null}' \
+        "$fn" "$lang" "$file" "$lines" "$tokens"
     done
   done
   echo ""

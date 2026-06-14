@@ -721,6 +721,21 @@ fn main() {
     }
 
     #[test]
+    fn optional_type_sugar_hints_option_g19() {
+        let err = crate::parse("module x\nfn f(n: number?) -> number {\n  return 0\n}\n")
+            .expect_err("T? should not parse");
+        assert!(format!("{err}").contains("Option<T>"), "{err}");
+    }
+
+    #[test]
+    fn nested_string_in_interpolation_hints_workaround_g20() {
+        let src = "module x\nfn g(s: string) -> string {\n  return s\n}\nfn h() -> string {\n  return \"x ${g(\"y\")}\"\n}\n";
+        let err = crate::parse(src).expect_err("nested string in interpolation should not parse");
+        let msg = format!("{err}");
+        assert!(msg.contains("nested string") || msg.contains("hoist"), "{msg}");
+    }
+
+    #[test]
     fn mut_method_call_d5() {
         let m = parse_or_panic("module x\nfn main() { mut issues.push(1) }\n");
         let f = match &m.items[0] {

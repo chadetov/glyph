@@ -21,6 +21,17 @@ pub(crate) fn parse_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     if matches!(p.peek(), Token::Pipe) {
         return parse_union_continuation(p, first);
     }
+    // `T?` optional-type shorthand is not in v1 (a forward-compatible deferral);
+    // point at the explicit form rather than failing with a confusing message.
+    // A record field's own optional `?` is consumed before its type is parsed,
+    // so this only catches the shorthand in type position.
+    if matches!(p.peek(), Token::Question) {
+        return Err(ParseError::Expected {
+            expected: "`Option<T>` (the `T?` optional-type shorthand is not supported in v1)",
+            found: "`?`".to_string(),
+            span: p.peek_span(),
+        });
+    }
     Ok(first)
 }
 

@@ -593,8 +593,13 @@ fn split_template_parts(
                 i += 1;
             }
             if depth != 0 {
+                // The usual cause is a string literal nested inside `${...}`
+                // (`"...${f("x")}..."`): the lexer ends the outer string at the
+                // first inner quote, leaving the `${` unmatched. A v1 limitation
+                // (a lexer template-literal mode is the v1.1 fix); the workaround
+                // is to hoist the interpolation into a `let`.
                 return Err(ParseError::Expected {
-                    expected: "matching `}` for `${...}` template interpolation",
+                    expected: "matching `}` for `${...}` (a nested string literal inside `${...}` is not supported in v1 — hoist it into a `let`)",
                     found: "end of string literal".to_string(),
                     span,
                 });

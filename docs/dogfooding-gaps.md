@@ -62,10 +62,16 @@ the most exposed.
   switches on the tag and validates each variant's payload (record fields, a
   single-value `value`, or nothing for a no-payload variant), so unions are no
   longer tag-only.*
-- **G5. Hand-edited Option JSON crashes.** An `Option` field serializes as
-  `{"tag":"None"}` / `{"tag":"Some","value":n}`. A human or tool writing
-  `"quantity": null` or `"quantity": 2` is rejected by neither the cast nor
-  `T.parse`; the value reaches a `match` on `.tag` and `null.tag` throws.
+- **G5. [FIXED — no longer crashes; lenient form deferred] Hand-edited Option
+  JSON.** An `Option` field serializes as `{"tag":"None"}` /
+  `{"tag":"Some","value":n}`. A human writing `"quantity": null` or
+  `"quantity": 2` used to slip past the cast and crash at the `match` on `.tag`.
+  *With G3/G4, a typed `json.parse` now validates the Option's tag shape, so a
+  malformed value is rejected as a corrupt file rather than crashing.* Accepting
+  the lenient forms (`null` ↔ `None`, a bare value ↔ `Some`) is deliberately not
+  in v1: the tagged form is the canonical wire format, and a lenient decode would
+  need a normalizing pass (the `match` reads `.tag`) and is ambiguous when `T` is
+  itself nullable — a v1.1 ergonomics item.
 - **G6. [FIXED] The typechecker didn't check field existence or argument
   types.** A typo'd field (`u.naem`) and a wrong-typed argument both built with
   zero Glyph diagnostics; only `tsc --check` caught them, in emitted-`.ts`
@@ -144,20 +150,30 @@ the most exposed.
   forms. Verified: `mut bag.items[0].qty = 99` updates the nested element in
   place. The immutable-rebuild idiom remains available and is still the
   value-oriented default; the in-place aliasing question is G14.*
-- **G14. `mut r.field` mutates the caller's record (aliasing footgun).** Records
-  are TS objects by reference; `mut x.field` lowers to in-place assignment, so a
-  function silently mutates its caller's value. Surprising for a value-oriented
-  language. *Fix: define + enforce value semantics, or document loudly.*
+- **G14. [DECIDED — documented v1 stance] `mut r.field` mutates the caller's
+  record (aliasing footgun).** Records lower to TS objects held by reference, so
+  `mut x.field` is an in-place assignment that can mutate a caller's value. *v1
+  decision: records have TS reference semantics — `mut` mutates in place, and the
+  value-oriented idiom for "produce a changed copy" is immutable rebuild (object
+  spread, `array.map`). Compiler-enforced value/copy semantics (clone-on-`mut`)
+  is a real design item but a large one (cost + interaction with `owned`), so it
+  is deferred; the stance is documented rather than enforced in v1.* Pillar note:
+  this trades a little verifiability (the footgun) for diff stability and
+  simplicity; revisit if dogfooding shows real bugs from it.
 - **G15. `mut` on a `const` is not enforced (D20 says it is).** `mut N = 6`
   against `const N` passes the Glyph typechecker; only `tsc` catches it (TS2588,
   no E-code). *Fix: enforce in the typechecker with a real E-code.*
-- **G16. D25 `owned` is unexercised and fights `?`.** No stdlib resource type or
-  `open`/`close` exists; `owned`/`resource` appear only in negative tests. And
-  the natural open→fallible-work→close shape is rejected because `?` is a
-  consumption checkpoint and there's no `defer`/`using`/scoped disposal — so a
-  real flow must abandon `?` and duplicate `close` across match arms. The
-  manifesto's central carve-out carries no weight in a typical app. *Fix:
-  reconsider scope for v1, or add scoped disposal + a stdlib resource.*
+- **G16. [DECIDED — v1.1 design item] D25 `owned` is unexercised and fights
+  `?`.** No stdlib resource type or `open`/`close` exists; `owned`/`resource`
+  appear only in negative tests. The natural open→fallible-work→close shape
+  fights `?` (a consumption checkpoint) because there is no scoped disposal. *The
+  `owned` single-consumption analysis is implemented and tested (it is the
+  manifesto's one carve-out), but to carry weight it needs (a) a stdlib resource
+  type with `open`/`close` and (b) scoped disposal (`using`/`defer`) so the
+  fallible-work shape composes with `?`. Both are v1.1 design work; `owned`
+  remains in v1 as the discipline primitive, exercised by the negative suite. No
+  code change here — this records the decision to defer the surrounding
+  machinery, not the carve-out itself.*
 - **G17. `glyph build --out X` never cleans `X`.** A renamed/removed source
   leaves a stale `.ts` that `tsc` and importers still pick up. *Fix: clean the
   out dir, or track + prune.*
@@ -167,10 +183,15 @@ the most exposed.
 
 ## Low — expected / cosmetic
 
-- **G19. No `T?` sugar over `Option<T>`** (a documented deferral) — but the parse
-  error gives no hint that `Option<number>` is the workaround.
-- **G20. Nested string literal inside `${...}` interpolation** breaks the
-  template parser (known v1 limitation; forces hoisting to a `let`).
+- **G19. [IMPROVED] No `T?` sugar over `Option<T>`** (a forward-compatible v1.1
+  deferral — adding it later won't change existing parse trees). *The parse error
+  now names the fix: `T?` in type position reports "use `Option<T>`" instead of a
+  confusing token error.*
+- **G20. [IMPROVED] Nested string literal inside `${...}` interpolation** breaks
+  the template parser — the lexer ends the outer string at the first inner quote
+  (it has no template-literal mode; that mode is the v1.1 fix). *The error now
+  explains the cause and names the workaround (hoist the interpolation into a
+  `let`) rather than reporting a bare "expected `}`".*
 
 ## What to fix first (recommended)
 
@@ -222,9 +243,23 @@ gap (G12/R4), not correctness.
 
 ### Round-2 fixes landed
 
-R1 (`glyph run` build caching, ~2.2s → ~0.6s warm), R2 (`array.any`/`contains`),
-R3 (`array.sort`), G17 (prune stale emitted `.ts`), G15 (`mut` on a `const` is an
-error, E0212), and the G4 follow-on (union descriptors validate variant payloads,
-not just the tag) are all fixed. Remaining: G12 (Map/dict), G13 (`mut`
-multi-level), G5 (Option JSON ergonomics), G18 (`fmt` nits), and the principled
-v1.1 deferrals G14/G16/G19/G20.
+Every gap on this list is now either fixed or resolved as a documented decision:
+
+- **Fixed (code):** R1 (`glyph run` build caching, ~2.2s → ~0.6s warm), R2
+  (`array.any`/`contains`), R3 (`array.sort`), G12 (`std/record` + keyword module
+  segments), G13 (multi-level `mut` lvalues), G15 (`mut` on a `const`, E0212),
+  G17 (prune stale emitted `.ts`), G18 (`glyph fmt` preserves author blank
+  lines), and the G4 follow-on (union descriptors validate variant payloads).
+- **Improved (clearer errors):** G19 (`T?` → "use `Option<T>`"), G20 (nested
+  string in `${...}` names the cause + workaround).
+- **No-longer-crashes:** G5 (a typed `json.parse` rejects malformed Option JSON
+  instead of crashing; lenient decode deferred).
+- **Decided (documented stance, no code):** G14 (records have TS reference
+  semantics; immutable rebuild is the value-oriented idiom; clone-on-`mut`
+  deferred), G16 (`owned` analysis stays; a stdlib resource + scoped disposal are
+  v1.1).
+
+The earlier critical/high tier (G1, G2, G11; G3, G4, G6, G7, G8, G9, G10) was
+fixed before round 2. Nothing on the gap list is now an open bug; the deferrals
+are forward-compatible (adding them later won't change existing parse trees or
+semantics).

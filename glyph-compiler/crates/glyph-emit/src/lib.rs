@@ -206,6 +206,32 @@ const ERR_CTOR: &str = "__glyph_err";
 /// record descriptor gets `import { schema as __glyph_schema } from "std/schema"`.
 const SCHEMA_FACTORY: &str = "__glyph_schema";
 
+/// The prelude tagged-union constructors (`std/result`, `std/option`). Their
+/// discriminant tags are fixed by the runtime regardless of whether the
+/// scrutinee's type resolved, so the `match` lowering treats them as variant
+/// tags even when `union_variant_names` returns `None` (a prelude scrutinee
+/// has no user `Decl::Type` to read variants from). This is what lets a bare
+/// `None` arm lower to `case "None":` instead of a binding `default:`, and
+/// what lets `degroup_nested_arms` group `Ok(None)` with `Ok(Some(x))`.
+const PRELUDE_VARIANTS: [&str; 4] = ["Ok", "Err", "Some", "None"];
+
+/// Whether `name` is a prelude tagged-union constructor (see `PRELUDE_VARIANTS`).
+fn is_prelude_variant(name: &str) -> bool {
+    PRELUDE_VARIANTS.contains(&name)
+}
+
+/// Whether a constructor pattern's single argument is itself a variant pattern
+/// (so the outer arm needs an inner dispatch on the payload's tag): a nested
+/// constructor (`Ok(Some(x))`) or a bare no-payload prelude variant
+/// (`Ok(None)`, which parses as a `Pattern::Ident`, not a `Pattern::Constructor`).
+fn is_nested_variant_arg(p: &Pattern) -> bool {
+    match p {
+        Pattern::Constructor { .. } => true,
+        Pattern::Ident { name, .. } => is_prelude_variant(name),
+        _ => false,
+    }
+}
+
 /// How a lowered `match` arm yields control: `return` its value (the match is
 /// in return position) or run it for effect and `break` (statement position).
 #[derive(Clone, Copy)]
@@ -1169,7 +1195,7 @@ impl<'a> Emitter<'a> {
         for arm in arms {
             let (path, inner) = match &arm.pattern {
                 Pattern::Constructor { path, args, .. }
-                    if matches!(args.as_slice(), [Pattern::Constructor { .. }]) =>
+                    if matches!(args.as_slice(), [a] if is_nested_variant_arg(a)) =>
                 {
                     (path, &args[0])
                 }
@@ -1254,9 +1280,10 @@ impl<'a> Emitter<'a> {
         // Variant names of the scrutinee's union, when its type is known.
         let variants = self.union_variant_names(self.types.get(scrutinee.span()));
         let is_variant = |name: &str| {
-            variants
-                .as_ref()
-                .is_some_and(|vs| vs.iter().any(|v| v == name))
+            is_prelude_variant(name)
+                || variants
+                    .as_ref()
+                    .is_some_and(|vs| vs.iter().any(|v| v == name))
         };
 
         for arm in arms {
@@ -2552,7 +2579,7 @@ fn escape_double_quoted(s: &str) -> String {
 fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
     matches!(
         &arm.pattern,
-        Pattern::Constructor { args, .. } if matches!(args.as_slice(), [Pattern::Constructor { .. }])
+        Pattern::Constructor { args, .. } if matches!(args.as_slice(), [a] if is_nested_variant_arg(a))
     )
 }
 
@@ -3815,18 +3842,32 @@ mod tests {
     }
 
     #[test]
-    fn binding_arm_alongside_a_variant_lowers_to_a_default() {
-        // Example 04's shape: `array.find` is untyped (no stdlib), so the
-        // scrutinee type is unknown and the bare `None` arm cannot be proven a
-        // variant. It lowers as a binding catch-all (`default`) while the
-        // payload `Some(_)` arm stays a `case`. At runtime the `default` catches
-        // exactly the tags no `case` lists, so a `None` value still routes here.
+    fn prelude_none_lowers_to_a_case_even_when_untyped() {
+        // G1: even when the scrutinee type is unknown (`find()` is untyped), the
+        // prelude `None` is a fixed runtime tag, so it lowers to `case "None":`,
+        // not a binding `default:`. The old behavior bound `const None = __m0`
+        // and relied on default fall-through, which broke nested patterns.
         let ts = emit(
             "module x\nfn f() -> number {\n  return match find() {\n    None => 0,\n    Some(_) => 1,\n  }\n}\n",
         );
         assert!(ts.contains("case \"Some\": {"), "{ts}");
+        assert!(ts.contains("case \"None\": {"), "{ts}");
+        // No junk binding, and no `default` binding catch-all for a variant.
+        assert!(!ts.contains("const None"), "{ts}");
+        assert!(!ts.contains("default: {"), "{ts}");
+    }
+
+    #[test]
+    fn binding_arm_alongside_a_variant_lowers_to_a_default() {
+        // A genuine binding catch-all (a non-variant name) alongside a payload
+        // variant: the payload `Some(_)` arm stays a `case`, and the bare `rest`
+        // binding lowers to a `default:` that binds the scrutinee.
+        let ts = emit(
+            "module x\nfn f() -> number {\n  return match find() {\n    Some(_) => 1,\n    rest => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"Some\": {"), "{ts}");
         assert!(ts.contains("default: {"), "{ts}");
-        assert!(ts.contains("const None = __m0;"), "{ts}");
+        assert!(ts.contains("const rest = __m0;"), "{ts}");
         // The binding catch-all is the only `default`; no synthetic throw.
         assert!(!ts.contains("non-exhaustive match"), "{ts}");
     }
@@ -3853,6 +3894,23 @@ mod tests {
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
             "{err:?}"
         );
+    }
+
+    #[test]
+    fn nested_ok_none_does_not_miscompile() {
+        // G1: `Ok(None)` must group with `Ok(Some(x))` under one `case "Ok"` and
+        // dispatch the payload by tag — not emit a duplicate `case "Ok"` that
+        // binds `None` as a payload and throws on the `None` value at runtime.
+        let ts = emit(
+            "module x\nfn f(r: unknown) -> number {\n  return match r {\n    Ok(Some(x)) => x,\n    Ok(None) => 0,\n    Err(_) => -1,\n  }\n}\n",
+        );
+        // Exactly one outer `case "Ok"` (no duplicate from the un-grouped arm).
+        assert_eq!(ts.matches("case \"Ok\":").count(), 1, "{ts}");
+        // The inner dispatch handles both Some and None as tags.
+        assert!(ts.contains("case \"Some\": {"), "{ts}");
+        assert!(ts.contains("case \"None\": {"), "{ts}");
+        // `None` is never treated as a binding.
+        assert!(!ts.contains("const None"), "{ts}");
     }
 
     #[test]

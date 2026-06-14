@@ -48,6 +48,16 @@ candidates including a module `fn`, a keyword, and prelude `Result`/`Ok`).
 completion, and format-on-save.** Member completion after `.` is a refinement
 left for later.
 
+## Editor client (shipped): VS Code extension
+
+`editors/vscode/` is a minimal VS Code extension (plain CommonJS, no build
+step): a TextMate grammar for `.glyph` highlighting plus a Language Client that
+launches `glyph lsp` over stdio (configurable via `glyph.serverPath`). `npm
+install` then F5 brings up squiggles, hover, completion, and format-on-save.
+This makes the language server actually usable in an editor — the "ship the
+LSP" bar — and is the editor-support prerequisite for any external trial. Full
+activation is verified by launching it in VS Code (cannot be exercised in CI).
+
 **Remaining step-7 v1 scope (the brainstorm additions):** the `agent://`
 canonical virtual document (Q32), the `applyEdit` RPC (Q29), and the workspace
 symbol index (Q12). Rename + find-references remain v1.1. The single-file

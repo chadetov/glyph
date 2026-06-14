@@ -1,0 +1,43 @@
+{
+  "name": "glyph-vscode",
+  "displayName": "Glyph",
+  "description": "Glyph language support: syntax highlighting + the glyph language server (diagnostics, hover, go-to-definition, completion, format-on-save).",
+  "version": "0.1.0",
+  "publisher": "glyph",
+  "license": "MIT OR Apache-2.0",
+  "repository": { "type": "git", "url": "https://github.com/chadetov/glyph" },
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages"],
+  "main": "./extension.js",
+  "activationEvents": ["onLanguage:glyph"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "glyph",
+        "aliases": ["Glyph", "glyph"],
+        "extensions": [".glyph"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "glyph",
+        "scopeName": "source.glyph",
+        "path": "./syntaxes/glyph.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Glyph",
+      "properties": {
+        "glyph.serverPath": {
+          "type": "string",
+          "default": "glyph",
+          "description": "Path to the `glyph` binary. The extension launches `glyph lsp`. Leave as `glyph` if it is on your PATH."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

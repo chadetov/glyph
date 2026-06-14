@@ -25,11 +25,12 @@
 //!   `owned` parameter (`close(h)`). Method/namespaced consumes (`h.close()`,
 //!   `fs.close(h)`) need member-access type synthesis or stdlib signatures,
 //!   which don't exist yet — those calls simply aren't seen as consumes.
-//! - **Branching is modeled for `match` and `return`.** A `match` consumes a
-//!   handle on the merged path only when *every* falling arm consumes it.
-//! - **`?` is not a consumption checkpoint.** The Err-path early return of
-//!   `read(h)?` technically leaks `h`, but flagging it without a real corpus
-//!   would over-fire; deferred.
+//! - **Branching is modeled for `match`, `return`, and `?`.** A `match`
+//!   consumes a handle on the merged path only when *every* falling arm
+//!   consumes it. A `?` is a consumption checkpoint: its Err-path early return
+//!   leaks any handle still live at that point (`read(h)?` with `h` open
+//!   reports `OwnedNotConsumed`), so a handle must be consumed before, not
+//!   after, any `?` it is held across.
 //! - **Loop bodies** are checked for use-after-move against the incoming
 //!   state, but a consume *inside* a loop neither marks the handle consumed
 //!   (the loop may run zero times) nor is flagged as a cross-iteration double.
@@ -38,8 +39,8 @@
 use std::collections::{HashMap, HashSet};
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, Ident, LetStmt, Module, MutKind, ObjectField, Span, Stmt,
-    TemplatePart,
+    ArrayElem, Block, Decl, Expr, Ident, LetStmt, Module, MutKind, ObjectField, PostfixOp, Span,
+    Stmt, TemplatePart,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
@@ -285,8 +286,21 @@ impl OwnedChecker<'_> {
                 self.walk_expr(right, state);
                 Flow::Fall
             }
+            Expr::Postfix { op, operand, .. } => {
+                self.walk_expr(operand, state);
+                // `expr?` carries an implicit Err-path early return: if the
+                // operand is `Err(e)` the function returns immediately, before
+                // any later consume runs. Every handle still live here leaks on
+                // that path, so the `?` is a consumption checkpoint exactly like
+                // a `return` (D25: consumed on EVERY path). The success path
+                // falls through with state unchanged, so a handle consumed after
+                // the `?` is still fine on that path.
+                if matches!(op, PostfixOp::Try) {
+                    self.report_all_live(state);
+                }
+                Flow::Fall
+            }
             Expr::Unary { operand: child, .. }
-            | Expr::Postfix { operand: child, .. }
             | Expr::Member { object: child, .. }
             | Expr::Await { expr: child, .. } => {
                 self.walk_expr(child, state);
@@ -687,6 +701,49 @@ mod tests {
             matches!(errs.as_slice(), [TypeError::OwnedNotConsumed { name, .. }] if name == "f"),
             "expected exactly one OwnedNotConsumed, got {errs:?}"
         );
+    }
+
+    #[test]
+    fn live_handle_across_question_is_flagged() {
+        // `r?` returns early on Err with `f` still open: a leak on that path.
+        let errs = owned_errors(
+            "fn use_it(r: Result<number, number>) -> Result<void, number> {\n  \
+               let owned f: FileHandle = make()\n  \
+               let n: number = r?\n  \
+               close(f)\n  \
+               return Ok(void)\n}\n",
+        );
+        assert!(
+            matches!(errs.as_slice(), [TypeError::OwnedNotConsumed { name, .. }] if name == "f"),
+            "expected OwnedNotConsumed across `?`, got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn consume_before_question_is_clean() {
+        // `f` is consumed before the `?`, so it is not live on the Err path.
+        let errs = owned_errors(
+            "fn use_it(r: Result<number, number>) -> Result<void, number> {\n  \
+               let owned f: FileHandle = make()\n  \
+               close(f)\n  \
+               let n: number = r?\n  \
+               return Ok(void)\n}\n",
+        );
+        assert!(errs.is_empty(), "consume before `?` should be clean, got {errs:?}");
+    }
+
+    #[test]
+    fn question_before_owned_binding_is_clean() {
+        // The `?` precedes the `let owned`, so no handle is live at the
+        // checkpoint; the binding is then consumed normally.
+        let errs = owned_errors(
+            "fn use_it(r: Result<number, number>) -> Result<void, number> {\n  \
+               let n: number = r?\n  \
+               let owned f: FileHandle = make()\n  \
+               close(f)\n  \
+               return Ok(void)\n}\n",
+        );
+        assert!(errs.is_empty(), "`?` before the binding should be clean, got {errs:?}");
     }
 
     #[test]

@@ -2149,3 +2149,29 @@ deferred.
 Known follow-up: `glyph build --out X` does not clean `X` first, so a renamed
 or removed runtime file can leave a stale copy that breaks a re-checked build;
 `glyph run` already builds into a fresh dir, so it is unaffected.
+
+## Phase 1 week 6 complete — compile-time test execution
+
+`glyph build --test` runs every `@example`, `@doc @run` block, and property
+test, failing the build on any failure. Rather than a sandboxed interpreter
+(the original plan), execution reuses the emitter + `tsx`, so there is a single
+source of Glyph semantics.
+
+- **`@example expr == expr` (D23).** Each example's two sides are spliced into
+  the module as synthesized functions, the augmented project is built to TS, and
+  a generated harness **deep-compares** the values (structural, ignoring a
+  value's combinator methods) so `Result`/`Option`/record examples work.
+- **`@doc """ ... """` with ` ```glyph @run ``` ` fences (D26).** The lexer now
+  reads triple-quoted strings as one raw token, so a multi-line `@doc` parses as
+  one annotation. An `assert(condition)` prelude built-in throws on false; each
+  `@run` block is spliced in as a function and called through the same harness.
+- **Property tests (Q11 -> Option A).** `std/test.property(predicate, gen)` over
+  a `std/stream` `Stream<T>` generator (deterministic, no RNG) returns
+  `Ok(void)` or an `Err` counterexample; written as
+  `@example test.property(pred, stream.ints()) == Ok(void)`, it runs through the
+  `@example` machinery — no separate runner.
+
+Known limitations: an `@example`/`@run` comparing to a prelude constructor must
+import it (`import std/result { Ok }`) — the emitter does not auto-import prelude
+values. Multi-line `@doc` execution depends on triple-quoted strings (now
+lexed). `glyph regen` (Q40) and `--explain` content (week 7) remain deferred.

@@ -16,6 +16,13 @@ pub enum ResolveError {
     #[error("relative imports are not allowed (D15)")]
     RelativeImport { span: Span },
 
+    /// A module whose only top-level declarations are imports (no `fn`,
+    /// `type`, `const`, or `component`). D15 forbids barrel files; since
+    /// Glyph imports never re-export, such a file does nothing and is the
+    /// barrel-file anti-pattern. `span` points at the first import.
+    #[error("a module with only imports and no declarations is not allowed (D15: no barrel files)")]
+    BarrelFile { span: Span },
+
     #[error("unresolved name `{name}`")]
     UnresolvedName { name: String, span: Span },
 
@@ -36,6 +43,7 @@ impl ResolveError {
         match self {
             ResolveError::DuplicateName { second_span, .. } => *second_span,
             ResolveError::RelativeImport { span } => *span,
+            ResolveError::BarrelFile { span } => *span,
             ResolveError::UnresolvedName { span, .. } => *span,
             ResolveError::UnresolvedModule { span, .. } => *span,
             ResolveError::UnknownExportedName { span, .. } => *span,

@@ -84,6 +84,7 @@ fn stage_label_for(err: &ResolveError) -> &'static str {
     match err {
         ResolveError::DuplicateName { .. } => "collect",
         ResolveError::RelativeImport { .. } => "collect",
+        ResolveError::BarrelFile { .. } => "collect",
         ResolveError::UnknownExportedName { .. } => "import",
         ResolveError::UnresolvedName { .. } => "resolve",
         ResolveError::UnresolvedModule { .. } => "resolve",

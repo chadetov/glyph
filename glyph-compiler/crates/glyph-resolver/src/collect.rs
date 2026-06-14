@@ -55,6 +55,21 @@ pub fn collect_module_symbols(module: &Module) -> Result<ModuleSymbols, Vec<Reso
         errors: &mut errors,
     };
 
+    // D15 barrel-file detection: a module whose only top-level items are
+    // imports re-exports nothing (Glyph imports stay locally bound) and is the
+    // forbidden barrel-file pattern. Track whether any value declaration
+    // appears and the first import's span for the diagnostic.
+    let mut has_value_decl = false;
+    let mut first_import_span: Option<Span> = None;
+    for item in &module.items {
+        match item {
+            Decl::Import(imp) => {
+                first_import_span.get_or_insert(imp.span);
+            }
+            _ => has_value_decl = true,
+        }
+    }
+
     for (idx, item) in module.items.iter().enumerate() {
         let decl_idx = idx as u32;
         match item {
@@ -112,6 +127,14 @@ pub fn collect_module_symbols(module: &Module) -> Result<ModuleSymbols, Vec<Reso
                     }
                 }
             }
+        }
+    }
+
+    // A module with at least one import and no value declarations is a barrel
+    // file (D15). An empty module (no imports, no decls) is not flagged.
+    if !has_value_decl {
+        if let Some(span) = first_import_span {
+            errors.push(ResolveError::BarrelFile { span });
         }
     }
 
@@ -209,7 +232,7 @@ fn add(a: number, b: number) -> number { return a + b }
 
     #[test]
     fn collect_import_namespace_introduces_last_segment() {
-        let s = collect("module x\nimport std/io\n");
+        let s = collect("module x\nimport std/io\nfn f() {}\n");
         let id = s.lookup("io").expect("io should be in scope");
         match &s.table.get(id).unwrap().kind {
             SymbolKind::ImportNamespace { path } => {
@@ -222,17 +245,43 @@ fn add(a: number, b: number) -> number { return a + b }
 
     #[test]
     fn collect_import_aliased_uses_alias_name() {
-        let s = collect("module x\nimport std/http as h\n");
+        let s = collect("module x\nimport std/http as h\nfn f() {}\n");
         assert!(s.lookup("h").is_some());
         assert!(s.lookup("http").is_none(), "alias hides original name");
     }
 
     #[test]
     fn collect_import_named_introduces_each() {
-        let s = collect("module x\nimport std/result { Result, Ok, Err }\n");
+        let s = collect("module x\nimport std/result { Result, Ok, Err }\nfn f() {}\n");
         for name in ["Result", "Ok", "Err"] {
             assert!(s.lookup(name).is_some(), "missing {name}");
         }
+    }
+
+    #[test]
+    fn imports_only_file_is_a_barrel() {
+        let m = parse("module x\nimport std/result { Result }\nimport std/io\n").unwrap();
+        let errs = collect_module_symbols(&m).expect_err("expected a barrel-file error");
+        assert!(
+            errs.iter().any(|e| matches!(e, ResolveError::BarrelFile { .. })),
+            "errors were: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn import_plus_a_declaration_is_not_a_barrel() {
+        let s = collect("module x\nimport std/io\nfn main() {}\n");
+        assert!(s.lookup("main").is_some());
+    }
+
+    #[test]
+    fn empty_module_is_not_a_barrel() {
+        // No imports and no decls: an empty stub, not a re-export barrel.
+        let m = parse("module x\n").unwrap();
+        assert!(
+            collect_module_symbols(&m).is_ok(),
+            "an empty module must not be flagged as a barrel file"
+        );
     }
 
     #[test]

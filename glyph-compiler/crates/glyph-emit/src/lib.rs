@@ -3003,7 +3003,7 @@ mod tests {
     #[test]
     fn imports_three_forms() {
         let ts = emit(
-            "module x\nimport std/result { Ok, Err }\nimport std/io\nimport std/http as h\n",
+            "module x\nimport std/result { Ok, Err }\nimport std/io\nimport std/http as h\nfn noop() -> void { return void }\n",
         );
         assert!(ts.contains("import { Ok, Err } from \"std/result\";"), "{ts}");
         assert!(ts.contains("import * as io from \"std/io\";"), "{ts}");

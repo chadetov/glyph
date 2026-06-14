@@ -120,7 +120,7 @@ fn build_flags_unknown_cross_module_export() {
     write_file(
         &src,
         "app.glyph",
-        "module app\nimport lib { helper, bogus }\n",
+        "module app\nimport lib { helper, bogus }\nfn run() -> number { return helper() }\n",
     );
 
     let report = build_project(&src, &out).expect("build_project ok");
@@ -144,7 +144,7 @@ fn build_recurses_into_subdirectories() {
     write_file(
         &src,
         "app.glyph",
-        "module app\nimport lib/users { find }\n",
+        "module app\nimport lib/users { find }\nfn run() -> number { return find() }\n",
     );
 
     let report = build_project(&src, &out).expect("build_project ok");
@@ -199,7 +199,7 @@ fn diagnostics_include_source_context_via_ariadne() {
     write_file(
         &src,
         "app.glyph",
-        "module app\nimport lib { helper, bogus }\n",
+        "module app\nimport lib { helper, bogus }\nfn run() -> number { return helper() }\n",
     );
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");

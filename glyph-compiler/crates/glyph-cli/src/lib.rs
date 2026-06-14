@@ -7,11 +7,13 @@
 #![forbid(unsafe_code)]
 
 pub mod build;
+pub mod examples;
 pub mod fmt;
 pub mod render;
 pub mod run;
 pub mod runtime;
 
 pub use build::{build_project, BuildError, BuildReport};
+pub use examples::{run_examples, ExampleError, ExampleReport};
 pub use fmt::{format_path, FmtError, FmtReport};
 pub use run::{run_file, RunError, RunOutcome};

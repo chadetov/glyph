@@ -38,6 +38,9 @@ enum Command {
         /// After emitting, type-check the output with `tsc` (must be on PATH).
         #[arg(long)]
         check: bool,
+        /// After emitting, run every `@example` (D23) via `tsx` (must be on PATH).
+        #[arg(long)]
+        test: bool,
     },
     /// Build then run a Glyph program via node.
     Run {
@@ -73,7 +76,7 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out, check }) => {
+        Some(Command::Build { src, out, check, test }) => {
             // ariadne's `auto-color` feature isn't enabled in our
             // workspace, so it never auto-detects non-TTY at runtime.
             // We detect explicitly: if stderr (where diagnostics go) is
@@ -120,6 +123,45 @@ fn main() {
                         }
                         Err(e) => {
                             eprintln!("glyph build: failed to run tsc: {e}");
+                            std::process::exit(2);
+                        }
+                    }
+                }
+                if test {
+                    match glyph_cli::examples::run_examples(&src) {
+                        Ok(report) => {
+                            for f in &report.failures {
+                                eprintln!("glyph build: example failed: {f}");
+                            }
+                            if let Some(diags) = &report.build_failed {
+                                for d in diags {
+                                    eprintln!("{d}");
+                                }
+                                eprintln!("glyph build: examples did not compile");
+                                std::process::exit(1);
+                            }
+                            if !report.ran {
+                                eprintln!(
+                                    "glyph build: `tsx` not found on PATH; \
+                                     {} example(s) not run.",
+                                    report.total
+                                );
+                            } else if report.ok() {
+                                eprintln!(
+                                    "glyph build: {} example(s) passed.",
+                                    report.total
+                                );
+                            } else {
+                                eprintln!(
+                                    "glyph build: {} of {} example(s) failed.",
+                                    report.failures.len(),
+                                    report.total
+                                );
+                                std::process::exit(1);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("glyph build: failed to run examples: {e}");
                             std::process::exit(2);
                         }
                     }

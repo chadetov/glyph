@@ -494,6 +494,44 @@ fn js_toolchain_available() -> bool {
 }
 
 #[test]
+fn examples_run_and_report_pass_and_fail() {
+    // `@example expr == expr` runs at build time; a passing one is counted, a
+    // failing one is reported. Requires node + tsx; skipped otherwise.
+    if !js_toolchain_available() {
+        eprintln!("skipping example assertion: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("examples");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "calc.glyph",
+        "module calc\n\
+         import std/result { Result, Ok, Err }\n\
+         @example add(2, 3) == 5\n\
+         @example add(1, 1) == 3\n\
+         fn add(a: number, b: number) -> number { return a + b }\n\
+         @example wrap(7) == Ok(7)\n\
+         fn wrap(n: number) -> Result<number, string> { return Ok(n) }\n",
+    );
+    let report = glyph_cli::examples::run_examples(&src).expect("run_examples ok");
+    assert!(report.ran, "examples should have run");
+    assert!(report.build_failed.is_none(), "augmented build should compile");
+    assert_eq!(report.total, 3, "three @example lines");
+    assert_eq!(
+        report.failures.len(),
+        1,
+        "exactly the `add(1,1) == 3` example fails: {:?}",
+        report.failures
+    );
+    assert!(
+        report.failures[0].contains("add(1, 1)"),
+        "failure should name the bad example: {:?}",
+        report.failures
+    );
+}
+
+#[test]
 fn run_executes_main_and_propagates_exit_code() {
     // A program's `main(argv) -> number` return value becomes the process exit
     // code. Requires `node` + `tsx`; when absent the run is skipped so CI

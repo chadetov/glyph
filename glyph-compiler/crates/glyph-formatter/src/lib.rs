@@ -45,6 +45,22 @@ pub fn format_module(m: &Module, comments: &[Comment]) -> String {
     p.out
 }
 
+/// Format a single expression to canonical one-line-ish Glyph text (no trailing
+/// newline). Used by tooling that re-renders a sub-expression back into source —
+/// e.g. `@example` execution splices the two sides of an equality into
+/// synthesized functions. Multi-line containers still expand, but at indent
+/// zero.
+pub fn format_expr(e: &Expr) -> String {
+    let mut p = Printer {
+        out: String::new(),
+        indent: 0,
+        comments: Vec::new(),
+        cidx: 0,
+    };
+    p.expr(e);
+    p.out
+}
+
 struct Printer {
     out: String,
     indent: usize,

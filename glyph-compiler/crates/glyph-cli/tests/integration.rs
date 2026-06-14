@@ -532,6 +532,39 @@ fn examples_run_and_report_pass_and_fail() {
 }
 
 #[test]
+fn property_tests_run_through_examples() {
+    // `test.property(pred, gen) == Ok(void)` is an `@example`; a property that
+    // holds passes, one that doesn't fails. Requires node + tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping property assertion: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("props");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "p.glyph",
+        "module p\n\
+         import std/result { Result, Ok }\n\
+         import std/test\n\
+         import std/stream\n\
+         @example test.property(fn(n) { n + 0 == n }, stream.ints()) == Ok(void)\n\
+         @example test.property(fn(n) { n > 0 }, stream.ints()) == Ok(void)\n\
+         fn x() -> bool { return true }\n",
+    );
+    let report = glyph_cli::examples::run_examples(&src).expect("run ok");
+    assert!(report.ran);
+    assert!(report.build_failed.is_none(), "should compile: {:?}", report.build_failed);
+    assert_eq!(report.total, 2, "two property @examples");
+    assert_eq!(
+        report.failures.len(),
+        1,
+        "the `n > 0` property should fail (ints() yields 0 and negatives): {:?}",
+        report.failures
+    );
+}
+
+#[test]
 fn doc_run_blocks_execute_and_assert() {
     // A ```glyph @run``` block in a @doc executes; a failing `assert` is a
     // failure. Requires node + tsx; skipped otherwise.

@@ -129,6 +129,11 @@ impl StdlibStubs {
             "std/process",
             &["args", "exit", "env", "cwd"],
         );
+        // Property testing (Q11 -> Option A): `test.property` over a `Stream<T>`
+        // generator. Invoked inside `@example`/`@doc @run` and executed at
+        // build time.
+        s.add("std/test", &["property"]);
+        s.add("std/stream", &["Stream", "ints", "bools", "from"]);
         s
     }
 

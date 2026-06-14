@@ -160,3 +160,16 @@ fn format_is_idempotent_on_a_reformatted_snippet() {
         "normalized output must parse:\n{once}"
     );
 }
+
+#[test]
+fn blank_lines_are_preserved_collapsed_to_one() {
+    // A source blank line between declarations, between a section comment and
+    // its declaration, and between statements survives a format (collapsed to a
+    // single blank); idempotent.
+    let src = "module x\n\n// section\n// header\n\ntype A = number\n\nfn f() -> number {\n  let a = 1\n\n  let b = 2\n  return a\n}\n";
+    let once = fmt(src);
+    assert!(once.contains("// header\n\ntype A"), "comment->decl blank:\n{once}");
+    assert!(once.contains("type A = number\n\nfn f"), "decl->decl blank:\n{once}");
+    assert!(once.contains("let a = 1\n\n  let b = 2"), "stmt->stmt blank:\n{once}");
+    assert_eq!(fmt(&once), once, "blank-line formatting is not idempotent:\n{once}");
+}

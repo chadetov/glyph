@@ -98,6 +98,39 @@ impl Printer {
         self.pad();
     }
 
+    /// Insert one blank line at a point where the cursor is already on a fresh
+    /// (padded) line. Drops the pad so the blank line carries no trailing
+    /// whitespace, ends the current line, then re-pads for what follows.
+    fn blank_line(&mut self) {
+        while self.out.ends_with(' ') {
+            self.out.pop();
+        }
+        self.out.push('\n');
+        self.pad();
+    }
+
+    /// Whether the source between byte offsets `from` and `to` contains a blank
+    /// line (two or more newlines), so the formatter preserves a single blank
+    /// line where the author left one. False when no source is available
+    /// (`format_expr`) — that path formats fragments without layout context.
+    fn blank_line_in_source(&self, from: u32, to: u32) -> bool {
+        let Some(src) = &self.source else {
+            return false;
+        };
+        src.get(from as usize..to as usize)
+            .is_some_and(|s| s.bytes().filter(|&b| b == b'\n').count() >= 2)
+    }
+
+    /// The start offset of the next pending comment if it begins before
+    /// `offset` — the "leading edge" of the upcoming item, used to measure the
+    /// blank-line gap from the previous item.
+    fn pending_comment_start(&self, offset: u32) -> Option<u32> {
+        self.comments
+            .get(self.cidx)
+            .filter(|c| c.span.start < offset)
+            .map(|c| c.span.start)
+    }
+
     /// Render `f` into a detached buffer at the current indent and return it,
     /// leaving the main output untouched. Used to decide a lambda body's layout
     /// by inspecting whether its content is intrinsically multi-line.
@@ -150,7 +183,12 @@ impl Printer {
     fn module(&mut self, m: &Module) {
         // Header comments sit above the `module` line.
         let module_start = m.module_path.as_ref().map_or(0, |mp| mp.span.start);
-        self.flush_comments_before(module_start);
+        let header_end = self.flush_comments_before(module_start);
+        // Preserve a blank line the author left between the header comment block
+        // and the `module` line.
+        if header_end.is_some_and(|end| self.blank_line_in_source(end, module_start)) {
+            self.blank_line();
+        }
         if let Some(mp) = &m.module_path {
             self.push("module ");
             self.push(&join(&mp.segments, "/"));
@@ -164,7 +202,14 @@ impl Printer {
             if !self.out.is_empty() && !(is_import && prev_was_import) {
                 self.push("\n");
             }
-            self.flush_comments_before(decl_start(decl));
+            let last_comment_end = self.flush_comments_before(decl_start(decl));
+            // Preserve a blank line the author left between a section comment
+            // block and the declaration it heads.
+            if last_comment_end
+                .is_some_and(|end| self.blank_line_in_source(end, decl_start(decl)))
+            {
+                self.blank_line();
+            }
             self.decl(decl);
             prev_was_import = is_import;
         }
@@ -180,13 +225,21 @@ impl Printer {
     /// Emit every pending comment whose span begins before `offset`, each on its
     /// own line at the current indentation. The caller positions the cursor
     /// (already padded) before calling.
-    fn flush_comments_before(&mut self, offset: u32) {
+    /// Emit pending comments before `offset`, each on its own line. Returns the
+    /// end offset of the last comment emitted (if any), so the caller can
+    /// preserve a blank line between a trailing comment block and the item it
+    /// precedes.
+    fn flush_comments_before(&mut self, offset: u32) -> Option<u32> {
+        let mut last_end = None;
         while self.cidx < self.comments.len() && self.comments[self.cidx].span.start < offset {
-            let text = self.comments[self.cidx].text.clone();
+            let c = &self.comments[self.cidx];
+            let text = c.text.clone();
+            last_end = Some(c.span.end);
             self.push(&text);
             self.newline();
             self.cidx += 1;
         }
+        last_end
     }
 
     fn decl(&mut self, d: &Decl) {
@@ -358,10 +411,25 @@ impl Printer {
         }
         self.push("{");
         self.indent += 1;
+        let mut prev_end: Option<u32> = None;
         for s in &b.stmts {
             self.newline();
-            self.flush_comments_before(s.span().start);
+            // Preserve a blank line the author left before this statement (or
+            // before its leading comment block).
+            let lead = self
+                .pending_comment_start(s.span().start)
+                .unwrap_or_else(|| s.span().start);
+            if prev_end.is_some_and(|pe| self.blank_line_in_source(pe, lead)) {
+                self.blank_line();
+            }
+            let last_comment_end = self.flush_comments_before(s.span().start);
+            if last_comment_end
+                .is_some_and(|end| self.blank_line_in_source(end, s.span().start))
+            {
+                self.blank_line();
+            }
             self.stmt(s);
+            prev_end = Some(s.span().end);
         }
         // Comments after the last statement, before the closing brace.
         while self.has_comment_before(b.span.end) {
@@ -554,10 +622,16 @@ impl Printer {
                 self.expr(scrutinee);
                 self.push(" {");
                 self.indent += 1;
+                let mut prev_end: Option<u32> = None;
                 for arm in arms {
                     self.newline();
+                    // Preserve a blank line the author left to group arms.
+                    if prev_end.is_some_and(|pe| self.blank_line_in_source(pe, arm.span.start)) {
+                        self.blank_line();
+                    }
                     self.match_arm(arm);
                     self.push(",");
+                    prev_end = Some(arm.span.end);
                 }
                 self.indent -= 1;
                 self.newline();

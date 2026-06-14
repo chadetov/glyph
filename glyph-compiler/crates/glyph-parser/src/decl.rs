@@ -59,14 +59,16 @@ fn parse_module_decl(p: &mut Cursor) -> Result<ModulePath, ParseError> {
 /// Parse `seg1/seg2/seg3` into a `ModulePath`. The slash is the module
 /// separator (D15); we lex it as `Slash`, distinct from path-position usage.
 fn parse_dotted_path(p: &mut Cursor, start_span: Span) -> Result<ModulePath, ParseError> {
+    // Path segments accept keyword-spelled names (`std/record`, a file named
+    // `type.glyph`, ...): a module/file name is not restricted to non-keywords.
     let mut segments = Vec::new();
-    let (first, first_span) = p.expect_ident("module path segment")?;
+    let (first, first_span) = p.expect_field_name("module path segment")?;
     segments.push(first);
     let mut end_span = first_span;
 
     while matches!(p.peek(), Token::Slash) {
         p.advance();
-        let (seg, span) = p.expect_ident("module path segment")?;
+        let (seg, span) = p.expect_field_name("module path segment")?;
         segments.push(seg);
         end_span = span;
     }

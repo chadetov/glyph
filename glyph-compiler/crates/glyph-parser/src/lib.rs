@@ -129,6 +129,20 @@ mod smoke {
     }
 
     #[test]
+    fn import_keyword_named_module_segment() {
+        // A module path segment may be spelled like a keyword (`record`), since
+        // a module/file name is not restricted to non-keywords.
+        let m = parse_or_panic("module x\nimport std/record { get }\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Import(i) => {
+                let segs: Vec<&str> = i.path.segments.iter().map(|s| s.as_ref()).collect();
+                assert_eq!(segs, ["std", "record"]);
+            }
+            other => panic!("expected Import, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn import_named() {
         let m = parse_or_panic("module x\nimport std/result { Result, Ok, Err }\n");
         match &m.items[0] {

@@ -123,9 +123,16 @@ the most exposed.
   exactly; the re-escape fallback (template text, JSX attrs, `format_expr`) now
   also escapes `\n`/`\t`/`\r`. A no-op `glyph fmt` no longer touches string
   contents.*
-- **G12. No associative collection (Map / dict).** No `Map`, no index-signature
-  record, no dynamic record indexing. Grouping (e.g. items by category) has
-  nowhere to put results — a language-level gap, not just a missing stdlib fn.
+- **G12. [FIXED] Associative collection.** The original gap overstated this:
+  `Record<K, V>` already *is* the v1 associative collection — `r[key]` reads and
+  writes, `for k, v in r` iterates, and `let r: Record<string, V> = {}` builds
+  one up (01_validator does exactly this). What was missing was an absence-aware
+  read (a bare `r[key]` yields untyped `undefined` for a missing key) and a clean
+  way to query/update. *Fixed: a new `std/record` module adds `get` (returns an
+  `Option`), `has`, `keys`, `values`, and value-oriented `set`/`remove`. Module
+  path segments now also accept keyword-spelled names, so `import std/record`
+  (where `record` is a keyword) parses. Verified: grouping/counting by key works
+  end to end (`record.get` to accumulate, `r[k] =` to store, `for k, v` to read).*
 
 ## Medium — mutation, resources, tooling
 

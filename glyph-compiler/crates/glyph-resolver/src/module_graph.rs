@@ -134,6 +134,13 @@ impl StdlibStubs {
         // generator. Invoked inside `@example`/`@doc @run` and executed at
         // build time.
         s.add("std/test", &["property"]);
+        // `Record<K, V>` is the v1 associative collection (indexing + `for k, v`
+        // iteration are built in); `std/record` adds absence-aware reads and
+        // value-oriented updates.
+        s.add(
+            "std/record",
+            &["get", "has", "keys", "values", "set", "remove"],
+        );
         s.add("std/stream", &["Stream", "ints", "bools", "from"]);
         s
     }

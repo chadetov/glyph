@@ -15,17 +15,18 @@ Every design decision is tested against these. If a feature improves one without
 
 Verifiability and greppability are the wedge. Abstraction and diff stability are the polish.
 
-## Status
+## Why Glyph
 
-Phase 1 weeks 1 and 2 complete; week 3 (typechecker) underway. 14 days of work shipped:
-
-- Hand-written Rust lexer, Pratt parser, and AST handle all 27 spec decisions. All four hard-case example programs parse end to end.
-- Name resolution, module graph, and cross-module verification (`import M { N }`).
-- Full salsa-tracked incremental query pipeline (parse → collect → resolve → per-declaration type → project exports → import diagnostics). Per-decl input slicing, source-byte canonical fingerprints, automatic cross-file invalidation when a project file's exports change.
-- `glyph build src/ --out dist/` walks a source tree, runs the pipeline, and reports ariadne-rendered diagnostics with source-context lines and caret pointers.
-- First real type-system check: Maranget-style variant-set exhaustiveness for `match` over user-defined tagged unions.
-
-179 workspace tests pass. Next: bidirectional checker, `?` propagation typing, `owned` single-consumption analysis, runtime descriptors. Then TS emission (Phase 1 week 4). Live record: [`docs/implementation-plan.md`](docs/implementation-plan.md).
+1. **Built for AI agents.** They can read, write, and change code safely.
+2. **Looks like TypeScript.** You can read it on day one, no tutorial.
+3. **Compiles to TypeScript.** It runs anywhere TS runs and uses any npm package.
+4. **No `any`.** What the types say is true when the code runs.
+5. **One name, one form.** `grep` always finds where something is defined.
+6. **Errors are values, not exceptions.** You handle them with `match`.
+7. **`match` must cover every case.** The compiler tells you what you missed.
+8. **A one-line change makes a one-line diff.** Reviews stay small.
+9. **Tests live next to the code.** They run on every build.
+10. **Clear error messages.** Each one tells you how to fix the problem.
 
 ## Where to start
 

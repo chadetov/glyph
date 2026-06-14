@@ -2130,8 +2130,21 @@ The week-5 acceptance gate is met: `glyph run examples/04_cli_tool.glyph add
   `std/*` resolves, while keeping the caller's cwd for the program's own
   relative paths). `main`'s numeric return is the exit code.
 
-Remaining week-5 work: the `glyph fmt` formatter (~600 LoC, diff-stability
-pillar). `glyph regen` (Q40) and `--explain` content (week 7) stay deferred.
+- **Formatter (`glyph fmt`).** A new `glyph-formatter` crate prints the AST
+  back to one canonical layout (two-space indent, trailing commas, one element
+  per line past two, no line-length reflow, `match` and tagged unions always
+  multi-line, sorted annotations). The output round-trips: it re-parses to the
+  same AST, re-formatting is a fixed point, and the emitter produces identical
+  TypeScript from the original and the reformatted source (verified across all
+  examples + corpus). **Comments are preserved:** the lexer collects `//` line
+  comments (`glyph_lexer::comments`) and the formatter re-emits each in place by
+  interleaving on byte position against node spans — no comment storage is added
+  to the AST. `glyph fmt <file|dir>` formats in place. Known limitation: a
+  comment inside a multi-line expression is relocated to the next statement
+  boundary (stable/idempotent; not exercised by the examples).
+
+Week 5 is complete. `glyph regen` (Q40) and `--explain` content (week 7) stay
+deferred.
 
 Known follow-up: `glyph build --out X` does not clean `X` first, so a renamed
 or removed runtime file can leave a stale copy that breaks a re-checked build;

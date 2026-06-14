@@ -353,31 +353,13 @@ impl Resolver<'_> {
             }
             Stmt::Mut(m) => match &m.kind {
                 glyph_ast::MutKind::Assign { target, value } => {
-                    // `target` is an existing binding; resolve it. The Mut node
-                    // doesn't carry the target's reference span separately, so
-                    // we record against the statement span.
-                    self.resolve_name_ref(target, m.span);
+                    // The target is an lvalue expression (a name or a field/index
+                    // chain); walking it resolves the base binding and any index
+                    // subexpressions.
+                    self.walk_expr(target);
                     self.walk_expr(value);
                 }
-                glyph_ast::MutKind::AssignIndex {
-                    target,
-                    index,
-                    value,
-                } => {
-                    self.resolve_name_ref(target, m.span);
-                    self.walk_expr(index);
-                    self.walk_expr(value);
-                }
-                glyph_ast::MutKind::AssignField {
-                    target,
-                    field: _,
-                    value,
-                } => {
-                    self.resolve_name_ref(target, m.span);
-                    self.walk_expr(value);
-                }
-                glyph_ast::MutKind::MethodCall { receiver, call } => {
-                    self.walk_expr(receiver);
+                glyph_ast::MutKind::MethodCall { call } => {
                     self.walk_expr(call);
                 }
             },

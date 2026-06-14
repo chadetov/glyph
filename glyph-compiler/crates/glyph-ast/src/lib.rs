@@ -195,23 +195,13 @@ pub struct MutStmt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MutKind {
-    /// `mut x = expr`
-    Assign { target: Ident, value: Expr },
-    /// `mut x[k] = expr`
-    AssignIndex {
-        target: Ident,
-        index: Expr,
-        value: Expr,
-    },
-    /// `mut x.field = expr`
-    AssignField {
-        target: Ident,
-        field: Ident,
-        value: Expr,
-    },
+    /// `mut <lvalue> = expr`, where the target is an assignable place: a bare
+    /// name, or any chain of field accesses and index subscripts bottoming out
+    /// at one (`x`, `x.field`, `x[k]`, `x.items[0].name`, `r.a.b`).
+    Assign { target: Expr, value: Expr },
     /// `mut x.method(args)` — the typechecker doesn't verify the method
-    /// actually mutates (Q7).
-    MethodCall { receiver: Expr, call: Expr },
+    /// actually mutates (Q7). `call` is the whole method-call expression.
+    MethodCall { call: Expr },
 }
 
 /// D21: `for X in expr { body }` and the two-binding form

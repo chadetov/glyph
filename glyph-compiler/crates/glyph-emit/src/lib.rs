@@ -975,26 +975,9 @@ impl<'a> Emitter<'a> {
             Stmt::Mut(m) => {
                 let s = match &m.kind {
                     MutKind::Assign { target, value } => {
-                        format!("{} = {};", target, self.expr(value)?)
+                        format!("{} = {};", self.expr(target)?, self.expr(value)?)
                     }
-                    MutKind::AssignIndex {
-                        target,
-                        index,
-                        value,
-                    } => format!(
-                        "{}[{}] = {};",
-                        target,
-                        self.expr(index)?,
-                        self.expr(value)?
-                    ),
-                    MutKind::AssignField {
-                        target,
-                        field,
-                        value,
-                    } => {
-                        format!("{}.{} = {};", target, field, self.expr(value)?)
-                    }
-                    MutKind::MethodCall { call, .. } => format!("{};", self.expr(call)?),
+                    MutKind::MethodCall { call } => format!("{};", self.expr(call)?),
                 };
                 self.line(&s);
             }

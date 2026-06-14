@@ -66,97 +66,53 @@ fn parse_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
 /// actually mutate (Q7).
 fn parse_mut(p: &mut Cursor) -> Result<MutStmt, ParseError> {
     let mut_span = p.expect(&Token::Mut, "`mut`")?;
-    let (target, target_span) = p.expect_ident("identifier after `mut`")?;
-
+    // The target parses as an expression up to `=`. Since `=` is not an
+    // operator, a postfix lvalue chain (`x`, `x.f`, `x[i]`, `x.items[0].name`,
+    // `r.a.b`) parses and stops at the `=`; a method-call statement
+    // (`mut xs.push(v)`) parses as a call with no following `=`.
+    let target = expr::parse_expr(p)?;
     match p.peek() {
         Token::Equals => {
-            // `mut x = expr`
             p.advance();
             let value = expr::parse_expr(p)?;
             let end = value.span().end;
+            if !is_lvalue(&target) {
+                return Err(ParseError::Expected {
+                    expected: "an assignable target before `=` (a name, field access, or index)",
+                    found: format!("{target:?}"),
+                    span: target.span(),
+                });
+            }
             Ok(MutStmt {
                 kind: MutKind::Assign { target, value },
                 span: Span::new(mut_span.start, end),
             })
         }
-        Token::LBracket => {
-            // `mut x[k] = expr`
-            p.advance();
-            let index = expr::parse_expr(p)?;
-            p.expect(&Token::RBracket, "`]`")?;
-            p.expect(&Token::Equals, "`=` in `mut x[k] = ...`")?;
-            let value = expr::parse_expr(p)?;
-            let end = value.span().end;
+        // `mut <method call>` — D5's method-call mutation form.
+        _ if matches!(target, Expr::Call { .. }) => {
+            let end = target.span().end;
             Ok(MutStmt {
-                kind: MutKind::AssignIndex {
-                    target,
-                    index,
-                    value,
-                },
+                kind: MutKind::MethodCall { call: target },
                 span: Span::new(mut_span.start, end),
             })
         }
-        Token::Dot => {
-            // `mut x.field = expr` OR `mut x.method(args)`
-            p.advance();
-            let (field, _field_span) = p.expect_field_name("identifier after `.`")?;
-            match p.peek() {
-                Token::Equals => {
-                    p.advance();
-                    let value = expr::parse_expr(p)?;
-                    let end = value.span().end;
-                    Ok(MutStmt {
-                        kind: MutKind::AssignField {
-                            target,
-                            field,
-                            value,
-                        },
-                        span: Span::new(mut_span.start, end),
-                    })
-                }
-                Token::LParen => {
-                    // `mut x.method(args, ...)`. Recover the call by parsing the
-                    // member-call expression starting from `x.method(args)`.
-                    let receiver = Expr::Ident {
-                        name: target.clone(),
-                        span: target_span,
-                    };
-                    let member = Expr::Member {
-                        object: Box::new(receiver.clone()),
-                        field,
-                        optional: false,
-                        span: target_span,
-                    };
-                    // Now parse call args.
-                    p.advance();
-                    let args = p.parse_comma_separated(&Token::RParen, true, expr::parse_expr)?;
-                    let close = p.expect(&Token::RParen, "`)`")?;
-                    let call = Expr::Call {
-                        callee: Box::new(member),
-                        type_args: Vec::new(),
-                        args,
-                        span: Span::new(target_span.start, close.end),
-                    };
-                    Ok(MutStmt {
-                        kind: MutKind::MethodCall {
-                            receiver,
-                            call,
-                        },
-                        span: Span::new(mut_span.start, close.end),
-                    })
-                }
-                other => Err(ParseError::Expected {
-                    expected: "`=` or `(` after `mut x.field` (D5)",
-                    found: format!("{other:?}"),
-                    span: p.peek_span(),
-                }),
-            }
-        }
         other => Err(ParseError::Expected {
-            expected: "`=`, `[`, or `.` after `mut <ident>` (D5)",
+            expected: "`=` after the assignment target, or a method call (D5)",
             found: format!("{other:?}"),
             span: p.peek_span(),
         }),
+    }
+}
+
+/// Whether `e` is an assignable place (an lvalue): a name, or a chain of field
+/// accesses and index subscripts bottoming out at one. Calls, literals, and
+/// operator expressions are not assignable.
+fn is_lvalue(e: &Expr) -> bool {
+    match e {
+        Expr::Ident { .. } => true,
+        Expr::Member { object, .. } => is_lvalue(object),
+        Expr::Index { object, .. } => is_lvalue(object),
+        _ => false,
     }
 }
 

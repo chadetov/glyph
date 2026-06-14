@@ -67,16 +67,11 @@ fn walk_stmt_spans(s: &Stmt, out: &mut Vec<Span>) {
     match s {
         Stmt::Let(l) => walk_expr_spans(&l.value, out),
         Stmt::Mut(m) => match &m.kind {
-            glyph_ast::MutKind::Assign { value, .. } => walk_expr_spans(value, out),
-            glyph_ast::MutKind::AssignIndex { index, value, .. } => {
-                walk_expr_spans(index, out);
+            glyph_ast::MutKind::Assign { target, value } => {
+                walk_expr_spans(target, out);
                 walk_expr_spans(value, out);
             }
-            glyph_ast::MutKind::AssignField { value, .. } => walk_expr_spans(value, out),
-            glyph_ast::MutKind::MethodCall { receiver, call } => {
-                walk_expr_spans(receiver, out);
-                walk_expr_spans(call, out);
-            }
+            glyph_ast::MutKind::MethodCall { call } => walk_expr_spans(call, out),
         },
         Stmt::Return(r) => {
             if let Some(v) = &r.value {

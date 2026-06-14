@@ -136,10 +136,14 @@ the most exposed.
 
 ## Medium — mutation, resources, tooling
 
-- **G13. `mut` only supports single-level lvalues.** `mut xs[i].field`,
-  `mut r.a.b`, `mut r.items[0]` are parse errors — the most common list update
-  ("update field F of item N") can't be written. The de-facto idiom is immutable
-  rebuild (`array.map`/`filter` + spread); `mut` is decorative beyond a scalar.
+- **G13. [FIXED] `mut` only supported single-level lvalues.** `mut xs[i].field`,
+  `mut r.a.b`, `mut r.items[0]` were parse errors, so the most common list update
+  ("update field F of item N") couldn't be written. *Fixed: the `mut` target is
+  now a general lvalue expression (a name, or any chain of field accesses and
+  index subscripts bottoming out at one), unifying the old assign/index/field
+  forms. Verified: `mut bag.items[0].qty = 99` updates the nested element in
+  place. The immutable-rebuild idiom remains available and is still the
+  value-oriented default; the in-place aliasing question is G14.*
 - **G14. `mut r.field` mutates the caller's record (aliasing footgun).** Records
   are TS objects by reference; `mut x.field` lowers to in-place assignment, so a
   function silently mutates its caller's value. Surprising for a value-oriented

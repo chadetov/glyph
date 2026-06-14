@@ -509,34 +509,12 @@ impl Printer {
         self.push("mut ");
         match &m.kind {
             MutKind::Assign { target, value } => {
-                self.push(target);
-                self.push(" = ");
-                self.expr(value);
-            }
-            MutKind::AssignIndex {
-                target,
-                index,
-                value,
-            } => {
-                self.push(target);
-                self.push("[");
-                self.expr(index);
-                self.push("] = ");
-                self.expr(value);
-            }
-            MutKind::AssignField {
-                target,
-                field,
-                value,
-            } => {
-                self.push(target);
-                self.push(".");
-                self.push(field);
+                self.expr(target);
                 self.push(" = ");
                 self.expr(value);
             }
             // `call` already holds the full `receiver.method(args)` expression.
-            MutKind::MethodCall { call, .. } => self.expr(call),
+            MutKind::MethodCall { call } => self.expr(call),
         }
     }
 

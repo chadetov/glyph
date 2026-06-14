@@ -1214,13 +1214,25 @@ Module {
                                                                                                                                 stmts: [
                                                                                                                                     Mut(
                                                                                                                                         MutStmt {
-                                                                                                                                            kind: AssignIndex {
-                                                                                                                                                target: "result",
-                                                                                                                                                index: Ident {
-                                                                                                                                                    name: "key",
+                                                                                                                                            kind: Assign {
+                                                                                                                                                target: Index {
+                                                                                                                                                    object: Ident {
+                                                                                                                                                        name: "result",
+                                                                                                                                                        span: Span {
+                                                                                                                                                            start: 2749,
+                                                                                                                                                            end: 2755,
+                                                                                                                                                        },
+                                                                                                                                                    },
+                                                                                                                                                    index: Ident {
+                                                                                                                                                        name: "key",
+                                                                                                                                                        span: Span {
+                                                                                                                                                            start: 2756,
+                                                                                                                                                            end: 2759,
+                                                                                                                                                        },
+                                                                                                                                                    },
                                                                                                                                                     span: Span {
-                                                                                                                                                        start: 2756,
-                                                                                                                                                        end: 2759,
+                                                                                                                                                        start: 2749,
+                                                                                                                                                        end: 2760,
                                                                                                                                                     },
                                                                                                                                                 },
                                                                                                                                                 value: Ident {
@@ -1288,13 +1300,6 @@ Module {
                                                                                                                                                     Mut(
                                                                                                                                                         MutStmt {
                                                                                                                                                             kind: MethodCall {
-                                                                                                                                                                receiver: Ident {
-                                                                                                                                                                    name: "issues",
-                                                                                                                                                                    span: Span {
-                                                                                                                                                                        start: 2869,
-                                                                                                                                                                        end: 2875,
-                                                                                                                                                                    },
-                                                                                                                                                                },
                                                                                                                                                                 call: Call {
                                                                                                                                                                     callee: Member {
                                                                                                                                                                         object: Ident {
@@ -1308,7 +1313,7 @@ Module {
                                                                                                                                                                         optional: false,
                                                                                                                                                                         span: Span {
                                                                                                                                                                             start: 2869,
-                                                                                                                                                                            end: 2875,
+                                                                                                                                                                            end: 2880,
                                                                                                                                                                         },
                                                                                                                                                                     },
                                                                                                                                                                     type_args: [],
@@ -2030,13 +2035,6 @@ Module {
                                                                                                                                     Mut(
                                                                                                                                         MutStmt {
                                                                                                                                             kind: MethodCall {
-                                                                                                                                                receiver: Ident {
-                                                                                                                                                    name: "result",
-                                                                                                                                                    span: Span {
-                                                                                                                                                        start: 3610,
-                                                                                                                                                        end: 3616,
-                                                                                                                                                    },
-                                                                                                                                                },
                                                                                                                                                 call: Call {
                                                                                                                                                     callee: Member {
                                                                                                                                                         object: Ident {
@@ -2050,7 +2048,7 @@ Module {
                                                                                                                                                         optional: false,
                                                                                                                                                         span: Span {
                                                                                                                                                             start: 3610,
-                                                                                                                                                            end: 3616,
+                                                                                                                                                            end: 3621,
                                                                                                                                                         },
                                                                                                                                                     },
                                                                                                                                                     type_args: [],
@@ -2126,13 +2124,6 @@ Module {
                                                                                                                                                     Mut(
                                                                                                                                                         MutStmt {
                                                                                                                                                             kind: MethodCall {
-                                                                                                                                                                receiver: Ident {
-                                                                                                                                                                    name: "issues",
-                                                                                                                                                                    span: Span {
-                                                                                                                                                                        start: 3729,
-                                                                                                                                                                        end: 3735,
-                                                                                                                                                                    },
-                                                                                                                                                                },
                                                                                                                                                                 call: Call {
                                                                                                                                                                     callee: Member {
                                                                                                                                                                         object: Ident {
@@ -2146,7 +2137,7 @@ Module {
                                                                                                                                                                         optional: false,
                                                                                                                                                                         span: Span {
                                                                                                                                                                             start: 3729,
-                                                                                                                                                                            end: 3735,
+                                                                                                                                                                            end: 3740,
                                                                                                                                                                         },
                                                                                                                                                                     },
                                                                                                                                                                     type_args: [],

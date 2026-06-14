@@ -190,18 +190,11 @@ impl OwnedChecker<'_> {
             }
             Stmt::Mut(m) => {
                 match &m.kind {
-                    MutKind::Assign { value, .. } => {
+                    MutKind::Assign { target, value } => {
+                        self.walk_expr(target, state);
                         self.walk_expr(value, state);
                     }
-                    MutKind::AssignIndex { index, value, .. } => {
-                        self.walk_expr(index, state);
-                        self.walk_expr(value, state);
-                    }
-                    MutKind::AssignField { value, .. } => {
-                        self.walk_expr(value, state);
-                    }
-                    MutKind::MethodCall { receiver, call } => {
-                        self.walk_expr(receiver, state);
+                    MutKind::MethodCall { call } => {
                         self.walk_expr(call, state);
                     }
                 }

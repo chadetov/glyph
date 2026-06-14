@@ -670,7 +670,7 @@ fn main() {
         match &f.body.stmts[0] {
             glyph_ast::Stmt::Mut(s) => match &s.kind {
                 glyph_ast::MutKind::Assign { target, .. } => {
-                    assert_eq!(target.as_ref(), "x");
+                    assert!(matches!(target, glyph_ast::Expr::Ident { name, .. } if name.as_ref() == "x"));
                 }
                 other => panic!("expected Assign, got {other:?}"),
             },
@@ -686,9 +686,36 @@ fn main() {
             _ => panic!(),
         };
         match &f.body.stmts[0] {
-            glyph_ast::Stmt::Mut(s) => {
-                assert!(matches!(s.kind, glyph_ast::MutKind::AssignIndex { .. }));
-            }
+            glyph_ast::Stmt::Mut(s) => match &s.kind {
+                glyph_ast::MutKind::Assign { target, .. } => {
+                    assert!(matches!(target, glyph_ast::Expr::Index { .. }), "{target:?}");
+                }
+                other => panic!("expected Assign, got {other:?}"),
+            },
+            other => panic!("expected Mut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn mut_multi_level_lvalue_g13() {
+        // `mut xs[i].field = v` — a nested index+field lvalue (G13). The target
+        // is a `Member` over an `Index` over a name.
+        let m = parse_or_panic("module x\nfn main() { mut xs[0].name = \"a\" }\n");
+        let f = match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        match &f.body.stmts[0] {
+            glyph_ast::Stmt::Mut(s) => match &s.kind {
+                glyph_ast::MutKind::Assign { target, .. } => {
+                    assert!(
+                        matches!(target, glyph_ast::Expr::Member { object, .. }
+                            if matches!(object.as_ref(), glyph_ast::Expr::Index { .. })),
+                        "{target:?}"
+                    );
+                }
+                other => panic!("expected Assign, got {other:?}"),
+            },
             other => panic!("expected Mut, got {other:?}"),
         }
     }

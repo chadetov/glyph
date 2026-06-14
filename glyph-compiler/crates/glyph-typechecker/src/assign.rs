@@ -280,27 +280,26 @@ impl Assigner<'_> {
             Stmt::Mut(m) => match &m.kind {
                 glyph_ast::MutKind::Assign { target, value } => {
                     // D20: a `const` is immutable; `mut N = ...` reassigning one
-                    // is rejected. The resolver records the target's resolution
-                    // at the statement span.
-                    if let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(m.span) {
-                        if let Some(sym) = self.resolved.symbols.table.get(id) {
-                            if matches!(sym.kind, SymbolKind::Const { .. }) {
-                                self.errors.push(TypeError::MutateConst {
-                                    name: target.to_string(),
-                                    span: m.span,
-                                });
+                    // is rejected. Only a bare-name target rebinds; a field/index
+                    // target mutates contents (a separate value-semantics
+                    // question). The resolver records the target name at its own
+                    // span when it walks the lvalue.
+                    if let Expr::Ident { name, span } = target {
+                        if let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(*span) {
+                            if let Some(sym) = self.resolved.symbols.table.get(id) {
+                                if matches!(sym.kind, SymbolKind::Const { .. }) {
+                                    self.errors.push(TypeError::MutateConst {
+                                        name: name.to_string(),
+                                        span: *span,
+                                    });
+                                }
                             }
                         }
                     }
+                    self.walk_expr(target);
                     self.walk_expr(value);
                 }
-                glyph_ast::MutKind::AssignIndex { index, value, .. } => {
-                    self.walk_expr(index);
-                    self.walk_expr(value);
-                }
-                glyph_ast::MutKind::AssignField { value, .. } => self.walk_expr(value),
-                glyph_ast::MutKind::MethodCall { receiver, call } => {
-                    self.walk_expr(receiver);
+                glyph_ast::MutKind::MethodCall { call } => {
                     self.walk_expr(call);
                 }
             },

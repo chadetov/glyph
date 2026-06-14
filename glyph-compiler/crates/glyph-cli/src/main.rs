@@ -67,8 +67,19 @@ fn main() {
     let cli = Cli::parse();
 
     if let Some(code) = cli.explain {
-        eprintln!("phase 0 stub: --explain {} not yet implemented", code);
-        std::process::exit(1);
+        match glyph_cli::explain::explain(&code) {
+            Some(text) => {
+                println!("{text}");
+                std::process::exit(0);
+            }
+            None => {
+                eprintln!(
+                    "glyph: no documentation for error code `{code}`. \
+                     See docs/error-codes.md for the catalogue."
+                );
+                std::process::exit(1);
+            }
+        }
     }
 
     match cli.command {

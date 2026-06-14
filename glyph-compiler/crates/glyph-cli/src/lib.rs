@@ -8,6 +8,7 @@
 
 pub mod build;
 pub mod examples;
+pub mod explain;
 pub mod fmt;
 pub mod render;
 pub mod run;

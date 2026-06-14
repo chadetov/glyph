@@ -25,6 +25,7 @@ glyph-db.workspace = true
 glyph-emit.workspace = true
 glyph-formatter.workspace = true
 glyph-runtime.workspace = true
+glyph-lsp.workspace = true
 
 clap.workspace = true
 tokio.workspace = true

@@ -64,6 +64,8 @@ enum Command {
         #[arg(value_name = "PATH")]
         path: Option<std::path::PathBuf>,
     },
+    /// Run the language server over stdio (spawned by an editor extension).
+    Lsp,
     /// Regenerate a function body from its `@generate` spec block.
     Regen {
         #[arg(value_name = "FN")]
@@ -256,9 +258,17 @@ fn main() {
                 }
             }
         }
+        Some(Command::Lsp) => {
+            // Hands control to the language server; runs until the editor closes
+            // the stdio connection.
+            glyph_lsp::run_stdio();
+            std::process::exit(0);
+        }
         Some(cmd) => {
             let name = match cmd {
-                Command::Build { .. } | Command::Run { .. } | Command::Fmt { .. } => unreachable!(),
+                Command::Build { .. } | Command::Run { .. } | Command::Fmt { .. } | Command::Lsp => {
+                    unreachable!()
+                }
                 Command::Regen { .. } => "regen",
                 Command::Publish => "publish",
             };

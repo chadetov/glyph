@@ -17,7 +17,7 @@ Original 12-step plan: `archive/glyph-strategy.md`. Revisions to steps 4–9 are
 
 | # | Step | Status | Source of truth |
 |---|------|--------|-----------------|
-| 7 | Ship the LSP (4 weeks → revised 5–6 weeks) | 🟦 Planned. Foundation already in place: salsa-tracked incremental queries (days 5–12) give the LSP its memoization substrate for free. Rename + find-references cut to v1.1; formatter-on-save and `agent://` virtual document RPC (Q32) added. | `docs/roadmap/07-lsp.md` |
+| 7 | Ship the LSP (4 weeks → revised 5–6 weeks) | 🟨 **Started — increment 1 shipped.** New `glyph-lsp` crate (tower-lsp + tokio), launched via `glyph lsp` over stdio. Live **diagnostics** (parse/resolve/typecheck errors with their stable codes + help text, UTF-16 ranges, published on open/change/close) and **document formatting** (the canonical `glyph fmt` layout). Verified end to end via a real `initialize`/`didOpen` exchange. Next: hover types, go-to-definition, completion. Rename + find-references stay v1.1; `agent://` virtual document (Q32) and `applyEdit` RPC (Q29) remain in scope. | `docs/roadmap/07-lsp.md` |
 | 8 | Formatter and package story (2 weeks) | 🟦 Planned, `glyph.json` rejected in favor of `"glyph"` key in `package.json` | `docs/roadmap/08-09-packaging.md` |
 | 9 | Installer and playground (2 weeks) | 🟦 Planned, npm distribution over curl-pipe-bash; third playground pane (agent edit → one-line diff) added | `docs/roadmap/08-09-packaging.md` |
 | 10 | Docs and book outline (4 weeks) | ⬜ Not yet re-scoped | `archive/glyph-strategy.md §4` |

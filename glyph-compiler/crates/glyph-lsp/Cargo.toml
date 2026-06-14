@@ -1,0 +1,18 @@
+[package]
+name = "glyph-lsp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+tower-lsp.workspace = true
+tokio.workspace = true
+glyph-lexer.workspace = true
+glyph-ast.workspace = true
+glyph-parser.workspace = true
+glyph-resolver.workspace = true
+glyph-typechecker.workspace = true
+glyph-formatter.workspace = true

@@ -1,6 +1,32 @@
 # Step 7 — LSP
 
-Status: **planned, rescoped.** Full discussion in `archive/glyph-lsp-discussion.md`.
+Status: **in progress — increment 1 shipped.** Full discussion in `archive/glyph-lsp-discussion.md`.
+
+## Increment 1 (shipped): diagnostics + formatting
+
+The `glyph-lsp` crate (`crates/glyph-lsp/`, tower-lsp + tokio) is launched by
+`glyph lsp` over stdio — the transport an editor extension spawns. It serves:
+
+- **Diagnostics** — the compiler front end (parse → resolve → typecheck, with
+  stdlib-stub import verification) runs over each open document; every error is
+  published with its stable code (`E0xxx`), `help` text, and a UTF-16 line/
+  character range, on open/change, and cleared on close. A parse failure
+  short-circuits (no AST for later phases).
+- **Document formatting** — returns the canonical `glyph fmt` layout as a
+  whole-document edit; unparseable source is left untouched, matching the CLI.
+
+The analysis (`analysis.rs`: `analyze` + a UTF-16 `LineIndex`) holds no protocol
+types and is unit-tested without an LSP runtime; the diagnostic computation is a
+synchronous call that never holds a lock or a non-`Send` value across an
+`await`. Verified end to end with a real `initialize`/`didOpen` JSON-RPC
+exchange (an `E0210` field-typo squiggle with the right range).
+
+**Next increments:** hover types, go-to-definition (cross-module via D15
+full-path imports), completion. Then the v1 additions: the `agent://`
+canonical virtual document (Q32), the `applyEdit` RPC (Q29), and the workspace
+symbol index (Q12). Rename + find-references remain v1.1. The single-file
+analysis will move onto the salsa `glyph-db` queries when multi-file/workspace
+support lands (the incremental substrate is already there).
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

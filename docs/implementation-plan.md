@@ -2197,3 +2197,32 @@ and (where useful) a background `note`, all rendered into the ariadne report:
 The original plan capped `--explain` content at the top 20 codes; since there
 are only ~22, all are documented. `glyph regen` (Q40) stays deferred to a later
 phase.
+
+## Phase 1 week 8 complete — hardening
+
+- **Negative-example suite.** `tests/negative/` holds 18 programs that must fail
+  to compile, each with a sibling `*.expected_error` code. A harness builds each
+  in isolation (no `tsc`/`tsx`) and asserts the exact code. Cases were authored
+  and verified in parallel against the prebuilt compiler; they cover every code
+  reachable from a single file (18 of 22). The plan's bar was 15.
+- **Property-based fuzzing.** proptest suites assert the lexer/parser are total
+  (no panic on arbitrary text or token soup; failed parses carry in-bounds
+  spans) and that the exhaustiveness checker flags a non-exhaustive `match`
+  exactly when a variant is uncovered.
+- **CI.** `.github/workflows/ci.yml` runs the whole workspace test suite and
+  `tsc --strict` over the examples on every push/PR, with node + tsx + tsc
+  installed so the toolchain-dependent tests run. Not gated on rustfmt (the tree
+  is not currently rustfmt-clean — a deliberate non-goal, the formatter is for
+  Glyph, not the Rust source).
+- **Benchmark track.** `measure.sh` now records an approximate (dependency-free)
+  token count beside line counts; a fresh results file is checked in. Diff-size
+  measurement against edit patches remains a later enhancement.
+
+**Phase 1 (the Rust compiler) is complete.** Weeks 1–8 shipped: lexer → parser →
+AST → resolver → typechecker (substep 5a) → TS emission → runtime + `glyph run`
++ `glyph fmt` → compile-time tests → error-message audit → hardening. 380
+workspace tests pass; the four examples + nine corpus programs pass
+`tsc --strict`. The deferred items (a fuller unifier + substep 5c; generic/deep
+descriptors; the remaining `owned` consume forms; number/string value-match;
+mapped types/substep 5b; `glyph regen`; diff-size benchmarks) carry into v1.1 /
+later phases. **Next: step 6 — dogfood** (the fridge shopping-list app).

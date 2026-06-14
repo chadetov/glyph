@@ -2095,6 +2095,68 @@ impl<'a> Emitter<'a> {
         Ok(format!("{targs}({})", a.join(", ")))
     }
 
+    /// Rewrite `json.parse<T>(text)` to the validating `json.parse_with(text,
+    /// T.schema)` when `T` is a local type with a runtime descriptor (G3). The
+    /// plain `json.parse<T>` casts the decoded JSON to `T` without checking it;
+    /// routing through the descriptor validates the shape instead. Returns `None`
+    /// (so the caller emits the call normally) for any non-matching call —
+    /// including a type argument with no descriptor, where the cast escape hatch
+    /// is the intended behavior.
+    fn try_json_parse_validating(
+        &self,
+        callee: &Expr,
+        type_args: &[TypeExpr],
+        args: &[Expr],
+    ) -> Result<Option<String>, EmitError> {
+        let Expr::Member { object, field, optional: false, .. } = callee else {
+            return Ok(None);
+        };
+        if field.as_ref() != "parse" {
+            return Ok(None);
+        }
+        let Expr::Ident { name, .. } = object.as_ref() else {
+            return Ok(None);
+        };
+        if !self.is_json_namespace(name) {
+            return Ok(None);
+        }
+        let ([type_arg], [arg]) = (type_args, args) else {
+            return Ok(None);
+        };
+        let TypeExpr::Path { segments, .. } = type_arg else {
+            return Ok(None);
+        };
+        let [tname] = segments.as_slice() else {
+            return Ok(None);
+        };
+        if !self.has_local_descriptor(tname.as_ref()) {
+            return Ok(None);
+        }
+        let obj = self.expr(object)?;
+        let arg_str = self.expr(arg)?;
+        Ok(Some(format!("{obj}.parse_with({arg_str}, {tname}.schema)")))
+    }
+
+    /// Whether `name` is the local binding of a `std/json` namespace import
+    /// (`import std/json` -> `json`, or `import std/json as j` -> `j`), so a
+    /// `<name>.parse<T>` call is the stdlib JSON parse and not a user method.
+    fn is_json_namespace(&self, name: &str) -> bool {
+        self.module.items.iter().any(|d| {
+            let Decl::Import(im) = d else { return false };
+            let path: Vec<&str> = im.path.segments.iter().map(|s| s.as_ref()).collect();
+            if path != ["std", "json"] {
+                return false;
+            }
+            match &im.kind {
+                ImportKind::Namespace => {
+                    im.path.segments.last().map(|s| s.as_ref()) == Some(name)
+                }
+                ImportKind::Aliased(alias) => alias.as_ref() == name,
+                ImportKind::Named(_) => false,
+            }
+        })
+    }
+
     /// Emit the operand of an `await`, inserting the `await` at the async call
     /// that heads the receiver spine rather than around the whole chain. Returns
     /// the emitted string and whether an `await` was inserted.
@@ -2184,7 +2246,10 @@ impl<'a> Emitter<'a> {
                 type_args,
                 args,
                 ..
-            } => format!("{}{}", self.expr(callee)?, self.call_suffix(type_args, args)?),
+            } => match self.try_json_parse_validating(callee, type_args, args)? {
+                Some(rewritten) => rewritten,
+                None => format!("{}{}", self.expr(callee)?, self.call_suffix(type_args, args)?),
+            },
             Expr::Member {
                 object,
                 field,
@@ -3421,6 +3486,17 @@ mod tests {
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
         assert!(ts.contains("from \"std/io\""), "{ts}");
+    }
+
+    #[test]
+    fn json_parse_with_descriptor_routes_through_schema() {
+        // G3: `json.parse<T>(text)` for a type with a descriptor validates via
+        // `T.schema`; a type without one keeps the plain (casting) parse.
+        let ts = emit(
+            "module x\nimport std/json\ntype User = { name: string }\nfn load(text: string) -> Result<User, Array<Issue>> {\n  return json.parse<User>(text)\n}\nfn loose(text: string) -> Result<number, Array<Issue>> {\n  return json.parse<number>(text)\n}\n",
+        );
+        assert!(ts.contains("json.parse_with(text, User.schema)"), "{ts}");
+        assert!(ts.contains("json.parse<number>(text)"), "{ts}");
     }
 
     #[test]

@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "Bidirectional typechecker for Glyph. Salsa-backed. ADTs + Maranget exhaustiveness + D25 owned-tracking + D24 redact metadata + D8 runtime descriptors."
+description = "Bidirectional typechecker for Glyph. Salsa-backed. ADTs + match exhaustiveness + D25 owned-tracking + D24 redact metadata + D8 runtime descriptors."
 
 [dependencies]
 glyph-ast.workspace = true

@@ -12,7 +12,11 @@
 //! - D7  type expressions; nominal newtypes (no general refinement types in
 //!       v1 per Q15 resolution; mapped types deferred to v1.1 per Q1)
 //! - D8  runtime descriptor emission for every type declaration (Q8 core)
-//! - D9  exhaustive match via Maranget 2007 (~400 LoC)
+//! - D9  exhaustive match: per-scrutinee checkers (tagged-union variant
+//!       set with arbitrary-depth single-payload recursion, prelude
+//!       `Result`/`Option`, array length coverage, and `bool`). Not the
+//!       general Maranget matrix — products of independent refutable
+//!       columns are conservatively treated as covered (deferred to v1.1).
 //! - D16 `void` type and value
 //! - D24 `@redact` metadata propagates with the type's runtime descriptor
 //! - D25 `owned` single-consumption analysis across paths (manifesto carve-out)
@@ -138,6 +142,16 @@ pub enum TypeError {
     /// `missing` names the smallest uncovered case.
     #[error("non-exhaustive array match: {missing} not covered")]
     NonExhaustiveArrayMatch { missing: String, span: Span },
+
+    /// A `match` over a `bool` scrutinee covers neither both `true` and
+    /// `false` nor a catch-all (`_`, `else`, or a binding). D3 makes `match`
+    /// the only conditional, so an open boolean match is a real gap rather
+    /// than a stylistic choice. `missing` names the uncovered case(s).
+    /// Boolean *expressions* such as comparisons type as `Unknown` and are
+    /// not checked; only a value of statically-known `bool` type triggers
+    /// this.
+    #[error("non-exhaustive match on `bool`: {missing} not covered")]
+    NonExhaustiveBoolMatch { missing: String, span: Span },
 }
 
 impl TypeError {
@@ -152,6 +166,7 @@ impl TypeError {
             TypeError::OwnedNotConsumed { span, .. } => *span,
             TypeError::OwnedUsedAfterMove { span, .. } => *span,
             TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
+            TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
         }
     }
 }

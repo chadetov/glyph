@@ -17,9 +17,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild, JsxElement, MatchArm, MatchArmBody,
-    Module, ObjectField, ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt, TemplatePart,
-    TypeExpr,
+    ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm,
+    MatchArmBody, Module, ObjectField, ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt,
+    TemplatePart, TypeExpr,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
@@ -688,8 +688,53 @@ impl Assigner<'_> {
             self.check_array_exhaustiveness(arms, match_span);
             return;
         }
+        if matches!(scrutinee_ty, Ty::Prim(Primitive::Bool)) {
+            self.check_bool_exhaustiveness(arms, match_span);
+            return;
+        }
         let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
         self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+    }
+
+    /// Exhaustiveness for a `match` over a `bool` scrutinee: both `true` and
+    /// `false` must be covered, or a catch-all (`_`, `else`, or a binding)
+    /// must absorb the rest. D3 makes `match` the only conditional, so an
+    /// open boolean match (`match b { true => .. }`) is a real gap. Only
+    /// fires when the scrutinee has statically-known `bool` type — a boolean
+    /// *expression* (a comparison, say) types as `Unknown` and reaches this
+    /// path not at all.
+    fn check_bool_exhaustiveness(&mut self, arms: &[MatchArm], match_span: glyph_ast::Span) {
+        let mut has_true = false;
+        let mut has_false = false;
+        for arm in arms {
+            match &arm.pattern {
+                // A binding or catch-all absorbs every value.
+                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. } => return,
+                Pattern::Literal { value: LiteralPattern::Bool(b), .. } => {
+                    if *b {
+                        has_true = true;
+                    } else {
+                        has_false = true;
+                    }
+                }
+                // Other pattern shapes over a bool scrutinee are not modeled
+                // (and don't normally type-check); skip without crediting.
+                _ => {}
+            }
+        }
+        if has_true && has_false {
+            return;
+        }
+        let missing = match (has_true, has_false) {
+            (true, false) => "`false`",
+            (false, true) => "`true`",
+            (false, false) => "`true` and `false`",
+            (true, true) => unreachable!("covered both branches returns above"),
+        };
+        self.errors.push(TypeError::NonExhaustiveBoolMatch {
+            missing: missing.to_string(),
+            span: match_span,
+        });
     }
 
     /// If `ty` is an application of the named prelude container type, return
@@ -1779,6 +1824,99 @@ fn main(n: number) -> number {
 "#;
         let errs = ty_errors_of(src);
         assert!(errs.is_empty(), "non-union scrutinee should not be flagged; got: {errs:?}");
+    }
+
+    // ----- bool match exhaustiveness (week-3, D3) -----
+
+    #[test]
+    fn bool_match_covering_both_passes() {
+        let src = r#"module x
+fn f(b: bool) -> number {
+  return match b {
+    true => 1,
+    false => 0,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn bool_match_missing_false_is_flagged() {
+        let src = r#"module x
+fn f(b: bool) -> number {
+  return match b {
+    true => 1,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::NonExhaustiveBoolMatch { missing, .. }] if missing.contains("false")),
+            "expected NonExhaustiveBoolMatch missing false; got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn bool_match_missing_true_is_flagged() {
+        let src = r#"module x
+fn f(b: bool) -> number {
+  return match b {
+    false => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::NonExhaustiveBoolMatch { missing, .. }] if missing.contains("true")),
+            "expected NonExhaustiveBoolMatch missing true; got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn bool_match_with_wildcard_passes() {
+        let src = r#"module x
+fn f(b: bool) -> number {
+  return match b {
+    true => 1,
+    _ => 0,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn bool_match_with_binding_passes() {
+        // A bare-ident arm over a bool scrutinee is a binding catch-all.
+        let src = r#"module x
+fn f(b: bool) -> number {
+  return match b {
+    other => 0,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn bool_comparison_scrutinee_is_not_checked() {
+        // `n > 0` is a binary expression that types as Unknown, so it never
+        // reaches the bool exhaustiveness checker — an incomplete match on it
+        // is not flagged (documents the v1 limitation: only statically-typed
+        // bool scrutinees are checked).
+        let src = r#"module x
+fn f(n: number) -> number {
+  return match n > 0 {
+    true => 1,
+  }
+}
+"#;
+        assert!(
+            ty_errors_of(src).is_empty(),
+            "comparison scrutinee types Unknown and is not checked; got: {:?}",
+            ty_errors_of(src)
+        );
     }
 
     // ----- day-15: `?` operator typing rule -----

@@ -42,16 +42,24 @@ the most exposed.
 
 ## High — verifiability holes and "silent green"
 
-- **G3. `json.parse<T>` is a cast, not a validating parse.** The runtime is
-  `Ok(JSON.parse(text) as T)` — no shape check. The fridge persistence boundary
-  (`json.parse<Fridge>`) trusts on-disk data blindly: exactly the failure the
-  manifesto's Example 1 says Glyph exists to prevent. *Fix: route text → an
-  `unknown` decoder → `T.schema.parse` (validating).*
-- **G4. The validating descriptor only checks one level.** `T.is`/`T.parse`
-  check `typeof` for primitive fields and bare `"field" in value` presence for
-  everything else — never recursing into nested records, `Array<T>`, or
-  `Option<T>`. So even the "validating" path doesn't validate the fridge's shape.
-  *Fix: recurse into named-record / array / option field checks.*
+- **G3. [FIXED] `json.parse<T>` was a cast, not a validating parse.** The runtime
+  was `Ok(JSON.parse(text) as T)` — no shape check. The fridge persistence
+  boundary (`json.parse<Fridge>`) trusted on-disk data blindly: exactly the
+  failure the manifesto's Example 1 says Glyph exists to prevent. *Fixed: the
+  emitter rewrites `json.parse<T>(text)` to `json.parse_with(text, T.schema)` for
+  any `T` with a descriptor, routing the decoded value through the validating
+  descriptor; a type with no descriptor keeps the casting `parse` as an escape
+  hatch. Verified end to end: a malformed `.fridge.json` is now rejected as
+  corrupt instead of loaded.*
+- **G4. [FIXED] The validating descriptor only checked one level.** `T.is`/`T.parse`
+  checked `typeof` for primitive fields and bare `"field" in value` presence for
+  everything else — never recursing, so even the "validating" path didn't
+  validate the fridge's shape. *Fixed: the record descriptor's `is` guard now
+  recurses — a nested record field via `T.is`, an `Array<E>` via `Array.isArray`
+  plus a per-element check, and an `Option<E>` by its tag plus the `Some`
+  payload's type. Verified: a `Fridge` whose item carries a string where a
+  numeric quantity belongs is rejected. (A tagged union's variant payloads are
+  still validated only by tag — a smaller, separate gap.)*
 - **G5. Hand-edited Option JSON crashes.** An `Option` field serializes as
   `{"tag":"None"}` / `{"tag":"Some","value":n}`. A human or tool writing
   `"quantity": null` or `"quantity": 2` is rejected by neither the cast nor
@@ -159,7 +167,9 @@ catch — they should be fixed first. Then the "silent green" cluster **G7/G8/G9
 the verifiability pair **G3/G6**. **G11** (fmt escape corruption) is a quick,
 self-contained correctness fix.
 
-**Progress:** G1, G2, G11, G7, G8, G9, G10, and G6 are fixed — the "silent green"
-cluster is closed, multi-file programs work, and the typechecker now catches
-field and argument errors in Glyph terms. Next: G3 (validating `json.parse`),
-which pairs with G4 (descriptor recursion).
+**Progress:** the critical and high-severity gaps are all fixed — G1, G2, G11
+(correctness bugs); G7, G8, G9, G10 (the "silent green" cluster + multi-file);
+G6 (typechecker field/arg checking); and G3 + G4 (validating, recursive
+`json.parse`). Remaining are medium/low: G5 (hand-edited Option JSON), G12
+(Map/dict), G13–G18 (mut, owned, fmt nits), G19–G20 (sugar/parser limits), plus
+the tagged-union payload-recursion follow-on noted under G4.

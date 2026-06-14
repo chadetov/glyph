@@ -598,7 +598,7 @@ impl<'a> Emitter<'a> {
     /// recursing into a named-record field's own `is` would close the gap and is
     /// the path to full soundness.
     fn emit_record_descriptor(&mut self, name: &Ident, fields: &[RecordTypeField]) {
-        let checks: Vec<String> = fields.iter().map(record_field_check).collect();
+        let checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
         self.line(&format!("export const {name} = {{"));
         self.indent += 1;
         self.line(&format!("is(value: unknown): value is {name} {{"));
@@ -1912,6 +1912,68 @@ impl<'a> Emitter<'a> {
         })
     }
 
+    /// One field's runtime check inside a record descriptor's `is` predicate. A
+    /// required field must match its type (a missing field reads as `undefined`,
+    /// which every check below rejects); an optional field also passes when it is
+    /// absent.
+    fn record_field_check(&self, field: &RecordTypeField) -> String {
+        let access = format!("(value as Record<string, unknown>).{}", field.name);
+        let check = self.field_value_check(&field.ty, &access);
+        if field.optional {
+            let present = format!("\"{}\" in (value as object)", field.name);
+            format!("(!({present}) || {check})")
+        } else {
+            check
+        }
+    }
+
+    /// A boolean expression validating that the unknown value `access` matches
+    /// `ty` (G4 — the descriptor recurses rather than checking only one level):
+    /// - a primitive by `typeof`;
+    /// - a named type with a descriptor by `T.is(...)` (recurses into nested
+    ///   records and unions);
+    /// - `Array<E>` by `Array.isArray` plus an element check on every item;
+    /// - `Option<E>` by its `{ tag: "None" } | { tag: "Some", value: E }` shape,
+    ///   validating the payload of a `Some`;
+    /// - anything else (an imported type, a generic parameter, a function field)
+    ///   conservatively by "not undefined", the previous shallow behavior.
+    fn field_value_check(&self, ty: &TypeExpr, access: &str) -> String {
+        if let Some(jt) = js_typeof(ty) {
+            return format!("typeof {access} === \"{jt}\"");
+        }
+        match ty {
+            TypeExpr::Path { segments, .. }
+                if segments.len() == 1 && self.has_local_descriptor(segments[0].as_ref()) =>
+            {
+                format!("{}.is({access})", segments[0])
+            }
+            TypeExpr::Generic { base, args, .. } => {
+                let base_name = match base.as_ref() {
+                    TypeExpr::Path { segments, .. } => segments.last().map(|s| s.as_ref()),
+                    _ => None,
+                };
+                match (base_name, args.as_slice()) {
+                    (Some("Array"), [elem]) => {
+                        let elem_check = self.field_value_check(elem, "__e");
+                        format!(
+                            "Array.isArray({access}) && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})"
+                        )
+                    }
+                    (Some("Option"), [inner]) => {
+                        let tag = format!("(({access}) as {{ tag?: unknown }}).tag");
+                        let value = format!("(({access}) as {{ value?: unknown }}).value");
+                        let inner_check = self.field_value_check(inner, &value);
+                        format!(
+                            "(typeof {access} === \"object\" && {access} !== null && ({tag} === \"None\" || ({tag} === \"Some\" && {inner_check})))"
+                        )
+                    }
+                    _ => format!("{access} !== undefined"),
+                }
+            }
+            _ => format!("{access} !== undefined"),
+        }
+    }
+
     /// Bind a constructor arm's payload from the scrutinee temporary `m`: an
     /// object pattern reads each spread field by name; a single identifier
     /// reads the non-record `value` field; no args and a `_` wildcard
@@ -2687,23 +2749,6 @@ impl<'a> Emitter<'a> {
     }
 }
 
-/// One field's runtime check inside a record descriptor's `is` predicate.
-/// Primitive fields are checked by `typeof`; other fields by presence
-/// (shallow validation). An optional field passes when it is absent.
-fn record_field_check(field: &RecordTypeField) -> String {
-    let access = format!("(value as Record<string, unknown>).{}", field.name);
-    let present = format!("\"{}\" in (value as object)", field.name);
-    let check = match js_typeof(&field.ty) {
-        Some(jt) => format!("typeof {access} === \"{jt}\""),
-        None => present.clone(),
-    };
-    if field.optional {
-        format!("(!({present}) || {check})")
-    } else {
-        check
-    }
-}
-
 /// True when a tagged union's descriptor `const <name>` would not collide with
 /// any variant constructor `const`/`function`. A union with a variant sharing
 /// its own name cannot also carry a descriptor under that name, so the
@@ -3330,8 +3375,12 @@ mod tests {
             ts.contains("(!(\"admin\" in (value as object)) || typeof (value as Record<string, unknown>).admin === \"boolean\")"),
             "{ts}"
         );
-        // Non-primitive field: presence check only (shallow).
-        assert!(ts.contains("&& \"parent\" in (value as object);"), "{ts}");
+        // Nested record field: recurses through the field type's descriptor
+        // (G4), not a shallow presence check.
+        assert!(
+            ts.contains("User.is((value as Record<string, unknown>).parent)"),
+            "{ts}"
+        );
     }
 
     #[test]
@@ -3486,6 +3535,21 @@ mod tests {
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
         assert!(ts.contains("from \"std/io\""), "{ts}");
+    }
+
+    #[test]
+    fn record_descriptor_recurses_into_nested_fields() {
+        // G4: the `is` guard validates nested records (via `T.is`), array
+        // elements (via `.every`), and option payloads (by tag + value type),
+        // not just one level.
+        let ts = emit(
+            "module x\ntype Item = { name: string }\ntype Bag = { items: Array<Item>, note: Option<string> }\nfn f(b: Bag) -> number {\n  return 0\n}\n",
+        );
+        assert!(ts.contains(".every((__e: unknown) => Item.is(__e))"), "{ts}");
+        assert!(ts.contains("Array.isArray("), "{ts}");
+        // Option<string> payload validated by tag and value type.
+        assert!(ts.contains(".tag === \"Some\""), "{ts}");
+        assert!(ts.contains(".value === \"string\""), "{ts}");
     }
 
     #[test]

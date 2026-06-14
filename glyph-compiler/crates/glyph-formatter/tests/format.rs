@@ -44,7 +44,7 @@ fn emit_ts(src: &str) -> Option<String> {
 
 fn fmt(src: &str) -> String {
     let m = glyph_parser::parse(src).expect("parse");
-    format_module(&m, &glyph_lexer::comments(src))
+    format_module(&m, &glyph_lexer::comments(src), src)
 }
 
 #[test]
@@ -61,11 +61,11 @@ fn examples_format_is_stable_and_semantics_preserving() {
 
         // Stable: format → reparse → format is a fixed point.
         let m = glyph_parser::parse(&src).unwrap_or_else(|e| panic!("{label}: parse: {e:?}"));
-        let once = format_module(&m, &glyph_lexer::comments(&src));
+        let once = format_module(&m, &glyph_lexer::comments(&src), &src);
         let m2 = glyph_parser::parse(&once).unwrap_or_else(|e| {
             panic!("{label}: formatted output did not re-parse: {e:?}\n--- output ---\n{once}")
         });
-        let twice = format_module(&m2, &glyph_lexer::comments(&once));
+        let twice = format_module(&m2, &glyph_lexer::comments(&once), &once);
         assert_eq!(once, twice, "{label}: formatting is not idempotent");
 
         // Comments are preserved: every comment's text survives.
@@ -115,6 +115,37 @@ fn record_over_two_fields_is_multiline_with_trailing_comma() {
 fn union_renders_in_multiline_bar_form() {
     let u = fmt("module x\ntype Feed = Loading | Loaded | Failed\n");
     assert!(u.contains("type Feed =\n  | Loading\n  | Loaded\n  | Failed\n"), "{u}");
+}
+
+#[test]
+fn string_escapes_are_preserved_not_corrupted() {
+    // G11: a no-op format must not rewrite string contents. A single-line
+    // literal with `\n`/`\t` escapes stays single-line and keeps its escapes
+    // (it must not be split into raw control bytes).
+    let src = "module x\nfn f() -> string {\n  return \"a\\tb\\nc\"\n}\n";
+    let once = fmt(src);
+    assert!(
+        once.contains("\"a\\tb\\nc\""),
+        "escapes must round-trip verbatim; got:\n{once}"
+    );
+    assert!(
+        !once.contains("a\tb"),
+        "must not emit a raw TAB into the source; got:\n{once:?}"
+    );
+    assert_eq!(fmt(&once), once, "string formatting is not idempotent");
+}
+
+#[test]
+fn multiline_d12_string_is_kept_verbatim() {
+    // A D12 multi-line string (raw newlines in source) must survive verbatim,
+    // not collapse onto one line.
+    let src = "module x\nfn f() -> string {\n  return \"line1\nline2\"\n}\n";
+    let once = fmt(src);
+    assert!(
+        once.contains("\"line1\nline2\""),
+        "multi-line string must stay multi-line; got:\n{once:?}"
+    );
+    assert_eq!(fmt(&once), once, "multi-line string formatting is not idempotent");
 }
 
 #[test]

@@ -57,7 +57,7 @@ pub fn format_path(path: &Path) -> Result<FmtReport, FmtError> {
                 // Comments are recovered separately (the parser drops them) and
                 // re-emitted in place by the formatter.
                 let comments = glyph_lexer::comments(&src);
-                let formatted = format_module(&module, &comments);
+                let formatted = format_module(&module, &comments, &src);
                 if formatted == src {
                     report.unchanged.push(file);
                 } else {

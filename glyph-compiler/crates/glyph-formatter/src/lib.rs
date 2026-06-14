@@ -21,7 +21,7 @@ use glyph_ast::{
     Annotation, ArrayElem, BinOp, Block, Comment, ComponentDecl, ConstDecl, Decl, Expr, FnDecl,
     FnTypeParam, GenericParam, ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern,
     MatchArm, MatchArmBody, Module, MutKind, MutStmt, ObjectField, Param, Pattern, PostfixOp,
-    RecordTypeField, Stmt, TemplatePart, TypeDecl, TypeExpr, UnaryOp, UnionVariant,
+    RecordTypeField, Span, Stmt, TemplatePart, TypeDecl, TypeExpr, UnaryOp, UnionVariant,
 };
 
 /// A list with more than this many elements is laid out one-per-line.
@@ -30,9 +30,12 @@ const INLINE_MAX: usize = 2;
 /// Format a whole module to canonical Glyph source. `comments` are the `//`
 /// line comments recovered from the source (via `glyph_lexer::comments`); they
 /// are re-emitted in source order, each immediately above the declaration or
-/// statement that follows it. Pass `&[]` to format without comments. The result
-/// ends in a single trailing newline.
-pub fn format_module(m: &Module, comments: &[Comment]) -> String {
+/// statement that follows it. Pass `&[]` to format without comments. `source` is
+/// the original program text — string literals are copied verbatim from it (by
+/// span) so escapes and D12 multi-line strings round-trip exactly rather than
+/// being reconstructed from the lexer's decoded value. The result ends in a
+/// single trailing newline.
+pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> String {
     let mut sorted = comments.to_vec();
     sorted.sort_by_key(|c| c.span.start);
     let mut p = Printer {
@@ -40,6 +43,7 @@ pub fn format_module(m: &Module, comments: &[Comment]) -> String {
         indent: 0,
         comments: sorted,
         cidx: 0,
+        source: Some(source.to_string()),
     };
     p.module(m);
     p.out
@@ -56,6 +60,7 @@ pub fn format_expr(e: &Expr) -> String {
         indent: 0,
         comments: Vec::new(),
         cidx: 0,
+        source: None,
     };
     p.expr(e);
     p.out
@@ -68,6 +73,10 @@ struct Printer {
     /// (emitted) when the walk reaches a node whose span begins after them.
     comments: Vec<Comment>,
     cidx: usize,
+    /// The original program text, when formatting a whole module. String
+    /// literals are sliced from it verbatim by span; `None` for `format_expr`,
+    /// which re-escapes from the decoded value instead.
+    source: Option<String>,
 }
 
 impl Printer {
@@ -468,7 +477,7 @@ impl Printer {
     fn expr(&mut self, e: &Expr) {
         match e {
             Expr::Number { raw, .. } => self.push(raw),
-            Expr::String { value, .. } => self.string_literal(value),
+            Expr::String { value, span } => self.string_literal(value, *span),
             Expr::TemplateString { parts, .. } => self.template(parts),
             Expr::Bool { value, .. } => self.push(if *value { "true" } else { "false" }),
             Expr::Void { .. } => self.push("void"),
@@ -644,7 +653,22 @@ impl Printer {
         }
     }
 
-    fn string_literal(&mut self, value: &str) {
+    fn string_literal(&mut self, value: &str, span: Span) {
+        // Prefer copying the literal verbatim from source: that preserves the
+        // exact escapes the user wrote and D12 multi-line strings, neither of
+        // which is recoverable from the lexer's decoded `value`. The span covers
+        // the surrounding quotes (`"..."` or `"""..."""`). Fall back to
+        // re-escaping the decoded value when no source is available (format_expr)
+        // or the span is somehow out of range.
+        let verbatim = self
+            .source
+            .as_deref()
+            .and_then(|src| src.get(span.start as usize..span.end as usize))
+            .map(str::to_string);
+        if let Some(raw) = verbatim {
+            self.push(&raw);
+            return;
+        }
         self.push("\"");
         self.push(&escape_string(value));
         self.push("\"");
@@ -659,7 +683,15 @@ impl Printer {
                     // The interpolation's code lives inside the outer `"..."`, so
                     // its own `"`/`\` must be escaped (the lexer de-escapes the
                     // string content before re-parsing each `${...}` region).
+                    //
+                    // The interpolation expression was parsed from a substring of
+                    // the literal, so any spans inside it (e.g. a nested string)
+                    // are relative to that substring, not the module source. Clear
+                    // `source` so nested string literals take the re-escape path
+                    // instead of slicing the module at a bogus offset.
+                    let saved = self.source.take();
                     let code = self.capture(|p| p.expr(value));
+                    self.source = saved;
                     self.push("${");
                     self.push(&escape_string(&code));
                     self.push("}");
@@ -676,7 +708,7 @@ impl Printer {
             Pattern::Wildcard { .. } => self.push("_"),
             Pattern::Else { .. } => self.push("else"),
             Pattern::Ident { name, .. } => self.push(name),
-            Pattern::Literal { value, .. } => self.literal_pattern(value),
+            Pattern::Literal { value, span } => self.literal_pattern(value, *span),
             Pattern::Constructor { path, args, .. } => {
                 self.push(&join(path, "."));
                 if !args.is_empty() {
@@ -728,10 +760,10 @@ impl Printer {
         }
     }
 
-    fn literal_pattern(&mut self, l: &LiteralPattern) {
+    fn literal_pattern(&mut self, l: &LiteralPattern, span: Span) {
         match l {
             LiteralPattern::Number(s) => self.push(s),
-            LiteralPattern::String(s) => self.string_literal(s),
+            LiteralPattern::String(s) => self.string_literal(s, span),
             LiteralPattern::Bool(b) => self.push(if *b { "true" } else { "false" }),
             LiteralPattern::Void => self.push("void"),
         }
@@ -862,9 +894,12 @@ impl Printer {
     fn jsx_attr(&mut self, attr: &JsxAttr) {
         match attr {
             JsxAttr::String { name, value, .. } => {
+                // The stored span covers `name="value"`, not just the literal, so
+                // there is no precise slice to copy; re-escape the decoded value.
                 self.push(name);
-                self.push("=");
-                self.string_literal(value);
+                self.push("=\"");
+                self.push(&escape_string(value));
+                self.push("\"");
             }
             JsxAttr::Expr { name, value, .. } => {
                 self.push(name);
@@ -978,14 +1013,22 @@ fn unary_sym(op: UnaryOp) -> &'static str {
     }
 }
 
-/// Re-escape a decoded string value for emission. `\` and `"` are escaped; raw
-/// newlines and tabs are preserved (D12), so a multi-line string round-trips.
+/// Re-escape a decoded string value for emission. `\`, `"`, and the control
+/// characters `\n`/`\t`/`\r` are all escaped, so the result is a single-line,
+/// non-corrupting literal regardless of its contents. This is the fallback used
+/// for template text segments (whose original escapes the parser has already
+/// discarded) and for `format_expr` (which has no source to copy from); plain
+/// `Expr::String` literals are emitted verbatim from source instead, which
+/// preserves D12 multi-line strings exactly.
 fn escape_string(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
         match c {
             '\\' => out.push_str("\\\\"),
             '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\t' => out.push_str("\\t"),
+            '\r' => out.push_str("\\r"),
             other => out.push(other),
         }
     }

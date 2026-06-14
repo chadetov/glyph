@@ -2058,6 +2058,53 @@ after a pillar analysis (the manifesto's four pillars, wedge = verifiability
 - **Method and namespaced consumes** (`h.close()`, `fs.close(h)`) need
   member-access type synthesis or stdlib signatures; v1 sees only
   free-function consumers.
-- **`?` as a consumption checkpoint**, **cross-iteration loop double-consume**,
-  and **lambda/JSX capture** are all conservative no-ops for v1.
-- **Runtime descriptors (Q8)** is the next major week-3 item.
+- **Cross-iteration loop double-consume** and **lambda/JSX capture** are
+  conservative no-ops for v1.
+
+(**`?` as a consumption checkpoint** and **runtime descriptors (Q8)** were the
+two remaining week-3 items; both are now done — see the Week 2 + Week 3
+completion section below.)
+
+## Phase 1 weeks 2–3 completion (v1 scope)
+
+The Week-2 and Week-3 task lists are now fully done within the v1 scope. The
+remaining gaps from the per-day record above were closed in a single pass; each
+landed as its own commit with tests, the full workspace stays green, all four
+examples build with zero diagnostics, and `glyph build --check` passes
+`tsc --strict` over the examples and the nine `examples/corpus/` programs.
+
+Closed in this pass:
+
+- **Local `let` inference** (Week-2 task 5) — an unannotated `let x = <expr>`
+  records the initializer's synthesized type, so later references resolve
+  concretely. An `Unknown` initializer records nothing (binding stays open).
+- **D15 barrel-file diagnostic** (Week-2 task 2) — a module whose only
+  top-level items are imports emits `BarrelFile`. Several imports-only test
+  fixtures gained a declaration a real file would carry.
+- **`?` operand rule** (Week-3 task 2, operand side) — the operand must be a
+  `Result` (`QuestionOnNonResult`), the `?` expression unwraps to the success
+  type `T`, and the operand's `E` must equal the enclosing function's `E`
+  exactly with no `From` (`QuestionErrorTypeMismatch`). All gate on
+  decidability, so the four examples (whose `?` sits on `.map_err(...)` method
+  calls that type as `Unknown`) are unaffected.
+- **Bool match exhaustiveness** (Week-3 task 1) — a `match` over a
+  statically-typed `bool` must cover `true` and `false` or carry a catch-all
+  (`NonExhaustiveBoolMatch`). Number/string value-match exhaustiveness stays
+  v1.1. The misleading "Maranget 2007" doc-comment was corrected to describe
+  the actual per-scrutinee checkers.
+- **Q8 runtime descriptors for tagged unions** (Week-3 task 3) — a non-generic
+  `type X = | A | B` now emits `const X = { is, parse, schema }` mirroring the
+  record descriptor, so `is X` and `X.parse` work at runtime. Validated against
+  `tsc --strict`.
+- **`?` as an owned consumption checkpoint** (Week-3 task 4) — a `?`'s Err-path
+  early return leaks any handle still live at that point, reported like a
+  `return`.
+
+Also fixed in passing: the generated `tsconfig.json` dropped the `baseUrl`
+option, which TypeScript 6 deprecates (it would otherwise fail `--check`); the
+relative `paths` entry resolves without it.
+
+Still deferred (v1.1 / later substeps), unchanged: a fuller unifier and substep
+5c flow-narrowing; generic-record/union descriptors and deep/recursive
+validation; `owned` method/namespaced/loop/closure consumes; number/string
+value-match exhaustiveness; mapped types (`infer_shape`, substep 5b).

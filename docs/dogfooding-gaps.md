@@ -173,3 +173,36 @@ G6 (typechecker field/arg checking); and G3 + G4 (validating, recursive
 `json.parse`). Remaining are medium/low: G5 (hand-edited Option JSON), G12
 (Map/dict), G13–G18 (mut, owned, fmt nits), G19–G20 (sugar/parser limits), plus
 the tagged-union payload-recursion follow-on noted under G4.
+
+## Round 2 — re-dogfooding after the critical/high fixes
+
+With the critical and high gaps closed, the fridge app was used end to end (every
+command) and extended with **merge-on-add** (re-adding an item updates its
+quantity instead of duplicating) and a **`summary` footer** (`1/2 checked`). Both
+were written cleanly in Glyph, build, pass `tsc --strict`, and ship with
+`@example` tests (10 now pass). The persistence boundary correctly rejects a
+malformed `.fridge.json` (G3/G4). What the real use surfaced:
+
+- **R1. `glyph run` latency (~2s/invocation).** Every `glyph run` rebuilds,
+  type-checks (`tsc`), and starts `tsx` from scratch. For a CLI invoked dozens of
+  times a day this is the dominant friction. *Fix candidates: cache/skip the
+  build when sources are unchanged; reuse a warm `tsc`/`tsx`; or a persistent
+  dev process.* New, and the highest-impact ergonomics gap.
+- **R2. No `array.any` / `array.contains`.** Membership tests recur as
+  `match array.find(xs, p) { Some(_) => true, None => false }` — a four-line
+  dance (`contains_name` in the app). A boolean `array.any(xs, p)` /
+  `array.contains` would shorten it. Stdlib gap.
+- **R3. No `array.sort`.** A sorted list (the obvious next feature) can't be
+  expressed without hand-rolling a sort; `std/array` has no ordering helper.
+  Stdlib gap.
+- **R4. G12 (Map/dict) re-confirmed as the next real blocker.** Merge-on-add
+  works via a linear `array.find` + `array.map` rebuild (fine at small sizes), but
+  group-by-category, dedup, and keyed lookup all want an associative collection.
+- **R5. `mut` stayed unused (re-confirms G13).** Every list update was an
+  immutable rebuild (`array.map`/`filter` + object spread, which works well —
+  `{ ...existing, quantity }` in a match arm is clean). `mut` was never reachable
+  for "update field F of item N", so it remains decorative for collections.
+
+Net: the toolchain is now trustworthy enough for daily use; the remaining
+friction is **ergonomics and stdlib breadth** (R1–R3) plus the **Map** language
+gap (G12/R4), not correctness.

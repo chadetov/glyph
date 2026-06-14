@@ -1,10 +1,16 @@
 # Step 6 — Dogfooding
 
-Status: **in progress.** The fridge app (`examples/apps/fridge.glyph`) is built,
-runs end to end via `glyph run`, passes `tsc --strict`, and its `@example` tests
-pass. The concrete gap list it produced is in [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md)
-(20 gaps, several silent-miscompile bugs). Remaining: fix the top gaps, then use
-the app for real. Full session log in `archive/glyph_step6_session.md`.
+Status: **in progress (round 2).** The fridge app (`examples/apps/fridge.glyph`)
+is built, runs end to end via `glyph run`, passes `tsc --strict`, and its
+`@example` tests pass. The first round produced a 20-gap list in
+[`docs/dogfooding-gaps.md`](../dogfooding-gaps.md); **all critical and
+high-severity gaps are now fixed** (G1–G2, G11 correctness; G7–G10 silent-green +
+multi-file; G6 typechecker field/arg checks; G3–G4 validating recursive
+`json.parse`). The app was then re-dogfooded — used across every command and
+extended with merge-on-add and a summary footer — surfacing round-2 findings
+(R1 `glyph run` latency, R2 `array.any`, R3 `array.sort`, R4 Map/dict re-confirmed,
+R5 `mut` unused). Remaining gaps are ergonomics + stdlib breadth, not
+correctness. Full session log in `archive/glyph_step6_session.md`.
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

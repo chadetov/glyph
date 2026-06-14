@@ -91,8 +91,37 @@ fn empty_fridge() -> Fridge {
   return { items: [] }
 }
 
+// Adding an item that is already on the list updates its quantity (and keeps
+// its checked state) rather than creating a duplicate entry.
 fn add_item(fridge: Fridge, item: Item) -> Fridge {
-  return { items: [...fridge.items, item] }
+  return match contains_name(fridge, item.name) {
+    true => {
+      items: array.map(fridge.items, fn(existing) {
+        return match existing.name == item.name {
+          true => { ...existing, quantity: item.quantity },
+          false => existing,
+        }
+      }),
+    },
+    false => { items: [...fridge.items, item] },
+  }
+}
+
+// Whether an item with this name is already present. `array.find` returns an
+// `Option`, so the result is matched down to a `bool` — a recurring shape an
+// `array.any` / `array.contains` helper would shorten.
+fn contains_name(fridge: Fridge, name: string) -> bool {
+  return match array.find(fridge.items, fn(it) { return it.name == name }) {
+    Some(_) => true,
+    None => false,
+  }
+}
+
+// A one-line tally for the list footer.
+fn summary(fridge: Fridge) -> string {
+  let total = fridge.items.length
+  let checked = array.filter(fridge.items, fn(it) { return it.checked }).length
+  return "${number.to_string(checked)}/${number.to_string(total)} checked"
 }
 
 fn set_checked(fridge: Fridge, name: string, checked: bool) -> Fridge {
@@ -198,6 +227,7 @@ async fn run(command: Command) -> Result<void, string> {
     List => {
       let fridge = await load(LIST_PATH).map_err(format_load_error)?
       io.println(render(fridge))
+      io.println(summary(fridge))
       Ok(void)
     },
 
@@ -289,6 +319,10 @@ fn format_parse_error(e: ParseError) -> string {
 
 @example count(empty_fridge()) == 0
 @example count(add_item(empty_fridge(), { name: "milk", quantity: Some(2), category: None, checked: false })) == 1
+@example count(add_item(add_item(empty_fridge(), { name: "milk", quantity: Some(2), category: None, checked: false }), { name: "milk", quantity: Some(5), category: None, checked: false })) == 1
+@example contains_name(empty_fridge(), "milk") == false
+@example contains_name(add_item(empty_fridge(), { name: "milk", quantity: None, category: None, checked: false }), "milk") == true
+@example summary(empty_fridge()) == "0/0 checked"
 @example format_quantity(None) == ""
 @example format_quantity(Some(3)) == " x3"
 @example parse_quantity("dozen") == None

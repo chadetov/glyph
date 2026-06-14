@@ -2108,3 +2108,31 @@ Still deferred (v1.1 / later substeps), unchanged: a fuller unifier and substep
 5c flow-narrowing; generic-record/union descriptors and deep/recursive
 validation; `owned` method/namespaced/loop/closure consumes; number/string
 value-match exhaustiveness; mapped types (`infer_shape`, substep 5b).
+
+## Phase 1 week 5 progress — runtime stdlib + `glyph run` (gate met)
+
+The week-5 acceptance gate is met: `glyph run examples/04_cli_tool.glyph add
+"buy milk"` runs end to end (prints `added #1: buy milk`, exits 0, writes
+`.todos.json`).
+
+- **Stdlib as TS wrappers (Q41 v1 path).** The Glyph-source stdlib of the
+  original Q3 plan is not achievable in v1: the native modules need FFI (Q41 →
+  v2) and `Result`/`Option` need union methods Glyph cannot declare. So the
+  stdlib ships as hand-written TypeScript bundled with the compiler. New
+  runnable modules: `std/array`, `std/string`, `std/io`, `std/json`, `std/fs`
+  (Result-returning, `ErrorKind`-tagged), `std/process`. The ambient prelude
+  values the emitter uses without an import (`number`, `par`, `print`) are
+  installed on `globalThis` by a bundled `glyph-bootstrap.ts`. `http`/`time`
+  stay type-only until their wrappers land.
+- **`glyph run`.** Builds the program's directory into a fresh temp dir, writes
+  an entrypoint that installs the prelude globals and calls `main(argv)`, and
+  runs it with `tsx` (pointed at the generated tsconfig via `--tsconfig` so
+  `std/*` resolves, while keeping the caller's cwd for the program's own
+  relative paths). `main`'s numeric return is the exit code.
+
+Remaining week-5 work: the `glyph fmt` formatter (~600 LoC, diff-stability
+pillar). `glyph regen` (Q40) and `--explain` content (week 7) stay deferred.
+
+Known follow-up: `glyph build --out X` does not clean `X` first, so a renamed
+or removed runtime file can leave a stale copy that breaks a re-checked build;
+`glyph run` already builds into a fresh dir, so it is unaffected.

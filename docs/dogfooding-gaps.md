@@ -58,8 +58,10 @@ the most exposed.
   recurses — a nested record field via `T.is`, an `Array<E>` via `Array.isArray`
   plus a per-element check, and an `Option<E>` by its tag plus the `Some`
   payload's type. Verified: a `Fridge` whose item carries a string where a
-  numeric quantity belongs is rejected. (A tagged union's variant payloads are
-  still validated only by tag — a smaller, separate gap.)*
+  numeric quantity belongs is rejected. The tagged-union descriptor now also
+  switches on the tag and validates each variant's payload (record fields, a
+  single-value `value`, or nothing for a no-payload variant), so unions are no
+  longer tag-only.*
 - **G5. Hand-edited Option JSON crashes.** An `Option` field serializes as
   `{"tag":"None"}` / `{"tag":"Some","value":n}`. A human or tool writing
   `"quantity": null` or `"quantity": 2` is rejected by neither the cast nor
@@ -206,3 +208,12 @@ malformed `.fridge.json` (G3/G4). What the real use surfaced:
 Net: the toolchain is now trustworthy enough for daily use; the remaining
 friction is **ergonomics and stdlib breadth** (R1–R3) plus the **Map** language
 gap (G12/R4), not correctness.
+
+### Round-2 fixes landed
+
+R1 (`glyph run` build caching, ~2.2s → ~0.6s warm), R2 (`array.any`/`contains`),
+R3 (`array.sort`), G17 (prune stale emitted `.ts`), G15 (`mut` on a `const` is an
+error, E0212), and the G4 follow-on (union descriptors validate variant payloads,
+not just the tag) are all fixed. Remaining: G12 (Map/dict), G13 (`mut`
+multi-level), G5 (Option JSON ergonomics), G18 (`fmt` nits), and the principled
+v1.1 deferrals G14/G16/G19/G20.

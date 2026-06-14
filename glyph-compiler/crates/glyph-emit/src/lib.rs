@@ -738,19 +738,18 @@ impl<'a> Emitter<'a> {
     }
 
     /// Emit the Q8 runtime descriptor for a non-generic tagged union: an `is`
-    /// type guard that checks `value` is an object whose `tag` is one of the
-    /// union's variant tags, a self-contained `parse` returning a `Result`, and
-    /// a `T.schema` member. Mirrors `emit_record_descriptor`.
+    /// type guard that checks `value` is an object whose `tag` names a variant
+    /// AND whose payload matches that variant, a self-contained `parse` returning
+    /// a `Result`, and a `T.schema` member. Mirrors `emit_record_descriptor`.
     ///
-    /// **Soundness limitation** (same as the record descriptor): the guard is
-    /// shallow — it checks the discriminant tag but not each variant's payload,
-    /// so `X.is({ tag: "A" })` holds even when `A`'s payload fields are absent
-    /// or wrong. This is the documented v1 shallow-validation scope; recursing
-    /// into each variant's payload would close the gap (later work).
+    /// The guard switches on the discriminant tag and validates the matched
+    /// variant's payload: a record payload's fields are checked like a record's
+    /// (recursively, via `record_field_check`), a single-value payload's `value`
+    /// is checked against its type, and a no-payload variant passes on the tag
+    /// alone.
     fn emit_union_descriptor(&mut self, name: &str, variants: &[UnionVariant]) {
         self.line(&format!("export const {name} = {{"));
         self.indent += 1;
-        // is(): an object whose discriminant tag names a variant.
         self.line(&format!("is(value: unknown): value is {name} {{"));
         self.indent += 1;
         self.line("if (typeof value !== \"object\" || value === null) {");
@@ -759,13 +758,16 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.line("}");
         self.line(&format!(
-            "const {TAG} = (value as {{ {TAG}?: unknown }}).{TAG};"
+            "switch ((value as {{ {TAG}?: unknown }}).{TAG}) {{"
         ));
-        let tag_checks: Vec<String> = variants
-            .iter()
-            .map(|v| format!("{TAG} === \"{}\"", v.name))
-            .collect();
-        self.line(&format!("return {};", tag_checks.join(" || ")));
+        self.indent += 1;
+        for v in variants {
+            let check = self.union_variant_check(v);
+            self.line(&format!("case \"{}\": return {check};", v.name));
+        }
+        self.line("default: return false;");
+        self.indent -= 1;
+        self.line("}");
         self.indent -= 1;
         self.line("},");
         // parse(): reuse the guard, wrap the narrowed value in a Result shape.
@@ -1924,6 +1926,29 @@ impl<'a> Emitter<'a> {
             format!("(!({present}) || {check})")
         } else {
             check
+        }
+    }
+
+    /// The payload check for a tagged-union variant whose tag has already
+    /// matched (used in the union descriptor's `is`): a record payload's fields
+    /// (spread onto `value`) are checked like a record's, a single-value
+    /// payload's `value` field is checked against its type, and a no-payload
+    /// variant passes (`true`).
+    fn union_variant_check(&self, v: &UnionVariant) -> String {
+        match &v.payload {
+            None => "true".to_string(),
+            Some(TypeExpr::Record { fields, .. }) => {
+                if fields.is_empty() {
+                    "true".to_string()
+                } else {
+                    fields
+                        .iter()
+                        .map(|f| self.record_field_check(f))
+                        .collect::<Vec<_>>()
+                        .join(" && ")
+                }
+            }
+            Some(ty) => self.field_value_check(ty, "(value as Record<string, unknown>).value"),
         }
     }
 
@@ -3853,8 +3878,21 @@ mod tests {
         let ts = emit("module x\ntype S = A | B\nfn f() {}\n");
         assert!(ts.contains("export const S = {"), "{ts}");
         assert!(ts.contains("is(value: unknown): value is S {"), "{ts}");
-        assert!(ts.contains("=== \"A\""), "{ts}");
-        assert!(ts.contains("=== \"B\""), "{ts}");
+        // No-payload variants: the tag switch returns true for each.
+        assert!(ts.contains("case \"A\": return true;"), "{ts}");
+        assert!(ts.contains("case \"B\": return true;"), "{ts}");
+    }
+
+    #[test]
+    fn union_descriptor_validates_variant_payloads() {
+        // A record-payload variant's fields are validated (not just the tag),
+        // and a no-payload variant passes on the tag alone.
+        let ts = emit("module x\ntype Msg =\n  | Ping\n  | Say({ text: string })\nfn f() {}\n");
+        assert!(ts.contains("case \"Ping\": return true;"), "{ts}");
+        assert!(
+            ts.contains("case \"Say\": return typeof (value as Record<string, unknown>).text === \"string\";"),
+            "{ts}"
+        );
     }
 
     #[test]
@@ -4281,8 +4319,10 @@ mod tests {
         let ts = emit(
             "module x\ntype C = A | B\nfn run(c: C) -> number {\n  return match c {\n    A => match c {\n      A => 0,\n      B => 1,\n    },\n    B => 2,\n  }\n}\n",
         );
-        // Two switches (outer + nested), no value IIFE wrapper.
-        assert_eq!(ts.matches("switch (").count(), 2, "{ts}");
+        // Two match switches (outer + nested) on the scrutinee temporaries, no
+        // value IIFE wrapper. (The union descriptor also emits a tag switch;
+        // count the `__m`-keyed match switches specifically.)
+        assert_eq!(ts.matches("switch (__m").count(), 2, "{ts}");
         assert!(!ts.contains("(() =>"), "{ts}");
         assert!(ts.contains("return 0;") && ts.contains("return 1;"), "{ts}");
     }

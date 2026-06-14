@@ -1,0 +1,61 @@
+name: Playground
+
+# Build the WebAssembly playground and deploy it to GitHub Pages. Runs on push
+# to main (and on demand). Enable Pages with source "GitHub Actions" in the
+# repository settings for the deploy step to publish; the build runs regardless.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "playground/**"
+      - "glyph-compiler/crates/glyph-wasm/**"
+      - "glyph-compiler/crates/glyph-emit/**"
+      - "glyph-compiler/crates/glyph-typechecker/**"
+      - "glyph-compiler/crates/glyph-resolver/**"
+      - "glyph-compiler/crates/glyph-parser/**"
+      - "glyph-compiler/crates/glyph-lexer/**"
+      - "glyph-compiler/crates/glyph-ast/**"
+      - ".github/workflows/playground.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; cancel in-progress on a newer push.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-bindgen-cli (matching the pinned crate version)
+        run: cargo install wasm-bindgen-cli --version 0.2.125 --locked
+
+      - name: Build the playground wasm
+        run: ./playground/build.sh
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playground
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glyph Playground</title>
+    <meta
+      name="description"
+      content="Write Glyph, see the TypeScript it compiles to, instantly. Glyph is a statically typed language designed so AI agents can read, write, and modify code safely."
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="title">
+        <h1>Glyph<span class="dot">.</span> Playground</h1>
+        <p class="tagline">
+          A statically typed language that compiles to TypeScript, designed so AI
+          agents can read, write, and modify code safely.
+        </p>
+      </div>
+      <nav class="links">
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Tour</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/for-typescript-developers.md">For TS devs</a>
+        <span id="version" class="version" title="compiler version"></span>
+      </nav>
+    </header>
+
+    <main class="grid" id="app" aria-busy="true">
+      <section class="pane" id="pane-glyph">
+        <h2>Glyph</h2>
+        <textarea
+          id="source"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          aria-label="Glyph source"
+        ></textarea>
+        <div id="diagnostics" class="diagnostics" aria-live="polite"></div>
+      </section>
+
+      <section class="pane" id="pane-ts">
+        <h2>TypeScript <span class="sub">compiled output</span></h2>
+        <pre id="ts" class="code-out"><code></code></pre>
+      </section>
+
+      <section class="pane" id="pane-diff">
+        <h2>Diff stability <span class="sub">an agent edit</span></h2>
+        <p class="diff-caption" id="diff-caption">
+          An agent changes one line of Glyph&hellip;
+        </p>
+        <pre id="diff" class="diff-out"></pre>
+        <p class="diff-note" id="diff-note"></p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>
+        The compiler runs entirely in your browser (WebAssembly). The
+        <code>std/*</code> imports in the emitted TypeScript resolve against the
+        Glyph runtime when you build a real project with <code>glyph build</code>;
+        here they are shown verbatim.
+      </p>
+    </footer>
+
+    <noscript>The Glyph playground needs JavaScript and WebAssembly.</noscript>
+    <script type="module" src="./playground.js"></script>
+  </body>
+</html>

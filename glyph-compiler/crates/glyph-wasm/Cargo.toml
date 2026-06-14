@@ -1,0 +1,34 @@
+[package]
+name = "glyph-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "WebAssembly bindings for the Glyph compiler: compile a Glyph source string to TypeScript plus diagnostics, in the browser (powers the playground)."
+
+[lib]
+# cdylib for the wasm artifact; rlib so the crate also builds and unit-tests on
+# the host as a normal workspace member.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# WASM-safe core only. Deliberately NOT glyph-db (salsa), glyph-cli (filesystem),
+# or glyph-lsp (tokio) — none target wasm32-unknown-unknown, and salsa would
+# bloat the wasm binary for no benefit on a single in-memory module.
+glyph-lexer.workspace = true
+glyph-ast.workspace = true
+glyph-parser.workspace = true
+glyph-resolver.workspace = true
+glyph-typechecker.workspace = true
+glyph-emit.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# Must match the installed `wasm-bindgen-cli` version exactly.
+wasm-bindgen = "=0.2.125"
+# Routes Rust panics to console.error in the browser for legible crash messages.
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]

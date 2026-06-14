@@ -1,7 +1,9 @@
 # Steps 8–9 — Formatter, package story, installer, playground
 
-Status: **step 8 in progress** (formatter shipped in Phase 1; npm CLI distribution
-shipped — see below). Step 9 planned. Full notes in `archive/glyph-day-0-parser.md §Part 1`.
+Status: **step 8 substantially done, step 9 done.** Formatter (Phase 1), npm CLI
+distribution, the `"glyph"` config key + `glyph publish` audit gate, and the
+WebAssembly playground all shipped (see below). Step 8's remaining piece is
+standalone-library bundling. Full notes in `archive/glyph-day-0-parser.md §Part 1`.
 
 ## Step 8 progress
 
@@ -56,6 +58,27 @@ shipped — see below). Step 9 planned. Full notes in `archive/glyph-day-0-parse
 **The parser must be genuinely frozen before week one of formatter work**, or the formatter gets rewritten twice. The re-lock gate between steps 6 and 7 (`06-dogfooding.md`) is what makes this safe.
 
 ## Step 9 — Installer and playground
+
+### Shipped
+
+- **Installer** = the npm CLI distribution (above).
+- **Playground** (`playground/`) — a zero-backend web playground. A new
+  `crates/glyph-wasm` crate exposes `compile(source) -> { ts, diagnostics }`,
+  running the exact front end (parse → resolve → typecheck → emit) in memory with
+  no filesystem; it builds to `wasm32-unknown-unknown` and is wrapped with
+  `wasm-bindgen` for the browser. The crate depends only on the WASM-safe core
+  (lexer/ast/parser/resolver/typechecker/emit), deliberately not `glyph-db`,
+  `glyph-cli`, or `glyph-lsp`. The page (no framework) has three panes: a live
+  Glyph editor, the emitted TypeScript, and the diff-stability demo — an agent's
+  one-line Glyph edit shown to produce a one-line TypeScript diff (the third pane
+  the original plan called for). `playground/build.sh` regenerates the wasm and
+  `.github/workflows/playground.yml` deploys to GitHub Pages. Verified end to
+  end: the real web artifact compiles a program in Node, diagnostics carry codes
+  and positions, and every asset serves with the right MIME (`application/wasm`).
+  The default example is a small `Plan` pricing union that compiles to a clean
+  discriminated union + exhaustive `switch` — the verifiability pillar made
+  visible. (The `02_async_errors.glyph` `load_feed` example noted below is an
+  even stronger TS-boilerplate contrast and a good alternate default.)
 
 ### What's kept
 

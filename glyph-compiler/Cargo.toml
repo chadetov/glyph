@@ -11,6 +11,7 @@ members = [
     "crates/glyph-formatter",
     "crates/glyph-runtime",
     "crates/glyph-lsp",
+    "crates/glyph-wasm",
     "crates/glyph-cli",
 ]
 

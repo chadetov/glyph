@@ -55,3 +55,19 @@ export function reverse<T>(xs: ReadonlyArray<T>): Array<T> {
 export function slice<T>(xs: ReadonlyArray<T>, start: number, end?: number): Array<T> {
   return xs.slice(start, end);
 }
+
+export function any<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): boolean {
+  return xs.some(predicate);
+}
+
+// `contains` uses primitive value equality (`===`); for records, prefer
+// `any(xs, x => ...)` with an explicit comparison.
+export function contains<T>(xs: ReadonlyArray<T>, value: T): boolean {
+  return xs.includes(value);
+}
+
+// `sort` is value-oriented: it returns a new sorted array and never mutates the
+// input. `compare(a, b)` returns a negative number if `a` sorts before `b`.
+export function sort<T>(xs: ReadonlyArray<T>, compare: (a: T, b: T) => number): Array<T> {
+  return [...xs].sort(compare);
+}

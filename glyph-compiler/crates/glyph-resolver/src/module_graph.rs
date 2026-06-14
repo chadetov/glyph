@@ -98,7 +98,8 @@ impl StdlibStubs {
         s.add(
             "std/array",
             &[
-                "map", "filter", "find", "zip", "len", "push", "concat", "reverse", "slice",
+                "map", "filter", "find", "zip", "len", "push", "concat", "reverse", "slice", "any",
+                "contains", "sort",
             ],
         );
         s.add(

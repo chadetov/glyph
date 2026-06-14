@@ -125,6 +125,11 @@ pub fn build_project_inner(
     }
     db.set_project(entries.clone());
 
+    // The set of project module paths lets the emitter tell a sibling import
+    // (which needs a relative specifier) from a `std/*` or external one.
+    let project_modules: std::collections::BTreeSet<String> =
+        entries.iter().map(|(p, _)| p.clone()).collect();
+
     // Run the pipeline for each file. Collect diagnostics in the same
     // order as the file walk so the report is reproducible. Each
     // diagnostic is ariadne-rendered against the file's source so the
@@ -203,7 +208,11 @@ pub fn build_project_inner(
         }
         let Some(ast) = parsed.module() else { continue };
         let Some(resolved) = r.resolved() else { continue };
-        match glyph_emit::emit_module(ast, resolved, types.type_map(), db.prelude()) {
+        let ctx = glyph_emit::EmitContext {
+            module_path: module_path.as_str(),
+            project_modules: &project_modules,
+        };
+        match glyph_emit::emit_module(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(ts) => {
                 let rel = format!("{module_path}.ts");
                 let ts_path = out.join(&rel);

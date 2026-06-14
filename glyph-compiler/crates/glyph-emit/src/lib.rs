@@ -221,6 +221,37 @@ fn is_prelude_variant(name: &str) -> bool {
     PRELUDE_VARIANTS.contains(&name)
 }
 
+/// The relative module specifier from importer module `from` to imported module
+/// `to`, both `/`-joined module paths (e.g. `sub/a`). The emitted `.ts` tree
+/// mirrors the module paths, so the specifier is the path from the importer's
+/// directory to the target file, extensionless (`bundler` resolution adds it).
+/// `sub/a` importing `sub/b` -> `./b`; `sub/a` importing `top` -> `../top`;
+/// `a` importing `sub/b` -> `./sub/b`.
+fn relative_specifier(from: &str, to: &str) -> String {
+    let from_segs: Vec<&str> = from.split('/').collect();
+    // The importer's directory is its path minus the file component.
+    let from_dir = &from_segs[..from_segs.len().saturating_sub(1)];
+    let to_segs: Vec<&str> = to.split('/').collect();
+    let to_dir_len = to_segs.len().saturating_sub(1);
+
+    // Drop the shared leading directories.
+    let mut i = 0;
+    while i < from_dir.len() && i < to_dir_len && from_dir[i] == to_segs[i] {
+        i += 1;
+    }
+    let ups = from_dir.len() - i;
+    let mut out = String::new();
+    if ups == 0 {
+        out.push_str("./");
+    } else {
+        for _ in 0..ups {
+            out.push_str("../");
+        }
+    }
+    out.push_str(&to_segs[i..].join("/"));
+    out
+}
+
 /// Whether a constructor pattern's single argument is itself a variant pattern
 /// (so the outer arm needs an inner dispatch on the payload's tag): a nested
 /// constructor (`Ok(Some(x))`) or a bare no-payload prelude variant
@@ -241,15 +272,47 @@ enum ArmTerm {
     Break,
 }
 
+/// Project context the emitter needs to resolve cross-module import specifiers.
+/// A project (sibling `.glyph`) import must emit a relative specifier (`./x`)
+/// rather than the bare module path, which neither `tsc` nor `tsx` resolves;
+/// `std/*` is left bare (tsconfig-mapped) and an external npm package (e.g.
+/// `react`) is left bare too. The default (`EmitContext::single`) treats every
+/// import as non-project, which is correct for a one-module program.
+#[derive(Clone, Copy)]
+pub struct EmitContext<'a> {
+    /// The importing module's own path (e.g. `sub/a`), used to compute the
+    /// relative path to a sibling module.
+    pub module_path: &'a str,
+    /// Every project module path, so a project import is told apart from a
+    /// `std/*` or external one.
+    pub project_modules: &'a std::collections::BTreeSet<String>,
+}
+
+impl<'a> EmitContext<'a> {
+    /// Context for a standalone single-module program: no project siblings, so
+    /// every import stays bare. `EMPTY` backs the borrow.
+    pub fn single() -> Self {
+        EmitContext {
+            module_path: "",
+            project_modules: &EMPTY_MODULES,
+        }
+    }
+}
+
+static EMPTY_MODULES: std::sync::LazyLock<std::collections::BTreeSet<String>> =
+    std::sync::LazyLock::new(std::collections::BTreeSet::new);
+
 /// Emit a whole module to a TypeScript source string. `resolved` and `types`
 /// are the resolution and type-inference results for `module`; the emitter
 /// consults them where lowering needs the scrutinee's type (e.g. to tell a
-/// bare-identifier variant arm from a binding).
+/// bare-identifier variant arm from a binding). `ctx` carries the project
+/// module set so cross-module imports emit resolvable specifiers.
 pub fn emit_module(
     module: &Module,
     resolved: &ResolvedModule,
     types: &TypeMap,
     prelude: &Prelude,
+    ctx: EmitContext,
 ) -> Result<String, EmitError> {
     let mut e = Emitter {
         out: String::new(),
@@ -263,6 +326,7 @@ pub fn emit_module(
         resolved,
         prelude,
         types,
+        ctx,
     };
     e.emit_module()?;
     Ok(e.out)
@@ -302,6 +366,8 @@ struct Emitter<'a> {
     /// tagged-union values/types a module references without an explicit import.
     prelude: &'a Prelude,
     types: &'a TypeMap,
+    /// Project context for resolving cross-module import specifiers.
+    ctx: EmitContext<'a>,
 }
 
 impl<'a> Emitter<'a> {
@@ -326,6 +392,7 @@ impl<'a> Emitter<'a> {
             resolved: self.resolved,
             prelude: self.prelude,
             types: self.types,
+            ctx: self.ctx,
         }
     }
 
@@ -584,13 +651,21 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_import(&mut self, im: &ImportDecl) -> Result<(), EmitError> {
-        let spec = im
+        let path = im
             .path
             .segments
             .iter()
             .map(|s| s.as_ref())
             .collect::<Vec<_>>()
             .join("/");
+        // A project (sibling) module must be imported by a relative specifier so
+        // `tsc`/`tsx` resolve it against the emitted file tree; `std/*` stays
+        // bare (tsconfig-mapped) and an external npm package stays bare too.
+        let spec = if self.ctx.project_modules.contains(&path) {
+            relative_specifier(self.ctx.module_path, &path)
+        } else {
+            path
+        };
         let line = match &im.kind {
             ImportKind::Named(names) => {
                 let names = names
@@ -3113,12 +3188,13 @@ mod tests {
 
     fn emit(src: &str) -> String {
         let (module, resolved, types, prelude) = pipeline(src);
-        emit_module(&module, &resolved, &types, &prelude).expect("emit failed")
+        emit_module(&module, &resolved, &types, &prelude, EmitContext::single()).expect("emit failed")
     }
 
     fn emit_err(src: &str) -> EmitError {
         let (module, resolved, types, prelude) = pipeline(src);
-        emit_module(&module, &resolved, &types, &prelude).expect_err("expected emit error")
+        emit_module(&module, &resolved, &types, &prelude, EmitContext::single())
+            .expect_err("expected emit error")
     }
 
     #[test]
@@ -3313,6 +3389,38 @@ mod tests {
         );
         assert!(ts.contains("__loop0: for (const c of xs) {"), "{ts}");
         assert!(ts.contains("break __loop0;"), "{ts}");
+    }
+
+    #[test]
+    fn relative_specifier_handles_nesting() {
+        // Same directory.
+        assert_eq!(relative_specifier("a", "b"), "./b");
+        assert_eq!(relative_specifier("sub/a", "sub/b"), "./b");
+        // Into a subdirectory.
+        assert_eq!(relative_specifier("a", "sub/b"), "./sub/b");
+        // Up and over.
+        assert_eq!(relative_specifier("sub/a", "top"), "../top");
+        assert_eq!(relative_specifier("x/y/a", "x/z/b"), "../z/b");
+        assert_eq!(relative_specifier("x/y/a", "top"), "../../top");
+    }
+
+    #[test]
+    fn project_sibling_import_emits_a_relative_specifier() {
+        // A project module import becomes a relative specifier; `std/*` stays
+        // bare (tsconfig-mapped) and an unknown module stays bare (external npm).
+        let (module, resolved, types, prelude) = pipeline(
+            "module a\nimport helpers { greet }\nimport std/io\nfn f() -> void {\n  return void\n}\n",
+        );
+        let mut project = std::collections::BTreeSet::new();
+        project.insert("a".to_string());
+        project.insert("helpers".to_string());
+        let ctx = EmitContext {
+            module_path: "a",
+            project_modules: &project,
+        };
+        let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
+        assert!(ts.contains("from \"./helpers\""), "{ts}");
+        assert!(ts.contains("from \"std/io\""), "{ts}");
     }
 
     #[test]

@@ -92,11 +92,14 @@ the most exposed.
   the error instead of crashing), and a missing `tsc` is a warning, not a block.
   The old `--check` flag is accepted but redundant. Verified: a field typo that
   Glyph's own checker misses is now caught before the program runs.*
-- **G10. Multi-file programs don't run or `--check`.** Sibling-module imports
-  emit bare TS specifiers (`from "helpers"`) with no `./` and no path mapping;
-  only `std/*` is mapped. Any second module fails `glyph run` (tsx can't resolve)
-  and `tsc` (TS2307); plain `glyph build` is a false green. *Fix: emit a path
-  mapping (or relative specifiers) for project modules.*
+- **G10. [FIXED] Multi-file programs didn't run or `--check`.** Sibling-module
+  imports emitted bare TS specifiers (`from "helpers"`) with no `./` and no path
+  mapping; only `std/*` was mapped. Any second module failed `glyph run` (tsx
+  can't resolve) and `tsc` (TS2307). *Fixed: the emitter now emits a relative
+  specifier (`./helpers`, `./sub/math`, `../top`) for a project (sibling) module,
+  computed from the importer's path; `std/*` stays tsconfig-mapped and external
+  npm packages stay bare. Verified end to end: a program spanning a root module,
+  a flat sibling, and a nested sibling builds, passes `tsc --strict`, and runs.*
 - **G11. [FIXED] `glyph fmt` corrupts string escapes.** The formatter re-emitted a
   decoded string value, turning `\t` into a literal TAB and `\n` into a raw newline
   that split the source line (while `\\`/`\"` were preserved — inconsistent). A
@@ -151,6 +154,6 @@ catch — they should be fixed first. Then the "silent green" cluster **G7/G8/G9
 the verifiability pair **G3/G6**. **G11** (fmt escape corruption) is a quick,
 self-contained correctness fix.
 
-**Progress:** G1, G2, G11, G7, G8, and G9 are fixed — the "silent green" cluster
-is closed except G10 (multi-file imports). After that, the verifiability pair
-G3/G6 (which needs the unifier).
+**Progress:** G1, G2, G11, G7, G8, G9, and G10 are fixed — the entire "silent
+green" cluster is closed and multi-file programs work. Next: the verifiability
+pair G3/G6 (which needs the unifier).

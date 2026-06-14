@@ -55,6 +55,7 @@ below.
 | `E0209` | Non-exhaustive `match` on a `bool` |
 | `E0210` | Field access on a record type that has no such field |
 | `E0211` | Call argument type does not match the parameter type |
+| `E0212` | `mut` reassigns a `const` binding (D20) |
 
 ### Emitter — `E03xx`
 

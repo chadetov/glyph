@@ -278,7 +278,22 @@ impl Assigner<'_> {
                 }
             }
             Stmt::Mut(m) => match &m.kind {
-                glyph_ast::MutKind::Assign { value, .. } => self.walk_expr(value),
+                glyph_ast::MutKind::Assign { target, value } => {
+                    // D20: a `const` is immutable; `mut N = ...` reassigning one
+                    // is rejected. The resolver records the target's resolution
+                    // at the statement span.
+                    if let Some(ResolvedRef::Module(id)) = self.resolved.resolutions.get(m.span) {
+                        if let Some(sym) = self.resolved.symbols.table.get(id) {
+                            if matches!(sym.kind, SymbolKind::Const { .. }) {
+                                self.errors.push(TypeError::MutateConst {
+                                    name: target.to_string(),
+                                    span: m.span,
+                                });
+                            }
+                        }
+                    }
+                    self.walk_expr(value);
+                }
                 glyph_ast::MutKind::AssignIndex { index, value, .. } => {
                     self.walk_expr(index);
                     self.walk_expr(value);
@@ -3036,5 +3051,35 @@ fn f(b: B) -> number {
             errs.iter().any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
             "errs: {errs:?}"
         );
+    }
+
+    // ----- G15: mut on a const -----
+
+    #[test]
+    fn reassigning_a_const_is_flagged() {
+        let src = r#"module x
+const N = 5
+fn f() -> void {
+  mut N = 6
+  return void
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::MutateConst { name, .. }] if name == "N"
+        ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn reassigning_a_let_is_not_flagged() {
+        let src = r#"module x
+fn f() -> number {
+  let x = 1
+  mut x = 2
+  return x
+}
+"#;
+        assert!(ty_errors_of(src).is_empty());
     }
 }

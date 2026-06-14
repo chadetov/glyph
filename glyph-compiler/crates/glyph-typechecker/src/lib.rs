@@ -169,6 +169,12 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// `mut N = ...` reassigning a module-level `const` binding. D20 makes
+    /// `const` immutable; only a function-level `let` may be reassigned with
+    /// `mut`. Fires when the assignment target resolves to a `const` declaration.
+    #[error("cannot reassign `{name}`: it is a `const`")]
+    MutateConst { name: String, span: Span },
+
     /// A `match` over a `bool` scrutinee covers neither both `true` and
     /// `false` nor a catch-all (`_`, `else`, or a binding). D3 makes `match`
     /// the only conditional, so an open boolean match is a real gap rather
@@ -195,6 +201,7 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
+            TypeError::MutateConst { span, .. } => *span,
         }
     }
 
@@ -214,6 +221,7 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
             TypeError::UnknownField { .. } => "E0210",
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
+            TypeError::MutateConst { .. } => "E0212",
         }
     }
 
@@ -255,6 +263,9 @@ impl TypeError {
             }
             TypeError::ArgumentTypeMismatch { .. } => {
                 "Pass a value of the expected type, or change the parameter's type."
+            }
+            TypeError::MutateConst { .. } => {
+                "`const` is immutable (D20). Use a function-level `let` if the binding must change."
             }
         })
     }

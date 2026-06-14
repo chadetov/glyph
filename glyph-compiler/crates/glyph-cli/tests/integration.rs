@@ -533,7 +533,6 @@ fn fmt_normalizes_a_comment_free_file_in_place() {
     let file = root.join("messy.glyph");
     let report = glyph_cli::fmt::format_path(&file).expect("fmt ok");
     assert_eq!(report.formatted.len(), 1, "expected one file formatted");
-    assert!(report.skipped_comments.is_empty());
 
     let after = std::fs::read_to_string(&file).unwrap();
     assert_ne!(after, "module messy\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n");
@@ -546,16 +545,28 @@ fn fmt_normalizes_a_comment_free_file_in_place() {
 }
 
 #[test]
-fn fmt_skips_files_with_comments_without_touching_them() {
+fn fmt_preserves_comments() {
     let root = unique_tmp("fmtcomment");
     let original = "module c\n// keep this comment\nfn f() -> number { return 1 }\n";
     write_file(&root, "commented.glyph", original);
     let file = root.join("commented.glyph");
     let report = glyph_cli::fmt::format_path(&file).expect("fmt ok");
-    assert_eq!(report.skipped_comments.len(), 1, "comment file should be skipped");
-    assert!(report.formatted.is_empty());
-    // The file is left exactly as written — no silent comment deletion.
-    assert_eq!(std::fs::read_to_string(&file).unwrap(), original);
+    assert!(report.failed.is_empty(), "should not fail: {:?}", report.failed);
+    let after = std::fs::read_to_string(&file).unwrap();
+    assert!(
+        after.contains("// keep this comment"),
+        "comment must be preserved:\n{after}"
+    );
+    assert!(glyph_parser::parse(&after).is_ok(), "formatted file must parse");
+
+    // Idempotent: a second pass changes nothing.
+    let report2 = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    assert_eq!(
+        report2.formatted.len(),
+        0,
+        "second pass should be a no-op:\n{}",
+        std::fs::read_to_string(&file).unwrap()
+    );
 }
 
 #[test]

@@ -18,21 +18,28 @@
 #![forbid(unsafe_code)]
 
 use glyph_ast::{
-    Annotation, ArrayElem, BinOp, Block, ComponentDecl, ConstDecl, Decl, Expr, FnDecl, FnTypeParam,
-    GenericParam, ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm,
-    MatchArmBody, Module, MutKind, MutStmt, ObjectField, Param, Pattern, PostfixOp, RecordTypeField,
-    Stmt, TemplatePart, TypeDecl, TypeExpr, UnaryOp, UnionVariant,
+    Annotation, ArrayElem, BinOp, Block, Comment, ComponentDecl, ConstDecl, Decl, Expr, FnDecl,
+    FnTypeParam, GenericParam, ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern,
+    MatchArm, MatchArmBody, Module, MutKind, MutStmt, ObjectField, Param, Pattern, PostfixOp,
+    RecordTypeField, Stmt, TemplatePart, TypeDecl, TypeExpr, UnaryOp, UnionVariant,
 };
 
 /// A list with more than this many elements is laid out one-per-line.
 const INLINE_MAX: usize = 2;
 
-/// Format a whole module to canonical Glyph source. The result ends in a single
-/// trailing newline.
-pub fn format_module(m: &Module) -> String {
+/// Format a whole module to canonical Glyph source. `comments` are the `//`
+/// line comments recovered from the source (via `glyph_lexer::comments`); they
+/// are re-emitted in source order, each immediately above the declaration or
+/// statement that follows it. Pass `&[]` to format without comments. The result
+/// ends in a single trailing newline.
+pub fn format_module(m: &Module, comments: &[Comment]) -> String {
+    let mut sorted = comments.to_vec();
+    sorted.sort_by_key(|c| c.span.start);
     let mut p = Printer {
         out: String::new(),
         indent: 0,
+        comments: sorted,
+        cidx: 0,
     };
     p.module(m);
     p.out
@@ -41,6 +48,10 @@ pub fn format_module(m: &Module) -> String {
 struct Printer {
     out: String,
     indent: usize,
+    /// Comments in source order, and a cursor into them. Comments are flushed
+    /// (emitted) when the walk reaches a node whose span begins after them.
+    comments: Vec<Comment>,
+    cidx: usize,
 }
 
 impl Printer {
@@ -112,18 +123,44 @@ impl Printer {
     // ----- module + declarations -----
 
     fn module(&mut self, m: &Module) {
+        // Header comments sit above the `module` line.
+        let module_start = m.module_path.as_ref().map_or(0, |mp| mp.span.start);
+        self.flush_comments_before(module_start);
         if let Some(mp) = &m.module_path {
             self.push("module ");
             self.push(&join(&mp.segments, "/"));
             self.push("\n");
         }
+        let mut prev_was_import = false;
         for decl in &m.items {
             // A blank line before every declaration (and after the module
-            // line); none before the very first when there is no module line.
+            // line), except between two consecutive imports, which cluster.
+            let is_import = matches!(decl, Decl::Import(_));
+            if !self.out.is_empty() && !(is_import && prev_was_import) {
+                self.push("\n");
+            }
+            self.flush_comments_before(decl_start(decl));
+            self.decl(decl);
+            prev_was_import = is_import;
+        }
+        // Comments trailing after the last declaration.
+        if self.cidx < self.comments.len() {
             if !self.out.is_empty() {
                 self.push("\n");
             }
-            self.decl(decl);
+            self.flush_comments_before(u32::MAX);
+        }
+    }
+
+    /// Emit every pending comment whose span begins before `offset`, each on its
+    /// own line at the current indentation. The caller positions the cursor
+    /// (already padded) before calling.
+    fn flush_comments_before(&mut self, offset: u32) {
+        while self.cidx < self.comments.len() && self.comments[self.cidx].span.start < offset {
+            let text = self.comments[self.cidx].text.clone();
+            self.push(&text);
+            self.newline();
+            self.cidx += 1;
         }
     }
 
@@ -289,7 +326,8 @@ impl Printer {
     /// A `{ ... }` block, always multi-line (one statement per line). An empty
     /// block is `{}`.
     fn block(&mut self, b: &Block) {
-        if b.stmts.is_empty() {
+        // An empty block with no interior comments is `{}`.
+        if b.stmts.is_empty() && !self.has_comment_before(b.span.end) {
             self.push("{}");
             return;
         }
@@ -297,7 +335,15 @@ impl Printer {
         self.indent += 1;
         for s in &b.stmts {
             self.newline();
+            self.flush_comments_before(s.span().start);
             self.stmt(s);
+        }
+        // Comments after the last statement, before the closing brace.
+        while self.has_comment_before(b.span.end) {
+            self.newline();
+            let text = self.comments[self.cidx].text.clone();
+            self.push(&text);
+            self.cidx += 1;
         }
         self.indent -= 1;
         self.newline();
@@ -305,9 +351,10 @@ impl Printer {
     }
 
     /// A lambda body. A single, intrinsically-single-line statement renders
-    /// inline (`{ return x }`); anything else uses the multi-line block form.
+    /// inline (`{ return x }`); anything else (or any interior comment) uses the
+    /// multi-line block form so comments are preserved.
     fn lambda_block(&mut self, b: &Block) {
-        if b.stmts.len() == 1 {
+        if b.stmts.len() == 1 && !self.has_comment_before(b.span.end) {
             let inner = self.capture(|p| p.stmt(&b.stmts[0]));
             if !inner.contains('\n') {
                 self.push("{ ");
@@ -317,6 +364,11 @@ impl Printer {
             }
         }
         self.block(b);
+    }
+
+    /// True if the next pending comment begins before `offset`.
+    fn has_comment_before(&self, offset: u32) -> bool {
+        self.cidx < self.comments.len() && self.comments[self.cidx].span.start < offset
     }
 
     fn stmt(&mut self, s: &Stmt) {
@@ -825,6 +877,21 @@ impl Printer {
 /// elements the parser preserved); these are dropped when re-laying-out.
 fn jsx_child_is_blank_text(child: &JsxChild) -> bool {
     matches!(child, JsxChild::Text { content, .. } if content.trim().is_empty())
+}
+
+/// The source offset a declaration begins at, including any leading
+/// annotations (a comment above the declaration precedes its annotations too).
+fn decl_start(d: &Decl) -> u32 {
+    fn with_anns(anns: &[Annotation], span_start: u32) -> u32 {
+        anns.first().map_or(span_start, |a| a.span.start)
+    }
+    match d {
+        Decl::Import(x) => x.span.start,
+        Decl::Fn(x) => with_anns(&x.annotations, x.span.start),
+        Decl::Type(x) => with_anns(&x.annotations, x.span.start),
+        Decl::Const(x) => with_anns(&x.annotations, x.span.start),
+        Decl::Component(x) => with_anns(&x.annotations, x.span.start),
+    }
 }
 
 /// True for the `unknown` type written by the parser for an un-annotated

@@ -167,24 +167,16 @@ fn main() {
                     for (file, reason) in &report.failed {
                         eprintln!("glyph fmt: skipped {} (parse error: {reason})", file.display());
                     }
-                    for file in &report.skipped_comments {
-                        eprintln!(
-                            "glyph fmt: skipped {} (contains comments; not yet preserved)",
-                            file.display()
-                        );
-                    }
                     for file in &report.formatted {
                         eprintln!("formatted {}", file.display());
                     }
                     eprintln!(
-                        "glyph fmt: {} formatted, {} already formatted, {} with comments skipped, {} failed",
+                        "glyph fmt: {} formatted, {} already formatted, {} failed",
                         report.formatted.len(),
                         report.unchanged.len(),
-                        report.skipped_comments.len(),
                         report.failed.len()
                     );
                     // A parse failure is a real problem; surface it as non-zero.
-                    // Comment-skips are an expected v1 limitation, not an error.
                     std::process::exit(if report.failed.is_empty() { 0 } else { 1 });
                 }
                 Err(e) => {

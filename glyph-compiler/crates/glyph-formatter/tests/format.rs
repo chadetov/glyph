@@ -44,7 +44,7 @@ fn emit_ts(src: &str) -> Option<String> {
 
 fn fmt(src: &str) -> String {
     let m = glyph_parser::parse(src).expect("parse");
-    format_module(&m)
+    format_module(&m, &glyph_lexer::comments(src))
 }
 
 #[test]
@@ -61,12 +61,21 @@ fn examples_format_is_stable_and_semantics_preserving() {
 
         // Stable: format → reparse → format is a fixed point.
         let m = glyph_parser::parse(&src).unwrap_or_else(|e| panic!("{label}: parse: {e:?}"));
-        let once = format_module(&m);
+        let once = format_module(&m, &glyph_lexer::comments(&src));
         let m2 = glyph_parser::parse(&once).unwrap_or_else(|e| {
             panic!("{label}: formatted output did not re-parse: {e:?}\n--- output ---\n{once}")
         });
-        let twice = format_module(&m2);
+        let twice = format_module(&m2, &glyph_lexer::comments(&once));
         assert_eq!(once, twice, "{label}: formatting is not idempotent");
+
+        // Comments are preserved: every comment's text survives.
+        for c in glyph_lexer::comments(&src) {
+            assert!(
+                once.contains(&c.text),
+                "{label}: dropped comment {:?}\n--- output ---\n{once}",
+                c.text
+            );
+        }
 
         // Semantics-preserving via the emit oracle.
         if let Some(before) = emit_ts(&src) {

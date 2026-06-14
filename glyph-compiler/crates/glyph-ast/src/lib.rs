@@ -25,7 +25,7 @@
 
 use std::sync::Arc;
 
-pub use glyph_lexer::Span;
+pub use glyph_lexer::{Comment, Span};
 
 pub type Ident = Arc<str>;
 

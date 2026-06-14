@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::error::LexError;
 use crate::token::{Spanned, Token};
-use crate::Span;
+use crate::{Comment, Span};
 
 /// Public entry point: tokenize a source string into a vector of `Spanned<Token>`,
 /// ending with `Token::Eof`. Errors return on the first lexical failure.
@@ -12,10 +12,27 @@ pub fn tokenize(source: &str) -> Result<Vec<Spanned<Token>>, LexError> {
     Lexer::new(source).tokenize_all()
 }
 
+/// Collect every `//` line comment in `source`, in source order. Drives the
+/// lexer to EOF (or the first lexical error) accumulating comments as they are
+/// skipped. Intended for sources that parse, where lexing is clean; on a source
+/// with a later lexical error this returns the comments found before it.
+pub fn comments(source: &str) -> Vec<Comment> {
+    let mut lexer = Lexer::new(source);
+    loop {
+        match lexer.next_token() {
+            Ok(Some(s)) if matches!(s.token, Token::Eof) => break,
+            Ok(_) => {}
+            Err(_) => break,
+        }
+    }
+    lexer.comments
+}
+
 pub struct Lexer<'a> {
     source: &'a str,
     pos: usize,
     bracket_depth: u32,
+    comments: Vec<Comment>,
 }
 
 impl<'a> Lexer<'a> {
@@ -24,6 +41,7 @@ impl<'a> Lexer<'a> {
             source,
             pos: 0,
             bracket_depth: 0,
+            comments: Vec::new(),
         }
     }
 
@@ -373,12 +391,18 @@ impl<'a> Lexer<'a> {
 
     fn skip_line_comment(&mut self) {
         // We are positioned at the first `/`. Skip until newline (do not consume it).
+        let start = self.pos;
         while let Some(c) = self.peek() {
             if c == b'\n' {
                 break;
             }
             self.advance();
         }
+        let text = self.source[start..self.pos].trim_end().to_string();
+        self.comments.push(Comment {
+            span: Span::new(start as u32, self.pos as u32),
+            text,
+        });
     }
 
     fn spanned(&self, token: Token, start: usize, end: usize) -> Spanned<Token> {

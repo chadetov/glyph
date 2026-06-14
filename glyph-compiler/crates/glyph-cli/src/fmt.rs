@@ -31,10 +31,6 @@ pub struct FmtReport {
     pub unchanged: Vec<PathBuf>,
     /// Files skipped because they did not parse, with the rendered reason.
     pub failed: Vec<(PathBuf, String)>,
-    /// Files skipped because they contain comments, which the AST-based
-    /// formatter cannot yet preserve. Skipping (rather than rewriting) keeps
-    /// `glyph fmt` from silently deleting them.
-    pub skipped_comments: Vec<PathBuf>,
 }
 
 /// Format `path` (a file or directory tree) in place.
@@ -56,16 +52,12 @@ pub fn format_path(path: &Path) -> Result<FmtReport, FmtError> {
             path: file.clone(),
             source: e,
         })?;
-        // The parser discards comments, so reformatting would drop them. Until
-        // the formatter preserves comment trivia, leave such files untouched
-        // rather than silently delete their comments.
-        if contains_comment(&src) {
-            report.skipped_comments.push(file);
-            continue;
-        }
         match glyph_parser::parse(&src) {
             Ok(module) => {
-                let formatted = format_module(&module);
+                // Comments are recovered separately (the parser drops them) and
+                // re-emitted in place by the formatter.
+                let comments = glyph_lexer::comments(&src);
+                let formatted = format_module(&module, &comments);
                 if formatted == src {
                     report.unchanged.push(file);
                 } else {
@@ -80,35 +72,6 @@ pub fn format_path(path: &Path) -> Result<FmtReport, FmtError> {
         }
     }
     Ok(report)
-}
-
-/// Detect a `//` line comment outside of string/template literals. Both string
-/// and template literals are delimited by `"`, so a `//` inside one (a URL, a
-/// path) is correctly ignored; backslash escapes are skipped.
-fn contains_comment(src: &str) -> bool {
-    let b = src.as_bytes();
-    let mut i = 0;
-    let mut in_string = false;
-    while i < b.len() {
-        if in_string {
-            match b[i] {
-                b'\\' => i += 2,
-                b'"' => {
-                    in_string = false;
-                    i += 1;
-                }
-                _ => i += 1,
-            }
-        } else if b[i] == b'"' {
-            in_string = true;
-            i += 1;
-        } else if b[i] == b'/' && i + 1 < b.len() && b[i + 1] == b'/' {
-            return true;
-        } else {
-            i += 1;
-        }
-    }
-    false
 }
 
 /// Recursively collect `.glyph` files, skipping dot-directories and `target/`

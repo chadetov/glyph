@@ -27,8 +27,18 @@ mod lexer;
 mod token;
 
 pub use error::LexError;
-pub use lexer::{tokenize, Lexer};
+pub use lexer::{comments, tokenize, Lexer};
 pub use token::{Spanned, Token};
+
+/// A `//` line comment recovered from the source. The lexer skips comments for
+/// the token stream (D14), but collects them here so the formatter can preserve
+/// them. `text` is the full comment including the leading `//`, trailing
+/// whitespace trimmed; `span` is its byte range.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Comment {
+    pub span: Span,
+    pub text: String,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
@@ -57,6 +67,24 @@ mod tests {
         let tokens = tokenize("").unwrap();
         assert_eq!(tokens.len(), 1);
         assert!(matches!(tokens[0].token, Token::Eof));
+    }
+
+    #[test]
+    fn comments_are_collected_with_spans() {
+        let src = "// header\nfn f() {}\n// trailing\n";
+        let cs = comments(src);
+        assert_eq!(cs.len(), 2);
+        assert_eq!(cs[0].text, "// header");
+        assert_eq!(cs[1].text, "// trailing");
+        // Span covers the comment text; trailing whitespace is trimmed from the
+        // text but the span runs to end-of-line.
+        assert_eq!(&src[cs[0].span.start as usize..cs[0].span.end as usize], "// header");
+    }
+
+    #[test]
+    fn slashes_inside_a_string_are_not_comments() {
+        let cs = comments("const u = \"http://example.com\"\n");
+        assert!(cs.is_empty(), "a // inside a string is not a comment: {cs:?}");
     }
 
     #[test]

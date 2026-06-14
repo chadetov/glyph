@@ -12,6 +12,7 @@ description = "AST-to-Glyph source formatter. One canonical layout: 2-space inde
 glyph-ast.workspace = true
 
 [dev-dependencies]
+glyph-lexer.workspace = true
 glyph-parser.workspace = true
 glyph-emit.workspace = true
 glyph-resolver.workspace = true

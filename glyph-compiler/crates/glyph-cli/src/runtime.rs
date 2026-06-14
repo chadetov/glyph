@@ -41,7 +41,10 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
 
 /// The generated `tsconfig.json`. `paths` resolves `std/*` imports to the
 /// bundled runtime; `include` covers the emitted output, the runtime, and any
-/// project-supplied ambient declarations copied from `<src>/.types/`.
+/// project-supplied ambient declarations copied from `<src>/.types/`. The
+/// relative `paths` entry resolves against the tsconfig's own directory (TS
+/// 4.1+), so no `baseUrl` is needed — and `baseUrl` is deprecated as of
+/// TypeScript 6, which would make `--check` fail on a current toolchain.
 const TSCONFIG: &str = r#"{
   "compilerOptions": {
     "strict": true,
@@ -52,7 +55,6 @@ const TSCONFIG: &str = r#"{
     "moduleResolution": "bundler",
     "skipLibCheck": true,
     "types": [],
-    "baseUrl": ".",
     "paths": { "std/*": ["./.glyph-runtime/std/*"] }
   },
   "include": [

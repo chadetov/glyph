@@ -20,7 +20,7 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-use analysis::{analyze, LineIndex};
+use analysis::{analyze, analyze_full, LineIndex};
 
 struct Backend {
     client: Client,
@@ -85,6 +85,8 @@ impl LanguageServer for Backend {
                     TextDocumentSyncKind::FULL,
                 )),
                 document_formatting_provider: Some(OneOf::Left(true)),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
+                definition_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
         })
@@ -150,8 +152,58 @@ impl LanguageServer for Backend {
         }]))
     }
 
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        let pos = params.text_document_position_params;
+        let Some(text) = self.doc_text(&pos.text_document.uri) else {
+            return Ok(None);
+        };
+        let Some(analysis) = analyze_full(&text) else {
+            return Ok(None);
+        };
+        let index = LineIndex::new(&text);
+        let offset = index.offset(&text, pos.position.line, pos.position.character);
+        Ok(analysis.hover(offset).map(|ty| Hover {
+            contents: HoverContents::Markup(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: format!("```glyph\n{ty}\n```"),
+            }),
+            range: None,
+        }))
+    }
+
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let pos = params.text_document_position_params;
+        let uri = pos.text_document.uri;
+        let Some(text) = self.doc_text(&uri) else {
+            return Ok(None);
+        };
+        let Some(analysis) = analyze_full(&text) else {
+            return Ok(None);
+        };
+        let index = LineIndex::new(&text);
+        let offset = index.offset(&text, pos.position.line, pos.position.character);
+        Ok(analysis.definition(offset).map(|(start, end)| {
+            let (sl, sc) = index.position(&text, start as usize);
+            let (el, ec) = index.position(&text, end as usize);
+            GotoDefinitionResponse::Scalar(Location {
+                uri,
+                range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
+            })
+        }))
+    }
+
     async fn shutdown(&self) -> Result<()> {
         Ok(())
+    }
+}
+
+impl Backend {
+    /// The current text of an open document, if any.
+    fn doc_text(&self, uri: &Url) -> Option<String> {
+        self.docs.lock().expect("docs mutex").get(uri).cloned()
     }
 }
 

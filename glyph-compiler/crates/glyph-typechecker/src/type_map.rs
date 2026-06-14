@@ -47,6 +47,14 @@ impl TypeMap {
         self.by_span.contains_key(&(span.start, span.end))
     }
 
+    /// Iterate recorded `(span, type)` entries in arbitrary order. Used by the
+    /// LSP to find the innermost typed expression under a hover position.
+    pub fn iter(&self) -> impl Iterator<Item = (Span, &Ty)> {
+        self.by_span
+            .iter()
+            .map(|(&(start, end), ty)| (Span::new(start, end), ty))
+    }
+
     /// Number of recorded entries. Diagnostic helper.
     pub fn len(&self) -> usize {
         self.by_span.len()

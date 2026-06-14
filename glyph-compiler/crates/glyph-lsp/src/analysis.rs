@@ -7,9 +7,10 @@
 //! type using `LineIndex`.
 
 use glyph_resolver::{
-    build_prelude, collect_module_symbols, resolve_module, verify_imports, StdlibStubs,
+    build_prelude, collect_module_symbols, resolve_module, verify_imports, ResolvedModule,
+    ResolvedRef, StdlibStubs,
 };
-use glyph_typechecker::assign_types;
+use glyph_typechecker::{assign_types, display_ty, TypeMap};
 
 /// One diagnostic in source-byte coordinates, independent of the LSP protocol.
 pub struct GlyphDiagnostic {
@@ -79,6 +80,68 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
     out
 }
 
+/// A fully analyzed document: the resolution and type side tables. Hover and
+/// go-to-definition query these by source offset. `None` from `analyze_full`
+/// means the document did not parse. (Neither table borrows the AST — spans are
+/// plain byte offsets — so the `Module` is dropped after analysis.)
+pub struct Analysis {
+    resolved: ResolvedModule,
+    types: TypeMap,
+}
+
+/// Parse, resolve, and typecheck `text`, returning the analysis for
+/// position-based queries. `None` if the document does not parse.
+pub fn analyze_full(text: &str) -> Option<Analysis> {
+    let module = glyph_parser::parse(text).ok()?;
+    let symbols = collect_module_symbols(&module).ok()?;
+    let prelude = build_prelude();
+    let (resolved, _errs) = resolve_module(&module, symbols, &prelude);
+    let (types, _terrs) = assign_types(&module, &resolved, &prelude);
+    Some(Analysis { resolved, types })
+}
+
+impl Analysis {
+    /// The rendered type of the innermost typed expression covering `offset`,
+    /// for hover. `None` when no typed expression is there or its type is the
+    /// not-yet-inferred placeholder.
+    pub fn hover(&self, offset: usize) -> Option<String> {
+        let mut best: Option<(u32, String)> = None;
+        for (span, ty) in self.types.iter() {
+            if (span.start as usize) <= offset && offset < (span.end as usize) {
+                let width = span.end - span.start;
+                if best.as_ref().map_or(true, |(w, _)| width < *w) {
+                    best = Some((width, display_ty(ty)));
+                }
+            }
+        }
+        best.map(|(_, rendered)| rendered).filter(|s| s != "?")
+    }
+
+    /// The definition location (byte `[start, end)`) of the name reference
+    /// covering `offset`, for go-to-definition. A local binding or module-level
+    /// declaration resolves within this file; a prelude built-in (or no
+    /// reference) yields `None`. Cross-module targets await workspace support.
+    pub fn definition(&self, offset: usize) -> Option<(u32, u32)> {
+        let mut best: Option<(u32, ResolvedRef)> = None;
+        for (span, r) in self.resolved.resolutions.iter() {
+            if (span.start as usize) <= offset && offset < (span.end as usize) {
+                let width = span.end - span.start;
+                if best.as_ref().map_or(true, |(w, _)| width < *w) {
+                    best = Some((width, r));
+                }
+            }
+        }
+        match best.map(|(_, r)| r)? {
+            ResolvedRef::Local(def_start) => Some((def_start, def_start)),
+            ResolvedRef::Module(id) => {
+                let sym = self.resolved.symbols.table.get(id)?;
+                Some((sym.span.start, sym.span.start))
+            }
+            ResolvedRef::Prelude(_) => None,
+        }
+    }
+}
+
 fn resolve_diag(e: &glyph_resolver::ResolveError) -> GlyphDiagnostic {
     GlyphDiagnostic {
         start: e.span().start,
@@ -126,6 +189,26 @@ impl LineIndex {
             .map_or(0, |s| s.encode_utf16().count());
         (line as u32, character as u32)
     }
+
+    /// The byte offset of LSP position `(line, character)` in `text`, where
+    /// `character` is a UTF-16 code-unit count. The inverse of `position`, used
+    /// to map a hover/definition request to a source offset.
+    pub fn offset(&self, text: &str, line: u32, character: u32) -> usize {
+        let line = line as usize;
+        let Some(&line_start) = self.line_starts.get(line) else {
+            return text.len();
+        };
+        let mut utf16 = 0u32;
+        let mut byte = line_start;
+        for ch in text[line_start..].chars() {
+            if utf16 >= character || ch == '\n' {
+                break;
+            }
+            utf16 += ch.len_utf16() as u32;
+            byte += ch.len_utf8();
+        }
+        byte
+    }
 }
 
 #[cfg(test)]
@@ -162,6 +245,35 @@ mod tests {
         assert_eq!(idx.position(text, 3), (1, 0)); // start of line 1 ("cde")
         assert_eq!(idx.position(text, 5), (1, 2));
         assert_eq!(idx.position(text, 7), (2, 0)); // "f"
+    }
+
+    #[test]
+    fn hover_shows_expression_type() {
+        let text = "module x\nfn f() -> number {\n  let n = 41\n  return n\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let off = text.find("41").unwrap();
+        assert_eq!(a.hover(off), Some("number".to_string()));
+    }
+
+    #[test]
+    fn goto_definition_resolves_a_module_call() {
+        let text = "module x\nfn helper() -> number {\n  return 1\n}\nfn main() -> number {\n  return helper()\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let call = text.rfind("helper").unwrap(); // the call site
+        let def = a.definition(call).expect("resolves");
+        // The definition points at the `helper` declaration, before the call.
+        assert!(def.0 < call as u32, "def {def:?} should precede call at {call}");
+    }
+
+    #[test]
+    fn offset_is_inverse_of_position() {
+        let text = "ab\ncde\nf";
+        let idx = LineIndex::new(text);
+        assert_eq!(idx.offset(text, 0, 0), 0);
+        assert_eq!(idx.offset(text, 1, 2), 5); // 'e' in "cde"
+        // round-trip
+        let (l, c) = idx.position(text, 5);
+        assert_eq!(idx.offset(text, l, c), 5);
     }
 
     #[test]

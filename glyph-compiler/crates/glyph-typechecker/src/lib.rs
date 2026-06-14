@@ -42,6 +42,61 @@ pub use type_map::TypeMap;
 
 use glyph_ast::Span;
 
+/// Render a `Ty` for human display (LSP hover, diagnostics). Structural where
+/// useful — `Array<number>`, `Result<User, string>`, `{ name: string }`,
+/// `fn(number) -> bool`, `A | B(T)` — and `?` for the not-yet-inferred
+/// placeholder. Distinct from the terse internal `ty_display` used in error
+/// strings, which collapses composites to a category word.
+pub fn display_ty(ty: &Ty) -> String {
+    match ty {
+        Ty::Unknown => "?".to_string(),
+        Ty::UnknownTop => "unknown".to_string(),
+        Ty::Prim(p) => p.as_str().to_string(),
+        Ty::Named { path, .. } if !path.is_empty() => {
+            path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
+        }
+        Ty::Named { .. } => "?".to_string(),
+        Ty::Param { name, .. } => name.to_string(),
+        Ty::App { base, args } => {
+            let args = args.iter().map(display_ty).collect::<Vec<_>>().join(", ");
+            format!("{}<{}>", display_ty(base), args)
+        }
+        Ty::Record { fields } if fields.is_empty() => "{}".to_string(),
+        Ty::Record { fields } => {
+            let fields = fields
+                .iter()
+                .map(|f| {
+                    let opt = if f.optional { "?" } else { "" };
+                    format!("{}{}: {}", f.name, opt, display_ty(&f.ty))
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{{ {fields} }}")
+        }
+        Ty::Fn {
+            params,
+            return_ty,
+            is_async,
+        } => {
+            let params = params
+                .iter()
+                .map(|p| display_ty(&p.ty))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let prefix = if *is_async { "async " } else { "" };
+            format!("{prefix}fn({params}) -> {}", display_ty(return_ty))
+        }
+        Ty::Union { variants } => variants
+            .iter()
+            .map(|v| match &v.payload {
+                Some(p) => format!("{}({})", v.name, display_ty(p)),
+                None => v.name.to_string(),
+            })
+            .collect::<Vec<_>>()
+            .join(" | "),
+    }
+}
+
 /// Errors emitted by the typechecker. Day-14 surfaces the first real
 /// variant: `NonExhaustiveMatch`, emitted when a `match` over a
 /// tagged-union scrutinee fails to cover every variant (D9). Further

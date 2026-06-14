@@ -21,12 +21,26 @@ synchronous call that never holds a lock or a non-`Send` value across an
 `await`. Verified end to end with a real `initialize`/`didOpen` JSON-RPC
 exchange (an `E0210` field-typo squiggle with the right range).
 
-**Next increments:** hover types, go-to-definition (cross-module via D15
-full-path imports), completion. Then the v1 additions: the `agent://`
-canonical virtual document (Q32), the `applyEdit` RPC (Q29), and the workspace
-symbol index (Q12). Rename + find-references remain v1.1. The single-file
-analysis will move onto the salsa `glyph-db` queries when multi-file/workspace
-support lands (the incremental substrate is already there).
+## Increment 2 (shipped): hover + go-to-definition
+
+- **Hover** — the innermost typed expression under the cursor renders its type
+  (`Array<number>`, `Result<User, string>`, `{ name: string }`, …) via a public
+  `display_ty`, shown as a fenced `glyph` block.
+- **Go-to-definition** — the name reference under the cursor resolves to its
+  definition: a local binding or a module-level declaration jumps within the
+  file; a prelude built-in yields nothing; cross-module targets await workspace
+  support. Both reuse the resolution map and type-map side tables (a `TypeMap`
+  iterator and a UTF-16 `LineIndex::offset` were added).
+
+Verified end to end: hovering a literal shows `number`, and a call jumps to its
+`fn` declaration.
+
+**Next increments:** completion (keywords, in-scope names, stdlib members). Then
+the v1 additions: the `agent://` canonical virtual document (Q32), the
+`applyEdit` RPC (Q29), and the workspace symbol index (Q12). Rename +
+find-references remain v1.1. The single-file analysis will move onto the salsa
+`glyph-db` queries when multi-file/workspace support lands (the incremental
+substrate is already there).
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

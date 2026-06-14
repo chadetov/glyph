@@ -62,12 +62,16 @@ the most exposed.
   TS terms. For a verifiability-first language, two of the most common mistakes
   are delegated to an optional downstream tool. *Fix: member-access + call-arg
   checking in the typechecker (needs the unifier).*
-- **G7. The prelude-import trap.** `Option`/`Some`/`None` and `Result`/`Ok`/`Err`
-  used without an explicit `import` resolve cleanly (they're in the prelude) but
-  the emitter never injects their import, so `tsc` fails with a misleading
-  `TS2749`/`TS2304` (the DOM `lib` even shadows `Option` as a value). `glyph
-  build` without `--check` emits broken TS and exits 0. *Fix: the emitter
-  auto-imports the prelude std-module values/types it references.*
+- **G7. [FIXED] The prelude-import trap.** `Option`/`Some`/`None` and
+  `Result`/`Ok`/`Err` used without an explicit `import` resolved cleanly (they're
+  in the prelude) but the emitter never injected their import, so `tsc` failed
+  with a misleading `TS2749`/`TS2304` (the DOM `lib` even shadows `Option` as a
+  value). `glyph build` without `--check` emitted broken TS and exited 0. *Fixed:
+  the emitter scans the resolution map for prelude tagged-union references and
+  injects `import { ... } from "std/result"` / `"std/option"` for the ones used
+  without an explicit import. Explicitly imported names resolve to a module
+  symbol, not the prelude, so they are never double-imported. Verified end to end
+  (a program with no `std/result`/`std/option` import now passes `tsc --strict`).*
 - **G8. The resolver's stdlib stubs over-promise the runtime.** `StdlibStubs`
   lists `array.reverse/slice/concat/reduce/len/push`, `string.split/trim/lower/
   upper/contains/...`, `std/time.now/sleep/Duration` — but the runtime `.ts`
@@ -139,7 +143,6 @@ catch — they should be fixed first. Then the "silent green" cluster **G7/G8/G9
 the verifiability pair **G3/G6**. **G11** (fmt escape corruption) is a quick,
 self-contained correctness fix.
 
-**Progress:** G1, G2, and G11 are fixed (the three correctness bugs `tsc` could
-not catch). Next up is the "silent green" cluster — G7 (emitter auto-imports the
-prelude values it references) and G8 (resolver stubs match the runtime) — then
-the verifiability pair G3/G6 (which needs the unifier).
+**Progress:** G1, G2, G11, and G7 are fixed. Remaining in the "silent green"
+cluster: G8 (resolver stubs match the runtime) and G9 (type-check by default).
+After that, the verifiability pair G3/G6 (which needs the unifier).

@@ -14,7 +14,7 @@
 use std::path::{Path, PathBuf};
 
 use glyph_db::{
-    import_diagnostics, module_symbols, parse_module, resolve, type_map, CompilerDb, SourceFile,
+    import_diagnostics, module_symbols, parse_module, resolve, type_map, CompilerDb, Db, SourceFile,
 };
 
 use crate::render::{
@@ -203,7 +203,7 @@ pub fn build_project_inner(
         }
         let Some(ast) = parsed.module() else { continue };
         let Some(resolved) = r.resolved() else { continue };
-        match glyph_emit::emit_module(ast, resolved, types.type_map()) {
+        match glyph_emit::emit_module(ast, resolved, types.type_map(), db.prelude()) {
             Ok(ts) => {
                 let rel = format!("{module_path}.ts");
                 let ts_path = out.join(&rel);

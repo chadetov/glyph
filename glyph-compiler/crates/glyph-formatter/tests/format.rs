@@ -39,7 +39,7 @@ fn emit_ts(src: &str) -> Option<String> {
     let prelude = glyph_resolver::build_prelude();
     let (resolved, _re) = glyph_resolver::resolve_module(&m, syms, &prelude);
     let (tm, _te) = glyph_typechecker::assign_types(&m, &resolved, &prelude);
-    glyph_emit::emit_module(&m, &resolved, &tm).ok()
+    glyph_emit::emit_module(&m, &resolved, &tm, &prelude).ok()
 }
 
 fn fmt(src: &str) -> String {

@@ -119,9 +119,10 @@ use glyph_ast::{
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
     TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
-use glyph_resolver::{ResolvedModule, SymbolId, SymbolKind};
+use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 use glyph_typechecker::{Ty, TypeMap};
 use std::cell::Cell;
+use std::collections::BTreeSet;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -248,6 +249,7 @@ pub fn emit_module(
     module: &Module,
     resolved: &ResolvedModule,
     types: &TypeMap,
+    prelude: &Prelude,
 ) -> Result<String, EmitError> {
     let mut e = Emitter {
         out: String::new(),
@@ -259,6 +261,7 @@ pub fn emit_module(
         loop_labels: Vec::new(),
         module,
         resolved,
+        prelude,
         types,
     };
     e.emit_module()?;
@@ -294,6 +297,10 @@ struct Emitter<'a> {
     loop_labels: Vec<Option<String>>,
     module: &'a Module,
     resolved: &'a ResolvedModule,
+    /// The prelude symbol table, used to resolve a `ResolvedRef::Prelude(id)`
+    /// back to its name so the emitter can inject `import`s for the prelude
+    /// tagged-union values/types a module references without an explicit import.
+    prelude: &'a Prelude,
     types: &'a TypeMap,
 }
 
@@ -317,6 +324,7 @@ impl<'a> Emitter<'a> {
             loop_labels: Vec::new(),
             module: self.module,
             resolved: self.resolved,
+            prelude: self.prelude,
             types: self.types,
         }
     }
@@ -366,6 +374,15 @@ impl<'a> Emitter<'a> {
             }
             self.emit_decl(decl)?;
         }
+        // A module that referenced a prelude tagged-union value/type
+        // (`Ok`/`Err`/`Result`, `Some`/`None`/`Option`) without an explicit
+        // import still needs the runtime `import` in the emitted TS — the
+        // prelude makes the name resolve, but `tsc`/`tsx` need the binding.
+        // Inserted before the schema/try imports below so those end up first.
+        let prelude_header = self.prelude_import_header();
+        if !prelude_header.is_empty() {
+            self.out.insert_str(0, &prelude_header);
+        }
         // A module that emitted any record descriptor needs the `schema`
         // factory for its `T.schema` member; and a module that lowered any `?`
         // re-wraps the propagated error with the prelude `Err`. Prepend the
@@ -384,6 +401,54 @@ impl<'a> Emitter<'a> {
             );
         }
         Ok(())
+    }
+
+    /// Build the `import` lines for prelude tagged-union names this module
+    /// references without an explicit import. Explicitly imported names resolve
+    /// to a module symbol (not `ResolvedRef::Prelude`), so they are naturally
+    /// excluded and never double-imported. Names are grouped per runtime module
+    /// and sorted for deterministic output; empty when nothing is needed.
+    fn prelude_import_header(&self) -> String {
+        let mut result: BTreeSet<&'static str> = BTreeSet::new();
+        let mut option: BTreeSet<&'static str> = BTreeSet::new();
+        for (_, r) in self.resolved.resolutions.iter() {
+            let ResolvedRef::Prelude(id) = r else { continue };
+            let Some(sym) = self.prelude.table.get(id) else {
+                continue;
+            };
+            match sym.name.as_ref() {
+                "Result" => {
+                    result.insert("Result");
+                }
+                "Ok" => {
+                    result.insert("Ok");
+                }
+                "Err" => {
+                    result.insert("Err");
+                }
+                "Option" => {
+                    option.insert("Option");
+                }
+                "Some" => {
+                    option.insert("Some");
+                }
+                "None" => {
+                    option.insert("None");
+                }
+                _ => {}
+            }
+        }
+        let mut out = String::new();
+        for (names, module) in [(&result, "std/result"), (&option, "std/option")] {
+            if !names.is_empty() {
+                let list = names.iter().copied().collect::<Vec<_>>().join(", ");
+                out.push_str(&format!("import {{ {list} }} from \"{module}\";\n"));
+            }
+        }
+        if !out.is_empty() {
+            out.push('\n');
+        }
+        out
     }
 
     fn emit_decl(&mut self, decl: &Decl) -> Result<(), EmitError> {
@@ -3036,23 +3101,24 @@ mod tests {
         glyph_ast::Module,
         glyph_resolver::ResolvedModule,
         glyph_typechecker::TypeMap,
+        glyph_resolver::Prelude,
     ) {
         let module = glyph_parser::parse(src).expect("parse failed");
         let syms = glyph_resolver::collect_module_symbols(&module).expect("collect failed");
         let prelude = glyph_resolver::build_prelude();
         let (resolved, _errs) = glyph_resolver::resolve_module(&module, syms, &prelude);
         let (types, _ty_errs) = glyph_typechecker::assign_types(&module, &resolved, &prelude);
-        (module, resolved, types)
+        (module, resolved, types, prelude)
     }
 
     fn emit(src: &str) -> String {
-        let (module, resolved, types) = pipeline(src);
-        emit_module(&module, &resolved, &types).expect("emit failed")
+        let (module, resolved, types, prelude) = pipeline(src);
+        emit_module(&module, &resolved, &types, &prelude).expect("emit failed")
     }
 
     fn emit_err(src: &str) -> EmitError {
-        let (module, resolved, types) = pipeline(src);
-        emit_module(&module, &resolved, &types).expect_err("expected emit error")
+        let (module, resolved, types, prelude) = pipeline(src);
+        emit_module(&module, &resolved, &types, &prelude).expect_err("expected emit error")
     }
 
     #[test]
@@ -3247,6 +3313,28 @@ mod tests {
         );
         assert!(ts.contains("__loop0: for (const c of xs) {"), "{ts}");
         assert!(ts.contains("break __loop0;"), "{ts}");
+    }
+
+    #[test]
+    fn prelude_values_used_without_import_are_auto_imported() {
+        // G7: a module that uses prelude `Ok`/`Result`/`None`/`Option` without an
+        // explicit import still needs the runtime `import` in the emitted TS.
+        let ts = emit(
+            "module x\nfn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\nfn g() -> Option<number> {\n  return None\n}\n",
+        );
+        assert!(ts.contains("import { Ok, Result } from \"std/result\";"), "{ts}");
+        assert!(ts.contains("import { None, Option } from \"std/option\";"), "{ts}");
+    }
+
+    #[test]
+    fn explicitly_imported_prelude_values_are_not_double_imported() {
+        // The explicit import resolves to a module symbol, not the prelude, so
+        // no second generated import is injected.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok }\nfn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\n",
+        );
+        // Exactly one import line mentioning std/result (the user's), no injected one.
+        assert_eq!(ts.matches("from \"std/result\"").count(), 1, "{ts}");
     }
 
     #[test]

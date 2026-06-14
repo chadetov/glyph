@@ -327,10 +327,13 @@ impl Assigner<'_> {
             }
             Expr::Postfix { op, operand, span } => {
                 self.walk_expr(operand);
-                if matches!(op, PostfixOp::Try) {
-                    self.check_question_operator(*span);
-                }
-                self.tm.insert(*span, Ty::Unknown);
+                let ty = if matches!(op, PostfixOp::Try) {
+                    let operand_ty = self.tm.get(operand.span()).clone();
+                    self.check_question_operator(*span, &operand_ty)
+                } else {
+                    Ty::Unknown
+                };
+                self.tm.insert(*span, ty);
             }
             Expr::Unary { operand: child, span, .. }
             | Expr::Member { object: child, span, .. } => {
@@ -554,16 +557,73 @@ impl Assigner<'_> {
         }
     }
 
-    /// Flag a `?` whose innermost enclosing callable does not (provably)
-    /// return `Result`. An empty stack means the `?` sits in a `const`
-    /// initializer with no enclosing callable, which is always an error.
-    fn check_question_operator(&mut self, span: Span) {
+    /// Check a `?` expression and return the type it evaluates to: the
+    /// operand's success type `T` when the operand is a `Result<T, E>`,
+    /// else `Unknown`. Three rules (week-3 task 2), each erring toward
+    /// permissive so none fires on a type it cannot judge:
+    /// - enclosing-fn side: the innermost callable must (provably) return
+    ///   `Result`, else `QuestionOutsideResultFn`. An empty stack is a `?`
+    ///   in a `const` initializer with no enclosing callable, always an
+    ///   error.
+    /// - operand side: a decidably non-`Result` operand is
+    ///   `QuestionOnNonResult`.
+    /// - error-type side: the operand's `E` must equal the enclosing
+    ///   function's `E` exactly (no `From` in v1), else
+    ///   `QuestionErrorTypeMismatch`. Judged only when the enclosing return
+    ///   is a decidable `Result` and both `E`s are decidable.
+    fn check_question_operator(&mut self, span: Span, operand_ty: &Ty) -> Ty {
+        let enclosing = self.return_stack.last().cloned();
         let permitted = matches!(
-            self.return_stack.last().map(|e| e.class),
+            enclosing.as_ref().map(|e| e.class),
             Some(ReturnClass::Result | ReturnClass::Unknown)
         );
         if !permitted {
             self.errors.push(TypeError::QuestionOutsideResultFn { span });
+        }
+
+        match self.result_args(operand_ty) {
+            Some((ok_ty, err_ty)) => {
+                // Operand IS a `Result`: its `E` must match the enclosing
+                // function's `E` exactly. Only judged when the enclosing
+                // return is a decidable `Result` and both error types are
+                // decidable, so an undecidable side never produces a false
+                // positive.
+                if let Some(EnclosingReturn { class: ReturnClass::Result, ty }) = &enclosing {
+                    if let Some((_, fn_err)) = self.result_args(ty) {
+                        if ty_is_decidable(&err_ty) && ty_is_decidable(&fn_err) && err_ty != fn_err {
+                            self.errors.push(TypeError::QuestionErrorTypeMismatch {
+                                expected: ty_display(&fn_err),
+                                found: ty_display(&err_ty),
+                                span,
+                            });
+                        }
+                    }
+                }
+                ok_ty
+            }
+            None => {
+                if ty_is_decidable(operand_ty) {
+                    self.errors.push(TypeError::QuestionOnNonResult {
+                        found: ty_display(operand_ty),
+                        span,
+                    });
+                }
+                Ty::Unknown
+            }
+        }
+    }
+
+    /// If `ty` is a prelude `Result<T, E>`, return `(T, E)` (cloned). The
+    /// `?`-specific reader over `prelude_union`: `Option` and every other
+    /// type return None, since only `Result` is `?`-compatible. A missing
+    /// type argument (an under-applied `Result`) reads as `Unknown`.
+    fn result_args(&self, ty: &Ty) -> Option<(Ty, Ty)> {
+        match self.prelude_union(ty)? {
+            ("Result", args) => Some((
+                args.first().cloned().unwrap_or(Ty::Unknown),
+                args.get(1).cloned().unwrap_or(Ty::Unknown),
+            )),
+            _ => None,
         }
     }
 
@@ -1018,6 +1078,21 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
         (found, expected),
         (Ty::Prim(a), Ty::Prim(b)) if a != b
     )
+}
+
+/// True when `ty` is resolved enough to compare for equality or to judge
+/// "not a `Result`" with certainty: not the `Unknown` placeholder, not an
+/// open generic `Param` (which could instantiate to anything), and not an
+/// `App` over an unresolved (`Unknown`) base. The `?` operand and
+/// error-type checks gate on this so neither fires on a type it cannot
+/// decide.
+fn ty_is_decidable(ty: &Ty) -> bool {
+    match ty {
+        Ty::Unknown => false,
+        Ty::Param { .. } => false,
+        Ty::App { base, .. } => ty_is_decidable(base),
+        _ => true,
+    }
 }
 
 
@@ -1841,6 +1916,136 @@ fn outer(r: Result<string, string>) -> number {
         assert!(
             errs.is_empty(),
             "`?` in a Result-returning lambda should pass; got: {errs:?}"
+        );
+    }
+
+    // ----- `?` operand rule (week-3 task 2): operand must be a Result -----
+
+    #[test]
+    fn question_on_non_result_operand_is_flagged() {
+        // `n?` where `n: number`. The enclosing fn returns Result (so the
+        // enclosing-fn rule passes), but the operand is decidably not a
+        // Result, so the operand rule fires.
+        let src = r#"module x
+fn f(n: number) -> Result<number, string> {
+  let x = n?
+  return Ok(x)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(
+            matches!(&errs[0], TypeError::QuestionOnNonResult { found, .. } if found == "number"),
+            "expected QuestionOnNonResult on number; got {:?}",
+            errs[0]
+        );
+    }
+
+    #[test]
+    fn question_on_unknown_operand_is_permissive() {
+        // `s.parse()?` types as Unknown (a member-access call), so the
+        // operand rule cannot prove it isn't a Result and stays silent.
+        let src = r#"module x
+fn f(s: string) -> Result<number, string> {
+  let v = s.parse()?
+  return Ok(1)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "`?` on an Unknown-typed operand must not be flagged; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn question_unwraps_to_success_type() {
+        // `inner()?` evaluates to the operand's success type (`number`), not
+        // Unknown, so the bound `v` is `number` and downstream typing sees it.
+        let src = r#"module x
+fn inner() -> Result<number, string> { return Ok(1) }
+fn outer() -> Result<number, string> {
+  let v = inner()?
+  return Ok(v)
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let outer = match &m.items[1] {
+            Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let q_span = match &outer.body.stmts[0] {
+            Stmt::Let(l) => l.value.span(),
+            _ => panic!("first stmt is not a let"),
+        };
+        assert!(
+            matches!(tm.get(q_span), Ty::Prim(Primitive::Number)),
+            "`inner()?` should unwrap to number; got {:?}",
+            tm.get(q_span)
+        );
+    }
+
+    #[test]
+    fn question_error_type_mismatch_is_flagged() {
+        // The operand propagates `Err(A)`, but the enclosing fn returns
+        // `Result<_, B>`. v1 has no `From`, so the mismatched error types are
+        // flagged.
+        let src = r#"module x
+type A = | X
+type B = | Y
+fn inner() -> Result<number, A> { return Err(X) }
+fn outer() -> Result<number, B> {
+  let v = inner()?
+  return Ok(v)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(
+            matches!(&errs[0], TypeError::QuestionErrorTypeMismatch { expected, found, .. }
+                if expected == "B" && found == "A"),
+            "expected QuestionErrorTypeMismatch B vs A; got {:?}",
+            errs[0]
+        );
+    }
+
+    #[test]
+    fn question_matching_error_types_pass() {
+        // Same error type on both sides: no mismatch.
+        let src = r#"module x
+type E = | X
+fn inner() -> Result<number, E> { return Err(X) }
+fn outer() -> Result<string, E> {
+  let v = inner()?
+  return Ok("ok")
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "matching `?` error types must pass; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn question_error_mismatch_against_imported_result_returns_self() {
+        // Regression guard for the example shape: when the enclosing fn and
+        // the operand share the same module-local error type (via an imported
+        // `Result`), no mismatch fires even though both `E`s are user Named
+        // types.
+        let src = r#"module x
+import std/result { Result, Ok, Err }
+type FeedError = | Boom
+fn inner() -> Result<number, FeedError> { return Err(Boom) }
+fn outer() -> Result<number, FeedError> {
+  let v = inner()?
+  return Ok(v)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "same user error type via imported Result must pass; got: {errs:?}"
         );
     }
 

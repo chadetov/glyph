@@ -59,12 +59,35 @@ pub enum TypeError {
     /// `expr?` used where the enclosing function does not return `Result`.
     /// The `?` operator propagates the `Err` arm to the caller, so it is
     /// only legal inside a function whose declared return type is
-    /// `Result<_, _>`. Day-15 scope is the enclosing-function side of the
-    /// rule (D + week-3 task 2); the operand-side check ("`expr` must be a
-    /// `Result` and its `E` must match the function's `E`") needs the
-    /// bidirectional checker and lands in a later day.
+    /// `Result<_, _>`. This is the enclosing-function side of the week-3
+    /// task-2 rule; the operand side ("`expr` must be a `Result` and its
+    /// `E` must match the function's `E`") is carried by
+    /// `QuestionOnNonResult` and `QuestionErrorTypeMismatch`.
     #[error("the `?` operator is only valid inside a function that returns `Result`")]
     QuestionOutsideResultFn { span: Span },
+
+    /// `expr?` whose operand is decidably not a `Result`. The `?` operator
+    /// unwraps a `Result`, propagating its `Err` to the caller, so its
+    /// operand must be a `Result<T, E>` (week-3 task 2, operand side).
+    /// Fires only when the operand's type is fully resolved and provably
+    /// non-`Result`; an operand whose type can't be judged (`Unknown`, a
+    /// generic parameter, an application over an unresolved base) stays
+    /// permissive, so the check never produces a false positive.
+    #[error("the `?` operator requires a `Result` operand, but found `{found}`")]
+    QuestionOnNonResult { found: String, span: Span },
+
+    /// `expr?` whose operand error type `E` differs from the enclosing
+    /// function's declared `Result<_, E>` error type. v1 has no `From`
+    /// conversion (the brainstorm's Q5 plan), so the two `E`s must match
+    /// exactly. Fires only when both error types are fully resolved and
+    /// provably distinct — when either side is undecidable the check stays
+    /// silent.
+    #[error("the `?` operator propagates error type `{found}`, but the enclosing function returns `Result<_, {expected}>`")]
+    QuestionErrorTypeMismatch {
+        expected: String,
+        found: String,
+        span: Span,
+    },
 
     /// A value's type is incompatible with the type required at its
     /// position. Day-21 emits this for `return` statements whose value is a
@@ -122,6 +145,8 @@ impl TypeError {
         match self {
             TypeError::NonExhaustiveMatch { span, .. } => *span,
             TypeError::QuestionOutsideResultFn { span } => *span,
+            TypeError::QuestionOnNonResult { span, .. } => *span,
+            TypeError::QuestionErrorTypeMismatch { span, .. } => *span,
             TypeError::TypeMismatch { span, .. } => *span,
             TypeError::OwnedRequiresResourceType { span, .. } => *span,
             TypeError::OwnedNotConsumed { span, .. } => *span,

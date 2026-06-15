@@ -6,7 +6,7 @@ This directory instruments that claim from day one (brainstorm Q10 resolution: b
 
 ## What's measured
 
-For each function, the same task is implemented in **Glyph, TypeScript, Python, Rust**. Per commit on `main`, the measure script computes:
+For each function, the same task is implemented in **Glyph, TypeScript, Python, Rust, Go**. Per commit on `main`, the measure script computes:
 
 - **Token count** — primary metric. Lower is denser. A real LLM token count (tiktoken `cl100k_base`) when tiktoken is installed, falling back to a dependency-free proxy otherwise; the `tokenizer` field in each result records which was used. See methodology.
 - **Line count** — secondary metric. Lower is shorter.
@@ -18,7 +18,7 @@ Results are written to `results/<timestamp>.json` and checked into git so the tr
 
 ## The first three functions (Phase 0)
 
-Functions picked to translate naturally across all four languages — no language-specific tricks, no JSX.
+Functions picked to translate naturally across all five languages — no language-specific tricks, no JSX.
 
 | Function | What | Stresses |
 |---|---|---|

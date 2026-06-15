@@ -16,8 +16,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 FUNCTION_FILTER="${1:-}"
-LANGUAGES=(glyph typescript python rust)
-EXTENSIONS=(glyph ts py rs)
+LANGUAGES=(glyph typescript python rust go)
+EXTENSIONS=(glyph ts py rs go)
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
 OUTPUT="results/${TIMESTAMP}.json"
@@ -36,7 +36,7 @@ count_lines() {
   local file="$1"
   local ext="${file##*.}"
   case "$ext" in
-    glyph|ts|rs) grep -cvE '^\s*(//|$)' "$file" ;;
+    glyph|ts|rs|go) grep -cvE '^\s*(//|$)' "$file" ;;
     py)          grep -cvE '^\s*(#|$)' "$file" ;;
     *)           wc -l <"$file" ;;
   esac

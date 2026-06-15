@@ -8,20 +8,20 @@ These are structural measurements of the language and toolchain, not a study of 
 
 ## 1. Density
 
-The same task was implemented in Glyph, TypeScript, Python, and Rust, and each implementation was measured with a real LLM tokenizer (`benchmarks/measure.sh`, which calls `count_tokens.py` using tiktoken's `cl100k_base` encoding). Lower is denser.
+The same task was implemented in Glyph, TypeScript, Python, Rust, and Go, and each implementation was measured with a real LLM tokenizer (`benchmarks/measure.sh`, which calls `count_tokens.py` using tiktoken's `cl100k_base` encoding). Lower is denser.
 
-| Function     | Glyph | TypeScript | Python | Rust |
-|--------------|------:|-----------:|-------:|-----:|
-| `load_feed`  |   166 |        257 |    242 |  323 |
-| `parse_user` |   125 |        174 |    152 |  168 |
-| `slugify`    |    50 |         47 |     41 |  129 |
-| **Total**    | **341** |    **478** |  **435** | **620** |
+| Function     | Glyph | TypeScript | Python | Rust |  Go |
+|--------------|------:|-----------:|-------:|-----:|----:|
+| `load_feed`  |   166 |        257 |    242 |  323 | 346 |
+| `parse_user` |   125 |        174 |    152 |  168 | 131 |
+| `slugify`    |    50 |         47 |     41 |  129 |  87 |
+| **Total**    | **341** |    **478** |  **435** | **620** | **564** |
 
-Across the three functions, Glyph uses about 29% fewer tokens than the equivalent TypeScript (341 vs 478), about 45% fewer than Rust, and about 22% fewer than Python, while remaining fully statically typed. Python, the only other language in the set that beats TypeScript on density, is not statically typed.
+Across the three functions, Glyph uses about 29% fewer tokens than the equivalent TypeScript (341 vs 478), about 22% fewer than Python, about 40% fewer than Go, and about 45% fewer than Rust, while remaining fully statically typed. The ranking by density is Glyph, Python, TypeScript, Go, Rust. Python is the only language that beats TypeScript here, and it is not statically typed; among the four statically typed languages Glyph is the densest by a wide margin, and Go and Rust — the other languages with explicit, checkable error handling — are the longest.
 
 The advantage scales with the amount of real logic. On the two functions with actual control flow Glyph is well ahead (`load_feed` 166 vs 257, `parse_user` 125 vs 174); on the trivial `slugify` it is marginally *larger* than TypeScript and Python (50 vs 47 and 41), because its `module` declaration and `import` line are fixed overhead that a three-line function cannot amortize. Density is a property of expressing real work, not of one-liners.
 
-Line counts (excluding blank lines and comments) follow the same ordering: Glyph 46, TypeScript 55, Python 57, Rust 67.
+Line counts (excluding blank lines and comments) follow the same ordering on the totals: Glyph 46, TypeScript 55, Python 57, Rust 67, Go 81.
 
 **Caveat.** These are real `cl100k_base` token counts, not a proxy. A different encoding (o200k_base, or Anthropic's tokenizer) would shift the absolute numbers, but the cross-language ranking is driven by structure and is not sensitive to the choice. Only three functions have been measured so far (`parse_user`, `load_feed`, `slugify`), so these totals describe a small sample, not a representative corpus.
 

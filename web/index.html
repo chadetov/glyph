@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glyph — a typed language that transpiles to TypeScript, built for AI agents</title>
+    <meta
+      name="description"
+      content="Glyph is a statically typed, transpile-to-TypeScript language designed so AI agents can read, write, and modify code safely. It looks almost like TypeScript."
+    />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --panel-2: #11161d;
+        --border: #2d333b;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #6cb6ff;
+        --green: #3fb950;
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.6;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      header.hero {
+        padding: 96px 0 64px;
+        border-bottom: 1px solid var(--border);
+      }
+      .logo {
+        font-family: var(--mono);
+        font-size: 0.92rem;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+      }
+      h1 {
+        font-size: 3rem;
+        line-height: 1.1;
+        margin: 18px 0 0;
+        letter-spacing: -0.02em;
+      }
+      .tagline {
+        font-size: 1.35rem;
+        color: var(--text);
+        margin: 18px 0 0;
+        max-width: 40ch;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 16px 0 0;
+        max-width: 62ch;
+      }
+      .cta {
+        margin-top: 32px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+      .btn {
+        display: inline-block;
+        padding: 11px 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+      }
+      .btn:hover {
+        text-decoration: none;
+        border-color: var(--accent);
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #06121f;
+        border-color: var(--accent);
+      }
+      .install {
+        margin-top: 28px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px 16px;
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        max-width: 460px;
+      }
+      .install .prompt {
+        color: var(--muted);
+        user-select: none;
+      }
+      section {
+        padding: 56px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      h2 {
+        font-size: 1.4rem;
+        margin: 0 0 24px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+      }
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.96rem;
+      }
+      ul.why {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 10px 28px;
+      }
+      ul.why li {
+        padding-left: 22px;
+        position: relative;
+        color: var(--muted);
+      }
+      ul.why li::before {
+        content: "›";
+        position: absolute;
+        left: 0;
+        color: var(--green);
+        font-weight: 700;
+      }
+      ul.why b {
+        color: var(--text);
+        font-weight: 600;
+      }
+      footer {
+        padding: 40px 0 64px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        align-items: center;
+      }
+      .pill {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 3px 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="logo">glyph</div>
+        <h1>Code an agent can change without breaking it.</h1>
+        <p class="tagline">
+          A statically typed language that transpiles to TypeScript, designed so
+          AI agents can read, write, and modify code safely.
+        </p>
+        <p class="sub">
+          Glyph looks almost like TypeScript &mdash; a TS developer reads it on
+          day one without a tutorial. The differences are deliberate and few,
+          and each one exists to make code an agent can reason about correctly,
+          edit without breakage, and explain back to a human without lying.
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="/playground/">Try it in the browser</a>
+          <a class="btn" href="https://github.com/chadetov/glyph">GitHub</a>
+          <a
+            class="btn"
+            href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md"
+            >The five-minute tour</a
+          >
+        </div>
+        <div class="install" title="Requires Node.js 18+">
+          <span class="prompt">$</span>
+          <span>npm install -g @glyphlang/glyph</span>
+        </div>
+      </div>
+    </header>
+
+    <section>
+      <div class="wrap">
+        <h2>The four pillars</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Verifiability</h3>
+            <p>
+              What the type system claims is true at runtime. No
+              <code>any</code>, no structural-typing surprises, no type erasure.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Greppability</h3>
+            <p>
+              Every symbol has one syntactic form at its declaration site.
+              <code>grep "fn parseUser"</code> finds the definition. Always.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Abstraction</h3>
+            <p>
+              Express intent at the level you are thinking: pattern matching
+              over switch ladders, <code>Result</code> over thrown exceptions.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Diff stability</h3>
+            <p>
+              A one-line change produces a one-line diff. Fixed formatting, one
+              element per line, trailing commas everywhere.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Why Glyph</h2>
+        <ul class="why">
+          <li><b>Compiles to TypeScript.</b> Runs anywhere TS runs; uses any npm package.</li>
+          <li><b>Looks like TypeScript.</b> Readable on day one, no tutorial.</li>
+          <li><b>No <code>any</code>.</b> What the types say is true when the code runs.</li>
+          <li><b>Errors are values.</b> You handle them with <code>match</code>, not exceptions.</li>
+          <li><b><code>match</code> covers every case.</b> The compiler tells you what you missed.</li>
+          <li><b>Tests live next to the code.</b> They run on every build.</li>
+          <li><b>One name, one form.</b> <code>grep</code> always finds a definition.</li>
+          <li><b>Clear errors.</b> Each one tells you how to fix the problem.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center">
+        <span class="pill">v0.1.0 &middot; early preview</span>
+        <a href="/playground/">Playground</a>
+        <a href="https://github.com/chadetov/glyph">Source</a>
+        <a href="https://github.com/chadetov/glyph/releases">Releases</a>
+        <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+        <span>MIT or Apache-2.0</span>
+      </div>
+    </footer>
+  </body>
+</html>

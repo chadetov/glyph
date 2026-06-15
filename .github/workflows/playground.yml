@@ -8,6 +8,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "web/**"
       - "playground/**"
       - "glyph-compiler/crates/glyph-wasm/**"
       - "glyph-compiler/crates/glyph-emit/**"
@@ -45,10 +46,22 @@ jobs:
       - name: Build the playground wasm
         run: ./playground/build.sh
 
+      # Assemble the published site: the landing page at the root, the
+      # playground under /playground, and a CNAME so the glyphlang.io custom
+      # domain survives every deploy.
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/playground
+          cp -R web/. _site/
+          cp -R playground/. _site/playground/
+          rm -f _site/playground/build.sh _site/playground/README.md
+          echo "glyphlang.io" > _site/CNAME
+          ls -R _site | head -40
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: playground
+          path: _site
 
   deploy:
     needs: build

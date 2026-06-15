@@ -3,7 +3,7 @@
 
 // Launcher for the `glyph` CLI distributed on npm. The Rust compiler is a
 // prebuilt binary shipped in a per-platform optional dependency
-// (`@glyph/<platform>`); this thin shim resolves the right one and forwards
+// (`@glyphlang/<platform>`); this thin shim resolves the right one and forwards
 // argv to it, inheriting stdio and propagating the exit code. The model mirrors
 // esbuild/swc: no postinstall download, no curl-pipe-bash.
 

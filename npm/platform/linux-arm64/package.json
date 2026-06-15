@@ -1,5 +1,5 @@
 {
-  "name": "@glyph/linux-arm64",
+  "name": "@glyphlang/linux-arm64",
   "version": "0.1.0",
   "description": "Prebuilt glyph compiler binary for Linux (arm64).",
   "os": ["linux"],

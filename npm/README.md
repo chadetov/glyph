@@ -12,7 +12,7 @@ glyph run app.glyph
 ```
 
 `npm install` pulls the `glyph` launcher and, through `optionalDependencies`
-filtered by `os`/`cpu`, exactly one `@glyph/<platform>` package carrying the
+filtered by `os`/`cpu`, exactly one `@glyphlang/<platform>` package carrying the
 binary for the user's machine. The launcher (`glyph/bin/glyph.js`) resolves that
 binary and forwards argv to it.
 
@@ -23,8 +23,8 @@ npm/
   glyph/                  the user-facing launcher package (published as `glyph`)
     package.json          bin: glyph -> bin/glyph.js; optionalDependencies on the 5 platform packages
     bin/glyph.js          resolves the platform binary and execs it
-    bin/resolve.js        platform -> @glyph/<platform> mapping (unit-tested)
-  platform/<key>/         one package per platform (@glyph/<key>); binary staged at release time
+    bin/resolve.js        platform -> @glyphlang/<platform> mapping (unit-tested)
+  platform/<key>/         one package per platform (@glyphlang/<key>); binary staged at release time
     package.json          os/cpu filters so npm installs only the matching one
     bin/glyph             the prebuilt binary (staged by CI, gitignored)
   scripts/
@@ -42,7 +42,7 @@ on a `v*` tag push:
 
 1. Builds `glyph` in release mode on a native runner for each platform.
 2. Stages each binary into `npm/platform/<key>/bin/` via `stage.mjs`.
-3. Publishes the five `@glyph/<platform>` packages, then the `glyph` launcher
+3. Publishes the five `@glyphlang/<platform>` packages, then the `glyph` launcher
    (platform packages first, so the launcher's optional deps already exist).
 
 Publishing needs an `NPM_TOKEN` repository secret with publish rights to the

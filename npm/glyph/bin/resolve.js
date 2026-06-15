@@ -1,16 +1,16 @@
 "use strict";
 
-// Map the running platform to the `@glyph/<platform>` package that ships its
+// Map the running platform to the `@glyphlang/<platform>` package that ships its
 // prebuilt binary, and resolve the binary's path. Kept separate from the
 // launcher (`glyph.js`) so the mapping and resolution can be unit-tested
 // without spawning the compiler.
 
 const PLATFORM_PACKAGES = {
-  "darwin-x64": "@glyph/darwin-x64",
-  "darwin-arm64": "@glyph/darwin-arm64",
-  "linux-x64": "@glyph/linux-x64",
-  "linux-arm64": "@glyph/linux-arm64",
-  "win32-x64": "@glyph/win32-x64",
+  "darwin-x64": "@glyphlang/darwin-x64",
+  "darwin-arm64": "@glyphlang/darwin-arm64",
+  "linux-x64": "@glyphlang/linux-x64",
+  "linux-arm64": "@glyphlang/linux-arm64",
+  "win32-x64": "@glyphlang/win32-x64",
 };
 
 /** The platform package name for `<platform>-<arch>`, or undefined if unsupported. */

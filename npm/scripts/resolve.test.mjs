@@ -11,9 +11,9 @@ const { PLATFORM_PACKAGES, packageForPlatform, binaryName, resolveBinary } = req
 );
 
 test("maps every supported platform to a scoped package", () => {
-  assert.equal(packageForPlatform("darwin", "arm64"), "@glyph/darwin-arm64");
-  assert.equal(packageForPlatform("linux", "x64"), "@glyph/linux-x64");
-  assert.equal(packageForPlatform("win32", "x64"), "@glyph/win32-x64");
+  assert.equal(packageForPlatform("darwin", "arm64"), "@glyphlang/darwin-arm64");
+  assert.equal(packageForPlatform("linux", "x64"), "@glyphlang/linux-x64");
+  assert.equal(packageForPlatform("win32", "x64"), "@glyphlang/win32-x64");
   assert.equal(Object.keys(PLATFORM_PACKAGES).length, 5);
 });
 
@@ -45,11 +45,11 @@ test("resolves through the injected resolver on a supported platform", () => {
     arch: "x64",
     env: {},
     resolve: (spec) => {
-      assert.equal(spec, "@glyph/linux-x64/bin/glyph");
-      return "/fake/node_modules/@glyph/linux-x64/bin/glyph";
+      assert.equal(spec, "@glyphlang/linux-x64/bin/glyph");
+      return "/fake/node_modules/@glyphlang/linux-x64/bin/glyph";
     },
   });
-  assert.equal(got, "/fake/node_modules/@glyph/linux-x64/bin/glyph");
+  assert.equal(got, "/fake/node_modules/@glyphlang/linux-x64/bin/glyph");
 });
 
 test("a missing platform package throws a reinstall hint", () => {
@@ -63,6 +63,6 @@ test("a missing platform package throws a reinstall hint", () => {
           throw new Error("Cannot find module");
         },
       }),
-    /platform package @glyph\/linux-x64 is not installed/
+    /platform package @glyphlang\/linux-x64 is not installed/
   );
 });

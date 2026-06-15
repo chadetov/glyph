@@ -10,13 +10,13 @@ jobs:
     name: Test + type-check examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # The Rust toolchain is pinned by rust-toolchain.toml; rustup installs it
       # on the first cargo invocation. Cache the registry + build dir to keep CI
       # fast.
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -26,7 +26,7 @@ jobs:
 
       # node + tsx + tsc let the toolchain-dependent tests (glyph run, @example /
       # @doc @run execution) and the `--check` step actually run rather than skip.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
       - run: npm install -g tsx typescript

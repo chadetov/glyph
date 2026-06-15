@@ -30,7 +30,7 @@ jobs:
           - key: win32-x64
             os: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build release binary
         working-directory: glyph-compiler
@@ -45,7 +45,7 @@ jobs:
         run: node npm/scripts/stage.mjs ${{ matrix.key }} glyph-compiler/target/release/glyph.exe
 
       - name: Upload staged platform package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: platform-${{ matrix.key }}
           path: npm/platform/${{ matrix.key }}
@@ -59,8 +59,8 @@ jobs:
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
@@ -68,7 +68,7 @@ jobs:
       # Restore each platform package's staged binary over the (binary-less)
       # checked-in package directories.
       - name: Download staged platform packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: staged
 

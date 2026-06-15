@@ -8,272 +8,672 @@
       name="description"
       content="Glyph is a statically typed, transpile-to-TypeScript language designed so AI agents can read, write, and modify code safely. It looks almost like TypeScript."
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <style>
       :root {
-        --bg: #0d1117;
-        --panel: #161b22;
-        --panel-2: #11161d;
-        --border: #2d333b;
-        --text: #e6edf3;
-        --muted: #8b949e;
-        --accent: #6cb6ff;
-        --green: #3fb950;
-        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --bg: #0b1326;
+        --surface: #131b2e;
+        --surface-2: #171f33;
+        --surface-3: #222a3d;
+        --border: #2d3449;
+        --border-2: #464554;
+        --text: #dae2fd;
+        --muted: #99a2bd;
+        --indigo: #6366f1;
+        --indigo-text: #a8acff;
+        --cyan: #7dd3fc;
+        --rose: #fb7185;
+        --green: #4ade80;
+        --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        --display: "Geist", var(--sans);
+        --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
       * {
         box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
       }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--text);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: var(--sans);
         line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        background-image: radial-gradient(
+          900px 480px at 78% -8%,
+          rgba(99, 102, 241, 0.14),
+          transparent 70%
+        );
       }
       a {
-        color: var(--accent);
+        color: var(--indigo-text);
         text-decoration: none;
       }
       a:hover {
-        text-decoration: underline;
+        color: #c7caff;
       }
       .wrap {
-        max-width: 920px;
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 0 24px;
+        padding: 0 32px;
       }
-      header.hero {
-        padding: 96px 0 64px;
+
+      /* ---------- nav ---------- */
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 22px 0;
         border-bottom: 1px solid var(--border);
       }
-      .logo {
-        font-family: var(--mono);
-        font-size: 0.92rem;
+      .brand {
+        font-family: var(--display);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        font-size: 1.15rem;
+        color: var(--text);
+      }
+      .nav-links {
+        display: flex;
+        gap: 28px;
+        align-items: center;
+      }
+      .nav-links a {
         color: var(--muted);
-        letter-spacing: 0.04em;
+        font-size: 0.92rem;
+        font-weight: 500;
+      }
+      .nav-links a:hover {
+        color: var(--text);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        border: 1px solid var(--border-2);
+        color: var(--text);
+        transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+        cursor: pointer;
+      }
+      .btn:hover {
+        border-color: var(--indigo);
+        box-shadow: inset 0 0 8px 0 rgba(99, 102, 241, 0.35);
+        color: var(--text);
+      }
+      .btn.primary {
+        background: var(--indigo);
+        border-color: var(--indigo);
+        color: #f5f6ff;
+      }
+      .btn.primary:hover {
+        background: #5457e6;
+        box-shadow: 0 0 24px -4px rgba(99, 102, 241, 0.6);
+      }
+      .nav-cta {
+        padding: 9px 16px;
+        border-radius: 999px;
+        font-size: 0.88rem;
+      }
+
+      /* ---------- hero ---------- */
+      .hero {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 56px;
+        align-items: center;
+        padding: 88px 0 72px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        border: 1px solid var(--border-2);
+        border-radius: 999px;
+        padding: 5px 12px;
+        text-transform: uppercase;
+      }
+      .pill .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--green);
+        box-shadow: 0 0 8px 1px rgba(74, 222, 128, 0.7);
       }
       h1 {
-        font-size: 3rem;
-        line-height: 1.1;
-        margin: 18px 0 0;
-        letter-spacing: -0.02em;
+        font-family: var(--display);
+        font-size: 3.4rem;
+        line-height: 1.05;
+        letter-spacing: -0.035em;
+        font-weight: 700;
+        margin: 22px 0 0;
       }
-      .tagline {
-        font-size: 1.35rem;
-        color: var(--text);
-        margin: 18px 0 0;
-        max-width: 40ch;
+      h1 .accent {
+        color: var(--indigo-text);
       }
       .sub {
         color: var(--muted);
-        margin: 16px 0 0;
-        max-width: 62ch;
+        font-size: 1.08rem;
+        margin: 22px 0 0;
+        max-width: 46ch;
       }
       .cta {
-        margin-top: 32px;
+        margin-top: 30px;
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
         align-items: center;
       }
-      .btn {
-        display: inline-block;
-        padding: 11px 18px;
-        border-radius: 8px;
-        font-weight: 600;
-        border: 1px solid var(--border);
-      }
-      .btn:hover {
-        text-decoration: none;
-        border-color: var(--accent);
-      }
-      .btn.primary {
-        background: var(--accent);
-        color: #06121f;
-        border-color: var(--accent);
-      }
       .install {
-        margin-top: 28px;
-        background: var(--panel);
+        margin-top: 24px;
+        background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 8px;
-        padding: 14px 16px;
+        padding: 12px 14px;
         font-family: var(--mono);
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: var(--text);
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 10px;
-        max-width: 460px;
+        max-width: 420px;
       }
       .install .prompt {
         color: var(--muted);
         user-select: none;
       }
-      section {
-        padding: 56px 0;
+      .install code {
+        flex: 1;
+      }
+      .copy {
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+      .copy:hover {
+        color: var(--text);
+        background: var(--surface-3);
+      }
+
+      /* ---------- code panel ---------- */
+      .panel {
+        background: var(--surface-2);
+        border: 1px solid var(--border-2);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.6);
+      }
+      .panel-bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 14px;
+        background: var(--surface);
         border-bottom: 1px solid var(--border);
       }
-      h2 {
-        font-size: 1.4rem;
-        margin: 0 0 24px;
+      .dots {
+        display: flex;
+        gap: 6px;
+      }
+      .dots span {
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        background: var(--border-2);
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+      }
+      .tab {
+        padding: 5px 12px;
+        border-radius: 6px;
+        color: var(--muted);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: inherit;
+      }
+      .tab.active {
+        color: var(--text);
+        background: var(--surface-3);
+      }
+      pre {
+        margin: 0;
+        padding: 18px 18px 18px 0;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.75;
+        overflow-x: auto;
+        counter-reset: line;
+      }
+      pre[hidden] {
+        display: none;
+      }
+      .ln {
+        display: block;
+        padding-left: 56px;
+        position: relative;
+        white-space: pre;
+      }
+      .ln::before {
+        counter-increment: line;
+        content: counter(line);
+        position: absolute;
+        left: 0;
+        width: 40px;
+        text-align: right;
+        color: #51597a;
+      }
+      .ln.hl {
+        background: rgba(99, 102, 241, 0.14);
+        border-left: 2px solid var(--indigo);
+        margin-left: -0px;
+      }
+      .ts .ln::before {
+        color: #41485f;
+      }
+      .ts {
+        color: #8b93b0;
+      }
+      .k {
+        color: #a5b4fc;
+      }
+      .t {
+        color: #7dd3fc;
+      }
+      .s {
+        color: #fda4af;
+      }
+      .c {
+        color: #5b6480;
+        font-style: italic;
+      }
+      .f {
+        color: #c4b5fd;
+      }
+      .ts .k,
+      .ts .t,
+      .ts .f {
+        color: #9aa3c0;
+      }
+      .ts .s {
+        color: #a6889a;
+      }
+
+      /* ---------- credibility strip ---------- */
+      .strip {
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 14px 40px;
+        padding: 22px 0;
+      }
+      .strip span {
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .strip span b {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      /* ---------- sections ---------- */
+      section {
+        padding: 84px 0;
+      }
+      .section-head {
+        text-align: center;
+        font-family: var(--display);
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+        font-weight: 600;
+        margin: 0 0 48px;
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: 20px;
       }
       .card {
-        background: var(--panel);
+        background: var(--surface-2);
         border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 20px;
+        border-radius: 12px;
+        padding: 24px;
+      }
+      .card .icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: rgba(99, 102, 241, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        color: var(--indigo-text);
+      }
+      .card .label {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
       }
       .card h3 {
-        margin: 0 0 8px;
-        font-size: 1.05rem;
+        font-family: var(--display);
+        font-weight: 600;
+        margin: 6px 0 10px;
+        font-size: 1.12rem;
       }
       .card p {
         margin: 0;
         color: var(--muted);
-        font-size: 0.96rem;
+        font-size: 0.94rem;
       }
-      ul.why {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 10px 28px;
+
+      /* ---------- closing band ---------- */
+      .band {
+        text-align: center;
+        background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 64px 24px;
+        margin: 0 0 8px;
       }
-      ul.why li {
-        padding-left: 22px;
-        position: relative;
-        color: var(--muted);
-      }
-      ul.why li::before {
-        content: "›";
-        position: absolute;
-        left: 0;
-        color: var(--green);
+      .band h2 {
+        font-family: var(--display);
+        font-size: 2.6rem;
+        letter-spacing: -0.03em;
         font-weight: 700;
+        margin: 0 0 28px;
       }
-      ul.why b {
-        color: var(--text);
-        font-weight: 600;
+      .band h2 .accent {
+        color: var(--rose);
       }
+
+      /* ---------- footer ---------- */
       footer {
-        padding: 40px 0 64px;
+        border-top: 1px solid var(--border);
+        padding: 56px 0 48px;
+        margin-top: 84px;
+      }
+      .foot-grid {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr 1fr;
+        gap: 32px;
+      }
+      .foot-brand .brand {
+        display: block;
+        margin-bottom: 10px;
+      }
+      .foot-brand p {
         color: var(--muted);
         font-size: 0.9rem;
+        margin: 0;
+        max-width: 30ch;
+      }
+      .foot-col h4 {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 14px;
+      }
+      .foot-col a {
+        display: block;
+        color: var(--text);
+        font-size: 0.92rem;
+        margin-bottom: 10px;
+      }
+      .foot-col a:hover {
+        color: var(--indigo-text);
+      }
+      .foot-bottom {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 20px;
+        gap: 8px 18px;
         align-items: center;
-      }
-      .pill {
-        font-family: var(--mono);
-        font-size: 0.8rem;
         color: var(--muted);
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        padding: 3px 10px;
+        font-size: 0.84rem;
+      }
+      .foot-bottom .pill {
+        text-transform: none;
+        letter-spacing: 0.02em;
+      }
+
+      /* ---------- responsive ---------- */
+      @media (max-width: 880px) {
+        .wrap {
+          padding: 0 20px;
+        }
+        .nav-links {
+          display: none;
+        }
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 36px;
+          padding: 56px 0 48px;
+        }
+        h1 {
+          font-size: 2.5rem;
+        }
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .foot-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 28px;
+        }
+        .band h2 {
+          font-size: 2rem;
+        }
+        section {
+          padding: 60px 0;
+        }
+      }
+      @media (max-width: 520px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 2.1rem;
+        }
       }
     </style>
   </head>
   <body>
-    <header class="hero">
-      <div class="wrap">
-        <div class="logo">glyph</div>
-        <h1>Code an agent can change without breaking it.</h1>
-        <p class="tagline">
-          A statically typed language that transpiles to TypeScript, designed so
-          AI agents can read, write, and modify code safely.
-        </p>
-        <p class="sub">
-          Glyph looks almost like TypeScript &mdash; a TS developer reads it on
-          day one without a tutorial. The differences are deliberate and few,
-          and each one exists to make code an agent can reason about correctly,
-          edit without breakage, and explain back to a human without lying.
-        </p>
-        <div class="cta">
-          <a class="btn primary" href="/playground/">Try it in the browser</a>
-          <a class="btn" href="https://github.com/chadetov/glyph">GitHub</a>
-          <a
-            class="btn"
-            href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md"
-            >The five-minute tour</a
-          >
+    <div class="wrap">
+      <nav>
+        <span class="brand">GLYPH</span>
+        <span class="nav-links">
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Docs</a>
+          <a href="/playground/">Playground</a>
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+          <a href="https://github.com/chadetov/glyph">GitHub</a>
+        </span>
+        <a class="btn primary nav-cta" href="/playground/">Get Started</a>
+      </nav>
+    </div>
+
+    <div class="wrap">
+      <header class="hero">
+        <div>
+          <span class="pill"><span class="dot"></span>v0.1.0 · early preview</span>
+          <h1>TypeScript, made <span class="accent">safe</span> for agents to write.</h1>
+          <p class="sub">
+            Glyph is a statically typed language that transpiles to clean
+            TypeScript. Exhaustive matching, no hidden control flow, and a syntax
+            built so AI tools can read, write, and refactor your code without
+            breaking it.
+          </p>
+          <div class="cta">
+            <a class="btn primary" href="/playground/">Try the Playground →</a>
+            <a
+              class="btn"
+              href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md"
+              >Read the Docs</a
+            >
+          </div>
+          <div class="install" title="Requires Node.js 18+">
+            <span class="prompt">$</span>
+            <code id="install-cmd">npm install -g @glyphlang/glyph</code>
+            <button class="copy" onclick="copyInstall()">copy</button>
+          </div>
         </div>
-        <div class="install" title="Requires Node.js 18+">
-          <span class="prompt">$</span>
-          <span>npm install -g @glyphlang/glyph</span>
+
+        <div class="panel">
+          <div class="panel-bar">
+            <span class="dots"><span></span><span></span><span></span></span>
+            <span class="tabs">
+              <button class="tab active" data-tab="glyph" onclick="showTab('glyph')">main.glyph</button>
+              <button class="tab" data-tab="ts" onclick="showTab('ts')">main.ts</button>
+            </span>
+          </div>
+          <pre id="tab-glyph"><span class="ln"><span class="k">record</span> <span class="t">User</span> {</span><span class="ln">  id: <span class="t">string</span>,</span><span class="ln">  email: <span class="t">string</span>,</span><span class="ln">  role: <span class="t">Role</span>,</span><span class="ln">}</span><span class="ln"> </span><span class="ln"><span class="k">fn</span> <span class="f">welcome</span>(user: <span class="t">User</span>) -> <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">Error</span>&gt; {</span><span class="ln hl">  <span class="k">match</span> user.role {</span><span class="ln">    <span class="t">Role</span>.Admin => <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>),</span><span class="ln">    <span class="t">Role</span>.Member => <span class="f">Ok</span>(<span class="s">"Hello, ${user.email}"</span>),</span><span class="ln">    <span class="t">Role</span>.Guest => <span class="f">Err</span>(<span class="t">Error</span>.Unauthorized),</span><span class="ln">  }</span><span class="ln">}</span></pre>
+          <pre id="tab-ts" class="ts" hidden><span class="ln"><span class="k">type</span> <span class="t">User</span> = {</span><span class="ln">  id: <span class="t">string</span>;</span><span class="ln">  email: <span class="t">string</span>;</span><span class="ln">  role: <span class="t">Role</span>;</span><span class="ln">};</span><span class="ln"> </span><span class="ln"><span class="k">function</span> <span class="f">welcome</span>(user: <span class="t">User</span>): <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">Error</span>&gt; {</span><span class="ln">  <span class="k">switch</span> (user.role) {</span><span class="ln">    <span class="k">case</span> <span class="t">Role</span>.Admin: <span class="k">return</span> <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>);</span><span class="ln">    <span class="k">case</span> <span class="t">Role</span>.Member: <span class="k">return</span> <span class="f">Ok</span>(<span class="s">`Hello, ${user.email}`</span>);</span><span class="ln">    <span class="k">case</span> <span class="t">Role</span>.Guest: <span class="k">return</span> <span class="f">Err</span>(<span class="t">Error</span>.Unauthorized);</span><span class="ln">  }</span><span class="ln">}</span></pre>
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
+
+    <div class="strip">
+      <span><b>Passes</b> tsc --strict</span>
+      <span>Compiles to <b>readable TS</b></span>
+      <span>Written in <b>Rust</b></span>
+      <span><b>Exhaustiveness</b> enforced</span>
+    </div>
 
     <section>
       <div class="wrap">
-        <h2>The four pillars</h2>
+        <h2 class="section-head">Designed for agentic flow</h2>
         <div class="grid">
           <div class="card">
+            <div class="icon">◇</div>
+            <span class="label">Verifiability</span>
             <h3>Verifiability</h3>
             <p>
-              What the type system claims is true at runtime. No
-              <code>any</code>, no structural-typing surprises, no type erasure.
+              Exhaustive matches, typed errors, and no implicit <code>any</code>.
+              If it compiles, the gaps are caught at build time, not in review.
             </p>
           </div>
           <div class="card">
+            <div class="icon">⌕</div>
+            <span class="label">Greppability</span>
             <h3>Greppability</h3>
             <p>
-              Every symbol has one syntactic form at its declaration site.
-              <code>grep "fn parseUser"</code> finds the definition. Always.
+              One canonical way to write each construct. Search finds every call
+              site because there is no shorthand to hide behind.
             </p>
           </div>
           <div class="card">
+            <div class="icon">⊟</div>
+            <span class="label">Abstraction</span>
             <h3>Abstraction</h3>
             <p>
-              Express intent at the level you are thinking: pattern matching
-              over switch ladders, <code>Result</code> over thrown exceptions.
+              Records, tagged unions, and generics that lower to idiomatic
+              TypeScript you would have written by hand.
             </p>
           </div>
           <div class="card">
-            <h3>Diff stability</h3>
+            <div class="icon">≡</div>
+            <span class="label">Diff Stability</span>
+            <h3>Diff Stability</h3>
             <p>
-              A one-line change produces a one-line diff. Fixed formatting, one
-              element per line, trailing commas everywhere.
+              A deterministic formatter and stable syntax keep diffs small, so
+              agent edits stay reviewable.
             </p>
           </div>
         </div>
       </div>
     </section>
 
-    <section>
-      <div class="wrap">
-        <h2>Why Glyph</h2>
-        <ul class="why">
-          <li><b>Compiles to TypeScript.</b> Runs anywhere TS runs; uses any npm package.</li>
-          <li><b>Looks like TypeScript.</b> Readable on day one, no tutorial.</li>
-          <li><b>No <code>any</code>.</b> What the types say is true when the code runs.</li>
-          <li><b>Errors are values.</b> You handle them with <code>match</code>, not exceptions.</li>
-          <li><b><code>match</code> covers every case.</b> The compiler tells you what you missed.</li>
-          <li><b>Tests live next to the code.</b> They run on every build.</li>
-          <li><b>One name, one form.</b> <code>grep</code> always finds a definition.</li>
-          <li><b>Clear errors.</b> Each one tells you how to fix the problem.</li>
-        </ul>
+    <div class="wrap">
+      <div class="band">
+        <h2>Write less. <span class="accent">Break nothing.</span></h2>
+        <a class="btn primary" href="/playground/">Try the Playground →</a>
       </div>
-    </section>
+    </div>
 
     <footer>
-      <div class="wrap" style="display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center">
-        <span class="pill">v0.1.0 &middot; early preview</span>
-        <a href="/playground/">Playground</a>
-        <a href="https://github.com/chadetov/glyph">Source</a>
-        <a href="https://github.com/chadetov/glyph/releases">Releases</a>
-        <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
-        <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
-        <span>MIT or Apache-2.0</span>
+      <div class="wrap">
+        <div class="foot-grid">
+          <div class="foot-brand">
+            <span class="brand">GLYPH</span>
+            <p>A typed language that transpiles to TypeScript, built so agents can change code without breaking it.</p>
+          </div>
+          <div class="foot-col">
+            <h4>Product</h4>
+            <a href="/playground/">Playground</a>
+            <a href="https://github.com/chadetov/glyph/releases">Releases</a>
+            <a href="https://www.npmjs.com/package/@glyphlang/glyph">npm</a>
+          </div>
+          <div class="foot-col">
+            <h4>Docs</h4>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">The five-minute tour</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Language spec</a>
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/manifesto.md">Manifesto</a>
+          </div>
+          <div class="foot-col">
+            <h4>Source</h4>
+            <a href="https://github.com/chadetov/glyph">GitHub</a>
+            <a href="https://github.com/chadetov/glyph/issues">Issues</a>
+          </div>
+        </div>
+        <div class="foot-bottom">
+          <span class="pill">© 2026 GLYPH</span>
+          <span>MIT or Apache-2.0</span>
+        </div>
       </div>
     </footer>
+
+    <script>
+      function showTab(name) {
+        document.getElementById("tab-glyph").hidden = name !== "glyph";
+        document.getElementById("tab-ts").hidden = name !== "ts";
+        document.querySelectorAll(".tab").forEach(function (b) {
+          b.classList.toggle("active", b.dataset.tab === name);
+        });
+      }
+      function copyInstall() {
+        var text = document.getElementById("install-cmd").textContent;
+        navigator.clipboard && navigator.clipboard.writeText(text);
+        var btn = document.querySelector(".copy");
+        var prev = btn.textContent;
+        btn.textContent = "copied";
+        setTimeout(function () {
+          btn.textContent = prev;
+        }, 1400);
+      }
+    </script>
   </body>
 </html>

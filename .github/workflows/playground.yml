@@ -35,8 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Add wasm target
+      - name: Add wasm target (to the pinned toolchain)
         run: rustup target add wasm32-unknown-unknown
+        working-directory: glyph-compiler
 
       - name: Install wasm-bindgen-cli (matching the pinned crate version)
         run: cargo install wasm-bindgen-cli --version 0.2.125 --locked

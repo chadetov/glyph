@@ -101,22 +101,85 @@ function renderDiff(ops) {
     .join("\n");
 }
 
+// The diagnostics currently shown, so the gutter and click handlers can map a
+// line number or a clicked row back to a source span.
+let currentDiags = [];
+
+// Map a (0-based line, UTF-16 column) to an index into the textarea's value.
+// The textarea uses UTF-16 code units, matching the compiler's column units.
+function offsetOf(src, line, col) {
+  const lines = src.split("\n");
+  let off = 0;
+  for (let i = 0; i < line && i < lines.length; i++) off += lines[i].length + 1;
+  return off + col;
+}
+
+// Select a diagnostic's span in the editor and scroll it into view, so a click
+// on the message (or its gutter line) shows exactly where the error is.
+function jumpToDiag(d) {
+  const ta = $("source");
+  const src = ta.value;
+  const start = offsetOf(src, d.start_line, d.start_col);
+  const end = Math.max(offsetOf(src, d.end_line, d.end_col), start + 1);
+  ta.focus();
+  ta.setSelectionRange(start, end);
+  const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+  ta.scrollTop = Math.max(0, (d.start_line - 3) * lineHeight);
+  syncGutterScroll();
+}
+
 function renderDiagnostics(diags) {
+  currentDiags = diags;
   const el = $("diagnostics");
   if (diags.length === 0) {
     el.innerHTML = `<div class="diag-ok">✓ no diagnostics</div>`;
+    markErrorLines();
     return;
   }
   el.innerHTML = diags
-    .map((d) => {
+    .map((d, i) => {
       const loc = `${d.start_line + 1}:${d.start_col + 1}`;
-      return `<div class="diag"><span class="code">${escapeHtml(
+      return `<div class="diag" data-diag="${i}" role="button" tabindex="0" title="Jump to line ${
+        d.start_line + 1
+      }"><span class="code">${escapeHtml(
         d.code
       )}</span><span class="loc">${loc}</span><span class="msg">${escapeHtml(
         d.message
       )}</span></div>`;
     })
     .join("");
+  markErrorLines();
+}
+
+// Keep the gutter's line count in step with the source and its scroll position
+// locked to the textarea's.
+function renderGutter() {
+  const ta = $("source");
+  const g = $("gutter");
+  const count = ta.value.split("\n").length;
+  if (g.childElementCount !== count) {
+    let html = "";
+    for (let i = 1; i <= count; i++) html += `<div class="ln" data-line="${i}">${i}</div>`;
+    g.innerHTML = html;
+    markErrorLines();
+  }
+  syncGutterScroll();
+}
+
+function syncGutterScroll() {
+  $("gutter").scrollTop = $("source").scrollTop;
+}
+
+// Paint the gutter rows that carry a diagnostic red (and clickable).
+function markErrorLines() {
+  const g = $("gutter");
+  const lines = new Set();
+  for (const d of currentDiags) {
+    for (let l = d.start_line + 1; l <= d.end_line + 1; l++) lines.add(l);
+  }
+  for (const ln of g.children) {
+    ln.classList.toggle("err", lines.has(Number(ln.dataset.line)));
+  }
 }
 
 function compileToView() {
@@ -131,6 +194,7 @@ function compileToView() {
   $("ts").querySelector("code").textContent =
     out.ts != null ? out.ts : "// (no output — fix the errors on the left)";
   renderDiagnostics(out.diagnostics || []);
+  renderGutter();
 }
 
 function renderAgentEditDemo() {
@@ -175,7 +239,37 @@ async function main() {
   $("version").textContent = "v" + version();
   const ta = $("source");
   ta.value = DEFAULT_SOURCE;
-  ta.addEventListener("input", scheduleCompile);
+  ta.addEventListener("input", () => {
+    renderGutter(); // keep line numbers immediate; diagnostics follow debounced
+    scheduleCompile();
+  });
+  ta.addEventListener("scroll", syncGutterScroll);
+
+  // Click a diagnostic row to select its span in the editor.
+  $("diagnostics").addEventListener("click", (e) => {
+    const row = e.target.closest(".diag[data-diag]");
+    if (row) jumpToDiag(currentDiags[Number(row.dataset.diag)]);
+  });
+  $("diagnostics").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const row = e.target.closest(".diag[data-diag]");
+    if (row) {
+      e.preventDefault();
+      jumpToDiag(currentDiags[Number(row.dataset.diag)]);
+    }
+  });
+
+  // Click a red gutter line to jump to the first diagnostic on that line.
+  $("gutter").addEventListener("click", (e) => {
+    const ln = e.target.closest(".ln.err");
+    if (!ln) return;
+    const line = Number(ln.dataset.line);
+    const d = currentDiags.find(
+      (x) => line >= x.start_line + 1 && line <= x.end_line + 1
+    );
+    if (d) jumpToDiag(d);
+  });
+
   compileToView();
   renderAgentEditDemo();
   $("app").setAttribute("aria-busy", "false");

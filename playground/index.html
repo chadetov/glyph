@@ -30,14 +30,17 @@
     <main class="grid" id="app" aria-busy="true">
       <section class="pane" id="pane-glyph">
         <h2>Glyph</h2>
-        <textarea
-          id="source"
-          spellcheck="false"
-          autocomplete="off"
-          autocapitalize="off"
-          autocorrect="off"
-          aria-label="Glyph source"
-        ></textarea>
+        <div class="editor">
+          <div id="gutter" class="gutter" aria-hidden="true"></div>
+          <textarea
+            id="source"
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            aria-label="Glyph source"
+          ></textarea>
+        </div>
         <div id="diagnostics" class="diagnostics" aria-live="polite"></div>
       </section>
 

@@ -122,12 +122,52 @@ body {
   color: #6e7681;
 }
 
+.editor {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  background: var(--panel-2);
+}
+
+/* The gutter must share the textarea's exact font metrics and vertical padding
+   so line numbers line up with their lines. Scroll is synced from JS. */
+.gutter {
+  flex: 0 0 auto;
+  padding: 0.9rem 0.5rem 0.9rem 0.7rem;
+  overflow: hidden;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: #5a626c;
+  user-select: none;
+  border-right: 1px solid var(--border);
+  background: var(--panel-2);
+}
+
+.gutter .ln {
+  white-space: pre;
+}
+
+.gutter .ln.err {
+  color: var(--red);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gutter .ln.err::after {
+  content: "●";
+  font-size: 0.6em;
+  vertical-align: middle;
+  margin-left: 0.25rem;
+}
+
 #source {
   flex: 1;
   resize: none;
   border: 0;
   outline: none;
-  padding: 0.9rem;
+  padding: 0.9rem 0.9rem 0.9rem 0.6rem;
   background: var(--panel-2);
   color: var(--text);
   font-family: var(--mono);
@@ -167,6 +207,22 @@ body {
   display: flex;
   gap: 0.5rem;
   align-items: baseline;
+  cursor: pointer;
+}
+
+.diag:hover {
+  background: var(--red-bg);
+}
+
+.diag:focus-visible {
+  outline: none;
+  background: var(--red-bg);
+  box-shadow: inset 2px 0 0 var(--red);
+}
+
+.diag .loc {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
 }
 
 .diag .code {

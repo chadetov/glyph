@@ -345,6 +345,55 @@
         font-weight: 500;
       }
 
+      /* ---------- friction ---------- */
+      .friction-intro {
+        text-align: center;
+        color: var(--muted);
+        max-width: 58ch;
+        margin: -30px auto 44px;
+        font-size: 1.05rem;
+      }
+      .pains {
+        list-style: none;
+        padding: 0;
+        margin: 0 auto;
+        max-width: 860px;
+      }
+      .pains li {
+        display: flex;
+        gap: 16px;
+        padding: 18px 6px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        font-size: 1rem;
+      }
+      .pains li:last-child {
+        border-bottom: none;
+      }
+      .pains .x {
+        color: var(--rose);
+        font-family: var(--mono);
+        font-weight: 600;
+        flex: none;
+        line-height: 1.5;
+      }
+      .pains code {
+        font-family: var(--mono);
+        font-size: 0.86em;
+        color: var(--cyan);
+      }
+      .fix-line {
+        text-align: center;
+        margin: 44px auto 0;
+        font-family: var(--display);
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .fix-line .accent {
+        color: var(--indigo-text);
+      }
+
       /* ---------- benchmarks / data ---------- */
       .bench {
         display: grid;
@@ -421,6 +470,12 @@
         display: flex;
         flex-direction: column;
         gap: 20px;
+      }
+      .stat-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
       }
       .stat .big {
         font-family: var(--display);
@@ -579,7 +634,8 @@
         .grid {
           grid-template-columns: repeat(2, 1fr);
         }
-        .bench {
+        .bench,
+        .stat-row {
           grid-template-columns: 1fr;
         }
         .foot-grid {
@@ -622,12 +678,12 @@
       <header class="hero">
         <div>
           <span class="pill"><span class="dot"></span>v0.1.0 · early preview</span>
-          <h1>TypeScript, made <span class="accent">safe</span> for agents to write.</h1>
+          <h1>TypeScript your agents can't <span class="accent">quietly break</span>.</h1>
           <p class="sub">
-            Glyph is a statically typed language that transpiles to clean
-            TypeScript. Exhaustive matching, no hidden control flow, and a syntax
-            built so AI tools can read, write, and refactor your code without
-            breaking it.
+            Glyph compiles to clean TypeScript and reads almost identically — so
+            you adopt it one file at a time. But its types can't be lied to,
+            every symbol greps to one place, and a one-line change stays a
+            one-line diff. The footguns agents fall into are gone by construction.
           </p>
           <div class="cta">
             <a class="btn primary" href="/playground/">Try the Playground →</a>
@@ -667,42 +723,85 @@
 
     <section>
       <div class="wrap">
-        <h2 class="section-head">Designed for agentic flow</h2>
+        <h2 class="section-head">The tax you already pay</h2>
+        <p class="friction-intro">
+          If you build with AI agents on a TypeScript codebase, you know the
+          daily cost. Glyph is TypeScript with these footguns removed.
+        </p>
+        <ul class="pains">
+          <li>
+            <span class="x">✗</span>
+            <span>Agents <b>hallucinate APIs</b>, because TypeScript erases its types and runtime no longer agrees with compile time.</span>
+          </li>
+          <li>
+            <span class="x">✗</span>
+            <span>Agents paper over uncertainty with <code>any</code> and <code>as unknown as T</code>, and the compiler lets them.</span>
+          </li>
+          <li>
+            <span class="x">✗</span>
+            <span>You ask for a one-line change and get a <b>whole file rewritten</b>, because the formatter cascades on every edit.</span>
+          </li>
+          <li>
+            <span class="x">✗</span>
+            <span>You <code>grep</code> for a symbol and find <b>ten unrelated matches</b> — overloads, decorators, merged namespaces.</span>
+          </li>
+          <li>
+            <span class="x">✗</span>
+            <span>Reviewers <b>can't tell if a PR is correct</b>, because the diff is twelve hundred lines of reflowed whitespace.</span>
+          </li>
+        </ul>
+        <p class="fix-line">Glyph removes each one — <span class="accent">by construction.</span></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2 class="section-head">Why Glyph wins</h2>
+        <p class="friction-intro">
+          In order of what matters most. The first two are the wedge — problems
+          you feel every day. The last two are the polish that makes it pleasant.
+        </p>
         <div class="grid">
           <div class="card">
             <div class="icon">◇</div>
-            <span class="label">Verifiability</span>
+            <span class="label">01 · The wedge</span>
             <h3>Verifiability</h3>
             <p>
-              Exhaustive matches, typed errors, and no implicit <code>any</code>.
-              If it compiles, the gaps are caught at build time, not in review.
+              What the types say is true at runtime. No <code>any</code>, no
+              casts, no erasure — every type keeps a runtime descriptor, and
+              <code>match</code> must cover every case. The bugs an agent ships
+              that <code>tsc --strict</code> waves through don't compile here.
             </p>
           </div>
           <div class="card">
             <div class="icon">⌕</div>
-            <span class="label">Greppability</span>
+            <span class="label">02 · The wedge</span>
             <h3>Greppability</h3>
             <p>
-              One canonical way to write each construct. Search finds every call
-              site because there is no shorthand to hide behind.
-            </p>
-          </div>
-          <div class="card">
-            <div class="icon">⊟</div>
-            <span class="label">Abstraction</span>
-            <h3>Abstraction</h3>
-            <p>
-              Records, tagged unions, and generics that lower to idiomatic
-              TypeScript you would have written by hand.
+              One name, one place. Every symbol has exactly one syntactic form at
+              its declaration — no overloads, decorators, implicit <code>this</code>,
+              or namespace merging. <code>grep "fn parseUser"</code> finds the
+              definition. Always.
             </p>
           </div>
           <div class="card">
             <div class="icon">≡</div>
-            <span class="label">Diff Stability</span>
-            <h3>Diff Stability</h3>
+            <span class="label">03 · The polish</span>
+            <h3>Diff stability</h3>
             <p>
-              A deterministic formatter and stable syntax keep diffs small, so
-              agent edits stay reviewable.
+              A one-line change is a one-line diff. Fixed formatting, one element
+              per line, trailing commas, no reflow, no barrel files. Agents stop
+              rewriting whole files; reviewers read the change, not the churn.
+            </p>
+          </div>
+          <div class="card">
+            <div class="icon">⊟</div>
+            <span class="label">04 · The polish</span>
+            <h3>Abstraction</h3>
+            <p>
+              Say what you mean: pattern matching over switch ladders,
+              <code>Result</code> over thrown exceptions, named records over
+              tuples — a small orthogonal core, not TypeScript's accreted layers.
             </p>
           </div>
         </div>
@@ -712,50 +811,56 @@
     <section id="data">
       <div class="wrap">
         <h2 class="section-head">Measured, not asserted</h2>
-        <div class="bench">
-          <div class="chart">
-            <span class="label">Tokens to express the same three functions</span>
-            <h3>Glyph is ~29% denser than TypeScript</h3>
-            <div class="bar-row">
-              <span class="bar-lang">Glyph</span>
-              <div class="bar-track"><div class="bar-fill glyph" style="width: 55%">341</div></div>
-            </div>
-            <div class="bar-row">
-              <span class="bar-lang">TypeScript</span>
-              <div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div>
-            </div>
-            <div class="bar-row">
-              <span class="bar-lang">Python</span>
-              <div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div>
-            </div>
-            <div class="bar-row">
-              <span class="bar-lang">Rust</span>
-              <div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div>
-            </div>
-            <p class="bench-note">
-              Real <code>cl100k_base</code> tokens, three functions, four languages,
-              Glyph fully statically typed.
-              <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">See the methodology →</a>
+        <p class="friction-intro">
+          The case is structural and reproducible. Small sample, stated plainly —
+          the full methodology and caveats are one click away.
+        </p>
+        <div class="stat-row">
+          <div class="card stat">
+            <span class="label">Verifiability — the bugs that cost you</span>
+            <div class="big"><span class="accent">2 of 2</span> caught at compile time</div>
+            <p>
+              Two mistakes agents make constantly — a missing <code>match</code>
+              variant and an unsafe cast — are rejected by Glyph and accepted by
+              <code>tsc --strict</code>. Wrong code that compiles is the expensive
+              failure. Glyph won't let it.
             </p>
           </div>
-          <div class="bench-cards">
-            <div class="card stat">
-              <span class="label">Verifiability</span>
-              <div class="big"><span class="accent">2 of 2</span> bugs caught</div>
-              <p>
-                Glyph rejects a missing <code>match</code> variant and an unsafe
-                cast at compile time. <code>tsc --strict</code> accepts both.
-              </p>
-            </div>
-            <div class="card stat">
-              <span class="label">Diff stability</span>
-              <div class="big"><span class="accent">1 line → 1 line</span></div>
-              <p>
-                A one-line Glyph edit produces a one-line TypeScript diff through
-                the transpiler, and <code>glyph fmt</code> adds no churn.
-              </p>
-            </div>
+          <div class="card stat">
+            <span class="label">Diff stability — reviewable by default</span>
+            <div class="big"><span class="accent">1 line → 1 line</span></div>
+            <p>
+              A one-line Glyph edit produces a one-line TypeScript diff through
+              the transpiler, and <code>glyph fmt</code> adds no churn. The diff
+              is the change, not the noise around it.
+            </p>
           </div>
+        </div>
+        <div class="chart">
+          <span class="label">And it's leaner, not bloated</span>
+          <h3>Tokens for the same three functions</h3>
+          <div class="bar-row">
+            <span class="bar-lang">Glyph</span>
+            <div class="bar-track"><div class="bar-fill glyph" style="width: 55%">341</div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lang">TypeScript</span>
+            <div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lang">Python</span>
+            <div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lang">Rust</span>
+            <div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div>
+          </div>
+          <p class="bench-note">
+            Safety usually costs length — Rust is the safest row here and the
+            longest. Glyph is the only one that is both safe and lean: ~29% fewer
+            tokens than TypeScript, on real <code>cl100k_base</code> counts.
+            <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">See the methodology →</a>
+          </p>
         </div>
       </div>
     </section>

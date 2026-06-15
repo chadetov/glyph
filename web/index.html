@@ -473,9 +473,27 @@
       }
       .stat-row {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
         margin-bottom: 24px;
+      }
+      .stat .grepout {
+        margin-top: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        line-height: 1.6;
+        color: var(--text);
+        overflow-x: auto;
+      }
+      .stat .grepout .prompt {
+        color: var(--muted);
+      }
+      .stat .grepout .ln-no {
+        color: var(--indigo-text);
       }
       .stat .big {
         font-family: var(--display);
@@ -708,8 +726,8 @@
               <button class="tab" data-tab="ts" onclick="showTab('ts')">main.ts</button>
             </span>
           </div>
-          <pre id="tab-glyph"><span class="ln"><span class="k">record</span> <span class="t">User</span> {</span><span class="ln">  id: <span class="t">string</span>,</span><span class="ln">  email: <span class="t">string</span>,</span><span class="ln">  role: <span class="t">Role</span>,</span><span class="ln">}</span><span class="ln"> </span><span class="ln"><span class="k">fn</span> <span class="f">welcome</span>(user: <span class="t">User</span>) -> <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">Error</span>&gt; {</span><span class="ln hl">  <span class="k">match</span> user.role {</span><span class="ln">    <span class="t">Role</span>.Admin => <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>),</span><span class="ln">    <span class="t">Role</span>.Member => <span class="f">Ok</span>(<span class="s">"Hello, ${user.email}"</span>),</span><span class="ln">    <span class="t">Role</span>.Guest => <span class="f">Err</span>(<span class="t">Error</span>.Unauthorized),</span><span class="ln">  }</span><span class="ln">}</span></pre>
-          <pre id="tab-ts" class="ts" hidden><span class="ln"><span class="k">type</span> <span class="t">User</span> = {</span><span class="ln">  id: <span class="t">string</span>;</span><span class="ln">  email: <span class="t">string</span>;</span><span class="ln">  role: <span class="t">Role</span>;</span><span class="ln">};</span><span class="ln"> </span><span class="ln"><span class="k">function</span> <span class="f">welcome</span>(user: <span class="t">User</span>): <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">Error</span>&gt; {</span><span class="ln">  <span class="k">switch</span> (user.role) {</span><span class="ln">    <span class="k">case</span> <span class="t">Role</span>.Admin: <span class="k">return</span> <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>);</span><span class="ln">    <span class="k">case</span> <span class="t">Role</span>.Member: <span class="k">return</span> <span class="f">Ok</span>(<span class="s">`Hello, ${user.email}`</span>);</span><span class="ln">    <span class="k">case</span> <span class="t">Role</span>.Guest: <span class="k">return</span> <span class="f">Err</span>(<span class="t">Error</span>.Unauthorized);</span><span class="ln">  }</span><span class="ln">}</span></pre>
+          <pre id="tab-glyph"><span class="ln"><span class="k">module</span> <span class="f">welcome</span></span><span class="ln"> </span><span class="ln"><span class="k">import</span> std/result { <span class="t">Result</span>, <span class="f">Ok</span>, <span class="f">Err</span> }</span><span class="ln"> </span><span class="ln"><span class="k">type</span> <span class="t">Role</span> =</span><span class="ln">  | <span class="t">Admin</span></span><span class="ln">  | <span class="t">Member</span></span><span class="ln">  | <span class="t">Guest</span></span><span class="ln"> </span><span class="ln"><span class="k">type</span> <span class="t">User</span> = {</span><span class="ln">  email: <span class="t">string</span>,</span><span class="ln">  role: <span class="t">Role</span>,</span><span class="ln">}</span><span class="ln"> </span><span class="ln"><span class="k">fn</span> <span class="f">welcome</span>(user: <span class="t">User</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt; {</span><span class="ln">  <span class="k">return</span> <span class="k">match</span> user.role {</span><span class="ln">    <span class="t">Admin</span> =&gt; <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>),</span><span class="ln hl">    <span class="t">Member</span> =&gt; <span class="f">Ok</span>(<span class="s">"Hello, ${user.email}"</span>),</span><span class="ln">    <span class="t">Guest</span> =&gt; <span class="f">Err</span>(<span class="s">"guests cannot sign in"</span>),</span><span class="ln">  }</span><span class="ln">}</span></pre>
+          <pre id="tab-ts" class="ts" hidden><span class="ln"><span class="k">import</span> { schema as __glyph_schema } <span class="k">from</span> <span class="s">"std/schema"</span>;</span><span class="ln"> </span><span class="ln"><span class="k">import</span> { <span class="t">Result</span>, <span class="f">Ok</span>, <span class="f">Err</span> } <span class="k">from</span> <span class="s">"std/result"</span>;</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">type</span> <span class="t">Role</span> =</span><span class="ln">  | { tag: <span class="s">"Admin"</span> }</span><span class="ln">  | { tag: <span class="s">"Member"</span> }</span><span class="ln">  | { tag: <span class="s">"Guest"</span> };</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Admin</span>: <span class="t">Role</span> = { tag: <span class="s">"Admin"</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Member</span>: <span class="t">Role</span> = { tag: <span class="s">"Member"</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Guest</span>: <span class="t">Role</span> = { tag: <span class="s">"Guest"</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">Role</span> = {</span><span class="ln">  <span class="k">is</span>(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">Role</span> {</span><span class="ln">    if (<span class="k">typeof</span> value !== <span class="s">"object"</span> || value === null) {</span><span class="ln">      <span class="k">return</span> false;</span><span class="ln">    }</span><span class="ln">    <span class="k">switch</span> ((value as { tag?: <span class="t">unknown</span> }).tag) {</span><span class="ln">      <span class="k">case</span> <span class="s">"Admin"</span>: <span class="k">return</span> true;</span><span class="ln">      <span class="k">case</span> <span class="s">"Member"</span>: <span class="k">return</span> true;</span><span class="ln">      <span class="k">case</span> <span class="s">"Guest"</span>: <span class="k">return</span> true;</span><span class="ln">      <span class="k">default</span>: <span class="k">return</span> false;</span><span class="ln">    }</span><span class="ln">  },</span><span class="ln">  parse(value: <span class="t">unknown</span>): { tag: <span class="s">"Ok"</span>; value: <span class="t">Role</span> } | { tag: <span class="s">"Err"</span>; value: <span class="t">string</span> } {</span><span class="ln">    <span class="k">return</span> this.<span class="k">is</span>(value)</span><span class="ln">      ? { tag: <span class="s">"Ok"</span>, value: value }</span><span class="ln">      : { tag: <span class="s">"Err"</span>, value: <span class="s">"expected Role"</span> };</span><span class="ln">  },</span><span class="ln">  schema: __glyph_schema&lt;<span class="t">Role</span>&gt;(<span class="s">"Role"</span>, (v): v <span class="k">is</span> <span class="t">Role</span> =&gt; <span class="t">Role</span>.<span class="k">is</span>(v)),</span><span class="ln">};</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">type</span> <span class="t">User</span> = { email: <span class="t">string</span>; role: <span class="t">Role</span> };</span><span class="ln"><span class="k">export</span> <span class="k">const</span> <span class="t">User</span> = {</span><span class="ln">  <span class="k">is</span>(value: <span class="t">unknown</span>): value <span class="k">is</span> <span class="t">User</span> {</span><span class="ln">    <span class="k">return</span> <span class="k">typeof</span> value === <span class="s">"object"</span> &amp;&amp; value !== null</span><span class="ln">      &amp;&amp; <span class="k">typeof</span> (value as <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).email === <span class="s">"string"</span></span><span class="ln">      &amp;&amp; <span class="t">Role</span>.<span class="k">is</span>((value as <span class="t">Record</span>&lt;<span class="t">string</span>, <span class="t">unknown</span>&gt;).role);</span><span class="ln">  },</span><span class="ln">  parse(value: <span class="t">unknown</span>): { tag: <span class="s">"Ok"</span>; value: <span class="t">User</span> } | { tag: <span class="s">"Err"</span>; value: <span class="t">string</span> } {</span><span class="ln">    <span class="k">return</span> this.<span class="k">is</span>(value)</span><span class="ln">      ? { tag: <span class="s">"Ok"</span>, value: value }</span><span class="ln">      : { tag: <span class="s">"Err"</span>, value: <span class="s">"expected User"</span> };</span><span class="ln">  },</span><span class="ln">  schema: __glyph_schema&lt;<span class="t">User</span>&gt;(<span class="s">"User"</span>, (v): v <span class="k">is</span> <span class="t">User</span> =&gt; <span class="t">User</span>.<span class="k">is</span>(v)),</span><span class="ln">};</span><span class="ln"> </span><span class="ln"><span class="k">export</span> <span class="k">function</span> <span class="f">welcome</span>(user: <span class="t">User</span>): <span class="t">Result</span>&lt;<span class="t">string</span>, <span class="t">string</span>&gt; {</span><span class="ln">  <span class="k">const</span> __m0 = user.role;</span><span class="ln">  <span class="k">switch</span> (__m0.tag) {</span><span class="ln">    <span class="k">case</span> <span class="s">"Admin"</span>: {</span><span class="ln">      <span class="k">return</span> <span class="f">Ok</span>(<span class="s">"Welcome back, admin"</span>);</span><span class="ln">    }</span><span class="ln">    <span class="k">case</span> <span class="s">"Member"</span>: {</span><span class="ln hl">      <span class="k">return</span> <span class="f">Ok</span>(<span class="s">`Hello, ${user.email}`</span>);</span><span class="ln">    }</span><span class="ln">    <span class="k">case</span> <span class="s">"Guest"</span>: {</span><span class="ln">      <span class="k">return</span> <span class="f">Err</span>(<span class="s">"guests cannot sign in"</span>);</span><span class="ln">    }</span><span class="ln">    <span class="k">default</span>: <span class="k">throw</span> <span class="k">new</span> <span class="t">Error</span>(<span class="s">"non-exhaustive match"</span>);</span><span class="ln">  }</span><span class="ln">}</span></pre>
         </div>
       </header>
     </div>
@@ -827,6 +845,18 @@
             </p>
           </div>
           <div class="card stat">
+            <span class="label">Greppability — one name, one place</span>
+            <div class="big"><span class="accent">1</span> match, every time</div>
+            <p>
+              Every symbol has exactly one declaration form — no overloads,
+              decorators, or merged namespaces to scatter it.
+            </p>
+            <div class="grepout">
+              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
+              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
+            </div>
+          </div>
+          <div class="card stat">
             <span class="label">Diff stability — reviewable by default</span>
             <div class="big"><span class="accent">1 line → 1 line</span></div>
             <p>
@@ -859,9 +889,18 @@
             Safety usually costs length — Rust is the safest row here and the
             longest. Glyph is the only one that is both safe and lean: ~29% fewer
             tokens than TypeScript, on real <code>cl100k_base</code> counts.
-            <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">See the methodology →</a>
+            Honest caveat: on trivial one-liners Glyph's <code>module</code> and
+            <code>import</code> overhead can make it slightly larger than TS — the
+            lead only appears once there is real logic. Three functions, a small
+            sample.
+            <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">See the methodology and caveats →</a>
           </p>
         </div>
+        <p class="bench-note" style="text-align: center; max-width: 64ch; margin: 36px auto 0">
+          What we do not claim: that agents write code measurably faster in
+          Glyph. That is the bet — these structural results are the reasons to
+          expect it, and the agent study is honest future work.
+        </p>
       </div>
     </section>
 

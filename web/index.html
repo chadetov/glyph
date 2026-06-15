@@ -874,21 +874,26 @@
             <div class="bar-track"><div class="bar-fill glyph" style="width: 55%">341</div></div>
           </div>
           <div class="bar-row">
+            <span class="bar-lang">Python</span>
+            <div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div>
+          </div>
+          <div class="bar-row">
             <span class="bar-lang">TypeScript</span>
             <div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div>
           </div>
           <div class="bar-row">
-            <span class="bar-lang">Python</span>
-            <div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div>
+            <span class="bar-lang">Go</span>
+            <div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div>
           </div>
           <div class="bar-row">
             <span class="bar-lang">Rust</span>
             <div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div>
           </div>
           <p class="bench-note">
-            Safety usually costs length — Rust is the safest row here and the
-            longest. Glyph is the only one that is both safe and lean: ~29% fewer
-            tokens than TypeScript, on real <code>cl100k_base</code> counts.
+            Safety usually costs length — Go and Rust, the other statically typed
+            rows with explicit error handling, are the longest. Glyph is the only
+            one that is both safe and lean: ~29% fewer tokens than TypeScript and
+            ~40% fewer than Go, on real <code>cl100k_base</code> counts.
             Honest caveat: on trivial one-liners Glyph's <code>module</code> and
             <code>import</code> overhead can make it slightly larger than TS — the
             lead only appears once there is real logic. Three functions, a small

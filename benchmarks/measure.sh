@@ -2,10 +2,10 @@
 # measure.sh — token count, line count, diff size per function × language.
 # Output: results/<timestamp>.json
 #
-# Counts lines and an approximate token count (identifier/number runs plus
-# standalone symbols — dependency-free, a stable proxy for code density; not
-# tiktoken-exact). Diff-size (against edits/<function>.patch) remains a later
-# enhancement.
+# Counts lines and a token count. When tiktoken is installed the token count is
+# a real LLM token count (count_tokens.py, cl100k_base); otherwise it falls back to
+# the dependency-free symbol proxy. The "tokenizer" field in the output records
+# which method produced the numbers. Diff size is populated by diff_stability.sh.
 #
 # Usage:
 #   ./measure.sh                    # measure all functions × all languages
@@ -23,6 +23,14 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
 OUTPUT="results/${TIMESTAMP}.json"
 mkdir -p results
 
+# Prefer the real tokenizer (tiktoken via tokenize.py); fall back to the proxy.
+ENCODING="cl100k_base"
+if python3 -c "import tiktoken" >/dev/null 2>&1; then
+  TOKENIZER="$ENCODING"
+else
+  TOKENIZER="approx-proxy"
+fi
+
 count_lines() {
   # Lines excluding blank and full-line comments.
   local file="$1"
@@ -34,12 +42,21 @@ count_lines() {
   esac
 }
 
-count_tokens() {
-  # Approximate LLM token count: each identifier/number run is one token, and
-  # each standalone symbol is one. Dependency-free; a stable proxy for density,
-  # not a tiktoken-exact count.
+count_tokens_proxy() {
+  # Dependency-free proxy: each identifier/number run is one token, and each
+  # standalone symbol is one. A stable density proxy, not a tiktoken-exact count.
   local file="$1"
   grep -oE '[A-Za-z0-9_]+|[^[:space:][:alnum:]_]' "$file" | wc -l | tr -d ' '
+}
+
+count_tokens() {
+  # Real LLM token count when tiktoken is available; proxy otherwise.
+  local file="$1"
+  if [[ "$TOKENIZER" != "approx-proxy" ]]; then
+    python3 count_tokens.py "$file" "$ENCODING"
+  else
+    count_tokens_proxy "$file"
+  fi
 }
 
 discover_functions() {
@@ -52,6 +69,7 @@ discover_functions() {
 {
   echo "{"
   echo "  \"timestamp\": \"${TIMESTAMP}\","
+  echo "  \"tokenizer\": \"${TOKENIZER}\","
   echo "  \"measurements\": ["
 
   FIRST=1

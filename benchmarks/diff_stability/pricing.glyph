@@ -1,0 +1,24 @@
+module pricing
+
+// Fixture for the diff-stability experiment (see ../diff_stability.sh).
+// A small, self-contained program whose values an agent would realistically
+// tweak. The harness applies a one-line edit and measures how localized the
+// change stays in the emitted TypeScript.
+
+type Plan = {
+  name: string,
+  seats: number,
+  pricePerSeat: number,
+}
+
+fn monthly_total(plan: Plan) -> number {
+  return plan.seats * plan.pricePerSeat
+}
+
+fn starter() -> Plan {
+  return {
+    name: "Starter",
+    seats: 5,
+    pricePerSeat: 12,
+  }
+}

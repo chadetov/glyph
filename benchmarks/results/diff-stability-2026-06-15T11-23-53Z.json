@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-06-15T11-23-53Z",
+  "fixture": "diff_stability/pricing.glyph",
+  "edits": [
+    {"edit": "per-seat price 12 to 10", "glyph_lines_removed": 1, "glyph_lines_added": 1, "ts_lines_removed": 1, "ts_lines_added": 1, "fmt_idempotent": true},
+    {"edit": "plan name Starter to Solo", "glyph_lines_removed": 1, "glyph_lines_added": 1, "ts_lines_removed": 1, "ts_lines_added": 1, "fmt_idempotent": true},
+    {"edit": "seat count 5 to 9", "glyph_lines_removed": 1, "glyph_lines_added": 1, "ts_lines_removed": 1, "ts_lines_added": 1, "fmt_idempotent": true}
+  ]
+}

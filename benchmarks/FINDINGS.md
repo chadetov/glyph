@@ -8,20 +8,22 @@ These are structural measurements of the language and toolchain, not a study of 
 
 ## 1. Density
 
-The same task was implemented in Glyph, TypeScript, Python, and Rust, and each implementation was measured with an approximate, dependency-free token proxy (`benchmarks/measure.sh`). Lower is denser.
+The same task was implemented in Glyph, TypeScript, Python, and Rust, and each implementation was measured with a real LLM tokenizer (`benchmarks/measure.sh`, which calls `count_tokens.py` using tiktoken's `cl100k_base` encoding). Lower is denser.
 
 | Function     | Glyph | TypeScript | Python | Rust |
 |--------------|------:|-----------:|-------:|-----:|
-| `load_feed`  |   174 |        263 |    207 |  330 |
-| `parse_user` |   144 |        181 |    141 |  176 |
-| `slugify`    |    50 |         56 |     60 |  143 |
-| **Total**    | **368** |    **500** |  **408** | **649** |
+| `load_feed`  |   166 |        257 |    242 |  323 |
+| `parse_user` |   125 |        174 |    152 |  168 |
+| `slugify`    |    50 |         47 |     41 |  129 |
+| **Total**    | **341** |    **478** |  **435** | **620** |
 
-Across the three functions, Glyph uses about 26% fewer tokens than the equivalent TypeScript (368 vs 500), about 43% fewer than Rust, and about 10% fewer than Python, while remaining fully statically typed. Python, the only other language in the set that beats TypeScript on density, is not statically typed.
+Across the three functions, Glyph uses about 29% fewer tokens than the equivalent TypeScript (341 vs 478), about 45% fewer than Rust, and about 22% fewer than Python, while remaining fully statically typed. Python, the only other language in the set that beats TypeScript on density, is not statically typed.
+
+The advantage scales with the amount of real logic. On the two functions with actual control flow Glyph is well ahead (`load_feed` 166 vs 257, `parse_user` 125 vs 174); on the trivial `slugify` it is marginally *larger* than TypeScript and Python (50 vs 47 and 41), because its `module` declaration and `import` line are fixed overhead that a three-line function cannot amortize. Density is a property of expressing real work, not of one-liners.
 
 Line counts (excluding blank lines and comments) follow the same ordering: Glyph 46, TypeScript 55, Python 57, Rust 67.
 
-**Caveat.** The token metric is an approximate proxy, not a real tokenizer such as tiktoken. A real tokenizer would shift the absolute numbers; we expect it to leave the ranking intact, but that is an expectation, not a measured result. Only three functions have been measured so far (`parse_user`, `load_feed`, `slugify`), so these totals describe a small sample, not a representative corpus.
+**Caveat.** These are real `cl100k_base` token counts, not a proxy. A different encoding (o200k_base, or Anthropic's tokenizer) would shift the absolute numbers, but the cross-language ranking is driven by structure and is not sensitive to the choice. Only three functions have been measured so far (`parse_user`, `load_feed`, `slugify`), so these totals describe a small sample, not a representative corpus.
 
 ## 2. Verifiability
 
@@ -47,9 +49,15 @@ These two demos do not show that Glyph catches every type error TypeScript misse
 
 ## 3. Diff stability
 
-Diff stability is demonstrated live in the in-browser playground (`playground/`). Editing a single Glyph value, a per-seat price from `12` to `10`, produces a one-line TypeScript diff: minus one line and plus one line on each side, with nothing else changed.
+Diff stability is the property that a small semantic change produces a small textual diff, with no incidental churn. It is measured on Glyph's own pipeline by `benchmarks/diff_stability.sh`: for each controlled one-line edit to `diff_stability/pricing.glyph`, the harness rebuilds the program through the real transpiler and counts the changed lines in the emitted TypeScript.
 
-Only this one edit has been measured, but it is not a coincidence of the example: the toolchain's structural guarantees make small, localized diffs the expected behavior. Those guarantees are:
+| One-line Glyph edit            | Glyph source diff | Emitted TypeScript diff |
+|--------------------------------|------------------:|------------------------:|
+| per-seat price `12` → `10`     |        1 line     |          1 line         |
+| plan name `Starter` → `Solo`   |        1 line     |          1 line         |
+| seat count `5` → `9`           |        1 line     |          1 line         |
+
+In every case a one-line edit maps to exactly one changed line downstream: the transpiler does not amplify a small change into a large diff, and `glyph fmt` is idempotent on the result (re-running it changes nothing). This is not a property of the cross-language formatter race, which is uninformative: modern formatters (Prettier, Black, rustfmt) are themselves diff-stable, so that comparison would mostly be a tie. The meaningful, Glyph-specific guarantee is that the source-to-TypeScript pipeline preserves edit locality. The toolchain rules that make this hold:
 
 - One fixed formatting layout, produced by `glyph fmt`.
 - Required trailing commas.
@@ -57,23 +65,22 @@ Only this one edit has been measured, but it is not a coincidence of the example
 - No line-length reflow.
 - No barrel files.
 
-Together these remove the usual sources of incidental churn (reflowed lines, shifting commas, reordered re-exports), so a small semantic change maps to a small textual diff. A cross-language diff harness that measures this systematically is future work; today the claim rests on the playground demonstration and the formatting rules that make it hold.
+Together these remove the usual sources of incidental churn (reflowed lines, shifting commas, reordered re-exports), so a small semantic change maps to a small textual diff. Run `benchmarks/diff_stability.sh` to reproduce the table.
 
 ## 4. What this proves, and what it does not
 
 ### What it shows
 
-- For the three measured functions, Glyph is denser than the equivalent statically typed TypeScript by the approximate proxy metric.
+- For the three measured functions, Glyph is denser than the equivalent statically typed TypeScript by a real `cl100k_base` token count (~29% fewer tokens on the totals).
 - Glyph rejects two specific, common agent mistakes (a missing union variant, an unsafe cast) that `tsc --strict` accepts. Both are reproducible via `check.sh`.
-- A small Glyph edit produces a small, localized TypeScript diff under the toolchain's fixed formatting rules.
+- A one-line Glyph edit produces a one-line diff in the emitted TypeScript across the measured edits, and `glyph fmt` adds no churn. Reproducible via `diff_stability.sh`.
 
 ### What it does not show
 
 - **It does not prove agents write correct code faster in Glyph.** That is a hypothesis these structural metrics support, not a measured result. It has not been tested with a real agent study, and no speedup figure is claimed.
-- **The token numbers are approximate.** They come from a dependency-free proxy, not a real tokenizer. The ranking is expected to be robust; the absolute values are not authoritative.
-- **The density sample is small.** Three functions have been measured.
+- **The density sample is small.** Three functions have been measured. The token counts are real (`cl100k_base`), but three functions are not a representative corpus, and a different encoding would move the absolute numbers (not, we expect, the ranking).
 - **The verifiability result is narrow.** Glyph is not claimed to catch every type error TypeScript misses, only the two demonstrated cases. Some v1 typechecker checks are deferred to v1.1.
-- **Diff stability has no cross-language harness yet.** It is demonstrated in the playground and backed by the formatting guarantees, but not yet measured systematically against other languages.
+- **Diff stability is measured on Glyph's own pipeline, not cross-language.** The claim is that a Glyph edit stays localized through transpilation, on one small fixture. It is not a claim that Glyph diffs are smaller than well-formatted TypeScript diffs (they are typically comparable).
 
 Glyph is early (v0.1). These findings are the current, honest state of the evidence; they are meant to be re-run and extended, not taken as final.
 

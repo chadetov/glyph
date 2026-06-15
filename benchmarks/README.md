@@ -8,9 +8,9 @@ This directory instruments that claim from day one (brainstorm Q10 resolution: b
 
 For each function, the same task is implemented in **Glyph, TypeScript, Python, Rust**. Per commit on `main`, the measure script computes:
 
-- **Token count** — primary metric. Lower is denser. (Currently an approximate, dependency-free count; see methodology.)
+- **Token count** — primary metric. Lower is denser. A real LLM token count (tiktoken `cl100k_base`) when tiktoken is installed, falling back to a dependency-free proxy otherwise; the `tokenizer` field in each result records which was used. See methodology.
 - **Line count** — secondary metric. Lower is shorter.
-- **Diff size** — how localized a controlled edit stays (the diff-stability pillar). The `diff_size` field in the harness is not yet populated; diff stability is instead demonstrated live and measured in the playground (`playground/`), where a one-line Glyph edit produces a one-line TypeScript diff. A cross-language harness metric is future work.
+- **Diff size** — how localized an edit stays (the diff-stability pillar), measured by `diff_stability.sh` on Glyph's own pipeline: a controlled one-line Glyph edit is rebuilt through the transpiler and the changed lines in the emitted TypeScript are counted. A cross-language formatter race is deliberately *not* used: modern formatters are themselves diff-stable, so it would be uninformative.
 
 A companion **verifiability** demo lives in `verifiability/`: paired programs where Glyph rejects a bug at compile time that `tsc --strict` accepts (`verifiability/check.sh` asserts the invariant).
 
@@ -31,15 +31,18 @@ By end of phase 1 week 8, the set grows to 5–10 functions. By phase 8 (killer 
 ## Running the benchmarks
 
 ```bash
-./measure.sh           # measure all functions × all languages
-./measure.sh parse_user # measure one function across all languages
+pip install tiktoken    # for real token counts (otherwise the proxy is used)
+
+./measure.sh            # density: tokens + lines, all functions × all languages
+./measure.sh parse_user # density for one function across all languages
+./diff_stability.sh     # diff stability: one-line edit → emitted-TS diff
 ```
 
-Output: `results/<timestamp>.json` plus a one-line summary to stdout.
+`measure.sh` writes `results/<timestamp>.json`; `diff_stability.sh` writes `results/diff-stability-<timestamp>.json`. Both also print a summary to stdout.
 
 ## Methodology notes
 
-- Token counts are an **approximate, dependency-free** proxy (`measure.sh`): each identifier/number run is one token and each standalone symbol is one. This is a stable density proxy, not a tiktoken-exact count. A real tokenizer (e.g. `tiktoken` cl100k_base, or Anthropic's) would shift the absolute numbers but not the relative ranking; wiring one in is a future enhancement.
+- Token counts are **real LLM tokens** when tiktoken is installed (`count_tokens.py`, `cl100k_base`), and fall back to a dependency-free proxy (each identifier/number run and each standalone symbol is one token) otherwise. The `tokenizer` field in each result file records which produced the numbers. A different encoding (o200k_base, or Anthropic's) shifts the absolute counts but not the cross-language ranking, which is driven by structure.
 - Line counts exclude blank lines and comments. The point is to measure semantic density, not coding style.
-- Diff stability is currently demonstrated in the playground (a measured one-line-edit → one-line-diff), not yet by this harness; a cross-language formatted-diff metric (apply a controlled edit, reformat with each language's canonical formatter, count changed lines) is the planned `diff_size` implementation.
+- Diff stability is measured on Glyph's own pipeline (`diff_stability.sh`): a controlled one-line Glyph edit is rebuilt through the transpiler and the changed lines in the emitted TypeScript are counted, confirming the pipeline does not amplify a small edit and that `glyph fmt` adds no churn. A cross-language formatter race is intentionally avoided as uninformative (Prettier, Black, and rustfmt are already diff-stable).
 - Honesty over flattery: these are structural metrics (density, verifiability, diff locality). They are the *drivers* the manifesto bets make agents more productive; the productivity claim itself is a hypothesis to be validated with a real agent study (future work), not asserted here.

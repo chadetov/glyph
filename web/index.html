@@ -345,6 +345,94 @@
         font-weight: 500;
       }
 
+      /* ---------- benchmarks / data ---------- */
+      .bench {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        gap: 24px;
+      }
+      .chart {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px 26px;
+      }
+      .chart .label {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .chart h3 {
+        font-family: var(--display);
+        font-weight: 600;
+        margin: 6px 0 22px;
+        font-size: 1.12rem;
+      }
+      .bar-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 10px 0;
+      }
+      .bar-lang {
+        width: 88px;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--muted);
+        flex: none;
+      }
+      .bar-track {
+        flex: 1;
+        background: var(--surface);
+        border-radius: 6px;
+        height: 26px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 10px;
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        white-space: nowrap;
+      }
+      .bar-fill.glyph {
+        background: linear-gradient(90deg, #4f46e5, #6366f1);
+        color: #f5f6ff;
+      }
+      .bar-fill.other {
+        background: var(--surface-3);
+        color: var(--muted);
+      }
+      .bench-note {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .bench-note a {
+        color: var(--indigo-text);
+      }
+      .bench-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .stat .big {
+        font-family: var(--display);
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
+      .stat .big .accent {
+        color: var(--indigo-text);
+      }
+
       /* ---------- sections ---------- */
       section {
         padding: 84px 0;
@@ -491,6 +579,9 @@
         .grid {
           grid-template-columns: repeat(2, 1fr);
         }
+        .bench {
+          grid-template-columns: 1fr;
+        }
         .foot-grid {
           grid-template-columns: 1fr 1fr;
           gap: 28px;
@@ -520,6 +611,7 @@
           <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Docs</a>
           <a href="/playground/">Playground</a>
           <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+          <a href="#data">Benchmarks</a>
           <a href="https://github.com/chadetov/glyph">GitHub</a>
         </span>
         <a class="btn primary nav-cta" href="/playground/">Get Started</a>
@@ -612,6 +704,57 @@
               A deterministic formatter and stable syntax keep diffs small, so
               agent edits stay reviewable.
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="data">
+      <div class="wrap">
+        <h2 class="section-head">Measured, not asserted</h2>
+        <div class="bench">
+          <div class="chart">
+            <span class="label">Tokens to express the same three functions</span>
+            <h3>Glyph is ~29% denser than TypeScript</h3>
+            <div class="bar-row">
+              <span class="bar-lang">Glyph</span>
+              <div class="bar-track"><div class="bar-fill glyph" style="width: 55%">341</div></div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lang">TypeScript</span>
+              <div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lang">Python</span>
+              <div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lang">Rust</span>
+              <div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div>
+            </div>
+            <p class="bench-note">
+              Real <code>cl100k_base</code> tokens, three functions, four languages,
+              Glyph fully statically typed.
+              <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">See the methodology →</a>
+            </p>
+          </div>
+          <div class="bench-cards">
+            <div class="card stat">
+              <span class="label">Verifiability</span>
+              <div class="big"><span class="accent">2 of 2</span> bugs caught</div>
+              <p>
+                Glyph rejects a missing <code>match</code> variant and an unsafe
+                cast at compile time. <code>tsc --strict</code> accepts both.
+              </p>
+            </div>
+            <div class="card stat">
+              <span class="label">Diff stability</span>
+              <div class="big"><span class="accent">1 line → 1 line</span></div>
+              <p>
+                A one-line Glyph edit produces a one-line TypeScript diff through
+                the transpiler, and <code>glyph fmt</code> adds no churn.
+              </p>
+            </div>
           </div>
         </div>
       </div>

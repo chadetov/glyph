@@ -170,13 +170,12 @@ function syncGutterScroll() {
   $("gutter").scrollTop = $("source").scrollTop;
 }
 
-// Paint the gutter rows that carry a diagnostic red (and clickable).
+// Paint the gutter row where each diagnostic starts red (and clickable). Only
+// the start line is marked: some spans (an unterminated string, say) run to the
+// end of the file, and painting every line in between would be noise.
 function markErrorLines() {
   const g = $("gutter");
-  const lines = new Set();
-  for (const d of currentDiags) {
-    for (let l = d.start_line + 1; l <= d.end_line + 1; l++) lines.add(l);
-  }
+  const lines = new Set(currentDiags.map((d) => d.start_line + 1));
   for (const ln of g.children) {
     ln.classList.toggle("err", lines.has(Number(ln.dataset.line)));
   }

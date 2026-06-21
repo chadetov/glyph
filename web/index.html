@@ -762,6 +762,7 @@
           <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
           <a href="#data">Benchmarks</a>
           <a href="#faq">FAQ</a>
+          <a href="/llms.txt">For agents</a>
           <a href="https://github.com/chadetov/glyph">GitHub</a>
         </span>
         <a class="btn primary nav-cta" href="/playground/">Get Started</a>
@@ -993,6 +994,19 @@
         </p>
         <div class="faq">
           <details>
+            <summary>Building with an AI agent — where does it start?</summary>
+            <p class="answer">
+              Point the agent at <a href="/llms.txt">glyphlang.io/llms.txt</a> (also
+              committed as <code>AGENTS.md</code> in the repo). It is one document
+              that takes an agent from zero to correct, runnable Glyph: install and
+              run commands, the program shape, a full syntax cheat-sheet, every
+              standard-library signature, the import model, and the gotchas — no
+              source-diving. With the toolchain installed, <code>glyph llms</code>
+              prints the same thing offline, and <code>glyph init</code> scaffolds
+              a runnable starter project.
+            </p>
+          </details>
+          <details>
             <summary>Can I import my existing TypeScript, JavaScript, or Node libraries?</summary>
             <p class="answer">
               Yes. Glyph compiles to ordinary TypeScript and rides npm: a
@@ -1001,7 +1015,10 @@
               <code>.ts</code>. That is the whole point of compiling to TS instead
               of shipping a new runtime. Today interop crosses that TypeScript
               boundary; a dedicated <code>@ffi</code> declaration syntax is planned
-              for v2, but you do not need it to use the npm ecosystem now.
+              for v2, but you do not need it to use the npm ecosystem now. The
+              <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/external-imports.md">external-imports guide</a>
+              shows the import rule, the <code>.types/</code> mechanism, and a
+              worked example.
             </p>
           </details>
           <details>
@@ -1023,9 +1040,12 @@
               React function components and JSX lowers to
               <code>React.createElement</code>. Anything that runs on Node runs
               Glyph's output, so Express, Nest, and the rest consume
-              Glyph-generated TypeScript like any other module. Deep,
-              decorator-heavy framework integration at scale is still maturing —
-              that is the kind of thing we want early adopters to push on.
+              Glyph-generated TypeScript like any other module. For a plain Node
+              backend, <code>std/http</code> now ships a small errors-as-values
+              server (<code>serve</code> / <code>Handler</code> / <code>Request</code>
+              / <code>Response</code>). Deep, decorator-heavy framework integration
+              at scale is still maturing — that is the kind of thing we want early
+              adopters to push on.
             </p>
           </details>
           <details>
@@ -1069,14 +1089,15 @@
           <details>
             <summary>How do I build a real app with it?</summary>
             <p class="answer">
-              Start in the <a href="/playground/">playground</a>, then read the
-              <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a>
+              Run <code>glyph init</code> to scaffold a runnable project, then read
+              the <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a>
               and the worked
               <a href="https://github.com/chadetov/glyph/tree/main/examples">example programs</a>
-              (a CLI tool, a React component, and more). Larger end-to-end starters
-              — a REST and a GraphQL service with auth and middleware — are the next
-              thing we are building, because more than one engineer asked for
-              exactly that.
+              (a CLI tool, a React component, and more), or experiment in the
+              <a href="/playground/">playground</a>. For a backend, <code>std/http</code>
+              gives you an HTTP server today. Larger end-to-end starters — a full
+              service with auth and middleware — are still in progress, because more
+              than one engineer asked for exactly that.
             </p>
           </details>
         </div>

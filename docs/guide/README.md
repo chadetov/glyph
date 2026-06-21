@@ -11,6 +11,7 @@ Task-oriented documentation. For the design rationale read
 | [`for-typescript-developers.md`](for-typescript-developers.md) | You know TypeScript and want the deltas and gotchas |
 | [`tutorial.md`](tutorial.md) | You want to build something real (a todo CLI) |
 | [`editor-setup.md`](editor-setup.md) | You want VS Code (or another editor) set up with diagnostics, hover, and format-on-save |
+| [`../reference/stdlib.md`](../reference/stdlib.md) | You want every std module and its exact signatures |
 | [`../language/spec.md`](../language/spec.md) | You need the exact language reference |
 | [`../error-codes.md`](../error-codes.md) | You hit a diagnostic and want the fix |
 

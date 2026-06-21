@@ -428,6 +428,7 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
 - Five-minute tour: `docs/guide/tour.md`
 - For TypeScript developers (deltas + gotchas): `docs/guide/for-typescript-developers.md`
 - Tutorial (a todo CLI): `docs/guide/tutorial.md`
+- Full standard-library reference: `docs/reference/stdlib.md`
 - Language spec: `docs/language/spec.md`
 - Error codes and fixes: `docs/error-codes.md`
 - Editor setup: `docs/guide/editor-setup.md`

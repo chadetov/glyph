@@ -5,6 +5,8 @@ Glyph is a TypeScript-family language designed so AI agents can read, write, and
 ## Start here
 
 - `guide/` — **task-oriented documentation for people using Glyph:** a five-minute tour, install + first program, a "Glyph for TypeScript developers" delta sheet, and a 30-minute todo-CLI tutorial. Every snippet compiles. Start here if you want to *use* the language rather than read its design history.
+- `reference/stdlib.md` — the full standard-library surface: every module and its exact signatures (drift-guarded against the runtime).
+- `../AGENTS.md` (repo root, mirrored to `llms.txt`) — the one-fetch bootstrap for an AI agent: zero to correct, runnable Glyph in a single file.
 - `manifesto.md` — the four pillars and the bet (post-brainstorm: includes one narrow carve-out for `owned` resource discipline)
 - `implementation-plan.md` — **the canonical 40-week sequence from current state to v1.0 launch, with day-by-day status sections appended as work ships.** Read this for the live record of what's done, what's next, and which tests pass.
 - `language/spec.md` — the 27 numbered grammar decisions (D1–D27)

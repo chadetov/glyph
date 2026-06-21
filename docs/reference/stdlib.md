@@ -1,0 +1,210 @@
+# Standard library reference
+
+Every module in the Glyph v1 standard library, with exact signatures. Signatures
+are written in Glyph terms.
+
+**How to call it.** Functions are namespaced: `import std/array` then
+`array.map(xs, f)`. Types and constructors come in through named imports:
+`import std/result { Result, Ok, Err }`, then `Ok(value)` and `Err(e)` are used
+bare. A type's static factory (e.g. `Duration.ms`) is reached through its named
+import (`import std/time { Duration }`).
+
+> This page is kept in step with the runtime by a drift-guard test
+> (`glyph-cli/tests/stdlib_docs.rs`): every exported name in
+> `glyph-compiler/runtime/std/*.ts` must appear here, so a new stdlib function
+> can't ship undocumented.
+
+## Prelude (no import required)
+
+These names are global; you use them without an import.
+
+```
+number.to_string(n: number) -> string         // format a number
+number.parse(s: string) -> Result<number, string>   // parse, validating
+par.all<T>(xs: Array<T>) -> Array<T>           // async; await a list of async values
+par.all_ok<T, E>(xs: Array<Result<T, E>>) -> Result<Array<T>, E>   // collapse results
+print(message: string) -> void                 // quick line to stdout
+assert(condition: bool) -> void                 // throw if false (used by @doc @run)
+```
+
+Ambient types (no import): `number`, `string`, `bool`, `void`, `Array<T>`,
+`Record<K, V>`, `Schema<T>`, `Issue`.
+
+## std/result
+
+The error-handling core. A `Result` is `Ok(value)` or `Err(error)`; match on it,
+or use the postfix `?` operator to propagate an `Err`.
+
+```
+type Result<T, E>
+Ok(value: T) -> Result<T, E>                    // construct a success
+Err(error: E) -> Result<T, E>                   // construct a failure
+result.map(f: fn(T) -> U) -> Result<U, E>       // method: transform the Ok value
+result.map_err(f: fn(E) -> F) -> Result<T, F>   // method: transform the Err value
+```
+
+## std/option
+
+```
+type Option<T>
+Some(value: T) -> Option<T>                     // a present value
+None                                            // the absent value (a constant)
+```
+
+## std/array
+
+Operations are value-oriented: they return new arrays and never mutate the input.
+
+```
+array.find<T>(xs, predicate: fn(T) -> bool) -> Option<T>
+array.filter<T>(xs, predicate: fn(T) -> bool) -> Array<T>
+array.map<T, U>(xs, f: fn(T) -> U) -> Array<U>
+array.zip<A, B, C>(a, b, f: fn(A, B) -> C) -> Array<C>
+array.len<T>(xs) -> number
+array.push<T>(xs, x: T) -> Array<T>             // returns a new array with x appended
+array.concat<T>(a, b) -> Array<T>
+array.reverse<T>(xs) -> Array<T>
+array.slice<T>(xs, start: number, end?: number) -> Array<T>
+array.any<T>(xs, predicate: fn(T) -> bool) -> bool
+array.contains<T>(xs, value: T) -> bool
+array.sort<T>(xs, compare: fn(T, T) -> number) -> Array<T>
+```
+
+## std/string
+
+```
+string.from(value) -> string                    // any value to its string form
+string.join(parts: Array<string>, separator: string) -> string
+string.split(s: string, separator: string) -> Array<string>
+string.len(s: string) -> number
+string.trim(s: string) -> string
+string.lower(s: string) -> string
+string.upper(s: string) -> string
+string.contains(s: string, substring: string) -> bool
+string.starts_with(s: string, prefix: string) -> bool
+string.ends_with(s: string, suffix: string) -> bool
+```
+
+## std/io
+
+```
+io.println(message: string) -> void             // stdout, with newline
+io.eprintln(message: string) -> void            // stderr, with newline
+io.read_line() -> Option<string>                // one line from stdin (None at EOF)
+io.read_to_string() -> string                   // all of stdin
+```
+
+## std/json
+
+```
+json.parse<T>(text: string) -> Result<T, Array<Issue>>          // decode; casts to T
+json.parse_with<T>(text: string, schema: Schema<T>) -> Result<T, Array<Issue>>
+json.stringify(value, options?: { indent: number }) -> string
+```
+
+For a record/union type `T`, the namespace form `json.parse<T>(text)` is
+auto-rewritten to validate against `T.schema`. Use that form (not the
+named-import `parse`) when you want validation rather than a bare cast.
+
+## std/fs
+
+Synchronous text file I/O. Errors are values: match on `e.kind` to recover.
+
+```
+type ErrorKind = { tag: string }               // ErrorKind.NotFound for a missing file
+type FsError = { kind: ErrorKind, message: string }
+fs.read_text(path: string) -> Result<string, FsError>
+fs.write_text(path: string, contents: string) -> Result<void, FsError>
+fs.exists(path: string) -> bool
+fs.remove(path: string) -> Result<void, FsError>
+```
+
+## std/process
+
+```
+process.args() -> Array<string>                 // program arguments
+process.exit(code: number) -> never
+process.env(name: string) -> Option<string>
+process.cwd() -> string
+```
+
+## std/record
+
+Helpers over `Record<string, V>`. Reads are absence-aware; updates return a new
+record and never mutate the input.
+
+```
+record.get<V>(r, key: string) -> Option<V>
+record.has<V>(r, key: string) -> bool
+record.keys<V>(r) -> Array<string>
+record.values<V>(r) -> Array<V>
+record.set<V>(r, key: string, value: V) -> Record<string, V>
+record.remove<V>(r, key: string) -> Record<string, V>
+```
+
+## std/time
+
+```
+type Duration                                   // Duration.ms(n) constructs one
+time.now() -> number                            // epoch milliseconds
+time.sleep(duration: Duration) -> void          // async; await it
+time.debounce<A>(delay: Duration, f: fn(A) -> void) -> fn(A) -> void
+```
+
+## std/stream
+
+Deterministic generators for property testing (sampled by index, no RNG).
+
+```
+type Stream<T>
+stream.ints() -> Stream<number>                 // 0, -1, 1, -2, 2, ...
+stream.bools() -> Stream<bool>                  // alternating
+stream.from<T>(values: Array<T>) -> Stream<T>   // cycle through a fixed list
+```
+
+## std/test
+
+```
+test.property<T>(predicate: fn(T) -> bool, gen: Stream<T>, count?: number) -> Result<void, string>
+```
+
+Invoke inside an `@example` or `@doc @run` block; it runs at build time and
+returns `Ok(void)` when every sample passes, or `Err` with the first
+counterexample. Example:
+
+```glyph
+@example test.property(fn(n: number) -> bool { n + 0 == n }, stream.ints()) == Ok(void)
+```
+
+## std/http
+
+A client over `fetch` today; calls are async and return a `Result`. (A server
+API is in progress.)
+
+```
+type Request = { url: string, method: string, headers: Record<string, string>, body: unknown }
+type Response = { status: number, body: unknown }
+type HttpError = { status: number, message: string }
+http.get(url: string) -> Result<Response, HttpError>            // async
+http.post(url: string, body) -> Result<Response, HttpError>     // async
+http.json(status: number, body) -> Response                     // build a Response
+```
+
+## std/schema
+
+Mostly internal: the factory behind a record type's auto-generated `T.schema`.
+
+```
+schema<T>(name: string, is: fn(unknown) -> bool) -> Schema<T>
+```
+
+`Schema<T>` and `Issue` are ambient prelude types:
+
+```
+type Issue = { path: Array<string | number>, message: string }
+type Schema<T> = {
+  name: string,
+  parse(input: unknown) -> Result<T, Array<Issue>>,
+  array() -> Schema<Array<T>>,
+}
+```

@@ -346,6 +346,7 @@ anyway).
 To give the type-checker types for an external module, drop an ambient
 declaration file under `<src>/.types/`. Anything matching
 `<src>/.types/**/*.d.ts` is auto-discovered and type-checked with your build.
+(Full guide with a worked example: `docs/guide/external-imports.md`.)
 
 Worked example:
 

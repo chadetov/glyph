@@ -88,7 +88,9 @@ npm install
 code .          # then press F5 to open an Extension Development Host
 ```
 
-Point `glyph.serverPath` at your `glyph` binary if it is not on `PATH`.
+Point `glyph.serverPath` at your `glyph` binary if it is not on `PATH`. For
+packaging a `.vsix`, format-on-save, other editors, and troubleshooting, see the
+[editor setup guide](editor-setup.md).
 
 ## Tests live next to the code
 

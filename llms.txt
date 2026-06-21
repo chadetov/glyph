@@ -418,10 +418,10 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
 - **Object-literal shorthand is rejected.** Write `{ email: email }`, never
   `{ email }`.
 - **Every `match` arm needs a trailing comma**, including the last.
-- **Quoted/hyphenated keys in object literals are currently a parse error.**
-  `{"Content-Type": x}` does not parse today. Workaround: build the record via
-  `record.set(r, "Content-Type", x)`. (This restriction is being removed; quoted
-  string keys will be allowed.)
+- **Object keys may be quoted strings.** Use `{"Content-Type": x}` for keys that
+  are not identifiers; an identifier key stays bareword (`{ plain: x }`).
+  Object-literal *shorthand* is still rejected — always write the value. An
+  interpolated key (`{"${e}": x}`) is not allowed (no computed keys).
 - **`mut` is narrow.** It only enables reassignment and mutating method calls;
   there is no `mut` parameter, field, or other position.
 - **No `node:` import prefix.** Import Node builtins by bare name (`import http`).

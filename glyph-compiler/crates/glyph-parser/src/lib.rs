@@ -603,6 +603,39 @@ fn main() {
     }
 
     #[test]
+    fn object_literal_allows_quoted_string_keys() {
+        let m = parse_or_panic(
+            "module x\nfn main() { let y = { \"Content-Type\": a, plain: b } }\n",
+        );
+        let f = match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let let_stmt = match &f.body.stmts[0] {
+            glyph_ast::Stmt::Let(l) => l,
+            _ => panic!(),
+        };
+        match &let_stmt.value {
+            glyph_ast::Expr::Object { fields, .. } => {
+                assert_eq!(fields.len(), 2);
+                match &fields[0] {
+                    glyph_ast::ObjectField::KeyValue { key, .. } => {
+                        assert_eq!(key.as_ref(), "Content-Type");
+                    }
+                    other => panic!("expected KeyValue, got {other:?}"),
+                }
+            }
+            other => panic!("expected Object, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn object_literal_rejects_interpolated_key() {
+        let err = parse("module x\nfn main(s: string) { let y = { \"${s}\": a } }\n").unwrap_err();
+        assert!(err.to_string().contains("interpolation"), "msg was: {err}");
+    }
+
+    #[test]
     fn for_stmt_single_binding_d21() {
         let m = parse_or_panic("module x\nfn main() { for item in items { return } }\n");
         let f = match &m.items[0] {

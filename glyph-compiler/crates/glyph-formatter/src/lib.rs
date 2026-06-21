@@ -655,7 +655,7 @@ impl Printer {
     fn object_field(&mut self, f: &ObjectField) {
         match f {
             ObjectField::KeyValue { key, value, .. } => {
-                self.push(key);
+                self.push(&glyph_ast::render_object_key(key));
                 self.push(": ");
                 self.expr(value);
             }

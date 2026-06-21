@@ -467,7 +467,23 @@ fn parse_object_literal(p: &mut Cursor) -> Result<Expr, ParseError> {
             })
         } else {
             let key_span = p.peek_span();
-            let (key, _) = p.expect_field_name("object literal field name")?;
+            // A key is an identifier/keyword, or a quoted string for names that
+            // are not identifiers (e.g. `"Content-Type"`). Interpolation in a key
+            // is not allowed (no computed keys).
+            let key: std::sync::Arc<str> = match p.peek().clone() {
+                Token::String(value) => {
+                    if value.contains("${") {
+                        return Err(ParseError::Expected {
+                            expected: "a plain string key (interpolation is not allowed in object keys)",
+                            found: "interpolated string".to_string(),
+                            span: key_span,
+                        });
+                    }
+                    p.advance();
+                    std::sync::Arc::from(value.as_str())
+                }
+                _ => p.expect_field_name("object literal field name or string")?.0,
+            };
             // D10 forbids shorthand; the colon is required.
             p.expect(&Token::Colon, "`:` after field name (D10: no shorthand)")?;
             let value = parse_expr(p)?;

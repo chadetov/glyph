@@ -84,6 +84,29 @@ fn build_emits_typescript_for_a_clean_module() {
 }
 
 #[test]
+fn build_emits_quoted_string_keys() {
+    let root = unique_tmp("strkey");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         fn headers() -> Record<string, string> {\n\
+         \x20 return { \"Content-Type\": \"json\", plain: \"ok\" }\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts written");
+    // The non-identifier key is quoted; the identifier key stays bareword.
+    assert!(ts.contains("\"Content-Type\": \"json\""), "{ts}");
+    assert!(ts.contains("plain: \"ok\""), "{ts}");
+}
+
+#[test]
 fn build_reports_emit_diagnostic_for_unsupported_construct() {
     let root = unique_tmp("emit_unsupported");
     let src = root.join("src");

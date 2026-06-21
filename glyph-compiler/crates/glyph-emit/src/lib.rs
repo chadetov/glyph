@@ -2421,7 +2421,7 @@ impl<'a> Emitter<'a> {
                 for f in fields {
                     fs.push(match f {
                         ObjectField::KeyValue { key, value, .. } => {
-                            format!("{key}: {}", self.expr(value)?)
+                            format!("{}: {}", glyph_ast::render_object_key(key), self.expr(value)?)
                         }
                         ObjectField::Spread { value, .. } => format!("...{}", self.expr(value)?),
                     });

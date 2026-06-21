@@ -40,7 +40,7 @@ Principle: **prefer the choice an established language has already validated, un
 
 - **D10. No object literal shorthand.** `{ post, comments }` is a syntax error; write `{ post: post, comments: comments }`. Cost: keystrokes. Benefit: `grep -n "post:"` finds every field assignment. *[greppability]*
 - **D11. Spread allowed in arrays and objects, position-flexible.** `[...xs, a, b]`, `[a, ...xs, b]`, `[a, b, ...xs]`. Same for objects. Multiple spreads in one literal allowed. *[TS compatibility]*
-- **Object keys are identifiers (current limitation).** A key in an object literal must be an identifier or a keyword acting as a name. A quoted/hyphenated string key — `{"Content-Type": x}` — is a parse error today; build the record with `record.set(r, "Content-Type", x)` meanwhile. *Planned: allow quoted string keys in object literals (needed for ergonomic JSON/HTTP work); this note updates when that lands.*
+- **Object keys: an identifier or a quoted string.** A key is an identifier/keyword, or a quoted string for names that are not identifiers (`{"Content-Type": x}`). The canonical form quotes a key iff it is not a valid identifier, so `{"foo": x}` formats to `{ foo: x }`. Interpolation in a key (`{"${e}": x}`) is rejected — there are no computed keys. Shorthand is still forbidden (D10): the value is always written.
 
 ## JSX
 

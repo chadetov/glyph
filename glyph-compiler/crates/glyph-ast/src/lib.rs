@@ -399,10 +399,47 @@ pub enum TemplatePart {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ObjectField {
-    /// `key: expr`
+    /// `key: expr`. `key` holds the field name verbatim; a key that is not a
+    /// valid identifier (e.g. `"Content-Type"`) was written quoted in source and
+    /// is re-quoted on output (see `render_object_key`).
     KeyValue { key: Ident, value: Expr, span: Span },
     /// `...expr` (D11)
     Spread { value: Expr, span: Span },
+}
+
+/// Whether `s` can be written as a bareword object key (a JS/Glyph identifier
+/// name), so it needs no quoting on output.
+pub fn is_bareword_key(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' || c == '$' => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$')
+}
+
+/// Render an object-literal key for emitted or formatted output: bareword when
+/// it is a valid identifier, otherwise a double-quoted, escaped string. This is
+/// the single source of the canonical form, shared by the emitter and the
+/// formatter so a quoted key round-trips identically.
+pub fn render_object_key(s: &str) -> String {
+    if is_bareword_key(s) {
+        return s.to_string();
+    }
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            _ => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -684,5 +721,24 @@ mod tests {
             span: Span::new(0, 0),
         };
         assert_eq!(m.items.len(), 0);
+    }
+
+    #[test]
+    fn bareword_keys_are_recognized() {
+        assert!(is_bareword_key("foo"));
+        assert!(is_bareword_key("_x9"));
+        assert!(is_bareword_key("$ref"));
+        assert!(!is_bareword_key("Content-Type"));
+        assert!(!is_bareword_key("9lives"));
+        assert!(!is_bareword_key(""));
+        assert!(!is_bareword_key("a b"));
+    }
+
+    #[test]
+    fn keys_render_canonically() {
+        assert_eq!(render_object_key("foo"), "foo");
+        assert_eq!(render_object_key("Content-Type"), "\"Content-Type\"");
+        assert_eq!(render_object_key(""), "\"\"");
+        assert_eq!(render_object_key("a\"b"), "\"a\\\"b\"");
     }
 }

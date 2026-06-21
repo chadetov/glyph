@@ -179,8 +179,10 @@ fn shift(p: Point, dx: number) -> Point {
 ```
 
 Object-literal shorthand (`{ x, y }`) does not exist: you always write the value
-(`{ x: x, y: y }`). Trailing commas are required on every multi-element list, so
-inserting an element touches exactly one line.
+(`{ x: x, y: y }`). A key that is not an identifier is written quoted, as in
+TypeScript (`{ "Content-Type": v }`); an identifier key stays bareword. Trailing
+commas are required on every multi-element list, so inserting an element touches
+exactly one line.
 
 ## The tail expression is the return value
 
@@ -232,9 +234,6 @@ semantic one-line change is a one-line diff. The LSP runs it on save.
 - No `any`, no non-null assertion `!`, no `as` casts in source.
 - No classes, no `this`, no methods on user types.
 - No object/array-destructuring shorthand beyond what patterns provide.
-- No quoted/hyphenated object-literal keys yet (`{"Content-Type": x}` is a parse
-  error today; use `record.set(r, "Content-Type", x)`). This restriction is
-  planned for removal.
 - No barrel files / re-export indirection.
 - Resource handles can use a narrow `owned` modifier (files/sockets/db
   connections) for single-consumption; that is the only affine-typing feature

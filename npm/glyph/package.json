@@ -23,13 +23,22 @@
     "type": "git",
     "url": "git+https://github.com/chadetov/glyph.git"
   },
+  "homepage": "https://glyphlang.io",
+  "bugs": {
+    "url": "https://github.com/chadetov/glyph/issues"
+  },
   "license": "MIT OR Apache-2.0",
   "keywords": [
     "glyph",
+    "glyph-lang",
+    "glyphlang",
+    "language",
+    "programming-language",
     "typescript",
     "compiler",
-    "language",
     "transpiler",
-    "ai-agents"
+    "ai-agents",
+    "agents",
+    "llm"
   ]
 }

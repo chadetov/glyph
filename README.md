@@ -4,6 +4,12 @@ A statically typed, transpile-to-TypeScript language designed so AI agents can r
 
 Glyph looks almost like TypeScript. A TS developer reads a Glyph file on day one without a tutorial. The differences are deliberate and small in number, and every one of them exists to make code an agent can reason about correctly, edit without breakage, and explain back to a human without lying.
 
+```sh
+npm install -g @glyphlang/glyph
+```
+
+Website: **[glyphlang.io](https://glyphlang.io)** · Try it: **[playground](https://glyphlang.io/playground/)** · **Building with an AI agent?** Point it at **[AGENTS.md](AGENTS.md)** / **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — one file that takes an agent from zero to correct, runnable Glyph.
+
 ## The four pillars
 
 Every design decision is tested against these. If a feature improves one without harming the others, it ships. If not, it doesn't.

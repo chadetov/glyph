@@ -44,6 +44,20 @@ import billing/customer { Customer }
 A named import (`{ Ok, Err }`) brings names into scope; a bare import
 (`std/array`) is used namespaced (`array.map(...)`).
 
+## The prelude: a few names need no import
+
+Most things require an explicit import, but a small prelude is always in scope
+(the runtime installs it):
+
+- Values: `number` (`number.to_string`, `number.parse`), `par` (`par.all`,
+  `par.all_ok`), `print`, `assert`.
+- Types: `number`, `string`, `bool`, `void`, `Array<T>`, `Record<K, V>`, and the
+  ambient `Schema<T>` / `Issue`.
+
+Note that `Result`/`Ok`/`Err` and `Option`/`Some`/`None` are **not** prelude —
+import them (`import std/result { Result, Ok, Err }`). Also note the boolean type
+is spelled **`bool`**, not `boolean`.
+
 ## No `if` statement — `match` is the only branch
 
 `match` is an expression, so every branch produces a value and the compiler
@@ -168,6 +182,19 @@ Object-literal shorthand (`{ x, y }`) does not exist: you always write the value
 (`{ x: x, y: y }`). Trailing commas are required on every multi-element list, so
 inserting an element touches exactly one line.
 
+## The tail expression is the return value
+
+A non-`void` function, lambda, or block evaluates to its final expression, so an
+explicit `return` is optional. These are equivalent:
+
+```glyph
+fn double(n: number) -> number { n * 2 }
+fn double(n: number) -> number { return n * 2 }
+```
+
+`return` is **not** mandatory — use whichever reads better. (Most examples here
+use explicit `return` for clarity; closures usually drop it.)
+
 ## No classes; behavior lives in functions
 
 Glyph has no `class` and no methods on your own types (in v1). Data is records
@@ -205,6 +232,9 @@ semantic one-line change is a one-line diff. The LSP runs it on save.
 - No `any`, no non-null assertion `!`, no `as` casts in source.
 - No classes, no `this`, no methods on user types.
 - No object/array-destructuring shorthand beyond what patterns provide.
+- No quoted/hyphenated object-literal keys yet (`{"Content-Type": x}` is a parse
+  error today; use `record.set(r, "Content-Type", x)`). This restriction is
+  planned for removal.
 - No barrel files / re-export indirection.
 - Resource handles can use a narrow `owned` modifier (files/sockets/db
   connections) for single-consumption; that is the only affine-typing feature

@@ -40,6 +40,7 @@ Principle: **prefer the choice an established language has already validated, un
 
 - **D10. No object literal shorthand.** `{ post, comments }` is a syntax error; write `{ post: post, comments: comments }`. Cost: keystrokes. Benefit: `grep -n "post:"` finds every field assignment. *[greppability]*
 - **D11. Spread allowed in arrays and objects, position-flexible.** `[...xs, a, b]`, `[a, ...xs, b]`, `[a, b, ...xs]`. Same for objects. Multiple spreads in one literal allowed. *[TS compatibility]*
+- **Object keys are identifiers (current limitation).** A key in an object literal must be an identifier or a keyword acting as a name. A quoted/hyphenated string key — `{"Content-Type": x}` — is a parse error today; build the record with `record.set(r, "Content-Type", x)` meanwhile. *Planned: allow quoted string keys in object literals (needed for ergonomic JSON/HTTP work); this note updates when that lands.*
 
 ## JSX
 
@@ -51,6 +52,26 @@ Principle: **prefer the choice an established language has already validated, un
 - **D23. `@example expr == expr` inline tests above function declarations.** Multiple `@example` lines per function are allowed. The test passes if the LHS evaluates equal to the RHS. The compiler runs every `@example` on `glyph build`; a failure fails the build. Property tests are a stdlib function (`test.property(predicate, generator)`), not a language primitive. *[verifiability — tests are colocated with functions; agents rewriting bodies cannot bypass them]*
 - **D24. `@redact fields: [...]` on type declarations enforces PII redaction.** `@redact fields: [diagnosis, notes]` above a `type` declaration causes the runtime to substitute redaction sentinels for those fields whenever the value is logged, serialized, or sent across an stdlib observability boundary. The runtime descriptor (cf. Q8 resolution: descriptors at every type decl) carries the redaction metadata. Type-level enforcement, not convention. *[verifiability]*
 - **D26. `@doc """ ... """` blocks with `@run` fences are executable documentation.** Triple-quoted `@doc` blocks contain Markdown. ` ```glyph @run ` fenced blocks inside the doc are compiled and executed on every `glyph build`. Failed `assert` inside a `@run` block fails the build. Same compile-time-execution machinery as D23 `@example`. *[verifiability — docs cannot rot]*
+
+## Evaluation semantics and the prelude (not grammar decisions)
+
+These are normative behaviors that no single D-decision captures. They are facts
+an agent needs and previously had to discover by reading the compiler.
+
+- **Implicit tail return.** A non-`void` function, lambda, or block evaluates to
+  its final expression; an explicit `return` is optional and equivalent.
+  `fn double(n: number) -> number { n * 2 }` and `{ return n * 2 }` mean the same
+  thing. `return` is *not* mandatory. *[abstraction]*
+- **The prelude — names in scope with no import.** The runtime bootstrap
+  installs a few globals so they need no `import`: the values `number`
+  (`number.to_string`, `number.parse`), `par` (`par.all`, `par.all_ok`),
+  `print`, and `assert`; and the ambient types `Schema<T>` and `Issue`. The
+  primitive type names `number`, `string`, `bool`, `void`, `Array<T>`,
+  `Record<K, V>` are likewise always available. Everything else — including
+  `Result`/`Ok`/`Err`, `Option`/`Some`/`None`, and every `std/*` function — comes
+  through an explicit `import`, so the import list is otherwise the complete
+  dependency set. *[greppability]*
+- **The boolean type is `bool`, not `boolean`.** `boolean` is not a known type.
 
 ## Pillar attribution summary
 

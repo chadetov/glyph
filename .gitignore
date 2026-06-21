@@ -1,6 +1,9 @@
 # Marketing working set (local only, not part of the repo)
 /marketing/
 
+# Engineer feedback notes (local only, not part of the repo)
+/feedbacks/
+
 # Local-only project guidance (not part of the repo)
 CLAUDE.md
 

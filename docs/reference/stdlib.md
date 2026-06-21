@@ -178,16 +178,60 @@ counterexample. Example:
 
 ## std/http
 
-A client over `fetch` today; calls are async and return a `Result`. (A server
-API is in progress.)
+A `fetch`-based client and a small server, both errors-as-values.
 
 ```
-type Request = { url: string, method: string, headers: Record<string, string>, body: unknown }
+type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown }
 type Response = { status: number, body: unknown }
 type HttpError = { status: number, message: string }
-http.get(url: string) -> Result<Response, HttpError>            // async
-http.post(url: string, body) -> Result<Response, HttpError>     // async
-http.json(status: number, body) -> Response                     // build a Response
+type Handler  = fn(Request) -> Result<Response, string>         // may be async
+```
+
+Client (async; `await` them):
+
+```
+http.get(url: string) -> Result<Response, HttpError>
+http.post(url: string, body) -> Result<Response, HttpError>
+```
+
+Server:
+
+```
+http.serve(port: number, handler: Handler) -> Result<void, string>   // async; await to keep alive
+http.json(status: number, body) -> Response          // application/json response
+http.text(status: number, body: string) -> Response  // text/plain response
+http.query(req: Request) -> Record<string, string>   // parse the URL query string
+http.path(req: Request) -> string                    // URL path without the query
+```
+
+A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
+`Err(message)` to send a 500. `serve` resolves `Ok(void)` when the server closes
+and `Err(message)` on a bind failure; while it listens it stays pending, so a
+`main` that does `await http.serve(...)` keeps the process alive — no keep-alive
+hack. A minimal server:
+
+```glyph
+import std/http { serve, query, text, Request, Response }
+import std/record
+import std/result { Result, Ok }
+import std/option { Some, None }
+
+fn multiply(req: Request) -> Result<Response, string> {
+  let a = match record.get(query(req), "a") { Some(v) => number.parse(v), None => number.parse(""), }
+  let b = match record.get(query(req), "b") { Some(v) => number.parse(v), None => number.parse(""), }
+  return match a {
+    Ok(av) => match b {
+      Ok(bv) => Ok(text(200, number.to_string(av * bv))),
+      Err(e) => Ok(text(400, e)),
+    },
+    Err(e) => Ok(text(400, e)),
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let _ = await serve(8080, multiply)
+  return 0
+}
 ```
 
 ## std/schema

@@ -1,8 +1,18 @@
-// std/http — an HTTP client over the global `fetch`. Calls are async and return
-// a `Result`; a Glyph caller `await`s them. Network and non-2xx responses are
-// values: a thrown fetch or a non-ok status becomes `Err(HttpError)`.
+// std/http — an HTTP client over the global `fetch`, plus a small server.
+//
+// Client calls are async and return a `Result`; a Glyph caller `await`s them. A
+// thrown fetch or a non-2xx status becomes `Err(HttpError)`.
+//
+// The server (`serve`) is errors-as-values too: a `Handler` returns
+// `Result<Response, string>` — `Ok(response)` is written with the handler's
+// status (a 404 is a normal `Ok`), and `Err(message)` (or a thrown exception)
+// becomes a 500. `serve` itself resolves `Ok(void)` when the server closes and
+// `Err(message)` on a bind failure. Because `serve` stays pending while the
+// server listens, a Glyph `main` that does `await http.serve(...)` never returns,
+// so the process stays alive without any keep-alive hack.
 
 import { Result, Ok, Err } from "./result";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 export type Request = {
   url: string;
@@ -25,6 +35,105 @@ export async function post(url: string, body: unknown): Promise<Result<Response,
 
 export function json(status: number, body: unknown): Response {
   return { status, body };
+}
+
+// ---------------------------------------------------------------------------
+// Server
+// ---------------------------------------------------------------------------
+
+/// A request handler. May be sync or async; returns `Ok(response)` for any
+/// status (a 404 is a normal `Ok`) or `Err(message)` to send a 500.
+export type Handler = (
+  req: Request,
+) => Result<Response, string> | Promise<Result<Response, string>>;
+
+/// Build a `text/plain` response.
+export function text(status: number, body: string): Response {
+  return { status, body };
+}
+
+/// The URL query string parsed into a record (`/x?a=1&b=2` -> `{ a: "1", b: "2" }`).
+export function query(req: Request): Record<string, string> {
+  const out: Record<string, string> = {};
+  const q = req.url.indexOf("?");
+  if (q < 0) {
+    return out;
+  }
+  for (const [key, value] of new URLSearchParams(req.url.slice(q + 1))) {
+    out[key] = value;
+  }
+  return out;
+}
+
+/// The URL path, without the query string.
+export function path(req: Request): string {
+  const q = req.url.indexOf("?");
+  return q < 0 ? req.url : req.url.slice(0, q);
+}
+
+/// Start an HTTP server on `port`, dispatching each request to `handler`.
+/// Resolves `Ok(void)` when the server closes, `Err(message)` on a bind failure.
+/// Stays pending while listening, so `await http.serve(...)` keeps `main` (and
+/// the process) alive.
+export function serve(port: number, handler: Handler): Promise<Result<void, string>> {
+  return new Promise((resolve) => {
+    const server = createServer((nreq, nres) => {
+      void respond(nreq, nres, handler);
+    });
+    server.on("error", (err) => {
+      resolve(Err(err.message ?? "server error"));
+    });
+    server.on("close", () => {
+      resolve(Ok(undefined));
+    });
+    server.listen(port);
+  });
+}
+
+async function respond(
+  nreq: IncomingMessage,
+  nres: ServerResponse,
+  handler: Handler,
+): Promise<void> {
+  const req = await read_request(nreq);
+  let result: Result<Response, string>;
+  try {
+    result = await handler(req);
+  } catch (e: unknown) {
+    const message = (e as { message?: string } | null)?.message ?? String(e);
+    result = Err(message);
+  }
+  const resp: Response =
+    result.tag === "Ok" ? result.value : { status: 500, body: { error: result.value } };
+  const is_text = typeof resp.body === "string";
+  nres.writeHead(resp.status, {
+    "content-type": is_text ? "text/plain; charset=utf-8" : "application/json",
+  });
+  nres.end(is_text ? (resp.body as string) : JSON.stringify(resp.body));
+}
+
+function read_request(nreq: IncomingMessage): Promise<Request> {
+  return new Promise((resolve) => {
+    nreq.setEncoding("utf8");
+    let raw = "";
+    nreq.on("data", (chunk) => {
+      raw += chunk;
+    });
+    nreq.on("end", () => {
+      const headers: Record<string, string> = {};
+      for (const [key, value] of Object.entries(nreq.headers)) {
+        if (typeof value === "string") {
+          headers[key] = value;
+        }
+      }
+      resolve({
+        url: nreq.url ?? "",
+        method: nreq.method ?? "GET",
+        headers,
+        body: raw === "" ? null : parse_body(raw),
+      });
+    });
+  });
 }
 
 async function request(

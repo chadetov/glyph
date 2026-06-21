@@ -19,3 +19,26 @@ declare const process: {
   exit(code: number): never;
   cwd(): string;
 };
+
+declare module "node:http" {
+  export interface IncomingMessage {
+    url?: string;
+    method?: string;
+    headers: Record<string, string | string[] | undefined>;
+    setEncoding(encoding: string): void;
+    on(event: "data", listener: (chunk: string) => void): void;
+    on(event: "end", listener: () => void): void;
+  }
+  export interface ServerResponse {
+    writeHead(status: number, headers: Record<string, string>): void;
+    end(data: string): void;
+  }
+  export interface Server {
+    listen(port: number): Server;
+    on(event: "error", listener: (err: { message?: string }) => void): Server;
+    on(event: "close", listener: () => void): Server;
+  }
+  export function createServer(
+    listener: (req: IncomingMessage, res: ServerResponse) => void,
+  ): Server;
+}

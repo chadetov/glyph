@@ -119,12 +119,14 @@ impl StdlibStubs {
             &["read_text", "write_text", "exists", "remove", "ErrorKind"],
         );
         s.add("std/time", &["debounce", "Duration", "now", "sleep"]);
-        // Q3 said v1.1 for http and process, but the example files reference
-        // them. Stub them so the day-4 verifier doesn't have to special-case
-        // "the examples reference v1.1 surfaces." Phase 5 will reconcile.
+        // A `fetch`-based client (`get`/`post`/`json`) plus a small server
+        // (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(
             "std/http",
-            &["get", "post", "json", "Request", "Response", "HttpError"],
+            &[
+                "get", "post", "json", "text", "serve", "query", "path",
+                "Request", "Response", "HttpError", "Handler",
+            ],
         );
         s.add(
             "std/process",

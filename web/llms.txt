@@ -316,20 +316,27 @@ test.property<T>(predicate, gen, count?) -> Result<void, string>
 Property tests are deterministic (sampled by index, no RNG). Run them with
 `@example` (see Testing below).
 
-### std/http (client today; server API is landing)
+### std/http (client + server)
 
 ```
-type Request = { url: string, method: string, headers: Record<string, string>, body: unknown }
+type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown }
 type Response = { status: number, body: unknown }
 type HttpError = { status: number, message: string }
-http.get(url) -> Result<Response, HttpError>          // async; await it
-http.post(url, body) -> Result<Response, HttpError>   // async
-http.json(status, body) -> Response
+type Handler  = fn(Request) -> Result<Response, string>   // may be async
+
+http.get(url) -> Result<Response, HttpError>          // client; async, await it
+http.post(url, body) -> Result<Response, HttpError>   // client; async
+http.serve(port, handler) -> Result<void, string>     // server; async, await keeps process alive
+http.json(status, body) -> Response                   // application/json response
+http.text(status, body) -> Response                   // text/plain response
+http.query(req) -> Record<string, string>             // parse the URL query string
+http.path(req) -> string                              // URL path without the query
 ```
 
-`std/http` is **client-only** right now (a `fetch` wrapper). A server API
-(`serve` / `Handler` / `Request` / `Response`) and a long-running run model are
-in progress; until they land, see "Long-running processes" below.
+A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
+`Err(message)` (sent as a 500). `await http.serve(port, handler)` starts the
+server and suspends `main`, which keeps the process alive (see the execution
+model below).
 
 ## Importing external code (npm packages and Node builtins)
 
@@ -375,11 +382,12 @@ process.exit(typeof code === "number" ? code : 0);
 ```
 
 That is: it **awaits `main`, then calls `process.exit`**. For a normal CLI this
-is exactly right. For a **long-running process** (a server, a watcher), it means
-the process will exit as soon as `main` returns — even if you started a listener.
-To stay alive, `main` must not return until you want to exit (e.g. `await` a
-promise that resolves only on shutdown). A first-class run model for servers is
-part of the in-progress server work.
+is exactly right. For a **long-running process** (a server, a watcher), `main`
+must not return until you want to exit. `http.serve` is built for this: it stays
+pending while the server listens, so `await http.serve(port, handler)` suspends
+`main` and the process stays alive until the server closes — no sleep hack. Any
+other long-running task follows the same shape: `await` a promise that resolves
+only on shutdown.
 
 ## Testing
 

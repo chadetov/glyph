@@ -502,6 +502,59 @@ fn build_copies_src_types_into_the_output() {
     );
 }
 
+#[test]
+fn http_server_program_type_checks() {
+    // The std/http server surface (serve / Handler / query / text) emits
+    // TypeScript that passes tsc --strict. Requires tsc; skipped otherwise.
+    if !tsc_available() {
+        eprintln!("skipping http server tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("httpserver");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/http { serve, query, text, Request, Response }
+import std/record
+import std/result { Result, Ok, Err }
+import std/option { Some, None }
+
+fn multiply(req: Request) -> Result<Response, string> {
+  let a = match record.get(query(req), "a") {
+    Some(v) => number.parse(v),
+    None => Err("missing a"),
+  }
+  return match a {
+    Ok(av) => Ok(text(200, number.to_string(av))),
+    Err(e) => Ok(text(400, e)),
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let outcome = await serve(8080, multiply)
+  return match outcome {
+    Ok(_) => 0,
+    Err(_) => 1,
+  }
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("server program failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
 /// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
 /// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
 /// run fail for environmental reasons, not a real defect.

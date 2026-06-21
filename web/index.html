@@ -559,6 +559,64 @@
         font-size: 0.94rem;
       }
 
+      /* ---------- faq ---------- */
+      .faq {
+        max-width: 820px;
+        margin: 0 auto;
+      }
+      .faq details {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0 22px;
+        margin-bottom: 14px;
+      }
+      .faq details[open] {
+        border-color: var(--border-2);
+      }
+      .faq summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 20px 0;
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq summary::after {
+        content: "+";
+        font-family: var(--mono);
+        font-size: 1.3rem;
+        color: var(--indigo-text);
+        flex: none;
+        line-height: 1;
+      }
+      .faq details[open] summary::after {
+        content: "\2212";
+      }
+      .faq .answer {
+        padding: 0 0 22px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.96rem;
+        line-height: 1.65;
+      }
+      .faq .answer code {
+        font-family: var(--mono);
+        font-size: 0.86em;
+        color: var(--cyan);
+      }
+      .faq .answer a {
+        color: var(--indigo-text);
+      }
+
       /* ---------- closing band ---------- */
       .band {
         text-align: center;
@@ -686,6 +744,7 @@
           <a href="/playground/">Playground</a>
           <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
           <a href="#data">Benchmarks</a>
+          <a href="#faq">FAQ</a>
           <a href="https://github.com/chadetov/glyph">GitHub</a>
         </span>
         <a class="btn primary nav-cta" href="/playground/">Get Started</a>
@@ -906,6 +965,101 @@
           Glyph. That is the bet — these structural results are the reasons to
           expect it, and the agent study is honest future work.
         </p>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <h2 class="section-head">Questions engineers actually ask</h2>
+        <p class="friction-intro">
+          The honest answers — what works today, and what is still on the way.
+        </p>
+        <div class="faq">
+          <details>
+            <summary>Can I import my existing TypeScript, JavaScript, or Node libraries?</summary>
+            <p class="answer">
+              Yes. Glyph compiles to ordinary TypeScript and rides npm: a
+              <code>.glyph</code> module emits a <code>.ts</code> file that imports
+              from any npm package and is itself importable from your existing
+              <code>.ts</code>. That is the whole point of compiling to TS instead
+              of shipping a new runtime. Today interop crosses that TypeScript
+              boundary; a dedicated <code>@ffi</code> declaration syntax is planned
+              for v2, but you do not need it to use the npm ecosystem now.
+            </p>
+          </details>
+          <details>
+            <summary>How does debugging work?</summary>
+            <p class="answer">
+              You debug the emitted TypeScript with the tools you already use —
+              Node's inspector, browser devtools, your IDE's JS/TS debugger. The
+              output is clean, readable TS that maps closely to your source, not
+              minified soup. Source maps that step straight back to
+              <code>.glyph</code> line numbers are not in v1 yet; they are on the
+              roadmap. Until then, the generated <code>.ts</code> is meant to be
+              read and stepped through directly.
+            </p>
+          </details>
+          <details>
+            <summary>Does it work with React, Node, and frameworks like NestJS?</summary>
+            <p class="answer">
+              React is built in: <code>component</code> declarations compile to
+              React function components and JSX lowers to
+              <code>React.createElement</code>. Anything that runs on Node runs
+              Glyph's output, so Express, Nest, and the rest consume
+              Glyph-generated TypeScript like any other module. Deep,
+              decorator-heavy framework integration at scale is still maturing —
+              that is the kind of thing we want early adopters to push on.
+            </p>
+          </details>
+          <details>
+            <summary>Is there a VS Code / editor experience?</summary>
+            <p class="answer">
+              Yes. There is a language server and a VS Code extension: syntax
+              highlighting, diagnostics with stable error codes, hover types,
+              go-to-definition across modules, completion, and format-on-save via
+              <code>glyph fmt</code>. Rename and find-references are landing in
+              v1.1.
+            </p>
+          </details>
+          <details>
+            <summary>Why TypeScript, and not Go or a fresh language?</summary>
+            <p class="answer">
+              Because TypeScript is where agents already write the most code and
+              where the ecosystem you depend on — npm, React, Node — lives. Glyph
+              is adoptable one file at a time <em>only</em> because its target is
+              TS; you cannot drop Go into an existing TS codebase file by file.
+              The point that Go's small, stable keyword surface gives an agent
+              fewer ways to go wrong is a fair one — it is exactly why Glyph keeps
+              a deliberately small core — and Go is now included in the density
+              benchmark above.
+            </p>
+          </details>
+          <details>
+            <summary>Does using fewer tokens actually mean an agent writes better code?</summary>
+            <p class="answer">
+              No, not on its own — and we do not claim it does. Density is the last
+              of four pillars, not the first. The wedge is verifiability and
+              greppability: code that cannot lie about its types and symbols that
+              grep to one place. What we have <em>not</em> yet measured is an agent
+              success-rate or tries-to-correct number against TypeScript on the
+              same task. That study is honest future work, and we say so on the
+              <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmarks page</a>.
+            </p>
+          </details>
+          <details>
+            <summary>How do I build a real app with it?</summary>
+            <p class="answer">
+              Start in the <a href="/playground/">playground</a>, then read the
+              <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a>
+              and the worked
+              <a href="https://github.com/chadetov/glyph/tree/main/examples">example programs</a>
+              (a CLI tool, a React component, and more). Larger end-to-end starters
+              — a REST and a GraphQL service with auth and middleware — are the next
+              thing we are building, because more than one engineer asked for
+              exactly that.
+            </p>
+          </details>
+        </div>
       </div>
     </section>
 

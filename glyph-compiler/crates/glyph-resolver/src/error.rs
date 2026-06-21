@@ -75,9 +75,17 @@ impl ResolveError {
             ResolveError::BarrelFile { .. } => {
                 "Add a declaration, or remove this file. A module that only imports re-exports nothing (D15: no barrel files)."
             }
-            ResolveError::UnresolvedName { .. } => {
-                "Declare it, import it, or fix the spelling."
-            }
+            ResolveError::UnresolvedName { name, .. } => match name.as_str() {
+                // Common TypeScript-casing / TS-primitive mistakes get a targeted
+                // hint instead of the generic message.
+                "boolean" | "Boolean" => "Glyph's boolean type is `bool`, not `boolean`.",
+                "String" => "Glyph's string type is `string` (lowercase).",
+                "Number" => "Glyph's number type is `number` (lowercase).",
+                "null" | "undefined" => {
+                    "Glyph has no `null`/`undefined`; model absence with `Option<T>` (`Some`/`None`)."
+                }
+                _ => "Declare it, import it, or fix the spelling.",
+            },
             ResolveError::UnresolvedModule { .. } => {
                 "Check the module path and that the module exists in the project or stdlib."
             }
@@ -85,5 +93,29 @@ impl ResolveError {
                 "Check the spelling, and that the module actually exports this name."
             }
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn unresolved(name: &str) -> ResolveError {
+        ResolveError::UnresolvedName { name: name.into(), span: Span::new(0, 0) }
+    }
+
+    #[test]
+    fn ts_type_casing_mistakes_get_targeted_hints() {
+        assert!(unresolved("boolean").help().unwrap().contains("`bool`"));
+        assert!(unresolved("Boolean").help().unwrap().contains("`bool`"));
+        assert!(unresolved("String").help().unwrap().contains("`string`"));
+        assert!(unresolved("Number").help().unwrap().contains("`number`"));
+        assert!(unresolved("null").help().unwrap().contains("Option"));
+        assert!(unresolved("undefined").help().unwrap().contains("Option"));
+    }
+
+    #[test]
+    fn an_ordinary_unknown_name_gets_the_generic_help() {
+        assert!(unresolved("widget").help().unwrap().contains("fix the spelling"));
     }
 }

@@ -19,6 +19,7 @@ npm install -g tsx typescript       # needed for `glyph run` and `--check`
 ```
 
 ```sh
+glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
 glyph run path.glyph [args...]      # type-check, compile, and run main(argv)
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict by default)
 glyph build src/ --out dist/ --test # also run @example / @doc @run / property tests

@@ -64,6 +64,12 @@ enum Command {
         #[arg(value_name = "PATH")]
         path: Option<std::path::PathBuf>,
     },
+    /// Scaffold a runnable starter project (src/main.glyph, .types/, package.json,
+    /// .gitignore) in DIR (default: the current directory).
+    Init {
+        #[arg(value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+    },
     /// Run the language server over stdio (spawned by an editor extension).
     Lsp,
     /// Print the agent bootstrap (the AGENTS.md / llms.txt reference) to stdout.
@@ -283,6 +289,31 @@ fn main() {
             print!("{}", glyph_cli::LLMS_BOOTSTRAP);
             std::process::exit(0);
         }
+        Some(Command::Init { dir }) => {
+            let dir = dir.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::init::scaffold(&dir) {
+                Ok(report) => {
+                    for path in &report.created {
+                        eprintln!("created {}", path.display());
+                    }
+                    for path in &report.skipped {
+                        eprintln!("skipped {} (already exists)", path.display());
+                    }
+                    eprintln!(
+                        "glyph init: {} file(s) created, {} skipped. Run it with \
+                         `glyph run {}`.",
+                        report.created.len(),
+                        report.skipped.len(),
+                        report.root.join("src").join("main.glyph").display()
+                    );
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("glyph init: {e}");
+                    std::process::exit(2);
+                }
+            }
+        }
         Some(Command::Publish { dir }) => {
             use glyph_cli::publish::{self, PublishError, TscStatus};
             use std::io::IsTerminal;
@@ -391,6 +422,7 @@ fn main() {
                 | Command::Fmt { .. }
                 | Command::Lsp
                 | Command::Llms
+                | Command::Init { .. }
                 | Command::Canonical { .. }
                 | Command::Publish { .. } => {
                     unreachable!()

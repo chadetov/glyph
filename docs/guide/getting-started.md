@@ -65,6 +65,7 @@ glyph run hello.glyph one two three
 
 | Command | What it does |
 |---|---|
+| `glyph init [dir]` | Scaffold a runnable starter project (`src/main.glyph`, `.types/`, `package.json`, `.gitignore`) |
 | `glyph run <file> [args]` | Type-check, compile, and run a program |
 | `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict` |
 | `glyph build <src> --out <dir> --test` | Also run every `@example` and `@doc @run` test |

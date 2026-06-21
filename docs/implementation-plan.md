@@ -389,7 +389,7 @@ Step 8 per `docs/roadmap/08-09-packaging.md`.
 Step 9 per `docs/roadmap/08-09-packaging.md`.
 
 **Tasks:**
-1. **`npm install -g glyph`** as the canonical install. The package bundles the Rust binary per-platform (prebuilds via cargo-dist or a similar tool). No curl-pipe-bash.
+1. **`npm install -g @glyphlang/glyph`** as the canonical install. The package bundles the Rust binary per-platform (prebuilds via cargo-dist or a similar tool). No curl-pipe-bash.
 2. **Playground.** Three panes:
    - Left: Glyph source (editable)
    - Center: Emitted TypeScript
@@ -398,7 +398,7 @@ Step 9 per `docs/roadmap/08-09-packaging.md`.
 4. Hosted at a domain to be picked. (Deferral: domain choice happens at week 27.)
 
 **Phase 6 acceptance:**
-- [ ] `npm install -g glyph` installs on macOS, Linux, Windows.
+- [ ] `npm install -g @glyphlang/glyph` installs on macOS, Linux, Windows.
 - [ ] Playground compiles `loadFeed` to TS in < 1 second, side-by-side.
 - [ ] Third pane demonstrates an agent edit and resulting one-line diff.
 

@@ -40,7 +40,7 @@ Glyph is small but the toolchain is real and works end to end:
 - A compiler written in Rust (a salsa-backed pipeline: lex, parse, resolve, typecheck, emit) with 380+ passing workspace tests.
 - Output that is readable TypeScript, runs anywhere TypeScript runs, and can use any npm package.
 - A language server: diagnostics with stable codes, hover types, go-to-definition within and across modules, completion, format-on-save, document and workspace symbols, a canonical agent view, and a structured-edit RPC that applies an edit only if the result type-checks clean.
-- A VS Code extension, npm distribution (`npm install -g glyph` or `npx glyph`, with per-platform prebuilt binaries), and an in-browser WebAssembly playground with no backend.
+- A VS Code extension, npm distribution (`npm install -g @glyphlang/glyph` or `npx @glyphlang/glyph`, with per-platform prebuilt binaries), and an in-browser WebAssembly playground with no backend.
 - A docs guide: a five-minute tour, getting started, a "Glyph for TypeScript developers" delta sheet, and a 30-minute todo-CLI tutorial whose snippets all compile.
 
 The language itself keeps the parts that make code legible to an agent: errors as values (`Result`, `match`, and `?`), exhaustive `match`, no `any`, and one declaration form per symbol so search is exact.

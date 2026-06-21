@@ -6,9 +6,9 @@ Glyph is distributed on npm the way esbuild and swc are — a small launcher plu
 a prebuilt binary for your platform:
 
 ```sh
-npm install -g glyph
+npm install -g @glyphlang/glyph
 # or run without installing:
-npx glyph --help
+npx @glyphlang/glyph --help
 ```
 
 You also need Node with `tsx` and `typescript` available, which Glyph uses to

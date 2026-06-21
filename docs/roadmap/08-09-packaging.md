@@ -19,7 +19,7 @@ standalone-library bundling. Full notes in `archive/glyph-day-0-parser.md §Part
   build. `npm/scripts/stage.mjs` stages a built binary into its platform package
   and `.github/workflows/release.yml` builds all five on native runners and
   publishes on a `v*` tag (gated on an `NPM_TOKEN` secret). End user story:
-  `npm install -g glyph` / `npx glyph`. Verified locally (launcher passes argv
+  `npm install -g @glyphlang/glyph` / `npx @glyphlang/glyph`. Verified locally (launcher passes argv
   and exit codes; 7 resolver unit tests pass). **The one remaining step is the
   user running the publish** (needs the npm account + `NPM_TOKEN`); everything
   up to `npm publish` is automated.
@@ -90,7 +90,7 @@ standalone-library bundling. Full notes in `archive/glyph-day-0-parser.md §Part
 
 ### What's revised
 
-- **No curl-pipe-bash installer.** Target audience already has Node and trusts npm. **Ship `glyph` as an npm package** (`npm install -g glyph`, `npx glyph`). Lower friction, cross-platform by default, no "do I trust this shell script" hesitation. Curl-pipe-bash is a Rust/Go convention; for a transpile-to-TS language it's an unforced reach for credibility through aesthetics.
+- **No curl-pipe-bash installer.** Target audience already has Node and trusts npm. **Ship `glyph` as an npm package** (`npm install -g @glyphlang/glyph`, `npx @glyphlang/glyph`). Lower friction, cross-platform by default, no "do I trust this shell script" hesitation. Curl-pipe-bash is a Rust/Go convention; for a transpile-to-TS language it's an unforced reach for credibility through aesthetics.
 
 ## CLI shape
 

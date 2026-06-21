@@ -5,7 +5,7 @@ Glyph is a statically typed language that transpiles to TypeScript, designed so 
 ## Highlights
 
 - **A small, strict language that compiles to readable TypeScript.** Glyph runs anywhere TypeScript runs and can use any npm package. The compiler type-checks each program and verifies the emitted TypeScript with `tsc --strict`; the example and corpus programs pass it. (The v1 type checker is not yet complete; see Known limitations.)
-- **A complete v0.1 toolchain.** A CLI (`glyph build`, `run`, `fmt`, `canonical`, `publish`, `lsp`, `--explain`), a language server, a VS Code extension, npm distribution (`npm install -g glyph` / `npx glyph`), and an in-browser WebAssembly playground with no backend.
+- **A complete v0.1 toolchain.** A CLI (`glyph build`, `run`, `fmt`, `canonical`, `publish`, `lsp`, `--explain`), a language server, a VS Code extension, npm distribution (`npm install -g @glyphlang/glyph` / `npx @glyphlang/glyph`), and an in-browser WebAssembly playground with no backend.
 - **Errors as values, exhaustive matching, and no `any`.** The language removes the most common ways a type checker can be silently lied to.
 - **Designed around four pillars, in priority order.** Verifiability and greppability are the wedge: they target problems TypeScript developers feel today. Abstraction and diff stability are the polish.
 
@@ -54,7 +54,7 @@ Everything below works end to end in v0.1.
 - **CLI.** `glyph build [--check] [--test]`, `glyph run`, `glyph fmt`, `glyph canonical`, `glyph publish`, `glyph lsp`, and `glyph --explain <code>` for long-form explanations of any diagnostic code. The compiler is a Rust, salsa-backed pipeline (lex, parse, resolve, typecheck, emit). 380+ workspace tests pass.
 - **Language server (v1 complete).** Diagnostics with stable codes, hover types, go-to-definition (within-file and cross-module), completion, format-on-save, and document plus workspace symbols. It also exposes a canonical agent view (`glyph/canonicalView`) and a typecheck-gated structured-edit RPC (`glyph/applyEdit`) that applies an edit only if the result type-checks clean.
 - **VS Code extension.** In `editors/vscode/`.
-- **npm distribution.** `npm install -g glyph` or `npx glyph`, packaged esbuild-style: a launcher plus per-platform prebuilt binary packages.
+- **npm distribution.** `npm install -g @glyphlang/glyph` or `npx @glyphlang/glyph`, packaged esbuild-style: a launcher plus per-platform prebuilt binary packages.
 - **In-browser playground.** A WebAssembly build with no backend: write Glyph and see the emitted TypeScript and diagnostics instantly.
 - **Docs guide.** A five-minute tour, getting-started, a "Glyph for TypeScript developers" delta sheet, and a 30-minute todo-CLI tutorial. Every snippet in the guide compiles.
 
@@ -71,7 +71,7 @@ This is an early release. The following are deferred or unmeasured, and we would
 
 ## How to try it
 
-- **Install:** `npm install -g glyph`, or run it once with `npx glyph`.
+- **Install:** `npm install -g @glyphlang/glyph`, or run it once with `npx @glyphlang/glyph`.
 - **Build a program:** `glyph build path/to/file.glyph` (add `--check` to type-check the emitted TypeScript, `--test` to run tests).
 - **Run a program:** `glyph run path/to/file.glyph`.
 - **Explore in the browser:** open the WebAssembly playground and watch the emitted TypeScript and diagnostics update as you type.

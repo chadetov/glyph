@@ -66,6 +66,10 @@ enum Command {
     },
     /// Run the language server over stdio (spawned by an editor extension).
     Lsp,
+    /// Print the agent bootstrap (the AGENTS.md / llms.txt reference) to stdout.
+    /// Works offline: zero to correct, runnable Glyph in one document.
+    #[command(visible_aliases = ["docs", "cheatsheet"])]
+    Llms,
     /// Print a file's canonical agent view (Q32): the `glyph fmt` layout with
     /// stable `Lddd` line numbers and a per-declaration content fingerprint.
     Canonical {
@@ -273,6 +277,12 @@ fn main() {
             glyph_lsp::run_stdio();
             std::process::exit(0);
         }
+        Some(Command::Llms) => {
+            // The bootstrap is embedded at compile time, so this works with no
+            // network and no repo checkout.
+            print!("{}", glyph_cli::LLMS_BOOTSTRAP);
+            std::process::exit(0);
+        }
         Some(Command::Publish { dir }) => {
             use glyph_cli::publish::{self, PublishError, TscStatus};
             use std::io::IsTerminal;
@@ -380,6 +390,7 @@ fn main() {
                 | Command::Run { .. }
                 | Command::Fmt { .. }
                 | Command::Lsp
+                | Command::Llms
                 | Command::Canonical { .. }
                 | Command::Publish { .. } => {
                     unreachable!()

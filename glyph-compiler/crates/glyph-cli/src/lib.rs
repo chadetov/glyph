@@ -20,3 +20,8 @@ pub use build::{build_project, BuildError, BuildReport};
 pub use examples::{run_examples, ExampleError, ExampleReport};
 pub use fmt::{format_path, FmtError, FmtReport};
 pub use run::{run_file, RunError, RunOutcome};
+
+/// The agent bootstrap (the repo-root `AGENTS.md`, mirrored to `llms.txt`),
+/// embedded into the binary so `glyph llms` prints it with no network or repo
+/// checkout. `AGENTS.md` is the single source; this is the same bytes.
+pub const LLMS_BOOTSTRAP: &str = include_str!("../../../../AGENTS.md");

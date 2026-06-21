@@ -23,6 +23,7 @@ glyph run path.glyph [args...]      # type-check, compile, and run main(argv)
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict by default)
 glyph build src/ --out dist/ --test # also run @example / @doc @run / property tests
 glyph fmt [path]                    # format in place (one canonical layout)
+glyph llms                          # reprint this bootstrap offline (alias: glyph docs)
 glyph --explain E0204               # long-form explanation + fix for any error code
 ```
 

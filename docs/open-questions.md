@@ -150,6 +150,104 @@ Single carve-out added to "no linear types": narrow `owned` modifier for resourc
 
 ---
 
+## Reopened by feedback — Serhiy's React session (2026-07-12)
+
+A working React developer built a todo app in Glyph (AI-authored), wired in
+`react-hook-form` + `zod`, and gave a hands-on "would not use it" verdict. Full
+record in `feedbacks/serhiy.md`. His session re-litigates one resolved decision
+(Q41) and surfaces one genuinely new gap (Q44). It also produced a short list of
+grammar accidents that are bugs, not open questions.
+
+### Bugs to fix (no pillar cost — not open questions, just work) — FIXED 2026-07-12
+
+These collide with universal web/npm conventions and serve no pillar. They are
+listed here only so the reopened questions below don't get conflated with them.
+All three are now fixed in the compiler (parser + emitter); spec D6 and D15 note
+the two language-surface refinements.
+
+- **Hyphenated JSX attribute names** (`aria-label`, `data-*`) parsed as `Minus`.
+  Fixed: the JSX name reader joins byte-contiguous `ident-ident` runs, and the
+  emitter quotes non-identifier prop keys (`"aria-label": ...`). (D6.)
+- **Hyphenated/scoped npm import specifiers** (`react-hook-form`,
+  `@hookform/resolvers/zod`) were rejected (`E0002: found Minus` / `found At`).
+  Fixed: import-path segments accept hyphens and an optional leading `@scope`.
+  (D15.)
+- **Runtime bootstrap not injected into the browser bundle.** `number.to_string`
+  depended on a global that `glyph run` installs but a Vite browser build never
+  loaded, producing a live `ReferenceError` on first run. Fixed: every emitted
+  module now side-effect-imports `.glyph-runtime/glyph-bootstrap`, so the ambient
+  globals exist no matter which module an external bundler treats as the entry.
+
+### Q43. Ergonomic TS-library interop (re-litigates Q41)
+
+**Q41 resolved that TS interop is "hand-written TS wrappers" and treated that as
+solved.** Serhiy's session is evidence it is not solved *ergonomically*: every real
+React dependency (react-hook-form, zod, and by his own extension date-fns, UI
+libraries, formatters) required a bespoke hand-written TS adapter. A per-library
+adapter tax is fine for one library and absurd for the thirty a real app imports.
+Three Glyph rules drive the adapter requirement:
+
+- **Prop/argument spreading** (`{...register("title")}`, `{...props}`) is banned
+  (greppability/diff-stability). This is the genuinely hard one — deliberate *and*
+  mandatory for RHF-style APIs. Sub-question: is a narrow spread allowance
+  defensible for spreading a *statically typed record whose fields are known at
+  compile time* (greppability preserved via the type), while still banning
+  spread of untyped/`any` values?
+- **Value-derived types** (`z.infer<typeof schema>`) — deriving a type from a
+  runtime value. Glyph's stricter typing has no expression for this. Sub-question:
+  is a `typeof`/`infer`-style operator worth a v1 carve-out, or does the adapter's
+  `.d.ts` remain the boundary?
+- **Hyphenated/scoped package names** — a pure grammar accident, listed as a bug
+  above; fixing it removes one of the three adapter drivers for free.
+
+**The strategic question:** should v1 offer a first-class "import a TS module and
+use its API directly" path, so a Glyph file inside an existing React/Node codebase
+consumes libraries without a bespoke adapter per library? This is the make-or-break
+for living inside existing codebases (echoes Hayk, Adi, README theme 3). Options
+range from "keep adapters, document the pattern well, ship a codegen tool that
+scaffolds the adapter + `.d.ts` from a TS module" (cheapest) to "a real `extern`
+mechanism that imports a TS declaration and applies Glyph's rules only at the Glyph
+call site" (largest). **Not a unilateral call — brainstorm input.**
+
+### Q44. React Context + effectful custom-hook composition
+
+**New gap, not covered by any prior question.** Big React apps are built on custom
+hooks and Context. Two concrete holes:
+
+- **Context has no story in the spec or docs.** No `createContext` / provider /
+  `useContext` equivalent is documented. Serhiy: "big projects use a lot custom
+  hooks and contexts, I have no idea how it would be feasible."
+- **Effectful custom hooks vs the `@pure` JSX-callable rule (Q9 → D9).** Components
+  and built-in `use_state` work, but a user function must be `@pure` to be
+  JSX-callable, and a custom hook that calls `use_state`/effects is by definition
+  not pure. How does an effectful custom hook compose and get called? In Serhiy's
+  session a custom hook (`use_task_form`) only existed because the TS adapter built
+  it in TypeScript.
+
+Needs a spec answer **before step 6 dogfooding** touches any Context-using or
+custom-hook-heavy app, or the dogfood will stall on it. Relates to the React
+bindings deferred to v1.1 under Q3.
+
+### Positioning note (framing, tied to Q32)
+
+Serhiy's two headline objections split cleanly along Glyph's own AI-first bet:
+
+- **"Not feasible manually / like notepad"** is about the *human review-and-maintain*
+  path. Non-negotiable regardless of who authors, because humans review agent
+  output in an editor. This is Q32 (dual human/agent view) made concrete and argues
+  for pulling editor syntax highlighting forward off the existing tree-sitter
+  grammar, ahead of the full LSP (step 7).
+- **"Changes how you think in React"** is a *human-authoring* migration cost. An AI
+  agent has no muscle memory to unlearn; it writes whatever the grammar dictates.
+  This is the least applicable complaint to Glyph's actual target author, and
+  "fixing" it by making Glyph more React-like would erode the pillars.
+
+**Decision owed:** does Glyph court human React authors at all, or is it
+agent-authored + human-reviewed? That call determines which of Serhiy's complaints
+are bugs versus working-as-designed.
+
+---
+
 ## Blockers for step 4 (transpiler)
 
 ### Q1. Is `infer_shape<Shape>` v1 or v2?

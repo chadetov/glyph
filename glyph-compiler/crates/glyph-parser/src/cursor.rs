@@ -29,6 +29,29 @@ impl<'a> Cursor<'a> {
         &self.source[start as usize..end as usize]
     }
 
+    /// Walk `start` left over same-line whitespace (spaces/tabs, never a
+    /// newline). Used by the JSX text-run reconstructor to recover a
+    /// significant leading space that sits between a preceding `{expr}`/tag and
+    /// the first text token but produced no token of its own.
+    pub fn extend_left_over_inline_ws(&self, mut start: u32) -> u32 {
+        let bytes = self.source.as_bytes();
+        while start > 0 && matches!(bytes[start as usize - 1], b' ' | b'\t') {
+            start -= 1;
+        }
+        start
+    }
+
+    /// Walk `end` right over same-line whitespace (spaces/tabs, never a
+    /// newline). The dual of `extend_left_over_inline_ws`, for a significant
+    /// trailing space before a following `{expr}`/tag.
+    pub fn extend_right_over_inline_ws(&self, mut end: u32) -> u32 {
+        let bytes = self.source.as_bytes();
+        while (end as usize) < bytes.len() && matches!(bytes[end as usize], b' ' | b'\t') {
+            end += 1;
+        }
+        end
+    }
+
     pub fn peek(&self) -> &Token {
         &self.tokens[self.pos].token
     }

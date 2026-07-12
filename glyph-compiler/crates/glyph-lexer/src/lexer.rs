@@ -360,6 +360,7 @@ impl<'a> Lexer<'a> {
             b'?' => Token::Question,
             b'=' => Token::Equals,
             b'@' => Token::At,
+            b'$' => Token::Dollar,
             other => {
                 return Err(LexError::UnexpectedChar {
                     ch: other as char,

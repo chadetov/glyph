@@ -80,9 +80,14 @@ fn parse_jsx_children(p: &mut Cursor) -> Result<Vec<JsxChild>, ParseError> {
     let mut children = Vec::new();
     loop {
         // Skip newlines between children (they're not significant in JSX
-        // children flow; whitespace is preserved inside text runs).
+        // children flow; whitespace is preserved inside text runs). Remember
+        // whether we crossed a newline: a text run that follows one starts a
+        // fresh line, so its leading indentation is insignificant (JSX/Babel
+        // strip it); a run continuing the same line keeps its leading space.
+        let mut crossed_newline = false;
         while matches!(p.peek(), Token::Newline) {
             p.advance();
+            crossed_newline = true;
         }
 
         if matches!(p.peek(), Token::Eof) {
@@ -129,10 +134,28 @@ fn parse_jsx_children(p: &mut Cursor) -> Result<Vec<JsxChild>, ParseError> {
             consumed_any = true;
         }
         if consumed_any {
-            let content = p.slice(text_start, text_end).to_string();
+            // The token spans exclude same-line whitespace that abuts the run
+            // but produced no token: the space before a following `{expr}`/`<`
+            // and the space after a preceding `{expr}`/`>`. JSX keeps such a
+            // space significant (`Hello {name}` renders "Hello Alice"), so pull
+            // it back into the slice. Leading whitespace is only significant
+            // when the run continues the same line (not fresh after a newline);
+            // trailing whitespace only when the run abuts a same-line sibling
+            // (`{` or `<`), not a newline or EOF.
+            let start = if crossed_newline {
+                text_start
+            } else {
+                p.extend_left_over_inline_ws(text_start)
+            };
+            let end = if matches!(p.peek(), Token::LBrace | Token::LAngle) {
+                p.extend_right_over_inline_ws(text_end)
+            } else {
+                text_end
+            };
+            let content = p.slice(start, end).to_string();
             children.push(JsxChild::Text {
                 content,
-                span: Span::new(text_start, text_end),
+                span: Span::new(start, end),
             });
         }
     }

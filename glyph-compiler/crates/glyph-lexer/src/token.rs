@@ -79,6 +79,11 @@ pub enum Token {
     Pipe,
     Question,
     Equals,
+    /// `$` — has no operator meaning in Glyph. It is emitted only so a bare
+    /// `$` inside JSX text (e.g. a price like `$5`) lexes cleanly; JSX text is
+    /// reconstructed from the source slice, so the token value is never read.
+    /// In any other position the parser rejects it as an unexpected token.
+    Dollar,
 
     // -- Punctuation, multi-char --
     Arrow,      // ->

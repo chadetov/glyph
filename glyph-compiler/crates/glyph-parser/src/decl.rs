@@ -42,7 +42,7 @@ pub(crate) fn parse_module(p: &mut Cursor) -> Result<Module, ParseError> {
 
 fn parse_module_decl(p: &mut Cursor) -> Result<ModulePath, ParseError> {
     let module_span = p.expect(&Token::Module, "`module`")?;
-    let path = parse_dotted_path(p, module_span)?;
+    let path = parse_dotted_path(p, module_span, /* allow_scope */ false)?;
     // Module decl must be terminated by newline or EOF.
     if matches!(p.peek(), Token::Newline) {
         p.advance();
@@ -58,17 +58,37 @@ fn parse_module_decl(p: &mut Cursor) -> Result<ModulePath, ParseError> {
 
 /// Parse `seg1/seg2/seg3` into a `ModulePath`. The slash is the module
 /// separator (D15); we lex it as `Slash`, distinct from path-position usage.
-fn parse_dotted_path(p: &mut Cursor, start_span: Span) -> Result<ModulePath, ParseError> {
+///
+/// Segments accept hyphens so npm package specifiers (`react-hook-form`) and
+/// hyphenated file names round-trip. When `allow_scope` is set (import paths,
+/// not `module` declarations) a leading `@` introduces an npm scope, so
+/// `@hookform/resolvers/zod` parses as segments `@hookform`, `resolvers`, `zod`.
+fn parse_dotted_path(
+    p: &mut Cursor,
+    start_span: Span,
+    allow_scope: bool,
+) -> Result<ModulePath, ParseError> {
     // Path segments accept keyword-spelled names (`std/record`, a file named
     // `type.glyph`, ...): a module/file name is not restricted to non-keywords.
     let mut segments = Vec::new();
-    let (first, first_span) = p.expect_field_name("module path segment")?;
+
+    // npm scoped-package prefix (`@scope/pkg/...`), imports only.
+    let scoped = allow_scope && matches!(p.peek(), Token::At);
+    if scoped {
+        p.advance();
+    }
+    let (first, first_span) = p.expect_hyphenated_name("module path segment")?;
+    let first = if scoped {
+        std::sync::Arc::from(format!("@{first}").as_str())
+    } else {
+        first
+    };
     segments.push(first);
     let mut end_span = first_span;
 
     while matches!(p.peek(), Token::Slash) {
         p.advance();
-        let (seg, span) = p.expect_field_name("module path segment")?;
+        let (seg, span) = p.expect_hyphenated_name("module path segment")?;
         segments.push(seg);
         end_span = span;
     }
@@ -234,7 +254,7 @@ fn parse_const_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<Cons
 
 fn parse_import(p: &mut Cursor) -> Result<ImportDecl, ParseError> {
     let import_span = p.expect(&Token::Import, "`import`")?;
-    let path = parse_dotted_path(p, import_span)?;
+    let path = parse_dotted_path(p, import_span, /* allow_scope */ true)?;
 
     let kind = if matches!(p.peek(), Token::LBrace) {
         // `import path { Name1, Name2 }`

@@ -160,6 +160,48 @@ mod smoke {
     }
 
     #[test]
+    fn import_hyphenated_package_name() {
+        // An npm package with a hyphenated name (`react-hook-form`) must import
+        // as one specifier, not `react` minus `hook` minus `form`.
+        let m = parse_or_panic("module x\nimport react-hook-form { useForm }\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Import(i) => {
+                let segs: Vec<&str> = i.path.segments.iter().map(|s| s.as_ref()).collect();
+                assert_eq!(segs, ["react-hook-form"]);
+                match &i.kind {
+                    glyph_ast::ImportKind::Named(names) => {
+                        assert_eq!(names[0].as_ref(), "useForm")
+                    }
+                    other => panic!("expected Named, got {other:?}"),
+                }
+            }
+            other => panic!("expected Import, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn import_scoped_package_name() {
+        // An npm scoped package (`@hookform/resolvers/zod`) parses `@scope` as the
+        // first segment, then `/`-separated tail.
+        let m = parse_or_panic("module x\nimport @hookform/resolvers/zod { zodResolver }\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Import(i) => {
+                let segs: Vec<&str> = i.path.segments.iter().map(|s| s.as_ref()).collect();
+                assert_eq!(segs, ["@hookform", "resolvers", "zod"]);
+            }
+            other => panic!("expected Import, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn subtraction_is_not_swallowed_as_a_hyphenated_name() {
+        // The hyphen-join only fires on byte-contiguous names in name position.
+        // A spaced `a - b` in expression position stays a subtraction.
+        let m = parse_or_panic("module x\nfn f(a: number, b: number) -> number { return a - b }\n");
+        assert!(matches!(&m.items[0], glyph_ast::Decl::Fn(_)));
+    }
+
+    #[test]
     fn import_aliased() {
         let m = parse_or_panic("module x\nimport std/http as h\n");
         match &m.items[0] {
@@ -1081,6 +1123,42 @@ component Foo(props: Props) -> Component {
                 assert!(matches!(j.attrs[0], glyph_ast::JsxAttr::String { .. }));
                 assert!(matches!(j.attrs[1], glyph_ast::JsxAttr::Expr { .. }));
                 assert!(j.children.is_empty());
+            }
+            other => panic!("expected Jsx, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn jsx_hyphenated_attribute_names() {
+        // `aria-label` / `data-testid` must parse as single attribute names, not
+        // `aria` minus `label`. The lexer splits on `-`; the JSX name reader
+        // rejoins byte-contiguous `ident-ident` runs.
+        let m = parse_or_panic(
+            "module x\ncomponent C() -> Component { return <button aria-label=\"Delete\" data-testid={id}>x</button> }\n",
+        );
+        let c = match &m.items[0] {
+            glyph_ast::Decl::Component(c) => c,
+            _ => panic!(),
+        };
+        let ret = match &c.body.stmts[0] {
+            glyph_ast::Stmt::Return(r) => r,
+            _ => panic!(),
+        };
+        match ret.value.as_ref().unwrap() {
+            glyph_ast::Expr::Jsx(j) => {
+                assert_eq!(j.attrs.len(), 2);
+                match &j.attrs[0] {
+                    glyph_ast::JsxAttr::String { name, .. } => {
+                        assert_eq!(name.as_ref(), "aria-label")
+                    }
+                    other => panic!("expected String attr, got {other:?}"),
+                }
+                match &j.attrs[1] {
+                    glyph_ast::JsxAttr::Expr { name, .. } => {
+                        assert_eq!(name.as_ref(), "data-testid")
+                    }
+                    other => panic!("expected Expr attr, got {other:?}"),
+                }
             }
             other => panic!("expected Jsx, got {other:?}"),
         }

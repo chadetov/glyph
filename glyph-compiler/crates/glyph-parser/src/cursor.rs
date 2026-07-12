@@ -41,6 +41,10 @@ impl<'a> Cursor<'a> {
         self.tokens[self.pos].span
     }
 
+    pub fn peek_span_at(&self, offset: usize) -> Option<Span> {
+        self.tokens.get(self.pos + offset).map(|s| s.span)
+    }
+
     pub fn advance(&mut self) -> &Spanned<Token> {
         let i = self.pos;
         if self.pos < self.tokens.len() - 1 {
@@ -129,6 +133,54 @@ impl<'a> Cursor<'a> {
                 }
             }
         }
+    }
+
+    /// Consume a field-name and greedily join `-segment` runs when the tokens
+    /// are byte-contiguous (no intervening whitespace). This recovers hyphenated
+    /// names that the lexer splits on `-` (`Minus`): JSX attribute names like
+    /// `aria-label`/`data-testid` and npm package specifiers like
+    /// `react-hook-form`. Whitespace on either side of the `-` stops the join, so
+    /// subtraction in every other position is unaffected — the join only fires in
+    /// name position (JSX names, module/import path segments), where a contiguous
+    /// `ident-ident` is unambiguously one hyphenated name.
+    pub fn expect_hyphenated_name(
+        &mut self,
+        expected: &'static str,
+    ) -> Result<(std::sync::Arc<str>, Span), ParseError> {
+        let (first, first_span) = self.expect_field_name(expected)?;
+        let mut name = String::from(first.as_ref());
+        let start = first_span.start;
+        let mut end = first_span.end;
+        loop {
+            if !matches!(self.peek(), Token::Minus) {
+                break;
+            }
+            let minus_span = self.peek_span();
+            // The `-` must be adjacent to the preceding segment (no whitespace).
+            if minus_span.start != end {
+                break;
+            }
+            // The token after `-` must be an adjacent field-name.
+            let Some(after) = self.peek_at(1) else { break };
+            let is_name =
+                matches!(after, Token::Identifier(_)) || after.as_field_name().is_some();
+            if !is_name {
+                break;
+            }
+            let Some(after_span) = self.peek_span_at(1) else {
+                break;
+            };
+            if after_span.start != minus_span.end {
+                break;
+            }
+            // Commit: consume `-` and the following segment.
+            self.advance();
+            let (seg, seg_span) = self.expect_field_name(expected)?;
+            name.push('-');
+            name.push_str(seg.as_ref());
+            end = seg_span.end;
+        }
+        Ok((std::sync::Arc::from(name.as_str()), Span::new(start, end)))
     }
 
     /// Parse a comma-separated list ending at `terminator`. Optionally skips

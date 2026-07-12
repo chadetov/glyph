@@ -182,7 +182,9 @@ fn parse_jsx_attr(p: &mut Cursor) -> Result<JsxAttr, ParseError> {
 
 /// Parse a JSX name. Identifiers and reserved-keyword-as-name tokens are both
 /// accepted, reusing the cursor's field-name helper so directive names like
-/// `if`/`else`/`for`/`match`/`case` work uniformly.
+/// `if`/`else`/`for`/`match`/`case` work uniformly. Hyphenated names are joined
+/// (`aria-label`, `data-testid`, web-component element names), which the lexer
+/// would otherwise split into `ident - ident`.
 fn jsx_name(p: &mut Cursor) -> Result<(Arc<str>, Span), ParseError> {
-    p.expect_field_name("JSX element or attribute name")
+    p.expect_hyphenated_name("JSX element or attribute name")
 }

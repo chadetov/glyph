@@ -26,7 +26,7 @@ Principle: **prefer the choice an established language has already validated, un
 - **D4. One `fn` form, name optional.** `fn name(args) -> T { body }` is the declaration; `fn(args) -> T { body }` is the anonymous form. Return type optional in both. Anonymous forms never sit at column 0, so `grep -n "^fn [a-z_]"` is a complete audit of named declarations. *[greppability]*
 - **D19. `component` is its own top-level keyword.** Grammatically identical to `fn` except for the keyword and an implied JSX-returning body. `grep -n "^component "` audits every UI component. *[greppability]*
 - **D20. `const` is module-level only; `let` is function-level only.** Mixing them is a syntax error caught at the grammar level. `mut` cannot target a `const` (typechecker enforces). *[greppability]*
-- **D15. Three import forms.** `import std/http` (namespace), `import std/result { Result, Ok }` (named), `import std/http as h` (aliased namespace). No `import *`, no default imports, no re-exports, no relative imports. Paths are slash-separated from the module root. *[diff stability]*
+- **D15. Three import forms.** `import std/http` (namespace), `import std/result { Result, Ok }` (named), `import std/http as h` (aliased namespace). No `import *`, no default imports, no re-exports, no relative imports. Paths are slash-separated from the module root. A path segment may contain hyphens and the first segment may carry an npm scope, so real package specifiers import unchanged: `import react-hook-form { useForm }`, `import @hookform/resolvers/zod { zodResolver }`. This widens what a segment may spell (no pillar cost — greppability and diff stability are unaffected); it does not add a fourth form. *[diff stability]*
 
 ## Mutation & types
 
@@ -44,7 +44,7 @@ Principle: **prefer the choice an established language has already validated, un
 
 ## JSX
 
-- **D6. JSX is a parallel sub-grammar; directives are regular elements.** JSX is entered after `<` in expression position. Attribute values: string literals or `{expr}`. Children: elements, text runs, `{expr}`. Names `if`, `else`, `for`, `match`, `case` are reserved as element names — they parse as ordinary elements and the typechecker treats them as compiler directives. Positional attributes allowed before named ones (`<case Loaded bind={users}>`). *[abstraction]*
+- **D6. JSX is a parallel sub-grammar; directives are regular elements.** JSX is entered after `<` in expression position. Attribute values: string literals or `{expr}`. Children: elements, text runs, `{expr}`. Names `if`, `else`, `for`, `match`, `case` are reserved as element names — they parse as ordinary elements and the typechecker treats them as compiler directives. Positional attributes allowed before named ones (`<case Loaded bind={users}>`). Attribute (and element) names may contain hyphens, so HTML/ARIA names work unchanged (`aria-label`, `data-testid`); a hyphenated attribute emits as a quoted object key. *[abstraction]*
 
 ## Annotations (session 3 additions)
 

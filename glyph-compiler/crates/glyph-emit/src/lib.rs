@@ -252,6 +252,25 @@ fn relative_specifier(from: &str, to: &str) -> String {
     out
 }
 
+/// The relative specifier from a module at `module_path` to the bundled runtime
+/// bootstrap (`.glyph-runtime/glyph-bootstrap`), which sits at the output root.
+/// A root module (`main`) reaches it with `./`; a nested one (`sub/a`) needs one
+/// `../` per enclosing directory. Extensionless, matching `relative_specifier`
+/// (both `tsc`'s `bundler` resolution and external bundlers add the extension).
+fn bootstrap_specifier(module_path: &str) -> String {
+    let dir_depth = module_path.split('/').count().saturating_sub(1);
+    let mut spec = String::new();
+    if dir_depth == 0 {
+        spec.push_str("./");
+    } else {
+        for _ in 0..dir_depth {
+            spec.push_str("../");
+        }
+    }
+    spec.push_str(".glyph-runtime/glyph-bootstrap");
+    spec
+}
+
 /// Whether a constructor pattern's single argument is itself a variant pattern
 /// (so the outer arm needs an inner dispatch on the payload's tag): a nested
 /// constructor (`Ok(Some(x))`) or a bare no-payload prelude variant
@@ -467,6 +486,15 @@ impl<'a> Emitter<'a> {
                 &format!("import {{ {RESULT_ERR} as {ERR_CTOR} }} from \"std/result\";\n\n"),
             );
         }
+        // Every emitted module pulls in the runtime bootstrap for its side
+        // effects, so the ambient `number`/`par`/`print` globals exist at run
+        // time no matter which module an external bundler (Vite, esbuild) treats
+        // as the entry. `glyph run` also installs them via its generated
+        // entrypoint; the ESM loader dedups by resolved URL and the installs are
+        // idempotent, so the redundancy is harmless. Inserted last so it lands
+        // first, ahead of every other import.
+        let bootstrap = bootstrap_specifier(self.ctx.module_path);
+        self.out.insert_str(0, &format!("import \"{bootstrap}\";\n\n"));
         Ok(())
     }
 
@@ -2593,10 +2621,10 @@ impl<'a> Emitter<'a> {
         for a in attrs {
             match a {
                 JsxAttr::String { name, value, .. } => {
-                    fields.push(format!("{name}: {}", escape_double_quoted(value)))
+                    fields.push(format!("{}: {}", jsx_prop_key(name), escape_double_quoted(value)))
                 }
                 JsxAttr::Expr { name, value, .. } => {
-                    fields.push(format!("{name}: {}", self.expr(value)?))
+                    fields.push(format!("{}: {}", jsx_prop_key(name), self.expr(value)?))
                 }
                 JsxAttr::Positional { span, .. } => {
                     return Err(EmitError::Unsupported {
@@ -2909,6 +2937,21 @@ fn bin_op(op: BinOp) -> &'static str {
 }
 
 /// Render a de-escaped string value as a double-quoted TS string literal.
+/// Format a JSX attribute name as an object-literal key: bare when it is a valid
+/// JS identifier, quoted otherwise. Hyphenated names (`aria-label`, `data-testid`)
+/// are not identifiers, so they must be quoted for the emitted props object to
+/// be valid TypeScript.
+fn jsx_prop_key(name: &str) -> String {
+    let mut chars = name.chars();
+    let is_ident = matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_' || c == '$')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '$');
+    if is_ident {
+        name.to_string()
+    } else {
+        escape_double_quoted(name)
+    }
+}
+
 fn escape_double_quoted(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
@@ -3380,7 +3423,50 @@ mod tests {
         let ts = emit("module x\nfn add(a: number, b: number) -> number { return a + b }\n");
         assert_eq!(
             ts,
-            "export function add(a: number, b: number): number {\n  return (a + b);\n}\n"
+            "import \"./.glyph-runtime/glyph-bootstrap\";\n\n\
+             export function add(a: number, b: number): number {\n  return (a + b);\n}\n"
+        );
+    }
+
+    #[test]
+    fn hyphenated_jsx_attr_keys_are_quoted() {
+        // A bare `aria-label:` object key is invalid TS; it must be quoted.
+        let ts = emit(
+            "module x\n@pure\nfn t() -> string { return \"x\" }\ncomponent C() -> Component { return <button aria-label=\"Delete\" data-testid={t()}>x</button> }\n",
+        );
+        assert!(ts.contains("\"aria-label\": \"Delete\""), "{ts}");
+        assert!(ts.contains("\"data-testid\": t()"), "{ts}");
+        // A plain identifier key stays unquoted.
+        assert!(ts.contains("className:") || !ts.contains("\"className\""), "{ts}");
+    }
+
+    #[test]
+    fn every_module_imports_the_runtime_bootstrap_first() {
+        // The bootstrap installs the ambient `number`/`par`/`print` globals; a
+        // module must pull it in so an external bundler's entry has them (the bug
+        // Serhiy hit: a Vite build never loaded it, so `number` was undefined).
+        let ts = emit("module x\nfn noop() -> number { return 0 }\n");
+        assert!(
+            ts.starts_with("import \"./.glyph-runtime/glyph-bootstrap\";"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn nested_module_reaches_the_bootstrap_with_parent_hops() {
+        // A module one directory deep needs `../` to reach the output-root runtime.
+        let modules: std::collections::BTreeSet<String> =
+            ["sub/a".to_string()].into_iter().collect();
+        let (module, resolved, types, prelude) =
+            pipeline("module sub/a\nfn noop() -> number { return 0 }\n");
+        let ctx = EmitContext {
+            module_path: "sub/a",
+            project_modules: &modules,
+        };
+        let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
+        assert!(
+            ts.starts_with("import \"../.glyph-runtime/glyph-bootstrap\";"),
+            "{ts}"
         );
     }
 
@@ -3395,7 +3481,7 @@ mod tests {
     fn async_fn_and_await() {
         let ts = emit("module x\nasync fn run() -> number { return await fetch() }\n");
         assert!(
-            ts.starts_with("export async function run(): Promise<number> {"),
+            ts.contains("export async function run(): Promise<number> {"),
             "{ts}"
         );
         assert!(ts.contains("return (await fetch());"), "{ts}");
@@ -3489,7 +3575,7 @@ mod tests {
         );
         // The module that emits a descriptor gets the aliased factory import.
         assert!(
-            ts.starts_with("import { schema as __glyph_schema } from \"std/schema\";"),
+            ts.contains("import { schema as __glyph_schema } from \"std/schema\";"),
             "{ts}"
         );
     }
@@ -3765,7 +3851,7 @@ mod tests {
         );
         // A module using `?` gets the aliased `Err` import the re-wrap needs.
         assert!(
-            ts.starts_with("import { Err as __glyph_err } from \"std/result\";"),
+            ts.contains("import { Err as __glyph_err } from \"std/result\";"),
             "{ts}"
         );
         assert!(ts.contains("const __r0 = parse(n);"), "{ts}");

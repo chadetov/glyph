@@ -164,7 +164,7 @@ There is **no object-literal shorthand** (`{ email }` is rejected; write
 component Greeting(name: string) {
   return <div>
     <if cond={name != ""}>
-      <span>Hello, ${name}</span>
+      <span>Hello, {name}</span>
     </if>
     <else>
       <span>Hello, stranger</span>
@@ -297,7 +297,7 @@ record.remove<V>(r, key) -> Record<string, V>
 ### std/time
 
 ```
-type Duration                                 // Duration.ms(n) constructs one
+type Duration                                 // time.Duration.ms(n) constructs one (namespaced)
 time.now() -> number                          // epoch milliseconds
 time.sleep(duration) -> void                  // async; await it
 time.debounce(delay, f) -> fn                  // returns a debounced function

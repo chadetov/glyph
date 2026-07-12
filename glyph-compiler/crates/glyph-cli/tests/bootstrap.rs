@@ -29,6 +29,40 @@ fn embedded_bootstrap_is_the_real_agents_md() {
 }
 
 #[test]
+fn cheatsheet_jsx_example_uses_single_brace_interpolation() {
+    // JSX child interpolation is single-brace `{name}` (see examples/03).
+    // `${name}` in a JSX child is not template-string syntax: the `$` becomes
+    // literal text and the emitted component renders "Hello, $Alice". The
+    // headline Greeting example in the bootstrap must use the canonical form.
+    assert!(
+        glyph_cli::LLMS_BOOTSTRAP.contains("<span>Hello, {name}</span>"),
+        "cheatsheet Greeting example lost its single-brace JSX interpolation"
+    );
+    assert!(
+        !glyph_cli::LLMS_BOOTSTRAP.contains("<span>Hello, ${name}</span>"),
+        "cheatsheet Greeting example uses `${{name}}` in a JSX child; \
+         that leaks a literal `$` into rendered text (use `{{name}}`)"
+    );
+}
+
+#[test]
+fn cheatsheet_duration_constructor_is_namespaced() {
+    // Under `import std/time`, imports are namespaced: the bare name `Duration`
+    // is unresolved (E0103) and the constructor must be called as
+    // `time.Duration.ms(n)`. The std/time cheatsheet must show the namespaced
+    // form so the example it advertises actually resolves.
+    assert!(
+        glyph_cli::LLMS_BOOTSTRAP.contains("time.Duration.ms(n)"),
+        "std/time cheatsheet lost the namespaced `time.Duration.ms(n)` form"
+    );
+    assert!(
+        !glyph_cli::LLMS_BOOTSTRAP.contains("// Duration.ms(n)"),
+        "std/time cheatsheet shows bare `Duration.ms(n)`; under a namespaced \
+         `import std/time` that name is unresolved (E0103) \u{2014} use `time.Duration.ms(n)`"
+    );
+}
+
+#[test]
 fn root_and_web_mirrors_match_agents_md() {
     let agents = fs::read_to_string(repo_file("AGENTS.md")).expect("read AGENTS.md");
     for mirror in ["llms.txt", "web/llms.txt"] {

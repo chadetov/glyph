@@ -16,10 +16,10 @@ declare module "react" {
   // intrinsic element precisely; this is enough to type the examples.
   type ElementProps = {
     [attribute: string]: unknown;
-    on_input?: (event: GlyphEvent) => void;
-    on_change?: (event: GlyphEvent) => void;
-    on_submit?: (event: GlyphEvent) => void;
-    on_click?: (event: GlyphEvent) => void;
+    onInput?: (event: GlyphEvent) => void;
+    onChange?: (event: GlyphEvent) => void;
+    onSubmit?: (event: GlyphEvent) => void;
+    onClick?: (event: GlyphEvent) => void;
   };
 
   export function createElement(

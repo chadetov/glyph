@@ -224,6 +224,21 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// A call supplies the wrong number of arguments for the callee's declared
+    /// arity. Glyph `fn`/`component` parameters are all required — there are no
+    /// optional or variadic parameters in v1, and call arguments carry no spread
+    /// — so a call whose argument count differs from the parameter count is
+    /// always wrong. Fires only when the callee resolves to a concrete `Ty::Fn`
+    /// (a module-level fn/component or a typed lambda binding); a callee whose
+    /// signature can't be judged (a member-access method, an unresolved name)
+    /// stays `Unknown` and is left unchecked.
+    #[error("wrong number of arguments: expected {expected}, found {found}")]
+    ArgumentCountMismatch {
+        expected: usize,
+        found: usize,
+        span: Span,
+    },
+
     /// `mut N = ...` reassigning a module-level `const` binding. D20 makes
     /// `const` immutable; only a function-level `let` may be reassigned with
     /// `mut`. Fires when the assignment target resolves to a `const` declaration.
@@ -256,6 +271,7 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
+            TypeError::ArgumentCountMismatch { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
         }
     }
@@ -277,6 +293,7 @@ impl TypeError {
             TypeError::UnknownField { .. } => "E0210",
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
             TypeError::MutateConst { .. } => "E0212",
+            TypeError::ArgumentCountMismatch { .. } => "E0213",
         }
     }
 
@@ -318,6 +335,9 @@ impl TypeError {
             }
             TypeError::ArgumentTypeMismatch { .. } => {
                 "Pass a value of the expected type, or change the parameter's type."
+            }
+            TypeError::ArgumentCountMismatch { .. } => {
+                "Supply exactly one argument per parameter. Glyph has no optional or variadic parameters."
             }
             TypeError::MutateConst { .. } => {
                 "`const` is immutable (D20). Use a function-level `let` if the binding must change."

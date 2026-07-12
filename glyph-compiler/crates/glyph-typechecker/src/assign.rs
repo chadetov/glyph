@@ -417,6 +417,20 @@ impl Assigner<'_> {
                 // to `self.errors`).
                 let callee_ty = self.tm.get(callee.span()).clone();
                 let call_ty = if let Ty::Fn { params, return_ty, .. } = &callee_ty {
+                    // Arity check: Glyph `fn`/`component` parameters are all
+                    // required (no optional or variadic params in v1) and call
+                    // arguments carry no spread, so `params.len() != args.len()`
+                    // is always a real error. Without this the `zip`s below
+                    // silently truncate to the shorter side, so extra or missing
+                    // arguments are never seen and arity is delegated entirely to
+                    // `tsc` (a hole in the verifiability pillar).
+                    if params.len() != args.len() {
+                        self.errors.push(TypeError::ArgumentCountMismatch {
+                            expected: params.len(),
+                            found: args.len(),
+                            span: *span,
+                        });
+                    }
                     let mut subst: HashMap<Ident, Ty> = HashMap::new();
                     for (p, a) in params.iter().zip(args.iter()) {
                         collect_type_param_bindings(&p.ty, self.tm.get(a.span()), &mut subst);
@@ -446,7 +460,19 @@ impl Assigner<'_> {
                     let (ArrayElem::Expr(e) | ArrayElem::Spread(e)) = el;
                     self.walk_expr(e);
                 }
-                self.tm.insert(*span, Ty::Unknown);
+                // Synthesize `Array<T>` so a `let`-bound array literal carries a
+                // concrete container type downstream. This is what lets the
+                // emitter distinguish an array (numeric-index `.entries()`) from
+                // a record (string-key `Object.entries`) in a two-binding `for`
+                // — an inferred, unannotated array previously typed `Unknown` and
+                // was misclassified as a record. The element type is inferred
+                // only when every plain element shares one decidable type;
+                // otherwise (mixed elements, an empty literal, or any spread)
+                // it stays `Array<Unknown>`, which is enough for the container
+                // discrimination and never triggers a false argument mismatch.
+                let elem_ty = self.infer_array_elem_ty(elements);
+                let ty = self.array_ty(elem_ty);
+                self.tm.insert(*span, ty);
             }
             Expr::Object { fields, span } => {
                 for f in fields {
@@ -462,7 +488,24 @@ impl Assigner<'_> {
                 // resolves to a user-defined tagged union, verify the
                 // arms cover every variant. Walk the scrutinee FIRST so
                 // its type is in `tm`; then look it up.
-                let scrutinee_ty = self.tm.get(scrutinee.span()).clone();
+                let mut scrutinee_ty = self.tm.get(scrutinee.span()).clone();
+                // When the scrutinee's static type is undecidable — an
+                // ambient/external value such as a member access through a
+                // `.d.ts` generic (`state.value`, where the Glyph checker
+                // cannot see `StateHandle<T>`) — try to recover a module-local
+                // tagged union from the arm patterns. Without this the
+                // scrutinee type stays `Unknown`, exhaustiveness is skipped,
+                // and the emitter misclassifies every nullary-variant arm as a
+                // binding catch-all (silently wrong at runtime, or an E0300 for
+                // 2+ arms). Recording the recovered union at the scrutinee's
+                // span makes both the check below and the emitter's
+                // variant/binding classifier key off a concrete union.
+                if matches!(scrutinee_ty, Ty::Unknown) {
+                    if let Some(recovered) = self.recover_union_from_arms(arms) {
+                        self.tm.insert(scrutinee.span(), recovered.clone());
+                        scrutinee_ty = recovered;
+                    }
+                }
                 self.check_match_exhaustiveness(&scrutinee_ty, arms, *span);
                 for arm in arms {
                     // Type the arm's payload binding from the matched
@@ -515,6 +558,50 @@ impl Assigner<'_> {
     }
 
     // ----- ident reference typing -----
+
+    /// The prelude `Array` type applied to `elem` (`Array<elem>`), built as an
+    /// `App` over the prelude `Array` `Ty::Named` so it matches the shape a
+    /// declared `Array<T>` parameter lowers to. Falls back to `Unknown` only if
+    /// the prelude has no `Array` symbol (never, in practice).
+    fn array_ty(&self, elem: Ty) -> Ty {
+        match self.lowerer.prelude.lookup("Array") {
+            Some(id) => Ty::App {
+                base: Arc::new(Ty::Named {
+                    symbol: id.into(),
+                    path: vec![Ident::from("Array")],
+                }),
+                args: vec![elem],
+            },
+            None => Ty::Unknown,
+        }
+    }
+
+    /// Infer the element type of an array literal from its already-walked
+    /// elements. Returns a concrete type only when every element is a plain
+    /// (non-spread) expression with the same decidable type; a spread element,
+    /// an empty literal, or any type disagreement yields `Unknown`, keeping the
+    /// literal at `Array<Unknown>`.
+    fn infer_array_elem_ty(&self, elements: &[ArrayElem]) -> Ty {
+        let mut inferred: Option<Ty> = None;
+        for el in elements {
+            let e = match el {
+                ArrayElem::Expr(e) => e,
+                // A spread contributes its *element* type, not its own type;
+                // rather than unwrap the container here, stay conservative.
+                ArrayElem::Spread(_) => return Ty::Unknown,
+            };
+            let ty = self.tm.get(e.span());
+            if !ty_is_decidable(ty) {
+                return Ty::Unknown;
+            }
+            match &inferred {
+                None => inferred = Some(ty.clone()),
+                Some(prev) if prev == ty => {}
+                Some(_) => return Ty::Unknown,
+            }
+        }
+        inferred.unwrap_or(Ty::Unknown)
+    }
 
     fn type_of_ident_ref(&mut self, ref_span: glyph_ast::Span) -> Ty {
         let Some(r) = self.resolved.resolutions.get(ref_span) else {
@@ -741,7 +828,23 @@ impl Assigner<'_> {
             self.check_array_exhaustiveness(arms, match_span);
             return;
         }
-        if matches!(scrutinee_ty, Ty::Prim(Primitive::Bool)) {
+        // A `bool` match, either by the scrutinee's statically-known type or —
+        // when the scrutinee is a comparison/boolean expression that types as
+        // `Unknown` — recovered from the arms: a `true`/`false` literal pattern
+        // only type-checks over a bool, so its presence pins this as a bool
+        // match. Mirrors the arm-driven union recovery in the `Expr::Match`
+        // handler; without it `match n > 0 { true => .. }` (missing `false`)
+        // slipped past exhaustiveness and threw at run time.
+        let arms_are_bool = arms.iter().any(|a| {
+            matches!(
+                a.pattern,
+                Pattern::Literal {
+                    value: LiteralPattern::Bool(_),
+                    ..
+                }
+            )
+        });
+        if matches!(scrutinee_ty, Ty::Prim(Primitive::Bool)) || arms_are_bool {
             self.check_bool_exhaustiveness(arms, match_span);
             return;
         }
@@ -1009,6 +1112,69 @@ impl Assigner<'_> {
             missing: missing_str,
             span: match_span,
         });
+    }
+
+    /// Recover a module-local tagged union from a `match`'s arm patterns, used
+    /// only when the scrutinee's static type is undecidable (see the call site
+    /// in the `Expr::Match` handler). An arm whose head names an in-scope union
+    /// variant pins the scrutinee to that variant's union; the first such arm
+    /// wins. Returns the union's `Ty::Named` (with `path` set to the union's
+    /// name so the emitter's collision guard accepts it), or None when no arm
+    /// names a known variant.
+    fn recover_union_from_arms(&self, arms: &[MatchArm]) -> Option<Ty> {
+        for arm in arms {
+            let name = match &arm.pattern {
+                Pattern::Constructor { path, .. } => path.last()?,
+                Pattern::Ident { name, .. } => name,
+                _ => continue,
+            };
+            if let Some(ty) = self.union_ty_of_variant(name) {
+                return Some(ty);
+            }
+        }
+        None
+    }
+
+    /// If `name` is a variant of a module-local tagged union, return that
+    /// union's `Ty::Named` (pointing at the union's `Type` symbol, not the
+    /// variant symbol, so `resolve_named_union` accepts it). None otherwise.
+    fn union_ty_of_variant(&self, name: &Ident) -> Option<Ty> {
+        let table = &self.resolved.symbols.table;
+        for i in 0..table.len() as u32 {
+            let sym = table.get(SymbolId(i))?;
+            if &sym.name != name {
+                continue;
+            }
+            let SymbolKind::Variant { decl_idx } = sym.kind else {
+                continue;
+            };
+            let Some(Decl::Type(td)) = self.module.items.get(decl_idx as usize) else {
+                continue;
+            };
+            if !matches!(&td.body, TypeExpr::Union { .. }) {
+                continue;
+            }
+            // `Ty::Named` must reference the union's `Type` symbol; scan for the
+            // one owning this decl.
+            let type_symbol = self.type_symbol_for_decl(decl_idx)?;
+            return Some(Ty::Named {
+                symbol: type_symbol.into(),
+                path: vec![td.name.clone()],
+            });
+        }
+        None
+    }
+
+    /// The `SymbolId` of the `Type` symbol for the module item at `decl_idx`.
+    fn type_symbol_for_decl(&self, decl_idx: u32) -> Option<SymbolId> {
+        let table = &self.resolved.symbols.table;
+        for i in 0..table.len() as u32 {
+            let sym = table.get(SymbolId(i))?;
+            if matches!(sym.kind, SymbolKind::Type { decl_idx: d } if d == decl_idx) {
+                return Some(SymbolId(i));
+            }
+        }
+        None
     }
 
     /// If `ty` is a `Ty::Named` pointing at a module-local tagged-union
@@ -1670,6 +1836,51 @@ fn run(r: Result<Option<number>, string>) -> number {
     }
 
     #[test]
+    fn undecidable_scrutinee_recovers_union_from_arms_and_flags_missing() {
+        // BUG-01: a `match` whose scrutinee has an undecidable static type (a
+        // member access through a value the checker cannot resolve — here
+        // `state.value` on an `unknown`, standing in for a `.d.ts`
+        // `StateHandle<Filter>`) must still be checked for exhaustiveness by
+        // recovering the union from the arm patterns. Before the fix this
+        // silently passed (and miscompiled the nullary arm as a binding).
+        let src = r#"module x
+type Filter = | All | Active | Done
+fn run(state: unknown) -> string {
+  return match state.value {
+    All => "all",
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                assert_eq!(type_name, "Filter");
+                assert!(missing.contains("Active"), "missing: {missing}");
+                assert!(missing.contains("Done"), "missing: {missing}");
+            }
+            other => panic!("expected NonExhaustiveMatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn undecidable_scrutinee_exhaustive_over_recovered_union_passes() {
+        // The complement: once every variant of the recovered union is covered,
+        // the undecidable-scrutinee match type-checks clean.
+        let src = r#"module x
+type Filter = | All | Active | Done
+fn run(state: unknown) -> string {
+  return match state.value {
+    All => "all",
+    Active => "active",
+    Done => "done",
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
     fn binding_payload_does_not_trigger_nested_check() {
         // `Ok(opt)` binds the whole `Option` payload, so no inner check runs.
         let src = r#"module x
@@ -2040,11 +2251,12 @@ fn f(b: bool) -> number {
     }
 
     #[test]
-    fn bool_comparison_scrutinee_is_not_checked() {
-        // `n > 0` is a binary expression that types as Unknown, so it never
-        // reaches the bool exhaustiveness checker — an incomplete match on it
-        // is not flagged (documents the v1 limitation: only statically-typed
-        // bool scrutinees are checked).
+    fn bool_comparison_scrutinee_missing_arm_is_flagged() {
+        // `n > 0` is a comparison that types as Unknown, but a `true`/`false`
+        // literal arm only type-checks over a bool, so the match is recovered as
+        // a bool match from its arms and an incomplete one is flagged. (Before
+        // the fix this slipped through and threw `non-exhaustive match` at run
+        // time.)
         let src = r#"module x
 fn f(n: number) -> number {
   return match n > 0 {
@@ -2052,9 +2264,27 @@ fn f(n: number) -> number {
   }
 }
 "#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::NonExhaustiveBoolMatch { missing, .. }] if missing.contains("false")),
+            "comparison scrutinee with a `true`-only match should be flagged non-exhaustive; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn bool_comparison_scrutinee_exhaustive_passes() {
+        // The complement: both arms present over a comparison type-checks clean.
+        let src = r#"module x
+fn f(n: number) -> number {
+  return match n > 0 {
+    true => 1,
+    false => 0,
+  }
+}
+"#;
         assert!(
             ty_errors_of(src).is_empty(),
-            "comparison scrutinee types Unknown and is not checked; got: {:?}",
+            "exhaustive bool match over a comparison should pass; got: {:?}",
             ty_errors_of(src)
         );
     }
@@ -3050,6 +3280,74 @@ fn f(b: B) -> number {
             errs.iter().any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
             "errs: {errs:?}"
         );
+    }
+
+    // ----- BUG-03: call arity -----
+
+    #[test]
+    fn too_few_arguments_is_flagged() {
+        // BUG-03: `add(1)` for a two-param `fn` must be rejected by Glyph's own
+        // checker (previously the `zip` truncated to the shorter side and only
+        // `tsc` caught it; `glyph run --no-check` printed `NaN`).
+        let src = r#"module x
+fn add(a: number, b: number) -> number {
+  return a + b
+}
+fn f() -> number {
+  return add(1)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::ArgumentCountMismatch { expected, found, .. }]
+                if *expected == 2 && *found == 1
+        ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn too_many_arguments_is_flagged() {
+        // BUG-03: extra trailing arguments must also be rejected.
+        let src = r#"module x
+fn add(a: number, b: number) -> number {
+  return a + b
+}
+fn f() -> number {
+  return add(1, 2, 99)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(matches!(
+            errs.as_slice(),
+            [TypeError::ArgumentCountMismatch { expected, found, .. }]
+                if *expected == 2 && *found == 3
+        ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn correct_arity_is_not_flagged() {
+        let src = r#"module x
+fn add(a: number, b: number) -> number {
+  return a + b
+}
+fn f() -> number {
+  return add(1, 2)
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn zero_arg_call_with_no_params_is_not_flagged() {
+        let src = r#"module x
+fn zero() -> number {
+  return 0
+}
+fn f() -> number {
+  return zero()
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
     }
 
     // ----- G15: mut on a const -----

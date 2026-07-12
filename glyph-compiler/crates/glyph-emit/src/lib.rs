@@ -1370,6 +1370,25 @@ impl<'a> Emitter<'a> {
         Some(variants.iter().map(|v| v.name.to_string()).collect())
     }
 
+    /// Variant names of `outer_variant`'s payload union in `scrutinee_ty`, when
+    /// that payload is itself a tagged union. Lets `degroup_nested_arms`
+    /// recognize a nested *nullary* variant (`Err(Empty)` where `Empty` is a
+    /// user variant): it parses as a `Pattern::Ident` and would otherwise be
+    /// mistaken for a payload binding, producing a duplicate `case "Err"` that
+    /// silently swallows every `Err`. Handles the prelude `Result`/`Option`
+    /// shape, whose payload is a type argument (`Result<T, E>`: `Err` -> `E`).
+    fn nested_payload_variants(&self, scrutinee_ty: &Ty, outer_variant: &str) -> Option<Vec<String>> {
+        let Ty::App { args, .. } = scrutinee_ty else {
+            return None;
+        };
+        let payload = match outer_variant {
+            "Ok" | "Some" => args.first()?,
+            "Err" => args.get(1)?,
+            _ => return None,
+        };
+        self.union_variant_names(payload)
+    }
+
     /// Lower a `match` over a tagged union to a `switch` on the `tag`
     /// discriminant. Handles constructor-pattern arms (`Ok(x)`,
     /// `NetworkError({ url })`, dotted `fs.ErrorKind.NotFound`), bare no-payload
@@ -1388,18 +1407,45 @@ impl<'a> Emitter<'a> {
     /// position of its first arm and collects later arms of the same outer
     /// variant. Order is otherwise preserved. Deeper nesting is handled when the
     /// synthesized inner `match` is itself emitted.
-    fn degroup_nested_arms(&mut self, arms: &[MatchArm]) -> Vec<MatchArm> {
+    fn degroup_nested_arms(&mut self, scrutinee: &Expr, arms: &[MatchArm]) -> Vec<MatchArm> {
+        // Owned so no borrow of `self.types` is held across the `&mut self`
+        // `fresh_temp` call below.
+        let scrutinee_ty = self.types.get(scrutinee.span()).clone();
         // Outer variant tag -> index in `out` of its synthesized grouping arm.
         let mut group_at: Vec<(String, usize)> = Vec::new();
         let mut out: Vec<MatchArm> = Vec::new();
         for arm in arms {
-            let (path, inner) = match &arm.pattern {
-                Pattern::Constructor { path, args, .. }
-                    if matches!(args.as_slice(), [a] if is_nested_variant_arg(a)) =>
+            let Pattern::Constructor { path, args, .. } = &arm.pattern else {
+                out.push(arm.clone());
+                continue;
+            };
+            let [arg] = args.as_slice() else {
+                out.push(arm.clone());
+                continue;
+            };
+            let outer = path.last().map(|s| s.as_ref()).unwrap_or("");
+            // The single arg is a nested variant when it is a constructor
+            // pattern, a bare prelude variant (`Ok(None)`), or a bare *user*
+            // nullary variant of the outer variant's payload union (`Err(Empty)`)
+            // — the last is what the plain `is_nested_variant_arg` check missed.
+            let inner: Pattern = match arg {
+                Pattern::Constructor { .. } => arg.clone(),
+                Pattern::Ident { name, span }
+                    if is_prelude_variant(name)
+                        || self
+                            .nested_payload_variants(&scrutinee_ty, outer)
+                            .is_some_and(|vs| vs.iter().any(|v| v == name.as_ref())) =>
                 {
-                    (path, &args[0])
+                    // Rewrite the binding-shaped ident into an explicit nullary
+                    // constructor so the inner switch dispatches on its tag
+                    // rather than binding (and swallowing) the whole payload.
+                    Pattern::Constructor {
+                        path: vec![Arc::clone(name)],
+                        args: vec![],
+                        span: *span,
+                    }
                 }
-                // Not a nested-constructor arm: keep it as is.
+                // Not a nested arm: keep it as is (a genuine payload binding).
                 _ => {
                     out.push(arm.clone());
                     continue;
@@ -1411,7 +1457,7 @@ impl<'a> Emitter<'a> {
                 .collect::<Vec<_>>()
                 .join(".");
             let inner_arm = MatchArm {
-                pattern: inner.clone(),
+                pattern: inner,
                 body: arm.body.clone(),
                 span: arm.span,
             };
@@ -1473,7 +1519,7 @@ impl<'a> Emitter<'a> {
         // `match`, then re-emit: the inner match lowers through the tail-match
         // path, and deeper nesting recurses through this same rewrite.
         if arms.iter().any(arm_has_nested_constructor) {
-            let rewritten = self.degroup_nested_arms(arms);
+            let rewritten = self.degroup_nested_arms(scrutinee, arms);
             return self.emit_match_dispatch(scrutinee, &rewritten, term);
         }
 
@@ -2588,12 +2634,17 @@ impl<'a> Emitter<'a> {
         j: &JsxElement,
         extra_prop: Option<(&str, String)>,
     ) -> Result<String, EmitError> {
-        let tag = match JsxKind::classify(&j.name) {
+        let kind = JsxKind::classify(&j.name);
+        let tag = match kind {
             JsxKind::Intrinsic => escape_double_quoted(&j.name),
             JsxKind::Component => j.name.to_string(),
             _ => unreachable!("directives route through emit_jsx"),
         };
-        let props = self.jsx_props(&j.attrs, extra_prop)?;
+        // Attribute-name remapping (`class`->`className`, `on_click`->`onClick`)
+        // applies only to intrinsic DOM elements. On a component, an attribute is
+        // a user-defined prop name passed through verbatim (e.g. `on_select`).
+        let is_intrinsic = kind == JsxKind::Intrinsic;
+        let props = self.jsx_props(&j.attrs, extra_prop, is_intrinsic)?;
         let children = self.jsx_children(&j.children)?;
         if children.is_empty() {
             Ok(format!("React.createElement({tag}, {props})"))
@@ -2613,6 +2664,7 @@ impl<'a> Emitter<'a> {
         &self,
         attrs: &[JsxAttr],
         extra_prop: Option<(&str, String)>,
+        is_intrinsic: bool,
     ) -> Result<String, EmitError> {
         let mut fields: Vec<String> = Vec::new();
         if let Some((k, v)) = extra_prop {
@@ -2620,12 +2672,16 @@ impl<'a> Emitter<'a> {
         }
         for a in attrs {
             match a {
-                JsxAttr::String { name, value, .. } => {
-                    fields.push(format!("{}: {}", jsx_prop_key(name), escape_double_quoted(value)))
-                }
-                JsxAttr::Expr { name, value, .. } => {
-                    fields.push(format!("{}: {}", jsx_prop_key(name), self.expr(value)?))
-                }
+                JsxAttr::String { name, value, .. } => fields.push(format!(
+                    "{}: {}",
+                    jsx_prop_key(&react_dom_prop(name, is_intrinsic)),
+                    escape_double_quoted(value)
+                )),
+                JsxAttr::Expr { name, value, .. } => fields.push(format!(
+                    "{}: {}",
+                    jsx_prop_key(&react_dom_prop(name, is_intrinsic)),
+                    self.expr(value)?
+                )),
                 JsxAttr::Positional { span, .. } => {
                     return Err(EmitError::Unsupported {
                         construct: "a positional attribute on a non-directive JSX element",
@@ -2941,6 +2997,39 @@ fn bin_op(op: BinOp) -> &'static str {
 /// JS identifier, quoted otherwise. Hyphenated names (`aria-label`, `data-testid`)
 /// are not identifiers, so they must be quoted for the emitted props object to
 /// be valid TypeScript.
+/// Map Glyph's documented snake_case JSX idiom to the React DOM prop names an
+/// intrinsic element needs. `class` becomes `className`; an `on_<event>` handler
+/// becomes the camelCased `on<Event>` (`on_click`->`onClick`,
+/// `on_input`->`onInput`, `on_change`->`onChange`). Hyphenated attributes such as
+/// `data-testid` and `aria-label` carry no `on_` prefix and are left verbatim, so
+/// React passes them through as raw DOM/ARIA attributes. On a component (not an
+/// intrinsic element), every attribute is a user-defined prop passed through
+/// unchanged, so no remapping happens there.
+fn react_dom_prop(name: &str, is_intrinsic: bool) -> String {
+    if !is_intrinsic {
+        return name.to_string();
+    }
+    if name == "class" {
+        return "className".to_string();
+    }
+    // `on_<event>` -> `on` + CamelCase, splitting the event on underscores so a
+    // multi-word event (`on_mouse_down` -> `onMouseDown`) capitalizes each part.
+    if let Some(event) = name.strip_prefix("on_") {
+        if !event.is_empty() {
+            let mut out = String::from("on");
+            for part in event.split('_') {
+                let mut chars = part.chars();
+                if let Some(first) = chars.next() {
+                    out.extend(first.to_uppercase());
+                    out.push_str(chars.as_str());
+                }
+            }
+            return out;
+        }
+    }
+    name.to_string()
+}
+
 fn jsx_prop_key(name: &str) -> String {
     let mut chars = name.chars();
     let is_ident = matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_' || c == '$')
@@ -3282,14 +3371,40 @@ fn first_positional(attrs: &[JsxAttr]) -> Option<&Ident> {
     })
 }
 
-/// Normalize JSX text: whitespace-only runs (the newlines and indentation
-/// between tags) become empty and are dropped by the caller; other text is
-/// trimmed with internal whitespace runs collapsed to a single space.
+/// Normalize JSX text following the JSX whitespace rules (Babel's
+/// `cleanJSXElementLiteralChild`): split into lines, strip leading whitespace
+/// on every line after the first and trailing whitespace on every line before
+/// the last, tabs become spaces, and non-empty lines join with a single space.
+/// A whitespace-only run that spans a newline (the indentation between tags)
+/// collapses to empty and is dropped by the caller. A single-line run keeps its
+/// significant leading/trailing space, so text abutting an interpolated `{expr}`
+/// child on the same line (`Hello {name} and welcome`) preserves the space
+/// separating them, matching Babel/tsc.
 fn normalize_jsx_text(content: &str) -> String {
-    if content.trim().is_empty() {
-        return String::new();
+    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
+    let lines: Vec<&str> = normalized.split('\n').collect();
+    let last_non_empty = lines
+        .iter()
+        .rposition(|l| l.chars().any(|c| c != ' ' && c != '\t'))
+        .unwrap_or(0);
+    let line_count = lines.len();
+    let mut out = String::new();
+    for (i, line) in lines.iter().enumerate() {
+        let mut trimmed = line.replace('\t', " ");
+        if i != 0 {
+            trimmed = trimmed.trim_start_matches(' ').to_string();
+        }
+        if i != line_count - 1 {
+            trimmed = trimmed.trim_end_matches(' ').to_string();
+        }
+        if !trimmed.is_empty() {
+            if i != last_non_empty {
+                trimmed.push(' ');
+            }
+            out.push_str(&trimmed);
+        }
     }
-    content.split_whitespace().collect::<Vec<_>>().join(" ")
+    out
 }
 
 /// The single element child of a child list, ignoring whitespace-only text;
@@ -3811,6 +3926,23 @@ mod tests {
     }
 
     #[test]
+    fn two_binding_for_over_a_let_bound_array_uses_numeric_entries() {
+        // A `let`-bound array literal is an inferred (unannotated) array. Its
+        // key/value pairs are still `.entries()` with a NUMERIC index, matching
+        // a directly-typed `Array<T>` param. Before array-literal type
+        // inference the binding typed `Unknown` and misclassified as a record
+        // (`Object.entries`, string keys), which miscompiled `match i == 0`.
+        let ts = emit(
+            "module x\nfn f() -> void {\n  let xs = [\"a\", \"b\"]\n  for i, item in xs {\n    log(i)\n  }\n  return void\n}\n",
+        );
+        assert!(
+            ts.contains("for (const [i, item] of xs.entries()) {"),
+            "{ts}"
+        );
+        assert!(!ts.contains("Object.entries"), "{ts}");
+    }
+
+    #[test]
     fn string_escapes_line_separators_and_controls() {
         // The lexer de-escapes `\u{2028}` to a raw LINE SEPARATOR, which is an
         // unterminated-string error in TS unless re-escaped.
@@ -3860,6 +3992,27 @@ mod tests {
             "{ts}"
         );
         assert!(ts.contains("let x = __r0.value;"), "{ts}");
+    }
+
+    #[test]
+    fn nested_nullary_error_variant_groups_under_one_case() {
+        // A Result error union with a nullary variant (`Empty`) beside a payload
+        // variant (`BadQty`) must lower to ONE `case "Err"` with an inner switch
+        // on the payload tag. The pre-fix miscompile emitted TWO `case "Err"`
+        // labels: the first bound the nullary name (`const Empty = __m.value`)
+        // and swallowed every `Err`, silently misdispatching or crashing.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok, Err }\ntype OrderErr = Empty | BadQty({ sku: string })\nfn describe(r: Result<number, OrderErr>) -> string {\n  return match r {\n    Ok(v) => \"ok\",\n    Err(Empty) => \"empty\",\n    Err(BadQty({ sku })) => sku,\n  }\n}\n",
+        );
+        assert_eq!(
+            ts.matches("case \"Err\"").count(),
+            1,
+            "expected a single `case \"Err\"` (not the duplicate-label miscompile):\n{ts}"
+        );
+        assert!(ts.contains("case \"Empty\""), "{ts}");
+        assert!(ts.contains("case \"BadQty\""), "{ts}");
+        // The nullary arm must NOT bind the payload as a catch-all.
+        assert!(!ts.contains("const Empty ="), "{ts}");
     }
 
     #[test]
@@ -4422,9 +4575,65 @@ mod tests {
             "{ts}"
         );
         assert!(
-            ts.contains("return React.createElement(\"div\", { class: \"g\" }, name);"),
+            ts.contains("return React.createElement(\"div\", { className: \"g\" }, name);"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn jsx_text_keeps_the_space_between_text_and_an_interpolated_expr() {
+        // JSX whitespace rules keep a single significant space between text and
+        // an `{expr}` child on the same line. Trimming both would render
+        // "HelloAlicewelcome"; the space before and after `{name}` must survive.
+        let ts = emit(
+            "module x\nimport react { Component }\ncomponent W(name: string) -> Component {\n  return <p>Hello {name} and welcome</p>\n}\n",
+        );
+        assert!(
+            ts.contains("React.createElement(\"p\", null, \"Hello \", name, \" and welcome\")"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn jsx_text_keeps_a_bare_dollar_sign_verbatim() {
+        // A literal `$` in JSX text (e.g. a price) is ordinary text: JSX uses
+        // single-brace `{expr}` interpolation, so `$` carries no meaning and
+        // must not be a lex error. It should survive into the emitted text run.
+        let ts = emit(
+            "module x\nimport react { Component }\ncomponent Price() -> Component {\n  return <div><span>Cost: $5 today</span></div>\n}\n",
+        );
+        assert!(
+            ts.contains("React.createElement(\"span\", null, \"Cost: $5 today\")"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn intrinsic_jsx_class_and_on_event_attrs_map_to_react_dom_props() {
+        // On an intrinsic DOM element, Glyph's snake_case idiom must lower to the
+        // React DOM prop names, or the handler never wires up and `class` is
+        // dropped by React. `class` -> `className`, `on_click` -> `onClick`,
+        // `on_input` -> `onInput`.
+        let ts = emit(
+            "module x\ncomponent B() -> Component {\n  return <button class=\"x\" on_click={fn() { void }}>hi</button>\n}\n",
+        );
+        assert!(ts.contains("className: \"x\""), "class not remapped: {ts}");
+        assert!(ts.contains("onClick: () =>"), "on_click not remapped: {ts}");
+        assert!(!ts.contains("class: "), "verbatim class leaked: {ts}");
+        assert!(!ts.contains("on_click:"), "verbatim on_click leaked: {ts}");
+    }
+
+    #[test]
+    fn component_attrs_are_not_remapped_to_react_dom_props() {
+        // On a component (not an intrinsic element), an attribute is a
+        // user-defined prop name and must pass through verbatim; remapping
+        // `on_select` -> `onSelect` would break the component that reads
+        // `props.on_select`.
+        let ts = emit(
+            "module x\ntype P = { on_select: fn() -> void }\ncomponent Row(props: P) -> Component { return <button>x</button> }\ncomponent List() -> Component {\n  return <Row on_select={fn() { void }} />\n}\n",
+        );
+        assert!(ts.contains("on_select: () =>"), "component prop remapped: {ts}");
+        assert!(!ts.contains("onSelect"), "component prop remapped: {ts}");
     }
 
     #[test]

@@ -47,6 +47,7 @@ On-disk file remains the human view (current Glyph syntax). The LSP exposes a vi
 `@generate by:` is documentation metadata, not a language primitive. Bodies are normal Glyph code, written by anyone (human or agent). A separate `glyph regen <fn>` CLI command regenerates a body given the spec block; the user runs it explicitly. Q11 (executable `@example` tests) + Q40 metadata together give 90% of the value with 10% of the commitment. Forward-compatible to language-level `@generate` if v2 needs it.
 **Composes with:** Q11 (testing model — `@example` and `@property` carry the contract; Q40's `glyph regen` reads them).
 **Reflected in:** `docs/roadmap/08-09-packaging.md`.
+**Advanced in 0.1.3:** the first type-driven generators ship as external `glyph gen` CLI commands (the same "generate real, committed code" stance): `glyph gen openapi` maps an OpenAPI/JSON Schema document to Glyph records, and `glyph gen dts` materializes a TypeScript `.d.ts`. Output is canonical, descriptor-bearing, and idempotent to regenerate. See `docs/guide/typed-apis.md`.
 
 ### What changed in the roadmap (sessions 1 + 2)
 
@@ -90,7 +91,7 @@ The remaining ~30 questions resolved in one sweep. Three required user sign-off 
 - **Q31 → `@doc @run` executable docs.** Becomes **D26**. Folded with Q11 — same machinery.
 - **Q33 → taint via stdlib newtype.** `Tainted<T>` / `Trusted<T>` with `sanitize()` discipline. No flow analysis in v1.
 - **Q34 → budgets via stdlib helper.** `withBudget({wallTime, llmTokens, usdCost}, () => {...})`. Language-level `@budget` is v2.
-- **Q41 → FFI minimal: TS wrappers only.** Non-TS interop via npm packages (`node-ffi`, `neon`, etc.). `@ffi target:` syntax deferred to v2.
+- **Q41 → FFI minimal: TS wrappers only.** Non-TS interop via npm packages (`node-ffi`, `neon`, etc.). `@ffi target:` syntax deferred to v2. *0.1.3 eased the ergonomics:* `glyph gen dts` materializes an external TypeScript `.d.ts` into a first-class, descriptor-bearing Glyph type, so a hand-written wrapper is no longer the only way to bring an external shape across the boundary.
 - **D12 re-litigated → template literals adopted.** Becomes **D22**. `"hello ${name}"` joins the spec.
 
 ### V2 — explicitly deferred

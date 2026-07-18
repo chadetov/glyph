@@ -40,8 +40,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.2</span>
+            <span class="rel-ver">0.1.3</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Generated types, not hand-written DTOs</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>glyph gen openapi &lt;spec&gt; --out &lt;dir&gt;</code> turns an OpenAPI 3, Swagger 2, or JSON Schema document into committed Glyph types &mdash; one real record per schema, each with a runtime descriptor, so bodies validate for free.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen dts &lt;file.d.ts&gt; --out &lt;dir&gt;</code> materializes a TypeScript declaration file into first-class Glyph types you own and can validate, instead of an ambient, unvalidated phantom.</li>
+              <li><span class="tag added">Added</span> A guide, <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/typed-apis.md">Typed APIs</a>, and a runnable <a href="https://github.com/chadetov/glyph/blob/main/examples/05_rest_api.glyph">REST API example</a>: declare a <code>type</code>, get a validated request boundary with no separate <code>zod</code> schema.</li>
+              <li><span class="tag note">Note</span> Generation is wire-faithful: constructs Glyph cannot represent exactly (a string enum, an undiscriminated <code>oneOf</code>) narrow with a printed note rather than emit a validator that would reject real payloads.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.2</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

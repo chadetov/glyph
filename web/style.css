@@ -301,4 +301,5 @@ footer a:hover { color: var(--text); }
 .changelist .tag.fixed { color: var(--green); background: rgba(74,222,128,0.1); }
 .changelist .tag.added { color: var(--cyan); background: rgba(125,211,252,0.1); }
 .changelist .tag.site { color: var(--indigo-text); background: rgba(99,102,241,0.12); }
+.changelist .tag.note { color: var(--muted); background: rgba(148,163,184,0.12); }
 .changelist code { font-family: var(--mono); font-size: 0.85em; color: var(--cyan); }

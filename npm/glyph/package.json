@@ -1,6 +1,6 @@
 {
   "name": "@glyphlang/glyph",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "The Glyph compiler: a statically typed language that transpiles to TypeScript, designed so AI agents can read, write, and modify code safely.",
   "bin": {
     "glyph": "bin/glyph.js"
@@ -13,11 +13,11 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@glyphlang/darwin-x64": "0.1.2",
-    "@glyphlang/darwin-arm64": "0.1.2",
-    "@glyphlang/linux-x64": "0.1.2",
-    "@glyphlang/linux-arm64": "0.1.2",
-    "@glyphlang/win32-x64": "0.1.2"
+    "@glyphlang/darwin-x64": "0.1.3",
+    "@glyphlang/darwin-arm64": "0.1.3",
+    "@glyphlang/linux-x64": "0.1.3",
+    "@glyphlang/linux-arm64": "0.1.3",
+    "@glyphlang/win32-x64": "0.1.3"
   },
   "repository": {
     "type": "git",

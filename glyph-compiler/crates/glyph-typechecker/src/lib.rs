@@ -254,6 +254,14 @@ pub enum TypeError {
     /// this.
     #[error("non-exhaustive match on `bool`: {missing} not covered")]
     NonExhaustiveBoolMatch { missing: String, span: Span },
+
+    /// A `component` declared with more than one parameter. A component lowers to
+    /// a React function component, which is called with a single props object, so
+    /// multiple positional parameters would silently bind the first to the whole
+    /// props object and leave the rest undefined (D19). A component takes a
+    /// single props record (`component C(props: P)`), or no parameters.
+    #[error("a component takes a single props record, not {count} parameters")]
+    ComponentMultipleParams { count: usize, span: Span },
 }
 
 impl TypeError {
@@ -273,6 +281,7 @@ impl TypeError {
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
+            TypeError::ComponentMultipleParams { span, .. } => *span,
         }
     }
 
@@ -294,6 +303,7 @@ impl TypeError {
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
             TypeError::MutateConst { .. } => "E0212",
             TypeError::ArgumentCountMismatch { .. } => "E0213",
+            TypeError::ComponentMultipleParams { .. } => "E0214",
         }
     }
 
@@ -341,6 +351,9 @@ impl TypeError {
             }
             TypeError::MutateConst { .. } => {
                 "`const` is immutable (D20). Use a function-level `let` if the binding must change."
+            }
+            TypeError::ComponentMultipleParams { .. } => {
+                "Take a single props record: `component C(props: P)` with `type P = { ... }`, then read `props.field`."
             }
         })
     }

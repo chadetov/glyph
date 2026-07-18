@@ -231,6 +231,16 @@ impl Assigner<'_> {
                 self.return_stack.pop();
             }
             Decl::Component(c) => {
+                // A component lowers to a React function component called
+                // props-first, so more than one positional parameter would bind
+                // the first to the whole props object and silently drop the rest.
+                // Reject it (D19: a single props record, or none).
+                if c.params.len() > 1 {
+                    self.errors.push(TypeError::ComponentMultipleParams {
+                        count: c.params.len(),
+                        span: c.params[1].span,
+                    });
+                }
                 let er = self.enclosing_return(c.return_ty.as_ref());
                 self.return_stack.push(er);
                 self.bind_param_tys(&c.params);
@@ -3303,6 +3313,28 @@ fn f() -> number {
             [TypeError::ArgumentCountMismatch { expected, found, .. }]
                 if *expected == 2 && *found == 1
         ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn component_with_multiple_params_is_rejected() {
+        // A component lowers to a props-first React call, so >1 positional
+        // parameter would silently bind the first to the whole props object.
+        let src = "module x\ncomponent M(a: string, b: number) -> Component { return <p>{a}</p> }\n";
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::ComponentMultipleParams { count: 2, .. }]),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn component_with_single_props_record_passes() {
+        let src = "module x\ntype P = { a: string }\ncomponent M(props: P) -> Component { return <p>{props.a}</p> }\n";
+        assert!(
+            ty_errors_of(src).is_empty(),
+            "single props-record component should pass; got: {:?}",
+            ty_errors_of(src)
+        );
     }
 
     #[test]

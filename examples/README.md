@@ -8,6 +8,7 @@ The four hard-case example programs locked in step 2 (see `archive/SESSION_1.md`
 | `02_async_errors.glyph` | `Result` types + `?` propagation + `par.all`/`par.all_ok` | Verifiability + abstraction |
 | `03_react_component.glyph` | JSX sub-grammar + compiler-owned directives (`<if>`, `<for>`, `<match>`, `<case>`, `<else>`) + restricted JSX expressions | Abstraction + greppability |
 | `04_cli_tool.glyph` | Program entry + exhaustive subcommand dispatch + file I/O + process exit codes + structured logging | Greppability + diff stability |
+| `05_rest_api.glyph` | `std/http` server + typed request/response DTOs + descriptor-validated request bodies (`T.parse`) + auth check, all errors-as-values | Verifiability + greppability |
 
 ## V1.0 deviations from the original step-2 corpus
 

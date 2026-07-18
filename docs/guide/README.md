@@ -10,6 +10,7 @@ Task-oriented documentation. For the design rationale read
 | [`getting-started.md`](getting-started.md) | You want to install Glyph and run your first program |
 | [`for-typescript-developers.md`](for-typescript-developers.md) | You know TypeScript and want the deltas and gotchas |
 | [`tutorial.md`](tutorial.md) | You want to build something real (a todo CLI) |
+| [`typed-apis.md`](typed-apis.md) | You are building an API and want validated request/response DTOs without a separate `zod` schema |
 | [`editor-setup.md`](editor-setup.md) | You want VS Code (or another editor) set up with diagnostics, hover, and format-on-save |
 | [`external-imports.md`](external-imports.md) | You want to import an npm package or Node builtin (and how `.types/` works) |
 | [`../reference/stdlib.md`](../reference/stdlib.md) | You want every std module and its exact signatures |

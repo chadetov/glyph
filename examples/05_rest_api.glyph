@@ -1,0 +1,67 @@
+module main
+
+// A small REST API: typed request/response DTOs, boundary validation, and an
+// auth check — all errors-as-values over std/http. Run it with
+// `glyph run examples/05_rest_api.glyph`, then curl http://localhost:8137.
+
+import std/http { Request, Response, serve, json, path }
+import std/result { Result, Ok, Err }
+
+
+// The DTOs. Declared once; their runtime descriptors validate the wire boundary
+// for free — this is Glyph's answer to hand-writing a zod schema per payload.
+type NewTask = {
+  title: string,
+  done: bool,
+}
+
+type Task = {
+  id: number,
+  title: string,
+  done: bool,
+}
+
+fn is_authed(req: Request) -> bool {
+  return req.headers["authorization"] == "Bearer secret"
+}
+
+async fn main(argv: Array<string>) -> number {
+  // The one legal home for shared mutable state: a `let` in `main`, captured by
+  // the handler closure below.
+  let tasks: Array<Task> = []
+  let next_id: number = 1
+
+  let handler = fn(req: Request) -> Result<Response, string> {
+    return match path(req) {
+      "/health" => Ok(json(200, { status: "ok" })),
+      "/tasks" => match is_authed(req) {
+        false => Ok(json(401, { error: "unauthorized" })),
+        true => match req.method {
+          "GET" => Ok(json(200, { tasks: tasks })),
+          "POST" => match NewTask.parse(req.body) {
+            // Validated into the typed DTO — no hand-written validator.
+            Ok(input) => {
+              let task = {
+                id: next_id,
+                title: input.title,
+                done: input.done,
+              }
+              mut tasks.push(task)
+              mut next_id = next_id + 1
+              Ok(json(201, { task: task }))
+            },
+            Err(issues) => Ok(json(400, { error: "invalid task" })),
+          },
+          else => Ok(json(405, { error: "method not allowed" })),
+        },
+      },
+      else => Ok(json(404, { error: "not found" })),
+    }
+  }
+
+  print("listening on http://localhost:8137")
+  // `serve` stays pending while listening, so `main` never returns and the
+  // process stays alive.
+  await serve(8137, handler)
+  return 0
+}

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can an agent — or I — find where anything is defined? — Glyph</title>
+    <meta name="description" content="Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition — not fifty near-misses." />
+    <link rel="canonical" href="https://glyphlang.io/answers/greppability/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/answers/verifiability/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/" class="active"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/react/"><span class="n">05</span> React</a>
+        <a href="/answers/why-typescript/"><span class="n">06</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">07</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">08</span> Editor &amp; debugging</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">03 &middot; Navigation by search</p>
+      <h1 class="q-title">Can an agent &mdash; or I &mdash; find where anything is defined?</h1>
+
+      <p class="short-answer">
+        Every construct has <strong>exactly one shape</strong> to search for. A plain
+        <code>grep</code> &mdash; the way agents actually navigate &mdash; lands on the one
+        definition, <strong>not fifty near-misses</strong>.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a
+          concept can be written five different ways, search misses cases &mdash; and a confident
+          agent that can't find the existing definition invents a second one. One shape per
+          concept means search is complete, so the agent edits what's there instead of
+          duplicating it.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>Glyph restricts mutation to two forms (<code>mut x = &hellip;</code> and <code>mut x.method(&hellip;)</code>), so <em>every</em> place state changes answers to a single search:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">grep -rn "mut " src/  — every mutation in the codebase</span>
+<pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
+<span class="dim">src/cart.glyph:22:</span>   mut total = total + price
+<span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Three mutations, all of them, in one search. In TypeScript a mutation can hide behind
+          <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a
+          spread &mdash; there's no single token to grep, so &ldquo;does anything change this?&rdquo;
+          has no reliable answer. The same one-shape rule makes whole categories auditable:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">one search = one complete answer</span>
+<pre><span class="cm"># every UI component</span>
+grep -rn <span class="add">"^component "</span> src/
+
+<span class="cm"># every function</span>
+grep -rn <span class="add">"^fn "</span> src/
+
+<span class="cm"># the entire resource-ownership surface</span>
+grep -rn <span class="add">"owned"</span> src/</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          There's no object-literal shorthand, no second way to declare a component, no
+          overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint &mdash;
+          and it's the point: it's what makes an agent's search, and yours, trustworthy.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>One canonical form per construct, mutation restricted to two greppable shapes (<code>mut</code>), and single-keyword audits (<code>fn</code>, <code>component</code>, <code>owned</code>, <code>type</code>).</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Layered on top</p>
+          <p>The language server adds workspace-wide go-to-definition and find-references &mdash; the same guarantee, now interactive in your editor.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/diff-stability/">
+          <span class="dir">← Previous</span>
+          <span class="t">Will agent edits stay clean, or reformat my whole file?</span>
+        </a>
+        <a href="/answers/imports/" class="nx cta">
+          <span class="dir">Next →</span>
+          <span class="t">Can I use my existing TypeScript, JavaScript, and npm libraries?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

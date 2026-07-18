@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>What's the editor, debugging, and error experience? — Glyph</title>
+    <meta name="description" content="A real language server and VS Code extension, plus Elm-quality error messages with stable codes and glyph --explain. You debug the clean emitted TypeScript today." />
+    <link rel="canonical" href="https://glyphlang.io/answers/tooling/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/answers/verifiability/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/react/"><span class="n">05</span> React</a>
+        <a href="/answers/why-typescript/"><span class="n">06</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">07</span> AI-authored</a>
+        <a href="/answers/tooling/" class="active"><span class="n">08</span> Editor &amp; debugging</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">08 &middot; Day-to-day</p>
+      <h1 class="q-title">What's the editor, debugging, and error experience?</h1>
+
+      <p class="short-answer">
+        A real <strong>language server and VS Code extension</strong> &mdash; highlighting,
+        diagnostics, hover types, go-to-definition, format-on-save &mdash; and error messages held
+        to an <strong>Elm-quality bar</strong>: a stable code, the fix, and the reason.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Editing a language your editor doesn't understand feels like a step backward, and early
+          on that was a fair complaint. It isn't anymore: the extension gives you the modern
+          niceties, and the errors are written to teach, not just to reject.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>Every diagnostic carries a stable code, a one-line fix, and often the design reason. <code>glyph --explain</code> prints the long form for any of them:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0203]</span> the `?` operator propagates error type `HttpError`,
+        but this function returns `Result&lt;_, string&gt;`
+   ╰─ <span class="cm">Help: map the error first, e.g. `.map_err(...)`,</span>
+      <span class="cm">so its `E` matches the function's.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          We tightened the messages exactly where agents and newcomers stumble most: writing
+          <code>if</code> now points you at <code>match</code> instead of a generic
+          &ldquo;unexpected token,&rdquo; and a wrong argument count, a non-exhaustive
+          <code>match</code>, or a mistyped variant each get their own coded, fixable error.
+        </p>
+        <p>
+          <strong>Debugging, honestly:</strong> you debug the emitted TypeScript with the tools you
+          already use &mdash; Node's inspector, browser devtools, your IDE's JS/TS debugger &mdash;
+          on clean, readable output that maps closely to your source. Source maps that step
+          straight back to <code>.glyph</code> line numbers are on the roadmap, not in v1 yet.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, and <code>glyph --explain</code>.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>Rename and find-references in the editor, and source maps that step from the emitted TS back to <code>.glyph</code>.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/ai-authoring/">
+          <span class="dir">← Previous</span>
+          <span class="t">Can an AI reliably write a language it's barely seen?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it →</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

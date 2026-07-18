@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Why TypeScript, and not Go or a new language? — Glyph</title>
+    <meta name="description" content="TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS." />
+    <link rel="canonical" href="https://glyphlang.io/answers/why-typescript/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/answers/verifiability/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/react/"><span class="n">05</span> React</a>
+        <a href="/answers/why-typescript/" class="active"><span class="n">06</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">07</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">08</span> Editor &amp; debugging</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">06 &middot; Positioning</p>
+      <h1 class="q-title">Why TypeScript, and not Go or a new language?</h1>
+
+      <p class="short-answer">
+        Because TypeScript is where agents already write the most code and where your ecosystem &mdash;
+        npm, React, Node &mdash; lives. Glyph is adoptable one file at a time <strong>only because
+        its target is TS</strong>.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          A new language stands or falls on how you get from zero to shipping. Compiling to
+          TypeScript means you never leave your codebase, your bundler, your test runner, or your
+          deploy. Glyph slots in beside the <code>.ts</code> files you already have &mdash; and
+          both directions import cleanly:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">the same project — .glyph and .ts, side by side</span>
+<pre><span class="cm">// cart.glyph — new, written in Glyph</span>
+import { formatPrice } from "./format.ts"
+
+<span class="cm">// checkout.ts — existing, untouched</span>
+import { total } from "./cart.glyph"</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          You cannot drop Go into a TypeScript codebase file by file &mdash; it's a different
+          runtime, a different module system, a different ecosystem. That single fact is why the
+          target is TS.
+        </p>
+        <p>
+          <strong>The fair point about Go:</strong> its small, stable keyword surface gives an
+          agent fewer ways to go wrong. We agree &mdash; it's exactly why Glyph keeps a deliberately
+          small core with one way to do each thing. Go is included in our density
+          <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a>
+          for a straight comparison.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Clean TypeScript output, bidirectional imports with your existing <code>.ts</code>, and a small core that runs anywhere Node or a browser bundle does.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Being measured</p>
+          <p>The cross-language benchmark (Glyph, TS, Go, Python, Rust) grows as the corpus does, so the &ldquo;small surface&rdquo; claim stays a number, not an assertion.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/react/">
+          <span class="dir">← Previous</span>
+          <span class="t">Does it work with React — components, hooks, and Context?</span>
+        </a>
+        <a href="/answers/ai-authoring/" class="nx cta">
+          <span class="dir">Next →</span>
+          <span class="t">Can an AI reliably write a language it's barely seen?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

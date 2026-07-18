@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Does it work with React — components, hooks, and Context? — Glyph</title>
+    <meta name="description" content="React is built in: component compiles to a function component, JSX lowers to createElement, custom hooks are just functions, and reducer state is safer than TypeScript." />
+    <link rel="canonical" href="https://glyphlang.io/answers/react/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/answers/verifiability/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/react/" class="active"><span class="n">05</span> React</a>
+        <a href="/answers/why-typescript/"><span class="n">06</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">07</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">08</span> Editor &amp; debugging</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">05 &middot; Frontend</p>
+      <h1 class="q-title">Does it work with React &mdash; components, hooks, and Context?</h1>
+
+      <p class="short-answer">
+        React is <strong>built in</strong>. A <code>component</code> compiles to a React function
+        component, JSX lowers to <code>createElement</code>, custom hooks are just functions &mdash;
+        and complex state is <strong>safer than plain TypeScript</strong>.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          A lot of the code agents write is React. Glyph treats it as a first-class target, not a
+          bolt-on: <code>component</code> is its own keyword (so <code>grep "^component "</code>
+          audits your whole UI), and hooks work exactly as you'd expect because they're ordinary
+          function calls.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>A custom hook is a function that calls hooks. Reducer state gets something React alone can't give you &mdash; compile-time exhaustiveness on every action:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">counter.glyph — a custom hook + a reducer that can't miss a case</span>
+<pre>type Action = Inc | Dec | Reset
+
+fn reducer(n: number, a: Action) -&gt; number {
+  return match a {
+    Inc =&gt; n + 1,
+    Dec =&gt; n - 1,
+    Reset =&gt; 0,
+<span class="add">    // add an Action variant ⇒ this match fails to compile</span>
+  }
+}
+
+fn use_counter() -&gt; StateHandle&lt;number&gt; {
+  return use_reducer(reducer, 0)
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Add a <code>SetTo(number)</code> action and every reducer that doesn't handle it stops
+          compiling &mdash; the bug a plain TypeScript <code>switch</code> would let ship. React
+          <strong>Context</strong> works today through <code>createContext</code> /
+          <code>useContext</code>; member-expression element names
+          (<code>&lt;ThemeContext.Provider&gt;</code>) are landing so the provider needs no workaround.
+        </p>
+        <p>
+          <strong>The honest edge:</strong> a component takes a single props record (not multiple
+          positional params), and some React-<em>library</em> patterns &mdash; prop spreading, zod's
+          value-derived types &mdash; need a thin adapter today. See
+          <a href="/answers/imports/">using your libraries</a> and the
+          <a href="/hardening/">hardening page</a> for exactly where that boundary is.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Components, JSX, built-in and custom hooks, <code>useReducer</code> with exhaustive tagged-union actions, and Context via <code>createContext</code>/<code>useContext</code>.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>Member-expression JSX (<code>&lt;Ctx.Provider&gt;</code>) and fragments, and smoother interop for prop-spread-heavy component libraries.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/imports/">
+          <span class="dir">← Previous</span>
+          <span class="t">Can I use my existing TypeScript, JavaScript, and npm libraries?</span>
+        </a>
+        <a href="/answers/why-typescript/" class="nx cta">
+          <span class="dir">Next →</span>
+          <span class="t">Why TypeScript, and not Go or a new language?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>What stops an agent from silently breaking my code? — Glyph</title>
+    <meta name="description" content="In Glyph, the changes that silently compile-and-break in TypeScript — a missing case, an unhandled error, a renamed field — become compile errors the agent must fix first." />
+    <link rel="canonical" href="https://glyphlang.io/answers/verifiability/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/answers/verifiability/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/" class="active"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/react/"><span class="n">05</span> React</a>
+        <a href="/answers/why-typescript/"><span class="n">06</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">07</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">08</span> Editor &amp; debugging</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">01 &middot; The core promise</p>
+      <h1 class="q-title">What stops an agent from silently breaking my code?</h1>
+
+      <p class="short-answer">
+        A whole class of change that <strong>quietly compiles</strong> in TypeScript &mdash; a
+        missing case, an unhandled error, a renamed field &mdash; becomes a
+        <strong>compile error the agent has to fix before it can ship</strong>.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Agents don't usually break code loudly. They break it <strong>confidently</strong>:
+          they add a state, drop a branch, or rename a field, everything still type-checks,
+          and the bug surfaces in production. The expensive failures are the ones that
+          <em>compiled and were wrong</em>.
+        </p>
+        <p>
+          Glyph closes that gap by turning &ldquo;you probably handled this&rdquo; into
+          &ldquo;the compiler proved you did.&rdquo; Tagged unions are <strong>sealed</strong>,
+          so <code>match</code> must cover every case. Errors are <strong>values</strong> you
+          have to unwrap, not exceptions that vanish. And every type carries a runtime
+          descriptor, so data crossing a boundary is checked against its shape.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>Add a state to a union, and every place that handled the old set stops compiling &mdash; pointing at the exact spot to update:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph — one new variant, and the compiler finds every gap</span>
+<pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Loading =&gt; "…",
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+<span class="add">    // no arm for Cancelled ⇒ this match no longer compiles</span>
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Cancelled`</span>
+   ╰─ add an arm for `Cancelled`, or an `else` arm to catch the rest</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The equivalent TypeScript <code>switch</code> compiles clean and returns
+          <code>undefined</code> at runtime. Same for errors: a function that returns
+          <code>Result&lt;T, E&gt;</code> can't have its error ignored &mdash; you either handle it
+          with <code>match</code> or propagate it with <code>?</code>, and the compiler checks
+          the error type lines up. A dropped error is a build failure, not a 2 a.m. page.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Exhaustive <code>match</code> over sealed unions, <code>Result</code> + the <code>?</code> operator with error-type checking, runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>Deeper flow-narrowing and richer validation for generic and imported types are on the roadmap &mdash; extending the same guarantee to more of the type system.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <div class="spacer"></div>
+        <a href="/answers/diff-stability/" class="nx cta">
+          <span class="dir">Next →</span>
+          <span class="t">Will agent edits stay clean, or reformat my whole file?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

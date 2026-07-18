@@ -24,7 +24,7 @@ use glyph_ast::{
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
 use crate::lower::Lowerer;
-use crate::ty::{ty_display, FnParam, Primitive, RecordField, Ty, UnionVariant};
+use crate::ty::{ty_display, FnParam, Primitive, RecordField, SymbolRef, Ty, UnionVariant};
 use crate::type_map::TypeMap;
 use crate::TypeError;
 
@@ -382,7 +382,11 @@ impl Assigner<'_> {
                             Ty::Unknown
                         }
                     },
-                    None => Ty::Unknown,
+                    // Not a decidable record. Try the stdlib namespace path
+                    // (`http.get`, `fs.read_text`, ...) so a hand-written
+                    // TS-wrapper function still gets a Glyph-level signature;
+                    // otherwise stay `Unknown` (permissive).
+                    None => self.stdlib_member_ty(object, field).unwrap_or(Ty::Unknown),
                 };
                 self.tm.insert(*span, member_ty);
             }
@@ -558,6 +562,16 @@ impl Assigner<'_> {
                 self.walk_expr(value);
             }
         }
+        // A JSX `<match value={s}>` directive is a conditional over a tagged
+        // union exactly like a value-level `match`: each `<case Variant>` covers
+        // one variant, and the emitter lowers the whole thing to a `switch` with
+        // a `default: throw new Error("non-exhaustive match")`. Run the same
+        // exhaustiveness check here so a missing `<case>` is a compile-time
+        // E0200 rather than a runtime throw. Walk the attrs above FIRST so the
+        // scrutinee's type is recorded before we look it up.
+        if j.name.as_ref() == "match" {
+            self.check_jsx_match_exhaustiveness(j);
+        }
         for child in &j.children {
             match child {
                 JsxChild::Element(e) => self.walk_jsx(e),
@@ -565,6 +579,57 @@ impl Assigner<'_> {
                 JsxChild::Text { .. } => {}
             }
         }
+    }
+
+    /// Exhaustiveness for a `<match value={s}>` JSX directive. Mirrors the
+    /// value-level `Expr::Match` path: resolve the scrutinee (`value={..}`) to a
+    /// tagged union and require the `<case Variant>` children to cover every
+    /// variant. Each `<case>` names its variant as a positional attribute and
+    /// covers that variant wholesale (a `bind={x}` binds the whole payload), so
+    /// synthetic `Pattern::Ident` patterns feed the shared exhaustiveness core.
+    fn check_jsx_match_exhaustiveness(&mut self, j: &JsxElement) {
+        let Some(value) = j.attrs.iter().find_map(|a| match a {
+            JsxAttr::Expr { name, value, .. } if name.as_ref() == "value" => Some(value),
+            _ => None,
+        }) else {
+            return;
+        };
+        let mut scrutinee_ty = self.tm.get(value.span()).clone();
+
+        // The variant named by each `<case Variant ...>` child's first
+        // positional attribute.
+        let case_variants: Vec<Ident> = j
+            .children
+            .iter()
+            .filter_map(|child| match child {
+                JsxChild::Element(el) if el.name.as_ref() == "case" => {
+                    el.attrs.iter().find_map(|a| match a {
+                        JsxAttr::Positional { name, .. } => Some(name.clone()),
+                        _ => None,
+                    })
+                }
+                _ => None,
+            })
+            .collect();
+
+        // When the scrutinee's static type is undecidable (an ambient/external
+        // value whose Glyph type stays `Unknown`), recover a module-local union
+        // from a `<case>` variant name, matching `Expr::Match`'s arm recovery.
+        if matches!(scrutinee_ty, Ty::Unknown) {
+            for v in &case_variants {
+                if let Some(recovered) = self.union_ty_of_variant(v) {
+                    scrutinee_ty = recovered;
+                    break;
+                }
+            }
+        }
+
+        let patterns: Vec<Pattern> = case_variants
+            .into_iter()
+            .map(|name| Pattern::Ident { name, span: j.span })
+            .collect();
+        let pattern_refs: Vec<&Pattern> = patterns.iter().collect();
+        self.check_patterns_exhaustive(&scrutinee_ty, &pattern_refs, j.span);
     }
 
     // ----- ident reference typing -----
@@ -637,6 +702,110 @@ impl Assigner<'_> {
             // instantiation — week-3 bidirectional checker work.
             ResolvedRef::Prelude(_) => Ty::Unknown,
         }
+    }
+
+    // ----- stdlib TS-wrapper signatures -----
+
+    /// Synthesize the type of a member access `ns.field` when `ns` is a
+    /// namespace import of a stdlib module (`import std/http`, `import std/fs
+    /// as f`) and `field` is one of the hand-written TS-wrapper functions the
+    /// Glyph runtime ships.
+    ///
+    /// v1 models exactly the Result-returning stdlib functions whose error type
+    /// is a concrete, named type (`HttpError`, `FsError`). Modeling them gives
+    /// those functions a decidable `Result<T, E>` at the `?` operator, so the
+    /// exact-error-type rule (E0203) fires for `http.get(url)?` at parity with
+    /// a local record/union error type, instead of falling through to the `tsc`
+    /// backstop. The runtime has no `.d.ts` the checker parses, so this small
+    /// table stands in until the stdlib is modeled from real sources (Q21/Q40);
+    /// every unmodeled member stays `Unknown` (permissive), exactly as before.
+    fn stdlib_member_ty(&self, object: &Expr, field: &Ident) -> Option<Ty> {
+        let Expr::Ident { span, .. } = object else {
+            return None;
+        };
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(*span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let path = match &sym.kind {
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => path,
+            _ => return None,
+        };
+        let key = path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        self.stdlib_fn_ty(&key, field.as_ref())
+    }
+
+    /// The signature of a modeled stdlib TS-wrapper function, or `None` for any
+    /// function not in the v1 table. Parameter types are left `Unknown` (only
+    /// the arity is modeled) so this never introduces a new argument-type
+    /// diagnostic; the value it adds is the decidable `Result<T, E>` return.
+    fn stdlib_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        // (arity, ok, err, is_async)
+        let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
+            ("std/http", "get") => (
+                1,
+                stdlib_named("http", "Response"),
+                stdlib_named("http", "HttpError"),
+                true,
+            ),
+            ("std/http", "post") => (
+                2,
+                stdlib_named("http", "Response"),
+                stdlib_named("http", "HttpError"),
+                true,
+            ),
+            ("std/fs", "read_text") => (
+                1,
+                Ty::Prim(Primitive::String),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            ("std/fs", "write_text") => (
+                2,
+                Ty::Prim(Primitive::Void),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            ("std/fs", "remove") => (
+                1,
+                Ty::Prim(Primitive::Void),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            _ => return None,
+        };
+        let return_ty = self.stdlib_result_ty(ok, err)?;
+        let params = (0..arity)
+            .map(|_| FnParam {
+                name: None,
+                owned: false,
+                ty: Ty::Unknown,
+            })
+            .collect();
+        Some(Ty::Fn {
+            params,
+            return_ty: Arc::new(return_ty),
+            is_async,
+        })
+    }
+
+    /// Build `Result<ok, err>` as a prelude `App` the `?` checker recognizes
+    /// (`prelude_app` keys off the prelude `Result` symbol id). Returns `None`
+    /// only if the prelude somehow lacks `Result`, which never happens.
+    fn stdlib_result_ty(&self, ok: Ty, err: Ty) -> Option<Ty> {
+        let result_id = self.lowerer.prelude.lookup("Result")?;
+        Some(Ty::App {
+            base: Arc::new(Ty::Named {
+                symbol: SymbolRef(result_id.0),
+                path: vec![Ident::from("Result")],
+            }),
+            args: vec![ok, err],
+        })
     }
 
     // ----- day-15: `?` operator typing rule -----
@@ -834,6 +1003,11 @@ impl Assigner<'_> {
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
     ) {
+        // Reachability runs first, independent of the scrutinee's kind: an arm
+        // after an irrefutable arm is dead code under first-match-wins (D9),
+        // and the emitter's `default`-based lowering of a leading binding
+        // catch-all would otherwise let a shadowed later `case` win at runtime.
+        self.check_arm_reachability(scrutinee_ty, arms);
         if self.is_prelude_array(scrutinee_ty) {
             self.check_array_exhaustiveness(arms, match_span);
             return;
@@ -860,6 +1034,64 @@ impl Assigner<'_> {
         }
         let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
         self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+    }
+
+    /// Flag every arm that follows an irrefutable arm as unreachable. Glyph's
+    /// `match` is first-match-wins (D9): once an arm matches every value
+    /// (`_`, `else`, or a bare-identifier binding that is not a variant of the
+    /// scrutinee's union), no later arm can ever run, so the later arm is dead
+    /// code. This is also a soundness fix — the emitter lowers a leading
+    /// binding catch-all to a `switch` `default`, and a JS `switch` prefers a
+    /// matching `case` over `default` regardless of source order, silently
+    /// reordering the arms. Rejecting the dead arm removes that hazard.
+    ///
+    /// Whether a bare identifier is a variant (refutable) or a binding
+    /// (irrefutable) depends on the scrutinee's type; when it resolves to a
+    /// tagged union its variant set decides, otherwise every ident is a
+    /// binding. Constructor, literal, array, and `is`-type arms are always
+    /// refutable and never mark a catch-all. Object patterns are left out of
+    /// the irrefutable set here — they are not the reported hazard and skipping
+    /// them keeps the check free of false positives.
+    fn check_arm_reachability(&mut self, scrutinee_ty: &Ty, arms: &[MatchArm]) {
+        // Resolve the scrutinee's variant set, if it has one. `required_variants`
+        // covers a `Ty::Named` user union and the prelude `Result`/`Option`
+        // (their `Ty::App` form), but returns `None` for a *generic user* union
+        // (`Tree<T>` arrives as `Ty::App` over a user `Ty::Named`) — unwrap that
+        // base so a nullary variant like `Leaf` is not misread as a binding.
+        let variants: Vec<Ident> = self
+            .required_variants(scrutinee_ty)
+            .or_else(|| match scrutinee_ty {
+                Ty::App { base, .. } => self.named_union_variants(base),
+                _ => None,
+            })
+            .map(|(_, vs)| vs)
+            .unwrap_or_default();
+        // Prelude variant names are always refutable, even when the scrutinee
+        // type is undecidable (e.g. `match array.find(..) { None => .., Some(_)
+        // => .. }`, whose `Option` return type the checker cannot see through a
+        // `.d.ts` method). The emitter classifies these the same way
+        // (`is_prelude_variant`), so gating on the same set keeps the two in
+        // step — no arm the emitter would lower to a `case` is called a binding.
+        const PRELUDE_VARIANTS: [&str; 4] = ["Ok", "Err", "Some", "None"];
+        let is_irrefutable = |p: &Pattern| match p {
+            Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
+            Pattern::Ident { name, .. } => {
+                !variants.iter().any(|v| v == name)
+                    && !PRELUDE_VARIANTS.contains(&name.as_ref())
+            }
+            _ => false,
+        };
+        let mut seen_irrefutable = false;
+        for arm in arms {
+            if seen_irrefutable {
+                self.errors
+                    .push(TypeError::UnreachableMatchArm { span: arm.span });
+                continue;
+            }
+            if is_irrefutable(&arm.pattern) {
+                seen_irrefutable = true;
+            }
+        }
     }
 
     /// Exhaustiveness for a `match` over a `bool` scrutinee: both `true` and
@@ -1447,6 +1679,20 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
 /// `App` over an unresolved (`Unknown`) base. The `?` operand and
 /// error-type checks gate on this so neither fires on a type it cannot
 /// decide.
+/// A synthetic named type for a stdlib type (`http.Response`, `fs.FsError`).
+/// The runtime ships these as TypeScript types with no `.d.ts` the checker
+/// parses, so they have no resolver `SymbolId`; a sentinel `u32::MAX` symbol
+/// keeps them out of the dense id space, and the lexical `path` both renders
+/// the diagnostic (`ty_display` joins it with `.`) and distinguishes one
+/// stdlib type from another under `Ty` equality (two names with the same
+/// sentinel symbol are unequal when their paths differ).
+fn stdlib_named(module: &str, name: &str) -> Ty {
+    Ty::Named {
+        symbol: SymbolRef(u32::MAX),
+        path: vec![Ident::from(module), Ident::from(name)],
+    }
+}
+
 fn ty_is_decidable(ty: &Ty) -> bool {
     match ty {
         Ty::Unknown => false,
@@ -1846,6 +2092,48 @@ fn run(r: Result<Option<number>, string>) -> number {
     }
 
     #[test]
+    fn jsx_match_missing_variant_is_flagged() {
+        // A JSX `<match value={s}>` directive runs the same tagged-union
+        // exhaustiveness as a value-level `match`: a missing `<case>` is E0200,
+        // not a silently-emitted `default: throw`.
+        let src = r#"module x
+type Status = | Idle | Loading | Done
+component View(s: Status) -> Component {
+  return <match value={s}>
+    <case Idle><span>idle</span></case>
+    <case Loading><span>loading</span></case>
+  </match>
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                assert_eq!(type_name, "Status");
+                assert!(missing.contains("Done"), "missing: {missing}");
+            }
+            other => panic!("expected NonExhaustiveMatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn jsx_match_all_variants_covered_passes() {
+        // The complement: every variant has a `<case>` (a `bind={x}` binds the
+        // whole payload and covers the variant), so no exhaustiveness error.
+        let src = r#"module x
+type Status = | Idle | Loading | Done(number)
+component View(s: Status) -> Component {
+  return <match value={s}>
+    <case Idle><span>idle</span></case>
+    <case Loading><span>loading</span></case>
+    <case Done bind={n}><span>{n}</span></case>
+  </match>
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
     fn undecidable_scrutinee_recovers_union_from_arms_and_flags_missing() {
         // BUG-01: a `match` whose scrutinee has an undecidable static type (a
         // member access through a value the checker cannot resolve — here
@@ -2140,18 +2428,15 @@ fn show(f: Feed) -> number {
     }
 
     #[test]
-    fn typo_ident_is_treated_as_binding_and_passes_exhaustiveness() {
-        // Day-14 review finding #2: a typo'd bare variant name
-        // (`Loadign` vs `Loading`) is treated as a binding, which acts
-        // as a catch-all. The typechecker silently accepts the match.
-        // This test LOCKS that behavior so a future change to the
-        // ident-vs-variant disambiguation rule is deliberate (it will
-        // need to update this test along with the trade-off doc).
-        //
-        // Fixing this properly requires scrutinee-aware resolver
-        // disambiguation — when an ident's name lexically matches a
-        // hoisted Variant of the scrutinee's type, the resolver could
-        // warn or error. Out of day-14 scope.
+    fn typo_constructor_in_arm_is_rejected_not_bound_as_catchall() {
+        // A typo'd bare variant name (`Loadign` vs `Loading`) in a match arm
+        // used to be silently treated as a binding, acting as an irrefutable
+        // catch-all: it masked non-exhaustiveness and misrouted variants at
+        // runtime. A constructor-shaped (PascalCase) arm head that names no
+        // known variant now resolves as a name reference and is rejected by
+        // the resolver with E0103, mirroring the JSX `<case Variant>` path.
+        // (The disambiguation lives in the resolver, so this asserts against
+        // its errors rather than the exhaustiveness checker.)
         let src = r#"module x
 type Feed = | Loading | Loaded | Failed
 fn show(f: Feed) -> number {
@@ -2162,12 +2447,14 @@ fn show(f: Feed) -> number {
   }
 }
 "#;
-        let errs = ty_errors_of(src);
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (_resolved, errs) = resolve_module(&m, syms, &prelude);
         assert!(
-            errs.is_empty(),
-            "current behavior: typo'd ident binds and acts as catch-all; \
-             see the function-level docstring on `check_match_exhaustiveness`. \
-             got: {errs:?}"
+            errs.iter()
+                .any(|e| format!("{e:?}").contains("Loadign")),
+            "typo'd constructor must raise an unresolved-name error; got: {errs:?}"
         );
     }
 
@@ -2542,6 +2829,55 @@ fn outer() -> Result<string, E> {
         assert!(
             errs.is_empty(),
             "matching `?` error types must pass; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn question_on_stdlib_result_enforces_error_type() {
+        // A stdlib TS-wrapper (`http.get -> Result<Response, HttpError>`) now
+        // carries a Glyph-level signature, so its `E` (`HttpError`) is decidable
+        // at `?`. Propagating it into a function that returns `Result<_, string>`
+        // is an exact-error-type mismatch (E0203) at parity with a local error
+        // type — previously it fell through to the `tsc` backstop with zero
+        // diagnostics under `--no-check`.
+        let src = r#"module x
+import std/http
+import std/result { Ok }
+async fn f(url: string) -> Result<http.Response, string> {
+  let r = await http.get(url)?
+  return Ok(r)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        assert!(
+            matches!(&errs[0], TypeError::QuestionErrorTypeMismatch { expected, found, .. }
+                if expected == "string" && found == "http.HttpError"),
+            "expected QuestionErrorTypeMismatch string vs http.HttpError; got {:?}",
+            errs[0]
+        );
+    }
+
+    #[test]
+    fn question_on_map_erred_stdlib_result_is_permissive() {
+        // The idiomatic conversion (`http.get(url).map_err(...)?`) makes the `?`
+        // operand a method-call result typed `Unknown`, so the error-type rule
+        // stays permissive and does not fire — mirrors `examples/02`. Guards
+        // against the stdlib signatures introducing a false positive on the
+        // correct idiom.
+        let src = r#"module x
+import std/http
+import std/result { Ok }
+type FeedError = | NetworkError
+async fn f(url: string) -> Result<http.Response, FeedError> {
+  let r = await http.get(url).map_err(fn(e) { NetworkError })?
+  return Ok(r)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "`?` on a map_err'd stdlib Result must not be flagged; got: {errs:?}"
         );
     }
 
@@ -3410,5 +3746,80 @@ fn f() -> number {
 }
 "#;
         assert!(ty_errors_of(src).is_empty());
+    }
+
+    // ----- arm reachability: an irrefutable arm shadows every later arm -----
+
+    #[test]
+    fn binding_catch_all_before_a_variant_arm_is_unreachable() {
+        // A leading binding catch-all (`other`) matches every value, so the
+        // later `Idle` arm is dead code. Without this check the emitter lowers
+        // `other` to a `switch` `default` and the `Idle` `case` silently wins
+        // at runtime (first-match-wins violation).
+        let src = r#"module x
+type Status = | Idle | Loading | Done
+fn label(s: Status) -> string {
+  return match s {
+    other => "other",
+    Idle => "idle",
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::UnreachableMatchArm { .. }]),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn wildcard_before_a_variant_arm_is_unreachable() {
+        let src = r#"module x
+type Status = | Idle | Loading | Done
+fn label(s: Status) -> string {
+  return match s {
+    _ => "other",
+    Idle => "idle",
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            matches!(errs.as_slice(), [TypeError::UnreachableMatchArm { .. }]),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn binding_catch_all_as_the_last_arm_is_fine() {
+        // The catch-all in final position is the normal, legal shape and must
+        // not be flagged.
+        let src = r#"module x
+type Status = | Idle | Loading | Done
+fn label(s: Status) -> string {
+  return match s {
+    Idle => "idle",
+    other => "other",
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn a_variant_arm_before_another_variant_arm_is_reachable() {
+        // Two specific variant arms don't shadow each other; only the trailing
+        // catch-all absorbs the rest.
+        let src = r#"module x
+type Status = | Idle | Loading | Done
+fn label(s: Status) -> string {
+  return match s {
+    Idle => "idle",
+    Loading => "loading",
+    Done => "done",
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
     }
 }

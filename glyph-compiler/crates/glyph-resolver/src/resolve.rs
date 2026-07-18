@@ -198,6 +198,19 @@ impl JsxKind {
     }
 }
 
+/// Whether a bare ident used in constructor position (a `Pattern::Ident`
+/// arm head) is constructor-shaped: PascalCase names (`Idle`, `Ok`, `None`)
+/// denote a union variant and must resolve as a reference; lowercase or
+/// underscore-led names (`x`, `_rest`) are fresh bindings. Same capitalization
+/// rule the JSX classifier uses to tell a `<Component>` from an intrinsic tag.
+fn is_constructor_shaped(name: &Ident) -> bool {
+    name.as_ref()
+        .chars()
+        .next()
+        .map(|c| c.is_ascii_uppercase())
+        .unwrap_or(false)
+}
+
 fn find_expr_attr<'a>(attrs: &'a [JsxAttr], name: &str) -> Option<&'a Expr> {
     attrs.iter().find_map(|a| match a {
         JsxAttr::Expr { name: n, value, .. } if n.as_ref() == name => Some(value),
@@ -575,9 +588,20 @@ impl Resolver<'_> {
         match p {
             Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Literal { .. } => {}
             Pattern::Ident { name, span } => {
-                // Identifier patterns introduce a new binding into the
-                // arm's scope.
-                self.bind_local(name.clone(), *span);
+                // A single-segment ident pattern is ambiguous by shape: a
+                // lowercase name (`x`, `_rest`) is a fresh binding; an
+                // uppercase name (`Idle`, `Ok`, `None`) is a no-payload
+                // constructor of the scrutinee's union. Mirror the JSX
+                // `<case Variant>` path: resolve a constructor-shaped name as
+                // a reference so a misspelled or unknown variant (`Loded`)
+                // raises E0103 instead of being silently bound as an
+                // irrefutable catch-all (which masks non-exhaustiveness and
+                // misroutes variants at runtime).
+                if is_constructor_shaped(name) {
+                    self.resolve_name_ref(name, *span);
+                } else {
+                    self.bind_local(name.clone(), *span);
+                }
             }
             Pattern::Constructor { path, args, span } => {
                 // Constructor path: resolve the first segment as a name
@@ -769,6 +793,49 @@ fn handle(r: number) -> number {
             !errs.iter()
                 .any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "v")),
             "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn known_variant_arm_head_resolves_not_binds() {
+        // A correctly-spelled no-payload variant (`Idle`, `Done`) in an arm
+        // head resolves against the hoisted Variant symbols; no unresolved
+        // error, and a lowercase catch-all binding still works.
+        let src = r#"module x
+type Status = | Idle | Done
+fn label(s: Status) -> string {
+  return match s {
+    Idle => "idle",
+    other => "other",
+  }
+}
+"#;
+        let (_, errs) = resolve(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn typo_constructor_arm_head_is_unresolved() {
+        // A PascalCase arm head that names no known variant (`Loded` vs
+        // `Loaded`) is constructor-shaped, so it must resolve as a name
+        // reference and fail with an unresolved-name error rather than being
+        // silently bound as an irrefutable catch-all. Mirrors the JSX
+        // `<case Variant>` path; keeps the value-match path from being
+        // strictly weaker than the JSX one.
+        let src = r#"module x
+type Status = | Idle | Loaded | Done
+fn label(s: Status) -> string {
+  return match s {
+    Idle => "idle",
+    Loded => "loaded",
+  }
+}
+"#;
+        let (_, errs) = resolve(src);
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "Loded")),
+            "expected unresolved `Loded`: {errs:?}"
         );
     }
 

@@ -269,6 +269,19 @@ pub enum TypeError {
     /// the handle (move it into an `owned` parameter) instead of rebinding it.
     #[error("cannot alias the `owned` handle `{name}`")]
     OwnedAliased { name: String, span: Span },
+
+    /// A `match` arm that can never be reached because an earlier arm is
+    /// irrefutable — a catch-all (`_`, `else`) or a binding (a bare
+    /// identifier that is not a variant of the scrutinee's type) matches
+    /// every value, so no later arm ever runs. Glyph's `match` is
+    /// first-match-wins, so an arm after a total pattern is dead code (D9).
+    /// This is also a soundness guard: the emitter lowers a leading binding
+    /// catch-all to a `switch` `default`, and a JS `switch` gives `case`
+    /// priority over `default` regardless of source order, so a shadowed
+    /// later arm would silently win at runtime. Rejecting the dead arm
+    /// removes that hazard. `span` points at the unreachable arm.
+    #[error("unreachable match arm: an earlier arm already matches every value")]
+    UnreachableMatchArm { span: Span },
 }
 
 impl TypeError {
@@ -290,6 +303,7 @@ impl TypeError {
             TypeError::MutateConst { span, .. } => *span,
             TypeError::ComponentMultipleParams { span, .. } => *span,
             TypeError::OwnedAliased { span, .. } => *span,
+            TypeError::UnreachableMatchArm { span } => *span,
         }
     }
 
@@ -313,6 +327,7 @@ impl TypeError {
             TypeError::ArgumentCountMismatch { .. } => "E0213",
             TypeError::ComponentMultipleParams { .. } => "E0214",
             TypeError::OwnedAliased { .. } => "E0215",
+            TypeError::UnreachableMatchArm { .. } => "E0216",
         }
     }
 
@@ -367,6 +382,9 @@ impl TypeError {
             TypeError::OwnedAliased { .. } => {
                 "An `owned` handle cannot be rebound. Consume it directly (pass it to an `owned` parameter) instead of aliasing it."
             }
+            TypeError::UnreachableMatchArm { .. } => {
+                "Remove this arm, or move the catch-all/binding arm below it so the specific arms come first."
+            }
         })
     }
 
@@ -379,6 +397,9 @@ impl TypeError {
             ),
             TypeError::OwnedNotConsumed { .. } | TypeError::OwnedUsedAfterMove { .. } => Some(
                 "`owned` is the D25 resource-handle carve-out: a handle is consumed exactly once on every path.",
+            ),
+            TypeError::UnreachableMatchArm { .. } => Some(
+                "`match` is first-match-wins (D9): a catch-all or binding arm matches every value, so any arm after it is dead code.",
             ),
             _ => None,
         }

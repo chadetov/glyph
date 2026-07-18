@@ -12,6 +12,7 @@ pub mod examples;
 pub mod init;
 pub mod explain;
 pub mod fmt;
+pub mod gen;
 pub mod publish;
 pub mod render;
 pub mod run;

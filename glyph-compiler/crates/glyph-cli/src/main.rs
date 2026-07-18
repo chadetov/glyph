@@ -9,6 +9,8 @@
 //!   (`--no-check` to run without the tsc gate)
 //! - `glyph fmt [path]`              format-in-place (also called by LSP format-on-save)
 //! - `glyph regen <fn>`              regenerate a function body from its @generate spec (Q40)
+//! - `glyph gen openapi <spec> --out <dir>`  generate committed Glyph types from an
+//!   OpenAPI 3 / Swagger 2 / JSON Schema document (Q40 type-driven generation)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
 //! - `glyph --explain E0042`         long-form error documentation
 //!
@@ -87,10 +89,28 @@ enum Command {
         #[arg(value_name = "FN")]
         function: String,
     },
+    /// Generate committed Glyph types from an external schema.
+    Gen {
+        #[command(subcommand)]
+        target: GenTarget,
+    },
     /// Build, type-check, and audit-gate a Glyph package for npm publishing.
     Publish {
         #[arg(value_name = "DIR")]
         dir: Option<std::path::PathBuf>,
+    },
+}
+
+#[derive(Subcommand)]
+enum GenTarget {
+    /// Generate Glyph types from an OpenAPI 3 / Swagger 2 / JSON Schema document.
+    Openapi {
+        /// The spec file (`.json`, `.yaml`, or `.yml`).
+        #[arg(value_name = "SPEC")]
+        spec: std::path::PathBuf,
+        /// Directory to write the generated `.glyph` file into.
+        #[arg(long, value_name = "DIR")]
+        out: std::path::PathBuf,
     },
 }
 
@@ -415,6 +435,30 @@ fn main() {
                 }
             }
         }
+        Some(Command::Gen { target }) => match target {
+            GenTarget::Openapi { spec, out } => match glyph_cli::gen::openapi(&spec, &out) {
+                Ok(report) => {
+                    for note in &report.notes {
+                        eprintln!("glyph gen: note: {note}");
+                    }
+                    eprintln!(
+                        "glyph gen: {} type(s) written to {}{}.",
+                        report.type_count,
+                        report.out_file.display(),
+                        if report.notes.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" ({} note(s))", report.notes.len())
+                        }
+                    );
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("glyph gen: {e}");
+                    std::process::exit(1);
+                }
+            },
+        },
         Some(cmd) => {
             let name = match cmd {
                 Command::Build { .. }
@@ -424,6 +468,7 @@ fn main() {
                 | Command::Llms
                 | Command::Init { .. }
                 | Command::Canonical { .. }
+                | Command::Gen { .. }
                 | Command::Publish { .. } => {
                     unreachable!()
                 }

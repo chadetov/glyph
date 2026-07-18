@@ -103,6 +103,31 @@ auth, in-memory store, every method — is
 [`examples/05_rest_api.glyph`](../../examples/05_rest_api.glyph); run it with
 `glyph run examples/05_rest_api.glyph`.
 
+## Generating DTOs from a spec
+
+You do not have to hand-write the types either. If you have an OpenAPI 3,
+Swagger 2, or JSON Schema document, `glyph gen openapi` turns it into committed
+Glyph types:
+
+```sh
+glyph gen openapi petstore.yaml --out src/
+# → src/petstore.glyph: `module petstore` with a real `type` per schema
+```
+
+The output is ordinary, greppable, `glyph fmt`-clean Glyph — one `type` per
+schema, each with its descriptor — not an inferred phantom. Regeneration is
+idempotent, so re-running after a spec change produces a minimal diff you can
+review. Because every generated type is a real record, a response body from that
+API validates through `PetstoreType.parse(...)` exactly like a hand-written one.
+
+The generator maps the wire-faithful core (objects, `string`/`number`/`bool`,
+`array`, `$ref`, optional and `nullable` fields, `additionalProperties` →
+`Record<string, T>`). Where a construct has no faithful Glyph representation — a
+`string` enum (Glyph has no string-literal union), or an undiscriminated
+`oneOf` — it narrows to `string`/`unknown` and **prints a note** rather than
+emit a validator that would reject real payloads. Read the notes; they tell you
+exactly what was approximated.
+
 ## What this does and does not cover
 
 - **Your own DTOs**: fully covered. Any `type` you declare in Glyph carries a

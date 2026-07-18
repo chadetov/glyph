@@ -54,6 +54,13 @@ fn parse_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
             p.advance();
             Ok(Stmt::Continue(ContinueStmt { span }))
         }
+        // `if`/`else` are keywords with no statement form (D3). Point at `match`
+        // rather than emitting a generic "unexpected token" for the single most
+        // common mistake a TypeScript-trained author makes.
+        Token::If | Token::Else => Err(ParseError::NoConditionalKeyword {
+            keyword: if matches!(p.peek(), Token::If) { "if" } else { "else" },
+            span: p.peek_span(),
+        }),
         _ => {
             let e = expr::parse_expr(p)?;
             Ok(Stmt::Expr(e))

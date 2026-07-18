@@ -23,6 +23,13 @@ pub enum ParseError {
 
     #[error("not yet implemented in this slice")]
     NotImplemented { span: Span },
+
+    /// A TypeScript conditional keyword (`if`/`else`) used where Glyph has none.
+    /// D3 makes `match` the only conditional. Carried as its own variant so the
+    /// highest-traffic mistake a TS-trained author makes gets a targeted fix
+    /// instead of a generic "unexpected token".
+    #[error("Glyph has no `{keyword}`")]
+    NoConditionalKeyword { keyword: &'static str, span: Span },
 }
 
 impl ParseError {
@@ -32,7 +39,8 @@ impl ParseError {
             | ParseError::Expected { span, .. }
             | ParseError::Unexpected { span, .. }
             | ParseError::ExpectedEof { span }
-            | ParseError::NotImplemented { span } => *span,
+            | ParseError::NotImplemented { span }
+            | ParseError::NoConditionalKeyword { span, .. } => *span,
         }
     }
 
@@ -45,6 +53,7 @@ impl ParseError {
             ParseError::Unexpected { .. } => "E0003",
             ParseError::ExpectedEof { .. } => "E0004",
             ParseError::NotImplemented { .. } => "E0005",
+            ParseError::NoConditionalKeyword { .. } => "E0006",
         }
     }
 
@@ -62,6 +71,9 @@ impl ParseError {
                 "Only declarations appear at the top level. Check for a missing brace or an extra token."
             }
             ParseError::NotImplemented { .. } => "This construct is not supported yet.",
+            ParseError::NoConditionalKeyword { .. } => {
+                "Glyph has no `if`/`else` (D3); `match` is the only conditional — e.g. `match cond { true => a, false => b }`."
+            }
         })
     }
 }

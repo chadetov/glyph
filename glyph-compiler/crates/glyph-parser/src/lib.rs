@@ -645,6 +645,20 @@ fn main() {
     }
 
     #[test]
+    fn if_and_else_point_at_match() {
+        let err = parse("module x\nfn f() { if x { return 1 } return 0 }\n").unwrap_err();
+        assert!(
+            matches!(err, ParseError::NoConditionalKeyword { keyword: "if", .. }),
+            "{err:?}"
+        );
+        let err2 = parse("module x\nfn f() { else { return 0 } }\n").unwrap_err();
+        assert!(
+            matches!(err2, ParseError::NoConditionalKeyword { keyword: "else", .. }),
+            "{err2:?}"
+        );
+    }
+
+    #[test]
     fn object_literal_allows_quoted_string_keys() {
         let m = parse_or_panic(
             "module x\nfn main() { let y = { \"Content-Type\": a, plain: b } }\n",

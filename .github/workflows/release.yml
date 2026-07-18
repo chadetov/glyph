@@ -101,14 +101,14 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
-            npm publish "npm/platform/$key" --access public
+            npm publish "./npm/platform/$key" --access public
           done
 
       - name: Publish the glyph launcher
         if: ${{ env.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish npm/glyph --access public
+        run: npm publish ./npm/glyph --access public
 
   release:
     name: Create GitHub Release

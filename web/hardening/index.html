@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hardening — how Glyph is stress-tested, and what it found</title>
+    <meta
+      name="description"
+      content="Glyph is hardened by fleets of AI agents that role-play skeptical engineers, build real apps, and try to break its guarantees. Here is the adversarial testing loop and the concrete bugs it found and fixed."
+    />
+    <link rel="canonical" href="https://glyphlang.io/hardening/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/" class="active">Hardening</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+
+    <div class="wrap">
+      <header class="page-hero">
+        <p class="eyebrow">How Glyph is hardened</p>
+        <h1>We don't just claim Glyph is safe. <span class="accent">We attack it.</span></h1>
+        <p class="lede">
+          A language whose whole pitch is &ldquo;your agents can't quietly break it&rdquo; has to
+          earn that. So we run fleets of AI agents that role-play skeptical engineers &mdash; a
+          frustrated React developer, a backend contrarian, a safety adversary &mdash; have them
+          build real apps and try to break the guarantees, then fix everything they surface.
+          Here is that loop, and exactly what it found.
+        </p>
+      </header>
+
+      <!-- ============ THE LOOP ============ -->
+      <section>
+        <h2 class="group-head">The adversarial loop</h2>
+        <p class="group-sub">Every finding is reproduced against the compiler, fixed at the root, and independently re-verified before it counts.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h4>Explore</h4>
+            <p>Persona agents build real programs &mdash; forms, backends, stateful UI &mdash; and record every place the language fought them.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h4>Reproduce</h4>
+            <p>Each finding is minimized to the smallest failing program and re-run against the compiler. Anything that can't be reproduced is dropped.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h4>Fix</h4>
+            <p>Root-cause fix in the Rust compiler with a regression test that fails before and passes after. The full suite must stay green, or the change reverts.</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h4>Verify</h4>
+            <p>An independent pass re-runs every repro against the freshly built compiler &mdash; catching &ldquo;the agent thought it was fixed&rdquo; gaps before anything ships.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SILENT CORRECTNESS ============ -->
+      <section>
+        <h2 class="group-head">The ones that mattered most: silent-correctness holes</h2>
+        <p class="group-sub">
+          Each of these compiled clean and could ship <em>wrong code that passed the type check</em> &mdash;
+          exactly the class of bug Glyph exists to prevent. Every one is now caught at compile time.
+        </p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev critical">Critical &mdash; fixed</span>
+            <h4>Nullary error variants in a <code>Result</code> match</h4>
+            <p>A <code>match</code> over <code>Result&lt;T, Empty | BadQty(...)&gt;</code> lowered to two
+              duplicate <code>case&nbsp;"Err"</code> branches; the first swallowed every error and
+              silently dispatched to the wrong arm.</p>
+            <p class="now">Now: one grouped case with a correct inner switch; each variant routes right.</p>
+          </div>
+          <div class="fix">
+            <span class="sev critical">Critical &mdash; fixed</span>
+            <h4>Misspelled constructor as a silent catch-all</h4>
+            <p>A typo'd variant in a match arm (<code>Loded</code> for <code>Loaded</code>) was silently
+              bound as an irrefutable catch-all &mdash; masking non-exhaustiveness and misrouting at runtime,
+              with no diagnostic.</p>
+            <p class="now">Now: an unknown constructor is rejected at the typo, like a real name.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">High &mdash; fixed</span>
+            <h4>Partial <code>bool</code> match slipped past exhaustiveness</h4>
+            <p><code>match n &gt; 0 { true =&gt; ... }</code> &mdash; missing the <code>false</code> arm &mdash;
+              compiled and passed <code>tsc</code>, then threw at runtime.</p>
+            <p class="now">Now: a compile-time non-exhaustive-match error.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">High &mdash; fixed</span>
+            <h4>Multi-parameter components mis-bound props</h4>
+            <p><code>component C(a, b)</code> emitted positional params, but React calls components
+              props-first &mdash; so <code>a</code> silently bound to the whole props object. It passed
+              <code>tsc</code>.</p>
+            <p class="now">Now: a clear compile error pointing to the single props-record form.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">High &mdash; fixed</span>
+            <h4>JSX <code>&lt;match&gt;</code> skipped exhaustiveness</h4>
+            <p>A JSX <code>&lt;match&gt;</code> with a missing <code>&lt;case&gt;</code> compiled green and
+              threw at runtime &mdash; unlike value-level <code>match</code>, which was checked.</p>
+            <p class="now">Now: the same exhaustiveness check applies; a missing case is a compile error.</p>
+          </div>
+          <div class="fix">
+            <span class="sev high">High &mdash; fixed</span>
+            <h4>Record payload bound to the wrong field</h4>
+            <p>Binding a record-payload variant to a name (<code>BadQty(b)</code>) read a nonexistent
+              <code>.value</code> off the flattened payload.</p>
+            <p class="now">Now: the payload binds correctly, so <code>b.sku</code> works.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RULES ENFORCED ============ -->
+      <section>
+        <h2 class="group-head">Rules the checker now enforces</h2>
+        <p class="group-sub">Soundness the compiler used to leave to <code>tsc</code> &mdash; now caught by Glyph itself.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev high">Fixed</span>
+            <h4>Call arity</h4>
+            <p>Too few or too many arguments were accepted (and ran to <code>NaN</code>). Now
+              <code>E0213</code> rejects a wrong argument count.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Fixed</span>
+            <h4>The <code>?</code> error type, across the stdlib boundary</h4>
+            <p>The exact-error-type rule was skipped when the error came from a stdlib wrapper. Now it's
+              enforced there too.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Fixed</span>
+            <h4>Aliasing an <code>owned</code> handle</h4>
+            <p><code>let g = f</code> on a resource handle created a second binding that could double-close.
+              Now rejected (<code>E0215</code>).</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Fixed</span>
+            <h4>Unreachable arms &amp; deeper validation</h4>
+            <p>An arm after a catch-all is now flagged; <code>json.parse&lt;T&gt;</code> now structurally
+              validates <code>Record</code> fields instead of only checking presence.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ FIRST CONTACT ============ -->
+      <section>
+        <h2 class="group-head">First-contact friction, removed</h2>
+        <p class="group-sub">The small things that made a bad first impression &mdash; none of which served any purpose.</p>
+        <div class="fixgrid">
+          <div class="fix">
+            <span class="sev">Fixed</span>
+            <h4>Accessibility &amp; data attributes</h4>
+            <p><code>aria-label</code> and <code>data-*</code> parsed as subtraction. Now they work, and
+              emit as proper React props.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Fixed</span>
+            <h4>npm package names</h4>
+            <p>Hyphenated and scoped specifiers (<code>react-hook-form</code>,
+              <code>@hookform/resolvers/zod</code>) were rejected. Now they import directly.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Fixed</span>
+            <h4>Browser-bundle first run</h4>
+            <p>The runtime bootstrap wasn't loaded in a browser build, crashing on first run. Every emitted
+              module now pulls it in.</p>
+          </div>
+          <div class="fix">
+            <span class="sev">Fixed</span>
+            <h4>Error messages that misdirect</h4>
+            <p>Writing <code>if</code> now points at <code>match</code>; a range pattern says so directly;
+              JSX whitespace and a bare <code>$</code> in text are handled.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STILL OPEN ============ -->
+      <section>
+        <h2 class="group-head">Still open &mdash; on the record</h2>
+        <p class="group-sub">Hardening means naming what isn't done, too. These are known and tracked, not hidden.</p>
+        <div class="callout">
+          <p style="margin:0 0 10px;"><strong>Deliberately deferred or awaiting a design decision:</strong></p>
+          <p style="margin:0;">
+            A <strong>must-use warning</strong> for a dropped <code>Result</code> awaits a warning severity
+            level (today diagnostics are errors-only, and a hard error would break valid code).
+            <strong>Rejecting implicit-<code>any</code> closures</strong> in Glyph's own checker needs real
+            contextual inference to avoid false positives on validly-typed callbacks.
+            <strong>Ergonomic FFI</strong> &mdash; using a complex-typed TS library without a per-library
+            adapter &mdash; and <strong>JSX prop spreading</strong> are the biggest interop questions, tracked in
+            <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">open questions</a>.
+            A record-payload variant in first position of a union declaration still needs a parser fix.
+          </p>
+        </div>
+        <a href="/answers/" class="backlink">&larr; See the engineer questions these fixes came from</a>
+      </section>
+    </div>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

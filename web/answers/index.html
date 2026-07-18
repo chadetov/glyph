@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Answers — every question engineers asked about Glyph</title>
+    <meta
+      name="description"
+      content="The honest answers to every question working engineers raised about Glyph: interop, React hooks and context, tooling, the training-data question, benchmarks, and safety — what works today and what is still on the way."
+    />
+    <link rel="canonical" href="https://glyphlang.io/answers/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+
+    <div class="wrap">
+      <header class="page-hero">
+        <p class="eyebrow">Questions engineers actually asked</p>
+        <h1>The honest answers &mdash; <span class="accent">what works, and what's still on the way</span>.</h1>
+        <p class="lede">
+          We put Glyph in front of working engineers &mdash; frontend, backend, and
+          skeptics of the whole premise &mdash; and let them build real things. Every
+          question they raised is here, grouped and answered straight. No question is
+          softened; where something isn't ready, it says so.
+        </p>
+      </header>
+
+      <!-- ============ INTEROP ============ -->
+      <section>
+        <h2 class="group-head">Interop &amp; the existing JS/TS world</h2>
+        <p class="group-sub">The most-asked cluster: can Glyph live inside the code and libraries I already have?</p>
+        <div class="qa">
+          <details open>
+            <summary>Can I import my existing TypeScript, JavaScript, and Node libraries?<span class="chip shipped">Yes</span></summary>
+            <p class="answer">
+              Yes. Glyph compiles to ordinary TypeScript and rides npm: a
+              <code>.glyph</code> module emits a <code>.ts</code> file that imports from
+              any npm package and is itself importable from your existing <code>.ts</code>.
+              That is the whole point of targeting TypeScript instead of shipping a new
+              runtime. Package specifiers with hyphens and npm scopes
+              (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>) now parse
+              directly &mdash; a first-contact gap an engineer hit, since fixed. Interop
+              crosses the TypeScript boundary today; a dedicated <code>@ffi</code>
+              declaration syntax is planned for v2, but you don't need it to use the npm
+              ecosystem now.
+            </p>
+          </details>
+          <details>
+            <summary>What about React libraries like react-hook-form or zod?<span class="chip open">Partly &mdash; open</span></summary>
+            <p class="answer">
+              This is the sharpest friction an engineer found, and we won't pretend
+              otherwise. Some React-library patterns collide with Glyph's deliberately
+              strict grammar: JSX prop spreading (<code>{...register()}</code>) and
+              types derived from a runtime value (<code>z.infer&lt;typeof schema&gt;</code>)
+              both need a thin TypeScript adapter today, rather than working inline. The
+              easy parts already got easier &mdash; hyphenated/scoped imports and
+              <code>aria-*</code>/<code>data-*</code> attributes now work &mdash; but the
+              per-library adapter tax is real. Making a complex-typed TS library usable
+              without a bespoke adapter is an active, top-priority open question. See the
+              <a href="/hardening/">hardening page</a> and the
+              <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">open questions</a>.
+            </p>
+          </details>
+          <details>
+            <summary>Do custom hooks and React Context actually work?<span class="chip progress">Yes &mdash; Context improving</span></summary>
+            <p class="answer">
+              This was one engineer's single biggest worry, and it turned out overstated.
+              A custom hook is just a function that calls other hooks &mdash; no special
+              machinery. React Context works today via <code>createContext</code> /
+              <code>useContext</code>; member-expression element names
+              (<code>&lt;ThemeContext.Provider&gt;</code>) are landing so the provider needs
+              no workaround. And complex state is genuinely <em>safer</em> than TypeScript:
+              a <code>useReducer</code> over a tagged union gets compile-time exhaustiveness
+              &mdash; add an action and every reducer that misses it fails to compile.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <!-- ============ TOOLING ============ -->
+      <section>
+        <h2 class="group-head">Tooling &amp; developer experience</h2>
+        <p class="group-sub">&ldquo;Doing it by hand felt like Notepad&rdquo; was fair. Here's the editor and error story.</p>
+        <div class="qa">
+          <details>
+            <summary>Is there a VS Code / editor experience?<span class="chip shipped">Yes</span></summary>
+            <p class="answer">
+              Yes. There is a language server and a VS Code extension: syntax
+              highlighting, diagnostics with stable error codes, hover types,
+              go-to-definition, completion, and format-on-save via <code>glyph fmt</code>.
+              Rename and find-references land in v1.1. The
+              <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/editor-setup.md">editor setup guide</a>
+              covers VS Code and any other LSP editor.
+            </p>
+          </details>
+          <details>
+            <summary>How does debugging work?<span class="chip progress">TS tools today</span></summary>
+            <p class="answer">
+              You debug the emitted TypeScript with the tools you already use &mdash;
+              Node's inspector, browser devtools, your IDE's JS/TS debugger. The output is
+              clean, readable TS that maps closely to your source, not minified soup. Source
+              maps that step straight back to <code>.glyph</code> line numbers are on the
+              roadmap, not in v1 yet.
+            </p>
+          </details>
+          <details>
+            <summary>Are the error messages any good?<span class="chip shipped">Elm-quality bar</span></summary>
+            <p class="answer">
+              That's an explicit goal, and engineers held us to it. Every diagnostic
+              carries a stable code, a one-line fix, and often the design rationale;
+              <code>glyph --explain E0203</code> prints the long form. Where the highest-traffic
+              mistakes still gave generic messages we fixed them specifically: writing
+              <code>if</code> now says &ldquo;Glyph has no <code>if</code>; <code>match</code> is
+              the only conditional&rdquo; instead of &ldquo;unexpected token&rdquo;. The
+              <a href="/hardening/">hardening page</a> lists more of those.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <!-- ============ THE LANGUAGE ============ -->
+      <section>
+        <h2 class="group-head">The language, deliberately</h2>
+        <p class="group-sub">Some friction is on purpose. Here's why, and where we met engineers halfway.</p>
+        <div class="qa">
+          <details>
+            <summary>No ternary, no if/else, <code>&lt;for&gt;</code> instead of <code>.map</code>?<span class="chip shipped">By design</span></summary>
+            <p class="answer">
+              Correct, and intentional. <code>match</code> is the only conditional, which
+              means there is exactly one shape to read and grep for. These restrictions earn
+              their keep against the verifiability and greppability pillars &mdash; the reasons
+              Glyph exists &mdash; so the answer is better documentation and better error
+              messages, not loosening the rule. An agent, the primary author, has no ten years
+              of muscle memory to unlearn; it writes whatever the grammar says.
+            </p>
+          </details>
+          <details>
+            <summary>Why TypeScript, and not Go or a fresh language?<span class="chip shipped">Adoption</span></summary>
+            <p class="answer">
+              Because TypeScript is where agents already write the most code and where the
+              ecosystem you depend on &mdash; npm, React, Node &mdash; lives. Glyph is adoptable
+              one file at a time <em>only</em> because its target is TS; you can't drop Go into
+              a TS codebase file by file. The point that Go's small keyword surface gives an
+              agent fewer ways to go wrong is fair &mdash; it's exactly why Glyph keeps a small
+              core &mdash; and Go is now in the density benchmark.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <!-- ============ THE PREMISE ============ -->
+      <section>
+        <h2 class="group-head">Can an AI even write a brand-new language?</h2>
+        <p class="group-sub">The deepest skeptic's question &mdash; and the one we were most surprised by.</p>
+        <div class="qa">
+          <details open>
+            <summary>LLMs are trained on existing languages. Isn't a new one too hard for them?<span class="chip shipped">Held up</span></summary>
+            <p class="answer">
+              The fair worry: an LLM is a next-token predictor trained on the huge body of
+              existing-language code, so a language with almost no training data should be hard
+              to write. In practice it held up far better than expected, for a structural
+              reason: Glyph is a <em>disciplined subset of TypeScript</em> with an ML core.
+              Roughly 80% transfers from TS and functional-programming intuition on the first
+              try; the restrictions are few and enumerable, and each fails fast at compile time.
+              In our own adversarial testing, an agent built a real REST API &mdash; typed
+              records, tagged-union validation, auth middleware &mdash; to a green build in about
+              two iterations. It is &ldquo;TypeScript with the footguns removed,&rdquo; not an
+              alien language.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <!-- ============ EVIDENCE ============ -->
+      <section>
+        <h2 class="group-head">Evidence &amp; maturity</h2>
+        <p class="group-sub">Where we have proof, where we have honest future work.</p>
+        <div class="qa">
+          <details>
+            <summary>Does using fewer tokens actually mean an agent writes better code?<span class="chip shipped">No, and we don't claim it</span></summary>
+            <p class="answer">
+              No, not on its own. Density is the last of four pillars, not the first. The
+              wedge is verifiability and greppability: code that can't lie about its types and
+              symbols that grep to one place. What we have <em>not</em> yet measured is an agent
+              success-rate or tries-to-correct number against TypeScript on the same task. That
+              study is honest future work, and we say so on the
+              <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmarks page</a>.
+            </p>
+          </details>
+          <details>
+            <summary>Where are the real example apps &mdash; REST/GraphQL, auth, middleware?<span class="chip progress">Growing</span></summary>
+            <p class="answer">
+              A real backend is expressible today, and cleanly: <code>std/http</code> ships an
+              errors-as-values server (<code>serve</code> / <code>Handler</code> /
+              <code>Request</code> / <code>Response</code>), auth is a plain higher-order
+              function wrapping handlers, and validation is exhaustive <code>match</code> over
+              tagged unions. The examples and corpus in the repo show working programs; more
+              fully-built apps (auth + middleware, REST and GraphQL) are what we want early
+              adopters to push on.
+            </p>
+          </details>
+          <details>
+            <summary>Are the libraries and community there yet?<span class="chip open">Thin, honestly</span></summary>
+            <p class="answer">
+              Honestly, the Glyph-native library surface and community are thin today &mdash;
+              it's early. What softens it is that Glyph rides npm rather than replacing it, and
+              adoption is incremental: one file at a time inside an existing TypeScript project,
+              not an all-or-nothing rewrite.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <!-- ============ SAFETY ============ -->
+      <section>
+        <h2 class="group-head">The safety &mdash; what engineers liked</h2>
+        <p class="group-sub">The part that landed. Here's what it actually buys you.</p>
+        <div class="qa">
+          <details>
+            <summary>What does the safety concretely buy me over TypeScript?<span class="chip shipped">Real guarantees</span></summary>
+            <p class="answer">
+              Four things a silently-missed case can't survive: exhaustive <code>match</code>
+              over sealed tagged unions (add a variant and every match that misses it fails to
+              compile); <code>Result</code> plus the <code>?</code> operator, so errors are
+              values you must handle, not exceptions that vanish; <code>@example</code> tests
+              that live at the point of definition and run at build time; and <code>@redact</code>
+              for PII. These are the guarantees we then attack relentlessly &mdash; see how, and
+              what that found, on the <a href="/hardening/">hardening page</a>.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <a href="/" class="backlink">&larr; Back to home</a>
+    </div>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

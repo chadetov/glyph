@@ -102,6 +102,8 @@
         display: flex;
         gap: 28px;
         align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
       .nav-links a {
         color: var(--muted);
@@ -716,15 +718,8 @@
         .wrap {
           padding: 0 20px;
         }
-        nav {
-          flex-wrap: wrap;
-          row-gap: 12px;
-        }
         .nav-links {
-          gap: 16px;
-          flex-wrap: wrap;
-          order: 3;
-          width: 100%;
+          gap: 18px;
         }
         .hero {
           grid-template-columns: 1fr;
@@ -899,16 +894,16 @@
   <body>
     <div class="wrap">
       <nav>
-        <a href="/" class="brand">GLYPH</a>
-        <span class="nav-links">
-          <a href="/playground/">Playground</a>
-          <a href="/answers/">Answers</a>
-          <a href="/hardening/">Hardening</a>
-          <a href="#data">Benchmarks</a>
-          <a href="https://github.com/chadetov/glyph">GitHub</a>
-        </span>
-        <a class="btn primary nav-cta" href="/playground/">Get Started</a>
-      </nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
     </div>
 
     <div class="wrap">
@@ -1041,71 +1036,13 @@
       </div>
     </section>
 
-    <section id="data">
+<section>
       <div class="wrap">
-        <h2 class="section-head">Measured, not asserted</h2>
+        <h2 class="section-head">One change, one line</h2>
         <p class="friction-intro">
-          The case is structural and reproducible. Small sample, stated plainly —
-          the full methodology and caveats are one click away.
+          The diff is the change, not the noise around it. Add one route &mdash; and review one line.
         </p>
-        <div class="stat-row">
-          <div class="card stat">
-            <span class="label">Verifiability — the bugs that cost you</span>
-            <div class="big"><span class="accent">2 of 2</span> caught at compile time</div>
-            <p>
-              Two mistakes agents make constantly — a missing <code>match</code>
-              variant and an unsafe cast — are rejected by Glyph and accepted by
-              <code>tsc --strict</code>. Wrong code that compiles is the expensive
-              failure. Glyph won't let it.
-            </p>
-          </div>
-          <div class="card stat">
-            <span class="label">Greppability — one name, one place</span>
-            <div class="big"><span class="accent">1</span> match, every time</div>
-            <p>
-              Every symbol has exactly one declaration form — no overloads,
-              decorators, or merged namespaces to scatter it.
-            </p>
-            <div class="grepout">
-              <span class="prompt">$ grep -n "fn welcome" main.glyph</span><br />
-              <span class="ln-no">15:</span> fn welcome(user: User) -&gt; Result&lt;string, string&gt; {
-            </div>
-          </div>
-          <div class="card stat">
-            <span class="label">Diff stability — reviewable by default</span>
-            <div class="big"><span class="accent">1 line → 1 line</span></div>
-            <p>
-              A one-line Glyph edit produces a one-line TypeScript diff through
-              the transpiler, and <code>glyph fmt</code> adds no churn. The diff
-              is the change, not the noise around it.
-            </p>
-          </div>
-        </div>
-        <div class="chart">
-          <span class="label">And it's leaner, not bloated</span>
-          <h3>Tokens for the same three functions</h3>
-          <div class="bar-row">
-            <span class="bar-lang">Glyph</span>
-            <div class="bar-track"><div class="bar-fill glyph" style="width: 55%">341</div></div>
-          </div>
-          <div class="bar-row">
-            <span class="bar-lang">Python</span>
-            <div class="bar-track"><div class="bar-fill other" style="width: 70%">435</div></div>
-          </div>
-          <div class="bar-row">
-            <span class="bar-lang">TypeScript</span>
-            <div class="bar-track"><div class="bar-fill other" style="width: 77%">478</div></div>
-          </div>
-          <div class="bar-row">
-            <span class="bar-lang">Go</span>
-            <div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div>
-          </div>
-          <div class="bar-row">
-            <span class="bar-lang">Rust</span>
-            <div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div>
-          </div>
-          <div class="diff-showcase">
-          <h3 class="diff-h">One change, one line &mdash; see it, don't take our word</h3>
+        <div class="diff-showcase">
           <div class="two-up">
             <div class="code">
               <span class="cap">TypeScript &mdash; add "/billing"</span>
@@ -1128,23 +1065,9 @@
             </div>
           </div>
         </div>
-        <p class="bench-note">
-            Safety usually costs length — Go and Rust, the other statically typed
-            rows with explicit error handling, are the longest. Glyph is the only
-            one that is both safe and lean: ~29% fewer tokens than TypeScript and
-            ~40% fewer than Go, on real <code>cl100k_base</code> counts.
-            Honest caveat: on trivial one-liners Glyph's <code>module</code> and
-            <code>import</code> overhead can make it slightly larger than TS — the
-            lead only appears once there is real logic. Three functions, a small
-            sample.
-            <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">See the methodology and caveats →</a>
-          </p>
+        <div style="text-align:center; margin-top:32px;">
+          <a class="btn" href="/benchmarks/">See the full benchmarks &rarr;</a>
         </div>
-        <p class="bench-note" style="text-align: center; max-width: 64ch; margin: 36px auto 0">
-          What we do not claim: that agents write code measurably faster in
-          Glyph. That is the bet — these structural results are the reasons to
-          expect it, and the agent study is honest future work.
-        </p>
       </div>
     </section>
 

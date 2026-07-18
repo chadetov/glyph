@@ -107,6 +107,60 @@ fn build_emits_quoted_string_keys() {
 }
 
 #[test]
+fn build_wraps_multi_child_conditional_branches_in_a_fragment() {
+    // BUG-4: a conditional (`<if>`/`<else>`) or match (`<case>`) branch with more
+    // than one child element occupies a single React node slot. Emitting a bare
+    // JS array `[a, b]` there trips React's "unique key" dev warning (the author
+    // cannot add keys — `key=` is not placeable on a branch). A multi-child
+    // branch must lower to `React.createElement(React.Fragment, null, ...)`;
+    // a single-child branch stays the lone element (no needless Fragment).
+    let root = unique_tmp("frag");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module f\n\
+         import react { Component }\n\
+         component Panel(show: bool) -> Component {\n\
+         \x20 return <div>\n\
+         \x20   <if cond={show}>\n\
+         \x20     <span>one child</span>\n\
+         \x20   </if>\n\
+         \x20   <else>\n\
+         \x20     <h2>heading</h2>\n\
+         \x20     <p>paragraph</p>\n\
+         \x20   </else>\n\
+         \x20 </div>\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts written");
+    // The multi-child `<else>` branch is grouped in a keyless Fragment.
+    assert!(
+        ts.contains(
+            "React.createElement(React.Fragment, null, \
+             React.createElement(\"h2\", null, \"heading\"), \
+             React.createElement(\"p\", null, \"paragraph\"))"
+        ),
+        "multi-child branch did not lower to a Fragment:\n{ts}"
+    );
+    // The single-child `<if>` branch stays the lone element (no Fragment).
+    assert!(
+        ts.contains("? React.createElement(\"span\", null, \"one child\") :"),
+        "single-child branch should not be wrapped in a Fragment:\n{ts}"
+    );
+    // No bare keyless array child survives (the pre-fix, warning-prone form).
+    assert!(
+        !ts.contains(": [React.createElement"),
+        "a bare keyless array child leaked into a conditional branch:\n{ts}"
+    );
+}
+
+#[test]
 fn build_reports_emit_diagnostic_for_unsupported_construct() {
     let root = unique_tmp("emit_unsupported");
     let src = root.join("src");

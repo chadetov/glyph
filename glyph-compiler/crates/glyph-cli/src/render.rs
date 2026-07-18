@@ -110,7 +110,7 @@ pub fn render_emit_error(
         &message,
         err.code(),
         err.help(),
-        None,
+        err.note(),
         with_color,
     )
 }

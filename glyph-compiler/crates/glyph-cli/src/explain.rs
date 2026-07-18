@@ -56,7 +56,12 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "E0103" => "E0103: unresolved name\n\n\
             A name is used but never declared, imported, or in the prelude. Usually \
             a typo or a missing import.\n\n\
-            Declare it, add the import, or fix the spelling.",
+            Declare it, add the import, or fix the spelling.\n\n\
+            One common case: `mut x = e`. Glyph is not `let mut` — `mut` reassigns \
+            an *existing* binding, so the name must already be introduced with `let`. \
+            If `x` is unresolved here, add a preceding `let`:\n\n\
+            Before:  mut total = 0\n\
+            After:   let total = 0\n         mut total = total + 5",
         "E0104" => "E0104: unresolved module\n\n\
             An `import` names a module that does not exist in the project or the \
             standard library.\n\n\

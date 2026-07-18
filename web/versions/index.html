@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Versions &amp; changelog — Glyph</title>
+    <meta name="description" content="What changed in each release of Glyph, newest first — the correctness fixes, the HTTP server, tooling, and the guided site." />
+    <link rel="canonical" href="https://glyphlang.io/versions/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+
+    <div class="wrap">
+      <header class="page-hero">
+        <p class="eyebrow">Versions &amp; changelog</p>
+        <h1>What changed, <span class="accent">newest first</span>.</h1>
+        <p class="lede">
+          Glyph is an early preview and moves fast. Every release is here with what it fixed and
+          added, so you can see exactly what's in the version you're running &mdash; and what's
+          waiting for you in the next one.
+        </p>
+      </header>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.2</span>
+            <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Correctness, JSX, and the guided site</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> over a <code>Result</code> whose error union has a no-payload variant no longer silently dispatches to the wrong arm.</li>
+              <li><span class="tag fixed">Fixed</span> A misspelled constructor in a match arm is rejected, not silently treated as a catch-all that masks a missing case.</li>
+              <li><span class="tag fixed">Fixed</span> An incomplete <code>bool</code> match (missing <code>false</code>) and a JSX <code>&lt;match&gt;</code> missing a case are now compile errors, not runtime throws.</li>
+              <li><span class="tag fixed">Fixed</span> A multi-parameter component is a clear compile error instead of silently mis-binding props; record payloads bind correctly.</li>
+              <li><span class="tag added">Added</span> The typechecker checks call arity (<code>E0213</code>); unreachable match arms are flagged; the <code>?</code> error-type rule extends across the stdlib boundary.</li>
+              <li><span class="tag added">Added</span> Hyphenated and scoped npm imports (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>), <code>aria-*</code>/<code>data-*</code> JSX attributes, and significant JSX whitespace.</li>
+              <li><span class="tag added">Added</span> Targeted diagnostics: <code>if</code>/<code>else</code> point at <code>match</code> (<code>E0006</code>), range patterns say so directly (<code>E0007</code>); <code>json.parse</code> deep-validates <code>Record</code> fields.</li>
+              <li><span class="tag site">Site</span> A guided <a href="/answers/">Answers</a> section, a <a href="/hardening/">Hardening</a> page, and a dedicated <a href="/benchmarks/">Benchmarks</a> page.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.1</span>
+            <span class="rel-date">June 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Backend, tooling, and docs</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/http</code> gains a server: <code>serve</code>, <code>Handler</code>, <code>Request</code>, <code>Response</code>, <code>query</code>, and <code>path</code> &mdash; a thin, errors-as-values wrapper over <code>node:http</code>.</li>
+              <li><span class="tag added">Added</span> <code>glyph init</code> scaffolds a runnable starter project, and <code>glyph llms</code> prints the agent bootstrap offline.</li>
+              <li><span class="tag added">Added</span> A one-document agent reference (<code>AGENTS.md</code> / <a href="/llms.txt">llms.txt</a>), a standard-library reference, and an editor-setup guide.</li>
+              <li><span class="tag added">Added</span> Quoted string keys in object literals, and clearer hints that suggest the Glyph spelling for common TypeScript type names.</li>
+              <li><span class="tag site">Site</span> The landing page and playground on glyphlang.io, with Go added to the density benchmark.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.0</span>
+            <span class="rel-date">June 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>First public preview</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> The language and its Rust compiler (lex &rarr; parse &rarr; resolve &rarr; typecheck &rarr; emit), driven by <code>glyph build</code>, <code>glyph run</code>, and <code>glyph fmt</code>.</li>
+              <li><span class="tag added">Added</span> The core standard library, exhaustive <code>match</code>, <code>Result</code> and the <code>?</code> operator, runtime type descriptors, and JSX / <code>component</code>.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <p class="friction-intro" style="text-align:left; max-width:70ch;">
+        Install or upgrade with <code>npm install -g @glyphlang/glyph</code>. The full commit
+        history lives on <a href="https://github.com/chadetov/glyph/commits/main">GitHub</a>.
+      </p>
+
+      <a href="/" class="backlink">&larr; Back to home</a>
+    </div>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/">Answers</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

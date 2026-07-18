@@ -57,6 +57,7 @@ pub fn build_prelude() -> Prelude {
         ("Record", PreludeKind::Record),
         ("Schema", PreludeKind::Schema),
         ("Component", PreludeKind::Component),
+        ("Issue", PreludeKind::Issue),
         // Value constructors
         ("Ok", PreludeKind::Ok),
         ("Err", PreludeKind::Err),
@@ -97,6 +98,17 @@ mod tests {
         let p = build_prelude();
         for name in ["Result", "Option", "Ok", "Err", "Some", "None"] {
             assert!(p.lookup(name).is_some(), "missing prelude name: {name}");
+        }
+    }
+
+    #[test]
+    fn ambient_container_types_present() {
+        // Regression for BUG-3: `Issue` is documented as an ambient prelude
+        // type (json.parse's Err arm is `Array<Issue>`) and must resolve with
+        // no import, alongside the other ambient container types.
+        let p = build_prelude();
+        for name in ["Array", "Record", "Schema", "Component", "Issue"] {
+            assert!(p.lookup(name).is_some(), "missing ambient prelude type: {name}");
         }
     }
 

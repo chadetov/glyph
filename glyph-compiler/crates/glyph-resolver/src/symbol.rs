@@ -102,6 +102,10 @@ pub enum PreludeKind {
     Schema,
     /// `Component` from the React example.
     Component,
+    /// `Issue` — the non-generic record type (`{ path, message }`) that
+    /// `json.parse`/schema decoders report in their `Err` arm. Ambient and
+    /// unwritable-by-import, so it lives in the prelude table.
+    Issue,
 
     // Prelude values
     Ok,

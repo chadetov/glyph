@@ -194,7 +194,8 @@ impl<'a> Lowerer<'a> {
             | PreludeKind::Array
             | PreludeKind::Record
             | PreludeKind::Schema
-            | PreludeKind::Component => Ty::Named {
+            | PreludeKind::Component
+            | PreludeKind::Issue => Ty::Named {
                 symbol: id.into(),
                 path: vec![name.clone()],
             },

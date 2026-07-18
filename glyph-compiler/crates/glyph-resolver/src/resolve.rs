@@ -252,6 +252,15 @@ impl Resolver<'_> {
     /// Resolve a name *reference* at `ref_span`. Records the resolution into
     /// `resolutions` and emits an unresolved-name error if no match is found.
     fn resolve_name_ref(&mut self, name: &Ident, ref_span: Span) {
+        self.resolve_name_ref_ctx(name, ref_span, false);
+    }
+
+    /// As `resolve_name_ref`, but when `mut_target` is set the emitted
+    /// unresolved-name error records that this name is the whole left-hand side
+    /// of a `mut x = e` reassignment, so the diagnostic can offer the
+    /// let-vs-mut hint (D: `mut` reassigns an existing binding; it is not
+    /// `let mut`).
+    fn resolve_name_ref_ctx(&mut self, name: &Ident, ref_span: Span, mut_target: bool) {
         if let Some(start) = self.lookup_local(name) {
             self.resolutions
                 .insert(ref_span, ResolvedRef::Local(start));
@@ -268,6 +277,7 @@ impl Resolver<'_> {
         self.errors.push(ResolveError::UnresolvedName {
             name: name.to_string(),
             span: ref_span,
+            mut_target,
         });
     }
 
@@ -355,8 +365,16 @@ impl Resolver<'_> {
                 glyph_ast::MutKind::Assign { target, value } => {
                     // The target is an lvalue expression (a name or a field/index
                     // chain); walking it resolves the base binding and any index
-                    // subexpressions.
-                    self.walk_expr(target);
+                    // subexpressions. When the target is a *bare name*, an
+                    // unresolved reference is the classic `let mut` mistake —
+                    // `mut x = e` reassigns an existing binding, so tag it so the
+                    // diagnostic can point at the missing preceding `let`.
+                    match target {
+                        Expr::Ident { name, span } => {
+                            self.resolve_name_ref_ctx(name, *span, true)
+                        }
+                        _ => self.walk_expr(target),
+                    }
                     self.walk_expr(value);
                 }
                 glyph_ast::MutKind::MethodCall { call } => {
@@ -701,6 +719,37 @@ fn main() { let _r = Ok(one()) }
             errs.iter()
                 .any(|e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "missing")),
             "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn mut_on_never_bound_name_flags_mut_target() {
+        // `mut total = 0` as the first mention of `total` is the classic
+        // `let mut` mistake: `mut` reassigns an existing binding, so the LHS
+        // is unresolved. The error must carry `mut_target: true` so the CLI
+        // can offer the let-vs-mut hint instead of the generic one.
+        let src = r#"module main
+fn sum() -> number {
+  mut total = 0
+  return total
+}
+"#;
+        let (_, errs) = resolve(src);
+        let mut_err = errs.iter().find(
+            |e| matches!(e, ResolveError::UnresolvedName { name, .. } if name == "total"),
+        );
+        assert!(mut_err.is_some(), "expected an unresolved `total`: {errs:?}");
+        assert!(
+            matches!(
+                mut_err.unwrap(),
+                ResolveError::UnresolvedName { mut_target: true, .. }
+            ),
+            "mut-target flag not set: {errs:?}"
+        );
+        assert!(
+            mut_err.unwrap().help().unwrap().contains("`let`"),
+            "help should mention `let`: {:?}",
+            mut_err.unwrap().help()
         );
     }
 

@@ -170,6 +170,22 @@ impl OwnedChecker<'_> {
     ) -> Flow {
         match stmt {
             Stmt::Let(l) => {
+                // Aliasing a live owned handle (`let g = f`) creates a second
+                // binding to the same resource, so both could be consumed —
+                // defeating single-consumption. Reject a plain `let` whose
+                // initializer is a bare reference to a tracked, still-live handle.
+                if !l.owned {
+                    if let Expr::Ident { name, span } = &l.value {
+                        if let Some(key) = self.binding_key_of_span(*span) {
+                            if matches!(state.get(&key), Some(Consume::Live)) {
+                                self.errors.push(TypeError::OwnedAliased {
+                                    name: name.to_string(),
+                                    span: l.value.span(),
+                                });
+                            }
+                        }
+                    }
+                }
                 self.walk_expr(&l.value, state);
                 if l.owned {
                     if let Some((key, info)) = self.try_track_owned(l) {
@@ -553,6 +569,7 @@ mod tests {
                     TypeError::OwnedRequiresResourceType { .. }
                         | TypeError::OwnedNotConsumed { .. }
                         | TypeError::OwnedUsedAfterMove { .. }
+                        | TypeError::OwnedAliased { .. }
                 )
             })
             .collect()
@@ -583,6 +600,19 @@ mod tests {
         );
         assert!(
             matches!(errs.as_slice(), [TypeError::OwnedUsedAfterMove { name, .. }] if name == "f"),
+            "got {errs:?}"
+        );
+    }
+
+    #[test]
+    fn alias_of_owned_handle_is_flagged() {
+        // `let g = f` aliases the handle, so both `f` and `g` could be consumed;
+        // reject the rebind (closes the double-consume-via-alias hole).
+        let errs = owned_errors(
+            "fn use_it() -> void {\n  let owned f: FileHandle = make()\n  let g = f\n  close(f)\n  close(g)\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::OwnedAliased { name, .. } if name == "f")),
             "got {errs:?}"
         );
     }

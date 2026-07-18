@@ -262,6 +262,13 @@ pub enum TypeError {
     /// single props record (`component C(props: P)`), or no parameters.
     #[error("a component takes a single props record, not {count} parameters")]
     ComponentMultipleParams { count: usize, span: Span },
+
+    /// `let g = h` whose initializer is a bare reference to a live `owned`
+    /// handle. Aliasing a handle creates a second binding to the same resource,
+    /// so both could be consumed — defeating single-consumption (D25). Consume
+    /// the handle (move it into an `owned` parameter) instead of rebinding it.
+    #[error("cannot alias the `owned` handle `{name}`")]
+    OwnedAliased { name: String, span: Span },
 }
 
 impl TypeError {
@@ -282,6 +289,7 @@ impl TypeError {
             TypeError::ArgumentCountMismatch { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
             TypeError::ComponentMultipleParams { span, .. } => *span,
+            TypeError::OwnedAliased { span, .. } => *span,
         }
     }
 
@@ -304,6 +312,7 @@ impl TypeError {
             TypeError::MutateConst { .. } => "E0212",
             TypeError::ArgumentCountMismatch { .. } => "E0213",
             TypeError::ComponentMultipleParams { .. } => "E0214",
+            TypeError::OwnedAliased { .. } => "E0215",
         }
     }
 
@@ -354,6 +363,9 @@ impl TypeError {
             }
             TypeError::ComponentMultipleParams { .. } => {
                 "Take a single props record: `component C(props: P)` with `type P = { ... }`, then read `props.field`."
+            }
+            TypeError::OwnedAliased { .. } => {
+                "An `owned` handle cannot be rebound. Consume it directly (pass it to an `owned` parameter) instead of aliasing it."
             }
         })
     }

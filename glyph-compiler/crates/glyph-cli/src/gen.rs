@@ -55,6 +55,12 @@ pub enum GenError {
     /// error; we surface the offending source so it is diagnosable.
     #[error("internal: generated Glyph did not parse ({reason}).\n--- generated ---\n{source_text}")]
     GeneratedInvalid { reason: String, source_text: String },
+    #[error("`node` not found on PATH. `glyph gen dts` needs Node.js to read TypeScript declarations; install it from https://nodejs.org.")]
+    NodeMissing,
+    #[error("the `typescript` package is not resolvable. Install it with `npm install -g typescript`, then re-run `glyph gen dts`.")]
+    TypescriptMissing,
+    #[error("reading the TypeScript declarations failed: {msg}")]
+    Helper { msg: String },
 }
 
 /// Summary of one `glyph gen openapi` run.
@@ -83,14 +89,24 @@ pub fn openapi(spec_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> 
         path: spec_path.to_path_buf(),
     })?;
 
-    let stem = spec_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("generated");
-    let module_name = sanitize_module(stem);
+    let module_name = sanitize_module(stem_of(spec_path));
+    let source_label = spec_path.display().to_string();
+    let regen = format!("glyph gen openapi {}", spec_path.display());
+    render_and_write(schemas, &module_name, &source_label, &regen, out_dir)
+}
 
+/// Turn a schema map into a formatted, self-validated `.glyph` file on disk.
+/// Shared by `glyph gen openapi` and `glyph gen dts` — both reduce to a JSON
+/// Schema `definitions` map, so both flow through the one mapper.
+fn render_and_write(
+    schemas: Vec<(String, Value)>,
+    module_name: &str,
+    source_label: &str,
+    regen_cmd: &str,
+    out_dir: &Path,
+) -> Result<GenReport, GenError> {
     let mut gen = Generator::default();
-    let body = gen.emit_module(&module_name, spec_path, schemas);
+    let body = gen.emit_module(module_name, source_label, regen_cmd, schemas);
 
     // Canonicalize + self-validate: parse the generated source and reprint it.
     let module = glyph_parser::parse(&body).map_err(|e| GenError::GeneratedInvalid {
@@ -115,6 +131,97 @@ pub fn openapi(spec_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> 
         type_count: gen.type_count,
         notes: gen.notes,
     })
+}
+
+fn stem_of(path: &Path) -> &str {
+    // Strip a compound extension like `.d.ts` down to the base name.
+    let mut stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("generated");
+    if let Some(inner) = Path::new(stem).file_stem().and_then(|s| s.to_str()) {
+        // `user.d` -> `user`
+        stem = inner;
+    }
+    stem
+}
+
+/// The node helper that reads a `.d.ts` and prints a JSON Schema `definitions`
+/// map. Bundled into the binary; written to a temp file at run time.
+const TS_TO_SCHEMA: &str = include_str!("../../../runtime/tools/ts-to-schema.mjs");
+
+/// Generate Glyph types from a TypeScript `.d.ts` declaration file.
+///
+/// Shells out to a bundled node helper that uses the TypeScript compiler to
+/// read the declarations and emit JSON Schema, which then flows through the
+/// exact same mapper as `glyph gen openapi`. `node` must be on PATH and the
+/// `typescript` package must be resolvable (a global `npm install -g
+/// typescript` is found via NODE_PATH).
+pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
+    if !dts_path.exists() {
+        return Err(GenError::Read {
+            path: dts_path.to_path_buf(),
+            source: std::io::Error::new(std::io::ErrorKind::NotFound, "no such file"),
+        });
+    }
+
+    // Write the helper next to a per-process temp name so concurrent runs do
+    // not collide.
+    let helper = std::env::temp_dir().join(format!("glyph-ts-to-schema-{}.mjs", std::process::id()));
+    std::fs::write(&helper, TS_TO_SCHEMA).map_err(|e| GenError::Write {
+        path: helper.clone(),
+        source: e,
+    })?;
+
+    // Resolve global node_modules so `import "typescript"` works without a
+    // local install. Best-effort: if `npm root -g` fails, node falls back to
+    // its default resolution.
+    let global_root = std::process::Command::new("npm")
+        .args(["root", "-g"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+
+    let mut cmd = std::process::Command::new("node");
+    cmd.arg(&helper).arg(dts_path);
+    if let Some(root) = &global_root {
+        cmd.env("NODE_PATH", root);
+    }
+    let output = cmd.output();
+    let _ = std::fs::remove_file(&helper);
+
+    let output = match output {
+        Ok(o) => o,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(GenError::NodeMissing);
+        }
+        Err(e) => {
+            return Err(GenError::Helper {
+                msg: format!("failed to run node: {e}"),
+            })
+        }
+    };
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("GLYPH_GEN_NO_TYPESCRIPT") {
+            return Err(GenError::TypescriptMissing);
+        }
+        return Err(GenError::Helper {
+            msg: stderr.trim().to_string(),
+        });
+    }
+
+    let doc: Value =
+        serde_json::from_slice(&output.stdout).map_err(|e| GenError::Helper {
+            msg: format!("helper did not emit valid JSON: {e}"),
+        })?;
+    let schemas = locate_schemas(&doc).ok_or_else(|| GenError::NoSchemas {
+        path: dts_path.to_path_buf(),
+    })?;
+
+    let module_name = sanitize_module(stem_of(dts_path));
+    let source_label = dts_path.display().to_string();
+    let regen = format!("glyph gen dts {}", dts_path.display());
+    render_and_write(schemas, &module_name, &source_label, &regen, out_dir)
 }
 
 /// Parse a spec as JSON first, then YAML. OpenAPI ships as both.
@@ -167,17 +274,16 @@ impl Generator {
     fn emit_module(
         &mut self,
         module_name: &str,
-        spec_path: &Path,
+        source_label: &str,
+        regen_cmd: &str,
         schemas: Vec<(String, Value)>,
     ) -> String {
         let mut out = String::new();
         out.push_str(&format!("module {module_name}\n\n"));
         out.push_str(&format!(
-            "// Generated from {}. Every type below is a real Glyph record with a\n\
-             // runtime descriptor, so a request or response body validates through\n\
-             // `T.parse(value)`. Regenerate with `glyph gen openapi {}`.\n\n",
-            spec_path.display(),
-            spec_path.display(),
+            "// Generated from {source_label}. Every type below is a real Glyph record\n\
+             // with a runtime descriptor, so a request or response body validates\n\
+             // through `T.parse(value)`. Regenerate with `{regen_cmd}`.\n\n",
         ));
 
         for (raw_name, schema) in &schemas {
@@ -469,7 +575,7 @@ mod tests {
         let doc: Value = serde_json::from_str(json).unwrap();
         let schemas = locate_schemas(&doc).expect("schemas");
         let mut g = Generator::default();
-        let body = g.emit_module("t", Path::new("spec.json"), schemas);
+        let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas);
         // Prove the generated source parses and formats.
         let module = glyph_parser::parse(&body).expect("generated source parses");
         let comments = glyph_lexer::comments(&body);
@@ -564,6 +670,42 @@ mod tests {
         assert!(text.contains("type Order = {"), "got:\n{text}");
         // The written file must itself parse (the self-validation guarantee).
         assert!(glyph_parser::parse(&text).is_ok());
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn dts_generates_when_typescript_is_available() {
+        // `glyph gen dts` shells out to node + the `typescript` package. Where
+        // either is absent (some CI/sandboxes), the command returns a clean
+        // Missing error rather than a failure — assert that contract, and the
+        // full mapping only when the toolchain is present.
+        let dir = std::env::temp_dir().join(format!("glyph-dts-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("acct.d.ts");
+        std::fs::write(
+            &src,
+            "export interface Account { id: number; name: string; nickname?: string; \
+             tags: string[]; kind: \"free\" | \"paid\"; }",
+        )
+        .unwrap();
+
+        match dts(&src, &dir.join("out")) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                assert!(text.starts_with("module acct"), "got:\n{text}");
+                assert!(text.contains("id: number,"), "got:\n{text}");
+                assert!(text.contains("nickname?: string,"), "got:\n{text}");
+                assert!(text.contains("tags: Array<string>,"), "got:\n{text}");
+                assert!(text.contains("kind: string,"), "enum narrowed; got:\n{text}");
+                assert!(glyph_parser::parse(&text).is_ok());
+            }
+            Err(GenError::NodeMissing) | Err(GenError::TypescriptMissing) => {
+                // Toolchain not present; the contract (clean skip) holds.
+            }
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
 
         let _ = std::fs::remove_dir_all(&dir);
     }

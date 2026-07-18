@@ -11,6 +11,8 @@
 //! - `glyph regen <fn>`              regenerate a function body from its @generate spec (Q40)
 //! - `glyph gen openapi <spec> --out <dir>`  generate committed Glyph types from an
 //!   OpenAPI 3 / Swagger 2 / JSON Schema document (Q40 type-driven generation)
+//! - `glyph gen dts <file.d.ts> --out <dir>`  generate committed Glyph types from a
+//!   TypeScript declaration file (needs node + the typescript package)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
 //! - `glyph --explain E0042`         long-form error documentation
 //!
@@ -108,6 +110,16 @@ enum GenTarget {
         /// The spec file (`.json`, `.yaml`, or `.yml`).
         #[arg(value_name = "SPEC")]
         spec: std::path::PathBuf,
+        /// Directory to write the generated `.glyph` file into.
+        #[arg(long, value_name = "DIR")]
+        out: std::path::PathBuf,
+    },
+    /// Generate Glyph types from a TypeScript `.d.ts` declaration file.
+    /// Needs `node` and the `typescript` package (npm install -g typescript).
+    Dts {
+        /// The TypeScript declaration file (`.d.ts`).
+        #[arg(value_name = "FILE")]
+        file: std::path::PathBuf,
         /// Directory to write the generated `.glyph` file into.
         #[arg(long, value_name = "DIR")]
         out: std::path::PathBuf,
@@ -435,8 +447,12 @@ fn main() {
                 }
             }
         }
-        Some(Command::Gen { target }) => match target {
-            GenTarget::Openapi { spec, out } => match glyph_cli::gen::openapi(&spec, &out) {
+        Some(Command::Gen { target }) => {
+            let result = match target {
+                GenTarget::Openapi { spec, out } => glyph_cli::gen::openapi(&spec, &out),
+                GenTarget::Dts { file, out } => glyph_cli::gen::dts(&file, &out),
+            };
+            match result {
                 Ok(report) => {
                     for note in &report.notes {
                         eprintln!("glyph gen: note: {note}");
@@ -457,8 +473,8 @@ fn main() {
                     eprintln!("glyph gen: {e}");
                     std::process::exit(1);
                 }
-            },
-        },
+            }
+        }
         Some(cmd) => {
             let name = match cmd {
                 Command::Build { .. }

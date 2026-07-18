@@ -25,6 +25,7 @@ glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict
 glyph build src/ --out dist/ --test # also run @example / @doc @run / property tests
 glyph fmt [path]                    # format in place (one canonical layout)
 glyph gen openapi spec.yaml --out src/  # generate committed Glyph types from an OpenAPI/JSON Schema spec
+glyph gen dts types.d.ts --out src/     # generate committed Glyph types from a TypeScript .d.ts (needs node + typescript)
 glyph llms                          # reprint this bootstrap offline (alias: glyph docs)
 glyph --explain E0204               # long-form explanation + fix for any error code
 ```

@@ -128,6 +128,24 @@ The generator maps the wire-faithful core (objects, `string`/`number`/`bool`,
 emit a validator that would reject real payloads. Read the notes; they tell you
 exactly what was approximated.
 
+### From a TypeScript `.d.ts`
+
+The same command works against a TypeScript declaration file, so you can pull an
+external package's or a `zod` schema's types into first-class, descriptor-bearing
+Glyph:
+
+```sh
+glyph gen dts node_modules/some-pkg/types.d.ts --out src/
+```
+
+It maps the same wire-faithful core — `interface`/`type` declarations, objects,
+primitives, arrays, references, optional (`field?:`) and `| null` members, and
+string-literal unions (narrowed to `string` with a note). This needs `node` and
+the `typescript` package on hand (`npm install -g typescript`); without them the
+command tells you exactly what to install. Materializing a `.d.ts` this way turns
+an ambient, unvalidated phantom into a real Glyph type you own and can validate —
+which is the whole point of the boundary below.
+
 ## What this does and does not cover
 
 - **Your own DTOs**: fully covered. Any `type` you declare in Glyph carries a

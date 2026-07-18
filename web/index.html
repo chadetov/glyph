@@ -10,6 +10,8 @@
     />
     <meta name="keywords" content="glyph, glyph language, glyph lang, glyphlang, programming language, typescript, transpiler, ai agents, llm" />
     <link rel="canonical" href="https://glyphlang.io/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/" />
@@ -206,7 +208,8 @@
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        max-width: 420px;
+        max-width: 100%;
+        overflow-x: auto;
       }
       .install .prompt {
         color: var(--muted);
@@ -713,8 +716,15 @@
         .wrap {
           padding: 0 20px;
         }
+        nav {
+          flex-wrap: wrap;
+          row-gap: 12px;
+        }
         .nav-links {
-          display: none;
+          gap: 16px;
+          flex-wrap: wrap;
+          order: 3;
+          width: 100%;
         }
         .hero {
           grid-template-columns: 1fr;
@@ -750,20 +760,151 @@
           font-size: 2.1rem;
         }
       }
+      /* accessibility: visible keyboard focus everywhere */
+      :focus-visible {
+        outline: 2px solid var(--indigo-text);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+      /* answers discovery grid (replaces the old FAQ accordion) */
+      .answers-intro {
+        text-align: center;
+        color: var(--muted);
+        max-width: 60ch;
+        margin: 0 auto 40px;
+      }
+      .ans-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .ans-card {
+        display: block;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .ans-card:hover {
+        border-color: var(--indigo);
+        background: var(--surface-3);
+      }
+      .ans-card .n {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        color: var(--indigo-text);
+        margin-bottom: 10px;
+      }
+      .ans-card .q {
+        display: block;
+        color: var(--text);
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 0.96rem;
+        line-height: 1.35;
+      }
+      .answers-cta {
+        text-align: center;
+        margin-top: 36px;
+      }
+      .band-cta {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      /* home diff showcase */
+      .diff-showcase {
+        margin: 44px auto 0;
+        max-width: 900px;
+      }
+      .diff-h {
+        text-align: center;
+        font-family: var(--display);
+        font-weight: 600;
+        font-size: 1.15rem;
+        margin: 0 0 20px;
+      }
+      .diff-showcase .two-up {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .diff-showcase .code {
+        background: #0d1424;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.6;
+        overflow-x: auto;
+      }
+      .diff-showcase .code .cap {
+        display: block;
+        padding: 9px 16px;
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+      .diff-showcase .code pre {
+        margin: 0;
+        padding: 14px 16px;
+        color: var(--text);
+      }
+      .diff-showcase .add {
+        color: var(--green);
+        display: block;
+      }
+      .diff-showcase .del {
+        color: var(--rose);
+        display: block;
+      }
+      .diff-showcase .vpad {
+        padding: 0 16px 14px;
+      }
+      .verdict {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        padding: 4px 12px;
+        border-radius: 999px;
+      }
+      .verdict.good {
+        color: var(--green);
+        border: 1px solid rgba(74, 222, 128, 0.4);
+        background: rgba(74, 222, 128, 0.08);
+      }
+      .verdict.bad {
+        color: var(--rose);
+        border: 1px solid rgba(251, 113, 133, 0.35);
+        background: rgba(251, 113, 133, 0.07);
+      }
+      @media (max-width: 760px) {
+        .ans-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .diff-showcase .two-up {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 460px) {
+        .ans-grid {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <nav>
-        <span class="brand">GLYPH</span>
+        <a href="/" class="brand">GLYPH</a>
         <span class="nav-links">
-          <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">Docs</a>
           <a href="/playground/">Playground</a>
-          <a href="https://github.com/chadetov/glyph/blob/main/docs/language/spec.md">Spec</a>
-          <a href="#data">Benchmarks</a>
           <a href="/answers/">Answers</a>
           <a href="/hardening/">Hardening</a>
-          <a href="/llms.txt">For agents</a>
+          <a href="#data">Benchmarks</a>
           <a href="https://github.com/chadetov/glyph">GitHub</a>
         </span>
         <a class="btn primary nav-cta" href="/playground/">Get Started</a>
@@ -773,7 +914,7 @@
     <div class="wrap">
       <header class="hero">
         <div>
-          <span class="pill"><span class="dot"></span>v0.1.0 · early preview</span>
+          <span class="pill"><span class="dot"></span>v0.1.2 · early preview</span>
           <h1>TypeScript your agents can't <span class="accent">quietly break</span>.</h1>
           <p class="sub">
             Glyph compiles to clean TypeScript and reads almost identically — so
@@ -783,11 +924,7 @@
           </p>
           <div class="cta">
             <a class="btn primary" href="/playground/">Try the Playground →</a>
-            <a
-              class="btn"
-              href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md"
-              >Read the Docs</a
-            >
+            <a class="btn" href="/answers/">Read the Answers →</a>
           </div>
           <div class="install" title="Requires Node.js 18+">
             <span class="prompt">$</span>
@@ -967,7 +1104,31 @@
             <span class="bar-lang">Rust</span>
             <div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div>
           </div>
-          <p class="bench-note">
+          <div class="diff-showcase">
+          <h3 class="diff-h">One change, one line &mdash; see it, don't take our word</h3>
+          <div class="two-up">
+            <div class="code">
+              <span class="cap">TypeScript &mdash; add "/billing"</span>
+<pre> const routes = [
+   "/home",
+<span class="del">-  "/about"</span>
+<span class="add">+  "/about",</span>
+<span class="add">+  "/billing"</span>
+ ]</pre>
+              <div class="vpad"><span class="verdict bad">3 lines moved for 1 change</span></div>
+            </div>
+            <div class="code">
+              <span class="cap">Glyph &mdash; add "/billing"</span>
+<pre> let routes = [
+   "/home",
+   "/about",
+<span class="add">+  "/billing",</span>
+ ]</pre>
+              <div class="vpad"><span class="verdict good">1 line, exactly the change</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="bench-note">
             Safety usually costs length — Go and Rust, the other statically typed
             rows with explicit error handling, are the longest. Glyph is the only
             one that is both safe and lean: ~29% fewer tokens than TypeScript and
@@ -987,133 +1148,36 @@
       </div>
     </section>
 
-    <section id="faq">
+<section id="answers">
       <div class="wrap">
         <h2 class="section-head">Questions engineers actually ask</h2>
-        <p class="friction-intro">
-          The honest answers — what works today, and what is still on the way.
+        <p class="answers-intro">
+          Eight questions, eight straight answers &mdash; what works today, and what's
+          next. Read them as one guided walk-through.
         </p>
-        <div class="faq">
-          <details>
-            <summary>Building with an AI agent — where does it start?</summary>
-            <p class="answer">
-              Point the agent at <a href="/llms.txt">glyphlang.io/llms.txt</a> (also
-              committed as <code>AGENTS.md</code> in the repo). It is one document
-              that takes an agent from zero to correct, runnable Glyph: install and
-              run commands, the program shape, a full syntax cheat-sheet, every
-              standard-library signature, the import model, and the gotchas — no
-              source-diving. With the toolchain installed, <code>glyph llms</code>
-              prints the same thing offline, and <code>glyph init</code> scaffolds
-              a runnable starter project.
-            </p>
-          </details>
-          <details>
-            <summary>Can I import my existing TypeScript, JavaScript, or Node libraries?</summary>
-            <p class="answer">
-              Yes. Glyph compiles to ordinary TypeScript and rides npm: a
-              <code>.glyph</code> module emits a <code>.ts</code> file that imports
-              from any npm package and is itself importable from your existing
-              <code>.ts</code>. That is the whole point of compiling to TS instead
-              of shipping a new runtime. Today interop crosses that TypeScript
-              boundary; a dedicated <code>@ffi</code> declaration syntax is planned
-              for v2, but you do not need it to use the npm ecosystem now. The
-              <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/external-imports.md">external-imports guide</a>
-              shows the import rule, the <code>.types/</code> mechanism, and a
-              worked example.
-            </p>
-          </details>
-          <details>
-            <summary>How does debugging work?</summary>
-            <p class="answer">
-              You debug the emitted TypeScript with the tools you already use —
-              Node's inspector, browser devtools, your IDE's JS/TS debugger. The
-              output is clean, readable TS that maps closely to your source, not
-              minified soup. Source maps that step straight back to
-              <code>.glyph</code> line numbers are not in v1 yet; they are on the
-              roadmap. Until then, the generated <code>.ts</code> is meant to be
-              read and stepped through directly.
-            </p>
-          </details>
-          <details>
-            <summary>Does it work with React, Node, and frameworks like NestJS?</summary>
-            <p class="answer">
-              React is built in: <code>component</code> declarations compile to
-              React function components and JSX lowers to
-              <code>React.createElement</code>. Anything that runs on Node runs
-              Glyph's output, so Express, Nest, and the rest consume
-              Glyph-generated TypeScript like any other module. For a plain Node
-              backend, <code>std/http</code> now ships a small errors-as-values
-              server (<code>serve</code> / <code>Handler</code> / <code>Request</code>
-              / <code>Response</code>). Deep, decorator-heavy framework integration
-              at scale is still maturing — that is the kind of thing we want early
-              adopters to push on.
-            </p>
-          </details>
-          <details>
-            <summary>Is there a VS Code / editor experience?</summary>
-            <p class="answer">
-              Yes. There is a language server and a VS Code extension: syntax
-              highlighting, diagnostics with stable error codes, hover types,
-              go-to-definition, completion, and format-on-save via
-              <code>glyph fmt</code>. Rename and find-references are landing in
-              v1.1. The
-              <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/editor-setup.md">editor setup guide</a>
-              walks through installing it in VS Code (and any other LSP editor),
-              format-on-save, and troubleshooting.
-            </p>
-          </details>
-          <details>
-            <summary>Why TypeScript, and not Go or a fresh language?</summary>
-            <p class="answer">
-              Because TypeScript is where agents already write the most code and
-              where the ecosystem you depend on — npm, React, Node — lives. Glyph
-              is adoptable one file at a time <em>only</em> because its target is
-              TS; you cannot drop Go into an existing TS codebase file by file.
-              The point that Go's small, stable keyword surface gives an agent
-              fewer ways to go wrong is a fair one — it is exactly why Glyph keeps
-              a deliberately small core — and Go is now included in the density
-              benchmark above.
-            </p>
-          </details>
-          <details>
-            <summary>Does using fewer tokens actually mean an agent writes better code?</summary>
-            <p class="answer">
-              No, not on its own — and we do not claim it does. Density is the last
-              of four pillars, not the first. The wedge is verifiability and
-              greppability: code that cannot lie about its types and symbols that
-              grep to one place. What we have <em>not</em> yet measured is an agent
-              success-rate or tries-to-correct number against TypeScript on the
-              same task. That study is honest future work, and we say so on the
-              <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmarks page</a>.
-            </p>
-          </details>
-          <details>
-            <summary>How do I build a real app with it?</summary>
-            <p class="answer">
-              Run <code>glyph init</code> to scaffold a runnable project, then read
-              the <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a>
-              and the worked
-              <a href="https://github.com/chadetov/glyph/tree/main/examples">example programs</a>
-              (a CLI tool, a React component, and more), or experiment in the
-              <a href="/playground/">playground</a>. For a backend, <code>std/http</code>
-              gives you an HTTP server today. Larger end-to-end starters — a full
-              service with auth and middleware — are still in progress, because more
-              than one engineer asked for exactly that.
-            </p>
-          </details>
+        <div class="ans-grid">
+          <a class="ans-card" href="/answers/verifiability/"><span class="n">01</span><span class="q">What stops an agent from silently breaking my code?</span></a>
+          <a class="ans-card" href="/answers/diff-stability/"><span class="n">02</span><span class="q">Will agent edits stay clean, or reformat my whole file?</span></a>
+          <a class="ans-card" href="/answers/greppability/"><span class="n">03</span><span class="q">Can an agent &mdash; or I &mdash; find where anything is defined?</span></a>
+          <a class="ans-card" href="/answers/imports/"><span class="n">04</span><span class="q">Can I use my existing TypeScript, JS, and npm libraries?</span></a>
+          <a class="ans-card" href="/answers/react/"><span class="n">05</span><span class="q">Does it work with React &mdash; components, hooks, and Context?</span></a>
+          <a class="ans-card" href="/answers/why-typescript/"><span class="n">06</span><span class="q">Why TypeScript, and not Go or a new language?</span></a>
+          <a class="ans-card" href="/answers/ai-authoring/"><span class="n">07</span><span class="q">Can an AI reliably write a language it's barely seen?</span></a>
+          <a class="ans-card" href="/answers/tooling/"><span class="n">08</span><span class="q">What's the editor, debugging, and error experience?</span></a>
         </div>
-        <p class="friction-intro" style="text-align:center; margin-top:32px;">
-          Every question engineers raised is answered in full on the
-          <a href="/answers/">Answers</a> page &mdash; and the bugs their testing found and
-          fixed are on the <a href="/hardening/">Hardening</a> page.
-        </p>
+        <div class="answers-cta">
+          <a class="btn primary" href="/answers/">Explore all 8 answers &rarr;</a>
+        </div>
       </div>
     </section>
 
     <div class="wrap">
       <div class="band">
         <h2>Write less. <span class="accent">Break nothing.</span></h2>
-        <a class="btn primary" href="/playground/">Try the Playground →</a>
+        <div class="band-cta">
+          <a class="btn primary" href="/playground/">Try the Playground →</a>
+          <a class="btn" href="/answers/">Read the Answers →</a>
+        </div>
       </div>
     </div>
 

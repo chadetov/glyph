@@ -99,13 +99,8 @@
 //! reserved words as identifier names, not emit-time mangling (which would
 //! break import name matching). Tracked for a later day; no example trips it.
 //!
-//! Two more gaps in the same family, both fixed once type context is threaded
-//! into the emitter (or by a resolver rule):
-//! - A single-identifier payload bind `Variant(x)` reads `.value`, which is
-//!   correct for a non-record payload (`Ok(x)`, `Some(x)`) but wrong for a
-//!   record payload bound whole (`Variant(p)`), where the fields are spread
-//!   flat. The corpus binds records with object patterns, so no example trips
-//!   it; the whole-record reconstruction needs the variant's declared shape.
+//! One more gap in the same family, fixed once type context is threaded into
+//! the emitter (or by a resolver rule):
 //! - The lowering synthesizes `__`-prefixed temporaries (`__mN` for match
 //!   scrutinees, `__rN` for `?` operands); a user identifier with one of those
 //!   exact names would collide. A resolver rule reserving the `__` prefix is
@@ -132,12 +127,19 @@ pub enum EmitError {
     /// construct name (for the diagnostic) and the offending span.
     #[error("TS emission for {construct} is not implemented yet")]
     Unsupported { construct: &'static str, span: Span },
+    /// An `<else>` (D6) that is not the immediate sibling of its `<if>`. This
+    /// is an intentional adjacency rule, not a missing feature: the pairing is
+    /// only recognized when the `<else>` directly follows its `<if>` (a sibling
+    /// element between them breaks it).
+    #[error("an `<else>` must immediately follow its `<if>`")]
+    MisplacedElse { span: Span },
 }
 
 impl EmitError {
     pub fn span(&self) -> Span {
         match self {
             EmitError::Unsupported { span, .. } => *span,
+            EmitError::MisplacedElse { span } => *span,
         }
     }
 
@@ -145,6 +147,7 @@ impl EmitError {
     pub fn code(&self) -> &'static str {
         match self {
             EmitError::Unsupported { .. } => "E0300",
+            EmitError::MisplacedElse { .. } => "E0301",
         }
     }
 
@@ -154,6 +157,19 @@ impl EmitError {
             EmitError::Unsupported { .. } => {
                 Some("Rewrite using a construct the v1 emitter supports; see the spec for the supported forms.")
             }
+            EmitError::MisplacedElse { .. } => Some(
+                "Move the `<else>` so it is the next sibling after its `<if>`; remove or relocate any element that sits between them.",
+            ),
+        }
+    }
+
+    /// An optional background note explaining the rule behind the error.
+    pub fn note(&self) -> Option<&'static str> {
+        match self {
+            EmitError::Unsupported { .. } => None,
+            EmitError::MisplacedElse { .. } => Some(
+                "`<else>` is paired with its `<if>` only when it is the immediately following sibling; a sibling element (such as a `<p>`) between them breaks the pairing. This is an intentional D6 restriction.",
+            ),
         }
     }
 }
@@ -604,10 +620,11 @@ impl<'a> Emitter<'a> {
     }
 
     /// Emit the Q8 runtime descriptor for a record type: an `is` type guard
-    /// doing shallow validation (each primitive field checked by `typeof`,
-    /// each other field checked for presence), plus a `parse` entry point that
-    /// validates an `unknown` and returns a `Result` (`Ok` of the value, or an
-    /// `Err` describing the failure). Deep/recursive validation is later work.
+    /// (each field checked by `field_value_check`, which recurses through
+    /// primitives, named-type descriptors, `Array<E>`, `Option<E>`, `Record<K,V>`,
+    /// and inline records), plus a `parse` entry point that validates an
+    /// `unknown` and returns a `Result` (`Ok` of the value, or an `Err`
+    /// describing the failure).
     ///
     /// `parse` is deliberately self-contained: it inlines the `Result`
     /// wire-format (the same `tag`/`value` contract the union lowering uses,
@@ -618,13 +635,11 @@ impl<'a> Emitter<'a> {
     /// correct even for a record whose name shadows the `parse` parameter (a
     /// type literally named `value`).
     ///
-    /// **Soundness limitation**: because a non-primitive field is only checked
-    /// for presence, the `value is X` narrowing is stronger than the runtime
-    /// proof — `User.is({ parent: 42, ... })` returns true even though `parent`
-    /// is not a `User` (and `User.parse` inherits the same gap). This is the
-    /// documented v1 "shallow validation" scope (`docs/roadmap/04-transpiler.md`);
-    /// recursing into a named-record field's own `is` would close the gap and is
-    /// the path to full soundness.
+    /// **Soundness limitation**: the remaining shallow cases are the
+    /// `field_value_check` fallbacks — a bare generic parameter, an imported
+    /// type, or a function-typed field are only checked for presence (`!==
+    /// undefined`), so their `value is X` narrowing is stronger than the runtime
+    /// proof. Closing those needs generic/imported descriptors (later work).
     fn emit_record_descriptor(&mut self, name: &Ident, fields: &[RecordTypeField]) {
         let checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
         self.line(&format!("export const {name} = {{"));
@@ -1370,6 +1385,43 @@ impl<'a> Emitter<'a> {
         Some(variants.iter().map(|v| v.name.to_string()).collect())
     }
 
+    /// Whether the variant named `variant` of the tagged union `ty` carries a
+    /// record payload (spread flat into the scrutinee object as
+    /// `{ tag, ...fields }`), as opposed to a single-value payload (stored under
+    /// `value`) or no payload. A single-name binding `Variant(v)` must bind the
+    /// whole scrutinee object for a record payload, but `scrutinee.value` for a
+    /// single-value one. Prelude variants (`Ok`/`Err`/`Some`) are always
+    /// single-value, so this returns false for them and for any type whose
+    /// union declaration cannot be resolved (mirroring `union_variant_names`).
+    fn variant_payload_is_record(&self, ty: &Ty, variant: &str) -> bool {
+        let ty = match ty {
+            Ty::App { base, .. } => base.as_ref(),
+            other => other,
+        };
+        let Ty::Named { symbol, path } = ty else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
+            return false;
+        };
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return false;
+        }
+        let SymbolKind::Type { decl_idx } = &sym.kind else {
+            return false;
+        };
+        let Some(Decl::Type(td)) = self.module.items.get(*decl_idx as usize) else {
+            return false;
+        };
+        let TypeExpr::Union { variants, .. } = &td.body else {
+            return false;
+        };
+        variants
+            .iter()
+            .find(|v| v.name.as_ref() == variant)
+            .is_some_and(|v| matches!(v.payload, Some(TypeExpr::Record { .. })))
+    }
+
     /// Variant names of `outer_variant`'s payload union in `scrutinee_ty`, when
     /// that payload is itself a tagged union. Lets `degroup_nested_arms`
     /// recognize a nested *nullary* variant (`Err(Empty)` where `Empty` is a
@@ -1645,9 +1697,11 @@ impl<'a> Emitter<'a> {
             match &arm.pattern {
                 Pattern::Constructor { path, args, .. } => {
                     let variant = path.last().expect("constructor path is non-empty");
+                    let record_payload =
+                        self.variant_payload_is_record(self.types.get(scrutinee.span()), variant);
                     self.line(&format!("case \"{variant}\": {{"));
                     self.indent += 1;
-                    self.emit_arm_binds(&m, args);
+                    self.emit_arm_binds(&m, args, record_payload);
                     self.emit_arm_body(&arm.body, term, true)?;
                     self.indent -= 1;
                     self.line("}");
@@ -2065,6 +2119,16 @@ impl<'a> Emitter<'a> {
                             "(typeof {access} === \"object\" && {access} !== null && ({tag} === \"None\" || ({tag} === \"Some\" && {inner_check})))"
                         )
                     }
+                    // `Record<K, V>` is a structural object map: reject non-objects
+                    // (a string, an array, null) and recurse the value type over
+                    // every entry, so a `Record<string, number>` field can never
+                    // bind to a string or an object whose values are not numbers.
+                    (Some("Record"), [_key, value]) => {
+                        let value_check = self.field_value_check(value, "__v");
+                        format!(
+                            "(typeof {access} === \"object\" && {access} !== null && !Array.isArray({access}) && Object.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))"
+                        )
+                    }
                     _ => format!("{access} !== undefined"),
                 }
             }
@@ -2093,12 +2157,20 @@ impl<'a> Emitter<'a> {
     }
 
     /// Bind a constructor arm's payload from the scrutinee temporary `m`: an
-    /// object pattern reads each spread field by name; a single identifier
-    /// reads the non-record `value` field; no args and a `_` wildcard
-    /// (`Err(_)`) bind nothing.
-    fn emit_arm_binds(&mut self, m: &str, args: &[Pattern]) {
+    /// object pattern reads each spread field by name; a single identifier binds
+    /// the whole scrutinee object when the variant's payload is a record (its
+    /// fields are spread flat as `{ tag, ...fields }`, so the object itself
+    /// carries them), or reads the `value` field for a single-value payload
+    /// (`Ok(x)`, `Some(x)`); no args and a `_` wildcard (`Err(_)`) bind nothing.
+    fn emit_arm_binds(&mut self, m: &str, args: &[Pattern], record_payload: bool) {
         match args {
-            [Pattern::Ident { name, .. }] => self.line(&format!("const {name} = {m}.{PAYLOAD};")),
+            [Pattern::Ident { name, .. }] => {
+                if record_payload {
+                    self.line(&format!("const {name} = {m};"));
+                } else {
+                    self.line(&format!("const {name} = {m}.{PAYLOAD};"));
+                }
+            }
             [Pattern::Object { fields, .. }] => {
                 for f in fields {
                     let binding = f.binding.as_ref().unwrap_or(&f.key);
@@ -2610,13 +2682,10 @@ impl<'a> Emitter<'a> {
             // handled in `jsx_children`) has an empty alternative.
             JsxKind::If => {
                 let cond = self.jsx_attr_expr(j, "cond")?;
-                let then = self.jsx_node(&j.children)?;
+                let then = self.jsx_branch_node(&j.children)?;
                 Ok(format!("({cond} ? {then} : null)"))
             }
-            JsxKind::Else => Err(EmitError::Unsupported {
-                construct: "an `<else>` without a preceding `<if>`",
-                span: j.span,
-            }),
+            JsxKind::Else => Err(EmitError::MisplacedElse { span: j.span }),
             JsxKind::Case => Err(EmitError::Unsupported {
                 construct: "a `<case>` outside a `<match>`",
                 span: j.span,
@@ -2716,7 +2785,7 @@ impl<'a> Emitter<'a> {
                 JsxChild::Element(el) => match JsxKind::classify(&el.name) {
                     JsxKind::If => {
                         let cond = self.jsx_attr_expr(el, "cond")?;
-                        let then = self.jsx_node(&el.children)?;
+                        let then = self.jsx_branch_node(&el.children)?;
                         // A following `<else>` sibling (past whitespace) is the
                         // alternative; otherwise the alternative is `null`.
                         let (alt, else_idx) = self.find_else(children, i + 1)?;
@@ -2725,12 +2794,7 @@ impl<'a> Emitter<'a> {
                             i = e;
                         }
                     }
-                    JsxKind::Else => {
-                        return Err(EmitError::Unsupported {
-                            construct: "an `<else>` without a preceding `<if>`",
-                            span: el.span,
-                        })
-                    }
+                    JsxKind::Else => return Err(EmitError::MisplacedElse { span: el.span }),
                     _ => out.push(self.emit_jsx(el)?),
                 },
             }
@@ -2753,7 +2817,7 @@ impl<'a> Emitter<'a> {
                     j += 1
                 }
                 JsxChild::Element(el) if JsxKind::classify(&el.name) == JsxKind::Else => {
-                    return Ok((self.jsx_node(&el.children)?, Some(j)));
+                    return Ok((self.jsx_branch_node(&el.children)?, Some(j)));
                 }
                 _ => break,
             }
@@ -2773,6 +2837,22 @@ impl<'a> Emitter<'a> {
         })
     }
 
+    /// Combine a conditional (`<if>`/`<else>`) or match (`<case>`) branch body
+    /// into a single React node. Identical to `jsx_node` except that several
+    /// children are wrapped in `React.createElement(React.Fragment, null, ...)`
+    /// rather than a bare array literal. A branch occupies exactly one node slot,
+    /// so a keyless Fragment is the correct grouping; a bare array child would
+    /// trip React's "unique key" dev warning. (`<for>` bodies keep `jsx_node`:
+    /// they map to sibling list entries and forward `key=` instead.)
+    fn jsx_branch_node(&self, children: &[JsxChild]) -> Result<String, EmitError> {
+        let parts = self.jsx_children(children)?;
+        Ok(match parts.len() {
+            0 => "null".to_string(),
+            1 => parts.into_iter().next().expect("len checked"),
+            _ => format!("React.createElement(React.Fragment, null, {})", parts.join(", ")),
+        })
+    }
+
     /// Lower `<match value={v}> <case V bind={x}>..</case> .. </match>` to a
     /// switch-returning IIFE: `((__v) => { switch (__v.tag) { case "V": {
     /// const x = __v.x; return ..; } .. } })(v)`. A `<case Variant>` with no
@@ -2789,7 +2869,7 @@ impl<'a> Emitter<'a> {
                         construct: "a `<case>` without a variant name",
                         span: el.span,
                     })?;
-                    let node = self.jsx_node(&el.children)?;
+                    let node = self.jsx_branch_node(&el.children)?;
                     match find_expr_attr(&el.attrs, "bind") {
                         Some(Expr::Ident { name, .. }) => cases.push_str(&format!(
                             "case \"{variant}\": {{ const {name} = __v.{name}; return {node}; }} "
@@ -3648,6 +3728,32 @@ mod tests {
         // (G4), not a shallow presence check.
         assert!(
             ts.contains("User.is((value as Record<string, unknown>).parent)"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn record_field_map_is_structurally_validated() {
+        // BUG-2: a `Record<K, V>` field must be checked for object-ness (and its
+        // value type recursed over every entry), not merely presence-checked, so
+        // a string can never bind where a `Record<string, number>` is required.
+        let ts = emit("module x\ntype Config = { name: string, limits: Record<string, number> }\n");
+        // No shallow `!== undefined` presence check for the Record field.
+        assert!(
+            !ts.contains("(value as Record<string, unknown>).limits !== undefined"),
+            "Record field must not be presence-checked only: {ts}"
+        );
+        // Structural object guard plus a per-value recursion into `number`.
+        assert!(
+            ts.contains("typeof (value as Record<string, unknown>).limits === \"object\""),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("!Array.isArray((value as Record<string, unknown>).limits)"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("Object.values((value as Record<string, unknown>).limits as Record<string, unknown>).every((__v: unknown) => typeof __v === \"number\")"),
             "{ts}"
         );
     }
@@ -4528,6 +4634,30 @@ mod tests {
     }
 
     #[test]
+    fn single_name_bind_of_record_payload_binds_the_whole_object() {
+        // `Valid(v)` over a record-payload variant must bind `v` to the flat
+        // scrutinee object (the fields are spread as `{ tag, ...fields }`), NOT
+        // read `.value`, which does not exist. A single-value payload (`Ok(x)`)
+        // still reads `.value`.
+        let ts = emit(
+            "module x\ntype Row =\n  | Valid({ id: string, amount: number })\n  | Invalid({ id: string })\nfn amt(r: Row) -> number {\n  return match r {\n    Valid(v) => v.amount,\n    Invalid(_) => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"Valid\": {"), "{ts}");
+        assert!(ts.contains("const v = __m0;"), "{ts}");
+        assert!(!ts.contains("const v = __m0.value;"), "{ts}");
+    }
+
+    #[test]
+    fn single_name_bind_of_single_value_payload_reads_value() {
+        // A user variant whose payload is a single (non-record) value stores it
+        // under `value`, so `Wrap(v)` must read `.value`.
+        let ts = emit(
+            "module x\ntype Box =\n  | Wrap(number)\n  | Empty\nfn f(b: Box) -> number {\n  return match b {\n    Wrap(v) => v,\n    Empty => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("const v = __m0.value;"), "{ts}");
+    }
+
+    #[test]
     fn nested_constructor_pattern_emits_a_grouped_inner_switch() {
         // Example 02's shape: `Err(NetworkError({ status }))` over `Result<T,
         // FeedError>` dispatches the outer Ok/Err tag, then the Err payload's
@@ -4662,6 +4792,22 @@ mod tests {
             ts.contains("(flag ? React.createElement(\"p\", null, \"yes\") : React.createElement(\"p\", null, \"no\"))"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn non_adjacent_else_reports_the_adjacency_rule_not_a_missing_feature() {
+        // A sibling element between an `<if>` and its `<else>` breaks the
+        // pairing (D6 adjacency rule). The diagnostic must name that rule and
+        // must not frame it as an unimplemented feature.
+        let err = emit_err(
+            "module f\ncomponent Sep(show: bool) -> Component {\n  return <div>\n    <if cond={show}><span>yes</span></if>\n    <p>middle</p>\n    <else><span>no</span></else>\n  </div>\n}\n",
+        );
+        assert!(matches!(err, EmitError::MisplacedElse { .. }), "{err:?}");
+        assert_eq!(err.code(), "E0301");
+        let msg = format!("{err}");
+        assert_eq!(msg, "an `<else>` must immediately follow its `<if>`");
+        assert!(!msg.contains("not implemented"), "{msg}");
+        assert!(err.note().unwrap().contains("immediately following sibling"));
     }
 
     #[test]

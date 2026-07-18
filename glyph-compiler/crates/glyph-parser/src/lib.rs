@@ -659,6 +659,19 @@ fn main() {
     }
 
     #[test]
+    fn range_pattern_reports_unsupported_not_missing_arrow() {
+        let err = parse(
+            "module x\nfn f(s: number) -> bool { match s { 429 => true, 500..599 => true, else => false } }\n",
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, ParseError::UnsupportedRangePattern { .. }),
+            "expected UnsupportedRangePattern, got {err:?}"
+        );
+        assert_eq!(err.code(), "E0007");
+    }
+
+    #[test]
     fn object_literal_allows_quoted_string_keys() {
         let m = parse_or_panic(
             "module x\nfn main() { let y = { \"Content-Type\": a, plain: b } }\n",

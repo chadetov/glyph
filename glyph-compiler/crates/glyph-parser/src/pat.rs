@@ -36,6 +36,20 @@ pub(crate) fn parse_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
 }
 
 fn parse_pattern_inner(p: &mut Cursor) -> Result<Pattern, ParseError> {
+    let pattern = parse_pattern_atom(p)?;
+    // Range / comparison patterns (`500..599 =>`) are not supported in v1.
+    // The `..` token lexes fine but has no meaning in pattern position, so
+    // catch it here with a targeted diagnostic instead of letting the caller
+    // report a misleading "expected `=>`" against the `DotDot` token.
+    if matches!(p.peek(), Token::DotDot) {
+        return Err(ParseError::UnsupportedRangePattern {
+            span: p.peek_span(),
+        });
+    }
+    Ok(pattern)
+}
+
+fn parse_pattern_atom(p: &mut Cursor) -> Result<Pattern, ParseError> {
     let start_span = p.peek_span();
     match p.peek().clone() {
         Token::Identifier(name) if name.as_ref() == "_" => {

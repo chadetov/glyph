@@ -30,6 +30,13 @@ pub enum ParseError {
     /// instead of a generic "unexpected token".
     #[error("Glyph has no `{keyword}`")]
     NoConditionalKeyword { keyword: &'static str, span: Span },
+
+    /// A range / comparison pattern (`500..599 =>`) in a match arm. The `..`
+    /// token lexes but has no meaning in pattern position in v1. Carried as
+    /// its own variant so the author gets "range patterns aren't supported"
+    /// instead of a misleading "expected `=>`" against the `DotDot` token.
+    #[error("range patterns (e.g. `500..599`) are not supported in v1")]
+    UnsupportedRangePattern { span: Span },
 }
 
 impl ParseError {
@@ -40,7 +47,8 @@ impl ParseError {
             | ParseError::Unexpected { span, .. }
             | ParseError::ExpectedEof { span }
             | ParseError::NotImplemented { span }
-            | ParseError::NoConditionalKeyword { span, .. } => *span,
+            | ParseError::NoConditionalKeyword { span, .. }
+            | ParseError::UnsupportedRangePattern { span } => *span,
         }
     }
 
@@ -54,6 +62,7 @@ impl ParseError {
             ParseError::ExpectedEof { .. } => "E0004",
             ParseError::NotImplemented { .. } => "E0005",
             ParseError::NoConditionalKeyword { .. } => "E0006",
+            ParseError::UnsupportedRangePattern { .. } => "E0007",
         }
     }
 
@@ -73,6 +82,9 @@ impl ParseError {
             ParseError::NotImplemented { .. } => "This construct is not supported yet.",
             ParseError::NoConditionalKeyword { .. } => {
                 "Glyph has no `if`/`else` (D3); `match` is the only conditional — e.g. `match cond { true => a, false => b }`."
+            }
+            ParseError::UnsupportedRangePattern { .. } => {
+                "Range and comparison patterns aren't in v1. Enumerate the values as separate arms (`429 => ..., 500 => ...,`) or match a guard-less scrutinee, e.g. a boolean derived from a comparison."
             }
         })
     }

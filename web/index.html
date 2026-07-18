@@ -1036,40 +1036,6 @@
       </div>
     </section>
 
-<section>
-      <div class="wrap">
-        <h2 class="section-head">One change, one line</h2>
-        <p class="friction-intro">
-          The diff is the change, not the noise around it. Add one route &mdash; and review one line.
-        </p>
-        <div class="diff-showcase">
-          <div class="two-up">
-            <div class="code">
-              <span class="cap">TypeScript &mdash; add "/billing"</span>
-<pre> const routes = [
-   "/home",
-<span class="del">-  "/about"</span>
-<span class="add">+  "/about",</span>
-<span class="add">+  "/billing"</span>
- ]</pre>
-              <div class="vpad"><span class="verdict bad">3 lines moved for 1 change</span></div>
-            </div>
-            <div class="code">
-              <span class="cap">Glyph &mdash; add "/billing"</span>
-<pre> let routes = [
-   "/home",
-   "/about",
-<span class="add">+  "/billing",</span>
- ]</pre>
-              <div class="vpad"><span class="verdict good">1 line, exactly the change</span></div>
-            </div>
-          </div>
-        </div>
-        <div style="text-align:center; margin-top:32px;">
-          <a class="btn" href="/benchmarks/">See the full benchmarks &rarr;</a>
-        </div>
-      </div>
-    </section>
 
 <section id="answers">
       <div class="wrap">

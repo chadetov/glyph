@@ -57,8 +57,10 @@ pub enum GenError {
     GeneratedInvalid { reason: String, source_text: String },
     #[error("`node` not found on PATH. `glyph gen dts` needs Node.js to read TypeScript declarations; install it from https://nodejs.org.")]
     NodeMissing,
-    #[error("the `typescript` package is not resolvable. Install it with `npm install -g typescript`, then re-run `glyph gen dts`.")]
+    #[error("the `typescript` package is not resolvable. Install it with `npm install -g typescript@6`, then re-run `glyph gen dts`.")]
     TypescriptMissing,
+    #[error("the installed TypeScript is the native port (7.x), whose compiler API `glyph gen dts` does not yet support. Install the classic compiler with `npm install -g typescript@6` (or add `typescript@^6` to the project), then re-run.")]
+    TypescriptUnsupported,
     #[error("reading the TypeScript declarations failed: {msg}")]
     Helper { msg: String },
 }
@@ -204,6 +206,9 @@ pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
         let stderr = String::from_utf8_lossy(&output.stderr);
         if stderr.contains("GLYPH_GEN_NO_TYPESCRIPT") {
             return Err(GenError::TypescriptMissing);
+        }
+        if stderr.contains("GLYPH_GEN_TS_UNSUPPORTED") {
+            return Err(GenError::TypescriptUnsupported);
         }
         return Err(GenError::Helper {
             msg: stderr.trim().to_string(),
@@ -701,8 +706,11 @@ mod tests {
                 assert!(text.contains("kind: string,"), "enum narrowed; got:\n{text}");
                 assert!(glyph_parser::parse(&text).is_ok());
             }
-            Err(GenError::NodeMissing) | Err(GenError::TypescriptMissing) => {
-                // Toolchain not present; the contract (clean skip) holds.
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {
+                // Toolchain absent or incompatible (e.g. CI installs the
+                // TypeScript 7 native port); the clean-skip contract holds.
             }
             Err(e) => panic!("unexpected gen dts error: {e}"),
         }

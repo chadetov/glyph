@@ -26,9 +26,17 @@ const require = createRequire(import.meta.url);
 let ts;
 try {
   ts = require("typescript");
+  if (ts && ts.default && !ts.ScriptTarget) ts = ts.default;
 } catch {
   process.stderr.write("GLYPH_GEN_NO_TYPESCRIPT\n");
   process.exit(3);
+}
+// TypeScript 7 (the native "tsgo" port) ships a different JS surface that does
+// not expose the classic compiler API this helper walks. Detect it and ask for
+// a compatible compiler rather than crash cryptically.
+if (!ts || typeof ts.createSourceFile !== "function" || !ts.ScriptTarget) {
+  process.stderr.write("GLYPH_GEN_TS_UNSUPPORTED\n");
+  process.exit(4);
 }
 
 const file = process.argv[2];

@@ -141,8 +141,10 @@ glyph gen dts node_modules/some-pkg/types.d.ts --out src/
 It maps the same wire-faithful core — `interface`/`type` declarations, objects,
 primitives, arrays, references, optional (`field?:`) and `| null` members, and
 string-literal unions (narrowed to `string` with a note). This needs `node` and
-the `typescript` package on hand (`npm install -g typescript`); without them the
-command tells you exactly what to install. Materializing a `.d.ts` this way turns
+the **classic** TypeScript compiler (`npm install -g typescript@6`); the 7.x
+native port (`typescript@latest`) does not expose the compiler API this uses,
+and `glyph gen dts` will tell you so and point you at `typescript@6`.
+Materializing a `.d.ts` this way turns
 an ambient, unvalidated phantom into a real Glyph type you own and can validate —
 which is the whole point of the boundary below.
 

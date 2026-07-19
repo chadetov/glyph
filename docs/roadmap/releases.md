@@ -92,8 +92,11 @@ leads with it.
 - **Source-mapped `tsc` errors** (L, high value). Errors only `tsc` catches point
   at generated `.ts`, not `.glyph` source — the biggest gap against the
   Elm-quality-errors claim. Needs a source map through emit.
-- **Nested record-payload whole-ident bind** (S). `Err(BadQty(b))` binding the
-  whole record still `tsc`-errors in the nested case (`BadQty({sku})` works).
+- **Nested record-payload whole-ident bind** (S) — ✅ **done.** `Err(BadQty(b))`
+  binding a whole record payload in a nested match emitted `.value` (which the
+  flattened `{tag, ...fields}` object lacks) and `tsc`-errored. Fixed by
+  recording the synthesized grouping temp's payload type in an emitter side
+  table so the inner match binds the whole object.
 - **`\${...}` template-literal escaping** (M). A literal `\${` still emits a live
   interpolation — the documented D22 footgun; needs a real lexer template mode.
 

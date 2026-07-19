@@ -96,11 +96,16 @@ pub fn run_file(
     let build_marker = out.join(".glyph-build-ok");
     let build_cached = fingerprint.is_some() && build_marker.exists();
 
-    // Source maps from a fresh build, so a `tsc` failure below remaps onto Glyph
-    // source. Empty for a cached build (the maps aren't rebuilt), in which case
-    // any `tsc` output passes through unmapped.
+    // We type-check unless a cached build already passed `tsc` (its marker
+    // exists). When we will type-check, the emitter's source maps are needed to
+    // remap any `tsc` error onto Glyph source — so build fresh even over a cache
+    // hit if that hit has no passing-tsc marker (a prior build whose tsc failed),
+    // rather than pass raw `.ts` errors through with no map.
+    let will_typecheck = check && !(build_cached && tsc_marker.exists());
+    let do_build = !build_cached || will_typecheck;
+
     let mut module_maps: Vec<crate::tscmap::ModuleMap> = Vec::new();
-    if !build_cached {
+    if do_build {
         // Fresh build: clean the dir first so no stale emitted or runtime file
         // lingers (a failed earlier build, a renamed module).
         if out.exists() {
@@ -117,10 +122,9 @@ pub fn run_file(
     }
 
     // Type-check before running so type errors surface as diagnostics rather
-    // than runtime crashes. Skip it when a cached build already passed `tsc`
-    // (recorded by the marker). A missing `tsc` is a warning, not a hard stop —
+    // than runtime crashes. A missing `tsc` is a warning, not a hard stop —
     // `tsx` can still run the program.
-    if check && !(build_cached && tsc_marker.exists()) {
+    if will_typecheck {
         use crate::runtime::TscOutcome;
         match crate::runtime::check_with_tsc(&out)? {
             TscOutcome::Passed => {

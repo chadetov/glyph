@@ -27,6 +27,24 @@ use crate::expr;
 /// token is `LAngle` and the lookahead disambiguates JSX from comparison.
 pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError> {
     let open_span = p.expect(&Token::LAngle, "`<` (JSX)")?;
+
+    // Fragment `<>...</>`: `<` immediately followed by `>`, no name or attrs.
+    // Represented by an empty element name (a real JSX name can never be empty).
+    if matches!(p.peek(), Token::RAngle) {
+        p.advance(); // `>`
+        let children = parse_jsx_children(p)?;
+        p.expect(&Token::LAngle, "`<` (open fragment closing `</>`)")?;
+        p.expect(&Token::Slash, "`/` (fragment closing `</>`)")?;
+        let close = p.expect(&Token::RAngle, "`>` (end of fragment `</>`)")?;
+        return Ok(JsxElement {
+            name: Arc::from(""),
+            attrs: Vec::new(),
+            children,
+            self_closing: false,
+            span: Span::new(open_span.start, close.end),
+        });
+    }
+
     let (name, _name_span) = jsx_name(p)?;
 
     // Parse attributes until `>` or `/>`.

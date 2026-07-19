@@ -27,6 +27,8 @@ declare module "react" {
     props: ElementProps | null,
     ...children: unknown[]
   ): Component;
+  // `<>...</>` lowers to `createElement(React.Fragment, ...)`.
+  export const Fragment: unknown;
   export function use_state<T>(initial: T): { value: T; set: (next: T) => void };
   export function use_effect(effect: () => void, deps: ReadonlyArray<unknown>): void;
   export function use_memo<T>(factory: () => T, deps: ReadonlyArray<unknown>): T;

@@ -92,6 +92,16 @@ fn examples_format_is_stable_and_semantics_preserving() {
 }
 
 #[test]
+fn jsx_fragment_round_trips() {
+    let src = "module x\ncomponent P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{name}</p>\n  </>\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("return <>"), "opening fragment preserved:\n{out}");
+    assert!(out.contains("</>"), "closing fragment preserved:\n{out}");
+    // Idempotent: format is a fixed point.
+    assert_eq!(fmt(&out), out, "fragment format is not stable");
+}
+
+#[test]
 fn binary_precedence_uses_minimal_parens() {
     let plain = fmt("module x\nfn f() -> number {\n  return 1 + 2 * 3\n}\n");
     assert!(plain.contains("1 + 2 * 3"), "{plain}");

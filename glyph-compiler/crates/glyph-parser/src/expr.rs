@@ -780,6 +780,8 @@ fn parse_generic_call_type_args(p: &mut Cursor) -> Result<Vec<glyph_ast::TypeExp
 fn is_jsx_lookahead(p: &Cursor) -> bool {
     match p.peek_at(1) {
         Some(Token::Identifier(_)) => true,
+        // `<>` opens a JSX fragment.
+        Some(Token::RAngle) => true,
         Some(t) if t.as_field_name().is_some() => true,
         _ => false,
     }

@@ -2783,7 +2783,9 @@ impl<'a> Emitter<'a> {
                 construct: "a `<case>` outside a `<match>`",
                 span: j.span,
             }),
-            JsxKind::Intrinsic | JsxKind::Component => self.emit_jsx_element(j, None),
+            JsxKind::Intrinsic | JsxKind::Component | JsxKind::Fragment => {
+                self.emit_jsx_element(j, None)
+            }
         }
     }
 
@@ -2800,6 +2802,7 @@ impl<'a> Emitter<'a> {
         let tag = match kind {
             JsxKind::Intrinsic => escape_double_quoted(&j.name),
             JsxKind::Component => j.name.to_string(),
+            JsxKind::Fragment => "React.Fragment".to_string(),
             _ => unreachable!("directives route through emit_jsx"),
         };
         // Attribute-name remapping (`class`->`className`, `on_click`->`onClick`)
@@ -3501,6 +3504,7 @@ fn contains_hoistable_try(e: &Expr) -> bool {
 enum JsxKind {
     Intrinsic,
     Component,
+    Fragment,
     If,
     Else,
     For,
@@ -3511,6 +3515,7 @@ enum JsxKind {
 impl JsxKind {
     fn classify(name: &Ident) -> Self {
         match name.as_ref() {
+            "" => JsxKind::Fragment,
             "if" => JsxKind::If,
             "else" => JsxKind::Else,
             "for" => JsxKind::For,
@@ -4846,6 +4851,19 @@ mod tests {
             ts.contains("return React.createElement(\"div\", { className: \"g\" }, name);"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn jsx_fragment_lowers_to_react_fragment() {
+        let ts = emit(
+            "module x\ncomponent P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{\"body\"}</p>\n  </>\n}\n",
+        );
+        assert!(ts.contains("import * as React from \"react\";"), "{ts}");
+        assert!(
+            ts.contains("React.createElement(React.Fragment, null,"),
+            "fragment lowers to React.Fragment: {ts}"
+        );
+        assert!(ts.contains("React.createElement(\"h1\", null, name)"), "{ts}");
     }
 
     #[test]

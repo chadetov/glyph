@@ -167,6 +167,7 @@ pub fn resolve_module(
 enum JsxKind {
     Intrinsic,
     Component,
+    Fragment,
     If,
     Else,
     For,
@@ -177,6 +178,7 @@ enum JsxKind {
 impl JsxKind {
     fn classify(name: &Ident) -> Self {
         match name.as_ref() {
+            "" => JsxKind::Fragment,
             "if" => JsxKind::If,
             "else" => JsxKind::Else,
             "for" => JsxKind::For,

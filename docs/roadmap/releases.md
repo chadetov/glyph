@@ -75,11 +75,10 @@ recorded (discriminated unions, full TS7-native `gen dts`).
   stays `unknown` — it's already safe-by-construction, since it can only be used
   through a descriptor's `.parse`, which rejects a missing/`null` body.)
 
-## 0.1.6 — Next · Correctness & diagnostics
+## 0.1.6 — Shipped · Correctness & diagnostics
 
-**Status: committed, the active target.** The sharp edges first-time-user agents
-actually hit. The warning tier is foundational infrastructure, so this lane
-leads with it.
+**Status: released.** The sharp edges first-time-user agents actually hit. All
+five items shipped, led by the warning tier.
 
 - **Warning-severity diagnostics** (M, unblocker) — ✅ **done.** Diagnostics now
   carry a severity (`Error`/`Warning`); the renderer picks ReportKind + color by
@@ -108,27 +107,33 @@ leads with it.
   nested string literal *inside* `${...}` still needs a `let` hoist — the full
   lexer template-literal mode remains a v1.1 item.)
 
-## 0.1.7 — Planned · Approved language features
+## 0.1.7 — Next · Works with React, speaks to agents
 
-Decided in earlier brainstorms; just need building.
+**Status: committed, the active target.** All 15 brainstormed items are scoped
+into 0.1.7, built in adoption-rank order (1 → 15), each with tests. Full plan and
+per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](../plan/0.1.7-language-and-agent-experience.md).
 
-- **JSX fragments `<>...</>`** (S/M) — parser + emitter.
-- **Member-expression JSX `<Ns.Comp>`** (S/M) — parser + emitter.
-- **Bounded generics `<T: Bound>`** (M) — parser + checker + emit.
-- **Extend the targeted type hint** (S) to `int`/`any`/`Promise<T>`.
+1. **JSX fragments `<>...</>`** (S/M) — parser + emitter.
+2. **Member-expression JSX `<Ns.Comp>`** (S/M) — parser + emitter (React Context).
+3. **Machine-readable diagnostics (`--json`)** (M) — structured diagnostics for agents.
+4. **Runtime source maps** (M/L) — a debugger steps into `.glyph` (builds on 0.1.6).
+5. **`gen dts` on TypeScript 7 native API** (M/L) — the deferred `unstable/*` integration.
+6. **Bounded generics `<T: Bound>`** (M) — parser + checker + emit.
+7. **Discriminated-union generation** (L) — a discriminator-aware union representation.
+8. **Shared-state / store pattern** (M, design first) — a clean store module.
+9. **More warning-tier lints** (S each) — unused import / binding / unreachable.
+10. **number/string value-match exhaustiveness** (M).
+11. **`glyph regen`** (M, Q40).
+12. **`@redact` full enforcement** (M, D24).
+13. **`glyph build --out X` cleans stale files first** (S).
+14. **Extend the targeted type hint** (S) to `int`/`any`/`Promise<T>`.
+15. **Nested nullary-in-object parser bug** (S).
 
 ## Rolling · Ergonomics & polish
 
-Small wins that can land in any release rather than wait for their own.
-
-- **`glyph build --out X` cleans stale files first** (S).
-- **A shared-state / store pattern** (M, needs a design call). Shared mutable
-  state has exactly one legal home (a `let` in `main`); no clean store module.
-- **`@redact` full enforcement** (M). Real masking in the emitted serializer +
-  field-name validation (D24); a prior attempt broke the descriptor tests, so
-  retry carefully.
-- **`glyph regen` implementation** (M). The `@generate` → regenerate-body command
-  (Q40) is still a stub; it now fits the `gen openapi`/`gen dts` family.
+The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
+`glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
+land here until they're assigned a release.
 
 ## Parked (v2 / later)
 

@@ -40,8 +40,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.5</span>
+            <span class="rel-ver">0.1.6</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Sharper errors and diagnostics</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> TypeScript back-end errors are mapped back onto your <code>.glyph</code> source &mdash; same caret and stable code &mdash; instead of pointing at the generated <code>.ts</code>.</li>
+              <li><span class="tag added">Added</span> A warning tier: diagnostics can be warnings that are surfaced without failing the build. The first is <code>E0217</code>, which warns when a <code>Result</code> is discarded and its error silently ignored.</li>
+              <li><span class="tag fixed">Fixed</span> A literal <code>\${</code> in a string stays literal instead of silently interpolating, and non-ASCII text in a template string (<code>"café ${x}"</code>) is no longer mangled.</li>
+              <li><span class="tag fixed">Fixed</span> Binding a whole record payload in a nested <code>match</code> (<code>Err(BadQty(b))</code>) no longer emits code <code>tsc</code> rejects.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.5</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

@@ -695,6 +695,21 @@ impl Assigner<'_> {
                     | SymbolKind::Component { decl_idx } => {
                         self.decl_ty_resolver.decl_ty(*decl_idx)
                     }
+                    // A named import of a modeled stdlib function (`import
+                    // std/http { header }`) gets the same signature the
+                    // namespace path (`http.header`) does, so a modeled
+                    // `Option`/`Result` return is enforced regardless of import
+                    // style. Unmodeled members stay `Unknown` (permissive).
+                    SymbolKind::ImportNamed { path, original } => {
+                        let key = path
+                            .segments
+                            .iter()
+                            .map(|s| s.as_ref())
+                            .collect::<Vec<_>>()
+                            .join("/");
+                        self.stdlib_fn_ty(&key, original.as_ref())
+                            .unwrap_or(Ty::Unknown)
+                    }
                     _ => Ty::Unknown,
                 }
             }
@@ -745,6 +760,29 @@ impl Assigner<'_> {
     /// the arity is modeled) so this never introduces a new argument-type
     /// diagnostic; the value it adds is the decidable `Result<T, E>` return.
     fn stdlib_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        // Option-returning accessors for untrusted request input. Modeling the
+        // return as `Option<string>` gives the caller a `match` the
+        // exhaustiveness checker understands, so a missing header or query
+        // parameter can't be read as if it were present.
+        if let Some(inner) = match (module_key, field) {
+            ("std/http", "header") | ("std/http", "query_param") => Some(Ty::Prim(Primitive::String)),
+            _ => None,
+        } {
+            let return_ty = self.stdlib_option_ty(inner)?;
+            let params = (0..2)
+                .map(|_| FnParam {
+                    name: None,
+                    owned: false,
+                    ty: Ty::Unknown,
+                })
+                .collect();
+            return Some(Ty::Fn {
+                params,
+                return_ty: Arc::new(return_ty),
+                is_async: false,
+            });
+        }
+
         // (arity, ok, err, is_async)
         let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
             ("std/http", "get") => (
@@ -823,6 +861,20 @@ impl Assigner<'_> {
                 path: vec![Ident::from("Result")],
             }),
             args: vec![ok, err],
+        })
+    }
+
+    /// Build `Option<inner>` as a prelude `App` the exhaustiveness checker
+    /// recognizes (it keys off the prelude `Option` symbol id). Mirrors
+    /// `stdlib_result_ty`.
+    fn stdlib_option_ty(&self, inner: Ty) -> Option<Ty> {
+        let option_id = self.lowerer.prelude.lookup("Option")?;
+        Some(Ty::App {
+            base: Arc::new(Ty::Named {
+                symbol: SymbolRef(option_id.0),
+                path: vec![Ident::from("Option")],
+            }),
+            args: vec![inner],
         })
     }
 

@@ -4,8 +4,9 @@ module main
 // auth check — all errors-as-values over std/http. Run it with
 // `glyph run examples/05_rest_api.glyph`, then curl http://localhost:8137.
 
-import std/http { Request, Response, serve, json, path }
+import std/http { Request, Response, serve, json, path, header }
 import std/result { Result, Ok, Err }
+import std/option { Some, None }
 
 
 // The DTOs. Declared once; their runtime descriptors validate the wire boundary
@@ -22,7 +23,12 @@ type Task = {
 }
 
 fn is_authed(req: Request) -> bool {
-  return req.headers["authorization"] == "Bearer secret"
+  // Untrusted input is an `Option`: a missing `authorization` header is `None`,
+  // and the `match` forces us to handle it — it can't be read as if present.
+  return match header(req, "authorization") {
+    Some(token) => token == "Bearer secret",
+    None => false,
+  }
 }
 
 async fn main(argv: Array<string>) -> number {

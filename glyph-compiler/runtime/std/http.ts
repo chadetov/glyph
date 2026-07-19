@@ -12,6 +12,7 @@
 // so the process stays alive without any keep-alive hack.
 
 import { Result, Ok, Err } from "./result";
+import { Option, Some, None } from "./option";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 export type Request = {
@@ -82,6 +83,24 @@ export function query(req: Request): Record<string, string> {
 export function path(req: Request): string {
   const q = req.url.indexOf("?");
   return q < 0 ? req.url : req.url.slice(0, q);
+}
+
+/// A request header by name (case-insensitive), or `None` if it is absent.
+/// Untrusted input is an `Option`, so a missing header cannot be mistaken for a
+/// present one — you must handle the `None` case.
+export function header(req: Request, name: string): Option<string> {
+  const value = req.headers[name.toLowerCase()];
+  return value === undefined ? None : Some(value);
+}
+
+/// A single URL query parameter by name, or `None` if it is absent.
+export function query_param(req: Request, name: string): Option<string> {
+  const q = req.url.indexOf("?");
+  if (q < 0) {
+    return None;
+  }
+  const value = new URLSearchParams(req.url.slice(q + 1)).get(name);
+  return value === null ? None : Some(value);
 }
 
 /// Start an HTTP server on `port`, dispatching each request to `handler`.

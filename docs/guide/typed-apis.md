@@ -103,6 +103,18 @@ auth, in-memory store, every method — is
 [`examples/05_rest_api.glyph`](../../examples/05_rest_api.glyph); run it with
 `glyph run examples/05_rest_api.glyph`.
 
+The rest of the untrusted boundary is typed the same way. `http.header(req,
+name)` and `http.query_param(req, name)` return `Option<string>`, so a missing
+header or query parameter is `None` and the `match` forces you to handle it — it
+can't be read as if it were present:
+
+```glyph
+match header(req, "authorization") {
+  Some(token) => check(token),
+  None => reject(),   // omitting this arm is a compile error
+}
+```
+
 ## Generating DTOs from a spec
 
 You do not have to hand-write the types either. If you have an OpenAPI 3,

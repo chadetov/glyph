@@ -205,6 +205,8 @@ http.json(status: number, body) -> Response          // application/json respons
 http.text(status: number, body: string) -> Response  // text/plain response
 http.query(req: Request) -> Record<string, string>   // parse the URL query string
 http.path(req: Request) -> string                    // URL path without the query
+http.header(req: Request, name: string) -> Option<string>       // a header (case-insensitive), None if absent
+http.query_param(req: Request, name: string) -> Option<string>  // one query parameter, None if absent
 ```
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or

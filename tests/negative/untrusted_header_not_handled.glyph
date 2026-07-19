@@ -1,0 +1,13 @@
+module neg
+
+import std/http { Request, header }
+import std/option { Some }
+
+// `header` returns `Option<string>` — untrusted input. Forgetting the `None`
+// case (a missing header) must be a compile error, not a silent read of absent
+// input as if it were present.
+fn token(req: Request) -> string {
+  return match header(req, "authorization") {
+    Some(value) => value,
+  }
+}

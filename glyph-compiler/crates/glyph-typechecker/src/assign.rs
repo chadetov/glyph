@@ -759,6 +759,24 @@ impl Assigner<'_> {
                 stdlib_named("http", "HttpError"),
                 true,
             ),
+            ("std/http", "put") => (
+                2,
+                stdlib_named("http", "Response"),
+                stdlib_named("http", "HttpError"),
+                true,
+            ),
+            ("std/http", "patch") => (
+                2,
+                stdlib_named("http", "Response"),
+                stdlib_named("http", "HttpError"),
+                true,
+            ),
+            ("std/http", "del") => (
+                1,
+                stdlib_named("http", "Response"),
+                stdlib_named("http", "HttpError"),
+                true,
+            ),
             ("std/fs", "read_text") => (
                 1,
                 Ty::Prim(Primitive::String),

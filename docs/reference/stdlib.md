@@ -192,6 +192,9 @@ Client (async; `await` them):
 ```
 http.get(url: string) -> Result<Response, HttpError>
 http.post(url: string, body) -> Result<Response, HttpError>
+http.put(url: string, body) -> Result<Response, HttpError>
+http.patch(url: string, body) -> Result<Response, HttpError>
+http.del(url: string) -> Result<Response, HttpError>    // `del`, not `delete` (reserved word)
 ```
 
 Server:

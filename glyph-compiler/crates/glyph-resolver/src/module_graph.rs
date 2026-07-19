@@ -119,12 +119,12 @@ impl StdlibStubs {
             &["read_text", "write_text", "exists", "remove", "ErrorKind"],
         );
         s.add("std/time", &["debounce", "Duration", "now", "sleep"]);
-        // A `fetch`-based client (`get`/`post`/`json`) plus a small server
-        // (`serve`/`Handler` and the `text`/`query`/`path` helpers).
+        // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
+        // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(
             "std/http",
             &[
-                "get", "post", "json", "text", "serve", "query", "path",
+                "get", "post", "put", "patch", "del", "json", "text", "serve", "query", "path",
                 "Request", "Response", "HttpError", "Handler",
             ],
         );

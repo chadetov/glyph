@@ -33,6 +33,19 @@ export async function post(url: string, body: unknown): Promise<Result<Response,
   return request(url, "POST", body);
 }
 
+export async function put(url: string, body: unknown): Promise<Result<Response, HttpError>> {
+  return request(url, "PUT", body);
+}
+
+export async function patch(url: string, body: unknown): Promise<Result<Response, HttpError>> {
+  return request(url, "PATCH", body);
+}
+
+// `del`, not `delete`: `delete` is a reserved word and cannot be an import name.
+export async function del(url: string): Promise<Result<Response, HttpError>> {
+  return request(url, "DELETE", undefined);
+}
+
 export function json(status: number, body: unknown): Response {
   return { status, body };
 }

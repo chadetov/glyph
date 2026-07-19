@@ -282,6 +282,34 @@ pub enum TypeError {
     /// removes that hazard. `span` points at the unreachable arm.
     #[error("unreachable match arm: an earlier arm already matches every value")]
     UnreachableMatchArm { span: Span },
+
+    /// A `Result`-typed expression used as a statement and discarded. Because a
+    /// `Result` carries a possible `Err`, dropping it silently swallows a
+    /// failure. This is a **warning** (severity `Warning`), not an error:
+    /// discarding a `Result` is legal but almost always a mistake. `span` points
+    /// at the dropped expression.
+    #[error("this `Result` is discarded; its `Err` case is silently ignored")]
+    UnusedResult { span: Span },
+}
+
+/// Diagnostic severity. Most diagnostics are hard `Error`s that fail the build;
+/// a `Warning` is surfaced but does not (verifiability stays the lead pillar, so
+/// warnings are reserved for "legal but almost certainly a mistake").
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Severity {
+    Error,
+    Warning,
+}
+
+impl TypeError {
+    /// Whether this diagnostic fails the build (`Error`) or is only surfaced
+    /// (`Warning`). Everything is an `Error` except the few advisory lints.
+    pub fn severity(&self) -> Severity {
+        match self {
+            TypeError::UnusedResult { .. } => Severity::Warning,
+            _ => Severity::Error,
+        }
+    }
 }
 
 impl TypeError {
@@ -304,6 +332,7 @@ impl TypeError {
             TypeError::ComponentMultipleParams { span, .. } => *span,
             TypeError::OwnedAliased { span, .. } => *span,
             TypeError::UnreachableMatchArm { span } => *span,
+            TypeError::UnusedResult { span } => *span,
         }
     }
 
@@ -328,6 +357,7 @@ impl TypeError {
             TypeError::ComponentMultipleParams { .. } => "E0214",
             TypeError::OwnedAliased { .. } => "E0215",
             TypeError::UnreachableMatchArm { .. } => "E0216",
+            TypeError::UnusedResult { .. } => "E0217",
         }
     }
 
@@ -385,6 +415,9 @@ impl TypeError {
             TypeError::UnreachableMatchArm { .. } => {
                 "Remove this arm, or move the catch-all/binding arm below it so the specific arms come first."
             }
+            TypeError::UnusedResult { .. } => {
+                "Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional."
+            }
         })
     }
 
@@ -400,6 +433,9 @@ impl TypeError {
             ),
             TypeError::UnreachableMatchArm { .. } => Some(
                 "`match` is first-match-wins (D9): a catch-all or binding arm matches every value, so any arm after it is dead code.",
+            ),
+            TypeError::UnusedResult { .. } => Some(
+                "Errors in Glyph are values, not exceptions: a dropped `Result` is a dropped error path. Making the discard explicit keeps failures visible.",
             ),
             _ => None,
         }

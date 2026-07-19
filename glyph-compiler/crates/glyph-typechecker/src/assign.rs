@@ -262,8 +262,23 @@ impl Assigner<'_> {
     }
 
     fn walk_block(&mut self, b: &Block) {
-        for s in &b.stmts {
+        let n = b.stmts.len();
+        for (i, s) in b.stmts.iter().enumerate() {
             self.walk_stmt(s);
+            // Result-must-use (E0217, a warning): a `Result`-typed expression
+            // used as a *non-final* statement discards its value, and with it a
+            // possible `Err`. The final statement is skipped deliberately — it
+            // may be the value of a match-arm block, which is legitimately used.
+            // This never fires on `foo()?` (that types as the unwrapped `T`,
+            // not a `Result`) or on a bound/returned value.
+            if i + 1 < n {
+                if let Stmt::Expr(e) = s {
+                    let ty = self.tm.get(e.span()).clone();
+                    if self.result_args(&ty).is_some() {
+                        self.errors.push(TypeError::UnusedResult { span: e.span() });
+                    }
+                }
+            }
         }
     }
 

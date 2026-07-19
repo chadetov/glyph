@@ -25,20 +25,29 @@ use crate::render::{
 /// binary can print them and the integration tests can assert on them.
 #[derive(Debug, Default)]
 pub struct BuildReport {
-    /// One entry per diagnostic. Each entry is a pre-rendered string
-    /// like `lib/foo.glyph: collect: name 'dup' declared more than once`.
+    /// One entry per diagnostic (errors and warnings), pre-rendered.
     pub diagnostics: Vec<String>,
+    /// How many of `diagnostics` are error-severity (the rest are warnings).
+    /// Only errors fail the build or block a module's emission.
+    pub error_count: usize,
     /// Module paths the build saw, in deterministic (lexicographic) order.
     pub modules: Vec<String>,
     /// Relative paths of the `.ts` files written to the out directory, in the
-    /// same order. A module is emitted only when it produced no diagnostics.
+    /// same order. A module is emitted only when it produced no *errors*
+    /// (warnings do not block emission).
     pub emitted: Vec<String>,
 }
 
 impl BuildReport {
-    /// True if any diagnostic was emitted.
+    /// True if any error-severity diagnostic was emitted. Warnings alone do not
+    /// make a build fail.
     pub fn has_errors(&self) -> bool {
-        !self.diagnostics.is_empty()
+        self.error_count > 0
+    }
+
+    /// How many diagnostics are warnings (surfaced but non-fatal).
+    pub fn warning_count(&self) -> usize {
+        self.diagnostics.len() - self.error_count
     }
 }
 
@@ -137,7 +146,7 @@ pub fn build_project_inner(
     let mut report = BuildReport::default();
     for (module_path, sf) in &entries {
         report.modules.push(module_path.clone());
-        let diag_start = report.diagnostics.len();
+        let err_start = report.error_count;
 
         // Cache the source text once per file; rendering may use it
         // multiple times if the file produces multiple diagnostics.
@@ -151,6 +160,7 @@ pub fn build_project_inner(
                 err,
                 with_color,
             ));
+            report.error_count += 1;
             // Downstream queries gracefully degrade on parse failure;
             // their results are necessarily empty. Skip them so the
             // report doesn't pile up redundant cascade-errors.
@@ -165,6 +175,7 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+            report.error_count += 1;
         }
 
         let diags = import_diagnostics(&db, *sf);
@@ -175,6 +186,7 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+            report.error_count += 1;
         }
 
         let r = resolve(&db, *sf);
@@ -185,12 +197,12 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+            report.error_count += 1;
         }
 
-        // Day-14: type_map.errors() carries non-exhaustive match
-        // diagnostics. Future week-3 days add `?` mismatches, owned
-        // single-consumption violations, and the bidirectional
-        // checker's type errors.
+        // Typecheck diagnostics carry a severity: errors fail the build, the
+        // `Result` must-use lint (E0217) is a warning that is surfaced but does
+        // not block emission.
         let types = type_map(&db, *sf);
         for e in types.errors() {
             report.diagnostics.push(render_type_error(
@@ -199,11 +211,14 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+            if e.severity() == glyph_typechecker::Severity::Error {
+                report.error_count += 1;
+            }
         }
 
-        // Emit TS only for a module that produced no diagnostics — never
-        // write code derived from a program the compiler rejected.
-        if report.diagnostics.len() != diag_start {
+        // Emit TS only for a module that produced no *errors* — never write
+        // code derived from a rejected program. Warnings do not block emission.
+        if report.error_count != err_start {
             continue;
         }
         let Some(ast) = parsed.module() else { continue };
@@ -232,6 +247,7 @@ pub fn build_project_inner(
                 report
                     .diagnostics
                     .push(render_emit_error(module_path, &source, &e, with_color));
+                report.error_count += 1;
             }
         }
     }

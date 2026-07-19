@@ -61,6 +61,50 @@ fn build_reports_no_diagnostics_on_clean_project() {
 }
 
 #[test]
+fn build_warns_on_dropped_result_but_still_emits() {
+    let root = unique_tmp("mustuse");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/fs { write_text }\n\
+         import std/result { Result, Ok, Err }\n\
+         fn save() -> number {\n\
+         \x20 write_text(\"a.txt\", \"hi\")\n\
+         \x20 return 0\n\
+         }\n\
+         fn main(argv: Array<string>) -> number { return save() }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    // A dropped `Result` is a warning (E0217), not an error: the build
+    // succeeds, reports one warning, and still emits the TypeScript.
+    assert!(
+        !report.has_errors(),
+        "must-use is a warning, not an error: {:?}",
+        report.diagnostics
+    );
+    assert_eq!(
+        report.warning_count(),
+        1,
+        "one must-use warning expected: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0217")),
+        "{:?}",
+        report.diagnostics
+    );
+    assert_eq!(
+        report.emitted,
+        vec!["main.ts".to_string()],
+        "warnings do not block emission"
+    );
+}
+
+#[test]
 fn build_emits_typescript_for_a_clean_module() {
     let root = unique_tmp("emit");
     let src = root.join("src");

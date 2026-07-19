@@ -56,6 +56,11 @@ below.
 | `E0210` | Field access on a record type that has no such field |
 | `E0211` | Call argument type does not match the parameter type |
 | `E0212` | `mut` reassigns a `const` binding (D20) |
+| `E0213` | Wrong number of call arguments |
+| `E0214` | Component declared with multiple parameters (use a props record) |
+| `E0215` | Aliasing an `owned` handle (D25) |
+| `E0216` | Unreachable `match` arm after a total pattern (D9) |
+| `E0217` | Discarded `Result` &mdash; **warning**, not an error (its `Err` is silently ignored) |
 
 ### Emitter — `E03xx`
 

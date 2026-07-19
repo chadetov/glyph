@@ -15,7 +15,7 @@ use glyph_ast::Span;
 use glyph_emit::EmitError;
 use glyph_parser::ParseError;
 use glyph_resolver::ResolveError;
-use glyph_typechecker::TypeError;
+use glyph_typechecker::{Severity, TypeError};
 
 /// Render a `ParseError` as an ariadne report. `path` is the
 /// source-id used by ariadne's cache; `source` is the file's text.
@@ -39,6 +39,7 @@ pub fn render_parse_error(
         err.help(),
         None,
         with_color,
+        Severity::Error,
     )
 }
 
@@ -64,6 +65,7 @@ pub fn render_resolve_error(
         err.help(),
         None,
         with_color,
+        Severity::Error,
     )
 }
 
@@ -89,6 +91,7 @@ pub fn render_type_error(
         err.help(),
         err.note(),
         with_color,
+        err.severity(),
     )
 }
 
@@ -112,6 +115,7 @@ pub fn render_emit_error(
         err.help(),
         err.note(),
         with_color,
+        Severity::Error,
     )
 }
 
@@ -145,7 +149,14 @@ fn build_report(
     help: Option<&str>,
     note: Option<&str>,
     with_color: bool,
+    severity: Severity,
 ) -> String {
+    // A warning is surfaced but does not fail the build; render it yellow under
+    // `ReportKind::Warning`, an error red under `ReportKind::Error`.
+    let (report_kind, label_color) = match severity {
+        Severity::Warning => (ReportKind::Warning, Color::Yellow),
+        Severity::Error => (ReportKind::Error, Color::Red),
+    };
     let path_owned = path.to_string();
     let raw_range = span.start as usize..span.end as usize;
     // Defensive clamp: a malformed span shouldn't crash ariadne. This
@@ -163,7 +174,7 @@ fn build_report(
         // Per-label color overrides the Config setting, so we ONLY set
         // it when the caller wants color. Tests pass `with_color: false`
         // to get a stable byte-stable snapshot.
-        label = label.with_color(Color::Red);
+        label = label.with_color(label_color);
     }
 
     // **IndexType::Byte**: Glyph's `Span` carries byte offsets (the
@@ -175,7 +186,7 @@ fn build_report(
     let config = Config::default()
         .with_color(with_color)
         .with_index_type(IndexType::Byte);
-    let mut builder = Report::build(ReportKind::Error, path_owned.clone(), start)
+    let mut builder = Report::build(report_kind, path_owned.clone(), start)
         .with_code(code)
         .with_message(format!("{stage}: {message}"))
         .with_label(label)

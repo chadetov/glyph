@@ -187,16 +187,22 @@ fn main() {
                 }
                 if report.has_errors() {
                     eprintln!(
-                        "glyph build: {} diagnostic(s) across {} module(s)",
-                        report.diagnostics.len(),
+                        "glyph build: {} error(s) across {} module(s)",
+                        report.error_count,
                         report.modules.len()
                     );
                     std::process::exit(1);
                 }
+                let warnings = report.warning_count();
                 eprintln!(
-                    "glyph build: {} module(s) checked, no diagnostics; \
+                    "glyph build: {} module(s) checked, {}; \
                      {} TypeScript file(s) emitted.",
                     report.modules.len(),
+                    if warnings == 0 {
+                        "no diagnostics".to_string()
+                    } else {
+                        format!("{warnings} warning(s)")
+                    },
                     report.emitted.len()
                 );
                 if do_check {

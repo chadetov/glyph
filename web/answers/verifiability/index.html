@@ -94,9 +94,12 @@ fn label(s: Status) -&gt; string {
         <p>
           The equivalent TypeScript <code>switch</code> compiles clean and returns
           <code>undefined</code> at runtime. Same for errors: a function that returns
-          <code>Result&lt;T, E&gt;</code> can't have its error ignored &mdash; you either handle it
-          with <code>match</code> or propagate it with <code>?</code>, and the compiler checks
-          the error type lines up. A dropped error is a build failure, not a 2 a.m. page.
+          <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or
+          propagated with <code>?</code> (and the compiler checks the error type lines up). And if
+          you <em>drop</em> a <code>Result</code> on the floor &mdash; call it as a statement and
+          ignore what it returned &mdash; Glyph warns you (<code>E0217</code>), because a discarded
+          error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>,
+          never by accident.
         </p>
       </div>
 
@@ -104,7 +107,7 @@ fn label(s: Status) -&gt; string {
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Exhaustive <code>match</code> over sealed unions, <code>Result</code> + the <code>?</code> operator with error-type checking, runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
+          <p>Exhaustive <code>match</code> over sealed unions, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>

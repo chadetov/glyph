@@ -81,10 +81,14 @@ recorded (discriminated unions, full TS7-native `gen dts`).
 actually hit. The warning tier is foundational infrastructure, so this lane
 leads with it.
 
-- **Warning-severity diagnostics** (M, unblocker). The diagnostic system is
-  errors-only today; a warning tier unblocks the item below and future work.
-- **`Result` must-use warning** (S, needs the tier above). Warn when a
-  `Result`-returning expression is dropped as a statement.
+- **Warning-severity diagnostics** (M, unblocker) — ✅ **done.** Diagnostics now
+  carry a severity (`Error`/`Warning`); the renderer picks ReportKind + color by
+  it, and `glyph build` tracks errors separately so a warning is surfaced without
+  failing the build or blocking emission.
+- **`Result` must-use warning** (S) — ✅ **done.** E0217 warns when a
+  `Result`-typed expression is used as a *non-final* statement (so its `Err` is
+  discarded). Scoped to non-final statements to never mistake a match-arm block's
+  tail value for a drop; silent across every example.
 - **Source-mapped `tsc` errors** (L, high value). Errors only `tsc` catches point
   at generated `.ts`, not `.glyph` source — the biggest gap against the
   Elm-quality-errors claim. Needs a source map through emit.

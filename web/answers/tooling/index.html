@@ -78,10 +78,17 @@
           <code>match</code>, or a mistyped variant each get their own coded, fixable error.
         </p>
         <p>
+          Type errors that only the TypeScript back-end can catch used to point at the generated
+          <code>.ts</code>. Now they're <strong>mapped back onto your <code>.glyph</code></strong>
+          &mdash; same ariadne caret, same stable code &mdash; so a <code>tsc</code> error reads like
+          a native Glyph one.
+        </p>
+        <p>
           <strong>Debugging, honestly:</strong> you debug the emitted TypeScript with the tools you
           already use &mdash; Node's inspector, browser devtools, your IDE's JS/TS debugger &mdash;
-          on clean, readable output that maps closely to your source. Source maps that step
-          straight back to <code>.glyph</code> line numbers are on the roadmap, not in v1 yet.
+          on clean, readable output that maps closely to your source. Runtime source maps that let a
+          debugger <em>step</em> straight into <code>.glyph</code> line numbers are still on the
+          roadmap.
         </p>
       </div>
 
@@ -89,11 +96,11 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, and <code>glyph --explain</code>.</p>
+          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, <code>glyph --explain</code>, and <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Rename and find-references in the editor, and source maps that step from the emitted TS back to <code>.glyph</code>.</p>
+          <p>Rename and find-references in the editor, and runtime source maps so a debugger steps from the emitted TS back into <code>.glyph</code>.</p>
         </div>
       </div>
 

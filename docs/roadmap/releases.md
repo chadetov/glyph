@@ -89,9 +89,14 @@ leads with it.
   `Result`-typed expression is used as a *non-final* statement (so its `Err` is
   discarded). Scoped to non-final statements to never mistake a match-arm block's
   tail value for a drop; silent across every example.
-- **Source-mapped `tsc` errors** (L, high value). Errors only `tsc` catches point
-  at generated `.ts`, not `.glyph` source — the biggest gap against the
-  Elm-quality-errors claim. Needs a source map through emit.
+- **Source-mapped `tsc` errors** (L, high value) — ✅ **done.** The emitter emits
+  a coarse source map (`(byte offset, Glyph span)` per declaration and top-level
+  statement, shifted past the prepended import header); the CLI parses tsc's
+  `path(line,col): error TSxxxx` output, maps each position to a Glyph span, and
+  re-renders it against `.glyph` with an ariadne caret (keeping the TS code).
+  Statement-level granularity; lambda-body errors map to the enclosing statement.
+  Unattributable lines (stdlib `.ts`, summaries) pass through. Wired into both
+  `build --check` and `run`.
 - **Nested record-payload whole-ident bind** (S) — ✅ **done.** `Err(BadQty(b))`
   binding a whole record payload in a nested match emitted `.value` (which the
   flattened `{tag, ...fields}` object lacks) and `tsc`-errored. Fixed by

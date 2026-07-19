@@ -267,7 +267,29 @@ pub fn build_project_inner(
                         source: e,
                     })?;
                 }
-                std::fs::write(&ts_path, &output.ts).map_err(|e| BuildError::Io {
+                // Runtime source map (v3): map the emitted `.ts` back to the
+                // `.glyph`. Written as a sidecar `.ts.map` with a trailing
+                // `sourceMappingURL` comment on the `.ts`. The comment is appended
+                // last, so it shifts no existing offset (the tscmap offset math
+                // stays correct against `output.ts` without the comment).
+                let ts_basename = file_basename(&rel);
+                let map_rel = format!("{rel}.map");
+                let map_basename = file_basename(&map_rel);
+                let glyph_rel = format!("{module_path}.glyph");
+                let map_json = crate::sourcemap::build_v3_map(
+                    &output.ts,
+                    &source,
+                    &glyph_rel,
+                    &ts_basename,
+                    &output.source_map,
+                );
+                std::fs::write(out.join(&map_rel), &map_json).map_err(|e| BuildError::Io {
+                    path: out.join(&map_rel),
+                    source: e,
+                })?;
+                let ts_with_map =
+                    format!("{}\n//# sourceMappingURL={}\n", output.ts, map_basename);
+                std::fs::write(&ts_path, ts_with_map).map_err(|e| BuildError::Io {
                     path: ts_path.clone(),
                     source: e,
                 })?;
@@ -539,4 +561,10 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         assert_ne!(fp1, fp2, "fingerprint must change when a .types/*.d.ts changes");
     }
+}
+
+/// The last path component of a `/`-separated relative path (`sub/mod.ts` ->
+/// `mod.ts`). Emitted module rels always use `/`.
+fn file_basename(rel: &str) -> String {
+    rel.rsplit('/').next().unwrap_or(rel).to_string()
 }

@@ -18,6 +18,7 @@ pub mod publish;
 pub mod render;
 pub mod run;
 pub mod runtime;
+pub mod sourcemap;
 pub mod tscmap;
 
 pub use build::{build_project, BuildError, BuildReport};

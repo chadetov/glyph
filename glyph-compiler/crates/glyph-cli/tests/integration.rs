@@ -105,6 +105,34 @@ fn build_warns_on_dropped_result_but_still_emits() {
 }
 
 #[test]
+fn build_writes_a_v3_source_map() {
+    let root = unique_tmp("srcmap");
+    let src = root.join("src");
+    let out = root.join("out");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn f() -> number {\n  return 1\n}\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    // The emitted `.ts` links its sidecar map.
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    assert!(
+        ts.contains("//# sourceMappingURL=main.ts.map"),
+        "sourceMappingURL comment: {ts}"
+    );
+    // The map is a v3 map that names the Glyph source and embeds it.
+    let map = std::fs::read_to_string(out.join("main.ts.map")).unwrap();
+    assert!(map.contains("\"version\":3"), "v3: {map}");
+    assert!(map.contains("\"sources\":[\"main.glyph\"]"), "names the source: {map}");
+    assert!(map.contains("fn f"), "embeds sourcesContent: {map}");
+    // Non-empty mappings (not the empty-string field).
+    assert!(!map.contains("\"mappings\":\"\""), "non-empty mappings: {map}");
+}
+
+#[test]
 fn build_produces_structured_diagnostics() {
     // Every diagnostic has a structured form (for `--json`): a stable code,
     // severity, stage, and a 1-based line/col range.

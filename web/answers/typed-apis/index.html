@@ -32,10 +32,11 @@
         <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
         <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
         <a href="/answers/typed-apis/" class="active"><span class="n">05</span> Typed APIs</a>
-        <a href="/answers/react/"><span class="n">06</span> React</a>
-        <a href="/answers/why-typescript/"><span class="n">07</span> Why TypeScript</a>
-        <a href="/answers/ai-authoring/"><span class="n">08</span> AI-authored</a>
-        <a href="/answers/tooling/"><span class="n">09</span> Editor &amp; debugging</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/why-typescript/"><span class="n">08</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">09</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">10</span> Editor &amp; debugging</a>
       </div>
     </div>
 
@@ -109,6 +110,13 @@ const NewTask = z.object({
           already decoded as an <code>unknown</code>, so there you reach for
           <code>T.parse(value)</code> instead &mdash; same guarantee, no cast.
         </p>
+        <p>
+          The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code>
+          and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a
+          missing header or query parameter is <code>None</code> and the <code>match</code>
+          <em>forces</em> you to handle it &mdash; omit the <code>None</code> arm and it won't
+          compile. Absent input can't be read as if it were present.
+        </p>
 
         <p class="block-label">You don't even have to write the types</p>
         <p>
@@ -155,7 +163,7 @@ const NewTask = z.object({
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Wider generation coverage (discriminated unions, richer enums) and typed client/handler stubs straight from an OpenAPI spec.</p>
+          <p>Wider generation coverage (discriminated unions, richer enums). Typed client and server code from a spec already ships &mdash; see <a href="/answers/codegen/">client &amp; server</a>.</p>
         </div>
       </div>
 
@@ -164,9 +172,9 @@ const NewTask = z.object({
           <span class="dir">← Previous</span>
           <span class="t">Can I use my existing TypeScript, JavaScript, and npm libraries?</span>
         </a>
-        <a href="/answers/react/" class="nx cta">
+        <a href="/answers/codegen/" class="nx cta">
           <span class="dir">Next →</span>
-          <span class="t">Does it work with React — components, hooks, and Context?</span>
+          <span class="t">Can I generate a typed client and server from my API spec?</span>
         </a>
       </nav>
     </article>

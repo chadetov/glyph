@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can I generate a typed client and server from my API spec? — Glyph</title>
+    <meta name="description" content="Yes. Point glyph gen openapi at a spec: --client emits a typed HTTP client, --handlers emits server stubs and a router. gen zod does the same from zod schemas. All committed, greppable Glyph." />
+    <link rel="canonical" href="https://glyphlang.io/answers/codegen/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/" class="active"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/why-typescript/"><span class="n">08</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">09</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">10</span> Editor &amp; debugging</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">06 &middot; From your spec</p>
+      <h1 class="q-title">Can I generate a typed client and server from my API spec?</h1>
+
+      <p class="short-answer">
+        Yes. Point <code>glyph gen openapi</code> at an OpenAPI spec: <code>--client</code>
+        emits a typed HTTP client, one function per operation; <code>--handlers</code> emits
+        server stubs and a working <code>route</code> dispatcher. If your source of truth is a
+        <code>zod</code> schema, <code>glyph gen zod</code> does the same. Everything comes out as
+        <strong>committed, greppable Glyph</strong> you own and edit &mdash; never a hidden
+        codegen step.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Hand-written API clients and their DTOs drift from the spec, and the drift is a class of
+          bug nobody enjoys. Because Glyph generates <em>real</em> code &mdash; typed functions,
+          real <code>type</code> declarations with runtime descriptors &mdash; the spec stays the
+          source of truth, and regeneration is an idempotent, reviewable diff, not a black box.
+        </p>
+
+        <p class="block-label">See it &mdash; the client</p>
+        <p>
+          Each operation becomes an <code>async fn</code> with typed path parameters and a typed
+          request body, returning the HTTP <code>Response</code>:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --client</span>
+<pre>async fn createTask(
+  base: string,
+  body: NewTask,
+) -&gt; Result&lt;Response, HttpError&gt; {
+  return await post(
+    "${base}/tasks",
+    body,
+  )
+}
+
+async fn getTask(base: string, id: number)
+  -&gt; Result&lt;Response, HttpError&gt; {
+  return await get("${base}/tasks/${id}")
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen openapi tasks.yaml --out src/ --handlers</span>
+<pre>fn route(req: Request)
+  -&gt; Result&lt;Response, string&gt; {
+  return match req.method {
+    "GET" =&gt; match segments(req) {
+      ["tasks"] =&gt; listTasks(req),
+      // id captured from the path:
+      ["tasks", id] =&gt; getTask(req, id),
+      else =&gt; Ok(json(404, {
+        error: "not found",
+      })),
+    },
+    else =&gt; Ok(json(405, {
+      error: "method not allowed",
+    })),
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The <code>--handlers</code> router matches the path with array patterns, so
+          <code>/tasks/{id}</code> becomes <code>["tasks", id]</code> and binds the parameter for
+          you. Each stub starts as a <code>501</code> with a comment showing the body-parse; you
+          fill them in and wire it up with <code>await serve(PORT, route)</code>.
+        </p>
+        <p class="block-label">From a zod schema instead</p>
+        <p>
+          If your team already defines shapes with <code>zod</code>, generate from those directly
+          &mdash; the schema becomes a first-class Glyph type with its own descriptor:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">schemas.ts</span>
+<pre>export const Task = z.object({
+  id: z.number(),
+  title: z.string(),
+  done: z.boolean(),
+})</pre>
+        </div>
+        <div class="code">
+          <span class="cap">$ glyph gen zod schemas.ts --out src/</span>
+<pre>type Task = {
+  id: number,
+  title: string,
+  done: bool,
+}
+// + a runtime descriptor, so
+// Task.parse(value) validates.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <strong>The honest edge:</strong> generation is wire-faithful, so it maps the common 80%
+          &mdash; objects, primitives, arrays, references, optional and nullable fields &mdash; and
+          narrows what it can't represent exactly (a string enum, an undiscriminated union) with a
+          printed note rather than a validator that would reject real data. Discriminated unions and
+          richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen
+          zod</code> need Node plus <code>typescript</code>/<code>zod</code>, and tell you exactly
+          what to install if they're missing.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, and <code>glyph gen zod</code> &mdash; all emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>Discriminated unions and richer enum mapping, and broader OpenAPI coverage &mdash; each landing behind the same wire-faithful, note-when-narrowed rule.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/typed-apis/">
+          <span class="dir">← Previous</span>
+          <span class="t">Do I have to hand-write a validator for every API?</span>
+        </a>
+        <a href="/answers/react/" class="nx cta">
+          <span class="dir">Next →</span>
+          <span class="t">Does it work with React — components, hooks, and Context?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

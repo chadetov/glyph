@@ -2,6 +2,8 @@
 
 Original 12-step plan: `archive/glyph-strategy.md`. Revisions to steps 4–9 are logged in the per-step docs in this folder. Where this file and `archive/glyph-strategy.md` disagree, this file wins. For the live day-by-day implementation record, see `docs/implementation-plan.md`.
 
+> This file is the **build roadmap** — the 12 steps that produced the toolchain. For the **release roadmap** — the 0.1.x feature releases layered on top, with the next target marked — see [`releases.md`](releases.md).
+
 ## Phase 1 — Make it programmable
 
 | # | Step | Status | Source of truth |

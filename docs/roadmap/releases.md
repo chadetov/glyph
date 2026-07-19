@@ -26,12 +26,23 @@ way" promises, or the standing deferrals in CLAUDE.md.
 **Status: committed, the active target.** Carries the 0.1.3/0.1.4 momentum to
 completion and makes the site's "on the way" promises real.
 
-- **`gen openapi` client + handler codegen** (M). Typed client functions per
-  operation and/or `std/http` handler signatures, not just the DTOs (B3 from the
-  0.1.3 plan; the site already promises it).
-- **Discriminated unions in generation** (M). A `oneOf` / TS union *with* a
-  discriminator maps wire-faithfully to a Glyph tagged union; today every `oneOf`
-  narrows to `unknown`.
+- **`gen openapi` client codegen** (M) — ✅ **done.** `--client` emits one typed
+  `async fn` per operation over `std/http` (typed path params + request body,
+  interpolated URL, `Result<Response, HttpError>`). The full verb set
+  (`get`/`post`/`put`/`patch`/`del`) shipped first as the enabler.
+- **`gen openapi` handler codegen** (M) — remaining. Server-side handler stubs +
+  a routing skeleton from the operations. Path-template routing (`/tasks/{id}`)
+  is the interesting part; scope it to a scaffold the user fills in.
+- **Discriminated unions in generation** (M → **L, blocked on runtime rep**).
+  *Finding while building the mapper:* a Glyph tagged union tags by a `tag` field
+  carrying the **constructor name** (`{tag:"Cat"}`), whereas an OpenAPI
+  `discriminator` selects a variant by an **arbitrary property** (`petType`)
+  carrying a **string value** (`"cat"`). So a generated tagged union's descriptor
+  would reject the real wire object — the same class of wire-mismatch that makes
+  string enums narrow to `string`. A faithful mapping needs either a
+  discriminator-aware union runtime representation or a new descriptor that reads
+  a named property. Treat as its own runtime-representation task, not a mapper
+  tweak; may slip past 0.1.5.
 - **`gen dts` on TypeScript 7** (M/L). Support the native "tsgo" API (or bundle a
   compatible parser) so the default `npm install typescript` works without the
   `typescript@6` pin.

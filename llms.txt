@@ -22,6 +22,7 @@ npm install -g tsx typescript       # needed for `glyph run` and `--check`
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
 glyph run path.glyph [args...]      # type-check, compile, and run main(argv)
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict by default)
+glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file, line/col, help) for tools/agents
 glyph build src/ --out dist/ --test # also run @example / @doc @run / property tests
 glyph fmt [path]                    # format in place (one canonical layout)
 glyph gen openapi spec.yaml --out src/  # generate committed Glyph types from an OpenAPI/JSON Schema spec (--client: a typed std/http client; --handlers: server stubs + a router)

@@ -150,7 +150,7 @@ pub fn render_tsc_error(
 /// (duplicate names) from "resolve-time" (unresolved name) from
 /// "import-time" (unknown export). Day 11 used these as inline prefixes
 /// in the one-line diagnostics; here they live on the label.
-fn stage_label_for(err: &ResolveError) -> &'static str {
+pub fn stage_label_for(err: &ResolveError) -> &'static str {
     match err {
         ResolveError::DuplicateName { .. } => "collect",
         ResolveError::RelativeImport { .. } => "collect",

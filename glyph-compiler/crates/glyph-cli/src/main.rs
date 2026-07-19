@@ -53,6 +53,10 @@ enum Command {
         /// After emitting, run every `@example` (D23) via `tsx` (must be on PATH).
         #[arg(long)]
         test: bool,
+        /// Emit diagnostics as a JSON object on stdout (for tools and agents)
+        /// instead of human-readable text. Includes remapped `tsc` errors.
+        #[arg(long)]
+        json: bool,
     },
     /// Build then run a Glyph program via node.
     Run {
@@ -169,7 +173,7 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out, no_check, check: _, test }) => {
+        Some(Command::Build { src, out, no_check, check: _, test, json }) => {
             // Type-checking is the default (verifiability is the lead pillar);
             // `--no-check` opts out. The old `--check` flag is now redundant.
             let do_check = !no_check;
@@ -177,11 +181,15 @@ fn main() {
             // workspace, so it never auto-detects non-TTY at runtime.
             // We detect explicitly: if stderr (where diagnostics go) is
             // a terminal, render with color; otherwise (redirect, CI
-            // logs, file) render plain so the output stays usable.
+            // logs, file) render plain so the output stays usable. JSON output
+            // never carries color.
             use std::io::IsTerminal;
-            let with_color = std::io::stderr().is_terminal();
+            let with_color = !json && std::io::stderr().is_terminal();
             match glyph_cli::build::build_project_inner(&src, &out, with_color) {
             Ok(report) => {
+                if json {
+                    emit_build_json(&report, &out, do_check);
+                }
                 for diag in &report.diagnostics {
                     eprintln!("{diag}");
                 }
@@ -527,4 +535,47 @@ fn main() {
             std::process::exit(1);
         }
     }
+}
+
+/// Print the build's diagnostics as a JSON object on stdout and exit. Runs
+/// `tsc` (when `do_check` and the build had no errors) and appends its remapped
+/// diagnostics. Diverges: control never returns to the text path.
+fn emit_build_json(
+    report: &glyph_cli::build::BuildReport,
+    out: &std::path::Path,
+    do_check: bool,
+) -> ! {
+    use glyph_cli::runtime::TscOutcome;
+    let mut diags = report.structured.clone();
+    let mut tsc_status = "not-run";
+    if do_check && !report.has_errors() {
+        match glyph_cli::runtime::check_with_tsc(out) {
+            Ok(TscOutcome::Passed) => tsc_status = "passed",
+            Ok(TscOutcome::Failed(msg)) => {
+                tsc_status = "failed";
+                diags.extend(glyph_cli::tscmap::remap_tsc_to_diagnostics(
+                    &msg,
+                    &report.module_maps,
+                ));
+            }
+            Ok(TscOutcome::NotFound) => tsc_status = "not-found",
+            Err(_) => tsc_status = "error",
+        }
+    }
+    let errors = diags.iter().filter(|d| d.severity == "error").count();
+    let warnings = diags.iter().filter(|d| d.severity == "warning").count();
+    let ok = errors == 0;
+    let value = serde_json::json!({
+        "ok": ok,
+        "errors": errors,
+        "warnings": warnings,
+        "tsc": tsc_status,
+        "emitted": report.emitted,
+        "diagnostics": diags,
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())
+    );
+    std::process::exit(if ok { 0 } else { 1 });
 }

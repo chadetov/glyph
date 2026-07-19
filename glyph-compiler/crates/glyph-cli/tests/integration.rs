@@ -105,6 +105,33 @@ fn build_warns_on_dropped_result_but_still_emits() {
 }
 
 #[test]
+fn build_produces_structured_diagnostics() {
+    // Every diagnostic has a structured form (for `--json`): a stable code,
+    // severity, stage, and a 1-based line/col range.
+    let root = unique_tmp("structured");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\ntype F = A | B\nfn f(x: F) -> number {\n  return match x {\n    A => 1,\n  }\n}\nfn main(argv: Array<string>) -> number { return 0 }\n",
+    );
+
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build");
+    assert!(report.has_errors());
+    // Structured and rendered diagnostics stay in lockstep.
+    assert_eq!(report.structured.len(), report.diagnostics.len());
+    let d = report
+        .structured
+        .iter()
+        .find(|d| d.code == "E0200")
+        .expect("a structured E0200");
+    assert_eq!(d.severity, "error");
+    assert_eq!(d.stage, "typecheck");
+    assert!(d.range.start.line >= 1 && d.range.start.col >= 1, "1-based pos");
+    assert!(d.help.is_some(), "carries the help");
+}
+
+#[test]
 fn build_emits_typescript_for_a_clean_module() {
     let root = unique_tmp("emit");
     let src = root.join("src");

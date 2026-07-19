@@ -8,6 +8,7 @@
 
 pub mod build;
 pub mod config;
+pub mod diagnostic;
 pub mod examples;
 pub mod init;
 pub mod explain;

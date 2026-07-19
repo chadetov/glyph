@@ -27,6 +27,9 @@ use crate::render::{
 pub struct BuildReport {
     /// One entry per diagnostic (errors and warnings), pre-rendered.
     pub diagnostics: Vec<String>,
+    /// The same diagnostics in structured form (for `--json`), in the same
+    /// order as `diagnostics`.
+    pub structured: Vec<crate::diagnostic::Diagnostic>,
     /// How many of `diagnostics` are error-severity (the rest are warnings).
     /// Only errors fail the build or block a module's emission.
     pub error_count: usize,
@@ -163,6 +166,9 @@ pub fn build_project_inner(
                 err,
                 with_color,
             ));
+            report
+                .structured
+                .push(crate::diagnostic::from_parse_error(module_path, &source, err));
             report.error_count += 1;
             // Downstream queries gracefully degrade on parse failure;
             // their results are necessarily empty. Skip them so the
@@ -178,6 +184,12 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+            report.structured.push(crate::diagnostic::from_resolve_error(
+                module_path,
+                &source,
+                e,
+                crate::render::stage_label_for(e),
+            ));
             report.error_count += 1;
         }
 
@@ -189,6 +201,12 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+            report.structured.push(crate::diagnostic::from_resolve_error(
+                module_path,
+                &source,
+                e,
+                crate::render::stage_label_for(e),
+            ));
             report.error_count += 1;
         }
 
@@ -199,6 +217,12 @@ pub fn build_project_inner(
                 &source,
                 e,
                 with_color,
+            ));
+            report.structured.push(crate::diagnostic::from_resolve_error(
+                module_path,
+                &source,
+                e,
+                crate::render::stage_label_for(e),
             ));
             report.error_count += 1;
         }
@@ -214,6 +238,9 @@ pub fn build_project_inner(
                 e,
                 with_color,
             ));
+            report
+                .structured
+                .push(crate::diagnostic::from_type_error(module_path, &source, e));
             if e.severity() == glyph_typechecker::Severity::Error {
                 report.error_count += 1;
             }
@@ -257,6 +284,9 @@ pub fn build_project_inner(
                 report
                     .diagnostics
                     .push(render_emit_error(module_path, &source, &e, with_color));
+                report
+                    .structured
+                    .push(crate::diagnostic::from_emit_error(module_path, &source, &e));
                 report.error_count += 1;
             }
         }

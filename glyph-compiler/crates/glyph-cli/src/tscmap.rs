@@ -14,6 +14,7 @@
 
 use glyph_ast::Span;
 
+use crate::diagnostic::{Diagnostic, Pos, Range};
 use crate::render::render_tsc_error;
 
 /// The per-module data needed to remap a `tsc` error: the emitted file's path
@@ -78,6 +79,53 @@ pub fn remap_tsc_output(raw: &str, maps: &[ModuleMap], with_color: bool) -> Stri
             None => {
                 out.push_str(line);
                 out.push('\n');
+            }
+        }
+    }
+    out
+}
+
+/// Like [`remap_tsc_output`], but produces structured diagnostics for `--json`.
+/// A mappable error is rendered against its Glyph source (with a remapped span);
+/// an unmappable one keeps its `.ts` location so nothing is dropped.
+pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    for line in raw.lines() {
+        let Some(err) = parse_tsc_line(line) else {
+            continue;
+        };
+        match find_module(maps, err.path).and_then(|m| m.span_for(err.line, err.col).map(|s| (m, s)))
+        {
+            Some((m, span)) => out.push(Diagnostic::new(
+                &m.glyph_path,
+                &m.glyph_source,
+                span,
+                err.code,
+                "error",
+                "tsc",
+                err.message.to_string(),
+                None,
+                None,
+            )),
+            None => {
+                let at = Pos {
+                    line: err.line as u32,
+                    col: err.col as u32,
+                    offset: 0,
+                };
+                out.push(Diagnostic {
+                    code: err.code.to_string(),
+                    severity: "error".to_string(),
+                    message: err.message.to_string(),
+                    file: err.path.to_string(),
+                    range: Range {
+                        start: at.clone(),
+                        end: at,
+                    },
+                    stage: "tsc".to_string(),
+                    help: None,
+                    note: None,
+                });
             }
         }
     }

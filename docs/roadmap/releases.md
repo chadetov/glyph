@@ -20,11 +20,17 @@ way" promises, or the standing deferrals in CLAUDE.md.
   typed-APIs guide and the runnable REST example.
 - **0.1.4 — TypeScript 7 handling for `glyph gen dts`.** A clean "install
   `typescript@6`" diagnostic instead of a cryptic crash on the native compiler.
+- **0.1.5 — Typed clients and servers from your API spec.** `gen openapi
+  --client`/`--handlers` and `gen zod`; untrusted input typed as `Option`
+  (`header`/`query_param`) with the `put`/`patch`/`del` client verbs; `gen dts`
+  resolves TypeScript from the target project first. Details and the deferred
+  findings are in the section below.
 
-## 0.1.5 — Next · Finish the generation / typed-API story
+## 0.1.5 — Shipped · Finish the generation / typed-API story
 
-**Status: committed, the active target.** Carries the 0.1.3/0.1.4 momentum to
-completion and makes the site's "on the way" promises real.
+**Status: released.** Carried the 0.1.3/0.1.4 momentum to completion and made
+the site's "on the way" promises real. Two items were deferred with findings
+recorded (discriminated unions, full TS7-native `gen dts`).
 
 - **`gen openapi` client codegen** (M) — ✅ **done.** `--client` emits one typed
   `async fn` per operation over `std/http` (typed path params + request body,
@@ -69,10 +75,11 @@ completion and makes the site's "on the way" promises real.
   stays `unknown` — it's already safe-by-construction, since it can only be used
   through a descriptor's `.parse`, which rejects a missing/`null` body.)
 
-## 0.1.6 — Planned · Correctness & diagnostics
+## 0.1.6 — Next · Correctness & diagnostics
 
-The sharp edges first-time-user agents actually hit. The warning tier is
-foundational infrastructure, so this lane leads with it.
+**Status: committed, the active target.** The sharp edges first-time-user agents
+actually hit. The warning tier is foundational infrastructure, so this lane
+leads with it.
 
 - **Warning-severity diagnostics** (M, unblocker). The diagnostic system is
   errors-only today; a warning tier unblocks the item below and future work.

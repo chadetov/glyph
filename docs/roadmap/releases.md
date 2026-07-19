@@ -46,8 +46,11 @@ completion and makes the site's "on the way" promises real.
 - **`gen dts` on TypeScript 7** (M/L). Support the native "tsgo" API (or bundle a
   compatible parser) so the default `npm install typescript` works without the
   `typescript@6` pin.
-- **`gen zod`** (M). Materialize a `zod` schema into a Glyph type + descriptor —
-  the "value → type" loop from the other side.
+- **`gen zod`** (M) — ✅ **done.** `glyph gen zod <file.ts>` executes the schema
+  module via `tsx`, converts each exported zod schema to JSON Schema (zod 4's
+  `z.toJSONSchema`, or `zod-to-json-schema` on zod 3), normalizes zod's
+  null-union nullability into the shared mapper, and emits committed Glyph types.
+  The node/tsx runner is now factored (`run_helper`) and shared with `gen dts`.
 - **Untrusted input as `Option`** (M, correctness) — ✅ **done.** `http.header`
   and `http.query_param` return `Option<string>`, modeled so the exhaustiveness
   checker forces the `None` arm; a bonus fix models named-imported stdlib

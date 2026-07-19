@@ -116,8 +116,8 @@ use glyph_ast::{
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 use glyph_typechecker::{Ty, TypeMap};
-use std::cell::Cell;
-use std::collections::BTreeSet;
+use std::cell::{Cell, RefCell};
+use std::collections::{BTreeSet, HashMap};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -361,6 +361,7 @@ pub fn emit_module(
         resolved,
         prelude,
         types,
+        synth_types: Rc::new(RefCell::new(HashMap::new())),
         ctx,
     };
     e.emit_module()?;
@@ -401,6 +402,13 @@ struct Emitter<'a> {
     /// tagged-union values/types a module references without an explicit import.
     prelude: &'a Prelude,
     types: &'a TypeMap,
+    /// Types of synthesized scrutinee temporaries the `TypeMap` doesn't know
+    /// about — keyed by temp name (`__p1`). `degroup_nested_arms` records the
+    /// payload type of each grouping temp here so the inner `match` that
+    /// dispatches it knows whether a variant's payload is a record (bind the
+    /// whole object) or a single value (bind `.value`). Shared with
+    /// sub-emitters so a value-position inner match still sees it.
+    synth_types: Rc<RefCell<HashMap<String, Ty>>>,
     /// Project context for resolving cross-module import specifiers.
     ctx: EmitContext<'a>,
 }
@@ -427,6 +435,7 @@ impl<'a> Emitter<'a> {
             resolved: self.resolved,
             prelude: self.prelude,
             types: self.types,
+            synth_types: Rc::clone(&self.synth_types),
             ctx: self.ctx,
         }
     }
@@ -1422,6 +1431,34 @@ impl<'a> Emitter<'a> {
             .is_some_and(|v| matches!(v.payload, Some(TypeExpr::Record { .. })))
     }
 
+    /// The type of an outer variant's payload, for a scrutinee whose payload is
+    /// a type argument (`Result<T, E>`: `Err` -> `E`, `Ok`/`Some` -> `T`). Used
+    /// by `degroup_nested_arms` to record the synthesized inner scrutinee's type
+    /// so the inner match binds a record payload as the whole object, not
+    /// `.value`. Returns `None` for a non-App type (a user union's variant
+    /// payloads are not carried as type arguments — the rarer nested case).
+    fn outer_variant_payload_ty(&self, scrutinee_ty: &Ty, outer: &str) -> Option<Ty> {
+        let Ty::App { args, .. } = scrutinee_ty else {
+            return None;
+        };
+        match outer {
+            "Ok" | "Some" => args.first().cloned(),
+            "Err" => args.get(1).cloned(),
+            _ => None,
+        }
+    }
+
+    /// The type of a `match` scrutinee, consulting `synth_types` for synthesized
+    /// temporaries the `TypeMap` doesn't know about, then the `TypeMap`.
+    fn scrutinee_ty(&self, expr: &Expr) -> Ty {
+        if let Expr::Ident { name, .. } = expr {
+            if let Some(ty) = self.synth_types.borrow().get(name.as_ref()) {
+                return ty.clone();
+            }
+        }
+        self.types.get(expr.span()).clone()
+    }
+
     /// Variant names of `outer_variant`'s payload union in `scrutinee_ty`, when
     /// that payload is itself a tagged union. Lets `degroup_nested_arms`
     /// recognize a nested *nullary* variant (`Err(Empty)` where `Empty` is a
@@ -1461,8 +1498,9 @@ impl<'a> Emitter<'a> {
     /// synthesized inner `match` is itself emitted.
     fn degroup_nested_arms(&mut self, scrutinee: &Expr, arms: &[MatchArm]) -> Vec<MatchArm> {
         // Owned so no borrow of `self.types` is held across the `&mut self`
-        // `fresh_temp` call below.
-        let scrutinee_ty = self.types.get(scrutinee.span()).clone();
+        // `fresh_temp` call below. Uses `scrutinee_ty` so a deeper-nested match
+        // (whose scrutinee is itself a synthesized temp) resolves too.
+        let scrutinee_ty = self.scrutinee_ty(scrutinee);
         // Outer variant tag -> index in `out` of its synthesized grouping arm.
         let mut group_at: Vec<(String, usize)> = Vec::new();
         let mut out: Vec<MatchArm> = Vec::new();
@@ -1519,6 +1557,12 @@ impl<'a> Emitter<'a> {
                 }
             } else {
                 let p = self.fresh_temp("__p");
+                // Record the grouping temp's type (the outer variant's payload)
+                // so the synthesized inner `match` on it binds a record payload
+                // as the whole object rather than a non-existent `.value`.
+                if let Some(pty) = self.outer_variant_payload_ty(&scrutinee_ty, outer) {
+                    self.synth_types.borrow_mut().insert(p.clone(), pty);
+                }
                 let bind = Arc::from(p.as_str());
                 let new_arm = MatchArm {
                     pattern: Pattern::Constructor {
@@ -1576,7 +1620,8 @@ impl<'a> Emitter<'a> {
         }
 
         // Variant names of the scrutinee's union, when its type is known.
-        let variants = self.union_variant_names(self.types.get(scrutinee.span()));
+        let scrutinee_ty = self.scrutinee_ty(scrutinee);
+        let variants = self.union_variant_names(&scrutinee_ty);
         let is_variant = |name: &str| {
             is_prelude_variant(name)
                 || variants
@@ -1698,7 +1743,7 @@ impl<'a> Emitter<'a> {
                 Pattern::Constructor { path, args, .. } => {
                     let variant = path.last().expect("constructor path is non-empty");
                     let record_payload =
-                        self.variant_payload_is_record(self.types.get(scrutinee.span()), variant);
+                        self.variant_payload_is_record(&self.scrutinee_ty(scrutinee), variant);
                     self.line(&format!("case \"{variant}\": {{"));
                     self.indent += 1;
                     self.emit_arm_binds(&m, args, record_payload);
@@ -4645,6 +4690,23 @@ mod tests {
         assert!(ts.contains("case \"Valid\": {"), "{ts}");
         assert!(ts.contains("const v = __m0;"), "{ts}");
         assert!(!ts.contains("const v = __m0.value;"), "{ts}");
+    }
+
+    #[test]
+    fn nested_single_name_bind_of_record_payload_binds_the_whole_object() {
+        // The nested case: `Err(BadQty(b))` over a `Result` whose `E` is a union
+        // with a record-payload variant. The inner match's scrutinee is a
+        // synthesized temp the TypeMap doesn't know, so without the payload-type
+        // side table the bind would wrongly read `.value` off the flat object.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok, Err }\ntype OrderError =\n  | Empty\n  | BadQty({ sku: string, qty: number })\nfn describe(r: Result<number, OrderError>) -> string {\n  return match r {\n    Ok(v) => \"ok\",\n    Err(Empty) => \"empty\",\n    Err(BadQty(b)) => b.sku,\n  }\n}\n",
+        );
+        assert!(ts.contains("case \"BadQty\": {"), "{ts}");
+        // The whole flattened payload object, not a non-existent `.value`.
+        assert!(
+            ts.contains("const b = __m") && !ts.contains("const b = __m0.value") && !ts.contains("const b = __m1.value") && !ts.contains("const b = __m2.value") && !ts.contains("const b = __m3.value"),
+            "expected `const b = __mN;` (whole object), not `.value`:\n{ts}"
+        );
     }
 
     #[test]

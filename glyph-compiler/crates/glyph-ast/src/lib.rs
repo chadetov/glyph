@@ -59,6 +59,19 @@ pub enum Decl {
     Component(ComponentDecl),
 }
 
+impl Decl {
+    /// The declaration's source span (its whole extent).
+    pub fn span(&self) -> Span {
+        match self {
+            Decl::Import(d) => d.span,
+            Decl::Fn(d) => d.span,
+            Decl::Type(d) => d.span,
+            Decl::Const(d) => d.span,
+            Decl::Component(d) => d.span,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDecl {
     /// `import std/http` → `ImportKind::Namespace`

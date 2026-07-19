@@ -212,8 +212,13 @@ fn main() {
                             eprintln!("glyph build: tsc --strict passed.");
                         }
                         Ok(TscOutcome::Failed(msg)) => {
-                            eprint!("{msg}");
-                            eprintln!("glyph build: tsc reported type errors.");
+                            let remapped = glyph_cli::tscmap::remap_tsc_output(
+                                &msg,
+                                &report.module_maps,
+                                with_color,
+                            );
+                            eprint!("{remapped}");
+                            eprintln!("glyph build: tsc reported type errors (mapped to Glyph source).");
                             std::process::exit(1);
                         }
                         Ok(TscOutcome::NotFound) => {

@@ -36,6 +36,9 @@ pub struct BuildReport {
     /// same order. A module is emitted only when it produced no *errors*
     /// (warnings do not block emission).
     pub emitted: Vec<String>,
+    /// Per-module source maps, so `tsc` diagnostics can be remapped onto Glyph
+    /// source (see `tscmap`). One entry per emitted module.
+    pub module_maps: Vec<crate::tscmap::ModuleMap>,
 }
 
 impl BuildReport {
@@ -227,8 +230,8 @@ pub fn build_project_inner(
             module_path: module_path.as_str(),
             project_modules: &project_modules,
         };
-        match glyph_emit::emit_module(ast, resolved, types.type_map(), db.prelude(), ctx) {
-            Ok(ts) => {
+        match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
+            Ok(output) => {
                 let rel = format!("{module_path}.ts");
                 let ts_path = out.join(&rel);
                 if let Some(parent) = ts_path.parent() {
@@ -237,11 +240,18 @@ pub fn build_project_inner(
                         source: e,
                     })?;
                 }
-                std::fs::write(&ts_path, ts).map_err(|e| BuildError::Io {
+                std::fs::write(&ts_path, &output.ts).map_err(|e| BuildError::Io {
                     path: ts_path.clone(),
                     source: e,
                 })?;
-                report.emitted.push(rel);
+                report.emitted.push(rel.clone());
+                report.module_maps.push(crate::tscmap::ModuleMap {
+                    ts_rel: rel,
+                    glyph_path: module_path.clone(),
+                    glyph_source: source.clone(),
+                    ts_source: output.ts,
+                    source_map: output.source_map,
+                });
             }
             Err(e) => {
                 report

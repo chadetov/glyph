@@ -96,6 +96,10 @@ pub fn run_file(
     let build_marker = out.join(".glyph-build-ok");
     let build_cached = fingerprint.is_some() && build_marker.exists();
 
+    // Source maps from a fresh build, so a `tsc` failure below remaps onto Glyph
+    // source. Empty for a cached build (the maps aren't rebuilt), in which case
+    // any `tsc` output passes through unmapped.
+    let mut module_maps: Vec<crate::tscmap::ModuleMap> = Vec::new();
     if !build_cached {
         // Fresh build: clean the dir first so no stale emitted or runtime file
         // lingers (a failed earlier build, a renamed module).
@@ -106,6 +110,7 @@ pub fn run_file(
         if !report.emitted.iter().any(|e| e == &target_rel) {
             return Ok(RunOutcome::BuildFailed(report));
         }
+        module_maps = report.module_maps;
         // The fresh output has not been type-checked yet; mark the build complete.
         let _ = std::fs::remove_file(&tsc_marker);
         let _ = std::fs::write(&build_marker, b"");
@@ -121,7 +126,10 @@ pub fn run_file(
             TscOutcome::Passed => {
                 let _ = std::fs::write(&tsc_marker, b"");
             }
-            TscOutcome::Failed(msg) => return Ok(RunOutcome::TypeCheckFailed(msg)),
+            TscOutcome::Failed(msg) => {
+                let remapped = crate::tscmap::remap_tsc_output(&msg, &module_maps, with_color);
+                return Ok(RunOutcome::TypeCheckFailed(remapped));
+            }
             TscOutcome::NotFound => {
                 eprintln!(
                     "glyph run: tsc not found on PATH; running without a type check. \

@@ -119,6 +119,32 @@ pub fn render_emit_error(
     )
 }
 
+/// Render an external (`tsc`) diagnostic remapped onto Glyph source: `span` is
+/// the originating Glyph span, `code` the `tsc` code (`TS2339`), `message` the
+/// text after it. Shown under a `tsc` stage tag so the reader knows it came from
+/// the TypeScript back-end.
+pub fn render_tsc_error(
+    path: &str,
+    source: &str,
+    span: Span,
+    code: &str,
+    message: &str,
+    with_color: bool,
+) -> String {
+    build_report(
+        path,
+        source,
+        span,
+        "tsc",
+        message,
+        code,
+        Some("This is a TypeScript back-end error mapped to your Glyph source. The generated `.ts` is in the build output if you need the exact position."),
+        None,
+        with_color,
+        Severity::Error,
+    )
+}
+
 /// Map each `ResolveError` variant to a stage tag that appears in the
 /// label text. Stages let the reader distinguish "collect-time" issues
 /// (duplicate names) from "resolve-time" (unresolved name) from

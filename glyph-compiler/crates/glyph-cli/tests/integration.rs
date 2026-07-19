@@ -829,6 +829,10 @@ fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
     match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             assert!(msg.to_lowercase().contains("error"), "tsc output: {msg}");
+            // The tsc error is remapped onto the Glyph source: it carries the
+            // TS code and no longer points at the generated `.ts`.
+            assert!(msg.contains("[TS"), "should carry the remapped tsc code: {msg}");
+            assert!(!msg.contains("broken.ts("), "raw .ts location should be gone: {msg}");
         }
         glyph_cli::run::RunOutcome::Ran(code) => {
             panic!("tsc-broken code must not run; got exit {code}");

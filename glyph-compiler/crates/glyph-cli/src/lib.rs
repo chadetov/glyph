@@ -17,6 +17,7 @@ pub mod publish;
 pub mod render;
 pub mod run;
 pub mod runtime;
+pub mod tscmap;
 
 pub use build::{build_project, BuildError, BuildReport};
 pub use examples::{run_examples, ExampleError, ExampleReport};

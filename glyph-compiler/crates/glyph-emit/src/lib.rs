@@ -349,6 +349,25 @@ pub fn emit_module(
     prelude: &Prelude,
     ctx: EmitContext,
 ) -> Result<String, EmitError> {
+    emit_module_mapped(module, resolved, types, prelude, ctx).map(|o| o.ts)
+}
+
+/// The emitted TypeScript plus a coarse source map back to Glyph spans, for
+/// remapping `tsc` diagnostics onto the original `.glyph` source.
+pub struct EmitOutput {
+    pub ts: String,
+    /// `(byte offset into `ts`, originating Glyph span)`, strictly increasing.
+    pub source_map: Vec<(usize, Span)>,
+}
+
+/// Like [`emit_module`], but also returns the source map (see [`EmitOutput`]).
+pub fn emit_module_mapped(
+    module: &Module,
+    resolved: &ResolvedModule,
+    types: &TypeMap,
+    prelude: &Prelude,
+    ctx: EmitContext,
+) -> Result<EmitOutput, EmitError> {
     let mut e = Emitter {
         out: String::new(),
         indent: 0,
@@ -362,10 +381,14 @@ pub fn emit_module(
         prelude,
         types,
         synth_types: Rc::new(RefCell::new(HashMap::new())),
+        source_map: Vec::new(),
         ctx,
     };
     e.emit_module()?;
-    Ok(e.out)
+    Ok(EmitOutput {
+        ts: e.out,
+        source_map: e.source_map,
+    })
 }
 
 struct Emitter<'a> {
@@ -409,6 +432,15 @@ struct Emitter<'a> {
     /// whole object) or a single value (bind `.value`). Shared with
     /// sub-emitters so a value-position inner match still sees it.
     synth_types: Rc<RefCell<HashMap<String, Ty>>>,
+    /// A coarse source map for remapping `tsc` errors back to Glyph source:
+    /// `(byte offset into `out`, originating Glyph span)` checkpoints, recorded
+    /// as each declaration and top-level statement begins. Offsets are strictly
+    /// increasing (emission is append-only), so a `.ts` position maps to the
+    /// last checkpoint at or before it. Only the top-level emitter records here;
+    /// a sub-emitter (lambda/IIFE body) renders into a spliced string whose
+    /// internal offsets don't correspond to the final file, so its statements
+    /// map to the enclosing top-level statement — coarser but still correct.
+    source_map: Vec<(usize, Span)>,
     /// Project context for resolving cross-module import specifiers.
     ctx: EmitContext<'a>,
 }
@@ -436,6 +468,10 @@ impl<'a> Emitter<'a> {
             prelude: self.prelude,
             types: self.types,
             synth_types: Rc::clone(&self.synth_types),
+            // A sub-emitter's output is spliced into the parent as a string, so
+            // its byte offsets don't map to the final file; give it a throwaway
+            // map. Its statements map to the enclosing top-level statement.
+            source_map: Vec::new(),
             ctx: self.ctx,
         }
     }
@@ -485,6 +521,10 @@ impl<'a> Emitter<'a> {
             }
             self.emit_decl(decl)?;
         }
+        // Source-map offsets were recorded during body emission. The imports
+        // below are prepended with `insert_str(0, ...)`, shifting the body; note
+        // the body length now so the offsets can be corrected afterward.
+        let body_len = self.out.len();
         // A module that referenced a prelude tagged-union value/type
         // (`Ok`/`Err`/`Result`, `Some`/`None`/`Option`) without an explicit
         // import still needs the runtime `import` in the emitted TS — the
@@ -520,6 +560,12 @@ impl<'a> Emitter<'a> {
         // first, ahead of every other import.
         let bootstrap = bootstrap_specifier(self.ctx.module_path);
         self.out.insert_str(0, &format!("import \"{bootstrap}\";\n\n"));
+        // Shift every recorded checkpoint past the prepended import header so
+        // offsets are correct against the final output.
+        let prepended = self.out.len() - body_len;
+        for (offset, _) in self.source_map.iter_mut() {
+            *offset += prepended;
+        }
         Ok(())
     }
 
@@ -572,6 +618,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_decl(&mut self, decl: &Decl) -> Result<(), EmitError> {
+        self.source_map.push((self.out.len(), decl.span()));
         match decl {
             Decl::Import(im) => self.emit_import(im),
             Decl::Fn(f) => {
@@ -1011,6 +1058,7 @@ impl<'a> Emitter<'a> {
     }
 
     fn emit_stmt(&mut self, stmt: &Stmt) -> Result<(), EmitError> {
+        self.source_map.push((self.out.len(), stmt.span()));
         match stmt {
             Stmt::Let(l) => {
                 // `let` (not `const`): a `mut` statement may reassign it later.

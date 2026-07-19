@@ -13,6 +13,8 @@
 //!   OpenAPI 3 / Swagger 2 / JSON Schema document (Q40 type-driven generation)
 //! - `glyph gen dts <file.d.ts> --out <dir>`  generate committed Glyph types from a
 //!   TypeScript declaration file (needs node + the typescript package)
+//! - `glyph gen zod <file.ts> --out <dir>`  generate committed Glyph types from a
+//!   module of zod schemas (needs tsx + zod)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
 //! - `glyph --explain E0042`         long-form error documentation
 //!
@@ -121,6 +123,16 @@ enum GenTarget {
     /// Needs `node` and the `typescript` package (npm install -g typescript).
     Dts {
         /// The TypeScript declaration file (`.d.ts`).
+        #[arg(value_name = "FILE")]
+        file: std::path::PathBuf,
+        /// Directory to write the generated `.glyph` file into.
+        #[arg(long, value_name = "DIR")]
+        out: std::path::PathBuf,
+    },
+    /// Generate Glyph types from a TypeScript module of zod schemas.
+    /// Needs `tsx` and `zod` (zod 4, or zod 3 with `zod-to-json-schema`).
+    Zod {
+        /// The TypeScript file exporting zod schemas.
         #[arg(value_name = "FILE")]
         file: std::path::PathBuf,
         /// Directory to write the generated `.glyph` file into.
@@ -456,6 +468,7 @@ fn main() {
                     glyph_cli::gen::openapi(&spec, &out, client)
                 }
                 GenTarget::Dts { file, out } => glyph_cli::gen::dts(&file, &out),
+                GenTarget::Zod { file, out } => glyph_cli::gen::zod(&file, &out),
             };
             match result {
                 Ok(report) => {

@@ -61,7 +61,13 @@ pub enum GenError {
     TypescriptMissing,
     #[error("the installed TypeScript is the native port (7.x), whose compiler API `glyph gen dts` does not yet support. Install the classic compiler with `npm install -g typescript@6` (or add `typescript@^6` to the project), then re-run.")]
     TypescriptUnsupported,
-    #[error("reading the TypeScript declarations failed: {msg}")]
+    #[error("`tsx` not found on PATH. `glyph gen zod` needs it to execute the schema module; install it with `npm install -g tsx`.")]
+    TsxMissing,
+    #[error("the `zod` package is not resolvable from the schema file's project. Install it with `npm install zod`, then re-run `glyph gen zod`.")]
+    ZodMissing,
+    #[error("converting these zod schemas needs zod 4 (with `z.toJSONSchema`) or the `zod-to-json-schema` package. Install one, then re-run `glyph gen zod`.")]
+    ZodUnsupported,
+    #[error("running the schema helper failed: {msg}")]
     Helper { msg: String },
 }
 
@@ -177,61 +183,20 @@ pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
         });
     }
 
-    // Write the helper next to a per-process temp name so concurrent runs do
-    // not collide.
-    let helper = std::env::temp_dir().join(format!("glyph-ts-to-schema-{}.mjs", std::process::id()));
-    std::fs::write(&helper, TS_TO_SCHEMA).map_err(|e| GenError::Write {
-        path: helper.clone(),
-        source: e,
-    })?;
-
-    // Resolve global node_modules so `import "typescript"` works without a
-    // local install. Best-effort: if `npm root -g` fails, node falls back to
-    // its default resolution.
-    let global_root = std::process::Command::new("npm")
-        .args(["root", "-g"])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
-
-    let mut cmd = std::process::Command::new("node");
-    cmd.arg(&helper).arg(dts_path);
-    if let Some(root) = &global_root {
-        cmd.env("NODE_PATH", root);
-    }
-    let output = cmd.output();
-    let _ = std::fs::remove_file(&helper);
-
-    let output = match output {
-        Ok(o) => o,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Err(GenError::NodeMissing);
+    let doc = match run_helper(TS_TO_SCHEMA, "glyph-ts-to-schema", "node", dts_path) {
+        HelperOutcome::Ok(v) => v,
+        HelperOutcome::RunnerMissing => return Err(GenError::NodeMissing),
+        HelperOutcome::Exit(stderr) => {
+            if stderr.contains("GLYPH_GEN_NO_TYPESCRIPT") {
+                return Err(GenError::TypescriptMissing);
+            }
+            if stderr.contains("GLYPH_GEN_TS_UNSUPPORTED") {
+                return Err(GenError::TypescriptUnsupported);
+            }
+            return Err(GenError::Helper { msg: stderr });
         }
-        Err(e) => {
-            return Err(GenError::Helper {
-                msg: format!("failed to run node: {e}"),
-            })
-        }
+        HelperOutcome::Io(msg) => return Err(GenError::Helper { msg }),
     };
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        if stderr.contains("GLYPH_GEN_NO_TYPESCRIPT") {
-            return Err(GenError::TypescriptMissing);
-        }
-        if stderr.contains("GLYPH_GEN_TS_UNSUPPORTED") {
-            return Err(GenError::TypescriptUnsupported);
-        }
-        return Err(GenError::Helper {
-            msg: stderr.trim().to_string(),
-        });
-    }
-
-    let doc: Value =
-        serde_json::from_slice(&output.stdout).map_err(|e| GenError::Helper {
-            msg: format!("helper did not emit valid JSON: {e}"),
-        })?;
     let schemas = locate_schemas(&doc).ok_or_else(|| GenError::NoSchemas {
         path: dts_path.to_path_buf(),
     })?;
@@ -249,6 +214,106 @@ pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
         String::new(),
         out_dir,
     )
+}
+
+/// The `tsx` helper that executes a module of zod schemas and prints a JSON
+/// Schema `definitions` map. Bundled into the binary.
+const ZOD_TO_SCHEMA: &str = include_str!("../../../runtime/tools/zod-to-schema.mjs");
+
+/// Generate Glyph types from a TypeScript module of zod schemas.
+///
+/// Runs a bundled `tsx` helper that imports the module (a zod schema is a
+/// runtime value, so the module is executed), converts each exported schema to
+/// JSON Schema, and feeds the same mapper as `glyph gen openapi`/`dts`. `tsx`
+/// must be on PATH and `zod` resolvable from the file's project.
+pub fn zod(file: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
+    if !file.exists() {
+        return Err(GenError::Read {
+            path: file.to_path_buf(),
+            source: std::io::Error::new(std::io::ErrorKind::NotFound, "no such file"),
+        });
+    }
+
+    let doc = match run_helper(ZOD_TO_SCHEMA, "glyph-zod-to-schema", "tsx", file) {
+        HelperOutcome::Ok(v) => v,
+        HelperOutcome::RunnerMissing => return Err(GenError::TsxMissing),
+        HelperOutcome::Exit(stderr) => {
+            if stderr.contains("GLYPH_GEN_NO_ZOD") {
+                return Err(GenError::ZodMissing);
+            }
+            if stderr.contains("GLYPH_GEN_ZOD_UNSUPPORTED") {
+                return Err(GenError::ZodUnsupported);
+            }
+            return Err(GenError::Helper { msg: stderr });
+        }
+        HelperOutcome::Io(msg) => return Err(GenError::Helper { msg }),
+    };
+    let schemas = locate_schemas(&doc).ok_or_else(|| GenError::NoSchemas {
+        path: file.to_path_buf(),
+    })?;
+
+    let module_name = sanitize_module(stem_of(file));
+    let source_label = file.display().to_string();
+    let regen = format!("glyph gen zod {}", file.display());
+    render_and_write(
+        Generator::default(),
+        schemas,
+        module_name,
+        source_label,
+        regen,
+        String::new(),
+        String::new(),
+        out_dir,
+    )
+}
+
+/// The result of running a bundled node/tsx helper that prints JSON to stdout.
+enum HelperOutcome {
+    Ok(Value),
+    /// The runner (`node`/`tsx`) was not found on PATH.
+    RunnerMissing,
+    /// The helper exited non-zero; carries its trimmed stderr (which may hold a
+    /// `GLYPH_GEN_*` sentinel the caller maps to a specific diagnostic).
+    Exit(String),
+    /// A local failure: could not write the helper, spawn it, or parse its JSON.
+    Io(String),
+}
+
+/// Write `script` to a temp file, run it with `runner <script> <arg>`, and parse
+/// its stdout as JSON. NODE_PATH is set to the global module root so a global
+/// install of the helper's dependency is resolvable.
+fn run_helper(script: &str, name: &str, runner: &str, arg: &Path) -> HelperOutcome {
+    let helper = std::env::temp_dir().join(format!("{name}-{}.mjs", std::process::id()));
+    if let Err(e) = std::fs::write(&helper, script) {
+        return HelperOutcome::Io(format!("cannot write helper: {e}"));
+    }
+
+    let global_root = std::process::Command::new("npm")
+        .args(["root", "-g"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+
+    let mut cmd = std::process::Command::new(runner);
+    cmd.arg(&helper).arg(arg);
+    if let Some(root) = &global_root {
+        cmd.env("NODE_PATH", root);
+    }
+    let output = cmd.output();
+    let _ = std::fs::remove_file(&helper);
+
+    match output {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => HelperOutcome::RunnerMissing,
+        Err(e) => HelperOutcome::Io(format!("failed to run {runner}: {e}")),
+        Ok(o) if !o.status.success() => {
+            HelperOutcome::Exit(String::from_utf8_lossy(&o.stderr).trim().to_string())
+        }
+        Ok(o) => match serde_json::from_slice(&o.stdout) {
+            Ok(v) => HelperOutcome::Ok(v),
+            Err(e) => HelperOutcome::Io(format!("helper did not emit valid JSON: {e}")),
+        },
+    }
 }
 
 /// Parse a spec as JSON first, then YAML. OpenAPI ships as both.
@@ -1030,6 +1095,43 @@ mod tests {
                 // TypeScript 7 native port); the clean-skip contract holds.
             }
             Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn zod_generates_or_skips_cleanly() {
+        // `glyph gen zod` needs tsx + a resolvable zod. Where either is absent
+        // (most CI/sandboxes), it must return a clean Missing/Unsupported error
+        // rather than a crash; assert that contract, and the mapping only when
+        // the toolchain is present.
+        let dir = std::env::temp_dir().join(format!("glyph-zod-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("schemas.ts");
+        std::fs::write(
+            &src,
+            "import { z } from \"zod\";\n\
+             export const Account = z.object({ id: z.number(), name: z.string(), \
+             nickname: z.string().optional() });\n",
+        )
+        .unwrap();
+
+        match zod(&src, &dir.join("out")) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                assert!(text.contains("type Account = {"), "got:\n{text}");
+                assert!(text.contains("id: number,"), "got:\n{text}");
+                assert!(text.contains("nickname?: string,"), "got:\n{text}");
+                assert!(glyph_parser::parse(&text).is_ok());
+            }
+            Err(GenError::TsxMissing)
+            | Err(GenError::ZodMissing)
+            | Err(GenError::ZodUnsupported) => {
+                // Toolchain absent; the clean-skip contract holds.
+            }
+            Err(e) => panic!("unexpected gen zod error: {e}"),
         }
 
         let _ = std::fs::remove_dir_all(&dir);

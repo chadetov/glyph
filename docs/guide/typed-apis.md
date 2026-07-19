@@ -170,6 +170,20 @@ string-literal unions (narrowed to `string` with a note). This needs `node` and
 the **classic** TypeScript compiler (`npm install -g typescript@6`); the 7.x
 native port (`typescript@latest`) does not expose the compiler API this uses,
 and `glyph gen dts` will tell you so and point you at `typescript@6`.
+
+If your source of truth is a `zod` schema rather than a plain type, use
+`glyph gen zod` instead:
+
+```sh
+glyph gen zod schemas.ts --out src/    # needs tsx + zod
+```
+
+It executes the module, converts each exported schema to a Glyph type (via zod
+4's `z.toJSONSchema`, or `zod-to-json-schema` on zod 3), and normalizes zod's
+nullable/optional shapes into the same wire-faithful mapping. That closes the
+`value → type` loop from the other side: your zod schema becomes a first-class
+Glyph type with its own descriptor.
+
 Materializing a `.d.ts` this way turns
 an ambient, unvalidated phantom into a real Glyph type you own and can validate —
 which is the whole point of the boundary below.

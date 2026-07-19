@@ -120,6 +120,20 @@ idempotent, so re-running after a spec change produces a minimal diff you can
 review. Because every generated type is a real record, a response body from that
 API validates through `PetstoreType.parse(...)` exactly like a hand-written one.
 
+Add `--client` to also generate a typed `std/http` client — one `async fn` per
+operation, with typed path parameters and request bodies:
+
+```sh
+glyph gen openapi tasks.yaml --out src/ --client
+# → async fn createTask(base: string, body: NewTask) -> Result<Response, HttpError>
+# → async fn getTask(base: string, id: number)       -> Result<Response, HttpError>
+```
+
+Each function takes the server `base` URL, sends the right verb to the right
+path, and returns the HTTP `Response`. The response body stays `unknown` by
+design — validate it with the matching type's `.parse`, so the boundary is
+checked on the way in just like a request body.
+
 The generator maps the wire-faithful core (objects, `string`/`number`/`bool`,
 `array`, `$ref`, optional and `nullable` fields, `additionalProperties` →
 `Record<string, T>`). Where a construct has no faithful Glyph representation — a

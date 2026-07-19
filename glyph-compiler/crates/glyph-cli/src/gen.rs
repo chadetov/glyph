@@ -76,8 +76,9 @@ pub struct GenReport {
 }
 
 /// Generate Glyph types from an OpenAPI / JSON-Schema document at `spec_path`,
-/// writing one `.glyph` file into `out_dir`.
-pub fn openapi(spec_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
+/// writing one `.glyph` file into `out_dir`. With `client`, also emit a typed
+/// client function per operation over `std/http`.
+pub fn openapi(spec_path: &Path, out_dir: &Path, client: bool) -> Result<GenReport, GenError> {
     let raw = std::fs::read_to_string(spec_path).map_err(|e| GenError::Read {
         path: spec_path.to_path_buf(),
         source: e,
@@ -94,21 +95,33 @@ pub fn openapi(spec_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> 
     let module_name = sanitize_module(stem_of(spec_path));
     let source_label = spec_path.display().to_string();
     let regen = format!("glyph gen openapi {}", spec_path.display());
-    render_and_write(schemas, &module_name, &source_label, &regen, out_dir)
+
+    let mut gen = Generator::default();
+    let (imports, trailer) = if client {
+        gen.emit_client(doc.get("paths"))
+    } else {
+        (String::new(), String::new())
+    };
+    render_and_write(gen, schemas, module_name, source_label, regen, imports, trailer, out_dir)
 }
 
 /// Turn a schema map into a formatted, self-validated `.glyph` file on disk.
 /// Shared by `glyph gen openapi` and `glyph gen dts` — both reduce to a JSON
-/// Schema `definitions` map, so both flow through the one mapper.
+/// Schema `definitions` map, so both flow through the one mapper. `imports` and
+/// `trailer` carry optional client/handler code emitted alongside the types.
+#[allow(clippy::too_many_arguments)]
 fn render_and_write(
+    mut gen: Generator,
     schemas: Vec<(String, Value)>,
-    module_name: &str,
-    source_label: &str,
-    regen_cmd: &str,
+    module_name: String,
+    source_label: String,
+    regen_cmd: String,
+    imports: String,
+    trailer: String,
     out_dir: &Path,
 ) -> Result<GenReport, GenError> {
-    let mut gen = Generator::default();
-    let body = gen.emit_module(module_name, source_label, regen_cmd, schemas);
+    let module_name = &module_name;
+    let body = gen.emit_module(module_name, &source_label, &regen_cmd, schemas, &imports, &trailer);
 
     // Canonicalize + self-validate: parse the generated source and reprint it.
     let module = glyph_parser::parse(&body).map_err(|e| GenError::GeneratedInvalid {
@@ -226,7 +239,16 @@ pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
     let module_name = sanitize_module(stem_of(dts_path));
     let source_label = dts_path.display().to_string();
     let regen = format!("glyph gen dts {}", dts_path.display());
-    render_and_write(schemas, &module_name, &source_label, &regen, out_dir)
+    render_and_write(
+        Generator::default(),
+        schemas,
+        module_name,
+        source_label,
+        regen,
+        String::new(),
+        String::new(),
+        out_dir,
+    )
 }
 
 /// Parse a spec as JSON first, then YAML. OpenAPI ships as both.
@@ -282,9 +304,15 @@ impl Generator {
         source_label: &str,
         regen_cmd: &str,
         schemas: Vec<(String, Value)>,
+        imports: &str,
+        trailer: &str,
     ) -> String {
         let mut out = String::new();
         out.push_str(&format!("module {module_name}\n\n"));
+        if !imports.is_empty() {
+            out.push_str(imports);
+            out.push('\n');
+        }
         out.push_str(&format!(
             "// Generated from {source_label}. Every type below is a real Glyph record\n\
              // with a runtime descriptor, so a request or response body validates\n\
@@ -298,7 +326,161 @@ impl Generator {
             out.push('\n');
             self.type_count += 1;
         }
+        if !trailer.is_empty() {
+            out.push_str(trailer);
+        }
         out
+    }
+
+    /// Emit a typed client function per operation in `paths`, returning
+    /// `(imports, trailer)` to splice into the module. Each function takes a
+    /// `base` URL, its typed path params, and (for post/put/patch) a typed body,
+    /// and returns `Result<Response, HttpError>` over `std/http`. The response
+    /// body is `unknown` by design — validate it with the matching DTO's
+    /// `.parse` — because the wire status, not the shape, is what the client
+    /// promises.
+    fn emit_client(&mut self, paths: Option<&Value>) -> (String, String) {
+        let Some(obj) = paths.and_then(|p| p.as_object()) else {
+            self.note("client requested but the spec has no `paths`; emitted types only.");
+            return (String::new(), String::new());
+        };
+
+        let mut fns = String::new();
+        let mut verbs_used: Vec<&str> = Vec::new();
+        let mut seen_ids: Vec<String> = Vec::new();
+        let mut count = 0usize;
+
+        // Deterministic order: paths come from a sorted map already.
+        for (path_str, item) in obj {
+            let Some(item_obj) = item.as_object() else { continue };
+            // Path-item-level parameters apply to every operation under it.
+            let shared_params = item_obj.get("parameters");
+            for method in ["get", "post", "put", "patch", "delete"] {
+                let Some(op) = item_obj.get(method).and_then(|m| m.as_object()) else {
+                    continue;
+                };
+                let verb = if method == "delete" { "del" } else { method };
+                if !verbs_used.contains(&verb) {
+                    verbs_used.push(verb);
+                }
+
+                // Function name: the operationId, sanitized, or synthesized from
+                // the method and path. Deduped so two ops can't collide.
+                let base_id = op
+                    .get("operationId")
+                    .and_then(|v| v.as_str())
+                    .map(sanitize_fn)
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or_else(|| synth_op_id(method, path_str));
+                let mut op_id = base_id.clone();
+                let mut n = 2;
+                while seen_ids.contains(&op_id) {
+                    op_id = format!("{base_id}{n}");
+                    n += 1;
+                }
+                seen_ids.push(op_id.clone());
+
+                // Path params, in the order they appear in the path template.
+                let param_defs = self.collect_op_params(op, shared_params);
+                let path_names = path_param_names(path_str);
+                let mut sig_params = vec!["base: string".to_string()];
+                for name in &path_names {
+                    let ty = param_defs
+                        .iter()
+                        .find(|(n, _)| n == name)
+                        .map(|(_, t)| t.clone())
+                        .unwrap_or_else(|| "string".to_string());
+                    if is_ident(name) {
+                        sig_params.push(format!("{name}: {ty}"));
+                    }
+                }
+
+                // Request body (post/put/patch only).
+                let body_ty = if matches!(verb, "post" | "put" | "patch") {
+                    self.request_body_type(op)
+                } else {
+                    None
+                };
+                if let Some(bt) = &body_ty {
+                    sig_params.push(format!("body: {bt}"));
+                }
+
+                let url = url_template(path_str, &path_names);
+                let call_args = match &body_ty {
+                    Some(_) => format!("{url}, body"),
+                    None => url,
+                };
+                fns.push_str(&format!(
+                    "async fn {op_id}({params}) -> Result<Response, HttpError> {{\n  \
+                       return await {verb}({call_args})\n}}\n\n",
+                    params = sig_params.join(", "),
+                ));
+                count += 1;
+            }
+            // Verbs we don't model as client calls.
+            for other in ["head", "options", "trace"] {
+                if item_obj.contains_key(other) {
+                    self.note(format!(
+                        "{path_str}: `{other}` operation skipped (no client verb)."
+                    ));
+                }
+            }
+        }
+
+        if count == 0 {
+            return (String::new(), String::new());
+        }
+
+        let mut verbs = verbs_used.clone();
+        verbs.extend(["Response", "HttpError"]);
+        let imports = format!(
+            "import std/http {{ {} }}\nimport std/result {{ Result }}\n",
+            verbs.join(", ")
+        );
+        let trailer = format!(
+            "// Typed client, one function per operation. Each returns the HTTP\n\
+             // Response; validate its `unknown` body with the matching type's\n\
+             // `.parse`. `base` is the server origin, e.g. \"http://localhost:8137\".\n\n{fns}"
+        );
+        (imports, trailer.trim_end().to_string() + "\n")
+    }
+
+    /// Collect `(name, glyph_type)` for an operation's path parameters, merging
+    /// path-item-level and operation-level `parameters` (only `in: path`).
+    fn collect_op_params(
+        &mut self,
+        op: &serde_json::Map<String, Value>,
+        shared: Option<&Value>,
+    ) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        let lists = [shared, op.get("parameters")];
+        for list in lists.into_iter().flatten() {
+            let Some(arr) = list.as_array() else { continue };
+            for p in arr {
+                if p.get("in").and_then(|v| v.as_str()) != Some("path") {
+                    continue;
+                }
+                let Some(name) = p.get("name").and_then(|v| v.as_str()) else {
+                    continue;
+                };
+                let ty = match p.get("schema") {
+                    Some(s) => self.type_ref(&format!("param {name}"), s),
+                    None => "string".to_string(),
+                };
+                out.push((name.to_string(), ty));
+            }
+        }
+        out
+    }
+
+    /// The Glyph type of an operation's JSON request body, if any.
+    fn request_body_type(&mut self, op: &serde_json::Map<String, Value>) -> Option<String> {
+        let schema = op
+            .get("requestBody")?
+            .get("content")?
+            .get("application/json")?
+            .get("schema")?;
+        Some(self.type_ref("request body", schema))
     }
 
     /// Emit one top-level `type Name = ...` declaration.
@@ -555,6 +737,84 @@ fn sanitize_type(raw: &str) -> String {
     out
 }
 
+/// Sanitize an operationId into a legal Glyph function name: keep alphanumerics
+/// and underscores, drop other characters, and prefix a leading digit.
+fn sanitize_fn(raw: &str) -> String {
+    let mut out = String::new();
+    for c in raw.chars() {
+        if c.is_ascii_alphanumeric() || c == '_' {
+            out.push(c);
+        }
+    }
+    if out.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        out.insert(0, 'f');
+    }
+    out
+}
+
+/// Synthesize a function name from a method and path, e.g. GET `/tasks/{id}` →
+/// `get_tasks_id`.
+fn synth_op_id(method: &str, path: &str) -> String {
+    let mut parts = vec![method.to_string()];
+    for seg in path.split('/') {
+        let seg = seg.trim_matches(|c| c == '{' || c == '}');
+        if seg.is_empty() {
+            continue;
+        }
+        let cleaned: String = seg
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect();
+        if !cleaned.is_empty() {
+            parts.push(cleaned);
+        }
+    }
+    sanitize_fn(&parts.join("_"))
+}
+
+/// The `{name}` placeholders in a path template, in order.
+fn path_param_names(path: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut rest = path;
+    while let Some(open) = rest.find('{') {
+        let after = &rest[open + 1..];
+        if let Some(close) = after.find('}') {
+            names.push(after[..close].to_string());
+            rest = &after[close + 1..];
+        } else {
+            break;
+        }
+    }
+    names
+}
+
+/// Build a Glyph template string for a request URL: `/tasks/{id}` with a
+/// declared `id` param → `"${base}/tasks/${id}"`. Placeholders whose name is not
+/// a legal identifier are left as literal text (they won't be interpolated).
+fn url_template(path: &str, params: &[String]) -> String {
+    let mut body = String::from("${base}");
+    let mut rest = path;
+    while let Some(open) = rest.find('{') {
+        body.push_str(&rest[..open]);
+        let after = &rest[open + 1..];
+        if let Some(close) = after.find('}') {
+            let name = &after[..close];
+            if params.iter().any(|p| p == name) && is_ident(name) {
+                body.push_str(&format!("${{{name}}}"));
+            } else {
+                body.push_str(&format!("{{{name}}}"));
+            }
+            rest = &after[close + 1..];
+        } else {
+            body.push_str(&rest[open..]);
+            rest = "";
+            break;
+        }
+    }
+    body.push_str(rest);
+    format!("\"{body}\"")
+}
+
 /// Sanitize a file stem into a lowercase Glyph module name.
 fn sanitize_module(raw: &str) -> String {
     let mut out = String::new();
@@ -580,12 +840,69 @@ mod tests {
         let doc: Value = serde_json::from_str(json).unwrap();
         let schemas = locate_schemas(&doc).expect("schemas");
         let mut g = Generator::default();
-        let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas);
+        let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas, "", "");
         // Prove the generated source parses and formats.
         let module = glyph_parser::parse(&body).expect("generated source parses");
         let comments = glyph_lexer::comments(&body);
         let formatted = glyph_formatter::format_module(&module, &comments, &body);
         (formatted, g.notes)
+    }
+
+    /// Full pipeline including client emission, returning the formatted module.
+    fn gen_client(json: &str) -> (String, Vec<String>) {
+        let doc: Value = serde_json::from_str(json).unwrap();
+        let schemas = locate_schemas(&doc).unwrap_or_default();
+        let mut g = Generator::default();
+        let (imports, trailer) = g.emit_client(doc.get("paths"));
+        let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas, &imports, &trailer);
+        let module = glyph_parser::parse(&body).expect("generated client source parses");
+        let comments = glyph_lexer::comments(&body);
+        let formatted = glyph_formatter::format_module(&module, &comments, &body);
+        (formatted, g.notes)
+    }
+
+    #[test]
+    fn client_emits_typed_functions_per_operation() {
+        let (out, _) = gen_client(
+            r##"{
+              "paths": {
+                "/tasks": {
+                  "get": { "operationId": "listTasks", "responses": {} },
+                  "post": { "operationId": "createTask", "requestBody": { "content":
+                    { "application/json": { "schema": { "$ref": "#/components/schemas/NewTask" } } } },
+                    "responses": {} }
+                },
+                "/tasks/{id}": {
+                  "get": { "operationId": "getTask",
+                    "parameters": [{ "name": "id", "in": "path", "schema": { "type": "integer" } }],
+                    "responses": {} },
+                  "delete": {
+                    "parameters": [{ "name": "id", "in": "path", "schema": { "type": "integer" } }],
+                    "responses": {} }
+                }
+              },
+              "components": { "schemas": {
+                "NewTask": { "type": "object", "required": ["title"],
+                  "properties": { "title": { "type": "string" } } } } }
+            }"##,
+        );
+        // Imports only the verbs actually used.
+        assert!(out.contains("import std/http { get, post, del, Response, HttpError }"), "got:\n{out}");
+        // Named operation with a typed body.
+        assert!(out.contains("async fn createTask(base: string, body: NewTask) -> Result<Response, HttpError>"), "got:\n{out}");
+        // Typed path param and interpolated URL.
+        assert!(out.contains("async fn getTask(base: string, id: number)"), "got:\n{out}");
+        assert!(out.contains("return await get(\"${base}/tasks/${id}\")"), "got:\n{out}");
+        // Synthesized name for the op with no operationId.
+        assert!(out.contains("async fn delete_tasks_id(base: string, id: number)"), "got:\n{out}");
+        assert!(out.contains("return await del(\"${base}/tasks/${id}\")"), "got:\n{out}");
+    }
+
+    #[test]
+    fn client_without_paths_notes_and_emits_nothing() {
+        let (out, notes) = gen_client(r#"{ "components": { "schemas": {} } }"#);
+        assert!(!out.contains("async fn"), "got:\n{out}");
+        assert!(notes.iter().any(|n| n.contains("no `paths`")), "notes: {notes:?}");
     }
 
     #[test]
@@ -667,7 +984,7 @@ mod tests {
         )
         .unwrap();
 
-        let report = openapi(&spec, &dir.join("out")).expect("gen succeeds");
+        let report = openapi(&spec, &dir.join("out"), false).expect("gen succeeds");
         assert_eq!(report.type_count, 1);
         assert!(report.out_file.ends_with("orders.glyph"));
         let text = std::fs::read_to_string(&report.out_file).unwrap();

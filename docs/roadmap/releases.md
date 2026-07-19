@@ -97,8 +97,11 @@ leads with it.
   flattened `{tag, ...fields}` object lacks) and `tsc`-errored. Fixed by
   recording the synthesized grouping temp's payload type in an emitter side
   table so the inner match binds the whole object.
-- **`\${...}` template-literal escaping** (M). A literal `\${` still emits a live
-  interpolation — the documented D22 footgun; needs a real lexer template mode.
+- **`\${...}` template-literal escaping** (M) — ✅ **done.** A literal `\${` now
+  stays literal via an internal escaped-`$` marker + a char-aware template
+  splitter; the same rewrite fixed non-ASCII template text being mangled. (A
+  nested string literal *inside* `${...}` still needs a `let` hoist — the full
+  lexer template-literal mode remains a v1.1 item.)
 
 ## 0.1.7 — Planned · Approved language features
 

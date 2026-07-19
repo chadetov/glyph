@@ -124,7 +124,12 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
    array with code, severity, message, file, 1-based line/col range, stage, help,
    note). A structured `Diagnostic` is built at every diagnostic site, and
    remapped tsc errors are included pointing at the Glyph source.
-4. **Runtime source maps** (M/L) — a debugger steps into `.glyph` (builds on 0.1.6).
+4. **Runtime source maps** (M/L) — ✅ **done.** Every emitted `.ts` ships a
+   standard v3 `.ts.map` (VLQ, `sourcesContent` embedded) + a `sourceMappingURL`
+   comment, built from the emitter checkpoints. A debugger or bundler chaining
+   maps traces the `.ts` back to `.glyph`. (Boundary: `glyph run`'s own stack
+   still shows `.ts` — tsx doesn't chain the map through its `.ts`→`.js`
+   transform; remapping the run stack is a follow-up.)
 5. **`gen dts` on TypeScript 7 native API** (M/L) — the deferred `unstable/*` integration.
 6. **Bounded generics `<T: Bound>`** (M) — parser + checker + emit.
 7. **Discriminated-union generation** (L) — a discriminator-aware union representation.

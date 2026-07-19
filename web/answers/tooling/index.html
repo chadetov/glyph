@@ -85,10 +85,12 @@
         </p>
         <p>
           <strong>Debugging, honestly:</strong> you debug the emitted TypeScript with the tools you
-          already use &mdash; Node's inspector, browser devtools, your IDE's JS/TS debugger &mdash;
-          on clean, readable output that maps closely to your source. Runtime source maps that let a
-          debugger <em>step</em> straight into <code>.glyph</code> line numbers are still on the
-          roadmap.
+          already use &mdash; Node's inspector, browser devtools, your IDE's JS/TS debugger. Every
+          build now ships a standard <strong>v3 source map</strong> beside each <code>.ts</code>
+          (with the Glyph source embedded), so a debugger or a bundler that chains maps steps back
+          into your <code>.glyph</code> line numbers. (One honest edge: <code>glyph run</code>'s own
+          crash stack still prints <code>.ts</code> lines, because <code>tsx</code> doesn't chain
+          the map through its transform &mdash; remapping that stack is next.)
         </p>
         <p>
           <strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every

@@ -45,7 +45,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
         });
     }
 
-    let (name, _name_span) = jsx_name(p)?;
+    let (name, _name_span) = jsx_element_name(p)?;
 
     // Parse attributes until `>` or `/>`.
     let mut attrs = Vec::new();
@@ -75,7 +75,7 @@ pub(crate) fn parse_jsx_element(p: &mut Cursor) -> Result<JsxElement, ParseError
     // Closing tag.
     p.expect(&Token::LAngle, "`<` (open closing tag)")?;
     p.expect(&Token::Slash, "`/` (closing tag)")?;
-    let (close_name, close_name_span) = jsx_name(p)?;
+    let (close_name, close_name_span) = jsx_element_name(p)?;
     if close_name != name {
         return Err(ParseError::Expected {
             expected: "closing tag matching the opening tag",
@@ -229,4 +229,27 @@ fn parse_jsx_attr(p: &mut Cursor) -> Result<JsxAttr, ParseError> {
 /// would otherwise split into `ident - ident`.
 fn jsx_name(p: &mut Cursor) -> Result<(Arc<str>, Span), ParseError> {
     p.expect_hyphenated_name("JSX element or attribute name")
+}
+
+/// Parse a JSX *element* name, which may be a member-expression path
+/// (`Ctx.Provider`, `Ns.Sub.Comp`) for a namespaced component such as a React
+/// Context provider. Stored as the dotted string; the emitter uses it verbatim
+/// as the `createElement` type, and the resolver resolves only the base
+/// segment. A `.` never follows an intrinsic tag or directive, so this is a
+/// no-op for those.
+fn jsx_element_name(p: &mut Cursor) -> Result<(Arc<str>, Span), ParseError> {
+    let (first, first_span) = jsx_name(p)?;
+    if !matches!(p.peek(), Token::Dot) {
+        return Ok((first, first_span));
+    }
+    let mut name = first.to_string();
+    let mut end = first_span.end;
+    while matches!(p.peek(), Token::Dot) {
+        p.advance(); // `.`
+        let (seg, seg_span) = jsx_name(p)?;
+        name.push('.');
+        name.push_str(&seg);
+        end = seg_span.end;
+    }
+    Ok((Arc::from(name.as_str()), Span::new(first_span.start, end)))
 }

@@ -520,7 +520,16 @@ impl Resolver<'_> {
     fn walk_jsx(&mut self, j: &JsxElement) {
         let kind = JsxKind::classify(&j.name);
         if kind == JsxKind::Component {
-            self.resolve_name_ref(&j.name, j.span);
+            // A member-expression name (`Ctx.Provider`) resolves its base
+            // segment only; the `.Provider` part is a property access, not a
+            // separate binding.
+            match j.name.split_once('.') {
+                Some((base, _)) => {
+                    let base_ident: Ident = std::sync::Arc::from(base);
+                    self.resolve_name_ref(&base_ident, j.span);
+                }
+                None => self.resolve_name_ref(&j.name, j.span),
+            }
         }
 
         // Directive bindings introduce locals scoped to the element:

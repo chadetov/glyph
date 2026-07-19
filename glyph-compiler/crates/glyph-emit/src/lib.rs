@@ -4867,6 +4867,18 @@ mod tests {
     }
 
     #[test]
+    fn member_expression_jsx_name_emits_the_dotted_type() {
+        // `<Ctx.Provider value={x}>` — a namespaced component (React Context).
+        let ts = emit(
+            "module x\ncomponent T(v: string) -> Component {\n  return <Ctx.Provider value={v}>\n    <span>{\"c\"}</span>\n  </Ctx.Provider>\n}\n",
+        );
+        assert!(
+            ts.contains("React.createElement(Ctx.Provider, { value: v },"),
+            "dotted element name emits as the createElement type: {ts}"
+        );
+    }
+
+    #[test]
     fn jsx_text_keeps_the_space_between_text_and_an_interpolated_expr() {
         // JSX whitespace rules keep a single significant space between text and
         // an `{expr}` child on the same line. Trimming both would render

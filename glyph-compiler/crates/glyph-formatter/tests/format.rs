@@ -102,6 +102,15 @@ fn jsx_fragment_round_trips() {
 }
 
 #[test]
+fn member_expression_jsx_name_round_trips() {
+    let src = "module x\ncomponent T(v: string) -> Component {\n  return <Ctx.Provider value={v}>\n    <span>{v}</span>\n  </Ctx.Provider>\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("<Ctx.Provider value={v}>"), "dotted name preserved:\n{out}");
+    assert!(out.contains("</Ctx.Provider>"), "dotted close preserved:\n{out}");
+    assert_eq!(fmt(&out), out, "member-JSX format is not stable");
+}
+
+#[test]
 fn binary_precedence_uses_minimal_parens() {
     let plain = fmt("module x\nfn f() -> number {\n  return 1 + 2 * 3\n}\n");
     assert!(plain.contains("1 + 2 * 3"), "{plain}");

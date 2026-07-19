@@ -29,6 +29,10 @@ declare module "react" {
   ): Component;
   // `<>...</>` lowers to `createElement(React.Fragment, ...)`.
   export const Fragment: unknown;
+  // A context object; `<Ctx.Provider>` is a member-expression element name.
+  type Context<T> = { Provider: unknown; Consumer: unknown; __t?: T };
+  export function createContext<T>(initial: T): Context<T>;
+  export function useContext<T>(ctx: Context<T>): T;
   export function use_state<T>(initial: T): { value: T; set: (next: T) => void };
   export function use_effect(effect: () => void, deps: ReadonlyArray<unknown>): void;
   export function use_memo<T>(factory: () => T, deps: ReadonlyArray<unknown>): T;

@@ -113,7 +113,9 @@ five items shipped, led by the warning tier.
 into 0.1.7, built in adoption-rank order (1 → 15), each with tests. Full plan and
 per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](../plan/0.1.7-language-and-agent-experience.md).
 
-1. **JSX fragments `<>...</>`** (S/M) — parser + emitter.
+1. **JSX fragments `<>...</>`** (S/M) — ✅ **done.** Parser (`<`-then-`>`
+   lookahead + `</>` close, empty-name element), resolver/emitter `Fragment`
+   kind → `React.createElement(React.Fragment, ...)`, formatter round-trips.
 2. **Member-expression JSX `<Ns.Comp>`** (S/M) — parser + emitter (React Context).
 3. **Machine-readable diagnostics (`--json`)** (M) — structured diagnostics for agents.
 4. **Runtime source maps** (M/L) — a debugger steps into `.glyph` (builds on 0.1.6).

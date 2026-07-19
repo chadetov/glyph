@@ -30,9 +30,11 @@ completion and makes the site's "on the way" promises real.
   `async fn` per operation over `std/http` (typed path params + request body,
   interpolated URL, `Result<Response, HttpError>`). The full verb set
   (`get`/`post`/`put`/`patch`/`del`) shipped first as the enabler.
-- **`gen openapi` handler codegen** (M) — remaining. Server-side handler stubs +
-  a routing skeleton from the operations. Path-template routing (`/tasks/{id}`)
-  is the interesting part; scope it to a scaffold the user fills in.
+- **`gen openapi` handler codegen** (M) — ✅ **done.** `--handlers` emits a typed
+  stub per operation plus a `route` dispatcher that matches method + path via
+  array patterns over a new `http.segments(req)` (`/tasks/{id}` → `["tasks", id]`,
+  binding the param). Verified routing live. Combines with `--client` (handler
+  stubs are `handle_`-prefixed to stay unique).
 - **Discriminated unions in generation** (M → **L, blocked on runtime rep**).
   *Finding while building the mapper:* a Glyph tagged union tags by a `tag` field
   carrying the **constructor name** (`{tag:"Cat"}`), whereas an OpenAPI

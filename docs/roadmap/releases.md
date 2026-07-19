@@ -119,7 +119,11 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
 2. **Member-expression JSX `<Ns.Comp>`** (S/M) — ✅ **done.** `jsx_element_name`
    parses dotted tag names; resolver resolves the base segment; emitter uses the
    dotted string as the `createElement` type. React Context providers work.
-3. **Machine-readable diagnostics (`--json`)** (M) — structured diagnostics for agents.
+3. **Machine-readable diagnostics (`--json`)** (M) — ✅ **done.** `glyph build
+   --json` emits a JSON object (ok/errors/warnings/tsc/emitted + a `diagnostics`
+   array with code, severity, message, file, 1-based line/col range, stage, help,
+   note). A structured `Diagnostic` is built at every diagnostic site, and
+   remapped tsc errors are included pointing at the Glyph source.
 4. **Runtime source maps** (M/L) — a debugger steps into `.glyph` (builds on 0.1.6).
 5. **`gen dts` on TypeScript 7 native API** (M/L) — the deferred `unstable/*` integration.
 6. **Bounded generics `<T: Bound>`** (M) — parser + checker + emit.

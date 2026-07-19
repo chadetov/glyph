@@ -90,13 +90,20 @@
           debugger <em>step</em> straight into <code>.glyph</code> line numbers are still on the
           roadmap.
         </p>
+        <p>
+          <strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every
+          diagnostic as structured JSON &mdash; a stable code, severity, message, file, and 1-based
+          line/column range, plus the help and note &mdash; including <code>tsc</code> errors mapped
+          onto your Glyph source. An agent reads and acts on them directly instead of scraping
+          terminal text.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, <code>glyph --explain</code>, and <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source.</p>
+          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, and <code>--json</code> structured diagnostics for agents.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

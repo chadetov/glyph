@@ -150,8 +150,10 @@ async fn getTask(base: string, id: number)
           narrows what it can't represent exactly (a string enum, an undiscriminated union) with a
           printed note rather than a validator that would reject real data. Discriminated unions and
           richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen
-          zod</code> need Node plus <code>typescript</code>/<code>zod</code>, and tell you exactly
-          what to install if they're missing.
+          zod</code> need Node plus <code>typescript</code>/<code>zod</code> &mdash; <code>gen
+          dts</code> resolves TypeScript from your project first, so a pinned
+          <code>typescript@6</code> just works &mdash; and they tell you exactly what to install if
+          it's missing.
         </p>
       </div>
 

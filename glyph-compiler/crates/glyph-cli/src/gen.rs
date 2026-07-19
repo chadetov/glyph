@@ -59,7 +59,7 @@ pub enum GenError {
     NodeMissing,
     #[error("the `typescript` package is not resolvable. Install it with `npm install -g typescript@6`, then re-run `glyph gen dts`.")]
     TypescriptMissing,
-    #[error("the installed TypeScript is the native port (7.x), whose compiler API `glyph gen dts` does not yet support. Install the classic compiler with `npm install -g typescript@6` (or add `typescript@^6` to the project), then re-run.")]
+    #[error("the resolvable TypeScript is the native port (7.x), whose compiler API `glyph gen dts` does not yet support. Pin the classic compiler in the file's project (`npm install typescript@6` there — it is resolved from the project first), or install it globally (`npm install -g typescript@6`), then re-run.")]
     TypescriptUnsupported,
     #[error("`tsx` not found on PATH. `glyph gen zod` needs it to execute the schema module; install it with `npm install -g tsx`.")]
     TsxMissing,

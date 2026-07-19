@@ -45,9 +45,18 @@ completion and makes the site's "on the way" promises real.
   discriminator-aware union runtime representation or a new descriptor that reads
   a named property. Treat as its own runtime-representation task, not a mapper
   tweak; may slip past 0.1.5.
-- **`gen dts` on TypeScript 7** (M/L). Support the native "tsgo" API (or bundle a
-  compatible parser) so the default `npm install typescript` works without the
-  `typescript@6` pin.
+- **`gen dts` on TypeScript 7** (M/L) — 🟨 **partially done; full support
+  deferred.** `gen dts` now resolves TypeScript from the *target file's own
+  project* first, so a project that pins `typescript@6` (the norm) just works
+  even when the global install is 7.x; diagnostics distinguish "no TypeScript"
+  from "only the 7.x native port." *Finding while scouting the native API:* the
+  7.x package's default export is only the version; the real API lives under
+  `typescript/unstable/*` (`unstable/sync` = a project/handle-based `API`,
+  `unstable/ast` = `SyntaxKind` + `is*` guards but **no `createSourceFile`**).
+  Driving it for standalone `.d.ts` parsing needs the project/`Program`/
+  `NodeHandle` path, which is under-documented and explicitly unstable — a real
+  integration, not a tweak. Deferred past 0.1.5; the project-pin path covers the
+  common case in the meantime.
 - **`gen zod`** (M) — ✅ **done.** `glyph gen zod <file.ts>` executes the schema
   module via `tsx`, converts each exported zod schema to JSON Schema (zod 4's
   `z.toJSONSchema`, or `zod-to-json-schema` on zod 3), normalizes zod's

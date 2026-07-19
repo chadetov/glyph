@@ -18,31 +18,42 @@
 // too. If it cannot be loaded we exit non-zero with a clear sentinel the Rust
 // side turns into an actionable diagnostic.
 
-// Load `typescript` via a CommonJS require: unlike ESM `import`, `require`
-// honors the NODE_PATH that `glyph gen dts` sets to the global module root, so a
-// `npm install -g typescript` is found without a local install.
 import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-let ts;
-try {
-  ts = require("typescript");
-  if (ts && ts.default && !ts.ScriptTarget) ts = ts.default;
-} catch {
-  process.stderr.write("GLYPH_GEN_NO_TYPESCRIPT\n");
-  process.exit(3);
-}
-// TypeScript 7 (the native "tsgo" port) ships a different JS surface that does
-// not expose the classic compiler API this helper walks. Detect it and ask for
-// a compatible compiler rather than crash cryptically.
-if (!ts || typeof ts.createSourceFile !== "function" || !ts.ScriptTarget) {
-  process.stderr.write("GLYPH_GEN_TS_UNSUPPORTED\n");
-  process.exit(4);
-}
+import { pathToFileURL } from "node:url";
 
 const file = process.argv[2];
 if (!file) {
   process.stderr.write("usage: ts-to-schema.mjs <file.d.ts>\n");
   process.exit(2);
+}
+
+// Resolve `typescript` via a CommonJS require (unlike ESM `import`, `require`
+// honors NODE_PATH). Try the *input file's own project* first — a project that
+// pins a classic `typescript@6` should win even when the global install is the
+// 7.x native port — then fall back to the global install this helper sees.
+// Track whether we found any typescript at all vs. only a non-classic one, so
+// the diagnostic is precise.
+let ts;
+let foundAny = false;
+for (const base of [pathToFileURL(file).href, import.meta.url]) {
+  try {
+    const req = createRequire(base);
+    let cand = req("typescript");
+    if (cand && cand.default && !cand.ScriptTarget) cand = cand.default;
+    foundAny = true;
+    // The classic compiler API this helper walks (TypeScript 7's native port
+    // does not expose it).
+    if (cand && typeof cand.createSourceFile === "function" && cand.ScriptTarget) {
+      ts = cand;
+      break;
+    }
+  } catch {
+    // not resolvable from this base; try the next
+  }
+}
+if (!ts) {
+  process.stderr.write(foundAny ? "GLYPH_GEN_TS_UNSUPPORTED\n" : "GLYPH_GEN_NO_TYPESCRIPT\n");
+  process.exit(foundAny ? 4 : 3);
 }
 
 const source = await import("node:fs").then((fs) => fs.readFileSync(file, "utf8"));

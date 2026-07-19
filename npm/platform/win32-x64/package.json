@@ -1,6 +1,6 @@
 {
   "name": "@glyphlang/win32-x64",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Prebuilt glyph compiler binary for Windows (x86_64).",
   "os": ["win32"],
   "cpu": ["x64"],

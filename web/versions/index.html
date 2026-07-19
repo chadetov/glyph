@@ -40,8 +40,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.4</span>
+            <span class="rel-ver">0.1.5</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Typed clients and servers from your API spec</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>glyph gen openapi --client</code> generates a typed <code>std/http</code> client &mdash; one <code>async fn</code> per operation, with typed path parameters and request bodies.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen openapi --handlers</code> generates server handler stubs plus a <code>route</code> dispatcher that matches the method and path (array patterns capture <code>/tasks/{id}</code> for you).</li>
+              <li><span class="tag added">Added</span> <code>glyph gen zod</code> materializes a module of zod schemas into committed, descriptor-bearing Glyph types.</li>
+              <li><span class="tag added">Added</span> Untrusted request input is typed as <code>Option</code>: <code>header</code> and <code>query_param</code> return <code>Option&lt;string&gt;</code>, so a missing value can't slip past a <code>match</code>. The <code>std/http</code> client gains <code>put</code>/<code>patch</code>/<code>del</code>.</li>
+              <li><span class="tag fixed">Fixed</span> <code>glyph gen dts</code> resolves TypeScript from the target file's own project first, so a pinned <code>typescript@6</code> works even when the global install is 7.x.</li>
+              <li><span class="tag site">Site</span> A new <a href="/answers/codegen/">Client &amp; server</a> answer walking through the generated client, router, and zod materialization.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.4</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

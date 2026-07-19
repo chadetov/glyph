@@ -116,7 +116,9 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
 1. **JSX fragments `<>...</>`** (S/M) — ✅ **done.** Parser (`<`-then-`>`
    lookahead + `</>` close, empty-name element), resolver/emitter `Fragment`
    kind → `React.createElement(React.Fragment, ...)`, formatter round-trips.
-2. **Member-expression JSX `<Ns.Comp>`** (S/M) — parser + emitter (React Context).
+2. **Member-expression JSX `<Ns.Comp>`** (S/M) — ✅ **done.** `jsx_element_name`
+   parses dotted tag names; resolver resolves the base segment; emitter uses the
+   dotted string as the `createElement` type. React Context providers work.
 3. **Machine-readable diagnostics (`--json`)** (M) — structured diagnostics for agents.
 4. **Runtime source maps** (M/L) — a debugger steps into `.glyph` (builds on 0.1.6).
 5. **`gen dts` on TypeScript 7 native API** (M/L) — the deferred `unstable/*` integration.

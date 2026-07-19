@@ -115,9 +115,13 @@ enum GenTarget {
         /// Directory to write the generated `.glyph` file into.
         #[arg(long, value_name = "DIR")]
         out: std::path::PathBuf,
-        /// Also emit a typed `std/http` client function per operation.
+        /// Also emit a typed `std/http` client function per operation
+        /// (`--client`), or server handler stubs plus a `route` dispatcher
+        /// (`--handlers`); both may be combined.
         #[arg(long)]
         client: bool,
+        #[arg(long)]
+        handlers: bool,
     },
     /// Generate Glyph types from a TypeScript `.d.ts` declaration file.
     /// Needs `node` and the `typescript` package (npm install -g typescript).
@@ -464,8 +468,8 @@ fn main() {
         }
         Some(Command::Gen { target }) => {
             let result = match target {
-                GenTarget::Openapi { spec, out, client } => {
-                    glyph_cli::gen::openapi(&spec, &out, client)
+                GenTarget::Openapi { spec, out, client, handlers } => {
+                    glyph_cli::gen::openapi(&spec, &out, client, handlers)
                 }
                 GenTarget::Dts { file, out } => glyph_cli::gen::dts(&file, &out),
                 GenTarget::Zod { file, out } => glyph_cli::gen::zod(&file, &out),

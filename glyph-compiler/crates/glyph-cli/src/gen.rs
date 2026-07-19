@@ -84,7 +84,12 @@ pub struct GenReport {
 /// Generate Glyph types from an OpenAPI / JSON-Schema document at `spec_path`,
 /// writing one `.glyph` file into `out_dir`. With `client`, also emit a typed
 /// client function per operation over `std/http`.
-pub fn openapi(spec_path: &Path, out_dir: &Path, client: bool) -> Result<GenReport, GenError> {
+pub fn openapi(
+    spec_path: &Path,
+    out_dir: &Path,
+    client: bool,
+    handlers: bool,
+) -> Result<GenReport, GenError> {
     let raw = std::fs::read_to_string(spec_path).map_err(|e| GenError::Read {
         path: spec_path.to_path_buf(),
         source: e,
@@ -103,8 +108,18 @@ pub fn openapi(spec_path: &Path, out_dir: &Path, client: bool) -> Result<GenRepo
     let regen = format!("glyph gen openapi {}", spec_path.display());
 
     let mut gen = Generator::default();
-    let (imports, trailer) = if client {
-        gen.emit_client(doc.get("paths"))
+    let (imports, trailer) = if client || handlers {
+        let ops = gen.collect_operations(doc.get("paths"));
+        let mut parts = Vec::new();
+        if client {
+            parts.push(gen.emit_client(&ops));
+        }
+        if handlers {
+            // Prefix handler stubs when the client is also emitted, so their
+            // names don't collide with the client functions.
+            parts.push(gen.emit_handlers(&ops, client));
+        }
+        assemble_extras(&parts)
     } else {
         (String::new(), String::new())
     };
@@ -397,40 +412,26 @@ impl Generator {
         out
     }
 
-    /// Emit a typed client function per operation in `paths`, returning
-    /// `(imports, trailer)` to splice into the module. Each function takes a
-    /// `base` URL, its typed path params, and (for post/put/patch) a typed body,
-    /// and returns `Result<Response, HttpError>` over `std/http`. The response
-    /// body is `unknown` by design — validate it with the matching DTO's
-    /// `.parse` — because the wire status, not the shape, is what the client
-    /// promises.
-    fn emit_client(&mut self, paths: Option<&Value>) -> (String, String) {
+    /// Collect every operation in `paths` into a flat, deterministic list, with
+    /// deduped function names. Shared by client and handler codegen.
+    fn collect_operations(&mut self, paths: Option<&Value>) -> Vec<Op> {
         let Some(obj) = paths.and_then(|p| p.as_object()) else {
-            self.note("client requested but the spec has no `paths`; emitted types only.");
-            return (String::new(), String::new());
+            self.note("client/handlers requested but the spec has no `paths`; emitted types only.");
+            return Vec::new();
         };
 
-        let mut fns = String::new();
-        let mut verbs_used: Vec<&str> = Vec::new();
+        let mut ops = Vec::new();
         let mut seen_ids: Vec<String> = Vec::new();
-        let mut count = 0usize;
-
         // Deterministic order: paths come from a sorted map already.
         for (path_str, item) in obj {
             let Some(item_obj) = item.as_object() else { continue };
-            // Path-item-level parameters apply to every operation under it.
             let shared_params = item_obj.get("parameters");
             for method in ["get", "post", "put", "patch", "delete"] {
                 let Some(op) = item_obj.get(method).and_then(|m| m.as_object()) else {
                     continue;
                 };
                 let verb = if method == "delete" { "del" } else { method };
-                if !verbs_used.contains(&verb) {
-                    verbs_used.push(verb);
-                }
 
-                // Function name: the operationId, sanitized, or synthesized from
-                // the method and path. Deduped so two ops can't collide.
                 let base_id = op
                     .get("operationId")
                     .and_then(|v| v.as_str())
@@ -445,69 +446,164 @@ impl Generator {
                 }
                 seen_ids.push(op_id.clone());
 
-                // Path params, in the order they appear in the path template.
                 let param_defs = self.collect_op_params(op, shared_params);
-                let path_names = path_param_names(path_str);
-                let mut sig_params = vec!["base: string".to_string()];
-                for name in &path_names {
-                    let ty = param_defs
-                        .iter()
-                        .find(|(n, _)| n == name)
-                        .map(|(_, t)| t.clone())
-                        .unwrap_or_else(|| "string".to_string());
-                    if is_ident(name) {
-                        sig_params.push(format!("{name}: {ty}"));
-                    }
-                }
+                let path_params: Vec<(String, String)> = path_param_names(path_str)
+                    .into_iter()
+                    .filter(|name| is_ident(name))
+                    .map(|name| {
+                        let ty = param_defs
+                            .iter()
+                            .find(|(n, _)| n == &name)
+                            .map(|(_, t)| t.clone())
+                            .unwrap_or_else(|| "string".to_string());
+                        (name, ty)
+                    })
+                    .collect();
 
-                // Request body (post/put/patch only).
-                let body_ty = if matches!(verb, "post" | "put" | "patch") {
+                let body_type = if matches!(verb, "post" | "put" | "patch") {
                     self.request_body_type(op)
                 } else {
                     None
                 };
-                if let Some(bt) = &body_ty {
-                    sig_params.push(format!("body: {bt}"));
-                }
 
-                let url = url_template(path_str, &path_names);
-                let call_args = match &body_ty {
-                    Some(_) => format!("{url}, body"),
-                    None => url,
-                };
-                fns.push_str(&format!(
-                    "async fn {op_id}({params}) -> Result<Response, HttpError> {{\n  \
-                       return await {verb}({call_args})\n}}\n\n",
-                    params = sig_params.join(", "),
-                ));
-                count += 1;
+                ops.push(Op {
+                    method: method.to_uppercase(),
+                    verb: verb.to_string(),
+                    op_id,
+                    path: path_str.clone(),
+                    path_params,
+                    body_type,
+                });
             }
-            // Verbs we don't model as client calls.
             for other in ["head", "options", "trace"] {
                 if item_obj.contains_key(other) {
-                    self.note(format!(
-                        "{path_str}: `{other}` operation skipped (no client verb)."
-                    ));
+                    self.note(format!("{path_str}: `{other}` operation skipped."));
                 }
             }
         }
+        ops
+    }
 
-        if count == 0 {
-            return (String::new(), String::new());
+    /// Emit a typed client function per operation. Each takes a `base` URL, its
+    /// typed path params, and (for post/put/patch) a typed body, and returns
+    /// `Result<Response, HttpError>`. The response body is `unknown` by design —
+    /// validate it with the matching DTO's `.parse`.
+    fn emit_client(&mut self, ops: &[Op]) -> Emitted {
+        let mut e = Emitted::default();
+        if ops.is_empty() {
+            return e;
+        }
+        for op in ops {
+            e.http_verb(&op.verb);
+            let mut sig = vec!["base: string".to_string()];
+            for (name, ty) in &op.path_params {
+                sig.push(format!("{name}: {ty}"));
+            }
+            if let Some(bt) = &op.body_type {
+                sig.push(format!("body: {bt}"));
+            }
+            let names: Vec<String> = op.path_params.iter().map(|(n, _)| n.clone()).collect();
+            let url = url_template(&op.path, &names);
+            let call_args = match &op.body_type {
+                Some(_) => format!("{url}, body"),
+                None => url,
+            };
+            e.body.push_str(&format!(
+                "async fn {id}({params}) -> Result<Response, HttpError> {{\n  \
+                   return await {verb}({call_args})\n}}\n\n",
+                id = op.op_id,
+                params = sig.join(", "),
+                verb = op.verb,
+            ));
+        }
+        e.http("Response");
+        e.http("HttpError");
+        e.result("Result");
+        e.banner = "// Typed client, one function per operation. Each returns the HTTP\n\
+             // Response; validate its `unknown` body with the matching type's\n\
+             // `.parse`. `base` is the server origin, e.g. \"http://localhost:8137\"."
+            .to_string();
+        e
+    }
+
+    /// Emit a handler stub per operation plus a `route` dispatcher that matches
+    /// method + path (via array patterns over `segments(req)`, so `/tasks/{id}`
+    /// binds `id`). Stubs return 501; the user fills them in. When `prefix` is
+    /// set (client is also generated into the same module), stubs are named
+    /// `handle_<op>` to avoid colliding with the client functions.
+    fn emit_handlers(&mut self, ops: &[Op], prefix: bool) -> Emitted {
+        let mut e = Emitted::default();
+        if ops.is_empty() {
+            return e;
+        }
+        let name_of = |op: &Op| {
+            if prefix {
+                format!("handle_{}", op.op_id)
+            } else {
+                op.op_id.clone()
+            }
+        };
+
+        // One handler stub per operation.
+        for op in ops {
+            let mut sig = vec!["req: Request".to_string()];
+            for (name, _) in &op.path_params {
+                // Path segments arrive as strings from the router.
+                sig.push(format!("{name}: string"));
+            }
+            let hint = match &op.body_type {
+                Some(bt) => format!(
+                    "  // Validate the body: match {bt}.parse(req.body) {{ Ok(input) => ..., Err(issues) => ... }}\n"
+                ),
+                None => String::new(),
+            };
+            e.body.push_str(&format!(
+                "// TODO: implement ({method} {path}).\nfn {name}({params}) -> Result<Response, string> {{\n{hint}  \
+                   return Ok(json(501, {{ error: \"not implemented\" }}))\n}}\n\n",
+                method = op.method,
+                path = op.path,
+                name = name_of(op),
+                params = sig.join(", "),
+            ));
         }
 
-        let mut verbs = verbs_used.clone();
-        verbs.extend(["Response", "HttpError"]);
-        let imports = format!(
-            "import std/http {{ {} }}\nimport std/result {{ Result }}\n",
-            verbs.join(", ")
-        );
-        let trailer = format!(
-            "// Typed client, one function per operation. Each returns the HTTP\n\
-             // Response; validate its `unknown` body with the matching type's\n\
-             // `.parse`. `base` is the server origin, e.g. \"http://localhost:8137\".\n\n{fns}"
-        );
-        (imports, trailer.trim_end().to_string() + "\n")
+        // The router: match method, then path segments.
+        let mut methods: Vec<String> = Vec::new();
+        for op in ops {
+            if !methods.contains(&op.method) {
+                methods.push(op.method.clone());
+            }
+        }
+        let mut router = String::from("fn route(req: Request) -> Result<Response, string> {\n  return match req.method {\n");
+        for m in &methods {
+            router.push_str(&format!("    \"{m}\" => match segments(req) {{\n"));
+            for op in ops.iter().filter(|o| &o.method == m) {
+                let pat = segment_pattern(&op.path, &op.path_params);
+                let args: Vec<String> = std::iter::once("req".to_string())
+                    .chain(op.path_params.iter().map(|(n, _)| n.clone()))
+                    .collect();
+                router.push_str(&format!(
+                    "      {pat} => {name}({args}),\n",
+                    name = name_of(op),
+                    args = args.join(", "),
+                ));
+            }
+            router.push_str("      else => Ok(json(404, { error: \"not found\" })),\n    },\n");
+        }
+        router.push_str("    else => Ok(json(405, { error: \"method not allowed\" })),\n  }\n}\n");
+        e.body.push_str(&router);
+
+        e.http("Request");
+        e.http("Response");
+        e.http("json");
+        e.http("segments");
+        e.result("Result");
+        e.result("Ok");
+        e.banner =
+            "// Server handlers. Each stub returns 501 — fill it in. `route` dispatches\n\
+             // by method and path; wire it up with `await serve(PORT, route)` in main."
+                .to_string();
+        e
     }
 
     /// Collect `(name, glyph_type)` for an operation's path parameters, merging
@@ -802,6 +898,117 @@ fn sanitize_type(raw: &str) -> String {
     out
 }
 
+/// One HTTP operation, flattened from the spec's `paths`.
+struct Op {
+    /// Upper-case HTTP method, e.g. `GET`.
+    method: String,
+    /// The `std/http` client verb: get/post/put/patch/del.
+    verb: String,
+    /// The generated function name (deduped).
+    op_id: String,
+    /// The path template, e.g. `/tasks/{id}`.
+    path: String,
+    /// Path parameters as `(name, glyph_type)`, in path order.
+    path_params: Vec<(String, String)>,
+    /// The request body's Glyph type (post/put/patch), if any.
+    body_type: Option<String>,
+}
+
+/// Accumulated output of a codegen pass: the imports it needs and its function
+/// text, kept separate so client and handler passes can be merged.
+#[derive(Default)]
+struct Emitted {
+    /// `std/http` names to import, in first-seen order.
+    http: Vec<String>,
+    /// `std/result` names to import, in first-seen order.
+    result: Vec<String>,
+    /// A comment banner printed before the functions.
+    banner: String,
+    /// The generated function declarations.
+    body: String,
+}
+
+impl Emitted {
+    fn http(&mut self, name: &str) {
+        if !self.http.iter().any(|n| n == name) {
+            self.http.push(name.to_string());
+        }
+    }
+    fn http_verb(&mut self, verb: &str) {
+        self.http(verb);
+    }
+    fn result(&mut self, name: &str) {
+        if !self.result.iter().any(|n| n == name) {
+            self.result.push(name.to_string());
+        }
+    }
+}
+
+/// Merge one or more codegen passes into `(imports, trailer)` for the module:
+/// union the imports, concatenate each pass's banner + body.
+fn assemble_extras(parts: &[Emitted]) -> (String, String) {
+    let mut http: Vec<String> = Vec::new();
+    let mut result: Vec<String> = Vec::new();
+    for p in parts {
+        if p.body.is_empty() {
+            continue;
+        }
+        for n in &p.http {
+            if !http.contains(n) {
+                http.push(n.clone());
+            }
+        }
+        for n in &p.result {
+            if !result.contains(n) {
+                result.push(n.clone());
+            }
+        }
+    }
+    let mut imports = String::new();
+    if !http.is_empty() {
+        imports.push_str(&format!("import std/http {{ {} }}\n", http.join(", ")));
+    }
+    if !result.is_empty() {
+        imports.push_str(&format!("import std/result {{ {} }}\n", result.join(", ")));
+    }
+
+    let mut trailer = String::new();
+    for p in parts {
+        if p.body.is_empty() {
+            continue;
+        }
+        trailer.push_str(&p.banner);
+        trailer.push_str("\n\n");
+        trailer.push_str(&p.body);
+    }
+    let trailer = if trailer.is_empty() {
+        String::new()
+    } else {
+        trailer.trim_end().to_string() + "\n"
+    };
+    (imports, trailer)
+}
+
+/// Build a Glyph array pattern for a path's segments: `/tasks/{id}` with a
+/// declared `id` param → `["tasks", id]` (literal segment + capture binding). A
+/// path with no segments (`/`) yields `[]`.
+fn segment_pattern(path: &str, params: &[(String, String)]) -> String {
+    let parts: Vec<String> = path
+        .split('/')
+        .filter(|s| !s.is_empty())
+        .map(|seg| {
+            if seg.starts_with('{') && seg.ends_with('}') {
+                let name = &seg[1..seg.len() - 1];
+                if is_ident(name) && params.iter().any(|(n, _)| n == name) {
+                    return name.to_string();
+                }
+            }
+            format!("\"{seg}\"")
+        })
+        .collect();
+    format!("[{}]", parts.join(", "))
+}
+
 /// Sanitize an operationId into a legal Glyph function name: keep alphanumerics
 /// and underscores, drop other characters, and prefix a leading digit.
 fn sanitize_fn(raw: &str) -> String {
@@ -913,14 +1120,23 @@ mod tests {
         (formatted, g.notes)
     }
 
-    /// Full pipeline including client emission, returning the formatted module.
-    fn gen_client(json: &str) -> (String, Vec<String>) {
+    /// Full pipeline including client and/or handler emission, returning the
+    /// formatted module.
+    fn gen_ops(json: &str, client: bool, handlers: bool) -> (String, Vec<String>) {
         let doc: Value = serde_json::from_str(json).unwrap();
         let schemas = locate_schemas(&doc).unwrap_or_default();
         let mut g = Generator::default();
-        let (imports, trailer) = g.emit_client(doc.get("paths"));
+        let ops = g.collect_operations(doc.get("paths"));
+        let mut parts = Vec::new();
+        if client {
+            parts.push(g.emit_client(&ops));
+        }
+        if handlers {
+            parts.push(g.emit_handlers(&ops, client));
+        }
+        let (imports, trailer) = assemble_extras(&parts);
         let body = g.emit_module("t", "spec.json", "glyph gen openapi spec.json", schemas, &imports, &trailer);
-        let module = glyph_parser::parse(&body).expect("generated client source parses");
+        let module = glyph_parser::parse(&body).expect("generated source parses");
         let comments = glyph_lexer::comments(&body);
         let formatted = glyph_formatter::format_module(&module, &comments, &body);
         (formatted, g.notes)
@@ -928,7 +1144,7 @@ mod tests {
 
     #[test]
     fn client_emits_typed_functions_per_operation() {
-        let (out, _) = gen_client(
+        let (out, _) = gen_ops(
             r##"{
               "paths": {
                 "/tasks": {
@@ -950,6 +1166,8 @@ mod tests {
                 "NewTask": { "type": "object", "required": ["title"],
                   "properties": { "title": { "type": "string" } } } } }
             }"##,
+            true,
+            false,
         );
         // Imports only the verbs actually used.
         assert!(out.contains("import std/http { get, post, del, Response, HttpError }"), "got:\n{out}");
@@ -965,9 +1183,58 @@ mod tests {
 
     #[test]
     fn client_without_paths_notes_and_emits_nothing() {
-        let (out, notes) = gen_client(r#"{ "components": { "schemas": {} } }"#);
+        let (out, notes) = gen_ops(r#"{ "components": { "schemas": {} } }"#, true, false);
         assert!(!out.contains("async fn"), "got:\n{out}");
         assert!(notes.iter().any(|n| n.contains("no `paths`")), "notes: {notes:?}");
+    }
+
+    #[test]
+    fn handlers_emit_stubs_and_a_router() {
+        let (out, _) = gen_ops(
+            r##"{
+              "paths": {
+                "/tasks": {
+                  "get": { "operationId": "listTasks", "responses": {} },
+                  "post": { "operationId": "createTask", "requestBody": { "content":
+                    { "application/json": { "schema": { "$ref": "#/components/schemas/NewTask" } } } },
+                    "responses": {} }
+                },
+                "/tasks/{id}": {
+                  "get": { "operationId": "getTask",
+                    "parameters": [{ "name": "id", "in": "path", "schema": { "type": "integer" } }],
+                    "responses": {} }
+                }
+              },
+              "components": { "schemas": {
+                "NewTask": { "type": "object", "required": ["title"],
+                  "properties": { "title": { "type": "string" } } } } }
+            }"##,
+            false,
+            true,
+        );
+        // A typed stub per operation; path params arrive as strings.
+        assert!(out.contains("fn listTasks(req: Request) -> Result<Response, string>"), "got:\n{out}");
+        assert!(out.contains("fn getTask(req: Request, id: string) -> Result<Response, string>"), "got:\n{out}");
+        // A router matching method then path segments (array patterns).
+        assert!(out.contains("fn route(req: Request) -> Result<Response, string>"), "got:\n{out}");
+        assert!(out.contains("match req.method"), "got:\n{out}");
+        assert!(out.contains("[\"tasks\"] => listTasks(req)"), "got:\n{out}");
+        assert!(out.contains("[\"tasks\", id] => getTask(req, id)"), "got:\n{out}");
+        // The body-parse hint for the POST stub.
+        assert!(out.contains("NewTask.parse(req.body)"), "got:\n{out}");
+    }
+
+    #[test]
+    fn client_and_handlers_together_do_not_collide() {
+        // With both, handler stubs are prefixed so names stay unique.
+        let (out, _) = gen_ops(
+            r#"{ "paths": { "/ping": { "get": { "operationId": "ping", "responses": {} } } } }"#,
+            true,
+            true,
+        );
+        assert!(out.contains("async fn ping(base: string)"), "client; got:\n{out}");
+        assert!(out.contains("fn handle_ping(req: Request)"), "prefixed handler; got:\n{out}");
+        assert!(out.contains("=> handle_ping(req)"), "router calls prefixed; got:\n{out}");
     }
 
     #[test]
@@ -1049,7 +1316,7 @@ mod tests {
         )
         .unwrap();
 
-        let report = openapi(&spec, &dir.join("out"), false).expect("gen succeeds");
+        let report = openapi(&spec, &dir.join("out"), false, false).expect("gen succeeds");
         assert_eq!(report.type_count, 1);
         assert!(report.out_file.ends_with("orders.glyph"));
         let text = std::fs::read_to_string(&report.out_file).unwrap();

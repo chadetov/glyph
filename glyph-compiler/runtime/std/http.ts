@@ -85,6 +85,15 @@ export function path(req: Request): string {
   return q < 0 ? req.url : req.url.slice(0, q);
 }
 
+/// The request path split into its non-empty segments: `/tasks/5` becomes
+/// `["tasks", "5"]`. Designed for routing with array patterns, e.g.
+/// `match segments(req) { ["tasks", id] => ... }`.
+export function segments(req: Request): Array<string> {
+  return path(req)
+    .split("/")
+    .filter((s) => s.length > 0);
+}
+
 /// A request header by name (case-insensitive), or `None` if it is absent.
 /// Untrusted input is an `Option`, so a missing header cannot be mistaken for a
 /// present one — you must handle the `None` case.

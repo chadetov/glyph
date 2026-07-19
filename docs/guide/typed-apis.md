@@ -146,6 +146,32 @@ path, and returns the HTTP `Response`. The response body stays `unknown` by
 design — validate it with the matching type's `.parse`, so the boundary is
 checked on the way in just like a request body.
 
+Building the server side instead? `--handlers` emits a typed stub per operation
+and a `route` dispatcher that matches the method and path for you:
+
+```sh
+glyph gen openapi tasks.yaml --out src/ --handlers
+```
+
+The router matches path segments with array patterns, so `/tasks/{id}` binds
+`id` and passes it to your handler:
+
+```glyph
+fn route(req: Request) -> Result<Response, string> {
+  return match req.method {
+    "GET" => match segments(req) {
+      ["tasks"] => listTasks(req),
+      ["tasks", id] => getTask(req, id),   // id captured from the path
+      else => Ok(json(404, { error: "not found" })),
+    },
+    else => Ok(json(405, { error: "method not allowed" })),
+  }
+}
+```
+
+Fill in the stubs (each starts as a 501, with a comment showing the body-parse
+for POST/PUT/PATCH) and wire it up with `await serve(PORT, route)`.
+
 The generator maps the wire-faithful core (objects, `string`/`number`/`bool`,
 `array`, `$ref`, optional and `nullable` fields, `additionalProperties` →
 `Record<string, T>`). Where a construct has no faithful Glyph representation — a

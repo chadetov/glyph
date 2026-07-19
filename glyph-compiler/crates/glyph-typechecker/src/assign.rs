@@ -783,6 +783,21 @@ impl Assigner<'_> {
             });
         }
 
+        // `segments(req) -> Array<string>`: modeled so a router's array-pattern
+        // match (`["tasks", id]`) binds `id` as a `string`.
+        if (module_key, field) == ("std/http", "segments") {
+            let return_ty = self.stdlib_array_ty(Ty::Prim(Primitive::String))?;
+            return Some(Ty::Fn {
+                params: vec![FnParam {
+                    name: None,
+                    owned: false,
+                    ty: Ty::Unknown,
+                }],
+                return_ty: Arc::new(return_ty),
+                is_async: false,
+            });
+        }
+
         // (arity, ok, err, is_async)
         let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
             ("std/http", "get") => (
@@ -873,6 +888,18 @@ impl Assigner<'_> {
             base: Arc::new(Ty::Named {
                 symbol: SymbolRef(option_id.0),
                 path: vec![Ident::from("Option")],
+            }),
+            args: vec![inner],
+        })
+    }
+
+    /// Build `Array<inner>` as a prelude `App`. Mirrors `stdlib_option_ty`.
+    fn stdlib_array_ty(&self, inner: Ty) -> Option<Ty> {
+        let array_id = self.lowerer.prelude.lookup("Array")?;
+        Some(Ty::App {
+            base: Arc::new(Ty::Named {
+                symbol: SymbolRef(array_id.0),
+                path: vec![Ident::from("Array")],
             }),
             args: vec![inner],
         })

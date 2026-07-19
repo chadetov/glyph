@@ -207,6 +207,7 @@ http.query(req: Request) -> Record<string, string>   // parse the URL query stri
 http.path(req: Request) -> string                    // URL path without the query
 http.header(req: Request, name: string) -> Option<string>       // a header (case-insensitive), None if absent
 http.query_param(req: Request, name: string) -> Option<string>  // one query parameter, None if absent
+http.segments(req: Request) -> Array<string>         // path split into non-empty segments, for array-pattern routing
 ```
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or

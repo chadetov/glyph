@@ -24,7 +24,7 @@ glyph run path.glyph [args...]      # type-check, compile, and run main(argv)
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict by default)
 glyph build src/ --out dist/ --test # also run @example / @doc @run / property tests
 glyph fmt [path]                    # format in place (one canonical layout)
-glyph gen openapi spec.yaml --out src/  # generate committed Glyph types from an OpenAPI/JSON Schema spec (--client also emits a typed std/http client)
+glyph gen openapi spec.yaml --out src/  # generate committed Glyph types from an OpenAPI/JSON Schema spec (--client: a typed std/http client; --handlers: server stubs + a router)
 glyph gen dts types.d.ts --out src/     # generate committed Glyph types from a TypeScript .d.ts (needs node + typescript)
 glyph gen zod schemas.ts --out src/     # generate committed Glyph types from zod schemas (needs tsx + zod)
 glyph llms                          # reprint this bootstrap offline (alias: glyph docs)

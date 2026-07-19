@@ -125,7 +125,7 @@ impl StdlibStubs {
             "std/http",
             &[
                 "get", "post", "put", "patch", "del", "json", "text", "serve", "query", "path",
-                "header", "query_param",
+                "header", "query_param", "segments",
                 "Request", "Response", "HttpError", "Handler",
             ],
         );

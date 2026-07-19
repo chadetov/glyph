@@ -17,7 +17,7 @@
 use glyph_ast::{
     ArrayElem, BinOp, Expr, MatchArm, MatchArmBody, ObjectField, PostfixOp, TemplatePart, UnaryOp,
 };
-use glyph_lexer::{Span, Token};
+use glyph_lexer::{resolve_escaped_dollars, Span, Token, ESCAPED_DOLLAR};
 
 use crate::cursor::Cursor;
 use crate::error::ParseError;
@@ -279,7 +279,12 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             // interpolation it returns `None` and we keep the plain String.
             match split_template_parts(&value, span)? {
                 Some(parts) => Ok(Expr::TemplateString { parts, span }),
-                None => Ok(Expr::String { value, span }),
+                // No interpolation: resolve any escaped-`$` marker to a literal
+                // `$` so the AST carries the real value.
+                None => Ok(Expr::String {
+                    value: resolve_escaped_dollars(&value).into_owned(),
+                    span,
+                }),
             }
         }
         Token::True => {
@@ -480,7 +485,8 @@ fn parse_object_literal(p: &mut Cursor) -> Result<Expr, ParseError> {
                         });
                     }
                     p.advance();
-                    std::sync::Arc::from(value.as_str())
+                    // `\${` in a key is a literal `${`; resolve the marker.
+                    std::sync::Arc::from(resolve_escaped_dollars(&value).as_ref())
                 }
                 _ => p.expect_field_name("object literal field name or string")?.0,
             };
@@ -564,13 +570,23 @@ fn split_template_parts(
     value: &str,
     span: glyph_lexer::Span,
 ) -> Result<Option<Vec<TemplatePart>>, ParseError> {
-    let bytes = value.as_bytes();
+    // Iterate over chars, not bytes: template text may be non-ASCII, and the
+    // escaped-`$` marker (`ESCAPED_DOLLAR`) is a multi-byte codepoint.
+    let chars: Vec<char> = value.chars().collect();
     let mut parts: Vec<TemplatePart> = Vec::new();
     let mut text_buf = String::new();
     let mut saw_interp = false;
     let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'$' && i + 1 < bytes.len() && bytes[i + 1] == b'{' {
+    while i < chars.len() {
+        let c = chars[i];
+        // An escaped `\$` (written `\${`) is a literal `$`, never the start of an
+        // interpolation.
+        if c == ESCAPED_DOLLAR {
+            text_buf.push('$');
+            i += 1;
+            continue;
+        }
+        if c == '$' && i + 1 < chars.len() && chars[i + 1] == '{' {
             saw_interp = true;
             if !text_buf.is_empty() {
                 parts.push(TemplatePart::Text {
@@ -582,23 +598,23 @@ fn split_template_parts(
             let interp_start = i;
             let mut depth: i32 = 1;
             let mut in_str = false;
-            while i < bytes.len() {
-                let b = bytes[i];
+            while i < chars.len() {
+                let b = chars[i];
                 if in_str {
-                    if b == b'\\' && i + 1 < bytes.len() {
+                    if b == '\\' && i + 1 < chars.len() {
                         i += 2;
                         continue;
                     }
-                    if b == b'"' {
+                    if b == '"' {
                         in_str = false;
                     }
                     i += 1;
                     continue;
                 }
                 match b {
-                    b'"' => in_str = true,
-                    b'{' => depth += 1,
-                    b'}' => {
+                    '"' => in_str = true,
+                    '{' => depth += 1,
+                    '}' => {
                         depth -= 1;
                         if depth == 0 {
                             break;
@@ -620,14 +636,15 @@ fn split_template_parts(
                     span,
                 });
             }
-            let interp_source = &value[interp_start..i];
-            let inner_expr = crate::parse_expression(interp_source).map_err(|e| {
-                ParseError::Expected {
+            let interp_source: String = chars[interp_start..i].iter().collect();
+            // Resolve any escaped-`$` marker inside the interpolation before
+            // parsing it as an expression.
+            let inner_expr = crate::parse_expression(&resolve_escaped_dollars(&interp_source))
+                .map_err(|e| ParseError::Expected {
                     expected: "valid expression inside `${...}` template interpolation",
                     found: format!("{e}"),
                     span,
-                }
-            })?;
+                })?;
             parts.push(TemplatePart::Expr {
                 value: inner_expr,
                 span,
@@ -635,7 +652,7 @@ fn split_template_parts(
             i += 1;
             continue;
         }
-        text_buf.push(bytes[i] as char);
+        text_buf.push(c);
         i += 1;
     }
     if !saw_interp {

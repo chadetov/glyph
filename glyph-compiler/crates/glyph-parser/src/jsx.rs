@@ -175,7 +175,8 @@ fn parse_jsx_attr(p: &mut Cursor) -> Result<JsxAttr, ParseError> {
                     p.advance();
                     Ok(JsxAttr::String {
                         name,
-                        value: s,
+                        // `\${` in a JSX attribute string is a literal `${`.
+                        value: glyph_lexer::resolve_escaped_dollars(&s).into_owned(),
                         span: Span::new(name_span.start, str_span.end),
                     })
                 }

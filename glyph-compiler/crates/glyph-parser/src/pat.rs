@@ -77,7 +77,10 @@ fn parse_pattern_atom(p: &mut Cursor) -> Result<Pattern, ParseError> {
         Token::String(value) => {
             p.advance();
             Ok(Pattern::Literal {
-                value: LiteralPattern::String(value),
+                // `\${` in a string pattern is a literal `${`; resolve the marker.
+                value: LiteralPattern::String(
+                    glyph_lexer::resolve_escaped_dollars(&value).into_owned(),
+                ),
                 span: start_span,
             })
         }

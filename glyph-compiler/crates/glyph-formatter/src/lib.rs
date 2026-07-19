@@ -1082,13 +1082,17 @@ fn unary_sym(op: UnaryOp) -> &'static str {
 /// preserves D12 multi-line strings exactly.
 fn escape_string(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
-    for c in s.chars() {
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
         match c {
             '\\' => out.push_str("\\\\"),
             '"' => out.push_str("\\\""),
             '\n' => out.push_str("\\n"),
             '\t' => out.push_str("\\t"),
             '\r' => out.push_str("\\r"),
+            // A literal `${` must be escaped as `\${` so the reprinted string
+            // doesn't read as a `${...}` interpolation on re-parse.
+            '$' if chars.peek() == Some(&'{') => out.push_str("\\$"),
             other => out.push(other),
         }
     }

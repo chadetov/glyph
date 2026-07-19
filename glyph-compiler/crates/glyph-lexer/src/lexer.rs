@@ -144,7 +144,11 @@ impl<'a> Lexer<'a> {
                         b'r' => content.push('\r'),
                         b'"' => content.push('"'),
                         b'\\' => content.push('\\'),
-                        b'$' => content.push('$'), // for `\${` literal dollar-brace per D22
+                        // `\$` is a literal dollar (D22): substitute the internal
+                        // marker so a literal `${` stays distinct from a `${...}`
+                        // interpolation. The parser resolves the marker back to
+                        // `$` when building the AST.
+                        b'$' => content.push(crate::ESCAPED_DOLLAR),
                         b'u' => {
                             // \u{HEX}
                             if self.peek() != Some(b'{') {
@@ -177,6 +181,14 @@ impl<'a> Lexer<'a> {
                                 ch: 'u',
                                 offset: escape_offset,
                             })?;
+                            // Reserve the internal escaped-`$` marker so it can't
+                            // be produced by hand and collide with the mechanism.
+                            if c == crate::ESCAPED_DOLLAR {
+                                return Err(LexError::InvalidEscape {
+                                    ch: 'u',
+                                    offset: escape_offset,
+                                });
+                            }
                             content.push(c);
                         }
                         other => {

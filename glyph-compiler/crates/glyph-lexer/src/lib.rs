@@ -30,6 +30,25 @@ pub use error::LexError;
 pub use lexer::{comments, tokenize, Lexer};
 pub use token::{Spanned, Token};
 
+/// Internal marker the lexer substitutes for an escaped `\$` in a string, so a
+/// literal `${` (written `\${`) stays distinguishable from a `${...}`
+/// interpolation after escape processing (D22). A private-use codepoint chosen
+/// because it never appears in real source; the lexer rejects it as a `\u{...}`
+/// escape so it cannot be produced by hand, and the parser resolves it back to a
+/// plain `$` when building the AST, so it never leaks past parsing.
+pub const ESCAPED_DOLLAR: char = '\u{E000}';
+
+/// Replace the internal [`ESCAPED_DOLLAR`] marker with a literal `$`. Called by
+/// the parser wherever a string's decoded value becomes an AST literal, so the
+/// marker never escapes the parse phase.
+pub fn resolve_escaped_dollars(s: &str) -> std::borrow::Cow<'_, str> {
+    if s.contains(ESCAPED_DOLLAR) {
+        std::borrow::Cow::Owned(s.replace(ESCAPED_DOLLAR, "$"))
+    } else {
+        std::borrow::Cow::Borrowed(s)
+    }
+}
+
 /// A `//` line comment recovered from the source. The lexer skips comments for
 /// the token stream (D14), but collects them here so the formatter can preserve
 /// them. `text` is the full comment including the leading `//`, trailing

@@ -3734,6 +3734,34 @@ mod tests {
     }
 
     #[test]
+    fn escaped_dollar_is_a_literal_not_an_interpolation() {
+        // `\${x}` is a literal `${x}`; a real `${x}` still interpolates. The
+        // emitted JS template escapes the literal `${` so it doesn't interpolate
+        // in JS either.
+        let ts = emit(
+            "module x\nfn f(x: string) -> string { return \"lit \\${x} and ${x}\" }\n",
+        );
+        assert!(ts.contains("`lit \\${x} and ${x}`"), "{ts}");
+    }
+
+    #[test]
+    fn non_ascii_template_text_is_not_mangled() {
+        // The template splitter must be char-aware: multi-byte text used to be
+        // pushed byte-by-byte, producing mojibake.
+        let ts = emit(
+            "module x\nfn f(n: string) -> string { return \"café ${n} 日本\" }\n",
+        );
+        assert!(ts.contains("`café ${n} 日本`"), "{ts}");
+    }
+
+    #[test]
+    fn plain_string_with_escaped_dollar_resolves() {
+        // A non-interpolating string with `\${` becomes a literal `${`.
+        let ts = emit("module x\nconst P: string = \"price: \\${5}\"\n");
+        assert!(ts.contains("\"price: ${5}\""), "{ts}");
+    }
+
+    #[test]
     fn const_and_type_alias() {
         let ts = emit("module x\nconst MAX: number = 10\ntype Sku = string\n");
         assert!(ts.contains("export const MAX: number = 10;"), "{ts}");

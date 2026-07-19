@@ -813,7 +813,7 @@ Total checked-in AST snapshots: 14,710 lines.
 **D22 — template literal interpolation:**
 - `Expr::TemplateString { parts, span }` with `TemplatePart::{Text, Expr}` alternation
 - In `parse_primary`, when the lexed string contains `${`, post-process by walking the de-escaped content, finding balanced `${...}` regions (tracking brace nesting and string literals inside), and recursively re-parsing each interpolation via a synthetic `module __template fn __f() { return EXPR }` wrapper
-- **V1 limitation**: literal `${` is indistinguishable from interpolation because `\$` de-escapes to `$` at the lexer level. The lexer needs a proper template-literal mode to fix this — deferred to v1.1. Workaround in v1 is string concatenation.
+- **Resolved (0.1.6)**: a literal `${` (written `\${`) is now distinguished from an interpolation. The lexer substitutes an internal `ESCAPED_DOLLAR` marker for `\$` (rejected as a `\u{...}` escape so it can't be forged), and the char-aware `split_template_parts` resolves it to a literal `$` when building the AST. The same rewrite fixed non-ASCII template text being mangled by byte-wise iteration. A full lexer template-literal mode (needed for a nested string literal *inside* `${...}`) is still deferred to v1.1; that case asks you to hoist into a `let`.
 
 **Generic call sites — lookahead heuristic:**
 - `Expr::Call` now carries `type_args: Vec<TypeExpr>`

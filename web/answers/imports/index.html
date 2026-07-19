@@ -31,10 +31,11 @@
         <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
         <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
         <a href="/answers/imports/" class="active"><span class="n">04</span> Your libraries</a>
-        <a href="/answers/react/"><span class="n">05</span> React</a>
-        <a href="/answers/why-typescript/"><span class="n">06</span> Why TypeScript</a>
-        <a href="/answers/ai-authoring/"><span class="n">07</span> AI-authored</a>
-        <a href="/answers/tooling/"><span class="n">08</span> Editor &amp; debugging</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/react/"><span class="n">06</span> React</a>
+        <a href="/answers/why-typescript/"><span class="n">07</span> Why TypeScript</a>
+        <a href="/answers/ai-authoring/"><span class="n">08</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">09</span> Editor &amp; debugging</a>
       </div>
     </div>
 
@@ -84,15 +85,19 @@ import { zodResolver }
         <p>
           For a library's types, Glyph reads ambient declarations from a
           <code>.types/</code> folder, the same <code>.d.ts</code> mechanism TypeScript already
-          uses &mdash; so your editor and the type-checker see the real signatures.
+          uses &mdash; so your editor and the type-checker see the real signatures. And when you want
+          a library's shape as a first-class, <em>validated</em> Glyph type rather than a type-only
+          import, <code>glyph gen dts</code> materializes a <code>.d.ts</code> into real
+          descriptor-bearing types &mdash; see
+          <a href="/answers/typed-apis/">do I have to hand-write a validator for every API?</a>
         </p>
         <p>
           <strong>The honest edge:</strong> interop crosses the TypeScript boundary. A
           complex-typed library &mdash; one that leans on prop spreading (<code>{...register()}</code>)
-          or types derived from a value (<code>z.infer</code>) &mdash; may need a thin TS adapter
-          today rather than working inline. It's the sharpest friction we've found, it's being
-          worked, and a first-class <code>@ffi</code> path is planned for v2. You do not need it to
-          use the npm ecosystem now.
+          or deep conditional/mapped types &mdash; may still need a thin TS adapter today rather than
+          working inline. It's the sharpest friction we've found, it's being worked, and a
+          first-class <code>@ffi</code> path is planned for v2. You do not need it to use the npm
+          ecosystem now.
         </p>
       </div>
 
@@ -100,7 +105,7 @@ import { zodResolver }
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Import any npm package (hyphenated and scoped names included), <code>.types/</code> ambient declarations, and clean <code>.ts</code> output that your existing TypeScript imports back.</p>
+          <p>Import any npm package (hyphenated and scoped names included), <code>.types/</code> ambient declarations, <code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types, and clean <code>.ts</code> output that your existing TypeScript imports back.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
@@ -113,9 +118,9 @@ import { zodResolver }
           <span class="dir">← Previous</span>
           <span class="t">Can an agent — or I — find where anything is defined?</span>
         </a>
-        <a href="/answers/react/" class="nx cta">
+        <a href="/answers/typed-apis/" class="nx cta">
           <span class="dir">Next →</span>
-          <span class="t">Does it work with React — components, hooks, and Context?</span>
+          <span class="t">Do I have to hand-write a validator for every API?</span>
         </a>
       </nav>
     </article>

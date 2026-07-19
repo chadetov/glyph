@@ -48,9 +48,12 @@ completion and makes the site's "on the way" promises real.
   `typescript@6` pin.
 - **`gen zod`** (M). Materialize a `zod` schema into a Glyph type + descriptor —
   the "value → type" loop from the other side.
-- **Untrusted input as `Option`** (M, correctness). `req.headers[k]` and
-  `Request.body` return `Option` instead of `undefined`/`unknown`, so missing
-  input can't slip past validation. Directly strengthens the typed-API story.
+- **Untrusted input as `Option`** (M, correctness) — ✅ **done.** `http.header`
+  and `http.query_param` return `Option<string>`, modeled so the exhaustiveness
+  checker forces the `None` arm; a bonus fix models named-imported stdlib
+  functions too, so signatures hold regardless of import style. (`Request.body`
+  stays `unknown` — it's already safe-by-construction, since it can only be used
+  through a descriptor's `.parse`, which rejects a missing/`null` body.)
 
 ## 0.1.6 — Planned · Correctness & diagnostics
 

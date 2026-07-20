@@ -40,8 +40,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.6</span>
+            <span class="rel-ver">0.1.7</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Works with React, speaks to agents</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> JSX fragments (<code>&lt;&gt;...&lt;/&gt;</code>) and member-expression tags (<code>&lt;Ctx.Provider&gt;</code>), so React Context and multi-child returns work.</li>
+              <li><span class="tag added">Added</span> Machine-readable diagnostics (<code>glyph build --json</code>) and standard v3 source maps (<code>.ts.map</code>) on every emitted file.</li>
+              <li><span class="tag added">Added</span> Bounded generics (<code>&lt;T: Bound&gt;</code>), a shared-state <code>std/store</code>, and <code>glyph regen</code> to refresh generated code from its spec.</li>
+              <li><span class="tag added">Added</span> A warning tier &mdash; unused import, unused binding, unreachable code &mdash; plus exhaustiveness for <code>number</code>/<code>string</code> matches (<code>E0218</code>) and real <code>@redact</code> PII masking (<code>E0219</code>).</li>
+              <li><span class="tag added">Added</span> Discriminated-union generation from an OpenAPI <code>discriminator</code>, and <code>gen dts</code> on the TypeScript 7 native compiler.</li>
+              <li><span class="tag fixed">Fixed</span> Template interpolations get distinct spans (go-to-definition works inside <code>"${x}"</code>), and a payload-carrying first union variant (<code>Wrap({...}) | Empty</code>) parses.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.6</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

@@ -142,6 +142,15 @@ impl ResolveError {
                         }
                         "String" => "Glyph's string type is `string` (lowercase).",
                         "Number" => "Glyph's number type is `number` (lowercase).",
+                        "int" | "Int" | "integer" | "float" | "Float" | "double" => {
+                            "Glyph has one numeric type, `number` (like TypeScript); there is no separate `int`/`float`."
+                        }
+                        "any" | "Any" => {
+                            "Glyph has no `any`; use `unknown` and narrow it with a descriptor's `.parse` or a `match`."
+                        }
+                        "Promise" => {
+                            "Glyph has no `Promise<T>`; an `async fn` returns `T` directly, and you `await` the call inside another `async fn`."
+                        }
                         "null" | "undefined" => {
                             "Glyph has no `null`/`undefined`; model absence with `Option<T>` (`Some`/`None`)."
                         }
@@ -207,5 +216,14 @@ mod tests {
     #[test]
     fn an_ordinary_unknown_name_gets_the_generic_help() {
         assert!(unresolved("widget").help().unwrap().contains("fix the spelling"));
+    }
+
+    #[test]
+    fn ts_primitive_and_generic_mistakes_get_targeted_hints() {
+        assert!(unresolved("int").help().unwrap().contains("`number`"));
+        assert!(unresolved("Int").help().unwrap().contains("`number`"));
+        assert!(unresolved("float").help().unwrap().contains("`number`"));
+        assert!(unresolved("any").help().unwrap().contains("`unknown`"));
+        assert!(unresolved("Promise").help().unwrap().contains("async fn"));
     }
 }

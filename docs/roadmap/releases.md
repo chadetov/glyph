@@ -189,7 +189,11 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
     gen → edit spec → regen → idempotent-rerun cycle).
 12. **`@redact` full enforcement** (M, D24).
 13. **`glyph build --out X` cleans stale files first** (S).
-14. **Extend the targeted type hint** (S) to `int`/`any`/`Promise<T>`.
+14. **Extend the targeted type hint** (S) — ✅ **done.** The `boolean`→`bool`
+    style "did you mean the Glyph spelling" hint on an unresolved name now also
+    covers `int`/`Int`/`integer`/`float`/`double` → `number`, `any` → `unknown`
+    (narrow via `.parse`/`match`), and `Promise` → "an `async fn` returns `T`
+    directly." Unit tests.
 15. **Nested nullary-in-object parser bug** (S) — ✅ **done.** A union with no
     leading `|` whose *first* variant carried a payload
     (`type W = Wrap({ inner: Inner }) | Empty`, or a lone `type W = Wrap(P)`)

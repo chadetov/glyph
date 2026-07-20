@@ -1,7 +1,7 @@
 {
   "name": "@glyphlang/glyph",
   "version": "0.1.8",
-  "description": "The Glyph compiler: a statically typed language that transpiles to TypeScript, designed so AI agents can read, write, and modify code safely.",
+  "description": "TypeScript your AI agents can't quietly break: a statically typed language that transpiles to TypeScript, with no any, exhaustive matching, and runtime-checked types.",
   "bin": {
     "glyph": "bin/glyph.js"
   },

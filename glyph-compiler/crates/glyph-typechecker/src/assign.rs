@@ -781,6 +781,7 @@ impl Assigner<'_> {
         // parameter can't be read as if it were present.
         if let Some(inner) = match (module_key, field) {
             ("std/http", "header") | ("std/http", "query_param") => Some(Ty::Prim(Primitive::String)),
+            ("std/json", "discriminant") => Some(Ty::Prim(Primitive::String)),
             _ => None,
         } {
             let return_ty = self.stdlib_option_ty(inner)?;

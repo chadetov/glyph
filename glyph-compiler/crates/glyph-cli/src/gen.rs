@@ -371,6 +371,9 @@ fn locate_schemas(doc: &Value) -> Option<Vec<(String, Value)>> {
 struct Generator {
     type_count: usize,
     notes: Vec<String>,
+    /// Set when a discriminated union generated a `parse_*` dispatcher, so the
+    /// module gets the `discriminant`/`Option`/`Result` imports it needs.
+    needs_discriminated_imports: bool,
 }
 
 impl Generator {
@@ -387,10 +390,29 @@ impl Generator {
         imports: &str,
         trailer: &str,
     ) -> String {
+        // Emit the types into a buffer first: a discriminated union may request
+        // extra imports (`discriminant`/`Option`/`Result`) that must appear in
+        // the header, which is only known after the types are emitted.
+        let mut types_buf = String::new();
+        for (raw_name, schema) in &schemas {
+            let name = sanitize_type(raw_name);
+            let decl = self.emit_type(&name, schema);
+            types_buf.push_str(&decl);
+            types_buf.push('\n');
+            self.type_count += 1;
+        }
+
+        let discriminated_imports = if self.needs_discriminated_imports {
+            "import std/json { discriminant }\nimport std/option { Some, None }\nimport std/result { Result, Ok, Err }\n"
+        } else {
+            ""
+        };
+        let import_block = merge_import_blocks(&[imports, discriminated_imports]);
+
         let mut out = String::new();
         out.push_str(&format!("module {module_name}\n\n"));
-        if !imports.is_empty() {
-            out.push_str(imports);
+        if !import_block.is_empty() {
+            out.push_str(&import_block);
             out.push('\n');
         }
         out.push_str(&format!(
@@ -398,14 +420,7 @@ impl Generator {
              // with a runtime descriptor, so a request or response body validates\n\
              // through `T.parse(value)`. Regenerate with `{regen_cmd}`.\n\n",
         ));
-
-        for (raw_name, schema) in &schemas {
-            let name = sanitize_type(raw_name);
-            let decl = self.emit_type(&name, schema);
-            out.push_str(&decl);
-            out.push('\n');
-            self.type_count += 1;
-        }
+        out.push_str(&types_buf);
         if !trailer.is_empty() {
             out.push_str(trailer);
         }
@@ -644,8 +659,95 @@ impl Generator {
         Some(self.type_ref("request body", schema))
     }
 
+    /// A discriminated `oneOf`/`anyOf` (an OpenAPI `discriminator`) → a Glyph
+    /// tagged union of the `$ref` variants plus a generated `parse_<Name>`
+    /// dispatcher that reads the discriminator property and validates into the
+    /// right variant. Glyph has no native discriminated-union type (its unions
+    /// tag by constructor name, not an arbitrary property), so the generated
+    /// parser bridges the wire object (`{ "kind": "cat", ... }`) to the tagged
+    /// union. Returns `None` when the schema is not a discriminated union of
+    /// `$ref`s, so the caller falls back.
+    fn try_discriminated_union(&mut self, name: &str, schema: &Value) -> Option<String> {
+        let disc = schema.get("discriminator")?;
+        let prop = disc.get("propertyName").and_then(|v| v.as_str())?;
+        let members = schema
+            .get("oneOf")
+            .or_else(|| schema.get("anyOf"))
+            .and_then(|v| v.as_array())?;
+
+        // (discriminator value, variant record type name), from the explicit
+        // `mapping` or, absent one, each member `$ref`'s name as the value.
+        let mut variants: Vec<(String, String)> = Vec::new();
+        if let Some(mapping) = disc.get("mapping").and_then(|m| m.as_object()) {
+            for (value, ref_val) in mapping {
+                if let Some(r) = ref_val.as_str() {
+                    variants.push((value.clone(), sanitize_type(&ref_name(r))));
+                }
+            }
+        } else {
+            for m in members {
+                let r = m.get("$ref").and_then(|v| v.as_str())?;
+                let rn = sanitize_type(&ref_name(r));
+                variants.push((rn.clone(), rn));
+            }
+        }
+        if variants.is_empty() {
+            return None;
+        }
+
+        self.needs_discriminated_imports = true;
+
+        // Union arms (one per distinct variant type). The constructor is
+        // `<Name><Variant>` so it never collides with the record type.
+        let mut seen_ctor: Vec<String> = Vec::new();
+        let mut union_arms = String::new();
+        for (_, rn) in &variants {
+            let ctor = format!("{name}{rn}");
+            if seen_ctor.contains(&ctor) {
+                continue;
+            }
+            seen_ctor.push(ctor.clone());
+            union_arms.push_str(&format!("  | {ctor}({rn})\n"));
+        }
+
+        // Dispatcher arms, one per discriminator value.
+        let mut arms = String::new();
+        let mut seen_val: Vec<String> = Vec::new();
+        for (value, rn) in &variants {
+            if seen_val.contains(value) {
+                continue;
+            }
+            seen_val.push(value.clone());
+            let ctor = format!("{name}{rn}");
+            arms.push_str(&format!(
+                "      \"{value}\" => match {rn}.parse(v) {{\n        Ok(x) => Ok({ctor}(x)),\n        Err(_) => Err(\"invalid {name}\"),\n      }},\n"
+            ));
+        }
+
+        let parse_fn = format!(
+            "fn parse_{name}(v: unknown) -> Result<{name}, string> {{\n  \
+               return match discriminant(v, \"{prop}\") {{\n    \
+                 Some(kind) => match kind {{\n{arms}      \
+                   else => Err(\"unknown {name} discriminator\"),\n    \
+                 }},\n    \
+                 None => Err(\"missing {name} discriminator\"),\n  \
+               }}\n}}\n"
+        );
+
+        self.note(format!(
+            "{name}: discriminated union on `{prop}` — generated a `parse_{name}` dispatcher (Glyph has no native discriminated-union type)."
+        ));
+        Some(format!("type {name} =\n{union_arms}\n{parse_fn}"))
+    }
+
     /// Emit one top-level `type Name = ...` declaration.
     fn emit_type(&mut self, name: &str, schema: &Value) -> String {
+        // A discriminated `oneOf`/`anyOf` → a tagged union of the variants plus
+        // a `parse_*` dispatcher on the discriminator property.
+        if let Some(decl) = self.try_discriminated_union(name, schema) {
+            return decl;
+        }
+
         // allOf of objects → one merged record.
         if let Some(all) = schema.get("allOf").and_then(|v| v.as_array()) {
             if let Some(fields) = self.merge_all_of(name, all) {
@@ -894,6 +996,42 @@ fn sanitize_type(raw: &str) -> String {
     }
     if out.chars().next().unwrap().is_ascii_digit() {
         out.insert(0, 'T');
+    }
+    out
+}
+
+/// Merge several `import M { names }` blocks into one, deduping names per module
+/// and preserving first-seen module order, so combining the client/handler
+/// imports with the discriminated-union imports can't produce a duplicate name.
+fn merge_import_blocks(blocks: &[&str]) -> String {
+    use std::collections::BTreeMap;
+    let mut names: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut order: Vec<String> = Vec::new();
+    for block in blocks {
+        for line in block.lines() {
+            let line = line.trim();
+            let Some(rest) = line.strip_prefix("import ") else {
+                continue;
+            };
+            let Some((module, names_part)) = rest.split_once('{') else {
+                continue;
+            };
+            let module = module.trim().to_string();
+            let entry = names.entry(module.clone()).or_insert_with(|| {
+                order.push(module.clone());
+                Vec::new()
+            });
+            for n in names_part.trim_end_matches('}').split(',') {
+                let n = n.trim();
+                if !n.is_empty() && !entry.iter().any(|e| e == n) {
+                    entry.push(n.to_string());
+                }
+            }
+        }
+    }
+    let mut out = String::new();
+    for module in &order {
+        out.push_str(&format!("import {module} {{ {} }}\n", names[module].join(", ")));
     }
     out
 }
@@ -1292,6 +1430,41 @@ mod tests {
         );
         assert!(out.contains("type Weird = unknown"), "got:\n{out}");
         assert!(notes.iter().any(|n| n.contains("oneOf")), "notes: {notes:?}");
+    }
+
+    #[test]
+    fn discriminated_union_generates_a_dispatcher() {
+        let (out, notes) = gen_from(
+            r##"{"components":{"schemas":{
+               "Pet":{"oneOf":[{"$ref":"#/components/schemas/Cat"},{"$ref":"#/components/schemas/Dog"}],
+                      "discriminator":{"propertyName":"petType","mapping":{"cat":"#/components/schemas/Cat","dog":"#/components/schemas/Dog"}}},
+               "Cat":{"type":"object","required":["petType"],"properties":{"petType":{"type":"string"},"meow":{"type":"boolean"}}},
+               "Dog":{"type":"object","required":["petType"],"properties":{"petType":{"type":"string"},"bark":{"type":"boolean"}}}
+            }}}"##,
+        );
+        // A tagged union of the variants, constructors prefixed to avoid clashing
+        // with the record types.
+        assert!(out.contains("type Pet ="), "got:\n{out}");
+        assert!(out.contains("| PetCat(Cat)") && out.contains("| PetDog(Dog)"), "got:\n{out}");
+        // A dispatcher reading the discriminator property.
+        assert!(out.contains("fn parse_Pet(v: unknown) -> Result<Pet, string>"), "got:\n{out}");
+        assert!(out.contains("discriminant(v, \"petType\")"), "got:\n{out}");
+        assert!(out.contains("\"cat\" => match Cat.parse(v)"), "got:\n{out}");
+        // The imports the dispatcher needs, merged (no duplicate names).
+        assert!(out.contains("import std/json { discriminant }"), "got:\n{out}");
+        assert!(notes.iter().any(|n| n.contains("discriminated union")), "notes: {notes:?}");
+    }
+
+    #[test]
+    fn merge_import_blocks_dedupes_per_module() {
+        let merged = merge_import_blocks(&[
+            "import std/http { get, Response }\nimport std/result { Result }\n",
+            "import std/result { Result, Ok, Err }\nimport std/option { Some, None }\n",
+        ]);
+        assert!(merged.contains("import std/http { get, Response }"), "{merged}");
+        // std/result names unioned into one line, no duplicate `Result`.
+        assert!(merged.contains("import std/result { Result, Ok, Err }"), "{merged}");
+        assert_eq!(merged.matches("import std/result").count(), 1, "{merged}");
     }
 
     #[test]

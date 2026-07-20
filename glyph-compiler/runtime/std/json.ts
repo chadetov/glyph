@@ -13,6 +13,7 @@
 // `json.parse<T>` namespace form to get validation.)
 
 import { Result, Ok, Err } from "./result";
+import { Option, Some, None } from "./option";
 
 export function parse<T>(text: string): Result<T, Array<Issue>> {
   try {
@@ -36,4 +37,19 @@ export function parse_with<T>(text: string, schema: Schema<T>): Result<T, Array<
 
 export function stringify(value: unknown, options?: { indent?: number }): string {
   return JSON.stringify(value, null, options?.indent);
+}
+
+/// Read a string-valued property from an already-decoded value, or `None` if
+/// the value is not an object or the property is missing/non-string. Used to
+/// dispatch a discriminated union on its discriminator property (a generated
+/// `gen openapi`/`gen zod` union whose variants are distinguished by a named
+/// property carrying a string tag, e.g. `{ "petType": "cat", ... }`).
+export function discriminant(value: unknown, field: string): Option<string> {
+  if (value !== null && typeof value === "object") {
+    const v = (value as Record<string, unknown>)[field];
+    if (typeof v === "string") {
+      return Some(v);
+    }
+  }
+  return None;
 }

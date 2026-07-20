@@ -100,6 +100,7 @@ io.read_to_string() -> string                   // all of stdin
 json.parse<T>(text: string) -> Result<T, Array<Issue>>          // decode; casts to T
 json.parse_with<T>(text: string, schema: Schema<T>) -> Result<T, Array<Issue>>
 json.stringify(value, options?: { indent: number }) -> string
+json.discriminant(value: unknown, field: string) -> Option<string>  // read a string discriminator property; dispatch a discriminated union
 ```
 
 For a record/union type `T`, the namespace form `json.parse<T>(text)` is

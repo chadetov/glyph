@@ -113,7 +113,7 @@ impl StdlibStubs {
             "std/io",
             &["println", "eprintln", "read_line", "read_to_string"],
         );
-        s.add("std/json", &["parse", "stringify"]);
+        s.add("std/json", &["parse", "stringify", "discriminant"]);
         s.add(
             "std/fs",
             &["read_text", "write_text", "exists", "remove", "ErrorKind"],

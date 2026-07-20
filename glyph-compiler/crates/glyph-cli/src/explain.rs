@@ -182,6 +182,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
               else => \"other\",\n\
             }",
 
+        "E0219" => "E0219: unknown `@redact` field\n\n\
+            A `@redact fields: [...]` annotation (D24) names a field the type does \
+            not have — a typo, or a field that was renamed. Redaction is \
+            type-level enforcement, so masking a non-existent field is a hard \
+            error rather than a silent no-op. Only record types have redactable \
+            fields.\n\n\
+            @redact fields: [ssn]\n\
+            type User = {\n  \
+              name: string,\n  \
+              ssn: string,   // the name must match a real field\n\
+            }",
+
         // ----- emitter (E03xx) -----
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -199,7 +211,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0100", "E0101", "E0102", "E0103", "E0104",
     "E0105", "E0106", "E0107", "E0108", "E0200", "E0201", "E0202", "E0203", "E0204", "E0205",
     "E0206", "E0207", "E0208",
-    "E0209", "E0210", "E0211", "E0212", "E0218", "E0300",
+    "E0209", "E0210", "E0211", "E0212", "E0218", "E0219", "E0300",
 ];
 
 #[cfg(test)]

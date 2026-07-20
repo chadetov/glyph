@@ -198,6 +198,10 @@ const TAG: &str = "tag";
 /// the union constructors write it and `match` lowering reads it.
 const PAYLOAD: &str = "value";
 
+/// D24: the placeholder a `@redact`ed field is replaced with in the descriptor's
+/// `redact(value)` masking copy.
+const REDACTION_SENTINEL: &str = "[REDACTED]";
+
 /// The error variant tag of the prelude `Result`. The `?` lowering tests it to
 /// propagate failures; single-sourced alongside `TAG`/`PAYLOAD` since it is
 /// part of the same `Result` wire-format contract.
@@ -666,7 +670,8 @@ impl<'a> Emitter<'a> {
                 // arguments at the call site and are deferred.
                 if let TypeExpr::Record { fields, .. } = &t.body {
                     if t.generics.is_empty() {
-                        self.emit_record_descriptor(&t.name, fields);
+                        let redact = glyph_ast::redact_fields(&t.annotations).unwrap_or_default();
+                        self.emit_record_descriptor(&t.name, fields, &redact);
                     }
                 }
                 Ok(())
@@ -696,7 +701,12 @@ impl<'a> Emitter<'a> {
     /// type, or a function-typed field are only checked for presence (`!==
     /// undefined`), so their `value is X` narrowing is stronger than the runtime
     /// proof. Closing those needs generic/imported descriptors (later work).
-    fn emit_record_descriptor(&mut self, name: &Ident, fields: &[RecordTypeField]) {
+    fn emit_record_descriptor(
+        &mut self,
+        name: &Ident,
+        fields: &[RecordTypeField],
+        redact: &[String],
+    ) {
         let checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
         self.line(&format!("export const {name} = {{"));
         self.indent += 1;
@@ -745,6 +755,22 @@ impl<'a> Emitter<'a> {
         self.line(&format!(
             "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
         ));
+        // D24 `@redact`: a `redact(value)` that returns a serialization-safe copy
+        // with the named PII fields replaced by a sentinel. Emitted only when the
+        // type carries `@redact fields: [...]`. The return type is a plain object
+        // (not `name`), since the masked fields no longer hold their declared
+        // types — the copy is for logging/`json.stringify`, not continued typed
+        // use. Additive: it never touches `is`/`parse`/`schema`.
+        if !redact.is_empty() {
+            let masks: String = redact
+                .iter()
+                .map(|f| format!("\"{f}\": \"{REDACTION_SENTINEL}\""))
+                .collect::<Vec<_>>()
+                .join(", ");
+            self.line(&format!(
+                "redact(value: {name}): Record<string, unknown> {{ return {{ ...value, {masks} }}; }},"
+            ));
+        }
         self.indent -= 1;
         self.line("};");
     }

@@ -174,6 +174,32 @@ pub struct Annotation {
     pub span: Span,
 }
 
+/// D24: the field names named by a `@redact fields: [a, b]` annotation, if the
+/// declaration carries one. The single source of truth for parsing the
+/// `fields: [...]` list, shared by the typechecker (which validates the names
+/// against the type) and the emitter (which masks those fields in the runtime
+/// descriptor). Returns `None` when there is no `@redact`, `Some(vec![])` when
+/// the list is empty or malformed. Parsed leniently: everything between the
+/// first `[` and the next `]` is split on commas and trimmed.
+pub fn redact_fields(annotations: &[Annotation]) -> Option<Vec<String>> {
+    let ann = annotations.iter().find(|a| a.name.as_ref() == "redact")?;
+    let inner = ann
+        .raw_args
+        .split_once('[')
+        .and_then(|(_, rest)| rest.split_once(']'))
+        .map(|(list, _)| list);
+    let fields = inner
+        .map(|list| {
+            list.split(',')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(String::from)
+                .collect()
+        })
+        .unwrap_or_default();
+    Some(fields)
+}
+
 // ============================================================================
 // Statements & blocks
 // ============================================================================

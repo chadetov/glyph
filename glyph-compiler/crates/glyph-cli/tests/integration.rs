@@ -182,6 +182,68 @@ fn build_emits_typescript_for_a_clean_module() {
 }
 
 #[test]
+fn redact_masks_fields_in_the_descriptor_and_flags_unknown_names() {
+    // D24: `@redact fields: [...]` emits a `redact(value)` on the descriptor that
+    // masks those fields, and an unknown field name is E0219.
+    let root = unique_tmp("redact");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         @redact fields: [ssn]\n\
+         type User = {\n  name: string,\n  ssn: string,\n}\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    assert!(ts.contains("redact(value: User)"), "emits a redact method: {ts}");
+    assert!(ts.contains("\"ssn\": \"[REDACTED]\""), "masks the field: {ts}");
+    // The other members are untouched — the redact method is additive.
+    assert!(ts.contains("is(value: unknown): value is User"), "is intact: {ts}");
+    assert!(ts.contains("schema:"), "schema intact: {ts}");
+
+    // An unknown redacted field name is E0219.
+    let bad = unique_tmp("redact_bad");
+    write_file(
+        &bad.join("src"),
+        "main.glyph",
+        "module main\n@redact fields: [sssn]\ntype U = {\n  ssn: string,\n}\n",
+    );
+    let report = build_project_inner(&bad.join("src"), &bad.join("out"), false).expect("build");
+    assert!(report.has_errors(), "unknown redact field is an error");
+    assert!(report.diagnostics.iter().any(|d| d.contains("E0219")), "{:?}", report.diagnostics);
+}
+
+#[test]
+fn rebuild_prunes_a_renamed_modules_stale_ts_and_map() {
+    // Build a module, then rename it and rebuild into the same out dir. The old
+    // `.ts` and its `.ts.map` sidecar must be gone (no orphan tsc picks up),
+    // while an unrelated file the user placed in the out dir is preserved.
+    let root = unique_tmp("prune");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "old.glyph", "module old\nfn f() -> number { return 1 }\n");
+    build_project_inner(&src, &out, false).expect("first build");
+    assert!(out.join("old.ts").exists(), "old.ts emitted");
+    assert!(out.join("old.ts.map").exists(), "old.ts.map emitted");
+
+    // A file the user dropped in the out dir must survive the prune.
+    std::fs::write(out.join("keep.me"), "hand-written").unwrap();
+
+    // Rename the module and rebuild.
+    std::fs::remove_file(src.join("old.glyph")).unwrap();
+    write_file(&src, "new.glyph", "module new\nfn f() -> number { return 2 }\n");
+    build_project_inner(&src, &out, false).expect("second build");
+
+    assert!(out.join("new.ts").exists(), "new.ts emitted");
+    assert!(!out.join("old.ts").exists(), "stale old.ts pruned");
+    assert!(!out.join("old.ts.map").exists(), "stale old.ts.map pruned");
+    assert!(out.join("keep.me").exists(), "unrelated user file preserved");
+}
+
+#[test]
 fn regen_refreshes_generated_files_from_the_spec() {
     // `glyph gen openapi` records its full invocation in the output; `glyph
     // regen` recovers it and re-runs, so a spec change flows into the committed

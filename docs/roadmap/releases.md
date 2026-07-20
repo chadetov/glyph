@@ -187,7 +187,22 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
     `@generate` *body* from a prompt) is inherently non-deterministic and stays
     out of a tested v1 command; deferred. Rust unit + integration tests (full
     gen → edit spec → regen → idempotent-rerun cycle).
-12. **`@redact` full enforcement** (M, D24).
+12. **`@redact` full enforcement** (M, D24) — ✅ **done.** `@redact fields:
+    [...]` on a record type now (a) is validated: an unknown field name is E0219
+    (masking a non-existent field would be a silent no-op), and (b) emits a
+    `redact(value)` method on the type's runtime descriptor that returns a
+    serialization-safe copy with those fields replaced by a `[REDACTED]`
+    sentinel — so `json.stringify(User.redact(u))` masks the PII. The masking is
+    additive to the descriptor (it never touches `is`/`parse`/`schema`, which is
+    what a prior attempt broke), so the descriptor tests stayed green. Shared
+    `glyph_ast::redact_fields` single-sources the `fields: [...]` parse for the
+    typechecker and emitter. Integration test (masked output + E0219), a negative
+    case, error catalogue + `--explain`. *Honest scope:* enforcement is via the
+    explicit `T.redact(value)` descriptor method, not fully-automatic boundary
+    interception (masking every `json.stringify`/log call would need a runtime
+    type tag on values); that automatic form is future work. Related gap noticed:
+    the D27 "unknown annotation is a hard error" rule is documented but not
+    enforced yet — parked below.
 13. **`glyph build --out X` cleans stale files first** (S) — ✅ **done.** The
     G17 stale-`.ts` prune already removed orphaned emitted modules; it now also
     prunes their `.ts.map` source-map sidecars (item 4 added those after G17), so
@@ -216,6 +231,12 @@ land here until they're assigned a release.
 
 ## Parked (v2 / later)
 
+- **D27 unknown-annotation rejection.** The spec says an unknown `@<name>`
+  annotation is a hard error, but the typechecker doesn't enforce it yet (a
+  `@bogus` is silently ignored). Add a recognized-annotation dispatch table.
+- **Automatic `@redact` boundary masking.** Today redaction is via the explicit
+  `T.redact(value)` descriptor method; masking every serialize/log call
+  automatically needs a runtime type tag on values.
 - `@ffi target:` syntax (v2).
 - Mapped types / `infer_shape` (substep 5b).
 - `owned` closure-capture soundness (needs real capture analysis).

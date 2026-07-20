@@ -1,0 +1,7 @@
+module neg
+
+@redact fields: [emial]
+type Account = {
+  email: string,
+  name: string,
+}

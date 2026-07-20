@@ -69,6 +69,7 @@ led by `_` (the conventional "intentionally unused" marker).
 | `E0216` | Unreachable `match` arm after a total pattern (D9) |
 | `E0217` | Discarded `Result` &mdash; **warning**, not an error (its `Err` is silently ignored) |
 | `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest) |
+| `E0219` | `@redact` names a field the type does not have (D24) |
 
 ### Emitter — `E03xx`
 

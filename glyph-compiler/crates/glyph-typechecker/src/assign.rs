@@ -222,7 +222,8 @@ impl Assigner<'_> {
 
     fn walk_decl(&mut self, decl: &Decl) {
         match decl {
-            Decl::Import(_) | Decl::Type(_) => {}
+            Decl::Import(_) => {}
+            Decl::Type(t) => self.check_redact_annotation(t),
             Decl::Fn(f) => {
                 let er = self.enclosing_return(f.return_ty.as_ref());
                 self.return_stack.push(er);
@@ -248,6 +249,37 @@ impl Assigner<'_> {
                 self.return_stack.pop();
             }
             Decl::Const(c) => self.walk_expr(&c.value),
+        }
+    }
+
+    /// D24: validate a `@redact fields: [...]` annotation against the type it
+    /// decorates. Every named field must exist on the record; an unknown name is
+    /// E0219 (it would silently mask nothing). Only record types have redactable
+    /// fields, so a `@redact` on a non-record flags each named field.
+    fn check_redact_annotation(&mut self, t: &glyph_ast::TypeDecl) {
+        let Some(fields) = glyph_ast::redact_fields(&t.annotations) else {
+            return;
+        };
+        let record_fields: Vec<&str> = match &t.body {
+            TypeExpr::Record { fields, .. } => {
+                fields.iter().map(|f| f.name.as_ref()).collect()
+            }
+            _ => Vec::new(),
+        };
+        let span = t
+            .annotations
+            .iter()
+            .find(|a| a.name.as_ref() == "redact")
+            .map(|a| a.span)
+            .unwrap_or(t.span);
+        for f in &fields {
+            if !record_fields.iter().any(|rf| rf == f) {
+                self.errors.push(TypeError::RedactUnknownField {
+                    field: f.clone(),
+                    type_name: t.name.to_string(),
+                    span,
+                });
+            }
         }
     }
 

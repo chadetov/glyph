@@ -264,6 +264,17 @@ pub enum TypeError {
     #[error("non-exhaustive match on `{type_name}`: no catch-all for the other values")]
     NonExhaustiveValueMatch { type_name: String, span: Span },
 
+    /// A `@redact fields: [...]` annotation (D24) names a field the type does
+    /// not have — a typo or a renamed field. Redaction is type-level
+    /// enforcement, so an unknown field name is a hard error: it would silently
+    /// mask nothing. Only record types have redactable fields.
+    #[error("`@redact` names field `{field}`, which `{type_name}` does not have")]
+    RedactUnknownField {
+        field: String,
+        type_name: String,
+        span: Span,
+    },
+
     /// A `component` declared with more than one parameter. A component lowers to
     /// a React function component, which is called with a single props object, so
     /// multiple positional parameters would silently bind the first to the whole
@@ -335,6 +346,7 @@ impl TypeError {
             TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
             TypeError::NonExhaustiveValueMatch { span, .. } => *span,
+            TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
@@ -361,6 +373,7 @@ impl TypeError {
             TypeError::NonExhaustiveArrayMatch { .. } => "E0208",
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
             TypeError::NonExhaustiveValueMatch { .. } => "E0218",
+            TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownField { .. } => "E0210",
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
             TypeError::MutateConst { .. } => "E0212",
@@ -407,6 +420,9 @@ impl TypeError {
             }
             TypeError::NonExhaustiveValueMatch { .. } => {
                 "Add an `else` arm. A `number`/`string` match with only literal arms can never be exhaustive."
+            }
+            TypeError::RedactUnknownField { .. } => {
+                "Check the field name for a typo. `@redact` lists fields of the record type it decorates, and only record types have redactable fields."
             }
             TypeError::UnknownField { .. } => {
                 "Check the field name for a typo, or add the field to the type."

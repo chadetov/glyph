@@ -26,9 +26,10 @@ jobs:
 
       # node + tsx + tsc let the toolchain-dependent tests (glyph run, @example /
       # @doc @run execution) and the `--check` step actually run rather than skip.
-      # typescript is pinned to 6.x: `glyph gen dts` uses the classic compiler
-      # API, which the 7.x native port ("tsgo", now `typescript@latest`) does
-      # not expose. Pinning also keeps `tsc --strict` on the classic checker.
+      # typescript is pinned to 6.x to keep `tsc --strict` on the classic checker
+      # for the examples type-check. `glyph gen dts` supports both the classic
+      # (5/6) and 7.x native compilers, so its test exercises the classic path
+      # here; the native path is covered separately.
       - uses: actions/setup-node@v6
         with:
           node-version: "22"

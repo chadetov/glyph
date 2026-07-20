@@ -130,7 +130,12 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
    maps traces the `.ts` back to `.glyph`. (Boundary: `glyph run`'s own stack
    still shows `.ts` — tsx doesn't chain the map through its `.ts`→`.js`
    transform; remapping the run stack is a follow-up.)
-5. **`gen dts` on TypeScript 7 native API** (M/L) — the deferred `unstable/*` integration.
+5. **`gen dts` on TypeScript 7 native API** (M/L) — ✅ **done.** Drives the
+   `typescript/unstable/sync` API (open file → inferred project → program →
+   source file) with `unstable/ast`'s `SyntaxKind`; one walker handles both the
+   classic (5/6) and native (7) compilers via a small toolkit (the native AST's
+   missing `questionToken` is detected from the member text). The deferred 0.1.5
+   finding is resolved.
 6. **Bounded generics `<T: Bound>`** (M) — parser + checker + emit.
 7. **Discriminated-union generation** (L) — a discriminator-aware union representation.
 8. **Shared-state / store pattern** (M, design first) — a clean store module.

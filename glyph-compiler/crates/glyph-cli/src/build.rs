@@ -351,17 +351,24 @@ pub fn build_project_inner(
     Ok(report)
 }
 
-/// Delete emitted-module `.ts` files in `out` that are not in `kept` (the set of
-/// rel paths emitted by this build), so a removed/renamed module does not leave
-/// a stale file behind. Recurses the out tree but skips dot-directories (the
-/// bundled `.glyph-runtime/`, `.types/`); never touches `.d.ts` or the
-/// `glyph run` entrypoint.
+/// Delete emitted-module `.ts` files (and their `.ts.map` source-map sidecars)
+/// in `out` that are not in `kept` (the set of rel paths emitted by this build),
+/// so a removed/renamed module does not leave a stale file behind. Recurses the
+/// out tree but skips dot-directories (the bundled `.glyph-runtime/`,
+/// `.types/`); never touches `.d.ts`, the `glyph run` entrypoint, or any
+/// non-emitted file the user placed alongside the output.
 fn prune_stale_outputs(out: &Path, kept: &[String]) -> Result<(), BuildError> {
     let kept: std::collections::HashSet<&str> = kept.iter().map(String::as_str).collect();
     let mut found = Vec::new();
     collect_ts_outputs(out, out, &mut found)?;
     for (abs, rel) in found {
-        if !kept.contains(rel.as_str()) {
+        // A `.ts` is kept iff this build emitted it; a `.ts.map` sidecar is kept
+        // iff its `.ts` is (a removed module must not orphan its source map).
+        let stale = match rel.strip_suffix(".map") {
+            Some(ts_rel) => !kept.contains(ts_rel),
+            None => !kept.contains(rel.as_str()),
+        };
+        if stale {
             let _ = std::fs::remove_file(&abs);
         }
     }
@@ -394,7 +401,7 @@ fn collect_ts_outputs(
             }
             collect_ts_outputs(root, &path, out)?;
         } else if meta.is_file()
-            && name.ends_with(".ts")
+            && (name.ends_with(".ts") || name.ends_with(".ts.map"))
             && !name.ends_with(".d.ts")
             && name != "__glyph_run.ts"
         {

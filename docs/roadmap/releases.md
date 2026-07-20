@@ -188,7 +188,13 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
     out of a tested v1 command; deferred. Rust unit + integration tests (full
     gen → edit spec → regen → idempotent-rerun cycle).
 12. **`@redact` full enforcement** (M, D24).
-13. **`glyph build --out X` cleans stale files first** (S).
+13. **`glyph build --out X` cleans stale files first** (S) — ✅ **done.** The
+    G17 stale-`.ts` prune already removed orphaned emitted modules; it now also
+    prunes their `.ts.map` source-map sidecars (item 4 added those after G17), so
+    a renamed/removed module leaves no orphan map either. A `.ts.map` is kept iff
+    its `.ts` is; unrelated files the user placed in the out dir are preserved.
+    Integration test (rename a module, rebuild, old `.ts`+`.ts.map` gone, user
+    file kept).
 14. **Extend the targeted type hint** (S) — ✅ **done.** The `boolean`→`bool`
     style "did you mean the Glyph spelling" hint on an unresolved name now also
     covers `int`/`Int`/`integer`/`float`/`double` → `number`, `any` → `unknown`

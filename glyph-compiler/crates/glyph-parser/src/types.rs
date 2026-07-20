@@ -43,7 +43,34 @@ pub(crate) fn parse_type_decl_body(p: &mut Cursor) -> Result<TypeExpr, ParseErro
     if matches!(p.peek(), Token::Pipe) {
         return parse_union_multiline(p);
     }
-    parse_type(p)
+    let first = parse_atom_type(p)?;
+    // A leading union variant that carries a payload has no `|` before it, so
+    // `parse_type` would stop at the `(` and leave it unconsumed — the
+    // `type X = Wrap({ inner: Inner }) | Empty` (or lone `type X = Wrap(P)`)
+    // case. Promote the atom to a variant, attach the payload, and continue as
+    // a union. Only a single-segment path can head a variant; `type_to_variant`
+    // rejects a record/generic/dotted atom here.
+    if matches!(p.peek(), Token::LParen) {
+        let mut first_variant = type_to_variant(first)?;
+        p.advance();
+        let payload = parse_type(p)?;
+        let rparen = p.expect(&Token::RParen, "`)` after variant payload")?;
+        first_variant.span = Span::new(first_variant.span.start, rparen.end);
+        first_variant.payload = Some(payload);
+        return parse_union_rest(p, first_variant);
+    }
+    if matches!(p.peek(), Token::Pipe) {
+        return parse_union_continuation(p, first);
+    }
+    // `T?` optional-type shorthand is not in v1; point at the explicit form.
+    if matches!(p.peek(), Token::Question) {
+        return Err(ParseError::Expected {
+            expected: "`Option<T>` (the `T?` optional-type shorthand is not supported in v1)",
+            found: "`?`".to_string(),
+            span: p.peek_span(),
+        });
+    }
+    Ok(first)
 }
 
 // ---------------------------------------------------------------------------
@@ -179,9 +206,17 @@ fn parse_fn_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
 // ---------------------------------------------------------------------------
 
 fn parse_union_continuation(p: &mut Cursor, first: TypeExpr) -> Result<TypeExpr, ParseError> {
-    let start = first.span().start;
     let first_variant = type_to_variant(first)?;
-    let mut variants = vec![first_variant];
+    parse_union_rest(p, first_variant)
+}
+
+/// Continue a single-line union given its already-parsed first variant, then
+/// collect any `| variant` tail. Shared by `parse_union_continuation` (first
+/// variant is payload-free) and the leading-payload path in
+/// `parse_type_decl_body` (`type X = Wrap(P) | ...`).
+fn parse_union_rest(p: &mut Cursor, first: UnionVariant) -> Result<TypeExpr, ParseError> {
+    let start = first.span.start;
+    let mut variants = vec![first];
 
     while matches!(p.peek(), Token::Pipe) {
         p.advance();

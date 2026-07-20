@@ -378,6 +378,49 @@ mod smoke {
     }
 
     #[test]
+    fn single_line_union_first_variant_carries_a_record_payload() {
+        // Regression: with no leading `|`, a first variant that carries a payload
+        // (`type W = Wrap({ inner: Inner }) | Empty`) used to stop at the `(` and
+        // fail with "unexpected LParen". It must parse as a two-variant union.
+        let m = parse_or_panic(
+            "module x\ntype W = Wrap({ inner: Inner }) | Empty\n",
+        );
+        match &m.items[0] {
+            glyph_ast::Decl::Type(t) => match &t.body {
+                glyph_ast::TypeExpr::Union { variants, .. } => {
+                    assert_eq!(variants.len(), 2);
+                    assert_eq!(variants[0].name.as_ref(), "Wrap");
+                    assert!(
+                        matches!(variants[0].payload, Some(glyph_ast::TypeExpr::Record { .. })),
+                        "first variant carries a record payload"
+                    );
+                    assert_eq!(variants[1].name.as_ref(), "Empty");
+                    assert!(variants[1].payload.is_none());
+                }
+                other => panic!("expected Union, got {other:?}"),
+            },
+            other => panic!("expected Type decl, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn lone_variant_with_payload_and_no_pipe_parses() {
+        // `type W = Wrap(Inner)` (single variant, no pipe) must also parse.
+        let m = parse_or_panic("module x\ntype W = Wrap(Inner)\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Type(t) => match &t.body {
+                glyph_ast::TypeExpr::Union { variants, .. } => {
+                    assert_eq!(variants.len(), 1);
+                    assert_eq!(variants[0].name.as_ref(), "Wrap");
+                    assert!(variants[0].payload.is_some());
+                }
+                other => panic!("expected Union, got {other:?}"),
+            },
+            other => panic!("expected Type decl, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn plain_type_decl_is_not_a_resource() {
         let m = parse_or_panic("module x\ntype User = { name: string }\n");
         match &m.items[0] {

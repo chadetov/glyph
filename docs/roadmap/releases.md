@@ -190,7 +190,13 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
 12. **`@redact` full enforcement** (M, D24).
 13. **`glyph build --out X` cleans stale files first** (S).
 14. **Extend the targeted type hint** (S) to `int`/`any`/`Promise<T>`.
-15. **Nested nullary-in-object parser bug** (S).
+15. **Nested nullary-in-object parser bug** (S) — ✅ **done.** A union with no
+    leading `|` whose *first* variant carried a payload
+    (`type W = Wrap({ inner: Inner }) | Empty`, or a lone `type W = Wrap(P)`)
+    failed to parse — the type-decl body read `Wrap` as a plain type and choked
+    on the `(`. `parse_type_decl_body` now promotes a payload-carrying first
+    atom to a variant and continues as a union. Parser tests for both shapes;
+    the emitted match lowers and passes tsc --strict.
 
 ## Rolling · Ergonomics & polish
 

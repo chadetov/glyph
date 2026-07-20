@@ -136,7 +136,10 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
    classic (5/6) and native (7) compilers via a small toolkit (the native AST's
    missing `questionToken` is detected from the member text). The deferred 0.1.5
    finding is resolved.
-6. **Bounded generics `<T: Bound>`** (M) — parser + checker + emit.
+6. **Bounded generics `<T: Bound>`** (M) — ✅ **done.** Parser records the bound
+   (single bound in v1); emitter lowers it to a TS `extends` clause that tsc
+   enforces, so a violated bound is caught and mapped back to the `.glyph` call
+   site.
 7. **Discriminated-union generation** (L) — a discriminator-aware union representation.
 8. **Shared-state / store pattern** (M, design first) — a clean store module.
 9. **More warning-tier lints** (S each) — unused import / binding / unreachable.

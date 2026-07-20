@@ -156,7 +156,19 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
    `.set`/`.update` method call. Design note + guide in
    [`../guide/shared-state.md`](../guide/shared-state.md); a corpus program and a
    build test cover it; the codegen-style answer page (08) is on the site.
-9. **More warning-tier lints** (S each) — unused import / binding / unreachable.
+9. **More warning-tier lints** (S each) — ✅ **done.** Three advisory warnings
+   (never block the build): unused import (E0106), unused `let` (E0107, `_`
+   exempt), and unreachable code after `return`/`break`/`continue` (E0108).
+   Computed in a self-contained `module_lints` pass that runs only on
+   error-free modules and reads the authoritative resolution map for usage, so
+   incompleteness can only miss a lint, never invent one. Building the examples
+   surfaced (and we removed) four genuinely-dead imports. *Bug found and fixed
+   in passing:* template interpolations were parsed from offset 0, so adjacent
+   `${a} ${b}` produced colliding spans that overwrote each other in the
+   resolution map — silently dropping a resolution (and breaking go-to-def/
+   rename inside templates). Fixed by offsetting each interpolation's parse.
+   Exact byte-accurate template spans still need a lexer template-literal mode
+   (v1.1); the offset is unique, which is what the resolution map requires.
 10. **number/string value-match exhaustiveness** (M).
 11. **`glyph regen`** (M, Q40).
 12. **`@redact` full enforcement** (M, D24).

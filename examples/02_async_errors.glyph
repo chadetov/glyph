@@ -6,7 +6,6 @@ module user_feed
 
 import std/result { Result, Ok, Err }
 import std/http
-import std/json
 import std/array
 
 // ---------------------------------------------------------------------------

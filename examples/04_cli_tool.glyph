@@ -6,7 +6,6 @@ module todo
 
 import std/result { Result, Ok, Err }
 import std/fs
-import std/process
 import std/json
 import std/io
 import std/array

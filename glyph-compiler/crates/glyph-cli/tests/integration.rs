@@ -70,7 +70,6 @@ fn build_warns_on_dropped_result_but_still_emits() {
         "main.glyph",
         "module main\n\
          import std/fs { write_text }\n\
-         import std/result { Result, Ok, Err }\n\
          fn save() -> number {\n\
          \x20 write_text(\"a.txt\", \"hi\")\n\
          \x20 return 0\n\
@@ -180,6 +179,67 @@ fn build_emits_typescript_for_a_clean_module() {
         "{ts}"
     );
     assert!(ts.contains("return (a + b);"), "{ts}");
+}
+
+#[test]
+fn build_warns_on_unused_import_binding_and_unreachable_code() {
+    // The lint tier (warnings): an unused import (E0106), an unused `let`
+    // (E0107), and a statement after `return` (E0108). All are warnings — the
+    // build succeeds and still emits.
+    let root = unique_tmp("lints");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/array\n\
+         fn f() -> number {\n  \
+           let dead = 1\n  \
+           return 2\n  \
+           let after = 3\n\
+         }\n\
+         fn main(argv: Array<string>) -> number { return f() }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "lints are warnings: {:?}", report.diagnostics);
+    let codes: Vec<&str> = ["E0106", "E0107", "E0108"]
+        .into_iter()
+        .filter(|c| report.diagnostics.iter().any(|d| d.contains(c)))
+        .collect();
+    assert_eq!(codes, vec!["E0106", "E0107", "E0108"], "{:?}", report.diagnostics);
+    assert_eq!(report.emitted, vec!["main.ts".to_string()], "warnings still emit");
+}
+
+#[test]
+fn build_does_not_flag_a_binding_used_only_in_a_template() {
+    // Regression: two adjacent `${...}` interpolations must get distinct spans,
+    // or the resolution map collides and drops one binding's usage — which would
+    // make a used variable look unused. `mark` is read inside the template.
+    let root = unique_tmp("tpl_use");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         fn label(name: string) -> string {\n  \
+           let mark = \"x\"\n  \
+           return \"${mark} ${name}${name}\"\n\
+         }\n\
+         fn main(argv: Array<string>) -> number {\n  \
+           print(label(\"a\"))\n  \
+           return 0\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0107")),
+        "a binding used in a template must not be flagged unused: {:?}",
+        report.diagnostics
+    );
 }
 
 #[test]

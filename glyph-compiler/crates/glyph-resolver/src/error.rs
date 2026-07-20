@@ -44,6 +44,29 @@ pub enum ResolveError {
         module: String,
         span: Span,
     },
+
+    /// Warning: an imported name that no reference in the module resolved to.
+    /// The import does nothing and can be removed.
+    #[error("unused import `{name}`")]
+    UnusedImport { name: String, span: Span },
+
+    /// Warning: a `let` binding whose name is never read. Names led by `_` are
+    /// exempt (the conventional "intentionally unused" marker).
+    #[error("unused variable `{name}`")]
+    UnusedBinding { name: String, span: Span },
+
+    /// Warning: a statement that cannot run because a `return`/`break`/
+    /// `continue` earlier in the same block always leaves it first.
+    #[error("unreachable code")]
+    UnreachableCode { span: Span },
+}
+
+/// A diagnostic's severity. Mirrors the typechecker's `Severity`; the resolver
+/// gained warnings with the lint tier (unused import/binding, unreachable code).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Severity {
+    Error,
+    Warning,
 }
 
 impl ResolveError {
@@ -56,6 +79,19 @@ impl ResolveError {
             ResolveError::UnresolvedName { span, .. } => *span,
             ResolveError::UnresolvedModule { span, .. } => *span,
             ResolveError::UnknownExportedName { span, .. } => *span,
+            ResolveError::UnusedImport { span, .. } => *span,
+            ResolveError::UnusedBinding { span, .. } => *span,
+            ResolveError::UnreachableCode { span } => *span,
+        }
+    }
+
+    /// Error unless this is one of the advisory lint variants.
+    pub fn severity(&self) -> Severity {
+        match self {
+            ResolveError::UnusedImport { .. }
+            | ResolveError::UnusedBinding { .. }
+            | ResolveError::UnreachableCode { .. } => Severity::Warning,
+            _ => Severity::Error,
         }
     }
 
@@ -69,6 +105,9 @@ impl ResolveError {
             ResolveError::UnresolvedName { .. } => "E0103",
             ResolveError::UnresolvedModule { .. } => "E0104",
             ResolveError::UnknownExportedName { .. } => "E0105",
+            ResolveError::UnusedImport { .. } => "E0106",
+            ResolveError::UnusedBinding { .. } => "E0107",
+            ResolveError::UnreachableCode { .. } => "E0108",
         }
     }
 
@@ -115,6 +154,15 @@ impl ResolveError {
             }
             ResolveError::UnknownExportedName { .. } => {
                 "Check the spelling, and that the module actually exports this name."
+            }
+            ResolveError::UnusedImport { .. } => {
+                "Remove the import. Nothing in this module references it (greppability: no dead imports)."
+            }
+            ResolveError::UnusedBinding { .. } => {
+                "Remove the binding, or prefix its name with `_` if it is intentionally unused."
+            }
+            ResolveError::UnreachableCode { .. } => {
+                "Remove it, or move the earlier `return`/`break`/`continue` so this can run."
             }
         })
     }

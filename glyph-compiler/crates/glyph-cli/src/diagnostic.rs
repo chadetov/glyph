@@ -110,12 +110,16 @@ pub fn from_parse_error(file: &str, source: &str, err: &ParseError) -> Diagnosti
 }
 
 pub fn from_resolve_error(file: &str, source: &str, err: &ResolveError, stage: &str) -> Diagnostic {
+    let severity = match err.severity() {
+        glyph_resolver::Severity::Warning => "warning",
+        glyph_resolver::Severity::Error => "error",
+    };
     Diagnostic::new(
         file,
         source,
         err.span(),
         err.code(),
-        "error",
+        severity,
         stage,
         format!("{err}"),
         err.help(),

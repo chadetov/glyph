@@ -70,6 +70,25 @@ pub fn explain(code: &str) -> Option<&'static str> {
             The module exists but does not export the name you imported.\n\n\
             Before:  import std/result { Maybe }\n\
             After:   import std/result { Result }   // a name the module exports",
+        "E0106" => "E0106: unused import (warning)\n\n\
+            An imported name is never referenced in this module, so the import \
+            does nothing. A dead import is greppability noise: a reader searching \
+            for a name finds an import that promises a dependency the module does \
+            not actually have.\n\n\
+            Remove it. This is a warning — it does not fail the build.",
+        "E0107" => "E0107: unused variable (warning)\n\n\
+            A `let` binding is never read. Either it is dead code, or a use was \
+            dropped by mistake.\n\n\
+            Remove the binding, or — if it is deliberately unused (a destructured \
+            field you don't need, say) — prefix its name with `_`:\n\n\
+            Before:  let result = compute()   // never read\n\
+            After:   let _result = compute()  // intentionally unused\n\n\
+            This is a warning — it does not fail the build.",
+        "E0108" => "E0108: unreachable code (warning)\n\n\
+            A `return`, `break`, or `continue` earlier in the same block always \
+            leaves it first, so the statements after it cannot run.\n\n\
+            Remove the dead statements, or move the terminator so they can run. \
+            This is a warning — it does not fail the build.",
 
         // ----- typechecker (E02xx) -----
         "E0200" => "E0200: non-exhaustive match\n\n\
@@ -168,7 +187,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
 /// Every code that `explain` documents, for the catalogue test and tooling.
 pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0100", "E0101", "E0102", "E0103", "E0104",
-    "E0105", "E0200", "E0201", "E0202", "E0203", "E0204", "E0205", "E0206", "E0207", "E0208",
+    "E0105", "E0106", "E0107", "E0108", "E0200", "E0201", "E0202", "E0203", "E0204", "E0205",
+    "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0300",
 ];
 

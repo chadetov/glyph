@@ -55,6 +55,10 @@ pub fn render_resolve_error(
     let span = err.span();
     let message = format!("{err}");
     let stage = stage_label_for(err);
+    let severity = match err.severity() {
+        glyph_resolver::Severity::Warning => Severity::Warning,
+        glyph_resolver::Severity::Error => Severity::Error,
+    };
     build_report(
         path,
         source,
@@ -65,7 +69,7 @@ pub fn render_resolve_error(
         err.help(),
         None,
         with_color,
-        Severity::Error,
+        severity,
     )
 }
 
@@ -158,6 +162,9 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::UnknownExportedName { .. } => "import",
         ResolveError::UnresolvedName { .. } => "resolve",
         ResolveError::UnresolvedModule { .. } => "resolve",
+        ResolveError::UnusedImport { .. } => "lint",
+        ResolveError::UnusedBinding { .. } => "lint",
+        ResolveError::UnreachableCode { .. } => "lint",
     }
 }
 

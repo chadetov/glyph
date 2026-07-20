@@ -100,13 +100,23 @@
           onto your Glyph source. An agent reads and acts on them directly instead of scraping
           terminal text.
         </p>
+        <p>
+          <strong>Not everything is a hard error.</strong> Glyph has a warning tier that flags dead
+          weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an
+          <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>),
+          and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code>
+          (<code>E0108</code>). These keep a module honest &mdash; a dead import is exactly the kind of
+          greppability noise that makes a reader hunt for a dependency the code doesn't really have.
+          Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and
+          still emit TypeScript.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, and <code>--json</code> structured diagnostics for agents.</p>
+          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics for agents.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

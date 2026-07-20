@@ -638,13 +638,25 @@ fn split_template_parts(
             }
             let interp_source: String = chars[interp_start..i].iter().collect();
             // Resolve any escaped-`$` marker inside the interpolation before
-            // parsing it as an expression.
-            let inner_expr = crate::parse_expression(&resolve_escaped_dollars(&interp_source))
-                .map_err(|e| ParseError::Expected {
-                    expected: "valid expression inside `${...}` template interpolation",
-                    found: format!("{e}"),
-                    span,
-                })?;
+            // parsing it as an expression. Prepend whitespace so the parsed
+            // sub-expression's spans are offset to (roughly) their real source
+            // position rather than a 0-based one: two interpolations parsed from
+            // offset 0 produce colliding spans (`${mark} ${name}` would give the
+            // two idents the same `(0,4)` key), and the resolution map is keyed
+            // by span — the second silently overwrites the first, dropping a
+            // resolution. The offset only needs to be unique, not byte-exact
+            // (a lexer template-literal mode for exact spans is a v1.1 item).
+            let base = span.start as usize + interp_start;
+            let padded = format!(
+                "{}{}",
+                " ".repeat(base),
+                resolve_escaped_dollars(&interp_source)
+            );
+            let inner_expr = crate::parse_expression(&padded).map_err(|e| ParseError::Expected {
+                expected: "valid expression inside `${...}` template interpolation",
+                found: format!("{e}"),
+                span,
+            })?;
             parts.push(TemplatePart::Expr {
                 value: inner_expr,
                 span,

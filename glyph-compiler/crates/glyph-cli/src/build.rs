@@ -253,6 +253,23 @@ pub fn build_project_inner(
         }
         let Some(ast) = parsed.module() else { continue };
         let Some(resolved) = r.resolved() else { continue };
+
+        // Advisory lints (unused import/binding, unreachable code): warnings
+        // that surface but never block emission. Computed only here, on a
+        // module that resolved with no errors, so the resolution map is
+        // complete and a used binding can't be mistaken for a dead one.
+        for e in glyph_resolver::module_lints(ast, resolved) {
+            report
+                .diagnostics
+                .push(render_resolve_error(module_path, &source, &e, with_color));
+            report.structured.push(crate::diagnostic::from_resolve_error(
+                module_path,
+                &source,
+                &e,
+                crate::render::stage_label_for(&e),
+            ));
+        }
+
         let ctx = glyph_emit::EmitContext {
             module_path: module_path.as_str(),
             project_modules: &project_modules,

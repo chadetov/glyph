@@ -38,6 +38,13 @@ below.
 | `E0103` | Unresolved name |
 | `E0104` | Unresolved module path |
 | `E0105` | Name not exported by the imported module |
+| `E0106` | Unused import (warning) |
+| `E0107` | Unused variable binding (warning) |
+| `E0108` | Unreachable code after `return`/`break`/`continue` (warning) |
+
+`E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
+build output but never fail the build or block emission. `E0107` exempts names
+led by `_` (the conventional "intentionally unused" marker).
 
 ### Typechecker — `E02xx`
 

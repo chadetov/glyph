@@ -49,6 +49,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://glyphlang.io/answers/state/</loc>
+    <lastmod>2026-07-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://glyphlang.io/answers/why-typescript/</loc>
     <lastmod>2026-07-19</lastmod>
     <changefreq>weekly</changefreq>

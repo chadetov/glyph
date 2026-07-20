@@ -1,0 +1,34 @@
+// Shared state via std/store: a module-level `const` store many functions read
+// and mutate, without a `let` threaded through `main` or capturing closures.
+module store
+
+import std/store { Store, create }
+import std/array
+
+type Task = {
+  id: number,
+  title: string,
+}
+
+const tasks: Store<Array<Task>> = create<Array<Task>>([])
+const next_id: Store<number> = create(0)
+
+fn add(title: string) -> Task {
+  next_id.update(fn(n: number) -> number { return n + 1 })
+  let task = { id: next_id.get(), title: title }
+  tasks.update(fn(cur: Array<Task>) -> Array<Task> { return array.push(cur, task) })
+  return task
+}
+
+fn all() -> Array<Task> {
+  return tasks.get()
+}
+
+fn count() -> number {
+  return array.len(tasks.get())
+}
+
+fn reset() -> void {
+  tasks.set([])
+  next_id.set(0)
+}

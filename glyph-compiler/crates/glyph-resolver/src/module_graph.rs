@@ -119,6 +119,9 @@ impl StdlibStubs {
             &["read_text", "write_text", "exists", "remove", "ErrorKind"],
         );
         s.add("std/time", &["debounce", "Duration", "now", "sleep"]);
+        // A shared-state primitive: `create(initial)` returns a `Store<T>` whose
+        // `get`/`set`/`update` methods read and mutate a value held in a closure.
+        s.add("std/store", &["Store", "create"]);
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
         // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(

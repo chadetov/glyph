@@ -147,7 +147,15 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
    new `std/json.discriminant`) and validates into the right variant. Verified
    the generated union compiles, dispatches a real wire object, and is
    idempotent.
-8. **Shared-state / store pattern** (M, design first) — a clean store module.
+8. **Shared-state / store pattern** (M, design first) — ✅ **done.** A new
+   `std/store`: `create(initial)` returns a `Store<T>` with `get`/`set`/`update`.
+   A module-level `const s = create(...)` gives many functions one shared state
+   without a `let` in `main` or capturing closures — and needs no rule relaxed,
+   since the `const` binding never moves (D20) and no `mut` reassignment is
+   involved (D5); only the store's internal value changes, through a greppable
+   `.set`/`.update` method call. Design note + guide in
+   [`../guide/shared-state.md`](../guide/shared-state.md); a corpus program and a
+   build test cover it; the codegen-style answer page (08) is on the site.
 9. **More warning-tier lints** (S each) — unused import / binding / unreachable.
 10. **number/string value-match exhaustiveness** (M).
 11. **`glyph regen`** (M, Q40).

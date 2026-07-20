@@ -183,6 +183,37 @@ fn build_emits_typescript_for_a_clean_module() {
 }
 
 #[test]
+fn build_accepts_a_shared_store() {
+    // A module-level `const` store (std/store) that several functions read and
+    // mutate: it typechecks, emits, and lowers `create`/`get`/`update` to the
+    // runtime store without needing `mut` on the const binding.
+    let root = unique_tmp("store");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/store { Store, create }\n\
+         const total: Store<number> = create(0)\n\
+         fn bump() -> void {\n  \
+           total.update(fn(n: number) -> number { return n + 1 })\n\
+         }\n\
+         fn value() -> number {\n  return total.get()\n}\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("main.ts written");
+    assert!(ts.contains("create(0)"), "lowers create: {ts}");
+    assert!(ts.contains("total.update("), "lowers update: {ts}");
+    assert!(ts.contains("total.get()"), "lowers get: {ts}");
+    // The store binding stays a plain const — no `mut`, no reassignment.
+    assert!(ts.contains("const total"), "const binding: {ts}");
+}
+
+#[test]
 fn build_emits_quoted_string_keys() {
     let root = unique_tmp("strkey");
     let src = root.join("src");

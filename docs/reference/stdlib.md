@@ -152,6 +152,25 @@ time.sleep(duration: Duration) -> void          // async; await it
 time.debounce<A>(delay: Duration, f: fn(A) -> void) -> fn(A) -> void
 ```
 
+## std/store
+
+A shared-state primitive. A `Store<T>` holds a value; create one at module scope
+(`const s = create(initial)`) so many functions share it without threading a
+`let` through `main`. The binding stays `const` and no `mut` is involved — only
+the store's internal value changes, through a method call — so every mutation is
+a greppable `s.set(...)`/`s.update(...)`.
+
+```
+type Store<T>
+create<T>(initial: T) -> Store<T>               // a store seeded with initial
+store.get() -> T                                 // method: read the current value
+store.set(next: T) -> void                       // method: replace it
+store.update(change: fn(T) -> T) -> void         // method: map it
+```
+
+An empty-collection seed can't infer its element type, so pass an explicit type
+argument: `const tasks = create<Array<Task>>([])`.
+
 ## std/stream
 
 Deterministic generators for property testing (sampled by index, no RNG).

@@ -107,11 +107,18 @@ five items shipped, led by the warning tier.
   nested string literal *inside* `${...}` still needs a `let` hoist — the full
   lexer template-literal mode remains a v1.1 item.)
 
-## 0.1.7 — Next · Works with React, speaks to agents
+## 0.1.7 — Shipped · Works with React, speaks to agents
 
-**Status: committed, the active target.** All 15 brainstormed items are scoped
-into 0.1.7, built in adoption-rank order (1 → 15), each with tests. Full plan and
+**Status: released (with a 0.1.8 hotfix, below).** All 15 brainstormed items
+landed, built in adoption-rank order (1 → 15), each with tests. Full plan and
 per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](../plan/0.1.7-language-and-agent-experience.md).
+
+**0.1.8 — Shipped · hotfix.** The published platform binaries lost their Unix
+execute bit (GitHub artifact upload/download strips it), so `npx @glyphlang/glyph`
+failed with `EACCES` — a latent bug in every release through 0.1.7. Fixed by
+having the launcher `chmod 0o755` the binary before spawn and the release
+workflow restore `+x` before publish; verified against the published package from
+a clean npx cache.
 
 1. **JSX fragments `<>...</>`** (S/M) — ✅ **done.** Parser (`<`-then-`>`
    lookahead + `</>` close, empty-name element), resolver/emitter `Fragment`

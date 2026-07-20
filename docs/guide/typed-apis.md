@@ -193,11 +193,9 @@ glyph gen dts node_modules/some-pkg/types.d.ts --out src/
 It maps the same wire-faithful core — `interface`/`type` declarations, objects,
 primitives, arrays, references, optional (`field?:`) and `| null` members, and
 string-literal unions (narrowed to `string` with a note). This needs `node` and
-the **classic** TypeScript compiler. It's resolved from the target file's own
-project first, so a project that pins `typescript@6` (as most do) just works;
-otherwise a global `npm install -g typescript@6` is used. The 7.x native port
-(`typescript@latest`) does not expose the compiler API this uses, and `glyph gen
-dts` will say so and point you at `typescript@6`.
+the `typescript` package, resolved from the target file's own project first (a
+pinned version wins) then a global install. Both the classic compiler (5/6) and
+the 7.x native port are supported.
 
 If your source of truth is a `zod` schema rather than a plain type, use
 `glyph gen zod` instead:

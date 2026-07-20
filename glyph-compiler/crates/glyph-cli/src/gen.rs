@@ -57,9 +57,9 @@ pub enum GenError {
     GeneratedInvalid { reason: String, source_text: String },
     #[error("`node` not found on PATH. `glyph gen dts` needs Node.js to read TypeScript declarations; install it from https://nodejs.org.")]
     NodeMissing,
-    #[error("the `typescript` package is not resolvable. Install it with `npm install -g typescript@6`, then re-run `glyph gen dts`.")]
+    #[error("the `typescript` package is not resolvable. Install it with `npm install -g typescript`, then re-run `glyph gen dts`.")]
     TypescriptMissing,
-    #[error("the resolvable TypeScript is the native port (7.x), whose compiler API `glyph gen dts` does not yet support. Pin the classic compiler in the file's project (`npm install typescript@6` there — it is resolved from the project first), or install it globally (`npm install -g typescript@6`), then re-run.")]
+    #[error("TypeScript is installed but its compiler API could not be loaded (neither the classic `createSourceFile` API nor the 7.x native `typescript/unstable` API). Reinstall it with a normal `npm install typescript` (5, 6, and 7 are all supported), then re-run.")]
     TypescriptUnsupported,
     #[error("`tsx` not found on PATH. `glyph gen zod` needs it to execute the schema module; install it with `npm install -g tsx`.")]
     TsxMissing,

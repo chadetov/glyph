@@ -8,7 +8,7 @@
 //! - `glyph run path.glyph [args]`   type-check then build and run via node
 //!   (`--no-check` to run without the tsc gate)
 //! - `glyph fmt [path]`              format-in-place (also called by LSP format-on-save)
-//! - `glyph regen <fn>`              regenerate a function body from its @generate spec (Q40)
+//! - `glyph regen [path]`            re-run the `gen` commands recorded in generated files (Q40)
 //! - `glyph gen openapi <spec> --out <dir>`  generate committed Glyph types from an
 //!   OpenAPI 3 / Swagger 2 / JSON Schema document (Q40 type-driven generation)
 //! - `glyph gen dts <file.d.ts> --out <dir>`  generate committed Glyph types from a
@@ -92,10 +92,12 @@ enum Command {
         #[arg(value_name = "FILE")]
         file: std::path::PathBuf,
     },
-    /// Regenerate a function body from its `@generate` spec block.
+    /// Re-run the `gen` commands recorded in generated files, refreshing them
+    /// from their source specs. Scans PATH (a dir, walked, or a file; default:
+    /// the current directory) and runs each unique `glyph gen ...` once.
     Regen {
-        #[arg(value_name = "FN")]
-        function: String,
+        #[arg(value_name = "PATH")]
+        path: Option<std::path::PathBuf>,
     },
     /// Generate committed Glyph types from an external schema.
     Gen {
@@ -516,23 +518,21 @@ fn main() {
                 }
             }
         }
-        Some(cmd) => {
-            let name = match cmd {
-                Command::Build { .. }
-                | Command::Run { .. }
-                | Command::Fmt { .. }
-                | Command::Lsp
-                | Command::Llms
-                | Command::Init { .. }
-                | Command::Canonical { .. }
-                | Command::Gen { .. }
-                | Command::Publish { .. } => {
-                    unreachable!()
+        Some(Command::Regen { path }) => {
+            let scan = path.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::regen::regen(&scan) {
+                Ok(report) => {
+                    for (cmd, count) in &report.ran {
+                        eprintln!("glyph regen: `{cmd}` -> {count} type(s)");
+                    }
+                    eprintln!("glyph regen: {} command(s) re-run.", report.ran.len());
+                    std::process::exit(0);
                 }
-                Command::Regen { .. } => "regen",
-            };
-            eprintln!("phase 0 stub: `glyph {}` not yet implemented", name);
-            std::process::exit(1);
+                Err(e) => {
+                    eprintln!("glyph regen: {e}");
+                    std::process::exit(1);
+                }
+            }
         }
     }
 }

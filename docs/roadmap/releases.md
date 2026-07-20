@@ -176,7 +176,17 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
     binding). Detected by the scrutinee's static type or recovered from a
     literal arm (mirroring the bool checker). Unit tests, a negative case, error
     catalogue + `--explain` entry.
-11. **`glyph regen`** (M, Q40).
+11. **`glyph regen`** (M, Q40) — ✅ **done.** Every file `glyph gen` writes
+    already carried its exact invocation in the header; that line is now
+    complete (`--out` + flags) and machine-runnable. `glyph regen [path]` scans
+    a dir/file for those headers, dedupes the commands, and re-runs each once,
+    so a spec change flows into the committed Glyph with one command. Idempotent
+    and deterministic; runs from the project root where recorded relative paths
+    resolve. *Scope note:* this is Q40 Option B's deterministic half — refresh
+    generated code from a spec. The sketch's other half (an LLM regenerating a
+    `@generate` *body* from a prompt) is inherently non-deterministic and stays
+    out of a tested v1 command; deferred. Rust unit + integration tests (full
+    gen → edit spec → regen → idempotent-rerun cycle).
 12. **`@redact` full enforcement** (M, D24).
 13. **`glyph build --out X` cleans stale files first** (S).
 14. **Extend the targeted type hint** (S) to `int`/`any`/`Promise<T>`.

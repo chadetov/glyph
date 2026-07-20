@@ -105,7 +105,19 @@ pub fn openapi(
 
     let module_name = sanitize_module(stem_of(spec_path));
     let source_label = spec_path.display().to_string();
-    let regen = format!("glyph gen openapi {}", spec_path.display());
+    // The full, re-runnable invocation. `glyph regen` parses this back out of the
+    // header, so it must carry `--out` and every flag, not just the spec path.
+    let mut regen = format!(
+        "glyph gen openapi {} --out {}",
+        spec_path.display(),
+        out_dir.display()
+    );
+    if client {
+        regen.push_str(" --client");
+    }
+    if handlers {
+        regen.push_str(" --handlers");
+    }
 
     let mut gen = Generator::default();
     let (imports, trailer) = if client || handlers {
@@ -218,7 +230,7 @@ pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
 
     let module_name = sanitize_module(stem_of(dts_path));
     let source_label = dts_path.display().to_string();
-    let regen = format!("glyph gen dts {}", dts_path.display());
+    let regen = format!("glyph gen dts {} --out {}", dts_path.display(), out_dir.display());
     render_and_write(
         Generator::default(),
         schemas,
@@ -269,7 +281,7 @@ pub fn zod(file: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
 
     let module_name = sanitize_module(stem_of(file));
     let source_label = file.display().to_string();
-    let regen = format!("glyph gen zod {}", file.display());
+    let regen = format!("glyph gen zod {} --out {}", file.display(), out_dir.display());
     render_and_write(
         Generator::default(),
         schemas,

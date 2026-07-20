@@ -132,6 +132,20 @@ idempotent, so re-running after a spec change produces a minimal diff you can
 review. Because every generated type is a real record, a response body from that
 API validates through `PetstoreType.parse(...)` exactly like a hand-written one.
 
+Every generated file records the exact command that produced it in its header
+(`Regenerate with \`glyph gen openapi petstore.yaml --out src/\``). When a spec
+changes, you don't have to remember which commands to re-run:
+
+```sh
+glyph regen          # re-run every recorded gen command under the current dir
+glyph regen src/api  # or scope it to a subtree / a single file
+```
+
+`glyph regen` scans for those headers, runs each unique command once (from the
+project root, where the recorded relative paths resolve), and rewrites the
+output. It is idempotent — a regen with no spec change leaves the files
+untouched — so it fits naturally in a pre-commit hook or CI drift check.
+
 Add `--client` to also generate a typed `std/http` client — one `async fn` per
 operation, with typed path parameters and request bodies:
 

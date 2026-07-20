@@ -182,6 +182,58 @@ fn build_emits_typescript_for_a_clean_module() {
 }
 
 #[test]
+fn regen_refreshes_generated_files_from_the_spec() {
+    // `glyph gen openapi` records its full invocation in the output; `glyph
+    // regen` recovers it and re-runs, so a spec change flows into the committed
+    // Glyph without remembering the command. Absolute paths keep it
+    // cwd-independent. openapi needs no external tools.
+    let root = unique_tmp("regen");
+    let spec = root.join("api.yaml");
+    let out = root.join("src/api");
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::write(
+        &spec,
+        "openapi: 3.0.0\ninfo: { title: T, version: 1.0.0 }\n\
+         components:\n  schemas:\n    Task:\n      type: object\n      properties:\n        \
+         id: { type: integer }\n",
+    )
+    .unwrap();
+
+    glyph_cli::gen::openapi(&spec, &out, false, false).expect("initial gen");
+    let gen_file = out.join("api.glyph");
+    let first = std::fs::read_to_string(&gen_file).unwrap();
+    assert!(first.contains("Regenerate with"), "provenance header: {first}");
+    assert!(!first.contains("title"), "spec has no title field yet");
+
+    // Add a `title` field, then regen the whole tree.
+    std::fs::write(
+        &spec,
+        "openapi: 3.0.0\ninfo: { title: T, version: 1.0.0 }\n\
+         components:\n  schemas:\n    Task:\n      type: object\n      properties:\n        \
+         id: { type: integer }\n        title: { type: string }\n",
+    )
+    .unwrap();
+
+    let report = glyph_cli::regen::regen(&root).expect("regen");
+    assert_eq!(report.ran.len(), 1, "one recorded command re-run");
+
+    let second = std::fs::read_to_string(&gen_file).unwrap();
+    assert!(second.contains("title"), "the new field flowed in: {second}");
+
+    // Idempotent: a second regen with no spec change leaves the file identical.
+    glyph_cli::regen::regen(&root).expect("regen again");
+    assert_eq!(second, std::fs::read_to_string(&gen_file).unwrap(), "idempotent");
+}
+
+#[test]
+fn regen_reports_when_nothing_is_generated() {
+    let root = unique_tmp("regen_empty");
+    write_file(&root, "hand.glyph", "module m\nfn f() -> number { return 1 }\n");
+    let err = glyph_cli::regen::regen(&root).expect_err("no generated files");
+    assert!(matches!(err, glyph_cli::regen::RegenError::NoGenerated { .. }));
+}
+
+#[test]
 fn build_warns_on_unused_import_binding_and_unreachable_code() {
     // The lint tier (warnings): an unused import (E0106), an unused `let`
     // (E0107), and a statement after `return` (E0108). All are warnings — the

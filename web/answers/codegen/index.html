@@ -164,11 +164,22 @@ async fn getTask(base: string, id: number)
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Keeping it in sync</p>
+        <p>
+          Every generated file records the exact command that made it in its header. When a spec
+          changes, you don't hunt for which commands to re-run &mdash; <code>glyph regen</code> scans
+          for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen
+          with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check
+          that fails if the committed code has drifted from the spec.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, and <code>glyph gen zod</code> &mdash; all emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</p>
+          <p><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source &mdash; every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

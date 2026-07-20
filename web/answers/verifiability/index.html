@@ -102,13 +102,20 @@ fn label(s: Status) -&gt; string {
           error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>,
           never by accident.
         </p>
+        <p>
+          Exhaustiveness isn't just for unions. A <code>match</code> on a <code>number</code> or
+          <code>string</code> with only literal arms can't cover an unbounded domain, so Glyph
+          requires an <code>else</code> (<code>E0218</code>) rather than letting the uncovered value
+          fall through to a runtime throw. The rule is the same everywhere: a <code>match</code> that
+          doesn't account for a case doesn't compile.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Exhaustive <code>match</code> over sealed unions, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
+          <p>Exhaustive <code>match</code> over sealed unions <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>

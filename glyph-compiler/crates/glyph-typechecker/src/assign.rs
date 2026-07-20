@@ -1145,8 +1145,56 @@ impl Assigner<'_> {
             self.check_bool_exhaustiveness(arms, match_span);
             return;
         }
+        // A `number`/`string` match: those domains are unbounded, so literal arms
+        // can never be exhaustive without a catch-all. Detect by the scrutinee's
+        // static type, or — when it types as `Unknown` — recover from a literal
+        // arm (a number/string literal pattern only type-checks over that
+        // primitive), mirroring the bool recovery just above.
+        let value_kind = match scrutinee_ty {
+            Ty::Prim(Primitive::Number) => Some("number"),
+            Ty::Prim(Primitive::String) => Some("string"),
+            _ => arms.iter().find_map(|a| match &a.pattern {
+                Pattern::Literal {
+                    value: LiteralPattern::Number(_),
+                    ..
+                } => Some("number"),
+                Pattern::Literal {
+                    value: LiteralPattern::String(_),
+                    ..
+                } => Some("string"),
+                _ => None,
+            }),
+        };
+        if let Some(kind) = value_kind {
+            self.check_value_exhaustiveness(kind, arms, match_span);
+            return;
+        }
         let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
         self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+    }
+
+    /// A `match` over a `number`/`string` is exhaustive only if it has a
+    /// catch-all arm (`_`, `else`, or a bare-identifier binding). Literal arms
+    /// alone leave the rest of the unbounded domain uncovered, which the emitter
+    /// lowers to a throwing `switch` `default`.
+    fn check_value_exhaustiveness(
+        &mut self,
+        type_name: &str,
+        arms: &[MatchArm],
+        match_span: glyph_ast::Span,
+    ) {
+        let has_catch_all = arms.iter().any(|a| {
+            matches!(
+                a.pattern,
+                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. }
+            )
+        });
+        if !has_catch_all {
+            self.errors.push(TypeError::NonExhaustiveValueMatch {
+                type_name: type_name.to_string(),
+                span: match_span,
+            });
+        }
     }
 
     /// Flag every arm that follows an irrefutable arm as unreachable. Glyph's
@@ -2572,9 +2620,9 @@ fn show(f: Feed) -> number {
     }
 
     #[test]
-    fn non_tagged_union_scrutinee_is_not_checked() {
-        // Number scrutinees aren't tagged unions; day-14 scope skips
-        // them. Verify no false-positive diagnostic.
+    fn number_match_without_a_catch_all_is_non_exhaustive() {
+        // `number`/`string` are unbounded, so literal arms alone can never be
+        // exhaustive: an open value match is E0218 (not a silent runtime throw).
         let src = r#"module x
 fn main(n: number) -> number {
   return match n {
@@ -2584,7 +2632,37 @@ fn main(n: number) -> number {
 }
 "#;
         let errs = ty_errors_of(src);
-        assert!(errs.is_empty(), "non-union scrutinee should not be flagged; got: {errs:?}");
+        assert!(
+            errs.iter().any(|e| e.code() == "E0218"),
+            "an open number match should be E0218; got: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn number_match_with_an_else_is_exhaustive() {
+        let src = r#"module x
+fn main(n: number) -> number {
+  return match n {
+    0 => 1,
+    else => 2,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn string_match_with_a_binding_catch_all_is_exhaustive() {
+        // A bare-identifier binding absorbs the rest of the domain.
+        let src = r#"module x
+fn f(s: string) -> number {
+  return match s {
+    "a" => 1,
+    other => 2,
+  }
+}
+"#;
+        assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
     }
 
     // ----- bool match exhaustiveness (week-3, D3) -----

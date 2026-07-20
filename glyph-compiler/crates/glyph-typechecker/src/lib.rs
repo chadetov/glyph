@@ -255,6 +255,15 @@ pub enum TypeError {
     #[error("non-exhaustive match on `bool`: {missing} not covered")]
     NonExhaustiveBoolMatch { missing: String, span: Span },
 
+    /// A `match` over a `number` or `string` scrutinee with literal-value arms
+    /// but no catch-all. Those domains are unbounded, so a set of literal arms
+    /// can never be exhaustive; the emitter lowers the match to a `switch` whose
+    /// `default` throws, turning an uncovered value into a runtime crash. D3
+    /// makes `match` the only conditional, so an open value match is a real gap.
+    /// `type_name` is `number` or `string`.
+    #[error("non-exhaustive match on `{type_name}`: no catch-all for the other values")]
+    NonExhaustiveValueMatch { type_name: String, span: Span },
+
     /// A `component` declared with more than one parameter. A component lowers to
     /// a React function component, which is called with a single props object, so
     /// multiple positional parameters would silently bind the first to the whole
@@ -325,6 +334,7 @@ impl TypeError {
             TypeError::OwnedUsedAfterMove { span, .. } => *span,
             TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
+            TypeError::NonExhaustiveValueMatch { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
@@ -350,6 +360,7 @@ impl TypeError {
             TypeError::OwnedUsedAfterMove { .. } => "E0207",
             TypeError::NonExhaustiveArrayMatch { .. } => "E0208",
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
+            TypeError::NonExhaustiveValueMatch { .. } => "E0218",
             TypeError::UnknownField { .. } => "E0210",
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
             TypeError::MutateConst { .. } => "E0212",
@@ -394,6 +405,9 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { .. } => {
                 "Cover both `true` and `false`, or add an `else` arm."
             }
+            TypeError::NonExhaustiveValueMatch { .. } => {
+                "Add an `else` arm. A `number`/`string` match with only literal arms can never be exhaustive."
+            }
             TypeError::UnknownField { .. } => {
                 "Check the field name for a typo, or add the field to the type."
             }
@@ -436,6 +450,9 @@ impl TypeError {
             ),
             TypeError::UnusedResult { .. } => Some(
                 "Errors in Glyph are values, not exceptions: a dropped `Result` is a dropped error path. Making the discard explicit keeps failures visible.",
+            ),
+            TypeError::NonExhaustiveValueMatch { .. } => Some(
+                "`number` and `string` are unbounded, so literal arms can never cover every value; the emitted `switch` `default` throws at runtime.",
             ),
             _ => None,
         }

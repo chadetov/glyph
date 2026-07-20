@@ -1,0 +1,8 @@
+module neg
+
+fn grade(n: number) -> string {
+  return match n {
+    1 => "one",
+    2 => "two",
+  }
+}

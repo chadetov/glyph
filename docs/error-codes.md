@@ -68,6 +68,7 @@ led by `_` (the conventional "intentionally unused" marker).
 | `E0215` | Aliasing an `owned` handle (D25) |
 | `E0216` | Unreachable `match` arm after a total pattern (D9) |
 | `E0217` | Discarded `Result` &mdash; **warning**, not an error (its `Err` is silently ignored) |
+| `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest) |
 
 ### Emitter — `E03xx`
 

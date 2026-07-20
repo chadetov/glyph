@@ -171,6 +171,16 @@ pub fn explain(code: &str) -> Option<&'static str> {
             (D20). Only a function-level `let` may be reassigned with `mut`.\n\n\
             Move the binding into a function as a `let`, or compute the new value \
             without reassigning the `const`.",
+        "E0218" => "E0218: non-exhaustive number/string match\n\n\
+            `number` and `string` are unbounded, so a `match` with only literal \
+            arms can never cover every value. Since `match` is the only conditional \
+            (D3), that gap would become a runtime throw in the emitted `switch` \
+            default.\n\n\
+            Add an `else` arm (or a bare-identifier binding) to cover the rest:\n\n\
+            match n {\n  \
+              0 => \"zero\",\n  \
+              else => \"other\",\n\
+            }",
 
         // ----- emitter (E03xx) -----
         "E0300" => "E0300: construct not supported by the emitter\n\n\
@@ -189,7 +199,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0100", "E0101", "E0102", "E0103", "E0104",
     "E0105", "E0106", "E0107", "E0108", "E0200", "E0201", "E0202", "E0203", "E0204", "E0205",
     "E0206", "E0207", "E0208",
-    "E0209", "E0210", "E0211", "E0212", "E0300",
+    "E0209", "E0210", "E0211", "E0212", "E0218", "E0300",
 ];
 
 #[cfg(test)]

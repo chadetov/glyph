@@ -169,7 +169,13 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
    rename inside templates). Fixed by offsetting each interpolation's parse.
    Exact byte-accurate template spans still need a lexer template-literal mode
    (v1.1); the offset is unique, which is what the resolution map requires.
-10. **number/string value-match exhaustiveness** (M).
+10. **number/string value-match exhaustiveness** (M) — ✅ **done.** A `match` on
+    a `number`/`string` with only literal arms is now E0218: those domains are
+    unbounded, so it can never be exhaustive, and the emitter's `switch`
+    `default` would throw at runtime. Requires an `else` (or a bare-identifier
+    binding). Detected by the scrutinee's static type or recovered from a
+    literal arm (mirroring the bool checker). Unit tests, a negative case, error
+    catalogue + `--explain` entry.
 11. **`glyph regen`** (M, Q40).
 12. **`@redact` full enforcement** (M, D24).
 13. **`glyph build --out X` cleans stale files first** (S).

@@ -8,6 +8,7 @@
 // esbuild/swc: no postinstall download, no curl-pipe-bash.
 
 const { spawnSync } = require("child_process");
+const fs = require("fs");
 const { resolveBinary } = require("./resolve.js");
 
 let binary;
@@ -16,6 +17,20 @@ try {
 } catch (err) {
   console.error(err.message);
   process.exit(1);
+}
+
+// Ensure the binary is executable. GitHub's artifact upload/download (used to
+// carry the built binaries into the publish job) does not preserve the Unix
+// execute bit, so the tarball can ship a non-executable file and `spawn` would
+// fail with EACCES. Restoring the bit here makes the launcher robust regardless
+// of how the package was built. Best-effort: skip on Windows (no execute bit)
+// and ignore a read-only install (the spawn error below still reports clearly).
+if (process.platform !== "win32") {
+  try {
+    fs.chmodSync(binary, 0o755);
+  } catch {
+    // ignore — a read-only location; spawn will surface any real problem.
+  }
 }
 
 const result = spawnSync(binary, process.argv.slice(2), { stdio: "inherit" });

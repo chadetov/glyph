@@ -105,9 +105,8 @@ pub struct FnDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenericParam {
     pub name: Ident,
-    /// Constraints (e.g. `<T: SomeBound>`) — deferred to v1.1 per the brainstorm
-    /// "generics with simple bounds" being a step-5 substep 5a deliverable.
-    /// Currently always empty.
+    /// Constraints (`<T: SomeBound>`). v1 parses a single bound; it lowers to a
+    /// TS `extends` clause, which `tsc` enforces. Empty when unbounded.
     pub bounds: Vec<TypeExpr>,
     pub span: Span,
 }

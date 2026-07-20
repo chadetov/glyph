@@ -353,11 +353,14 @@ fn parse_generic_params(p: &mut Cursor) -> Result<Vec<GenericParam>, ParseError>
     p.expect(&Token::LAngle, "`<` (generic parameters)")?;
     let params = p.parse_comma_separated(&Token::RAngle, false, |p| {
         let (name, span) = p.expect_ident("generic parameter name")?;
-        Ok(GenericParam {
-            name,
-            bounds: Vec::new(),
-            span,
-        })
+        // Optional bound: `<T: Bound>`. v1 supports a single bound (no `+`).
+        let bounds = if matches!(p.peek(), Token::Colon) {
+            p.advance();
+            vec![types::parse_type(p)?]
+        } else {
+            Vec::new()
+        };
+        Ok(GenericParam { name, bounds, span })
     })?;
     p.expect(&Token::RAngle, "`>` (generic parameters)")?;
     Ok(params)

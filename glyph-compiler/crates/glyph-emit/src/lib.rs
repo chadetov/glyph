@@ -622,7 +622,7 @@ impl<'a> Emitter<'a> {
         match decl {
             Decl::Import(im) => self.emit_import(im),
             Decl::Fn(f) => {
-                let generics = self.generics(&f.generics);
+                let generics = self.generics(&f.generics)?;
                 let params = self.params(&f.params)?;
                 // Glyph's `async fn -> T` awaits to `T`; TS annotates the
                 // wrapper, so the emitted return type is `Promise<T>`.
@@ -657,7 +657,7 @@ impl<'a> Emitter<'a> {
                 if let TypeExpr::Union { variants, .. } = &t.body {
                     return self.emit_union(&t.name, &t.generics, variants);
                 }
-                let generics = self.generics(&t.generics);
+                let generics = self.generics(&t.generics)?;
                 let body = self.ty(&t.body)?;
                 self.line(&format!("export type {}{generics} = {body};", t.name));
                 // Q8: a non-generic record type also emits a runtime descriptor
@@ -812,7 +812,7 @@ impl<'a> Emitter<'a> {
                 }
             }
         }
-        let generics_str = self.generics(generics);
+        let generics_str = self.generics(generics)?;
         self.line(&format!("export type {name}{generics_str} ="));
         self.indent += 1;
         for (i, v) in variants.iter().enumerate() {
@@ -961,16 +961,20 @@ impl<'a> Emitter<'a> {
         Ok(())
     }
 
-    fn generics(&self, generics: &[GenericParam]) -> String {
+    fn generics(&self, generics: &[GenericParam]) -> Result<String, EmitError> {
         if generics.is_empty() {
-            return String::new();
+            return Ok(String::new());
         }
-        let names = generics
-            .iter()
-            .map(|g| g.name.as_ref())
-            .collect::<Vec<_>>()
-            .join(", ");
-        format!("<{names}>")
+        let mut parts = Vec::with_capacity(generics.len());
+        for g in generics {
+            // A bound lowers to a TS `extends` clause (`<T: Bound>` -> `<T extends
+            // Bound>`). v1 carries a single bound.
+            match g.bounds.first() {
+                Some(bound) => parts.push(format!("{} extends {}", g.name, self.ty(bound)?)),
+                None => parts.push(g.name.to_string()),
+            }
+        }
+        Ok(format!("<{}>", parts.join(", ")))
     }
 
     fn params(&self, params: &[Param]) -> Result<String, EmitError> {
@@ -2747,7 +2751,7 @@ impl<'a> Emitter<'a> {
     /// body returns JSX, so it emits with implicit tail returns like a non-void
     /// function.
     fn emit_component(&mut self, c: &ComponentDecl) -> Result<(), EmitError> {
-        let generics = self.generics(&c.generics);
+        let generics = self.generics(&c.generics)?;
         let params = self.params(&c.params)?;
         let ret = match &c.return_ty {
             Some(te) => format!(": {}", self.ty(te)?),
@@ -4698,6 +4702,25 @@ mod tests {
         // (e.g. `object_schema<Out>` returning a `Record` as `Out`) type-checks.
         let ts = emit("module x\nfn id<T>(x: T) -> T { return x }\n");
         assert!(ts.contains("return x as T;"), "{ts}");
+    }
+
+    #[test]
+    fn bounded_generic_emits_an_extends_clause() {
+        // `<T: Bound>` lowers to a TS `extends` clause; tsc enforces the bound.
+        let ts = emit(
+            "module x\ntype Named = { name: string }\nfn label<T: Named>(x: T) -> string {\n  return x.name\n}\n",
+        );
+        assert!(
+            ts.contains("export function label<T extends Named>(x: T): string {"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn unbounded_generic_has_no_extends() {
+        let ts = emit("module x\nfn id<T>(x: T) -> T { return x }\n");
+        assert!(ts.contains("export function id<T>("), "{ts}");
+        assert!(!ts.contains("extends"), "no bound, no extends: {ts}");
     }
 
     #[test]

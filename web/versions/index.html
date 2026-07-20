@@ -40,8 +40,21 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.7</span>
+            <span class="rel-ver">0.1.8</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Install fix</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> The published compiler binary is now executable on install &mdash; a packaging step dropped the Unix execute bit, so <code>npx @glyphlang/glyph</code> failed with <code>EACCES</code>. The launcher now also restores it defensively.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.7</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

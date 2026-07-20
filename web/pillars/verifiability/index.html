@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Verifiability — what the types say is true at runtime — Glyph</title>
+    <meta name="description" content="Glyph's first pillar: no any, no casts, no erasure. Types keep runtime descriptors, match is exhaustive, errors are values, PII is type-level. The bugs tsc --strict waves through don't compile here." />
+    <link rel="canonical" href="https://glyphlang.io/pillars/verifiability/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/pillars/verifiability/" class="active"><span class="n">01</span> Verifiability</a>
+        <a href="/pillars/greppability/"><span class="n">02</span> Greppability</a>
+        <a href="/pillars/diff-stability/"><span class="n">03</span> Diff stability</a>
+        <a href="/pillars/abstraction/"><span class="n">04</span> Abstraction</a>
+      </div>
+    </div>
+
+    <article class="pillar-page">
+      <p class="q-eyebrow">Pillar 01 &middot; <span class="wedge">The wedge</span></p>
+      <h1 class="q-title">Verifiability</h1>
+
+      <p class="short-answer">
+        What the types say is <strong>true at runtime</strong> &mdash; not "the compiler is happy,"
+        but actually true, for the values your program really sees. The whole category of bug an
+        agent ships because <code>tsc --strict</code> waved it through does not compile in Glyph.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">The lie a type can tell</p>
+        <p class="lede">
+          In TypeScript a type is a compile-time promise that evaporates before your code runs. A
+          <code>User</code> annotation is erased to nothing; the object you actually get from a
+          network call, a JSON parse, or a form field could be any shape at all. Worse, the language
+          hands you three legal ways to lie to the checker about it: <code>any</code>, an
+          <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all
+          three &mdash; and <code>tsc --strict</code> stays green while the bug ships.
+        </p>
+        <p class="lede">
+          Glyph's first job is to close those holes. Not with more annotations, but by removing the
+          escape hatches and making every type carry its proof to runtime. Here is what that means,
+          one guarantee at a time.
+        </p>
+
+        <p class="block-label"><span class="ex-label">01</span> There is no <code>any</code></p>
+        <p>
+          <code>any</code> is the single most expensive keyword in TypeScript: it switches off the
+          type system for a value <em>and everything that value touches</em>. One <code>any</code> at
+          a boundary quietly poisons the call graph downstream. Glyph doesn't have it. The top type is
+          <code>unknown</code>, and <code>unknown</code> is inert &mdash; you cannot call it, index it,
+          or pass it anywhere typed until you have <em>proven</em> what it is.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript &mdash; compiles, then crashes</span>
+          <span class="cap">handler.ts</span>
+<pre>function handle(body: any) {
+  <span class="cm">// tsc --strict: fine.</span>
+  <span class="cm">// runtime: throws on {}.</span>
+  return body.user.name.toUpperCase();
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph &mdash; the narrowing is the proof</span>
+          <span class="cap">handler.glyph</span>
+<pre>fn handle(body: unknown) -&gt; string {
+  return match User.parse(body) {
+    Ok(u) =&gt; string.upper(u.name),
+    Err(_) =&gt; "unknown",
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          You cannot get a typed value out of <code>unknown</code> without a check the compiler can
+          see. In Glyph, the narrowing <strong>is</strong> the runtime proof &mdash; there is no
+          syntax for skipping it.
+        </p>
+
+        <p class="block-label"><span class="ex-label">02</span> Types are real at runtime</p>
+        <p>
+          How does <code>User.parse</code> exist? Because every record type generates a
+          <strong>runtime descriptor</strong> alongside it &mdash; an <code>is</code> guard, a
+          <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a
+          composable <code>schema</code>. Nothing is erased. An <code>is User</code> check works at
+          runtime because the shape is actually inspected, not assumed.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">the type you write &mdash; and the descriptor you get for free</span>
+<pre>type User = {
+  id: number,
+  name: string,
+  email: string,
+}
+
+<span class="cm">// generated: User.is(v), User.parse(v) -&gt; Result&lt;User, ...&gt;, User.schema</span>
+
+fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match User.parse(req.body) {   <span class="cm">// untrusted input, validated</span>
+    Ok(user) =&gt; Ok(json(201, user)),
+    Err(issues) =&gt; Ok(json(400, issues)),
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          This is the answer to "every API needs a hand-written validator." The type is the
+          validator. A boundary &mdash; a request body, a config file, a third-party response &mdash;
+          becomes typed only by passing through a check that can actually reject bad data.
+        </p>
+
+        <p class="block-label"><span class="ex-label">03</span> Every case, or it doesn't compile</p>
+        <p>
+          A <code>match</code> over a sealed union must handle every variant. Add a variant later and
+          <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>) &mdash;
+          the new case cannot silently fall through to <code>undefined</code> the way a forgotten
+          <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or
+          <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>),
+          because those domains are unbounded and a set of literals can never be complete.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">status.glyph</span>
+<pre>type Status = Active | Paused | Cancelled
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Active =&gt; "on",
+    Paused =&gt; "hold",
+    <span class="cm">// forgot Cancelled...</span>
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="tag-bad">compile error, not a runtime undefined</span>
+          <span class="cap">$ glyph build</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Status`: missing variant `Cancelled`</span>
+
+<span class="cm"># the equivalent TS switch returns
+# undefined at runtime and compiles
+# clean. here it does not build.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="block-label"><span class="ex-label">04</span> Errors are values, not surprises</p>
+        <p>
+          A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with
+          <code>match</code>, or propagate it with the <code>?</code> operator &mdash; and the error
+          type has to line up (there is no implicit conversion hiding a mismatch). Ignore a
+          <code>Result</code> entirely &mdash; call it for effect and drop what it returned &mdash;
+          and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.
+          You silence it deliberately with <code>let _ = ...</code>, never by accident.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">pipeline.glyph</span>
+<pre>fn load(id: string) -&gt; Result&lt;User, AppError&gt; {
+  let raw = fetch_user(id)?           <span class="cm">// Err short-circuits to the caller</span>
+  let user = User.parse(raw.body)?    <span class="cm">// validation Err propagates too</span>
+  return Ok(user)
+}
+
+fn main() -&gt; number {
+  save(user)   <span class="cm">// E0217: this returns a Result whose Err is dropped</span>
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label"><span class="ex-label">05</span> Even PII is type-level</p>
+        <p>
+          The same "make it the compiler's job, not a convention" instinct reaches all the way to
+          sensitive data. Put <code>@redact</code> on a type and its descriptor gains a
+          <code>redact()</code> that masks those fields, so a stray
+          <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't
+          have and it's a compile error (<code>E0219</code>) &mdash; not a redaction that silently
+          protects nothing.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">patient.glyph</span>
+<pre>@redact fields: [diagnosis, notes]
+type Patient = {
+  name: string,
+  diagnosis: string,
+  notes: string,
+}
+
+<span class="cm">// json.stringify(Patient.redact(p)) -&gt;</span>
+<span class="cm">// {"name":"Ada","diagnosis":"[REDACTED]","notes":"[REDACTED]"}</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          Five different failure modes &mdash; unchecked input, a runtime cast, a missed case, a
+          dropped error, a leaked secret &mdash; and in every one the fix is the same shape:
+          <strong>the compiler refuses to pretend.</strong>
+        </p>
+
+        <p class="block-label">The benchmark &mdash; coming</p>
+        <p>
+          This claim is empirical, so we intend to measure it honestly: take a corpus of real
+          agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and
+          count what each one actually catches. Glyph isn't in real-world use yet, so there are no
+          numbers to report &mdash; the chart below is a placeholder, and it fills in with real data
+          the moment there is real usage.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Agent-shipped bugs caught &middot; higher is better</span>
+        <h3>tsc --strict vs Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 64%;">pending</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">tsc --strict</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 34%;">pending</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Not measured yet</span>
+          The methodology is set; the corpus needs real Glyph usage to draw from. We'll publish the
+          numbers &mdash; whatever they are &mdash; here as soon as they exist.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          None of this is bought with ceremony. There are no proof annotations, no contracts, no
+          verifier to satisfy &mdash; the code above is just ordinary Glyph. Verifiability isn't a
+          feature you turn on; it's what's left once the ways to lie are gone.
+        </p>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/">
+          <span class="dir">&larr; Home</span>
+          <span class="t">Why Glyph wins</span>
+        </a>
+        <a href="/pillars/greppability/" class="nx cta">
+          <span class="dir">Next pillar &rarr;</span>
+          <span class="t">Greppability &mdash; one name, one place</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

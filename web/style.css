@@ -303,3 +303,37 @@ footer a:hover { color: var(--text); }
 .changelist .tag.site { color: var(--indigo-text); background: rgba(99,102,241,0.12); }
 .changelist .tag.note { color: var(--muted); background: rgba(148,163,184,0.12); }
 .changelist code { font-family: var(--mono); font-size: 0.85em; color: var(--cyan); }
+
+/* ============ pillar story pages ============ */
+.pillar-page { max-width: 760px; margin: 0 auto; padding: 0 32px; }
+.pillar-page .lede { color: var(--muted); font-size: 1.05rem; line-height: 1.75; margin: 0 0 18px; }
+.pillar-page .lede strong { color: var(--text); }
+.pillar-page .lede code, .callout code { font-family: var(--mono); font-size: 0.86em; color: var(--cyan); }
+.q-eyebrow .wedge { color: var(--green); }
+.q-eyebrow .polish { color: var(--cyan); }
+.callout {
+  font-family: var(--display); font-size: 1.16rem; line-height: 1.5; font-weight: 500; color: var(--text);
+  border-left: 3px solid var(--indigo); padding: 6px 0 6px 22px; margin: 28px 0;
+}
+.callout strong { color: var(--indigo-text); font-weight: 600; }
+.ex-label { color: var(--indigo-text); font-weight: 700; margin-right: 4px; }
+.two-up .tag-good, .two-up .tag-bad {
+  display: block; padding: 9px 16px 0; font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.two-up .tag-good { color: var(--green); }
+.two-up .tag-bad { color: var(--rose); }
+.bar-fill.pending {
+  background: repeating-linear-gradient(45deg, var(--surface-3), var(--surface-3) 7px, var(--surface) 7px, var(--surface) 14px);
+  color: var(--muted);
+}
+.pending-note {
+  border: 1px dashed var(--border-2); border-radius: 12px; padding: 16px 20px; margin: 6px 0 8px;
+  color: var(--muted); font-size: 0.92rem; line-height: 1.6; background: rgba(251,191,36,0.04);
+}
+.pending-note .h { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); display: block; margin-bottom: 8px; }
+
+/* pillar cards on the home grid become links */
+a.card { display: block; transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+a.card:hover { border-color: var(--indigo); transform: translateY(-2px); box-shadow: 0 10px 30px -12px rgba(99,102,241,0.5); }
+.card-more { display: inline-block; margin-top: 14px; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.04em; color: var(--indigo-text); }
+a.card:hover .card-more { color: var(--text); }

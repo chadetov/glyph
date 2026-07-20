@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Abstraction — a small, orthogonal core — Glyph</title>
+    <meta name="description" content="Glyph's fourth pillar: one good way per concept. Pattern matching over switch ladders, Result over exceptions, named records over tuples, match as the only conditional. Not TypeScript's accreted layers." />
+    <link rel="canonical" href="https://glyphlang.io/pillars/abstraction/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/pillars/verifiability/"><span class="n">01</span> Verifiability</a>
+        <a href="/pillars/greppability/"><span class="n">02</span> Greppability</a>
+        <a href="/pillars/diff-stability/"><span class="n">03</span> Diff stability</a>
+        <a href="/pillars/abstraction/" class="active"><span class="n">04</span> Abstraction</a>
+      </div>
+    </div>
+
+    <article class="pillar-page">
+      <p class="q-eyebrow">Pillar 04 &middot; <span class="polish">The polish</span></p>
+      <h1 class="q-title">Abstraction</h1>
+
+      <p class="short-answer">
+        Say what you mean with a <strong>small, orthogonal core</strong>: pattern matching instead of
+        switch ladders, <code>Result</code> instead of thrown exceptions, named records instead of
+        tuples. One good way per concept &mdash; not TypeScript's accreted layers.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Too many ways to say the same thing</p>
+        <p class="lede">
+          TypeScript grew by accretion, and it kept every layer. You can model a fixed set of cases as
+          an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can
+          describe a shape with an <code>interface</code>, a <code>type</code>, or a
+          <code>class</code>. There are <code>namespace</code>s and modules, decorators and
+          higher-order functions, five idioms for nearly everything &mdash; each with its own edge
+          cases.
+        </p>
+        <p class="lede">
+          For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to
+          express a thing means more ways to pick the one with the footgun, and more idioms to keep
+          straight while doing it. Glyph's abstraction pillar is a deliberate subtraction &mdash; one
+          sharp tool per job, chosen so the obvious way is also the safe way.
+        </p>
+
+        <p class="block-label"><span class="ex-label">01</span> <code>match</code> is the only conditional</p>
+        <p>
+          There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>,
+          everywhere, and <code>match</code> is an expression &mdash; it produces a value. One
+          construct covers a boolean test, a union dispatch, and a value table, so there's no decision
+          to make about <em>which</em> branching form to reach for.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript &mdash; statement, not a value</span>
+          <span class="cap">grade.ts</span>
+<pre>let label: string;
+if (score &gt; 90) label = "A";
+else if (score &gt; 80) label = "B";
+else label = "C";</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph &mdash; one expression</span>
+          <span class="cap">grade.glyph</span>
+<pre>let label = match score &gt; 90 {
+  true =&gt; "A",
+  false =&gt; match score &gt; 80 {
+    true =&gt; "B",
+    else =&gt; "C",
+  },
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="block-label"><span class="ex-label">02</span> Tagged unions and pattern matching</p>
+        <p>
+          The way to model "one of these shapes" is a tagged union, and the way to take it apart is
+          <code>match</code>, which destructures the payload in the same step it selects the case. No
+          discriminant field to hand-maintain, no <code>switch</code> ladder on a string tag, no cast
+          inside each branch to recover the shape.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">feed.glyph</span>
+<pre>type Feed =
+  | Loading
+  | Loaded(Array&lt;Post&gt;)
+  | Failed(string)
+
+fn view(feed: Feed) -&gt; string {
+  return match feed {
+    Loading =&gt; "...",
+    Loaded(posts) =&gt; render(posts),   <span class="cm">// posts is Array&lt;Post&gt; here</span>
+    Failed(msg) =&gt; msg,               <span class="cm">// msg is string here</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label"><span class="ex-label">03</span> <code>Result</code> over exceptions</p>
+        <p>
+          Failure is a value, not a hidden control-flow jump. A function that can fail says so in its
+          return type &mdash; <code>Result&lt;T, E&gt;</code> &mdash; and you compose failures with the
+          <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code>
+          and hoping the right thing throws the right class. The error path is as visible as the happy
+          path.
+        </p>
+
+        <p class="block-label"><span class="ex-label">04</span> Named records over positional tuples</p>
+        <p>
+          Data is described with named fields, always. There's no object-literal shorthand and no
+          reaching for an anonymous tuple whose <code>[0]</code> and <code>[1]</code> you have to
+          remember. The shape reads the same at the definition, the construction, and the use.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript &mdash; what are [0] and [1]?</span>
+          <span class="cap">point.ts</span>
+<pre>function origin(): [number, number] {
+  return [0, 0];
+}
+const p = origin();
+p[0]; p[1];  <span class="cm">// x? y? row? col?</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph &mdash; the names travel with the value</span>
+          <span class="cap">point.glyph</span>
+<pre>type Point = { x: number, y: number }
+
+fn origin() -&gt; Point {
+  return { x: 0, y: 0 }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="block-label"><span class="ex-label">05</span> One primitive per job</p>
+        <p>
+          When a concept genuinely needs its own tool, Glyph gives it exactly one. Shared mutable
+          state lives in a <code>std/store</code>. A file or socket handle that must be closed once is
+          an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single,
+          named, purpose-built primitive &mdash; not a pattern you re-derive from a grab-bag of
+          general parts and get subtly wrong.
+        </p>
+
+        <p class="callout">
+          Abstraction here means <strong>fewer, sharper tools</strong> &mdash; not more. Every concept
+          has an obvious form, and the obvious form is the one you're meant to use.
+        </p>
+
+        <p class="block-label">The benchmark &mdash; coming</p>
+        <p>
+          The way to measure this is surface area: how many distinct concepts a reader has to hold to
+          understand a program, and how much code it takes to express a common task cleanly. Glyph
+          isn't in real-world use yet, so the chart below is a placeholder that fills in with real
+          measurements once there's a body of real programs to compare.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Distinct concepts to read a typical module &middot; lower is better</span>
+        <h3>TypeScript vs Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 30%;">pending</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 62%;">pending</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Not measured yet</span>
+          We'll publish concept-count and lines-to-express-X comparisons from real programs here as
+          soon as there are enough to measure honestly.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          A smaller core is easier for a person to learn once and easier for a model to get right every
+          time. That's the whole polish layer in one sentence: take away the choices that only added
+          risk, and what's left is a language that says what it means.
+        </p>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/pillars/diff-stability/">
+          <span class="dir">&larr; Previous pillar</span>
+          <span class="t">Diff stability &mdash; a one-line change is a one-line diff</span>
+        </a>
+        <a href="/pillars/verifiability/" class="nx cta">
+          <span class="dir">Back to the start &rarr;</span>
+          <span class="t">Verifiability &mdash; true at runtime</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

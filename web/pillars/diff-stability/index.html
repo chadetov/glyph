@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diff stability — a one-line change is a one-line diff — Glyph</title>
+    <meta name="description" content="Glyph's third pillar: one canonical format, one element per line, trailing commas, no reflow, no barrel files, idempotent codegen. The diff shows the change, not the churn." />
+    <link rel="canonical" href="https://glyphlang.io/pillars/diff-stability/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/pillars/verifiability/"><span class="n">01</span> Verifiability</a>
+        <a href="/pillars/greppability/"><span class="n">02</span> Greppability</a>
+        <a href="/pillars/diff-stability/" class="active"><span class="n">03</span> Diff stability</a>
+        <a href="/pillars/abstraction/"><span class="n">04</span> Abstraction</a>
+      </div>
+    </div>
+
+    <article class="pillar-page">
+      <p class="q-eyebrow">Pillar 03 &middot; <span class="polish">The polish</span></p>
+      <h1 class="q-title">Diff stability</h1>
+
+      <p class="short-answer">
+        A one-line change is a <strong>one-line diff</strong>. One canonical format, one element per
+        line, trailing commas, no reflow &mdash; so a review shows the change that was made, not the
+        churn around it.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Review is reading diffs</p>
+        <p class="lede">
+          Almost everything we trust about a change &mdash; the review, the blame, the revert, the
+          bisect &mdash; is built on the diff. So the diff's signal-to-noise ratio is the real
+          currency. In most codebases it's terrible: a formatter reflows a wrapped line, an
+          import-sorter reshuffles a block, a rename touches every call site's whitespace, and the one
+          line that <em>matters</em> is buried in fifty that don't.
+        </p>
+        <p class="lede">
+          Agents make this sharply worse. Given a small task, a model will happily rewrite a whole
+          function &mdash; or a whole file &mdash; to change one thing, because regenerating is easier
+          for it than editing surgically. The reviewer is left to diff a rewrite against the original
+          and <em>hope</em> the only real change is the intended one. Glyph is built so that the layout
+          gives the model nothing to churn.
+        </p>
+
+        <p class="block-label"><span class="ex-label">01</span> One canonical layout, no choices</p>
+        <p>
+          <code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, one
+          element per line once there's more than a couple, a trailing comma on every multi-line list,
+          and <strong>no reflow</strong> &mdash; the formatter never repacks your elements to fit a
+          line width. Because there's exactly one legal shape, there's nothing to argue about and
+          nothing for a tool to "fix" on the side. Adding a field is a single added line.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">Reflowed style &mdash; one change, three touched lines</span>
+          <span class="cap">git diff (packed formatting)</span>
+<pre><span class="del">- type User = { id: number, name:</span>
+<span class="del">-   string }</span>
+<span class="add">+ type User = { id: number, name:</span>
+<span class="add">+   string, email: string }</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph &mdash; one change, one added line</span>
+          <span class="cap">git diff (canonical)</span>
+<pre>  type User = {
+    id: number,
+    name: string,
+<span class="add">+   email: string,</span>
+  }</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          The trailing comma is doing quiet work: because the last element already ends in a comma,
+          adding a sibling <strong>never edits the line above it.</strong> One insertion, one line.
+        </p>
+
+        <p class="block-label"><span class="ex-label">02</span> Order is stable, so history is legible</p>
+        <p>
+          One element per line means reordering, inserting, or removing an item touches only that
+          item's lines &mdash; never its neighbours. <code>git blame</code> stays meaningful:
+          each line's last-touched commit is the commit that actually changed <em>that</em> element,
+          not the formatting pass that happened to repack the row it shared.
+        </p>
+
+        <p class="block-label"><span class="ex-label">03</span> No barrel files &mdash; no import churn</p>
+        <p>
+          Because imports never re-export and there are no <code>index.ts</code> aggregation layers
+          (<code>E0102</code>), adding or moving a symbol doesn't ripple through a barrel that every
+          consumer imports. The dependency edges you edit are the ones you meant to; the rest of the
+          import graph doesn't move.
+        </p>
+
+        <p class="block-label"><span class="ex-label">04</span> Generation is idempotent, not a blob</p>
+        <p>
+          The same discipline extends to generated code. <code>glyph gen</code> and
+          <code>glyph regen</code> reprint their output through the canonical formatter, so
+          regenerating after a spec change produces a <em>minimal</em> diff you can actually review
+          &mdash; a couple of changed lines, not a wholesale replacement of a machine-written file.
+          And every emitted <code>.ts</code> ships a source map, so even the compiled output traces
+          cleanly back to the line you changed.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">a field added to the spec &rarr; the regenerated diff</span>
+<pre>  type Task = {
+    id: number,
+    title: string,
+<span class="add">+   done: bool,</span>
+  }
+<span class="cm">// glyph regen re-ran the recorded command; this is the whole diff.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          Diff stability is what turns "the agent changed something" into "the agent changed
+          <strong>exactly this</strong>." When the noise floor is zero, review is fast and trust is
+          cheap.
+        </p>
+
+        <p class="block-label">The benchmark &mdash; coming</p>
+        <p>
+          The number that captures this is diff size per logical change: how many lines move when you
+          make one intended edit, in Glyph versus an equivalent TypeScript change run through a typical
+          formatter. Glyph isn't in real-world use yet, so the chart below is a placeholder that fills
+          in with real measurements once there's real history to draw from.
+        </p>
+      </div>
+
+      <div class="chart">
+        <span class="label">Diff lines per one-field change &middot; lower is better</span>
+        <h3>TypeScript vs Glyph</h3>
+        <div class="bar-row">
+          <span class="bar-lang">Glyph</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 22%;">pending</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-lang">TypeScript</span>
+          <div class="bar-track"><div class="bar-fill pending" style="width: 58%;">pending</div></div>
+        </div>
+        <div class="pending-note">
+          <span class="h">Not measured yet</span>
+          We'll draw diff-size numbers from a real Glyph repo's history and publish them here, whatever
+          they show.
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          It costs a little freedom &mdash; you don't get to hand-pack a line the way you like &mdash;
+          and buys a lot of legibility in return. That's the trade every polish pillar makes: give up a
+          choice that didn't matter to keep a signal that does.
+        </p>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/pillars/greppability/">
+          <span class="dir">&larr; Previous pillar</span>
+          <span class="t">Greppability &mdash; one name, one place</span>
+        </a>
+        <a href="/pillars/abstraction/" class="nx cta">
+          <span class="dir">Next pillar &rarr;</span>
+          <span class="t">Abstraction &mdash; a small, orthogonal core</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

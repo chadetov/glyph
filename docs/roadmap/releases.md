@@ -140,7 +140,13 @@ per-item testing strategy: [`../plan/0.1.7-language-and-agent-experience.md`](..
    (single bound in v1); emitter lowers it to a TS `extends` clause that tsc
    enforces, so a violated bound is caught and mapped back to the `.glyph` call
    site.
-7. **Discriminated-union generation** (L) — a discriminator-aware union representation.
+7. **Discriminated-union generation** (L) — ✅ **done.** The deferred 0.1.5
+   finding, resolved manifesto-safely by generating code, not changing the
+   language: a discriminated `oneOf` emits a Glyph tagged union of the variants
+   plus a `parse_<Name>` dispatcher that reads the discriminator property (via a
+   new `std/json.discriminant`) and validates into the right variant. Verified
+   the generated union compiles, dispatches a real wire object, and is
+   idempotent.
 8. **Shared-state / store pattern** (M, design first) — a clean store module.
 9. **More warning-tier lints** (S each) — unused import / binding / unreachable.
 10. **number/string value-match exhaustiveness** (M).

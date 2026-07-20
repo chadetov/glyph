@@ -145,11 +145,18 @@ async fn getTask(base: string, id: number)
 
       <div class="detail">
         <p>
+          A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>)
+          comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code>
+          that reads the discriminator property and validates into the right variant &mdash; because
+          Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges
+          the wire object to the union for you.
+        </p>
+        <p>
           <strong>The honest edge:</strong> generation is wire-faithful, so it maps the common 80%
-          &mdash; objects, primitives, arrays, references, optional and nullable fields &mdash; and
-          narrows what it can't represent exactly (a string enum, an undiscriminated union) with a
-          printed note rather than a validator that would reject real data. Discriminated unions and
-          richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen
+          &mdash; objects, primitives, arrays, references, optional and nullable fields, and
+          discriminated unions &mdash; and narrows what it can't represent exactly (a string enum, an
+          <em>un</em>discriminated union) with a printed note rather than a validator that would
+          reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen
           zod</code> need Node plus <code>typescript</code>/<code>zod</code> &mdash; <code>gen
           dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your
           project first &mdash; and they tell you exactly what to install if it's missing.
@@ -164,7 +171,7 @@ async fn getTask(base: string, id: number)
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Discriminated unions and richer enum mapping, and broader OpenAPI coverage &mdash; each landing behind the same wire-faithful, note-when-narrowed rule.</p>
+          <p>Richer enum mapping and broader OpenAPI coverage &mdash; each landing behind the same wire-faithful, note-when-narrowed rule.</p>
         </div>
       </div>
 

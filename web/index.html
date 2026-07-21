@@ -964,6 +964,40 @@
 
     <section>
       <div class="wrap">
+        <h2 class="section-head">If you know TypeScript, you know most of this</h2>
+        <p class="friction-intro">
+          Glyph reads almost identically &mdash; you don't learn a new language, you learn a
+          handful of deltas. Each one trades a footgun for a guarantee. Here are the ones in the
+          sample above.
+        </p>
+        <div class="glossary">
+          <div class="gloss">
+            <code>match</code>
+            <span>an <em>exhaustive</em> <code>switch</code>: the compiler makes you handle every case. There is no <code>if</code>/<code>else</code> &mdash; <code>match</code> is the only conditional, so a case can't be silently forgotten.</span>
+          </div>
+          <div class="gloss">
+            <code>Result&lt;T, E&gt;</code>
+            <span>errors as return values, not thrown exceptions. You handle one with <code>match</code>, or propagate it with the <code>?</code> operator.</span>
+          </div>
+          <div class="gloss">
+            <code>fn f() -&gt; T</code>
+            <span>a function; the <code>-&gt;</code> is its return type. A <code>type X = {...}</code> is a record, and a <code>type X = A | B</code> is a tagged union.</span>
+          </div>
+          <div class="gloss">
+            <code>mut x = e</code>
+            <span>reassignment is explicit and greppable. A plain <code>let</code> binding never changes under you; you write <code>mut</code> to change one.</span>
+          </div>
+        </div>
+        <p class="gloss-note">
+          "Agents" here means AI coding assistants (Claude, Copilot, Cursor). Glyph helps them most,
+          but the guarantees are plain engineering wins whether or not you use one &mdash; and if you
+          already run strict TypeScript with zod and eslint, <a href="/answers/vs-tooled-ts/">here's what a language buys over that &rarr;</a>
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
         <h2 class="section-head">The tax you already pay</h2>
         <p class="friction-intro">
           If you build with AI agents on a TypeScript codebase, you know the

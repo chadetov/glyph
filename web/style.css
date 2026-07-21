@@ -337,3 +337,16 @@ a.card { display: block; transition: border-color 0.15s, transform 0.15s, box-sh
 a.card:hover { border-color: var(--indigo); transform: translateY(-2px); box-shadow: 0 10px 30px -12px rgba(99,102,241,0.5); }
 .card-more { display: inline-block; margin-top: 14px; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.04em; color: var(--indigo-text); }
 a.card:hover .card-more { color: var(--text); }
+
+/* ============ home: "if you know TypeScript" glossary ============ */
+.glossary { display: grid; gap: 12px; max-width: 720px; margin: 0 auto; }
+.gloss {
+  display: grid; grid-template-columns: 190px 1fr; gap: 18px; align-items: baseline;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px;
+}
+.gloss > code { font-family: var(--mono); font-size: 0.86rem; color: var(--cyan); white-space: nowrap; }
+.gloss > span { color: var(--muted); font-size: 0.95rem; line-height: 1.55; }
+.gloss > span code { font-family: var(--mono); font-size: 0.86em; color: var(--text); }
+.gloss-note { text-align: center; color: var(--muted); max-width: 62ch; margin: 26px auto 0; line-height: 1.6; }
+.gloss-note a { color: var(--indigo-text); }
+@media (max-width: 640px) { .gloss { grid-template-columns: 1fr; gap: 6px; } }

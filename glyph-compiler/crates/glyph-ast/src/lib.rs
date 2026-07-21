@@ -174,6 +174,14 @@ pub struct Annotation {
     pub span: Span,
 }
 
+/// Whether a declaration carries `@open` — the opt-out that lets a record type's
+/// runtime descriptor accept a value with keys beyond the declared fields.
+/// Without it, a record descriptor's `is`/`parse` rejects a value that has an
+/// undeclared key (mass-assignment / leaked-field protection at a boundary).
+pub fn is_open_record(annotations: &[Annotation]) -> bool {
+    annotations.iter().any(|a| a.name.as_ref() == "open")
+}
+
 /// D24: the field names named by a `@redact fields: [a, b]` annotation, if the
 /// declaration carries one. The single source of truth for parsing the
 /// `fields: [...]` list, shared by the typechecker (which validates the names

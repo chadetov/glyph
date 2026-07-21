@@ -671,7 +671,8 @@ impl<'a> Emitter<'a> {
                 if let TypeExpr::Record { fields, .. } = &t.body {
                     if t.generics.is_empty() {
                         let redact = glyph_ast::redact_fields(&t.annotations).unwrap_or_default();
-                        self.emit_record_descriptor(&t.name, fields, &redact);
+                        let open = glyph_ast::is_open_record(&t.annotations);
+                        self.emit_record_descriptor(&t.name, fields, &redact, open);
                     }
                 }
                 Ok(())
@@ -706,8 +707,27 @@ impl<'a> Emitter<'a> {
         name: &Ident,
         fields: &[RecordTypeField],
         redact: &[String],
+        open: bool,
     ) {
-        let checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
+        let mut checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
+        // Strict-by-default: reject a value carrying keys the type doesn't
+        // declare (mass-assignment / leaked-field protection). `@open` opts out.
+        // The key set is closed over the declared field names; an empty record
+        // must be an empty object.
+        if !open {
+            if fields.is_empty() {
+                checks.push("Object.keys(value as object).length === 0".to_string());
+            } else {
+                let allowed = fields
+                    .iter()
+                    .map(|f| format!("__k === \"{}\"", f.name))
+                    .collect::<Vec<_>>()
+                    .join(" || ");
+                checks.push(format!(
+                    "Object.keys(value as object).every((__k: string) => {allowed})"
+                ));
+            }
+        }
         self.line(&format!("export const {name} = {{"));
         self.indent += 1;
         self.line(&format!("is(value: unknown): value is {name} {{"));

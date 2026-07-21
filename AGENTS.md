@@ -296,9 +296,11 @@ fn handle(body: unknown) -> string {
 }
 ```
 
-Scope today: descriptors are generated for non-generic record types. Generic
-(`Paginated<T>`), union, and imported/`.d.ts` types don't get one, and a record
-check confirms the declared fields but does not yet reject extra keys.
+A record descriptor is strict by default: it confirms the declared fields *and*
+rejects a value carrying undeclared keys. Put `@open` above a `type` to allow
+extra keys (`@open` then the `type` line). Scope today: descriptors are generated
+for non-generic record types only; generic (`Paginated<T>`), union, and
+imported/`.d.ts` types don't get one.
 
 ### std/fs
 

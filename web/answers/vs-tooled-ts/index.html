@@ -177,10 +177,10 @@ return anything as any;</pre>
           trying to avoid:
         </p>
         <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
-          <li><strong>Richer validation.</strong> zod has refinements (<code>.email()</code>,
-            <code>.min(3)</code>, custom predicates) that Glyph's generated descriptor doesn't; and a
-            Glyph record check doesn't yet reject <em>extra</em> keys. For rich per-field rules today,
-            zod is ahead.</li>
+          <li><strong>Richer validation.</strong> Glyph descriptors are strict by default (they
+            reject undeclared keys), but zod still has refinements (<code>.email()</code>,
+            <code>.min(3)</code>, custom predicates) that a generated descriptor doesn't. For rich
+            per-field rules today, zod is ahead.</li>
           <li><strong>Deeper matching.</strong> ts-pattern's guards and deep structural patterns go
             beyond what Glyph's <code>match</code> expresses.</li>
           <li><strong>"Provable absence" stops at the <code>.ts</code> boundary.</strong> Glyph's

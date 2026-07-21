@@ -182,6 +182,33 @@ fn build_emits_typescript_for_a_clean_module() {
 }
 
 #[test]
+fn record_descriptor_rejects_extra_keys_unless_open() {
+    // C3b: a record's runtime descriptor is strict by default — its `is`/`parse`
+    // reject a value with keys the type doesn't declare. `@open` opts out.
+    let root = unique_tmp("strict");
+    let out = root.join("dist");
+    write_file(
+        &root.join("src"),
+        "main.glyph",
+        "module main\n\
+         type Point = { x: number, y: number }\n\
+         @open\n\
+         type Loose = { x: number }\n",
+    );
+    let report = build_project_inner(&root.join("src"), &out, false).expect("build ok");
+    assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+
+    // Point (strict) checks the key set; Loose (@open) does not.
+    let point = ts.split("export const Point").nth(1).unwrap_or("");
+    let point_is = point.split("parse(").next().unwrap_or("");
+    assert!(point_is.contains("Object.keys"), "strict record checks its keys: {point_is}");
+    let loose = ts.split("export const Loose").nth(1).unwrap_or("");
+    let loose_is = loose.split("parse(").next().unwrap_or("");
+    assert!(!loose_is.contains("Object.keys"), "@open record does not check keys: {loose_is}");
+}
+
+#[test]
 fn redact_masks_fields_in_the_descriptor_and_flags_unknown_names() {
     // D24: `@redact fields: [...]` emits a `redact(value)` on the descriptor that
     // masks those fields, and an unknown field name is E0219.

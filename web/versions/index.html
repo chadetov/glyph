@@ -36,6 +36,13 @@
           added, so you can see exactly what's in the version you're running &mdash; and what's
           waiting for you in the next one.
         </p>
+        <p class="lede">
+          <strong>Stability, pre-1.0:</strong> the language can still change between 0.1.x releases.
+          We hold two lines &mdash; your code stays runnable (it always compiles to plain TypeScript
+          you own, a permanent escape hatch), and when syntax changes we aim to make
+          <code>glyph fmt</code> migrate it for you. The full policy is in
+          <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a>.
+        </p>
       </header>
 
       <section>
@@ -149,24 +156,11 @@
               <li><span class="tag added">Added</span> The typechecker checks call arity (<code>E0213</code>); unreachable match arms are flagged; the <code>?</code> error-type rule extends across the stdlib boundary.</li>
               <li><span class="tag added">Added</span> Hyphenated and scoped npm imports (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>), <code>aria-*</code>/<code>data-*</code> JSX attributes, and significant JSX whitespace.</li>
               <li><span class="tag added">Added</span> Targeted diagnostics: <code>if</code>/<code>else</code> point at <code>match</code> (<code>E0006</code>), range patterns say so directly (<code>E0007</code>); <code>json.parse</code> deep-validates <code>Record</code> fields.</li>
-              <li><span class="tag site">Site</span> A guided <a href="/answers/">Answers</a> section, a <a href="/hardening/">Hardening</a> page, and a dedicated <a href="/benchmarks/">Benchmarks</a> page.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="release">
-          <div class="rel-head">
-            <span class="rel-ver">0.1.1</span>
-            <span class="rel-date">June 2026</span>
-          </div>
-          <div class="rel-body">
-            <h3>Backend, tooling, and docs</h3>
-            <ul class="changelist">
               <li><span class="tag added">Added</span> <code>std/http</code> gains a server: <code>serve</code>, <code>Handler</code>, <code>Request</code>, <code>Response</code>, <code>query</code>, and <code>path</code> &mdash; a thin, errors-as-values wrapper over <code>node:http</code>.</li>
               <li><span class="tag added">Added</span> <code>glyph init</code> scaffolds a runnable starter project, and <code>glyph llms</code> prints the agent bootstrap offline.</li>
               <li><span class="tag added">Added</span> A one-document agent reference (<code>AGENTS.md</code> / <a href="/llms.txt">llms.txt</a>), a standard-library reference, and an editor-setup guide.</li>
               <li><span class="tag added">Added</span> Quoted string keys in object literals, and clearer hints that suggest the Glyph spelling for common TypeScript type names.</li>
-              <li><span class="tag site">Site</span> The landing page and playground on glyphlang.io, with Go added to the density benchmark.</li>
+              <li><span class="tag site">Site</span> A guided <a href="/answers/">Answers</a> section, a <a href="/hardening/">Hardening</a> page, a dedicated <a href="/benchmarks/">Benchmarks</a> page, and the landing page + playground on glyphlang.io.</li>
             </ul>
           </div>
         </div>

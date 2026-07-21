@@ -68,13 +68,13 @@ Glyph ships as a single prebuilt binary per platform (macOS, Linux, Windows — 
 
 ## Built for agents
 
-Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — a single file that takes it from zero to correct, runnable Glyph, including the full diagnostic catalogue with fixes. Agents that write Glyph get compile-time feedback precise enough to self-correct.
+Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — a single file that takes it from zero to correct, runnable Glyph: the canonical program shape, the stdlib surface, the common gotchas, and the diagnostic codes. Agents that write Glyph get compile-time feedback precise enough to self-correct.
 
 ## Where to go next
 
 | | |
 |---|---|
-| The whole language in five minutes | [the tour](https://glyphlang.io) |
+| The whole language in five minutes | [the tour](https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md) |
 | Try it without installing | [playground](https://glyphlang.io/playground/) |
 | Straight-talking answers to engineer questions | [glyphlang.io/answers](https://glyphlang.io/answers/) |
 | The four pillars, in depth | [glyphlang.io/pillars/verifiability](https://glyphlang.io/pillars/verifiability/) |
@@ -83,6 +83,8 @@ Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.t
 ## Status
 
 Glyph is an **early preview** and moves fast. The compiler toolchain — `build`, `run`, `fmt`, `gen`, `regen`, `--explain` — works end to end, and every release is type-checked against `tsc --strict`. It is not yet recommended for production; it's ready for you to try, break, and tell us about. Every version's changes are at [glyphlang.io/versions](https://glyphlang.io/versions/).
+
+**Stability while pre-1.0:** the language can still change between 0.1.x releases. We hold two lines: your code stays runnable (it always compiles to plain TypeScript you own, so there's a permanent escape hatch), and when syntax does change we aim to make `glyph fmt` migrate it for you. Full policy: [docs/stability.md](https://github.com/chadetov/glyph/blob/main/docs/stability.md).
 
 ## License
 

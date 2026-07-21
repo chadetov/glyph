@@ -1072,6 +1072,40 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn start_here_tutorials_broken_program_is_exactly_e0200() {
+    // B4 honesty guard: the Start-Here tutorial shows deleting a match arm
+    // producing E0200, then fixing it. Keep both halves true so the tutorial
+    // can't silently become a lie.
+    let root = unique_tmp("starthere");
+    let broken = "module main\n\
+         type Status = Todo | Doing | Done\n\
+         fn label(s: Status) -> string {\n  \
+           return match s {\n    \
+             Todo => \"not started\",\n    \
+             Doing => \"in progress\",\n  \
+           }\n\
+         }\n\
+         fn main(argv: Array<string>) -> number { return 0 }\n";
+    write_file(&root.join("broken"), "main.glyph", broken);
+    let report = build_project_inner(&root.join("broken"), &root.join("bout"), false).expect("build");
+    assert!(report.has_errors(), "the broken program must not compile");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "deleting the arm must give exactly E0200: {:?}",
+        report.diagnostics
+    );
+
+    // The fixed program (all three arms) compiles clean.
+    let fixed = broken.replace(
+        "    Doing => \"in progress\",\n  ",
+        "    Doing => \"in progress\",\n    Done => \"finished\",\n  ",
+    );
+    write_file(&root.join("fixed"), "main.glyph", &fixed);
+    let ok = build_project_inner(&root.join("fixed"), &root.join("fout"), false).expect("build");
+    assert!(!ok.has_errors(), "the fixed program must compile: {:?}", ok.diagnostics);
+}
+
+#[test]
 fn concurrent_runs_of_one_program_do_not_race_on_the_temp_dir() {
     // C2: many `glyph run`s of the same program share a fingerprint-keyed cache
     // dir. Building into a private staging dir + moving it into place removes the

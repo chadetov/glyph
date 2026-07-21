@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Start Here — your first Glyph program in 10 minutes — Glyph</title>
+    <meta name="description" content="Install Glyph, scaffold a project, run it, break it on purpose, read the real compiler error, and fix it. A linear 10-minute first run — no prior Glyph knowledge assumed." />
+    <link rel="canonical" href="https://glyphlang.io/start/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">Start here &middot; ~10 minutes</p>
+      <h1 class="q-title">Your first Glyph program</h1>
+
+      <p class="short-answer">
+        Install it, scaffold a project, run it, then <strong>break it on purpose</strong> and read
+        the error the compiler gives you. No prior Glyph knowledge assumed &mdash; if you've written
+        a little TypeScript, you'll follow every line.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">1 &middot; Install</p>
+        <p>
+          Glyph ships as a single prebuilt binary. You also need Node with <code>tsx</code> and
+          <code>typescript</code>, which Glyph uses to run and type-check.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>npm install -g @glyphlang/glyph
+npm install -g tsx typescript   <span class="cm"># run &amp; type-check toolchain</span>
+glyph doctor                    <span class="cm"># confirms your toolchain is ready</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">2 &middot; Scaffold a project</p>
+        <p><code>glyph init</code> creates a runnable starter &mdash; a <code>src/main.glyph</code>, a <code>package.json</code>, and a <code>.gitignore</code>.</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph init hello
+cd hello</pre>
+      </div>
+      <div class="detail">
+        <p>Open <code>src/main.glyph</code> &mdash; it's a hello-world:</p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print("hello from glyph")
+  return 0
+}</pre>
+      </div>
+      <div class="detail">
+        <p>
+          Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code>
+          returns a <code>number</code> &mdash; the process exit code.
+        </p>
+
+        <p class="block-label">3 &middot; Run it</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph run src/main.glyph
+<span class="dim">hello from glyph</span></pre>
+      </div>
+      <div class="detail">
+        <p>
+          <code>glyph run</code> type-checked it, compiled it to TypeScript, and executed it. That's
+          the whole loop.
+        </p>
+
+        <p class="block-label">4 &middot; Add something real</p>
+        <p>
+          Now replace the body with a tiny bit of logic &mdash; a task status and a function that
+          labels it. This introduces the two things you'll use constantly: a <em>tagged union</em>
+          (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph</span>
+<pre>module main
+
+type Status = Todo | Doing | Done
+
+fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+    Done =&gt; "finished",
+  }
+}
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  print(label(Done))
+  return 0
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph run src/main.glyph
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">5 &middot; Break it on purpose</p>
+        <p>
+          Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm
+          from the <code>match</code> &mdash; the kind of thing an agent does when it adds a case
+          somewhere and forgets to handle it &mdash; and run again.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">src/main.glyph (with the Done arm deleted)</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+    Todo =&gt; "not started",
+    Doing =&gt; "in progress",
+  }
+}</pre>
+      </div>
+      <div class="code">
+        <span class="cap">$ glyph run src/main.glyph</span>
+<pre><span class="del">[E0200] Error: typecheck: non-exhaustive match on `Status`: missing variants `Done`</span>
+   ╭─[main:6:10]
+   │
+ 6 │ ╭─▶   return match s {
+   ┆ ┆
+ 9 │ ├─▶   }
+   │ ╰───────── missing variants `Done`
+   │
+   │  Help: Add an arm for each missing variant, or an `else` arm to catch the rest.
+───╯</pre>
+      </div>
+      <div class="detail">
+        <p>
+          It didn't run. In TypeScript the equivalent <code>switch</code> would compile clean and
+          return <code>undefined</code> at runtime; here the missing case is a compile error with a
+          stable code (<code>E0200</code>), the exact spot, and a one-line fix. Run
+          <code>glyph --explain E0200</code> any time you want the long version.
+        </p>
+
+        <p class="block-label">6 &middot; Fix it</p>
+        <p>Put the arm back (or add an <code>else</code>), and it runs again.</p>
+      </div>
+      <div class="code">
+        <span class="cap">terminal</span>
+<pre>glyph run src/main.glyph
+<span class="dim">finished</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          That's the core loop: write, run, and when something's wrong the compiler tells you exactly
+          what and how &mdash; before your code ships, not after. From here:
+        </p>
+        <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 8px; padding-left: 22px;">
+          <li>The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a> &mdash; the whole language, quickly.</li>
+          <li><a href="/answers/">The answers</a> &mdash; straight replies to the questions engineers actually ask (React, typed APIs, why not tooled TS).</li>
+          <li><a href="/playground/">The playground</a> &mdash; try Glyph in your browser, no install.</li>
+        </ul>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/">
+          <span class="dir">&larr; Home</span>
+          <span class="t">TypeScript your agents can't quietly break</span>
+        </a>
+        <a href="/answers/verifiability/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">What stops an agent from silently breaking my code?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

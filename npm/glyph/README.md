@@ -74,6 +74,7 @@ Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.t
 
 | | |
 |---|---|
+| Your first program in 10 minutes | [Start Here](https://glyphlang.io/start/) |
 | The whole language in five minutes | [the tour](https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md) |
 | Try it without installing | [playground](https://glyphlang.io/playground/) |
 | Straight-talking answers to engineer questions | [glyphlang.io/answers](https://glyphlang.io/answers/) |

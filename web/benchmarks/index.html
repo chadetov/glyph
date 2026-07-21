@@ -30,18 +30,29 @@
     <div class="wrap">
       <header class="page-hero">
         <p class="eyebrow">Benchmarks</p>
-        <h1>Measured, <span class="accent">not asserted</span>.</h1>
+        <h1>Two kinds of <span class="accent">evidence</span>.</h1>
         <p class="lede">
-          The case for Glyph is structural and reproducible. Here it is as numbers &mdash; a small,
-          stated-plainly sample, with the full methodology and caveats one click away.
+          There are two questions worth measuring, and we keep them separate. <strong>Structural:</strong>
+          what does Glyph reject by construction that TypeScript accepts? That's provable today, shown
+          below. <strong>Reliability:</strong> do agents actually ship fewer defects in Glyph than in a
+          <em>well-configured</em> strict-TypeScript setup? That's the number that decides adoption, and
+          we don't have it yet &mdash; it's a study we're building, and we won't dress up a proxy as if
+          it were that answer. (The real comparison isn't Glyph vs naive TS; it's Glyph vs
+          <a href="/answers/vs-tooled-ts/">strict TS + zod + eslint + ts-pattern</a>.)
         </p>
       </header>
 
       <section>
+        <h2 class="section-head" style="text-align:left;">Structural &mdash; provable by construction</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
+          Not a statistic &mdash; paired demonstrations. Each is a mistake Glyph rejects and
+          <code>tsc --strict</code> accepts, reproducible from the
+          <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> directory.
+        </p>
         <div class="stat-row">
           <div class="card stat">
             <span class="label">Verifiability &mdash; the bugs that cost you</span>
-            <div class="big"><span class="accent">2 of 2</span> caught at compile time</div>
+            <div class="big"><span class="accent">Both</span> caught at compile time</div>
             <p>
               Two mistakes agents make constantly &mdash; a missing <code>match</code> variant and
               an unsafe cast &mdash; are rejected by Glyph and accepted by <code>tsc --strict</code>.
@@ -89,14 +100,34 @@
           </p>
         </div>
 
-        <p class="bench-note" style="text-align: center; max-width: 64ch; margin: 36px auto 0">
-          What we do not claim: that agents write code measurably faster in Glyph. That is the bet
-          &mdash; these structural results are the reasons to expect it, and the agent success-rate
-          study is honest future work.
+      </section>
+
+      <section>
+        <h2 class="section-head" style="text-align:left;">Reliability &mdash; the study we're building</h2>
+        <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
+          The structural results above are <em>reasons to expect</em> Glyph helps; they are not proof
+          that it does. The proof is a differential study: the same agent, the same realistic tasks,
+          written once in Glyph and once in a fully-tooled strict-TypeScript setup
+          (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), scored on
+          <strong>escaped semantic defects</strong> and one-shot green-build rate. That's the number
+          five different reviewers told us would move them &mdash; so we're building it, and until it
+          exists these bars are a placeholder, not a claim.
         </p>
+        <div class="chart">
+          <span class="label">Escaped defects per task &middot; lower is better &middot; <span style="color:var(--amber)">not measured yet</span></span>
+          <h3>Glyph vs fully-tooled strict TypeScript</h3>
+          <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">pending</div></div></div>
+          <div class="bar-row"><span class="bar-lang">tooled TS</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">pending</div></div></div>
+          <p class="bench-note">
+            The apparatus &mdash; a task corpus, a run/replay harness, and the pinned strongest-honest
+            TS baseline &mdash; is in the <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a>
+            directory; the first real pilot (with its <em>n</em>, the model, and the cost stated on the
+            label) publishes here the moment it runs. Whatever it shows.
+          </p>
+        </div>
 
         <div style="text-align: center; margin-top: 40px;">
-          <a class="btn" href="/answers/diff-stability/">See diff stability in action &rarr;</a>
+          <a class="btn" href="/answers/vs-tooled-ts/">Why the comparison is against tooled TS &rarr;</a>
         </div>
       </section>
 

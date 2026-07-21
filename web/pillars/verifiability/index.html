@@ -134,6 +134,14 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
           validator. A boundary &mdash; a request body, a config file, a third-party response &mdash;
           becomes typed only by passing through a check that can actually reject bad data.
         </p>
+        <p>
+          <strong>The honest edge:</strong> descriptors are generated for non-generic record types
+          today. A generic envelope (<code>Paginated&lt;T&gt;</code>), a union, or a type imported
+          from a <code>.d.ts</code> doesn't get one yet, and a record's check confirms the declared
+          fields are present and well-typed but does not yet reject <em>extra</em> keys. Those are on
+          the roadmap; where a check can only prove part of a shape, the compiler is being taught to
+          say so rather than imply a guarantee it can't make.
+        </p>
 
         <p class="block-label"><span class="ex-label">03</span> Every case, or it doesn't compile</p>
         <p>

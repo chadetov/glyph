@@ -374,6 +374,12 @@ impl Printer {
                 self.push(", ");
             }
             self.push(&g.name);
+            // A bound (`<T: Bound>`, D28's `object_schema<Shape: Record<...>>`)
+            // must round-trip; dropping it silently changes the emitted TS.
+            for (j, bound) in g.bounds.iter().enumerate() {
+                self.push(if j == 0 { ": " } else { " + " });
+                self.type_expr(bound);
+            }
         }
         self.push(">");
     }

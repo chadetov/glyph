@@ -60,6 +60,16 @@ cargo test --workspace
 
 Requires Rust 1.95 or later (pinned via `rust-toolchain.toml`).
 
+## Verifying a release
+
+Releases are built in GitHub Actions and published with provenance:
+
+```sh
+npm audit signatures                                                   # npm packages (OIDC provenance)
+gh attestation verify glyph-<version>-<platform>.tar.gz --repo chadetov/glyph   # SLSA attestation
+sha256sum -c SHA256SUMS                                                 # per-archive checksums
+```
+
 ## License
 
 Dual-licensed under either of

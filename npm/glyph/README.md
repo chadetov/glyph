@@ -86,6 +86,22 @@ Glyph is an **early preview** and moves fast. The compiler toolchain — `build`
 
 **Stability while pre-1.0:** the language can still change between 0.1.x releases. We hold two lines: your code stays runnable (it always compiles to plain TypeScript you own, so there's a permanent escape hatch), and when syntax does change we aim to make `glyph fmt` migrate it for you. Full policy: [docs/stability.md](https://github.com/chadetov/glyph/blob/main/docs/stability.md).
 
+## Verifying your download
+
+Releases are built in GitHub Actions and published with provenance, so you can
+confirm an artifact came from this repo's workflow rather than a tampered copy:
+
+```sh
+# npm packages: published with npm provenance (OIDC-signed)
+npm audit signatures
+
+# GitHub Release archives: SLSA build-provenance attestation
+gh attestation verify glyph-<version>-<platform>.tar.gz --repo chadetov/glyph
+
+# ...and a SHA-256 for each archive
+sha256sum -c SHA256SUMS
+```
+
 ## License
 
 Dual-licensed under [Apache-2.0](https://github.com/chadetov/glyph/blob/main/LICENSE-APACHE) or [MIT](https://github.com/chadetov/glyph/blob/main/LICENSE-MIT), at your option.

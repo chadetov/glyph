@@ -66,6 +66,12 @@ jobs:
     name: Publish to npm
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      # OIDC token for npm build provenance (`npm publish --provenance`), which
+      # links each published tarball to this workflow run + commit. Verifiable
+      # with `npm audit signatures`.
+      id-token: write
+      contents: read
     # `secrets` is not available in `if` expressions, so map the token to `env`
     # at the job level and gate the publish steps on `env.NPM_TOKEN`.
     env:
@@ -106,14 +112,14 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
-            npm publish "./npm/platform/$key" --access public
+            npm publish "./npm/platform/$key" --access public --provenance
           done
 
       - name: Publish the glyph launcher
         if: ${{ env.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish ./npm/glyph --access public
+        run: npm publish ./npm/glyph --access public --provenance
 
   release:
     name: Create GitHub Release
@@ -124,6 +130,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # OIDC + attestation write for SLSA build provenance over the archives,
+      # verifiable with `gh attestation verify`.
+      id-token: write
+      attestations: write
     steps:
       - name: Download the staged platform binaries
         uses: actions/download-artifact@v8
@@ -142,6 +152,18 @@ jobs:
           ( cd "staged/platform-win32-x64/bin" && zip -q "$GITHUB_WORKSPACE/dist/glyph-${tag}-win32-x64.zip" glyph.exe )
           ls -la dist
 
+      # Published SHA-256 checksums for every archive, verifiable with
+      # `sha256sum -c SHA256SUMS`.
+      - name: Generate checksums
+        run: ( cd dist && sha256sum glyph-* > SHA256SUMS && cat SHA256SUMS )
+
+      # SLSA build provenance attestation over the archives (not the checksum
+      # file). Links each archive to this workflow run + commit.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "dist/glyph-*"
+
       - name: Create the release with the binaries attached
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -150,4 +172,4 @@ jobs:
           gh release create "$tag" dist/* \
             --repo "${{ github.repository }}" \
             --title "$tag" \
-            --notes "Prebuilt \`glyph\` binaries for macOS, Linux, and Windows. Download the archive for your platform, extract it, and put \`glyph\` on your PATH."
+            --notes "Prebuilt \`glyph\` binaries for macOS, Linux, and Windows. Download the archive for your platform, extract it, and put \`glyph\` on your PATH. Each archive carries a SLSA build-provenance attestation (verify with \`gh attestation verify <archive> --repo ${{ github.repository }}\`) and a SHA-256 in \`SHA256SUMS\` (\`sha256sum -c SHA256SUMS\`); the npm packages are published with provenance (\`npm audit signatures\`)."

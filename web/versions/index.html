@@ -48,8 +48,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.8</span>
+            <span class="rel-ver">0.1.9</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The trust release</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> A signed supply chain: npm packages published with provenance, GitHub Release archives carry SLSA build attestations, and every archive has a published SHA-256 &mdash; all verifiable (<code>npm audit signatures</code>, <code>gh attestation verify</code>, <code>sha256sum -c</code>).</li>
+              <li><span class="tag added">Added</span> A <a href="/start/">10-minute Start Here</a> tutorial, a "why not just tooled TypeScript?" answer, a debugging/ops answer, and an "is it worth it without AI?" answer &mdash; the answers section is now a guided 14-page set with a real index.</li>
+              <li><span class="tag added">Added</span> Record descriptors are strict by default now &mdash; they reject undeclared keys (an <code>@open</code> type opts out).</li>
+              <li><span class="tag added">Added</span> <code>glyph doctor</code> checks your node/tsx/tsc toolchain; <code>glyph init</code> pins <code>typescript</code>/<code>tsx</code>; <code>llms.txt</code> now inlines the full diagnostic catalogue and teaches <code>T.parse</code>.</li>
+              <li><span class="tag fixed">Fixed</span> Running a library with no <code>main</code> gives a friendly <code>E0310</code> instead of a raw Node stack trace, and concurrent <code>glyph run</code>s no longer race on the temp directory.</li>
+              <li><span class="tag added">Added</span> A <code>CONTRIBUTING.md</code> with issue and PR templates, a stated pre-1.0 stability policy, and a site link-check in CI.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.8</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

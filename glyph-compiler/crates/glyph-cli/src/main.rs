@@ -86,6 +86,14 @@ enum Command {
     /// Works offline: zero to correct, runnable Glyph in one document.
     #[command(visible_aliases = ["docs", "cheatsheet"])]
     Llms,
+    /// Check that the JavaScript toolchain (`node`/`tsx`/`tsc`) `glyph run` and
+    /// `build --check` need is present and new enough. Exits non-zero if not.
+    #[command(alias = "verify")]
+    Doctor {
+        /// Emit the report as a JSON object.
+        #[arg(long)]
+        json: bool,
+    },
     /// Print a file's canonical agent view (Q32): the `glyph fmt` layout with
     /// stable `Lddd` line numbers and a per-declaration content fingerprint.
     Canonical {
@@ -314,7 +322,8 @@ fn main() {
                 Ok(glyph_cli::run::RunOutcome::TsxNotFound) => {
                     eprintln!(
                         "glyph run: `tsx` not found on PATH. Install it with \
-                         `npm install -g tsx` to run Glyph programs."
+                         `npm install -g tsx` to run Glyph programs. \
+                         (`glyph doctor` checks your whole toolchain.)"
                     );
                     std::process::exit(127);
                 }
@@ -379,6 +388,9 @@ fn main() {
             // network and no repo checkout.
             print!("{}", glyph_cli::LLMS_BOOTSTRAP);
             std::process::exit(0);
+        }
+        Some(Command::Doctor { json }) => {
+            std::process::exit(glyph_cli::doctor::run(json));
         }
         Some(Command::Init { dir }) => {
             let dir = dir.unwrap_or_else(|| std::path::PathBuf::from("."));

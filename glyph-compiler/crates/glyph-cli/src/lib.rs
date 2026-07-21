@@ -15,6 +15,7 @@ pub mod explain;
 pub mod fmt;
 pub mod gen;
 pub mod publish;
+pub mod doctor;
 pub mod regen;
 pub mod render;
 pub mod run;

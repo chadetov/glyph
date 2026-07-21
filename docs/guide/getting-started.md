@@ -78,6 +78,7 @@ above) — everyone on the team then builds against the same TypeScript.
 | `glyph fmt [path]` | Format files in place (the one canonical layout) |
 | `glyph canonical <file>` | Print the agent canonical view (stable line numbers + per-declaration fingerprints) |
 | `glyph publish [dir]` | Audit-gate, build, and type-check a package for `npm publish` |
+| `glyph doctor` | Check the JavaScript toolchain (node/tsx/tsc present + new enough) |
 | `glyph lsp` | Run the language server (an editor extension spawns this) |
 | `glyph llms` | Print the agent bootstrap (the `AGENTS.md` reference) offline; alias `glyph docs` |
 | `glyph --explain <code>` | Long-form explanation and fix for an error code |

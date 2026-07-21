@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Verifiability — what the types say is true at runtime — Glyph</title>
-    <meta name="description" content="Glyph's first pillar: no any, no casts, no erasure. Types keep runtime descriptors, match is exhaustive, errors are values, PII is type-level. The bugs tsc --strict waves through don't compile here." />
+    <title>Verifiability — no any, exhaustive match, strict validators over tsc — Glyph</title>
+    <meta name="description" content="Glyph's first pillar: no any and no as you can write, provably-exhaustive match, and strict runtime validators for the types you declare — an enforced strict layer over tsc, honest about where the guarantee stops." />
     <link rel="canonical" href="https://glyphlang.io/pillars/verifiability/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -40,9 +40,11 @@
       <h1 class="q-title">Verifiability</h1>
 
       <p class="short-answer">
-        What the types say is <strong>true at runtime</strong> &mdash; not "the compiler is happy,"
-        but actually true, for the values your program really sees. The whole category of bug an
-        agent ships because <code>tsc --strict</code> waved it through does not compile in Glyph.
+        Glyph closes the holes an agent falls through: there's <strong>no <code>any</code> and no
+        <code>as</code> you can write</strong>, <code>match</code> is <strong>provably
+        exhaustive</strong>, and the types you declare get <strong>strict runtime validators</strong>
+        &mdash; all enforced as a strict layer on top of <code>tsc</code>. It doesn't verify
+        everything itself, and it's honest below about exactly where the guarantee stops.
       </p>
 
       <div class="detail">
@@ -102,11 +104,11 @@
 
         <p class="block-label"><span class="ex-label">02</span> Types are real at runtime</p>
         <p>
-          How does <code>User.parse</code> exist? Because every record type generates a
+          How does <code>User.parse</code> exist? Because every non-generic record type generates a
           <strong>runtime descriptor</strong> alongside it &mdash; an <code>is</code> guard, a
           <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a
-          composable <code>schema</code>. Nothing is erased. An <code>is User</code> check works at
-          runtime because the shape is actually inspected, not assumed.
+          composable <code>schema</code>. The record's shape is actually inspected at runtime, not
+          assumed &mdash; so an <code>is User</code> check is a real check, not an erased no-op.
         </p>
       </div>
 
@@ -233,9 +235,28 @@ type Patient = {
 
       <div class="detail">
         <p class="pull-quote">
-          Five different failure modes &mdash; unchecked input, a runtime cast, a missed case, a
-          dropped error, a leaked secret &mdash; and in every one the fix is the same shape:
+          Five different failure modes &mdash; unchecked input, a missed case, a dropped error, a
+          leaked secret, an unvalidated key &mdash; and in every one the fix is the same shape:
           <strong>the compiler refuses to pretend.</strong>
+        </p>
+
+        <p class="block-label">How it's enforced &mdash; and where the guarantee stops</p>
+        <p>
+          Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect
+          over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself
+          &mdash; exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code>
+          in your source, strict-key validation. The rest of type compatibility it enforces by
+          emitting TypeScript and running <code>tsc --strict</code>, which fails the build. The wedge
+          is that these checks are the <em>language</em>, not opt-in lint the agent can disable &mdash;
+          not that Glyph re-implements a type checker.
+        </p>
+        <p>
+          And two edges worth naming plainly: inside a <em>generic</em> function the emitter inserts a
+          checked-by-Glyph-not-<code>tsc</code> return cast, and a generic or imported field is
+          runtime-checked only for presence, so <code>T.parse</code> is fully sound for concrete
+          record types and weaker for generic ones. Closing that &mdash; real descriptors for generic
+          and imported types &mdash; is the top item on the roadmap, and until it lands the guarantee
+          is exactly as strong as this says, not stronger.
         </p>
 
         <p class="block-label">The benchmark &mdash; coming</p>

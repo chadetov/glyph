@@ -230,6 +230,41 @@ a clean npx cache.
     atom to a variant and continues as a union. Parser tests for both shapes;
     the emitted match lowers and passes tsc --strict.
 
+## 0.1.10 — Next · Make the verifiability guarantee match the pitch
+
+**Status: proposed, from a deep code-level review (the "Linus" pass).** The
+review confirmed the compiler is real and several decisions tasteful, but caught
+the marketing overclaiming relative to what the code guarantees — and the code's
+own doc-comments were more honest than the site. The honesty fixes shipped with
+0.1.9's tail (home card + verifiability pillar reworded from "no casts / no
+erasure / true at runtime" to what's actually true: no `any`/`as` in source,
+exhaustive `match`, strict validators for declared types, an enforced strict
+dialect over `tsc`; the pillar now owns the `tsc` dependency and names the
+generic edges). 0.1.10 closes the engineering behind them:
+
+- **Generic / imported-type descriptors** (L) — the top item. Today `T.parse`
+  runtime-checks a generic or imported field only for presence (`!== undefined`,
+  per the emitter's own comment at `glyph-emit/src/lib.rs:700`), so it can return
+  `Ok` for a value that isn't fully a `T`. Give generic records and `.d.ts`-imported
+  types real descriptors so `T.parse` can't lie. Unblocks removing the honest-edge
+  caveats.
+- **Prove or remove the generic-return `as` cast** (M) — the emitter inserts
+  `return value as RetType` inside any generic-returning function
+  (`emit/src/lib.rs:498`, `fn_return_cast`), a compiler-inserted cast in the one
+  place source casts are banned. Verify the return body against the declared type
+  strongly enough that the cast is provably safe (or narrow where it's emitted),
+  so the "no casts" story holds in the output too.
+- **`infer_shape` for schema combinators** (L, Q40/substep-5b) — the flagship
+  `object_schema<Out>` (`examples/01_validator.glyph:64`) doesn't verify `Out`
+  matches the shape's fields. Ship the mapped-type inference the example already
+  names as its v1.1 plan, so a hand-built schema's output type is derived, not
+  trusted.
+- **Strengthen `definitely_incompatible`** (M) — the typechecker punts
+  record-vs-record and function assignability to `tsc` (`assign.rs:1845`). That's
+  a fine trusted-computing-base, and now stated honestly on the site; independently
+  catching more of it (with `tsc` as backstop) tightens the "strict dialect" into
+  more of a real verifier over time.
+
 ## Rolling · Ergonomics & polish
 
 The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,

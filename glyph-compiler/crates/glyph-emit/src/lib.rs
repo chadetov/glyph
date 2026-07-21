@@ -726,10 +726,11 @@ impl<'a> Emitter<'a> {
     /// type literally named `value`).
     ///
     /// **Soundness limitation**: the remaining shallow cases are the
-    /// `field_value_check` fallbacks — a bare generic parameter, an imported
-    /// type, or a function-typed field are only checked for presence (`!==
-    /// undefined`), so their `value is X` narrowing is stronger than the runtime
-    /// proof. Closing those needs generic/imported descriptors (later work).
+    /// `field_value_check` fallbacks — a bare generic parameter or an imported
+    /// (`.d.ts`) type are only checked for presence (`!== undefined`), so their
+    /// `value is X` narrowing is stronger than the runtime proof. Closing those
+    /// needs generic/imported descriptors (later work); an imported type gets a
+    /// real descriptor once materialized with `glyph gen dts`.
     fn emit_record_descriptor(
         &mut self,
         name: &Ident,
@@ -2261,8 +2262,9 @@ impl<'a> Emitter<'a> {
     /// - `Array<E>` by `Array.isArray` plus an element check on every item;
     /// - `Option<E>` by its `{ tag: "None" } | { tag: "Some", value: E }` shape,
     ///   validating the payload of a `Some`;
-    /// - anything else (an imported type, a generic parameter, a function field)
-    ///   conservatively by "not undefined", the previous shallow behavior.
+    /// - a function-typed field by `typeof === "function"`;
+    /// - anything else (an imported type, a bare generic parameter) conservatively
+    ///   by "not undefined", the remaining shallow cases.
     fn field_value_check(&self, ty: &TypeExpr, access: &str) -> String {
         if let Some(jt) = js_typeof(ty) {
             return format!("typeof {access} === \"{jt}\"");
@@ -2306,6 +2308,12 @@ impl<'a> Emitter<'a> {
                     _ => format!("{access} !== undefined"),
                 }
             }
+            // A function-typed field (`run: fn(x: number) -> number`) is
+            // validated by `typeof === "function"`. Arity and parameter types
+            // are unobservable at runtime, but function-ness is the sound floor
+            // and strictly better than the old presence-only check (a `run: 5`
+            // would have passed).
+            TypeExpr::Fn { .. } => format!("typeof {access} === \"function\""),
             // An inline record type (`{ a: number, b: T }`) as a field's type:
             // validate it is a non-null object and recurse into each field, so
             // the descriptor's recursion is not silently shallow here.
@@ -4038,6 +4046,21 @@ mod tests {
         let ts = emit("module x\ntype Box<T> = { value: T }\n");
         assert!(ts.contains("export type Box<T> = { value: T };"), "{ts}");
         assert!(!ts.contains("export const Box"), "{ts}");
+    }
+
+    #[test]
+    fn function_typed_field_is_checked_by_typeof_function() {
+        // A function-typed field is validated by `typeof === "function"`, not
+        // the old presence-only `!== undefined` (which let `run: 5` pass).
+        let ts = emit("module x\ntype Handler = { run: fn(x: number) -> number }\n");
+        assert!(
+            ts.contains("typeof (value as Record<string, unknown>).run === \"function\""),
+            "{ts}"
+        );
+        assert!(
+            !ts.contains(".run !== undefined"),
+            "function field must not be presence-only: {ts}"
+        );
     }
 
     #[test]

@@ -1,0 +1,11 @@
+module neg
+
+// A concrete scalar is provably not a function; the typechecker catches this
+// itself (E0211) rather than deferring the mismatch to tsc.
+fn apply(f: fn(n: number) -> number) -> number {
+  return f(1)
+}
+
+fn g() -> number {
+  return apply(5)
+}

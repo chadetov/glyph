@@ -1840,8 +1840,16 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 ///   id collision and matches what the diagnostic shows;
 /// - two generic applications are incompatible if their arity, base, or any
 ///   argument is incompatible;
-/// - every cross-shape pair (a primitive where a record is expected, a newtype
-///   alias, a function type, …) stays permissive — judging those is future work.
+/// - a concrete scalar (`string`/`number`/`bool`) is incompatible with a record
+///   or function type in either direction (a number is never an object or a
+///   function); `void` is excluded, its assignability being subtler;
+/// - two function types are incompatible when their return types are (returns
+///   are covariant); parameter variance stays permissive;
+/// - two structural records are incompatible when a shared field's types are, or
+///   when `found` lacks a required field of `expected`; extra fields in `found`
+///   are fine (width subtyping);
+/// - a `Named` type against a differently-shaped type stays permissive — a
+///   newtype alias may resolve to that shape — as does every other pair.
 fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if matches!(expected, Ty::UnknownTop) {
         return false;
@@ -1862,8 +1870,37 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
                     .zip(ea.iter())
                     .any(|(f, e)| definitely_incompatible(f, e))
         }
+        // A concrete scalar is never a record or a function (or vice versa).
+        (Ty::Prim(p), Ty::Record { .. } | Ty::Fn { .. })
+        | (Ty::Record { .. } | Ty::Fn { .. }, Ty::Prim(p)) => is_concrete_scalar(*p),
+        // Function return types are covariant: found is not assignable when its
+        // return can't stand in for expected's, regardless of the parameters.
+        // `void` on either side is skipped: a value-returning function is
+        // assignable where a `void`-returning one is expected (callback
+        // contravariance), and an un-annotated lambda's return currently infers
+        // to the `void` stub, which must not be trusted as a real return type.
+        (Ty::Fn { return_ty: fr, .. }, Ty::Fn { return_ty: er, .. }) => {
+            !matches!(**fr, Ty::Prim(Primitive::Void))
+                && !matches!(**er, Ty::Prim(Primitive::Void))
+                && definitely_incompatible(fr, er)
+        }
+        // Structural records: a shared field with incompatible types, or a
+        // required field of `expected` that `found` lacks.
+        (Ty::Record { fields: ff }, Ty::Record { fields: ef }) => ef.iter().any(|e| {
+            match ff.iter().find(|f| f.name == e.name) {
+                Some(f) => definitely_incompatible(&f.ty, &e.ty),
+                None => !e.optional,
+            }
+        }),
         _ => false,
     }
+}
+
+/// True for a concrete scalar primitive (`string`/`number`/`bool`) — the ones
+/// that are never a record or function. `void` is deliberately excluded; its
+/// assignability in return and callback positions is subtler.
+fn is_concrete_scalar(p: Primitive) -> bool {
+    matches!(p, Primitive::String | Primitive::Number | Primitive::Bool)
 }
 
 /// True when `ty` is resolved enough to compare for equality or to judge
@@ -4044,5 +4081,50 @@ fn label(s: Status) -> string {
 }
 "#;
         assert!(ty_errors_of(src).is_empty(), "{:?}", ty_errors_of(src));
+    }
+
+    #[test]
+    fn definitely_incompatible_strengthened_cases() {
+        let num = || Ty::Prim(Primitive::Number);
+        let string = || Ty::Prim(Primitive::String);
+        let void = || Ty::Prim(Primitive::Void);
+        let rec = |ty: Ty| Ty::Record {
+            fields: vec![RecordField {
+                name: "a".into(),
+                ty,
+                optional: false,
+            }],
+        };
+        let func = |ret: Ty| Ty::Fn {
+            params: vec![],
+            return_ty: Arc::new(ret),
+            is_async: false,
+        };
+
+        // A concrete scalar is never a record or a function, in either direction.
+        assert!(definitely_incompatible(&num(), &rec(num())));
+        assert!(definitely_incompatible(&rec(num()), &num()));
+        assert!(definitely_incompatible(&num(), &func(num())));
+        assert!(definitely_incompatible(&func(num()), &num()));
+        // `void` is excluded (subtler assignability), so it is not flagged.
+        assert!(!definitely_incompatible(&void(), &rec(num())));
+
+        // Function return covariance: a `string`-returning fn is not assignable
+        // where a `number`-returning one is expected.
+        assert!(definitely_incompatible(&func(string()), &func(num())));
+        // A `void` return on either side is skipped (callback contravariance and
+        // the un-annotated-lambda `void` stub must not be trusted).
+        assert!(!definitely_incompatible(&func(void()), &func(num())));
+        assert!(!definitely_incompatible(&func(num()), &func(void())));
+
+        // Structural records: a field-type mismatch, or a required field of the
+        // expected type the found type lacks.
+        assert!(definitely_incompatible(&rec(string()), &rec(num())));
+        let empty = Ty::Record { fields: vec![] };
+        assert!(definitely_incompatible(&empty, &rec(num())));
+        // Extra fields in `found` are fine (width subtyping).
+        assert!(!definitely_incompatible(&rec(num()), &empty));
+        // Identical records are compatible.
+        assert!(!definitely_incompatible(&rec(num()), &rec(num())));
     }
 }

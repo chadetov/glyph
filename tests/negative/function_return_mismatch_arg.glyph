@@ -1,0 +1,15 @@
+module neg
+
+// A function returning `string` is not assignable where one returning `number`
+// is expected (return covariance); caught at the Glyph level, not just by tsc.
+fn makes_string(n: number) -> string {
+  return "x"
+}
+
+fn apply(f: fn(n: number) -> number) -> number {
+  return f(1)
+}
+
+fn g() -> number {
+  return apply(makes_string)
+}

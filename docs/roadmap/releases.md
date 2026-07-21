@@ -277,11 +277,18 @@ generic edges). 0.1.10 closes the engineering behind them:
   presence-checked. Materializing it with `glyph gen dts` gives it one; a
   first-class path (validate against the `.d.ts` structure directly) is future
   work. This is the one remaining `T.parse` honest edge.
-- **Strengthen `definitely_incompatible`** (M) — the typechecker punts
-  record-vs-record and function assignability to `tsc` (`assign.rs:1845`). That's
-  a fine trusted-computing-base, and now stated honestly on the site; independently
-  catching more of it (with `tsc` as backstop) tightens the "strict dialect" into
-  more of a real verifier over time.
+- **Strengthen `definitely_incompatible`** (M) — ✅ **done.** The conservative
+  assignability relation now judges three shape pairs it used to punt to `tsc`,
+  each proven-only (no false positives): a concrete scalar
+  (`string`/`number`/`bool`) against a record or function type in either
+  direction; two function types whose return types are incompatible (return
+  covariance; `void` skipped for the un-annotated-lambda stub and callback
+  contravariance); and two structural records with an incompatible shared field
+  or a missing required field. Passing `5` where a `fn(number) -> number` is
+  expected, or a `string`-returning function where a `number`-returning one is,
+  is now caught at the Glyph level (E0211) instead of only by `tsc`. Record-vs
+  record is sound but mostly latent until object-literal argument inference
+  improves (today those infer to `Unknown` and stay permissive).
 
 ## Rolling · Ergonomics & polish
 

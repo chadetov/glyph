@@ -200,6 +200,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             does not handle yet.\n\n\
             Rewrite using a supported form; see `docs/language/spec.md` for what \
             v1 emits.",
+        "E0310" => "E0310: no `main` to run\n\n\
+            `glyph run` executes a program's entry point, `main(argv)`. The module \
+            you pointed it at compiles fine but is a library — it exports functions \
+            and types, but has no `fn main`, so there is nothing to execute.\n\n\
+            Either add an entry point:\n\n\
+            fn main(argv: Array<string>) -> number {\n  \
+              // ...\n  \
+              return 0\n\
+            }\n\n\
+            or, if it is meant to be a library, build it with `glyph build` (which \
+            emits the TypeScript) and import it from a module that does have a \
+            `main`.",
 
         _ => return None,
     };
@@ -211,7 +223,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0100", "E0101", "E0102", "E0103", "E0104",
     "E0105", "E0106", "E0107", "E0108", "E0200", "E0201", "E0202", "E0203", "E0204", "E0205",
     "E0206", "E0207", "E0208",
-    "E0209", "E0210", "E0211", "E0212", "E0218", "E0219", "E0300",
+    "E0209", "E0210", "E0211", "E0212", "E0218", "E0219", "E0300", "E0310",
 ];
 
 #[cfg(test)]

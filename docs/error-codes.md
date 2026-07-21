@@ -76,3 +76,4 @@ led by `_` (the conventional "intentionally unused" marker).
 | Code | Meaning |
 |------|---------|
 | `E0300` | Construct not supported by the v1 TypeScript emitter |
+| `E0310` | `glyph run` on a module with no `fn main` (it's a library — nothing to run) |

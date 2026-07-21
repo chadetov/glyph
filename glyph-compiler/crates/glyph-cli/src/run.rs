@@ -29,6 +29,7 @@ pub enum RunError {
 }
 
 /// The result of attempting to run a program.
+#[derive(Debug)]
 pub enum RunOutcome {
     /// The program ran; carries its process exit code.
     Ran(i32),
@@ -41,6 +42,11 @@ pub enum RunOutcome {
     TypeCheckFailed(String),
     /// `tsx` was not found on `PATH`.
     TsxNotFound,
+    /// The target module has no `fn main`, so there is nothing to run (it's a
+    /// library). Carries the module's top-level function names as a hint.
+    /// Reported as `E0310` and exits non-zero, instead of letting the generated
+    /// entrypoint call an undefined `main` and throw a raw Node `TypeError`.
+    NoMain { exports: Vec<String> },
 }
 
 /// Build `file`'s directory and run the program's `main` with `args`.
@@ -140,6 +146,29 @@ pub fn run_file(
                      Install TypeScript (`npm install -g typescript`) or pass --no-check."
                 );
             }
+        }
+    }
+
+    // A library module (no `fn main`) has nothing to run. Detect it here —
+    // before generating the entrypoint that imports `{ main }` — so it reports
+    // as a friendly diagnostic rather than a raw Node `TypeError` from calling
+    // an undefined `main`. Fires on both the fresh and cached-build paths.
+    // If the source doesn't parse, the build above already surfaced that.
+    if let Ok(module) = glyph_parser::parse(&std::fs::read_to_string(file)?) {
+        let has_main = module
+            .items
+            .iter()
+            .any(|d| matches!(d, glyph_ast::Decl::Fn(f) if f.name.as_ref() == "main"));
+        if !has_main {
+            let exports = module
+                .items
+                .iter()
+                .filter_map(|d| match d {
+                    glyph_ast::Decl::Fn(f) => Some(f.name.to_string()),
+                    _ => None,
+                })
+                .collect();
+            return Ok(RunOutcome::NoMain { exports });
         }
     }
 

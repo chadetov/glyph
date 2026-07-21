@@ -1065,6 +1065,31 @@ fn run_executes_main_and_propagates_exit_code() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("unexpected type-check failure (run was --no-check): {msg}");
         }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("a program with a `main` should run, not report NoMain: {exports:?}");
+        }
+    }
+}
+
+#[test]
+fn run_reports_no_main_for_a_library_instead_of_a_type_error() {
+    // C1: running a library module (no `fn main`) reports NoMain with the
+    // module's exports, rather than letting the generated entrypoint call an
+    // undefined `main` and throw a raw Node `TypeError`. This needs no JS
+    // toolchain — the check happens before `tsx` is invoked.
+    let root = unique_tmp("nomain");
+    write_file(
+        &root,
+        "lib.glyph",
+        "module lib\nfn helper(x: number) -> number { return x }\nfn other() -> number { return 1 }\n",
+    );
+    let file = root.join("lib.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            assert!(exports.contains(&"helper".to_string()), "lists exports: {exports:?}");
+            assert!(exports.contains(&"other".to_string()), "lists exports: {exports:?}");
+        }
+        other => panic!("expected NoMain for a library, got {other:?}"),
     }
 }
 
@@ -1116,6 +1141,7 @@ fn outcome_name(o: &glyph_cli::run::RunOutcome) -> &'static str {
         glyph_cli::run::RunOutcome::BuildFailed(_) => "BuildFailed",
         glyph_cli::run::RunOutcome::TypeCheckFailed(_) => "TypeCheckFailed",
         glyph_cli::run::RunOutcome::TsxNotFound => "TsxNotFound",
+        glyph_cli::run::RunOutcome::NoMain { .. } => "NoMain",
     }
 }
 
@@ -1196,6 +1222,9 @@ fn run_reports_build_failure_for_a_broken_target() {
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("a Glyph build failure must precede any tsc check: {msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("a broken build should not reach the no-main check: {exports:?}");
         }
     }
 }

@@ -318,6 +318,25 @@ fn main() {
                     );
                     std::process::exit(127);
                 }
+                Ok(glyph_cli::run::RunOutcome::NoMain { exports }) => {
+                    eprintln!(
+                        "[E0310] glyph run: `{}` has no `fn main` to run.",
+                        file.display()
+                    );
+                    eprintln!(
+                        "  `glyph run` executes a program's `main(argv)` entry; this module is a \
+                         library (it exports functions but no `main`)."
+                    );
+                    if !exports.is_empty() {
+                        let mut names: Vec<&str> = exports.iter().map(String::as_str).collect();
+                        names.sort_unstable();
+                        names.dedup();
+                        let shown: Vec<&str> = names.into_iter().take(5).collect();
+                        eprintln!("  It defines: {}.", shown.join(", "));
+                    }
+                    eprintln!("  Add `fn main(argv: Array<string>) -> number`, or `glyph build` it as a library. See `glyph --explain E0310`.");
+                    std::process::exit(2);
+                }
                 Err(e) => {
                     eprintln!("glyph run: {e}");
                     std::process::exit(2);

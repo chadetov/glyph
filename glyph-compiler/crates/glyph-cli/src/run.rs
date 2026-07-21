@@ -13,8 +13,32 @@
 
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::AtomicU64;
 
 use crate::build::{build_project_inner, BuildError, BuildReport};
+
+/// Per-process counter making each run's staging directory unique even across
+/// threads (the pid alone repeats — the concurrent-run test shares one process).
+static STAGING_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// `remove_dir_all` that tolerates the concurrent-run race: a missing directory
+/// is success (someone already removed it), and a transient failure while
+/// another process is writing into the same path (`DirectoryNotEmpty`, and the
+/// Windows sharing-violation equivalent) is retried briefly before giving up.
+pub(crate) fn remove_dir_all_retry(path: &Path) -> std::io::Result<()> {
+    use std::io::ErrorKind;
+    for attempt in 0..12 {
+        match std::fs::remove_dir_all(path) {
+            Ok(()) => return Ok(()),
+            Err(e) if e.kind() == ErrorKind::NotFound => return Ok(()),
+            Err(_) if attempt < 11 => {
+                std::thread::sleep(std::time::Duration::from_millis(15));
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum RunError {
@@ -112,16 +136,30 @@ pub fn run_file(
 
     let mut module_maps: Vec<crate::tscmap::ModuleMap> = Vec::new();
     if do_build {
-        // Fresh build: clean the dir first so no stale emitted or runtime file
-        // lingers (a failed earlier build, a renamed module).
-        if out.exists() {
-            std::fs::remove_dir_all(&out)?;
-        }
-        let report = build_project_inner(src, &out, with_color)?;
+        // Build into a private staging dir, then move it onto the shared,
+        // fingerprint-keyed `out` path. Two concurrent `glyph run`s of the same
+        // program otherwise race on cleaning and writing the one shared dir
+        // (`DirectoryNotEmpty`); with per-invocation staging each build is
+        // isolated and the only shared step is an atomic-ish rename.
+        let n = STAGING_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let parent = out.parent().unwrap_or_else(|| Path::new("."));
+        let staging = parent.join(format!(".glyph-staging-{}-{}", std::process::id(), n));
+        let _ = remove_dir_all_retry(&staging);
+
+        let report = build_project_inner(src, &staging, with_color)?;
         if !report.emitted.iter().any(|e| e == &target_rel) {
+            let _ = remove_dir_all_retry(&staging);
             return Ok(RunOutcome::BuildFailed(report));
         }
         module_maps = report.module_maps;
+
+        // Move staging into place. If `out` reappeared meanwhile (another run of
+        // the identical fingerprint built it — same content), just drop staging
+        // and use theirs.
+        remove_dir_all_retry(&out)?;
+        if std::fs::rename(&staging, &out).is_err() {
+            let _ = remove_dir_all_retry(&staging);
+        }
         // The fresh output has not been type-checked yet; mark the build complete.
         let _ = std::fs::remove_file(&tsc_marker);
         let _ = std::fs::write(&build_marker, b"");

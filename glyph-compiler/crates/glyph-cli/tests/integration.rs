@@ -1072,6 +1072,39 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn concurrent_runs_of_one_program_do_not_race_on_the_temp_dir() {
+    // C2: many `glyph run`s of the same program share a fingerprint-keyed cache
+    // dir. Building into a private staging dir + moving it into place removes the
+    // clean-and-write race that surfaced as `DirectoryNotEmpty`. This test drives
+    // the build path (via a build failure being impossible only masks it), so it
+    // uses run_file with checking off and no JS toolchain requirement: even
+    // NoMain/TsxNotFound outcomes exercise the staging/rename path. Any Io error
+    // (a lost race) fails the test.
+    use std::sync::Arc;
+    let root = Arc::new(unique_tmp("race"));
+    write_file(
+        &root,
+        "prog.glyph",
+        "module prog\nfn main(argv: Array<string>) -> number { return 0 }\n",
+    );
+    let file = Arc::new(root.join("prog.glyph"));
+    for _round in 0..6 {
+        let handles: Vec<_> = (0..8)
+            .map(|_| {
+                let f = Arc::clone(&file);
+                std::thread::spawn(move || glyph_cli::run::run_file(&f, &[], false, false))
+            })
+            .collect();
+        for h in handles {
+            let outcome = h.join().expect("thread did not panic");
+            // The build/staging path must never surface a filesystem race as an
+            // Err; a missing JS toolchain (TsxNotFound) is fine.
+            assert!(outcome.is_ok(), "concurrent run raced: {outcome:?}");
+        }
+    }
+}
+
+#[test]
 fn run_reports_no_main_for_a_library_instead_of_a_type_error() {
     // C1: running a library module (no `fn main`) reports NoMain with the
     // module's exports, rather than letting the generated entrypoint call an

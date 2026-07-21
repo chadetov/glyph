@@ -1,0 +1,33 @@
+name: Site checks
+
+# Guard the site against broken internal links, malformed HTML, and answers
+# sub-nav drift. Runs when the site, its checker, or the npm README changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "playground/**"
+      - "scripts/check_site.py"
+      - "npm/glyph/README.md"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "playground/**"
+      - "scripts/check_site.py"
+      - "npm/glyph/README.md"
+
+jobs:
+  site:
+    name: Links, HTML, and sub-nav
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check the site (links resolve, HTML well-formed, sub-nav consistent)
+        run: python3 scripts/check_site.py
+      - name: Confirm the npm package still ships a README
+        working-directory: npm/glyph
+        run: |
+          npm pack --dry-run 2>&1 | grep -q "README.md" \
+            || { echo "npm/glyph package is missing README.md"; exit 1; }

@@ -74,3 +74,33 @@ fn root_and_web_mirrors_match_agents_md() {
         );
     }
 }
+
+#[test]
+fn agents_md_inlines_every_diagnostic_code() {
+    // The npm README promises the agent bootstrap carries the full diagnostic
+    // catalogue. Keep that true: every `E0xxx` documented in the error-codes
+    // catalogue must appear in AGENTS.md, so adding a code without a bootstrap
+    // row fails here instead of silently making the README a lie.
+    let catalogue = fs::read_to_string(repo_file("docs/error-codes.md")).expect("read error-codes.md");
+    let agents = fs::read_to_string(repo_file("AGENTS.md")).expect("read AGENTS.md");
+    // Extract every `E0` followed by exactly three digits (a diagnostic code).
+    let bytes = catalogue.as_bytes();
+    let mut codes: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i + 5 <= bytes.len() {
+        if &bytes[i..i + 2] == b"E0" && bytes[i + 2..i + 5].iter().all(|b| b.is_ascii_digit()) {
+            codes.push(String::from_utf8_lossy(&bytes[i..i + 5]).into_owned());
+            i += 5;
+        } else {
+            i += 1;
+        }
+    }
+    codes.sort();
+    codes.dedup();
+    let missing: Vec<&String> = codes.iter().filter(|c| !agents.contains(c.as_str())).collect();
+    assert!(
+        missing.is_empty(),
+        "AGENTS.md is missing diagnostic codes documented in docs/error-codes.md: {missing:?} \
+         (add a row to the 'Diagnostic codes' table, then re-mirror to llms.txt)"
+    );
+}

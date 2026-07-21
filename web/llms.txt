@@ -268,6 +268,38 @@ For a record/union type `T`, `json.parse<T>(text)` is auto-rewritten to validate
 against `T.schema`. Use the `json.parse<T>` namespace form (not the named-import
 form) to get validation.
 
+### Runtime validators (`T.parse` / `T.is` / `T.schema`)
+
+Every record (and non-generic union) type `T` you declare also generates a
+runtime descriptor with three members. This is the mechanism behind
+`json.parse<T>`, and it is how a boundary value becomes typed:
+
+```
+T.is(value: unknown) -> bool                          // shape guard for declared fields
+T.parse(value: unknown) -> Result<T, Array<Issue>>    // validate an unknown into a Result
+T.schema                                              // a Schema<T> (e.g. T.schema.array())
+```
+
+Use `T.parse` on an already-decoded `unknown` (a request body, a config object);
+use `json.parse<T>(text)` when you have a raw JSON *string*. There is no `as`
+cast in Glyph, so `T.parse` (or a `match`/`is` narrowing) is the only way to go
+from `unknown` to `T`.
+
+```glyph
+type User = { id: number, name: string }
+
+fn handle(body: unknown) -> string {
+  return match User.parse(body) {   // untrusted input, validated
+    Ok(user) => user.name,
+    Err(_) => "invalid",
+  }
+}
+```
+
+Scope today: descriptors are generated for non-generic record types. Generic
+(`Paginated<T>`), union, and imported/`.d.ts` types don't get one, and a record
+check confirms the declared fields but does not yet reject extra keys.
+
 ### std/fs
 
 ```
@@ -437,6 +469,78 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
 - **`mut` is narrow.** It only enables reassignment and mutating method calls;
   there is no `mut` parameter, field, or other position.
 - **No `node:` import prefix.** Import Node builtins by bare name (`import http`).
+
+## Diagnostic codes
+
+Every error and warning carries a stable code and a one-line fix. `glyph
+--explain <code>` prints the long form; `glyph build --json` emits them
+machine-readably. The full catalogue:
+
+| Code | Meaning | Fix |
+|---|---|---|
+| E0001 | Lexical error (unterminated string, bad escape, stray char) | Fix the string/escape/character |
+| E0002 | Expected a different token (Glyph is stricter than TS) | Match the expected syntax |
+| E0003 | Unexpected token here | Remove or relocate it |
+| E0004 | Expected end of file | Balance your braces |
+| E0005 | Construct recognized but not implemented | Use a supported form |
+| E0100 | Duplicate top-level name | Rename one; names are unique |
+| E0101 | Relative import | Use an absolute module path (`std/io`, `myapp/x`) |
+| E0102 | Barrel file (only imports) | Add a declaration or remove the file |
+| E0103 | Unresolved name | Declare it, import it, or fix the spelling |
+| E0104 | Unresolved module path | Check the path / that the module exists |
+| E0105 | Name not exported by the module | Check the export name |
+| E0106 | Unused import (warning) | Remove it |
+| E0107 | Unused variable (warning) | Remove it, or prefix the name with `_` |
+| E0108 | Unreachable code after return/break/continue (warning) | Remove the dead code |
+| E0200 | Non-exhaustive match on a tagged union | Handle every variant, or add an `else` |
+| E0201 | `?` outside a Result-returning fn | Return `Result`, or handle with `match` |
+| E0202 | `?` on a non-Result operand | Drop the `?`, or return a `Result` |
+| E0203 | `?` error type mismatch (no `From` in v1) | `.map_err(...)` to line the error types up |
+| E0204 | Type mismatch | Make the value and the expected type agree |
+| E0205 | `owned` on a non-`resource` type | Mark the type `resource`, or drop `owned` |
+| E0206 | `owned` resource not consumed on every path | Consume it (move to an `owned` param) on all paths |
+| E0207 | `owned` resource used after consume | Reorder so uses precede the consume |
+| E0208 | Non-exhaustive array match | Cover the length, or add a catch-all |
+| E0209 | Non-exhaustive `bool` match | Cover `true` and `false`, or add `else` |
+| E0210 | Field access with no such field | Fix the field name / add it to the type |
+| E0211 | Call argument type mismatch | Pass a value of the expected type |
+| E0212 | `mut` reassigns a `const` | Use a function-level `let` |
+| E0213 | Wrong number of call arguments | One argument per parameter |
+| E0214 | Component with multiple parameters | Take a single props record |
+| E0215 | Aliasing an `owned` handle | Consume it directly, don't rebind |
+| E0216 | Unreachable match arm after a total pattern | Remove it, or move the catch-all last |
+| E0217 | Discarded `Result` (warning) | `match`/`?` it, or `let _ = ...` to say it's intentional |
+| E0218 | Non-exhaustive match on `number`/`string` | Add an `else` arm |
+| E0219 | `@redact` names a missing field | Fix the field name |
+| E0300 | Construct not supported by the emitter | Use a supported form |
+| E0310 | `glyph run` on a module with no `fn main` | Add `fn main`, or `glyph build` it as a library |
+
+### A diagnostic in the self-correction loop
+
+`glyph build --json` gives you the machine-readable version an agent can act on
+directly. A program that forgets a `match` arm:
+
+```
+$ glyph build src --out dist --json
+{
+  "ok": false,
+  "errors": 1,
+  "diagnostics": [
+    {
+      "code": "E0200",
+      "severity": "error",
+      "message": "non-exhaustive match on `Status`: missing variants Cancelled",
+      "file": "src/main.glyph",
+      "range": { "start": { "line": 6, "col": 10 }, "end": { "line": 9, "col": 4 } },
+      "stage": "typecheck",
+      "help": "Add an arm for each missing variant, or an `else` arm to catch the rest."
+    }
+  ]
+}
+```
+
+Read `code` + `help`, add the missing arm, rebuild. That is the loop the design
+is built for.
 
 ## Where to go deeper
 

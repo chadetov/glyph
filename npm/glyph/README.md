@@ -68,7 +68,7 @@ Glyph ships as a single prebuilt binary per platform (macOS, Linux, Windows — 
 
 ## Built for agents
 
-Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — a single file that takes it from zero to correct, runnable Glyph: the canonical program shape, the stdlib surface, the common gotchas, and the diagnostic codes. Agents that write Glyph get compile-time feedback precise enough to self-correct.
+Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — a single file that takes it from zero to correct, runnable Glyph: the canonical program shape, the full stdlib surface, the common gotchas, and the complete diagnostic catalogue with one-line fixes. Agents that write Glyph get compile-time feedback precise enough to self-correct.
 
 ## Where to go next
 

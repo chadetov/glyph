@@ -242,23 +242,31 @@ exhaustive `match`, strict validators for declared types, an enforced strict
 dialect over `tsc`; the pillar now owns the `tsc` dependency and names the
 generic edges). 0.1.10 closes the engineering behind them:
 
-- **Generic / imported-type descriptors** (L) — the top item. Today `T.parse`
-  runtime-checks a generic or imported field only for presence (`!== undefined`,
-  per the emitter's own comment at `glyph-emit/src/lib.rs:700`), so it can return
-  `Ok` for a value that isn't fully a `T`. Give generic records and `.d.ts`-imported
-  types real descriptors so `T.parse` can't lie. Unblocks removing the honest-edge
-  caveats.
-- **Prove or remove the generic-return `as` cast** (M) — the emitter inserts
-  `return value as RetType` inside any generic-returning function
-  (`emit/src/lib.rs:498`, `fn_return_cast`), a compiler-inserted cast in the one
-  place source casts are banned. Verify the return body against the declared type
-  strongly enough that the cast is provably safe (or narrow where it's emitted),
-  so the "no casts" story holds in the output too.
-- **`infer_shape` for schema combinators** (L, Q40/substep-5b) — the flagship
-  `object_schema<Out>` (`examples/01_validator.glyph:64`) doesn't verify `Out`
-  matches the shape's fields. Ship the mapped-type inference the example already
-  names as its v1.1 plan, so a hand-built schema's output type is derived, not
-  trusted.
+- **`infer_shape` for schema combinators** (L, Q40/substep-5b, D28) — ✅ **done.**
+  `object_schema<Shape: Record<string, Schema<unknown>>>(shape) -> Schema<infer_shape<Shape>>`
+  now derives the output type from the shape. `infer_shape<S>` is a narrow
+  built-in type-level operator (not the full TS mapped-/conditional-type surface):
+  it lowers to one per-module `type __GlyphInferShape<S> = { [K in keyof S]: S[K] extends Schema<infer V> ? V : never }`,
+  and `tsc` reduces and enforces it at each call site. A shape that omits a field
+  of the annotated type now fails to compile (regression-tested end to end,
+  mapped back to Glyph source). The flagship `01_validator.glyph` dropped its
+  hand-synced `<Out>`. See spec D28.
+- **Prove or remove the generic-return `as` cast** (M) — ✅ **done, resolved to
+  "narrow."** The empirical finding: the blanket cast was never legitimately
+  needed. For honest generics (`identity<T> -> T`, `array_schema<T> -> Schema<Array<T>>`)
+  it was pure noise TS proves on its own; the one place it was load-bearing was
+  masking the `object_schema` unsoundness. It now fires *only* when the return
+  type mentions `infer_shape` — the single case a combinator assembles a value of
+  a shape-derived type from `unknown`. Every honest generic emits cast-free.
+- **Formatter dropped generic bounds** (S) — ✅ **fixed as a side-catch.** `glyph fmt`
+  silently discarded `<T: Bound>` (D28's `object_schema<Shape: Record<...>>` was
+  the first program to exercise it), which changed the emitted TS. The formatter
+  now round-trips bounds; caught by the round-trip semantics test.
+- **Generic / imported-type descriptors** (L) — still open, now the top remaining
+  item. `T.parse` runtime-checks a generic or imported field only for presence
+  (`!== undefined`, per the emitter's own comment at `glyph-emit/src/lib.rs`), so
+  it can return `Ok` for a value that isn't fully a `T`. Give generic records and
+  `.d.ts`-imported types real descriptors so `T.parse` can't lie.
 - **Strengthen `definitely_incompatible`** (M) — the typechecker punts
   record-vs-record and function assignability to `tsc` (`assign.rs:1845`). That's
   a fine trusted-computing-base, and now stated honestly on the site; independently
@@ -280,7 +288,11 @@ land here until they're assigned a release.
   `T.redact(value)` descriptor method; masking every serialize/log call
   automatically needs a runtime type tag on values.
 - `@ffi target:` syntax (v2).
-- Mapped types / `infer_shape` (substep 5b).
+- General TS mapped-/conditional-type surface (`{ [K in keyof T]: ... }`,
+  `X extends Y ? A : B`, user-written `infer`). Deliberately *not* shipped: the
+  narrow `infer_shape<S>` operator (D28, 0.1.10) covers the schema-derivation
+  case without the unreadable, hard-to-grep general machinery. Revisit only if a
+  concrete need outside schema derivation appears.
 - `owned` closure-capture soundness (needs real capture analysis).
 - Self-hosting (a v1.0 non-goal).
 

@@ -302,6 +302,27 @@ extra keys (`@open` then the `type` line). Scope today: descriptors are generate
 for non-generic record types only; generic (`Paginated<T>`), union, and
 imported/`.d.ts` types don't get one.
 
+To build a validator *combinator* (a `zod`-style `object_schema`) whose output
+type follows the shape you pass, use the `infer_shape<Shape>` type operator so
+you don't repeat the output type by hand:
+
+```glyph
+fn object_schema<Shape: Record<string, Schema<unknown>>>(
+  shape: Shape,
+) -> Schema<infer_shape<Shape>> { ... }
+
+// The shape must produce a `User`, or this does not compile:
+const user_schema: Schema<User> = object_schema({
+  name: string_schema(),
+  age: number_schema(),
+})
+```
+
+`infer_shape<Shape>` unwraps each field's `Schema<V>` to `V`, so the compiler
+derives the schema's output type from the shape and checks it against your
+annotation. The generic parameter is bound with `<Shape: Bound>` (this is how
+generic bounds are written; they lower to a TypeScript `extends` clause).
+
 ### std/fs
 
 ```

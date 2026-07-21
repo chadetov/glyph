@@ -1,0 +1,44 @@
+name: Feature request or design idea
+description: Propose a capability, an ergonomics fix, or a language change to discuss
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For **language** changes (syntax or semantics), this issue is the right
+        first step — the grammar is the spec, so we discuss the design before
+        code. Toolchain, docs, and example improvements can also just be sent as
+        a PR; an issue is optional there.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and where does Glyph get in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed direction
+      description: What you'd like. For a language change, sketch the syntax and how it lowers to TypeScript.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - Toolchain / CLI / diagnostics
+        - Standard library
+        - Docs / examples / site
+        - Language (syntax or semantics)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: pillars
+    attributes:
+      label: Which pillar does it serve?
+      description: Glyph weighs every change against verifiability, greppability, abstraction, and diff stability. Which does this help, and does it harm any?
+    validations:
+      required: false

@@ -1,0 +1,47 @@
+name: Bug report
+description: A .glyph program that miscompiles, crashes, or emits TypeScript tsc rejects
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. A minimal reproducer plus the exact command and
+        output is the single most useful thing you can give us.
+  - type: input
+    id: version
+    attributes:
+      label: Glyph version
+      description: Output of `glyph --version`.
+      placeholder: "0.1.9"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: A minimal .glyph program that reproduces it
+      description: The smallest program that shows the problem. Paste the source.
+      render: rust
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: "glyph run repro.glyph"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected vs what happened
+      description: Include the exact error / diagnostic code (e.g. `E0200`) or the wrong output.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: OS + arch, and Node/tsx/tsc versions if the issue is at run/check time.
+      placeholder: "macOS arm64, node 22, tsx 4.19, typescript 6"
+    validations:
+      required: false

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions & discussion
+    url: https://github.com/chadetov/glyph/discussions
+    about: Ask a question, share what you built, or float an idea before filing an issue.
+  - name: Documentation & the language tour
+    url: https://glyphlang.io
+    about: The guide, answers, and a five-minute tour.

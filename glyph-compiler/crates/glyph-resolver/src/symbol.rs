@@ -106,6 +106,11 @@ pub enum PreludeKind {
     /// `json.parse`/schema decoders report in their `Err` arm. Ambient and
     /// unwritable-by-import, so it lives in the prelude table.
     Issue,
+    /// `infer_shape<S>` (D28) — a type-level operator, not a container type.
+    /// For a record `S` of `Schema<V>` fields it yields `{ field: V, ... }`.
+    /// Resolved by name so it doesn't trip E0103; the emitter lowers it to a
+    /// per-module TS mapped type and `tsc` reduces it.
+    InferShape,
 
     // Prelude values
     Ok,

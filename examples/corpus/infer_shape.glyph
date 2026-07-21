@@ -1,0 +1,70 @@
+// `infer_shape<Shape>` (D28): a schema combinator whose output type is derived
+// from its input shape. The caller annotates `Schema<Point>` and the compiler
+// checks that the shape actually produces a `Point` — no hand-synced `Out`.
+module infer_shape
+
+import std/result { Result, Ok, Err }
+
+type Issue = { path: Array<string>, message: string }
+
+type Schema<T> = { name: string, parse: fn(input: unknown) -> Result<T, Array<Issue>> }
+
+fn string_schema() -> Schema<string> {
+  return { name: "string", parse: fn(input) {
+    match input {
+      is string => Ok(input),
+      else => Err([{ path: [], message: "expected string" }]),
+    }
+  } }
+}
+
+fn number_schema() -> Schema<number> {
+  return { name: "number", parse: fn(input) {
+    match input {
+      is number => Ok(input),
+      else => Err([{ path: [], message: "expected number" }]),
+    }
+  } }
+}
+
+fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_shape<Shape>> {
+  return { name: "object", parse: fn(input) {
+    match input {
+      is Record<string, unknown> => {
+        let issues: Array<Issue> = []
+        let result: Record<string, unknown> = {}
+        for key, sub_schema in shape {
+          match sub_schema.parse(input[key]) {
+            Ok(value) => {
+              mut result[key] = value
+            },
+            Err(sub_issues) => {
+              for issue in sub_issues {
+                mut issues.push({ path: [key, ...issue.path], message: issue.message })
+              }
+            },
+          }
+        }
+        match issues.length {
+          0 => Ok(result),
+          else => Err(issues),
+        }
+      },
+      else => Err([{ path: [], message: "expected object" }]),
+    }
+  } }
+}
+
+type Point = { x: number, y: number }
+
+// The annotation is verified against the shape: drop `y` from the shape and
+// this stops compiling. The output type is derived, not trusted.
+const point_schema: Schema<Point> = object_schema({ x: number_schema(), y: number_schema() })
+
+fn demo() -> number {
+  // `point` is typed `Point` (derived from the shape), so `.x`/`.y` resolve.
+  return match point_schema.parse({ x: 1, y: 2 }) {
+    Ok(point) => point.x + point.y,
+    Err(_) => 0,
+  }
+}

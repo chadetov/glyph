@@ -940,6 +940,85 @@ async fn main(argv: Array<string>) -> number {
     }
 }
 
+#[test]
+fn infer_shape_guarantee_bites_on_shape_mismatch() {
+    // D28: `object_schema<Shape> -> Schema<infer_shape<Shape>>` derives the
+    // output type from the shape. Annotating the result `Schema<Point>` when the
+    // shape omits `y` must be REJECTED by tsc (mapped to Glyph source) — the
+    // guarantee the pre-0.1.10 `<Out>` stand-in only trusted. Requires tsc.
+    if !tsc_available() {
+        eprintln!("skipping infer_shape bite check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("infershape_bite");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "bite.glyph",
+        r#"module bite
+
+import std/result { Result, Ok, Err }
+
+type Issue = {
+  path: Array<string>,
+  message: string,
+}
+
+type Schema<T> = {
+  name: string,
+  parse: fn(input: unknown) -> Result<T, Array<Issue>>,
+}
+
+fn number_schema() -> Schema<number> {
+  return { name: "number", parse: fn(input) {
+    match input {
+      is number => Ok(input),
+      else => Err([{ path: [], message: "expected number" }]),
+    }
+  } }
+}
+
+fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_shape<Shape>> {
+  return { name: "object", parse: fn(input) {
+    match input {
+      is Record<string, unknown> => Err([{ path: [], message: "stub" }]),
+      else => Err([{ path: [], message: "expected object" }]),
+    }
+  } }
+}
+
+type Point = {
+  x: number,
+  y: number,
+}
+
+const bad: Schema<Point> = object_schema({ x: number_schema() })
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "the program itself is well-formed Glyph; the mismatch is a tsc-level check: {:?}",
+        report.diagnostics
+    );
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {
+            panic!("infer_shape guarantee did NOT bite: a shape missing `y` was accepted as Schema<Point>")
+        }
+        TscOutcome::Failed(msg) => {
+            assert!(
+                msg.contains("age") || msg.contains('y') || msg.to_lowercase().contains("assignable"),
+                "expected a shape/type mismatch, got:\n{msg}"
+            );
+        }
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
 /// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
 /// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
 /// run fail for environmental reasons, not a real defect.

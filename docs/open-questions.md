@@ -13,9 +13,8 @@ A question lives here when:
 
 Five step-blocker decisions resolved. Originals preserved below with `[RESOLVED]` markers; this section is the canonical record.
 
-### Q1 → **v2 (defer mapped types).**
-`infer_shape<Shape>` deferred to v1.1. `01_validator.glyph` must be rewritten now to use an explicit type parameter before step 4 starts. Typechecker substep 5b (mapped-type-like behavior) is no longer mandatory — it's optional/v1.1.
-**Action:** rewrite `archive/GLYPH.md §3.1` validator example before step 4 begins.
+### Q1 → **shipped in 0.1.10 (D28).**
+Originally deferred to v1.1; `01_validator.glyph` shipped a stand-in `<Out>` parameter that the caller had to keep in sync by hand (unchecked). 0.1.10 shipped `infer_shape<Shape>` as a narrow built-in type-level operator (D28), not the full TS mapped-/conditional-type machinery: `object_schema<Shape: Record<string, Schema<unknown>>>(shape) -> Schema<infer_shape<Shape>>` now **derives** the output type from the shape, and `tsc` checks the caller's `Schema<User>` annotation against it. This closed the last silent unsoundness the "Linus" review found and let the blanket generic-return `as` cast be narrowed to `infer_shape`-returns only. See spec D28.
 **Reflected in:** `docs/roadmap/04-transpiler.md`, `docs/roadmap/05-typechecker.md`.
 
 ### Q2 → **Fold corpus generation into step 6 dogfooding.**

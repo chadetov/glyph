@@ -227,6 +227,14 @@ const ERR_CTOR: &str = "__glyph_err";
 /// record descriptor gets `import { schema as __glyph_schema } from "std/schema"`.
 const SCHEMA_FACTORY: &str = "__glyph_schema";
 
+/// The TS mapped-type alias `infer_shape<S>` (D28) lowers to. A module that
+/// renders any `infer_shape` gets one injected
+/// `type __GlyphInferShape<S> = { [K in keyof S]: S[K] extends Schema<infer V> ? V : never }`.
+/// The `Schema` it references resolves in the emitted module scope (the ambient
+/// prelude `Schema<T>`, or a module that declares its own), so `tsc` reduces the
+/// mapping at each call site. Aliased to never collide with a user type.
+const INFER_SHAPE_ALIAS: &str = "__GlyphInferShape";
+
 /// The prelude tagged-union constructors (`std/result`, `std/option`). Their
 /// discriminant tags are fixed by the runtime regardless of whether the
 /// scrutinee's type resolved, so the `match` lowering treats them as variant
@@ -378,6 +386,7 @@ pub fn emit_module_mapped(
         tmp_counter: 0,
         used_try: Rc::new(Cell::new(false)),
         used_schema: Rc::new(Cell::new(false)),
+        used_infer_shape: Rc::new(Cell::new(false)),
         return_cast: None,
         loop_labels: Vec::new(),
         module,
@@ -409,10 +418,15 @@ struct Emitter<'a> {
     /// Set once any record descriptor is emitted, so the module gets the
     /// generated `schema` factory import its `T.schema` member needs.
     used_schema: Rc<Cell<bool>>,
+    /// Set once `infer_shape<S>` (D28) is rendered anywhere, so the module gets
+    /// the one injected mapped-type alias (`__GlyphInferShape`) it lowers to.
+    /// Shared across sub-emitters via the `Rc<Cell>` like the flags above.
+    used_infer_shape: Rc<Cell<bool>>,
     /// The declared return type (rendered) the current function's `return`
-    /// values must be cast to, set only when that type references one of the
-    /// function's generic parameters (the infer_shape stand-in). `None`
-    /// otherwise, and reset for lambdas and value-position match IIFEs (their
+    /// values must be cast to, set only when that type mentions `infer_shape<S>`
+    /// (D28) — a combinator asserting a dynamically-built value matches the
+    /// shape-derived type. `None` otherwise (every honest generic return is
+    /// cast-free), and reset for lambdas and value-position match IIFEs (their
     /// returns are not the enclosing function's return).
     return_cast: Option<String>,
     /// Stack of enclosing loops, innermost last. Each entry is the loop's TS
@@ -460,6 +474,7 @@ impl<'a> Emitter<'a> {
             tmp_counter: self.tmp_counter,
             used_try: Rc::clone(&self.used_try),
             used_schema: Rc::clone(&self.used_schema),
+            used_infer_shape: Rc::clone(&self.used_infer_shape),
             // A sub-emitter (lambda body, value-position match IIFE) does not
             // inherit the function's return cast; its returns are not the
             // function's. `emit_fn_block` sets it from the lambda's own type.
@@ -543,6 +558,19 @@ impl<'a> Emitter<'a> {
         // re-wraps the propagated error with the prelude `Err`. Prepend the
         // (aliased) imports now that emission has set the flags. `?`'s import is
         // inserted last so it ends up first.
+        // The one mapped-type alias `infer_shape<S>` (D28) lowers to. Inserted
+        // ahead of the declarations (but after the imports prepended below,
+        // which each `insert_str(0, ...)` in front of it) so the `Schema` it
+        // references is in scope. `tsc` reduces `__GlyphInferShape<Shape>` at
+        // each call site; unused when no `infer_shape` was rendered.
+        if self.used_infer_shape.get() {
+            self.out.insert_str(
+                0,
+                &format!(
+                    "type {INFER_SHAPE_ALIAS}<S> = {{ [K in keyof S]: S[K] extends Schema<infer V> ? V : never }};\n\n"
+                ),
+            );
+        }
         if self.used_schema.get() {
             self.out.insert_str(
                 0,
@@ -643,7 +671,7 @@ impl<'a> Emitter<'a> {
                 self.pad();
                 self.out
                     .push_str(&format!("{prefix} {}{generics}({params}){ret} ", f.name));
-                let cast = self.fn_return_cast(&f.return_ty, &f.generics)?;
+                let cast = self.fn_return_cast(&f.return_ty)?;
                 self.emit_fn_block(&f.body, returns_value(&f.return_ty), cast)?;
                 self.out.push('\n');
                 Ok(())
@@ -1070,15 +1098,18 @@ impl<'a> Emitter<'a> {
     /// no fall-through break is emitted.
     /// The rendered return type a function's `return` values are cast to, or
     /// `None`. A cast is emitted only when the function yields a value AND its
-    /// declared return type references one of its own generic parameters — the
-    /// infer_shape stand-in (Q1). Non-generic returns stay precisely checked.
+    /// declared return type mentions `infer_shape<S>` (D28) — the one case a
+    /// combinator dynamically assembles a value of a shape-derived type the
+    /// body cannot otherwise prove. Every honest generic return (`T`,
+    /// `Result<T, E>`, `Array<T>`, …) emits with NO cast and stays precisely
+    /// checked by `tsc`; the pre-0.1.10 blanket "any generic return" cast is
+    /// gone.
     fn fn_return_cast(
         &self,
         return_ty: &Option<TypeExpr>,
-        generics: &[GenericParam],
     ) -> Result<Option<String>, EmitError> {
         match return_ty {
-            Some(te) if returns_value(return_ty) && type_references_generic(te, generics) => {
+            Some(te) if returns_value(return_ty) && type_mentions_infer_shape(te) => {
                 Ok(Some(self.ty(te)?))
             }
             _ => Ok(None),
@@ -2806,7 +2837,7 @@ impl<'a> Emitter<'a> {
         self.pad();
         self.out
             .push_str(&format!("export function {}{generics}({params}){ret} ", c.name));
-        let cast = self.fn_return_cast(&c.return_ty, &c.generics)?;
+        let cast = self.fn_return_cast(&c.return_ty)?;
         self.emit_fn_block(&c.body, true, cast)?;
         self.out.push('\n');
         Ok(())
@@ -3089,7 +3120,15 @@ impl<'a> Emitter<'a> {
                 for arg in args {
                     a.push(self.ty(arg)?);
                 }
-                format!("{}<{}>", self.ty(base)?, a.join(", "))
+                // `infer_shape<S>` (D28) lowers to the injected mapped-type
+                // alias; the emitter never writes inline `{ [K in keyof S]... }`
+                // so Glyph source stays free of mapped-type syntax.
+                if is_infer_shape_base(base) {
+                    self.used_infer_shape.set(true);
+                    format!("{INFER_SHAPE_ALIAS}<{}>", a.join(", "))
+                } else {
+                    format!("{}<{}>", self.ty(base)?, a.join(", "))
+                }
             }
             TypeExpr::Fn {
                 params, return_ty, ..
@@ -3650,35 +3689,35 @@ fn single_element_child(children: &[JsxChild]) -> Option<&JsxElement> {
     found
 }
 
-/// Whether `te` references any of `generics` by name. A function whose declared
-/// return type mentions one of its own type parameters and whose body builds a
-/// concrete value (e.g. `object_schema<Out>` returning a `Record` as `Out`)
-/// asserts that value matches the caller's type parameter — the v1 stand-in for
-/// `infer_shape` (Q1). The emitter casts such a return to its declared type;
-/// non-generic returns are checked precisely with no cast.
-fn type_references_generic(te: &TypeExpr, generics: &[GenericParam]) -> bool {
-    if generics.is_empty() {
-        return false;
-    }
-    let is_gen = |name: &str| generics.iter().any(|g| g.name.as_ref() == name);
+/// Whether `te`'s base is the single-segment path `infer_shape` (D28). Written
+/// like an ordinary generic application, so it is recognized structurally here.
+fn is_infer_shape_base(base: &TypeExpr) -> bool {
+    matches!(base, TypeExpr::Path { segments, .. } if segments.len() == 1 && segments[0].as_ref() == "infer_shape")
+}
+
+/// Whether `te` mentions `infer_shape<S>` (D28) anywhere. A function whose
+/// declared return type does asserts a dynamically-built value matches the
+/// shape-derived type (`object_schema<Shape> -> Schema<infer_shape<Shape>>`);
+/// the emitter casts exactly those returns. Every other generic return is
+/// checked precisely by `tsc` with no cast.
+fn type_mentions_infer_shape(te: &TypeExpr) -> bool {
     match te {
-        TypeExpr::Path { segments, .. } => segments.iter().any(|s| is_gen(s)),
+        TypeExpr::Path { .. } => false,
         TypeExpr::Generic { base, args, .. } => {
-            type_references_generic(base, generics)
-                || args.iter().any(|a| type_references_generic(a, generics))
+            is_infer_shape_base(base) || args.iter().any(type_mentions_infer_shape)
         }
         TypeExpr::Fn {
             params, return_ty, ..
         } => {
             params
                 .iter()
-                .any(|p: &FnTypeParam| type_references_generic(&p.ty, generics))
+                .any(|p: &FnTypeParam| type_mentions_infer_shape(&p.ty))
                 || return_ty
                     .as_ref()
-                    .is_some_and(|r| type_references_generic(r, generics))
+                    .is_some_and(|r| type_mentions_infer_shape(r))
         }
         TypeExpr::Record { fields, .. } => {
-            fields.iter().any(|f| type_references_generic(&f.ty, generics))
+            fields.iter().any(|f| type_mentions_infer_shape(&f.ty))
         }
         TypeExpr::Union { .. } => false,
     }
@@ -4741,13 +4780,36 @@ mod tests {
     }
 
     #[test]
-    fn generic_return_casts_the_returned_value() {
-        // A function whose return type references its own generic parameter
-        // casts its return value to that type — the v1 infer_shape stand-in, so
-        // a value the body cannot prove matches the caller's type parameter
-        // (e.g. `object_schema<Out>` returning a `Record` as `Out`) type-checks.
+    fn honest_generic_return_is_not_cast() {
+        // A function whose return type is just its own generic parameter is
+        // checked precisely by tsc — no cast. The pre-0.1.10 blanket cast on
+        // any generic return is gone (D28).
         let ts = emit("module x\nfn id<T>(x: T) -> T { return x }\n");
-        assert!(ts.contains("return x as T;"), "{ts}");
+        assert!(ts.contains("return x;"), "{ts}");
+        assert!(!ts.contains("as T"), "honest generic return is cast-free: {ts}");
+    }
+
+    #[test]
+    fn infer_shape_return_carries_the_one_cast_and_alias() {
+        // A return type mentioning `infer_shape<S>` (D28) is the single case that
+        // still casts: the combinator asserts a dynamically-built value matches
+        // the shape-derived type. The module also gets the injected mapped-type
+        // alias `infer_shape` lowers to.
+        let ts = emit(
+            "module x\nfn s<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_shape<Shape>> {\n  return shape\n}\n",
+        );
+        assert!(
+            ts.contains("type __GlyphInferShape<S> = { [K in keyof S]: S[K] extends Schema<infer V> ? V : never };"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains(": Schema<__GlyphInferShape<Shape>> {"),
+            "return type lowers infer_shape: {ts}"
+        );
+        assert!(
+            ts.contains("as Schema<__GlyphInferShape<Shape>>;"),
+            "the one boundary cast: {ts}"
+        );
     }
 
     #[test]
@@ -4778,16 +4840,16 @@ mod tests {
     }
 
     #[test]
-    fn a_returned_lambda_body_does_not_inherit_the_generic_cast() {
-        // The cast sits on the function's own returned value; a lambda the
-        // function returns keeps its own (un-cast) returns — the outer cast
-        // already covers the lambda field's mismatch.
+    fn a_returned_lambda_body_does_not_inherit_the_infer_shape_cast() {
+        // The one `infer_shape` boundary cast sits on the function's own
+        // returned value; a lambda the function returns keeps its own (un-cast)
+        // returns — the sub-emitter resets `return_cast`.
         let ts = emit(
-            "module x\nfn mk<T>(v: T) -> fn() -> T {\n  return fn() { v }\n}\n",
+            "module x\nfn mk<Shape: Record<string, Schema<unknown>>>(v: Shape) -> fn() -> infer_shape<Shape> {\n  return fn() { v }\n}\n",
         );
         // The function return is cast; the lambda's `v` is not.
-        assert!(ts.contains("as () => T;"), "{ts}");
-        assert!(!ts.contains("v as T"), "{ts}");
+        assert!(ts.contains("as () => __GlyphInferShape<Shape>;"), "{ts}");
+        assert!(!ts.contains("v as "), "{ts}");
     }
 
     #[test]

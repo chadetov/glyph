@@ -53,6 +53,17 @@ Principle: **prefer the choice an established language has already validated, un
 - **D24. `@redact fields: [...]` marks PII fields for masking.** `@redact fields: [diagnosis, notes]` above a `type` declaration adds a `redact(value)` method to that type's runtime descriptor, returning a copy with those fields replaced by a redaction sentinel; you call it before logging or serializing (e.g. `json.stringify(User.redact(u))`). The field names are checked against the type at compile time (`E0219`), so a typo is a hard error, not a silent no-op. **Honest scope:** this is an opt-in helper you invoke, not automatic boundary interception — masking every serialize/log site automatically would need a runtime value tag and is future work (`json.stringify(u)` on the raw value still leaks). *[verifiability]*
 - **D26. `@doc """ ... """` blocks with `@run` fences are executable documentation.** Triple-quoted `@doc` blocks contain Markdown. ` ```glyph @run ` fenced blocks inside the doc are compiled and executed on every `glyph build`. Failed `assert` inside a `@run` block fails the build. Same compile-time-execution machinery as D23 `@example`. *[verifiability — docs cannot rot]*
 
+## Type-level operators (0.1.10)
+
+- **D28. `infer_shape<S>` derives a record type from a record of schemas.** `infer_shape<S>` is a built-in type-level operator: for a record type `S` whose fields are `Schema<V>`, it produces the record `{ field: V, ... }` — each field's `Schema<V>` unwrapped to its parsed type `V` (a non-`Schema` field maps to `never`). It is written like an ordinary generic application, so no grammar change is needed; it is recognized by name in the prelude. It exists so a validator combinator's **output type is derived from its input shape** instead of being a second, hand-synced type parameter the caller must keep correct:
+
+  ```glyph
+  fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_shape<Shape>> { ... }
+  const user_schema: Schema<User> = object_schema({ name: string_schema(), age: number_schema() })
+  ```
+
+  Here `User` is now **checked** against the shape (a shape missing a field of `User` fails to compile), where the pre-0.1.10 `<Out>` parameter was merely trusted. `infer_shape<S>` lowers to a single per-module TS mapped type (`{ [K in keyof S]: S[K] extends Schema<infer V> ? V : never }`) that references the `Schema` in scope, so `tsc` reduces it at each call site; the mapped-type machinery stays hidden behind the one greppable operator name. A combinator that dynamically builds a value of a shape-derived type carries **one** compiler-inserted boundary cast, emitted **only** when the return type mentions `infer_shape` — the one place the runtime genuinely assembles the value from `unknown`. Honest generics (return type is `T`, `Result<T, E>`, `Array<T>`, …) emit with no cast at all. *[verifiability — the shape is the single source of truth and `tsc` enforces the derived type at every call site; greppability — one named operator instead of inline mapped-type syntax]*
+
 ## Evaluation semantics and the prelude (not grammar decisions)
 
 These are normative behaviors that no single D-decision captures. They are facts
@@ -77,7 +88,7 @@ an agent needs and previously had to discover by reading the compiler.
 
 | Pillar | Decisions |
 |---|---|
-| Verifiability | D5, D16, D23, D24, D25, D26 |
+| Verifiability | D5, D16, D23, D24, D25, D26, D28 |
 | Greppability | D1, D4, D10, D14, D19, D20, D21 |
 | Diff stability | D2, D8, D15, D17 |
 | Abstraction | D3, D6, D9, D12, D22, D27 |

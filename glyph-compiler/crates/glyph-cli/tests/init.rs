@@ -27,6 +27,12 @@ fn scaffold_writes_a_runnable_starter() {
     let pkg = std::fs::read_to_string(dir.join("package.json")).unwrap();
     assert!(pkg.contains("\"glyph\""), "package.json lacks the glyph key");
     assert!(pkg.contains(&format!("\"name\": \"{}\"", dir.file_name().unwrap().to_string_lossy())));
+    // C5: the toolchain is pinned so `glyph run`/`build` resolve a consistent
+    // TypeScript across a team. The scaffold must be valid JSON with both pins.
+    let parsed: serde_json::Value = serde_json::from_str(&pkg).expect("package.json is valid JSON");
+    let dev = &parsed["devDependencies"];
+    assert!(dev["typescript"].is_string(), "pins typescript: {pkg}");
+    assert!(dev["tsx"].is_string(), "pins tsx: {pkg}");
 
     // The generated program must compile through the real pipeline (no tsc needed
     // here; build_project_inner emits TypeScript and reports diagnostics).

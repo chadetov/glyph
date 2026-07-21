@@ -27,6 +27,13 @@ impl std::fmt::Display for InitError {
     }
 }
 
+/// Toolchain versions pinned into a scaffolded project's `devDependencies`, so
+/// `glyph run`/`build` (which shell out to `tsx`/`tsc`) resolve a consistent
+/// TypeScript across a team. `typescript` tracks the major the compiler's own CI
+/// type-checks against (the classic checker); `tsx` is the runner.
+const SCAFFOLD_TYPESCRIPT: &str = "^6.0.0";
+const SCAFFOLD_TSX: &str = "^4.19.0";
+
 const MAIN_GLYPH: &str = "module main\n\
 \n\
 import std/io\n\
@@ -64,6 +71,10 @@ pub fn scaffold(dir: &Path) -> Result<InitReport, InitError> {
 \x20 }},\n\
 \x20 \"glyph\": {{\n\
 \x20\x20\x20 \"src\": \"src\"\n\
+\x20 }},\n\
+\x20 \"devDependencies\": {{\n\
+\x20\x20\x20 \"typescript\": \"{SCAFFOLD_TYPESCRIPT}\",\n\
+\x20\x20\x20 \"tsx\": \"{SCAFFOLD_TSX}\"\n\
 \x20 }}\n\
 }}\n"
     );

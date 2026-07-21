@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Why not just strict TypeScript + zod + eslint + ts-pattern? — Glyph</title>
+    <meta name="description" content="Tooled TypeScript gets you far — but every guarantee is opt-in and an agent can route around it. Glyph's strictness is the language, not a config: non-optional, type-is-the-validator, greppable mutation. An honest comparison." />
+    <link rel="canonical" href="https://glyphlang.io/answers/vs-tooled-ts/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/" class="active"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/ai-authoring/"><span class="n">11</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">12</span> Editor &amp; debugging</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">10 &middot; The real comparison</p>
+      <h1 class="q-title">Why not just strict TypeScript + zod + eslint + ts-pattern?</h1>
+
+      <p class="short-answer">
+        Because every one of those guarantees is <strong>opt-in</strong>, and an agent can route
+        around each of them in one line. Glyph's strictness isn't a config file the agent can edit
+        &mdash; it's the language. The enforcement point moves from "did we remember to lint this
+        file" to "does it compile."
+      </p>
+
+      <div class="detail">
+        <p class="block-label">First, the honest concession</p>
+        <p>
+          A well-configured TypeScript setup gets you a long way, and if your team runs all of it in
+          CI you've already closed most of the gaps Glyph targets. Credit where it's due &mdash; this
+          is the real alternative, so here's the honest mapping:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">what tooled TypeScript already gives you</span>
+<pre>no `any`            <span class="cm">→ noImplicitAny + @typescript-eslint/no-explicit-any</span>
+exhaustive match    <span class="cm">→ ts-pattern .exhaustive() (compile-time, today)</span>
+errors as values    <span class="cm">→ neverthrow / Effect</span>
+runtime validation  <span class="cm">→ zod at every boundary</span>
+must-handle errors  <span class="cm">→ an eslint rule</span>
+deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          If you have all that wired up and enforced, you're most of the way there. So the question
+          isn't "does TypeScript lack these ideas" &mdash; it's "what does bundling them into a
+          language, non-optionally, actually buy." Three things.
+        </p>
+
+        <p class="block-label"><span class="ex-label">01</span> Non-optional beats opt-in</p>
+        <p>
+          Your eslint config only protects code the agent routes <em>through</em> it &mdash; and the
+          agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>,
+          <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>,
+          and it still compiles and merges. Every one of those escape hatches is a config the agent
+          can edit. Glyph has no such hatch to reach for: there is no <code>as</code>, no ignore
+          pragma, no way to get a typed value out of <code>unknown</code> without a check the compiler
+          can see.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">TypeScript &mdash; the hatches exist</span>
+          <span class="cap">handler.ts</span>
+<pre>const user = body as unknown as User;
+<span class="cm">// @ts-ignore</span>
+doThing(user.mispelled);
+<span class="cm">// eslint-disable-next-line</span>
+return anything as any;</pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph &mdash; nothing to disable</span>
+          <span class="cap">handler.glyph</span>
+<pre>return match User.parse(body) {
+  Ok(user) =&gt; use(user),
+  Err(_) =&gt; fallback(),
+}
+<span class="cm">// no `as`, no ignore pragma,</span>
+<span class="cm">// no lint to switch off.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="callout">
+          The strictness the agent <strong>cannot config-disable</strong> is a categorically
+          different enforcement point than the strictness it can. That's the whole bet.
+        </p>
+
+        <p class="block-label"><span class="ex-label">02</span> The type is the validator &mdash; no second artifact</p>
+        <p>
+          zod inverts your source of truth: you write the <em>schema</em>, derive the type from it,
+          and then keep the type, the schema, and any serializer in sync by hand. Keeping those
+          aligned is exactly where an agent introduces drift &mdash; it renames a field in the type
+          and not the schema, and both still compile. In Glyph the type <em>is</em> the validator:
+          declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it.
+          One artifact, nothing to keep in sync, nothing to forget.
+        </p>
+
+        <p class="block-label"><span class="ex-label">03</span> Greppable mutation</p>
+        <p>
+          In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>,
+          <code>Object.assign</code>, a setter, or a spread &mdash; there's no single token to search
+          for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every
+          change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code>
+          finds every local mutation. That's a property you can't buy for stock TypeScript at any
+          price.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">The failure-mode diff</p>
+        <p>
+          Same task, an agent adds a variant to a union and forgets to handle it in one of three
+          places:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="tag-bad">tooled TS</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it —</span>
+<span class="cm">// IF every site used ts-pattern and</span>
+<span class="cm">// nobody wrote a plain switch or</span>
+<span class="cm">// a default: case. One that didn't</span>
+<span class="cm">// compiles green and returns undefined.</span></pre>
+        </div>
+        <div class="code">
+          <span class="tag-good">Glyph</span>
+<pre><span class="del">[E0200] non-exhaustive match on
+`Feed`: missing variant `Archived`</span>
+<span class="cm">// every unhandled match, everywhere,</span>
+<span class="cm">// fails the build. No opt-in, no</span>
+<span class="cm">// escape, no forgotten default.</span></pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Where tooled TypeScript is still ahead (the honest edge)</p>
+        <p>
+          This cuts both ways, and pretending otherwise would be exactly the dishonesty this page is
+          trying to avoid:
+        </p>
+        <ul style="color: var(--muted); line-height: 1.7; margin: 0 0 16px; padding-left: 22px;">
+          <li><strong>Richer validation.</strong> zod has refinements (<code>.email()</code>,
+            <code>.min(3)</code>, custom predicates) that Glyph's generated descriptor doesn't; and a
+            Glyph record check doesn't yet reject <em>extra</em> keys. For rich per-field rules today,
+            zod is ahead.</li>
+          <li><strong>Deeper matching.</strong> ts-pattern's guards and deep structural patterns go
+            beyond what Glyph's <code>match</code> expresses.</li>
+          <li><strong>"Provable absence" stops at the <code>.ts</code> boundary.</strong> Glyph's
+            guarantees hold for code Glyph authored; a thrown exception from an npm dependency still
+            bypasses <code>Result</code>, and an imported <code>.d.ts</code> type carries no runtime
+            descriptor.</li>
+          <li><strong>Ecosystem and hiring.</strong> The TypeScript tooling, community, and hiring
+            pool are enormous and battle-tested. Glyph is an early preview.</li>
+        </ul>
+        <p>
+          So the honest summary: if you've fully wired tooled TypeScript and your agents stay inside
+          it, you've got most of this. Glyph's argument is that "stay inside it" is the load-bearing
+          phrase &mdash; and it's the phrase an agent breaks. Non-optionality, one-artifact
+          validation, and greppable mutation are the parts you genuinely cannot get by adding more
+          opt-in tools.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>No <code>any</code>/<code>as</code>, exhaustive <code>match</code> (<code>E0200</code>/<code>E0218</code>), discarded-<code>Result</code> warning (<code>E0217</code>), type-generated validators, and greppable mutation &mdash; all non-optional, none an eslint rule you can disable.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Being measured</p>
+          <p>The claim that agents produce fewer escaped defects in Glyph than in <em>well-configured</em> strict TS is the benchmark we're building &mdash; against tooled TS, not naive TS. See the <a href="/benchmarks/">benchmarks</a>.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/why-typescript/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Why TypeScript, and not Go or a new language?</span>
+        </a>
+        <a href="/answers/ai-authoring/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">Can an AI agent actually author correct Glyph?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -387,6 +387,7 @@ pub fn emit_module_mapped(
         used_try: Rc::new(Cell::new(false)),
         used_schema: Rc::new(Cell::new(false)),
         used_infer_shape: Rc::new(Cell::new(false)),
+        desc_param_guards: RefCell::new(Vec::new()),
         return_cast: None,
         loop_labels: Vec::new(),
         module,
@@ -422,6 +423,12 @@ struct Emitter<'a> {
     /// the one injected mapped-type alias (`__GlyphInferShape`) it lowers to.
     /// Shared across sub-emitters via the `Rc<Cell>` like the flags above.
     used_infer_shape: Rc<Cell<bool>>,
+    /// Type-parameter guard bindings in scope while a *generic* record
+    /// descriptor's field checks are generated: `(param name, guard var)` pairs
+    /// such as `("T", "__is_T")`. A field typed `T` is validated by calling its
+    /// threaded checker instead of a presence check. Empty for non-generic
+    /// descriptors (the common case), so their emission is unchanged.
+    desc_param_guards: RefCell<Vec<(String, String)>>,
     /// The declared return type (rendered) the current function's `return`
     /// values must be cast to, set only when that type mentions `infer_shape<S>`
     /// (D28) — a combinator asserting a dynamically-built value matches the
@@ -475,6 +482,9 @@ impl<'a> Emitter<'a> {
             used_try: Rc::clone(&self.used_try),
             used_schema: Rc::clone(&self.used_schema),
             used_infer_shape: Rc::clone(&self.used_infer_shape),
+            // Descriptor field checks are generated on the main emitter, never a
+            // sub-emitter (lambda/IIFE) body, so a sub starts with no guards.
+            desc_param_guards: RefCell::new(Vec::new()),
             // A sub-emitter (lambda body, value-position match IIFE) does not
             // inherit the function's return cast; its returns are not the
             // function's. `emit_fn_block` sets it from the lambda's own type.
@@ -692,16 +702,14 @@ impl<'a> Emitter<'a> {
                 let generics = self.generics(&t.generics)?;
                 let body = self.ty(&t.body)?;
                 self.line(&format!("export type {}{generics} = {body};", t.name));
-                // Q8: a non-generic record type also emits a runtime descriptor
-                // whose `is` predicate makes `is TypeName` checks work at
-                // runtime (no type erasure). Generic records need their type
-                // arguments at the call site and are deferred.
+                // Q8: a record type also emits a runtime descriptor whose `is`
+                // predicate makes `is TypeName` checks work at runtime (no type
+                // erasure). A generic record emits a checker-threaded descriptor
+                // (its `is`/`parse` take one checker per type parameter).
                 if let TypeExpr::Record { fields, .. } = &t.body {
-                    if t.generics.is_empty() {
-                        let redact = glyph_ast::redact_fields(&t.annotations).unwrap_or_default();
-                        let open = glyph_ast::is_open_record(&t.annotations);
-                        self.emit_record_descriptor(&t.name, fields, &redact, open);
-                    }
+                    let redact = glyph_ast::redact_fields(&t.annotations).unwrap_or_default();
+                    let open = glyph_ast::is_open_record(&t.annotations);
+                    self.emit_record_descriptor(&t.name, &t.generics, fields, &redact, open)?;
                 }
                 Ok(())
             }
@@ -725,20 +733,61 @@ impl<'a> Emitter<'a> {
     /// correct even for a record whose name shadows the `parse` parameter (a
     /// type literally named `value`).
     ///
+    /// A **generic** record type (`Paginated<T>`) emits the same descriptor with
+    /// `is`/`parse` as generic methods that take one runtime checker per type
+    /// parameter (`__is_T: (v) => boolean`). A field typed `T` is validated by
+    /// calling that checker; the call site supplies it (`Paginated.parse<User>(v)`
+    /// passes a checker built from `User`). A generic descriptor omits the
+    /// `schema` member (a `Schema<Paginated<T>>` factory would need the checker
+    /// threaded too — later work) and `redact`.
+    ///
     /// **Soundness limitation**: the remaining shallow cases are the
-    /// `field_value_check` fallbacks — a bare generic parameter or an imported
-    /// (`.d.ts`) type are only checked for presence (`!== undefined`), so their
-    /// `value is X` narrowing is stronger than the runtime proof. Closing those
-    /// needs generic/imported descriptors (later work); an imported type gets a
-    /// real descriptor once materialized with `glyph gen dts`.
+    /// `field_value_check` fallbacks — a bare *unconstrained* type argument or an
+    /// imported (`.d.ts`) type are only checked for presence (`!== undefined`),
+    /// so their `value is X` narrowing is stronger than the runtime proof. An
+    /// imported type gets a real descriptor once materialized with `glyph gen dts`.
     fn emit_record_descriptor(
         &mut self,
         name: &Ident,
+        generics: &[GenericParam],
         fields: &[RecordTypeField],
         redact: &[String],
         open: bool,
-    ) {
+    ) -> Result<(), EmitError> {
+        let is_generic = !generics.is_empty();
+        // `<T extends Bound>` for the method signatures; `<T>` for the predicate
+        // type (`value is Name<T>`) and the internal `this.is<T>(...)` call.
+        let decl_generics = self.generics(generics)?;
+        let type_args = if is_generic {
+            format!(
+                "<{}>",
+                generics
+                    .iter()
+                    .map(|g| g.name.as_ref())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        } else {
+            String::new()
+        };
+        let self_ty = format!("{name}{type_args}");
+        // One `__is_T: (v) => boolean` parameter per type parameter, after `value`.
+        let checker_params: Vec<String> = generics
+            .iter()
+            .map(|g| format!("{}: (v: unknown) => boolean", Self::guard_param_name(g.name.as_ref())))
+            .collect();
+        let entry_params = std::iter::once("value: unknown".to_string())
+            .chain(checker_params.iter().cloned())
+            .collect::<Vec<_>>()
+            .join(", ");
+        // Bind the guards so `field_value_check` validates a `T`-typed field with
+        // its threaded checker while the field checks are generated, then clear.
+        *self.desc_param_guards.borrow_mut() = generics
+            .iter()
+            .map(|g| (g.name.to_string(), Self::guard_param_name(g.name.as_ref())))
+            .collect();
         let mut checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
+        self.desc_param_guards.borrow_mut().clear();
         // Strict-by-default: reject a value carrying keys the type doesn't
         // declare (mass-assignment / leaked-field protection). `@open` opts out.
         // The key set is closed over the declared field names; an empty record
@@ -759,7 +808,7 @@ impl<'a> Emitter<'a> {
         }
         self.line(&format!("export const {name} = {{"));
         self.indent += 1;
-        self.line(&format!("is(value: unknown): value is {name} {{"));
+        self.line(&format!("is{decl_generics}({entry_params}): value is {self_ty} {{"));
         self.indent += 1;
         if checks.is_empty() {
             self.line("return typeof value === \"object\" && value !== null;");
@@ -777,16 +826,21 @@ impl<'a> Emitter<'a> {
         // The `parse` entry point reuses the `is` guard, then wraps the value in
         // a `Result`. The return type and the values are the inline `Result`
         // shape; `Ok`'s payload is the narrowed value, `Err`'s is a message.
-        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
+        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {self_ty} }}");
         let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
-        self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
+        self.line(&format!("parse{decl_generics}({entry_params}): {ok_ty} | {err_ty} {{"));
         self.indent += 1;
         // Call the sibling guard through `this`, not by the descriptor's name:
         // a record named after the `value` parameter (or any name) would
         // otherwise be shadowed by the parameter and `.is` would dispatch on
         // the `unknown` argument. `this` is the descriptor object at every call
-        // site the compiler emits (`T.parse(x)`).
-        self.line("return this.is(value)");
+        // site the compiler emits (`T.parse(x)`). A generic `parse` forwards its
+        // type arguments and threaded checkers to the `is` guard.
+        let is_call_args = std::iter::once("value".to_string())
+            .chain(generics.iter().map(|g| Self::guard_param_name(g.name.as_ref())))
+            .collect::<Vec<_>>()
+            .join(", ");
+        self.line(&format!("return this.is{type_args}({is_call_args})"));
         self.indent += 1;
         self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
         self.line(&format!(
@@ -799,18 +853,21 @@ impl<'a> Emitter<'a> {
         // prelude factory (the factory carries the recursive `array()`). The
         // guard references the descriptor by name in a lazy closure — `this` is
         // not the descriptor object inside this object literal, but the closure
-        // only runs once the `const` is initialized.
-        self.used_schema.set(true);
-        self.line(&format!(
-            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
-        ));
+        // only runs once the `const` is initialized. A generic descriptor omits
+        // `schema` (the factory would need the per-parameter checker too).
+        if !is_generic {
+            self.used_schema.set(true);
+            self.line(&format!(
+                "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
+            ));
+        }
         // D24 `@redact`: a `redact(value)` that returns a serialization-safe copy
         // with the named PII fields replaced by a sentinel. Emitted only when the
         // type carries `@redact fields: [...]`. The return type is a plain object
         // (not `name`), since the masked fields no longer hold their declared
         // types — the copy is for logging/`json.stringify`, not continued typed
         // use. Additive: it never touches `is`/`parse`/`schema`.
-        if !redact.is_empty() {
+        if !redact.is_empty() && !is_generic {
             let masks: String = redact
                 .iter()
                 .map(|f| format!("\"{f}\": \"{REDACTION_SENTINEL}\""))
@@ -822,6 +879,7 @@ impl<'a> Emitter<'a> {
         }
         self.indent -= 1;
         self.line("};");
+        Ok(())
     }
 
     fn emit_import(&mut self, im: &ImportDecl) -> Result<(), EmitError> {
@@ -2193,6 +2251,24 @@ impl<'a> Emitter<'a> {
                         },
                         _ => Some(format!("Array.isArray({m})")),
                     },
+                    // `is Paginated<User>` on a module-local generic descriptor:
+                    // call its `is` with the type arguments (to narrow) and a
+                    // synthesized checker per argument.
+                    Some(gname) if self.has_generic_descriptor(gname) => {
+                        let mut targ_strs = Vec::with_capacity(args.len());
+                        for a in args {
+                            targ_strs.push(self.ty(a).ok()?);
+                        }
+                        let checkers = args
+                            .iter()
+                            .map(|a| self.checker_lambda(a))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        Some(format!(
+                            "{gname}.is<{}>({m}, {checkers})",
+                            targ_strs.join(", ")
+                        ))
+                    }
                     _ => None,
                 },
                 _ => None,
@@ -2214,6 +2290,45 @@ impl<'a> Emitter<'a> {
             },
             _ => false,
         })
+    }
+
+    /// True if `name` is a module-local *generic* record type, which now emits a
+    /// descriptor whose `is`/`parse` take one runtime checker per type parameter
+    /// (`__is_T`). Distinct from `has_local_descriptor` (non-generic only): a
+    /// generic descriptor's entry points cannot be called without checker args.
+    fn has_generic_descriptor(&self, name: &str) -> bool {
+        self.module.items.iter().any(|d| match d {
+            Decl::Type(t) if t.name.as_ref() == name && !t.generics.is_empty() => {
+                matches!(&t.body, TypeExpr::Record { .. })
+            }
+            _ => false,
+        })
+    }
+
+    /// The guard variable (`__is_T`) for a type parameter `name` in scope while a
+    /// generic descriptor's field checks are generated, or `None` when `name` is
+    /// not one of the current descriptor's parameters.
+    fn param_guard(&self, name: &str) -> Option<String> {
+        self.desc_param_guards
+            .borrow()
+            .iter()
+            .find(|(p, _)| p == name)
+            .map(|(_, g)| g.clone())
+    }
+
+    /// A runtime checker `(v) => boolean` validating a value against `ty`, for
+    /// passing as a generic descriptor's per-parameter checker argument. Reuses
+    /// `field_value_check`, so a concrete type argument (`User`, `number`,
+    /// `Array<User>`, a nested generic) is validated as deeply as a field of that
+    /// type would be; an opaque argument falls back to the presence floor.
+    fn checker_lambda(&self, ty: &TypeExpr) -> String {
+        format!("(__cv: unknown) => {}", self.field_value_check(ty, "__cv"))
+    }
+
+    /// The guard-parameter name a generic descriptor threads for type parameter
+    /// `param` (`T` -> `__is_T`). Single-sourced so emission and call sites agree.
+    fn guard_param_name(param: &str) -> String {
+        format!("__is_{param}")
     }
 
     /// One field's runtime check inside a record descriptor's `is` predicate. A
@@ -2270,10 +2385,18 @@ impl<'a> Emitter<'a> {
             return format!("typeof {access} === \"{jt}\"");
         }
         match ty {
-            TypeExpr::Path { segments, .. }
-                if segments.len() == 1 && self.has_local_descriptor(segments[0].as_ref()) =>
-            {
-                format!("{}.is({access})", segments[0])
+            TypeExpr::Path { segments, .. } if segments.len() == 1 => {
+                let name = segments[0].as_ref();
+                if let Some(guard) = self.param_guard(name) {
+                    // A field typed as one of the enclosing generic descriptor's
+                    // parameters: validate it with the checker threaded in at the
+                    // call site, not a presence check.
+                    format!("{guard}({access})")
+                } else if self.has_local_descriptor(name) {
+                    format!("{name}.is({access})")
+                } else {
+                    format!("{access} !== undefined")
+                }
             }
             TypeExpr::Generic { base, args, .. } => {
                 let base_name = match base.as_ref() {
@@ -2304,6 +2427,18 @@ impl<'a> Emitter<'a> {
                         format!(
                             "(typeof {access} === \"object\" && {access} !== null && !Array.isArray({access}) && Object.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))"
                         )
+                    }
+                    // A field typed as a module-local generic record
+                    // (`Paginated<User>`): call its descriptor's `is` with a
+                    // synthesized checker per type argument. Type arguments are
+                    // omitted here because the call is used only as a boolean.
+                    (Some(gname), _) if self.has_generic_descriptor(gname) => {
+                        let checkers = args
+                            .iter()
+                            .map(|a| self.checker_lambda(a))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        format!("{gname}.is({access}, {checkers})")
                     }
                     _ => format!("{access} !== undefined"),
                 }
@@ -2595,6 +2730,68 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// Rewrite `Paginated.parse<User>(v)` on a module-local generic descriptor
+    /// into `Paginated.parse<User>(v, <checker for User>)`, appending one
+    /// synthesized checker per type argument (its `parse`/`is` need a runtime
+    /// checker per type parameter). Returns `None` for any non-matching call —
+    /// a non-descriptor receiver, a wrong arity, or missing type arguments —
+    /// where the call is emitted verbatim.
+    fn try_generic_descriptor_parse(
+        &self,
+        callee: &Expr,
+        type_args: &[TypeExpr],
+        args: &[Expr],
+    ) -> Result<Option<String>, EmitError> {
+        let Expr::Member { object, field, optional: false, .. } = callee else {
+            return Ok(None);
+        };
+        if field.as_ref() != "parse" {
+            return Ok(None);
+        }
+        let Expr::Ident { name, .. } = object.as_ref() else {
+            return Ok(None);
+        };
+        let arity = self.generic_descriptor_arity(name.as_ref());
+        // The type arguments must be given explicitly and match the arity; the
+        // checker for each is synthesized from it. Anything else is not a call we
+        // can complete soundly, so leave it for `tsc` to judge.
+        if arity == 0 || type_args.len() != arity {
+            return Ok(None);
+        }
+        let mut targ_strs = Vec::with_capacity(type_args.len());
+        for ta in type_args {
+            targ_strs.push(self.ty(ta)?);
+        }
+        let targs = format!("<{}>", targ_strs.join(", "));
+        let mut call_args = Vec::with_capacity(args.len() + type_args.len());
+        for arg in args {
+            call_args.push(self.expr(arg)?);
+        }
+        for ta in type_args {
+            call_args.push(self.checker_lambda(ta));
+        }
+        Ok(Some(format!("{name}.parse{targs}({})", call_args.join(", "))))
+    }
+
+    /// The number of type parameters of a module-local generic record
+    /// descriptor `name`, or `0` when `name` is not one.
+    fn generic_descriptor_arity(&self, name: &str) -> usize {
+        self.module
+            .items
+            .iter()
+            .find_map(|d| match d {
+                Decl::Type(t)
+                    if t.name.as_ref() == name
+                        && !t.generics.is_empty()
+                        && matches!(&t.body, TypeExpr::Record { .. }) =>
+                {
+                    Some(t.generics.len())
+                }
+                _ => None,
+            })
+            .unwrap_or(0)
+    }
+
     /// Whether `name` is the local binding of a `std/json` namespace import
     /// (`import std/json` -> `json`, or `import std/json as j` -> `j`), so a
     /// `<name>.parse<T>` call is the stdlib JSON parse and not a user method.
@@ -2704,10 +2901,17 @@ impl<'a> Emitter<'a> {
                 type_args,
                 args,
                 ..
-            } => match self.try_json_parse_validating(callee, type_args, args)? {
-                Some(rewritten) => rewritten,
-                None => format!("{}{}", self.expr(callee)?, self.call_suffix(type_args, args)?),
-            },
+            } => {
+                if let Some(rewritten) = self.try_json_parse_validating(callee, type_args, args)? {
+                    rewritten
+                } else if let Some(rewritten) =
+                    self.try_generic_descriptor_parse(callee, type_args, args)?
+                {
+                    rewritten
+                } else {
+                    format!("{}{}", self.expr(callee)?, self.call_suffix(type_args, args)?)
+                }
+            }
             Expr::Member {
                 object,
                 field,
@@ -4042,10 +4246,53 @@ mod tests {
     }
 
     #[test]
-    fn generic_record_gets_no_descriptor() {
+    fn generic_record_emits_a_checker_threaded_descriptor() {
+        // A generic record now emits a descriptor whose `is`/`parse` take one
+        // runtime checker per type parameter, and a `T`-typed field is validated
+        // with that checker (not presence). It omits the `schema` member.
         let ts = emit("module x\ntype Box<T> = { value: T }\n");
         assert!(ts.contains("export type Box<T> = { value: T };"), "{ts}");
-        assert!(!ts.contains("export const Box"), "{ts}");
+        assert!(ts.contains("export const Box = {"), "{ts}");
+        assert!(
+            ts.contains("is<T>(value: unknown, __is_T: (v: unknown) => boolean): value is Box<T> {"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("parse<T>(value: unknown, __is_T: (v: unknown) => boolean):"),
+            "{ts}"
+        );
+        assert!(ts.contains("return this.is<T>(value, __is_T)"), "{ts}");
+        // The `value: T` field is validated by the threaded checker.
+        assert!(
+            ts.contains("__is_T((value as Record<string, unknown>).value)"),
+            "T-typed field uses the checker: {ts}"
+        );
+        // No `schema` member for a generic descriptor.
+        assert!(!ts.contains("schema: __glyph_schema<Box"), "{ts}");
+    }
+
+    #[test]
+    fn generic_descriptor_parse_call_threads_a_checker() {
+        // `Box.parse<User>(v)` appends a checker synthesized from `User`.
+        let ts = emit(
+            "module x\ntype User = { name: string }\ntype Box<T> = { value: T }\nfn f(v: unknown) -> string {\n  return match Box.parse<User>(v) {\n    Ok(_) => \"ok\",\n    Err(_) => \"no\",\n  }\n}\n",
+        );
+        assert!(
+            ts.contains("Box.parse<User>(v, (__cv: unknown) => User.is(__cv))"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn is_pattern_on_a_generic_descriptor_threads_a_checker() {
+        // `is Box<User>` narrows via `Box.is<User>(m, checker)`.
+        let ts = emit(
+            "module x\ntype User = { name: string }\ntype Box<T> = { value: T }\nfn f(v: unknown) -> string {\n  return match v {\n    is Box<User> => \"box\",\n    else => \"no\",\n  }\n}\n",
+        );
+        assert!(
+            ts.contains("Box.is<User>(") && ts.contains("(__cv: unknown) => User.is(__cv)"),
+            "{ts}"
+        );
     }
 
     #[test]

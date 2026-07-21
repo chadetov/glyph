@@ -1,0 +1,25 @@
+// A generic record type now carries a runtime descriptor. `Paginated.parse<User>`
+// validates the payload deeply -- each item is checked as a `User`, not merely
+// for presence -- by threading a per-type-parameter checker.
+module generic_descriptor
+
+type User = { name: string }
+
+type Paginated<T> = { items: Array<T>, total: number }
+
+// `Paginated.parse<User>(v)` returns Ok only when `v` is a page whose `items`
+// are all Users; the compiler synthesizes the `User` checker at the call site.
+fn read_page(v: unknown) -> number {
+  return match Paginated.parse<User>(v) {
+    Ok(page) => page.total,
+    Err(_) => 0,
+  }
+}
+
+// The `is` pattern validates just as deeply.
+fn is_user_page(v: unknown) -> bool {
+  return match v {
+    is Paginated<User> => true,
+    else => false,
+  }
+}

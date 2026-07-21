@@ -262,11 +262,21 @@ generic edges). 0.1.10 closes the engineering behind them:
   silently discarded `<T: Bound>` (D28's `object_schema<Shape: Record<...>>` was
   the first program to exercise it), which changed the emitted TS. The formatter
   now round-trips bounds; caught by the round-trip semantics test.
-- **Generic / imported-type descriptors** (L) — still open, now the top remaining
-  item. `T.parse` runtime-checks a generic or imported field only for presence
-  (`!== undefined`, per the emitter's own comment at `glyph-emit/src/lib.rs`), so
-  it can return `Ok` for a value that isn't fully a `T`. Give generic records and
-  `.d.ts`-imported types real descriptors so `T.parse` can't lie.
+- **Generic-type descriptors** (L) — ✅ **done.** A generic record type
+  (`Paginated<T>`) now emits a descriptor whose `is`/`parse` take one runtime
+  checker per type parameter (`__is_T`). `Paginated.parse<User>(v)` and
+  `match v { is Paginated<User> => ... }` validate the payload *deeply* — each
+  element is checked as a `User`, not just for presence — the compiler
+  synthesizes the checker from the type argument at the call site (reusing the
+  recursive `field_value_check`, the same machinery `json.parse<T>` routing uses).
+  A generic descriptor omits the `.schema` member (a `Schema<Paginated<T>>`
+  factory would need the checker threaded too). Function-typed fields were also
+  tightened from presence to `typeof === "function"`.
+- **Imported-type descriptors** (M) — still open. A type from an external
+  `.d.ts` you only reference carries no descriptor, so a field of that type is
+  presence-checked. Materializing it with `glyph gen dts` gives it one; a
+  first-class path (validate against the `.d.ts` structure directly) is future
+  work. This is the one remaining `T.parse` honest edge.
 - **Strengthen `definitely_incompatible`** (M) — the typechecker punts
   record-vs-record and function assignability to `tsc` (`assign.rs:1845`). That's
   a fine trusted-computing-base, and now stated honestly on the site; independently

@@ -298,9 +298,17 @@ fn handle(body: unknown) -> string {
 
 A record descriptor is strict by default: it confirms the declared fields *and*
 rejects a value carrying undeclared keys. Put `@open` above a `type` to allow
-extra keys (`@open` then the `type` line). Scope today: descriptors are generated
-for non-generic record types only; generic (`Paginated<T>`), union, and
-imported/`.d.ts` types don't get one.
+extra keys (`@open` then the `type` line).
+
+A **generic** record type (`Paginated<T>`) also gets a descriptor. Call it with
+the type argument: `Paginated.parse<User>(body)` validates the page deeply —
+each `items` entry is checked as a `User`, not just for presence. The `is`
+pattern works the same: `match v { is Paginated<User> => ..., else => ... }`.
+The compiler synthesizes the per-parameter checker at the call site, so the type
+argument must be given explicitly. A generic descriptor omits the `.schema`
+member. Scope today: descriptors cover non-generic and generic record types;
+tagged unions and imported/`.d.ts` types don't get one (materialize an imported
+type with `glyph gen dts` to give it one).
 
 To build a validator *combinator* (a `zod`-style `object_schema`) whose output
 type follows the shape you pass, use the `infer_shape<Shape>` type operator so

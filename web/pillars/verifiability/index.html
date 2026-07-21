@@ -260,11 +260,13 @@ type Patient = {
           missing a field of the type you claim now fails to compile.
         </p>
         <p>
-          One edge remains, named plainly: a <em>generic</em> or imported field inside
-          <code>T.parse</code> is still runtime-checked only for presence, so <code>T.parse</code> is
-          fully sound for concrete record types and weaker for generic ones. Real descriptors for
-          generic and imported types are the top item on the roadmap, and until they land the
-          guarantee is exactly as strong as this says, not stronger.
+          Generic types now validate deeply too: a <code>Paginated&lt;User&gt;</code> descriptor
+          checks every element <em>as a <code>User</code></em>, not just for presence. One edge
+          remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you
+          only reference carries no descriptor until you materialize it with
+          <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape.
+          That boundary is deliberate &mdash; a type Glyph didn't emit can't promise runtime
+          validation &mdash; and materializing it closes it.
         </p>
 
         <p class="block-label">The benchmark &mdash; coming</p>

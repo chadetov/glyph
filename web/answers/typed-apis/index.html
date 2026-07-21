@@ -198,11 +198,18 @@ type User = { name: string; age: number };
           emit a validator that would reject real data.
         </p>
         <p>
+          Generic types validate too. A <code>Paginated&lt;T&gt;</code> gets a descriptor whose
+          <code>parse</code> takes the type argument &mdash; <code>Paginated.parse&lt;User&gt;(body)</code>
+          checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for
+          presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.
+        </p>
+        <p>
           <strong>The honest edge:</strong> descriptors cover the shapes most payloads are made of
-          &mdash; objects, primitives, arrays, references, optional and nullable fields. A type
-          Glyph did not generate (an external <code>.d.ts</code> you only import) is type-checked but
-          carries no descriptor until you materialize it with <code>glyph gen dts</code>. That
-          boundary is deliberate: a type Glyph didn't emit can't promise runtime validation.
+          &mdash; objects, primitives, arrays, references, optional and nullable fields, and now
+          generic types at a given instantiation. A type Glyph did not generate (an external
+          <code>.d.ts</code> you only import) is type-checked but carries no descriptor until you
+          materialize it with <code>glyph gen dts</code>. That boundary is deliberate: a type Glyph
+          didn't emit can't promise runtime validation.
         </p>
       </div>
 
@@ -210,7 +217,7 @@ type User = { name: string; age: number };
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Every declared <code>type</code> carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_shape&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; and <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec or a <code>.d.ts</code>.</p>
+          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_shape&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; and <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec or a <code>.d.ts</code>.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

@@ -48,8 +48,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.9</span>
+            <span class="rel-ver">0.1.10</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Types that keep their word</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>infer_shape&lt;Shape&gt;</code>: a validator combinator's output type is now <em>derived</em> from the shape you pass it, and the compiler checks your annotation against it &mdash; a schema and its type can no longer drift apart (drop a field from the shape and it won't compile).</li>
+              <li><span class="tag added">Added</span> Generic types validate at runtime. <code>Paginated.parse&lt;User&gt;(body)</code> checks every element <em>as a <code>User</code></em>, not just for presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.</li>
+              <li><span class="tag added">Added</span> The typechecker catches more shape mismatches itself &mdash; a scalar where a function or record is expected, a function with the wrong return type &mdash; instead of leaving them to <code>tsc</code>. Function-typed fields are now validated by <code>typeof</code>, not presence.</li>
+              <li><span class="tag fixed">Fixed</span> <code>glyph fmt</code> no longer drops a generic bound (<code>&lt;T: Bound&gt;</code>), and the one invisible compiler-inserted cast is narrowed so every honest generic function emits cast-free.</li>
+              <li><span class="tag changed">Changed</span> The site now states exactly what the compiler guarantees and where the guarantee stops &mdash; every claim is backed by working code.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.9</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

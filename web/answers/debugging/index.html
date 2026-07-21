@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>When it breaks in production, what does on-call see? — Glyph</title>
+    <meta name="description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source. The one honest edge is the glyph run stack. An ops-focused answer." />
+    <link rel="canonical" href="https://glyphlang.io/answers/debugging/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/ai-authoring/"><span class="n">11</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">12</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/" class="active"><span class="n">13</span> Debugging &amp; ops</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">13 &middot; Operations</p>
+      <h1 class="q-title">When it breaks in production at 3am, what does on-call see?</h1>
+
+      <p class="short-answer">
+        Readable TypeScript you own, with a <strong>source map back to your <code>.glyph</code></strong>
+        beside every emitted file. A debugger, a bundler, or an error tracker traces the running code
+        to your source &mdash; and even someone who's never seen Glyph can read the generated TS. One
+        honest edge, on the <code>glyph run</code> path, is called out below.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">1 &middot; The generated TypeScript is yours to read</p>
+        <p>
+          Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you
+          commit and deploy like any other TS. So the worst case &mdash; an on-call engineer who
+          doesn't know Glyph, at 3am &mdash; is still reading plain TypeScript, not a dialect. There's
+          no black box between your source and production.
+        </p>
+
+        <p class="block-label">2 &middot; Source maps back to <code>.glyph</code></p>
+        <p>
+          Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to
+          it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded
+          (<code>sourcesContent</code>). Anything that consumes source maps &mdash; Chrome DevTools, a
+          Node debugger, an error tracker like Sentry, your bundler &mdash; can chain through it and
+          show you the <code>.glyph</code> line, not the generated one.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">dist/main.ts (tail)</span>
+<pre>// ...emitted TypeScript...
+//# sourceMappingURL=main.ts.map    <span class="cm">// v3 map, .glyph embedded</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">3 &middot; Build and type errors already point at Glyph</p>
+        <p>
+          You rarely get to production with a type error, because <code>glyph build</code> runs
+          <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your
+          <code>.glyph</code> source</strong> &mdash; same caret, the TypeScript error code preserved,
+          pointing at the line you wrote, not the generated <code>.ts</code>. And
+          <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity,
+          file, 1-based line/col, help) for your CI or tooling to act on.
+        </p>
+
+        <p class="block-label">The honest edge</p>
+        <p>
+          <strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line
+          numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code>
+          doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform
+          &mdash; so an uncaught throw during <code>glyph run</code> reports the generated line.
+          Remapping that stack is a follow-up. It matters for the local <code>run</code> loop; in a
+          real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal
+          toolchain, and the <code>.ts.map</code> chains as usual &mdash; so the production stack you
+          actually page on maps back to <code>.glyph</code>.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), and richer editor debugging via the LSP.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/tooling/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">What's the editor and language-server experience?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

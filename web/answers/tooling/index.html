@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>What's the editor, debugging, and error experience? — Glyph</title>
-    <meta name="description" content="A real language server and VS Code extension, plus Elm-quality error messages with stable codes and glyph --explain. You debug the clean emitted TypeScript today." />
+    <meta name="description" content="A real language server (glyph lsp over stdio, for any editor) plus a VS Code extension, Elm-quality error messages with stable codes and glyph --explain. You debug the clean emitted TypeScript today." />
     <link rel="canonical" href="https://glyphlang.io/answers/tooling/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -50,17 +50,39 @@
       <h1 class="q-title">What's the editor, debugging, and error experience?</h1>
 
       <p class="short-answer">
-        A real <strong>language server and VS Code extension</strong> &mdash; highlighting,
-        diagnostics, hover types, go-to-definition, format-on-save &mdash; and error messages held
-        to an <strong>Elm-quality bar</strong>: a stable code, the fix, and the reason.
+        A real <strong>language server</strong> &mdash; <code>glyph lsp</code> speaks the Language
+        Server Protocol over stdio, so <strong>any editor</strong> lights up: highlighting,
+        diagnostics, hover types, go-to-definition, completion, format-on-save. A VS Code extension
+        ships ready-made. Errors are held to an <strong>Elm-quality bar</strong>: a stable code, the
+        fix, and the reason.
       </p>
 
       <div class="detail">
         <p class="block-label">Why it matters</p>
         <p>
           Editing a language your editor doesn't understand feels like a step backward, and early
-          on that was a fair complaint. It isn't anymore: the extension gives you the modern
-          niceties, and the errors are written to teach, not just to reject.
+          on that was a fair complaint. It isn't anymore: your editor gives you the modern niceties,
+          and the errors are written to teach, not just to reject.
+        </p>
+
+        <p class="block-label">Is it a real LSP, or just a VS Code plugin?</p>
+        <p>
+          A real one. The compiler ships a language server you launch as <code>glyph lsp</code>,
+          which speaks the Language Server Protocol over stdio &mdash; the standard JSON-RPC
+          transport every LSP client understands. The bundled VS Code extension is a thin client
+          around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor
+          &mdash; Neovim, Helix, Zed, Emacs (eglot) &mdash; at <code>glyph lsp</code> and it behaves
+          the same. It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>),
+          so there's no separate server to fetch.
+        </p>
+        <p>
+          The server implements what an editor actually needs: live <strong>diagnostics</strong> with
+          the stable codes below, <strong>hover</strong> types, <strong>go-to-definition</strong>
+          (including across modules), <strong>completion</strong>, <strong>document and workspace
+          symbols</strong> for outline and symbol search, and <strong>formatting</strong> in the
+          canonical <code>glyph fmt</code> layout for format-on-save. Honest scope: it analyzes the
+          open document against the stdlib graph today, and rename / find-references are still on the
+          way.
         </p>
 
         <p class="block-label">See it</p>
@@ -120,7 +142,7 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Language server + VS Code extension (highlighting, diagnostics, hover, go-to-def, completion, format-on-save), stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics for agents.</p>
+          <p>A language server (<code>glyph lsp</code> over stdio &mdash; any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, and format-on-save; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics for agents.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

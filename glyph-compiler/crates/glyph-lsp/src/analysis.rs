@@ -161,6 +161,80 @@ pub fn find_symbol_span(outline: &[OutlineSymbol], name: &str) -> Option<(u32, u
     None
 }
 
+/// Why a rename request was refused.
+#[derive(Debug, PartialEq, Eq)]
+pub enum RenameError {
+    /// The new name is not a legal Glyph identifier.
+    InvalidIdentifier,
+    /// The new name is a reserved keyword.
+    ReservedKeyword,
+    /// The cursor is not on a renameable binding.
+    NoBinding,
+    /// The cursor is on a module-level declaration; a safe rename needs the
+    /// cross-file workspace index (not yet built), since the declaration may be
+    /// referenced from other modules.
+    ModuleLevelUnsupported,
+}
+
+/// A top-level declaration's name and whole-declaration span `(start, end)`, or
+/// `None` for an `import` (nothing to rename or reference by name).
+fn top_decl_name_and_span(decl: &Decl) -> Option<(&str, (u32, u32))> {
+    match decl {
+        Decl::Fn(f) => Some((f.name.as_ref(), (f.span.start, f.span.end))),
+        Decl::Component(c) => Some((c.name.as_ref(), (c.span.start, c.span.end))),
+        Decl::Const(c) => Some((c.name.as_ref(), (c.span.start, c.span.end))),
+        Decl::Type(t) => Some((t.name.as_ref(), (t.span.start, t.span.end))),
+        Decl::Import(_) => None,
+    }
+}
+
+/// The span of the first whole-word occurrence of `name` in `text[start..end]`,
+/// as absolute byte offsets. "Whole word" means neither neighbour is an
+/// identifier character, so searching a `fn foo` declaration for `foo` skips a
+/// coincidental substring in the keyword or a longer identifier.
+fn whole_word_span(text: &str, start: u32, end: u32, name: &str) -> Option<(u32, u32)> {
+    let s = start as usize;
+    let e = (end as usize).min(text.len());
+    let hay = text.get(s..e)?;
+    let bytes = hay.as_bytes();
+    let mut from = 0;
+    while let Some(rel) = hay.get(from..).and_then(|h| h.find(name)) {
+        let at = from + rel;
+        let after = at + name.len();
+        let before_ok = at == 0 || !is_ident_char(bytes[at - 1] as char);
+        let after_ok = after >= hay.len() || !is_ident_char(bytes[after] as char);
+        if before_ok && after_ok {
+            return Some(((s + at) as u32, (s + after) as u32));
+        }
+        from = at + 1;
+    }
+    None
+}
+
+/// The name span of a local binding whose def-site starts at `def_start`. The
+/// resolver records a local's def-site as the binding statement start (the
+/// `let`/`for` keyword, or a parameter), so the name is the first whole word
+/// at/after it — the binding always names itself before any use.
+fn local_name_span(text: &str, def_start: u32, name: &str) -> Option<(u32, u32)> {
+    whole_word_span(text, def_start, text.len() as u32, name)
+}
+
+/// True when `c` may appear inside a Glyph identifier.
+fn is_ident_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
+/// True when `s` is a syntactically legal Glyph identifier (leading letter or
+/// `_`, then letters/digits/`_`). Keyword-ness is checked separately.
+fn is_valid_ident(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if c.is_alphabetic() || c == '_' => {}
+        _ => return false,
+    }
+    chars.all(is_ident_char)
+}
+
 /// Glyph keywords offered in completion.
 const KEYWORDS: &[&str] = &[
     "module", "import", "fn", "type", "component", "const", "let", "mut", "match", "return",
@@ -221,6 +295,152 @@ impl Analysis {
             }
             ResolvedRef::Prelude(_) => None,
         }
+    }
+
+    /// The canonical definition offset identifying the binding a `ResolvedRef`
+    /// points at — a local's def-site, or a module symbol's declaration start —
+    /// so two references to the same binding share one identity. `None` for a
+    /// prelude built-in (nothing in this document defines it).
+    fn ref_identity(&self, r: ResolvedRef) -> Option<u32> {
+        match r {
+            ResolvedRef::Local(def_start) => Some(def_start),
+            ResolvedRef::Module(id) => Some(self.resolved.symbols.table.get(id)?.span.start),
+            ResolvedRef::Prelude(_) => None,
+        }
+    }
+
+    /// The binding at `offset` as `(identity, name, is_local)`, whether the cursor
+    /// sits on a *reference* or on the *definition's* name. `None` for a prelude
+    /// built-in, whitespace, or a position with no resolvable name. `is_local`
+    /// distinguishes a function-body binding (safe to rename in isolation) from a
+    /// module-level declaration (whose renames would need the workspace index).
+    fn binding_at(&self, offset: usize, text: &str) -> Option<(u32, String, bool)> {
+        // 1. A reference position: the innermost resolution covering `offset`.
+        let mut best: Option<(u32, (u32, u32), ResolvedRef)> = None;
+        for (span, r) in self.resolved.resolutions.iter() {
+            if (span.start as usize) <= offset && offset < (span.end as usize) {
+                let width = span.end - span.start;
+                if best.as_ref().map_or(true, |(w, _, _)| width < *w) {
+                    best = Some((width, (span.start, span.end), r));
+                }
+            }
+        }
+        if let Some((_, (s, e), r)) = best {
+            let id = self.ref_identity(r)?;
+            let name = text.get(s as usize..e as usize)?.to_string();
+            let is_local = matches!(r, ResolvedRef::Local(_));
+            return Some((id, name, is_local));
+        }
+        // 2. A definition position: a top-level declaration's name.
+        for decl in &self.module.items {
+            if let Some((name, span)) = top_decl_name_and_span(decl) {
+                if let Some((ns, ne)) = whole_word_span(text, span.0, span.1, name) {
+                    if (ns as usize) <= offset && offset < (ne as usize) {
+                        return Some((span.0, name.to_string(), false));
+                    }
+                }
+            }
+        }
+        // 3. A definition position: a local binding's name. A local's def-site
+        //    start (`Local(def_start)`) points at the binding statement (the
+        //    `let`/`for` keyword or the parameter), not the name, so find the
+        //    name as the first whole word at/after that start. Each reference
+        //    supplies the name.
+        for (span, r) in self.resolved.resolutions.iter() {
+            if let ResolvedRef::Local(def_start) = r {
+                let Some(name) = text.get(span.start as usize..span.end as usize) else {
+                    continue;
+                };
+                if let Some((ns, ne)) = local_name_span(text, def_start, name) {
+                    if (ns as usize) <= offset && offset < (ne as usize) {
+                        return Some((def_start, name.to_string(), true));
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Every occurrence span `[start, end)` of the binding identified by
+    /// `identity`/`name`/`is_local`, sorted and de-duplicated. Reference sites
+    /// come from the resolution table; the declaration's own name span is added
+    /// when `include_decl`.
+    fn occurrences(
+        &self,
+        identity: u32,
+        name: &str,
+        is_local: bool,
+        text: &str,
+        include_decl: bool,
+    ) -> Vec<(u32, u32)> {
+        let mut out: Vec<(u32, u32)> = Vec::new();
+        for (span, r) in self.resolved.resolutions.iter() {
+            if self.ref_identity(r) == Some(identity) {
+                out.push((span.start, span.end));
+            }
+        }
+        if include_decl {
+            let decl_span = if is_local {
+                // `identity` is the binding statement's start; the name is the
+                // first whole word at/after it.
+                local_name_span(text, identity, name)
+            } else {
+                // The module symbol's name sits inside its declaration; find it
+                // by whole word so `fn`/`type`/`const` keywords are skipped.
+                self.module
+                    .items
+                    .iter()
+                    .find_map(|d| top_decl_name_and_span(d).filter(|(_, s)| s.0 == identity))
+                    .and_then(|(n, s)| whole_word_span(text, s.0, s.1, n))
+                    .or(Some((identity, identity + name.len() as u32)))
+            };
+            if let Some(span) = decl_span {
+                out.push(span);
+            }
+        }
+        out.sort_unstable();
+        out.dedup();
+        out
+    }
+
+    /// Every reference to the name at `offset`, as byte spans `[start, end)`. The
+    /// declaration site is included when `include_decl`. File-scoped: it sees the
+    /// open document only, so a symbol used from another module is under-reported
+    /// until the workspace index lands. Empty when `offset` is not on a name.
+    pub fn references(&self, offset: usize, text: &str, include_decl: bool) -> Vec<(u32, u32)> {
+        match self.binding_at(offset, text) {
+            Some((identity, name, is_local)) => {
+                self.occurrences(identity, &name, is_local, text, include_decl)
+            }
+            None => Vec::new(),
+        }
+    }
+
+    /// The edit spans for renaming the binding at `offset` to `new_name`: every
+    /// occurrence (declaration included) to overwrite with `new_name`. Restricted
+    /// to **local bindings** — a `let`, parameter, `match`/`for`/lambda binding —
+    /// which cannot be referenced from another file, so a file-local rename is
+    /// complete. A module-level declaration is refused (`ModuleLevelUnsupported`)
+    /// until the workspace index can find its cross-file references. The new name
+    /// is validated as a legal, non-keyword identifier.
+    pub fn rename_edits(
+        &self,
+        offset: usize,
+        text: &str,
+        new_name: &str,
+    ) -> Result<Vec<(u32, u32)>, RenameError> {
+        if !is_valid_ident(new_name) {
+            return Err(RenameError::InvalidIdentifier);
+        }
+        if KEYWORDS.contains(&new_name) {
+            return Err(RenameError::ReservedKeyword);
+        }
+        let (identity, name, is_local) =
+            self.binding_at(offset, text).ok_or(RenameError::NoBinding)?;
+        if !is_local {
+            return Err(RenameError::ModuleLevelUnsupported);
+        }
+        Ok(self.occurrences(identity, &name, is_local, text, true))
     }
 
     /// The document outline: this module's top-level declarations, with a tagged
@@ -535,6 +755,82 @@ mod tests {
         // round-trip
         let (l, c) = idx.position(text, 5);
         assert_eq!(idx.offset(text, l, c), 5);
+    }
+
+    fn spans_text<'a>(text: &'a str, spans: &[(u32, u32)]) -> Vec<&'a str> {
+        spans
+            .iter()
+            .map(|(s, e)| &text[*s as usize..*e as usize])
+            .collect()
+    }
+
+    #[test]
+    fn references_finds_a_local_from_its_uses_and_declaration() {
+        let text =
+            "module x\nfn f() -> number {\n  let count = 1\n  return count + count\n}\n";
+        let a = analyze_full(text).expect("parses");
+        // From a use site: declaration + both uses.
+        let use1 = text.rfind("count").unwrap();
+        let refs = a.references(use1, text, true);
+        assert_eq!(refs.len(), 3, "{:?}", spans_text(text, &refs));
+        assert!(spans_text(text, &refs).iter().all(|s| *s == "count"));
+        // Without the declaration: only the two uses.
+        assert_eq!(a.references(use1, text, false).len(), 2);
+    }
+
+    #[test]
+    fn references_works_from_the_definition_name() {
+        let text =
+            "module x\nfn f() -> number {\n  let count = 1\n  return count + count\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let def = text.find("count").unwrap(); // the `let count` binding site
+        assert_eq!(a.references(def, text, true).len(), 3);
+    }
+
+    #[test]
+    fn references_finds_a_module_function_uses_and_declaration() {
+        let text = "module x\nfn helper() -> number {\n  return 1\n}\nfn main() -> number {\n  return helper() + helper()\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let def = text.find("helper").unwrap(); // declaration name
+        let refs = a.references(def, text, true);
+        assert_eq!(refs.len(), 3, "decl + two calls: {:?}", spans_text(text, &refs));
+        assert!(spans_text(text, &refs).iter().all(|s| *s == "helper"));
+    }
+
+    #[test]
+    fn rename_a_local_edits_every_occurrence() {
+        let text = "module x\nfn f() -> number {\n  let count = 1\n  return count + count\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let def = text.find("count").unwrap();
+        let edits = a.rename_edits(def, text, "total").expect("renameable");
+        assert_eq!(edits.len(), 3);
+        assert!(spans_text(text, &edits).iter().all(|s| *s == "count"));
+    }
+
+    #[test]
+    fn rename_refuses_module_level_declarations() {
+        let text = "module x\nfn helper() -> number {\n  return 1\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let def = text.find("helper").unwrap();
+        assert_eq!(
+            a.rename_edits(def, text, "helper2"),
+            Err(RenameError::ModuleLevelUnsupported)
+        );
+    }
+
+    #[test]
+    fn rename_rejects_keywords_and_bad_identifiers() {
+        let text = "module x\nfn f() -> number {\n  let count = 1\n  return count\n}\n";
+        let a = analyze_full(text).expect("parses");
+        let def = text.find("count").unwrap();
+        assert_eq!(
+            a.rename_edits(def, text, "match"),
+            Err(RenameError::ReservedKeyword)
+        );
+        assert_eq!(
+            a.rename_edits(def, text, "2bad"),
+            Err(RenameError::InvalidIdentifier)
+        );
     }
 
     #[test]

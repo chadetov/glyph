@@ -23,7 +23,7 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 use analysis::{
     analyze, analyze_full, base_completions, find_symbol_span, outline_of, CompletionTag,
-    Definition, LineIndex, OutlineKind, OutlineSymbol,
+    Definition, LineIndex, OutlineKind, OutlineSymbol, RenameError,
 };
 
 struct Backend {
@@ -110,6 +110,8 @@ impl LanguageServer for Backend {
                 completion_provider: Some(CompletionOptions::default()),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
+                references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
         })
@@ -306,8 +308,86 @@ impl LanguageServer for Backend {
         Ok(Some(out))
     }
 
+    async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
+        let pos = params.text_document_position;
+        let uri = pos.text_document.uri;
+        let Some(text) = self.doc_text(&uri) else {
+            return Ok(None);
+        };
+        let Some(analysis) = analyze_full(&text) else {
+            return Ok(None);
+        };
+        let index = LineIndex::new(&text);
+        let offset = index.offset(&text, pos.position.line, pos.position.character);
+        // File-scoped today: the open document only. A symbol used from another
+        // module is under-reported until the workspace index lands.
+        let spans = analysis.references(offset, &text, params.context.include_declaration);
+        if spans.is_empty() {
+            return Ok(None);
+        }
+        let locations = spans
+            .into_iter()
+            .map(|(s, e)| location_in(&uri, &text, s, e))
+            .collect();
+        Ok(Some(locations))
+    }
+
+    async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
+        let pos = params.text_document_position;
+        let uri = pos.text_document.uri;
+        let Some(text) = self.doc_text(&uri) else {
+            return Ok(None);
+        };
+        let Some(analysis) = analyze_full(&text) else {
+            return Ok(None);
+        };
+        let index = LineIndex::new(&text);
+        let offset = index.offset(&text, pos.position.line, pos.position.character);
+        let spans = analysis
+            .rename_edits(offset, &text, &params.new_name)
+            .map_err(rename_error)?;
+        let edits: Vec<TextEdit> = spans
+            .into_iter()
+            .map(|(s, e)| {
+                let (sl, sc) = index.position(&text, s as usize);
+                let (el, ec) = index.position(&text, e as usize);
+                TextEdit {
+                    range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
+                    new_text: params.new_name.clone(),
+                }
+            })
+            .collect();
+        let mut changes = HashMap::new();
+        changes.insert(uri, edits);
+        Ok(Some(WorkspaceEdit {
+            changes: Some(changes),
+            document_changes: None,
+            change_annotations: None,
+        }))
+    }
+
     async fn shutdown(&self) -> Result<()> {
         Ok(())
+    }
+}
+
+/// Surface a refused rename to the editor as a JSON-RPC error, so the user sees
+/// why (an illegal name, a keyword, or a not-yet-supported module-level rename)
+/// rather than a silent no-op.
+fn rename_error(e: RenameError) -> tower_lsp::jsonrpc::Error {
+    let message = match e {
+        RenameError::InvalidIdentifier => "not a valid Glyph identifier",
+        RenameError::ReservedKeyword => "that name is a reserved Glyph keyword",
+        RenameError::NoBinding => "there is no renameable symbol at the cursor",
+        RenameError::ModuleLevelUnsupported => {
+            "renaming a module-level declaration is not supported yet (it may be \
+             referenced from other files); a local binding can be renamed"
+        }
+    };
+    tower_lsp::jsonrpc::Error {
+        code: tower_lsp::jsonrpc::ErrorCode::InvalidParams,
+        message: message.into(),
+        data: None,
     }
 }
 

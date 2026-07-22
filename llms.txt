@@ -30,7 +30,18 @@ glyph gen dts types.d.ts --out src/     # generate committed Glyph types from a 
 glyph gen zod schemas.ts --out src/     # generate committed Glyph types from zod schemas (needs tsx + zod)
 glyph llms                          # reprint this bootstrap offline (alias: glyph docs)
 glyph --explain E0204               # long-form explanation + fix for any error code
+glyph mcp [root]                    # run an MCP server (stdio) exposing analysis to an agent as tools
 ```
+
+If you drive Glyph through the Model Context Protocol, `glyph mcp [root]` speaks
+MCP over stdio and exposes five tools over the project: `glyph_diagnostics`
+(type-check one file → coded diagnostics with ranges), `glyph_hover` (the
+inferred type at a position), `glyph_definition` (where a name is defined,
+following imports), `glyph_references` (every reference to a symbol across the
+whole project — declaration, uses, and each importing module's import binding),
+and `glyph_symbols` (search declarations by name). Positions are 0-based
+`line`/`character` (UTF-16). This is the interactive complement to
+`glyph build --json`, which remains the batch path for coded diagnostics.
 
 ## The canonical program shape
 

@@ -314,17 +314,17 @@ symbols, formatting); these are the two most-requested gaps on top of it.
   later), and a file that doesn't parse is skipped. Caching + incrementality, and
   extending the same cross-file resolution to go-to-definition, are the
   follow-ups.
-- **First-party MCP server exposing the language server** (M) — an agent-facing
-  bridge so a coding agent can query Glyph's own understanding of a codebase
-  (hover types, go-to-definition, references, workspace symbols, live
-  diagnostics) as MCP tools, instead of only reading `glyph build --json`. The
-  server reuses the `glyph-lsp` analysis layer (which already has no `tower-lsp`
-  types — it is a plain, testable in-memory analyzer), so the MCP surface is a
-  thin adapter over the same queries the editor path uses, not a second
-  implementation. Sequenced after rename/references so the reference/symbol
-  queries exist to expose. Complements the existing agent path (`glyph llms` /
-  `AGENTS.md` for the spec, `glyph build --json` for coded diagnostics) rather
-  than replacing it. Requested by an early user.
+- **First-party MCP server exposing the language server** (M) — ✅ **done.**
+  `glyph mcp [root]` speaks the Model Context Protocol over stdio (newline-framed
+  JSON-RPC 2.0, hand-rolled — no new dependency beyond `serde_json`) and exposes
+  five tools over the project: `glyph_diagnostics`, `glyph_hover`,
+  `glyph_definition` (follows imports), `glyph_references` (workspace-wide), and
+  `glyph_symbols`. Each is a thin adapter over the same pure `crate::analysis`
+  query the editor path uses — no second implementation — so it can't drift from
+  the compiler. Complements `glyph build --json` (batch diagnostics) with
+  interactive semantic queries. Requested by an early user. Follow-ups: a rename
+  tool (a write operation that returns edits), and sharing the workspace-scan
+  helpers with the LSP path once the index is cached.
 
 ## Verifiability hardening — Linus 2nd-pass follow-ups
 

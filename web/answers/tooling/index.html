@@ -79,14 +79,15 @@
           The server implements what an editor actually needs: live <strong>diagnostics</strong> with
           the stable codes below, <strong>hover</strong> types, <strong>go-to-definition</strong>
           (including across modules), <strong>completion</strong>, <strong>document and workspace
-          symbols</strong> for outline and symbol search, <strong>find-references</strong>,
-          <strong>rename</strong> of local bindings, and <strong>formatting</strong> in the canonical
-          <code>glyph fmt</code> layout for format-on-save. Honest scope: it analyzes the open
-          document against the stdlib graph today, so find-references is file-scoped and rename is
-          restricted to local bindings &mdash; a variable, parameter, or <code>match</code>/<code>for</code>
-          binding, which can't be referenced from another file, so the rename is complete and safe.
-          Renaming a module-level declaration is refused (rather than silently breaking another file)
-          until the cross-file workspace index lands.
+          symbols</strong> for outline and symbol search, <strong>workspace-wide find-references</strong>,
+          <strong>rename</strong>, and <strong>formatting</strong> in the canonical <code>glyph fmt</code>
+          layout for format-on-save. Rename is <em>complete</em>: renaming a module-level declaration
+          edits its definition, every reference, <em>and</em> each importing module's
+          <code>import</code> binding across the workspace &mdash; and it validates the new name
+          (a real identifier, never a keyword) before touching anything. Honest scope: the cross-file
+          index is rebuilt per request rather than cached (fine for real projects, an optimization
+          later), and a file that doesn't currently parse is skipped, so a rename won't reach
+          references inside a file that is itself broken.
         </p>
 
         <p class="block-label">See it</p>
@@ -146,11 +147,11 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>A language server (<code>glyph lsp</code> over stdio &mdash; any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, find-references, rename of local bindings, and format-on-save; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics for agents.</p>
+          <p>A language server (<code>glyph lsp</code> over stdio &mdash; any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics for agents.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>A cross-file workspace index, so find-references spans every module and rename covers module-level declarations (functions, types) safely; and runtime source maps so a debugger steps from the emitted TS back into <code>.glyph</code>.</p>
+          <p>Caching the cross-file index instead of rebuilding it per request (a speed win on large trees), and runtime source maps so a debugger steps from the emitted TS back into <code>.glyph</code>.</p>
         </div>
       </div>
 

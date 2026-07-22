@@ -297,23 +297,23 @@ widens how editors and agents *reach* it. The language server already ships
 (`glyph lsp` over stdio: diagnostics, hover, go-to-definition, completion,
 symbols, formatting); these are the two most-requested gaps on top of it.
 
-- **Rename + find-references in the LSP** (M) — ✅ **first cut done (file-scoped).**
+- **Rename + find-references in the LSP** (M) — ✅ **done, workspace-wide.**
   `textDocument/references` and `textDocument/rename` ship. A binding is
-  identified by a single canonical identity (a local's def-site, a module
-  symbol's decl start) so a reference and the declaration name both resolve to
-  it; references are collected from the resolution table (with the declaration
-  span added on request). Rename validates the new name (legal identifier,
-  non-keyword) and is **restricted to local bindings** — a `let`, parameter,
-  `match`/`for`/lambda binding, which cannot be referenced from another file, so
-  the file-local edit is complete. A module-level rename is *refused* with a
-  clear message rather than silently breaking another file. **Remaining:** a
-  cross-file workspace index so find-references spans every module and
-  module-level declarations become safely renameable — carried below.
-- **Cross-file workspace index for the LSP** (L) — parse+resolve the workspace's
-  `.glyph` set and cross-reference it, so find-references is workspace-wide and
-  rename covers exported declarations. The prerequisite the two items above were
-  waiting on; also what turns go-to-definition and workspace-symbols from
-  best-effort into complete.
+  identified canonically: a file-local binding by its def-site, a module-level
+  symbol by `(module path, name)` — where the module path is the file's own for
+  a declaration, or the import's for an imported name — so every file agrees on
+  one identity. Find-references and rename now span the whole workspace: a
+  module-level rename edits the declaration, every reference, and each importing
+  module's `import` binding, and validates the new name (legal identifier,
+  non-keyword) first. Local bindings stay file-scoped (they can't cross files).
+- **Cross-file workspace index for the LSP** (L) — ✅ **done (on-demand).** The
+  server parses+resolves every `.glyph` file under the root (preferring open
+  buffers, including unsaved files) and cross-references them by global identity.
+  This is what makes the workspace-wide references/rename above complete. Honest
+  scope: the index is rebuilt per request rather than cached (an optimization for
+  later), and a file that doesn't parse is skipped. Caching + incrementality, and
+  extending the same cross-file resolution to go-to-definition, are the
+  follow-ups.
 - **First-party MCP server exposing the language server** (M) — an agent-facing
   bridge so a coding agent can query Glyph's own understanding of a codebase
   (hover types, go-to-definition, references, workspace symbols, live

@@ -79,10 +79,14 @@
           The server implements what an editor actually needs: live <strong>diagnostics</strong> with
           the stable codes below, <strong>hover</strong> types, <strong>go-to-definition</strong>
           (including across modules), <strong>completion</strong>, <strong>document and workspace
-          symbols</strong> for outline and symbol search, and <strong>formatting</strong> in the
-          canonical <code>glyph fmt</code> layout for format-on-save. Honest scope: it analyzes the
-          open document against the stdlib graph today, and rename / find-references are still on the
-          way.
+          symbols</strong> for outline and symbol search, <strong>find-references</strong>,
+          <strong>rename</strong> of local bindings, and <strong>formatting</strong> in the canonical
+          <code>glyph fmt</code> layout for format-on-save. Honest scope: it analyzes the open
+          document against the stdlib graph today, so find-references is file-scoped and rename is
+          restricted to local bindings &mdash; a variable, parameter, or <code>match</code>/<code>for</code>
+          binding, which can't be referenced from another file, so the rename is complete and safe.
+          Renaming a module-level declaration is refused (rather than silently breaking another file)
+          until the cross-file workspace index lands.
         </p>
 
         <p class="block-label">See it</p>
@@ -142,11 +146,11 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>A language server (<code>glyph lsp</code> over stdio &mdash; any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, and format-on-save; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics for agents.</p>
+          <p>A language server (<code>glyph lsp</code> over stdio &mdash; any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, find-references, rename of local bindings, and format-on-save; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics for agents.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Rename and find-references in the editor, and runtime source maps so a debugger steps from the emitted TS back into <code>.glyph</code>.</p>
+          <p>A cross-file workspace index, so find-references spans every module and rename covers module-level declarations (functions, types) safely; and runtime source maps so a debugger steps from the emitted TS back into <code>.glyph</code>.</p>
         </div>
       </div>
 

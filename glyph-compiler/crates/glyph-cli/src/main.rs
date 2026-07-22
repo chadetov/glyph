@@ -82,6 +82,13 @@ enum Command {
     },
     /// Run the language server over stdio (spawned by an editor extension).
     Lsp,
+    /// Run the Model Context Protocol server over stdio, exposing Glyph's
+    /// analysis (diagnostics, hover, definition, references, symbols) to a coding
+    /// agent as tools. ROOT is the project to query (default: current directory).
+    Mcp {
+        #[arg(value_name = "ROOT")]
+        root: Option<std::path::PathBuf>,
+    },
     /// Print the agent bootstrap (the AGENTS.md / llms.txt reference) to stdout.
     /// Works offline: zero to correct, runnable Glyph in one document.
     #[command(visible_aliases = ["docs", "cheatsheet"])]
@@ -381,6 +388,15 @@ fn main() {
             // Hands control to the language server; runs until the editor closes
             // the stdio connection.
             glyph_lsp::run_stdio();
+            std::process::exit(0);
+        }
+        Some(Command::Mcp { root }) => {
+            // The MCP server runs until the agent closes stdin. Default the
+            // project root to the current directory.
+            let root = root
+                .or_else(|| std::env::current_dir().ok())
+                .unwrap_or_else(|| std::path::PathBuf::from("."));
+            glyph_lsp::run_mcp_stdio(root);
             std::process::exit(0);
         }
         Some(Command::Llms) => {

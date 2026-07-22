@@ -1,17 +1,27 @@
-//! The Glyph language server (step 7).
+//! Glyph's language services.
 //!
-//! v1 increment 1: live **diagnostics** (parse/resolve/typecheck errors with
-//! their stable codes, published on open/change) and **document formatting**
-//! (the canonical `glyph fmt` layout). Hover, go-to-definition, and completion
-//! follow. Rename and find-references are deferred to v1.1 per the roadmap.
+//! Two servers, both over stdio, sharing one pure analysis layer (see
+//! `analysis`, which holds no protocol types): the **language server** (`run_stdio`)
+//! for editors — diagnostics, hover, go-to-definition, completion, document and
+//! workspace symbols, workspace-wide find-references and rename, and formatting;
+//! and the **MCP server** (`run_mcp_stdio`, see `mcp`) exposing the same queries
+//! to a coding agent as tools. Reusing the analysis layer keeps the two surfaces
+//! a thin adapter apiece rather than a second implementation of the semantics.
 //!
-//! The server reuses the compiler front end directly (see `analysis`); the
-//! diagnostic work happens in a synchronous call that never holds a lock or a
-//! non-`Send` value across an `await`.
+//! The language server's diagnostic work happens in a synchronous call that
+//! never holds a lock or a non-`Send` value across an `await`.
 
 #![forbid(unsafe_code)]
 
 mod analysis;
+mod mcp;
+
+/// Run the Model Context Protocol server over stdio, exposing Glyph's language
+/// analysis to a coding agent as tools (see `mcp`). `root` is the project the
+/// workspace queries operate over.
+pub fn run_mcp_stdio(root: std::path::PathBuf) {
+    mcp::run_stdio(root);
+}
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -490,7 +500,7 @@ fn push_workspace_symbol(
 /// Collect every `.glyph` file under `dir`, skipping dot-directories and the
 /// conventional `target/` build output. Errors (unreadable dirs) are ignored —
 /// the index is best-effort.
-fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) {
+pub(crate) fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
@@ -515,7 +525,7 @@ fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) {
 /// the root, minus the extension, with `/` separators (`src/foo.glyph` →
 /// `src/foo`). This is the name an `import` uses and the key a cross-file
 /// symbol is identified by. `None` when the file is not under the root.
-fn module_path_of(root: &Path, file: &Path) -> Option<String> {
+pub(crate) fn module_path_of(root: &Path, file: &Path) -> Option<String> {
     let rel = file.strip_prefix(root).ok()?;
     let parts: Vec<String> = rel
         .with_extension("")

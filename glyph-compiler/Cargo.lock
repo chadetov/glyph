@@ -526,6 +526,7 @@ dependencies = [
  "glyph-resolver",
  "glyph-typechecker",
  "serde",
+ "serde_json",
  "tokio",
  "tower-lsp",
 ]

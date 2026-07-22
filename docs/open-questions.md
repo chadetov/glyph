@@ -14,7 +14,7 @@ A question lives here when:
 Five step-blocker decisions resolved. Originals preserved below with `[RESOLVED]` markers; this section is the canonical record.
 
 ### Q1 → **shipped in 0.1.10 (D28).**
-Originally deferred to v1.1; `01_validator.glyph` shipped a stand-in `<Out>` parameter that the caller had to keep in sync by hand (unchecked). 0.1.10 shipped `infer_shape<Shape>` as a narrow built-in type-level operator (D28), not the full TS mapped-/conditional-type machinery: `object_schema<Shape: Record<string, Schema<unknown>>>(shape) -> Schema<infer_shape<Shape>>` now **derives** the output type from the shape, and `tsc` checks the caller's `Schema<User>` annotation against it. This closed the last silent unsoundness the "Linus" review found and let the blanket generic-return `as` cast be narrowed to `infer_shape`-returns only. See spec D28.
+Originally deferred to v1.1; `01_validator.glyph` shipped a stand-in `<Out>` parameter that the caller had to keep in sync by hand (unchecked). 0.1.10 shipped `infer_output<Shape>` as a narrow built-in type-level operator (D28), not the full TS mapped-/conditional-type machinery: `object_schema<Shape: Record<string, Schema<unknown>>>(shape) -> Schema<infer_output<Shape>>` now **derives** the output type from the shape, and `tsc` checks the caller's `Schema<User>` annotation against it. This closed the last silent unsoundness the "Linus" review found and let the blanket generic-return `as` cast be narrowed to `infer_output`-returns only. See spec D28.
 **Reflected in:** `docs/roadmap/04-transpiler.md`, `docs/roadmap/05-typechecker.md`.
 
 ### Q2 → **Fold corpus generation into step 6 dogfooding.**
@@ -250,9 +250,9 @@ are bugs versus working-as-designed.
 
 ## Blockers for step 4 (transpiler)
 
-### Q1. Is `infer_shape<Shape>` v1 or v2?
+### Q1. Is `infer_output<Shape>` v1 or v2?
 
-The validator example (`01_validator.glyph`) uses `Schema<infer_shape<Shape>>` — a type-level function over a record of schemas. That is mapped-type territory. The original strategy says "skip mapped types in v1." The example demands them.
+The validator example (`01_validator.glyph`) uses `Schema<infer_output<Shape>>` — a type-level function over a record of schemas. That is mapped-type territory. The original strategy says "skip mapped types in v1." The example demands them.
 
 - **If v1:** mapped types cannot be skipped — they have just been renamed. Substep 5b of the typechecker is mandatory; step 4 needs an emission strategy for type-level computation.
 - **If v2:** rewrite `01_validator.glyph` *now* to use an explicit type parameter, so step 4 and 5 scope is honest.

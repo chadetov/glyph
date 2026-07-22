@@ -941,16 +941,16 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
-fn infer_shape_guarantee_bites_on_shape_mismatch() {
-    // D28: `object_schema<Shape> -> Schema<infer_shape<Shape>>` derives the
+fn infer_output_guarantee_bites_on_shape_mismatch() {
+    // D28: `object_schema<Shape> -> Schema<infer_output<Shape>>` derives the
     // output type from the shape. Annotating the result `Schema<Point>` when the
     // shape omits `y` must be REJECTED by tsc (mapped to Glyph source) — the
     // guarantee the pre-0.1.10 `<Out>` stand-in only trusted. Requires tsc.
     if !tsc_available() {
-        eprintln!("skipping infer_shape bite check: tsc not available");
+        eprintln!("skipping infer_output bite check: tsc not available");
         return;
     }
-    let root = unique_tmp("infershape_bite");
+    let root = unique_tmp("inferoutput_bite");
     let src = root.join("src");
     let out = root.join("dist");
     write_file(
@@ -979,7 +979,7 @@ fn number_schema() -> Schema<number> {
   } }
 }
 
-fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_shape<Shape>> {
+fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_output<Shape>> {
   return { name: "object", parse: fn(input) {
     match input {
       is Record<string, unknown> => Err([{ path: [], message: "stub" }]),
@@ -1007,7 +1007,7 @@ const bad: Schema<Point> = object_schema({ x: number_schema() })
     use glyph_cli::runtime::{check_with_tsc, TscOutcome};
     match check_with_tsc(&out).expect("run tsc") {
         TscOutcome::Passed => {
-            panic!("infer_shape guarantee did NOT bite: a shape missing `y` was accepted as Schema<Point>")
+            panic!("infer_output guarantee did NOT bite: a shape missing `y` was accepted as Schema<Point>")
         }
         TscOutcome::Failed(msg) => {
             assert!(
@@ -1015,6 +1015,75 @@ const bad: Schema<Point> = object_schema({ x: number_schema() })
                 "expected a shape/type mismatch, got:\n{msg}"
             );
         }
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
+fn infer_output_is_independent_of_the_validator_type_name() {
+    // The generalized operator (Linus 2nd-pass follow-up) unwraps a parser-shaped
+    // field structurally, so a validator type named anything but `Schema` still
+    // has its output type derived. Here the wrapper is `Codec<T>`; a shape whose
+    // codecs produce `{ x: number }` must type-check as `Codec<Point>` and a
+    // wrong output type must be rejected by tsc.
+    if !tsc_available() {
+        eprintln!("skipping infer_output name-independence check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("inferoutput_name");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "codec.glyph",
+        r#"module codec
+
+import std/result { Result, Ok, Err }
+
+type Issue = {
+  path: Array<string>,
+  message: string,
+}
+
+type Codec<T> = {
+  parse: fn(input: unknown) -> Result<T, Array<Issue>>,
+}
+
+fn number_codec() -> Codec<number> {
+  return { parse: fn(input) {
+    match input {
+      is number => Ok(input),
+      else => Err([{ path: [], message: "expected number" }]),
+    }
+  } }
+}
+
+fn object_codec<Shape: Record<string, Codec<unknown>>>(shape: Shape) -> Codec<infer_output<Shape>> {
+  return { parse: fn(input) {
+    match input {
+      is Record<string, unknown> => Err([{ path: [], message: "stub" }]),
+      else => Err([{ path: [], message: "expected object" }]),
+    }
+  } }
+}
+
+type Point = {
+  x: number,
+}
+
+const good: Codec<Point> = object_codec({ x: number_codec() })
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!(
+            "infer_output failed to unwrap a validator NOT named `Schema` (`Codec`):\n{msg}"
+        ),
         TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
     }
 }

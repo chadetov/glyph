@@ -2,7 +2,7 @@
 // and every schema carries a runtime descriptor (the "verifiability" pillar).
 //
 // The output type of `object_schema` is DERIVED from the shape you pass, via
-// the `infer_shape<Shape>` type operator (D28, 0.1.10). The caller annotates
+// the `infer_output<Shape>` type operator (D28, 0.1.10). The caller annotates
 // `Schema<User>` and the compiler checks that the shape actually produces a
 // `User` — a shape missing a field of `User` fails to compile. There is no
 // second `Out` type parameter to keep in sync by hand.
@@ -46,15 +46,16 @@ fn number_schema() -> Schema<number> {
 // Combinators
 // ---------------------------------------------------------------------------
 
-// `infer_shape<Shape>` (D28) derives the output record type from the shape:
-// each field's `Schema<V>` is unwrapped to `V`, so `{ name: Schema<string>,
-// age: Schema<number> }` yields `{ name: string, age: number }`. The `Shape`
+// `infer_output<Shape>` (D28) derives the output record type from the shape:
+// each field's parser is unwrapped to what it parses to, so `{ name:
+// Schema<string>, age: Schema<number> }` yields `{ name: string, age: number }`.
+// It matches any parser-shaped field structurally, not the name `Schema`. The `Shape`
 // type parameter is bound to `Record<string, Schema<unknown>>`, which lets the
 // body call `sub_schema.parse` while still capturing the caller's precise
 // field types. The body builds a `Record<string, unknown>` from the parsed
 // fields; the return type is checked at every call site against what the shape
 // actually produces, so a caller cannot claim a type the shape does not build.
-fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_shape<Shape>> {
+fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_output<Shape>> {
   return { name: "object", parse: fn(input) {
     match input {
       is Record<string, unknown> => {
@@ -116,7 +117,7 @@ fn array_schema<T>(element: Schema<T>) -> Schema<Array<T>> {
 // ---------------------------------------------------------------------------
 
 // The caller declares `User` and annotates the binding `Schema<User>`. The
-// compiler derives the schema's output type from the shape via `infer_shape`
+// compiler derives the schema's output type from the shape via `infer_output`
 // and checks it against `User`: if the shape omitted `age`, or gave it the
 // wrong schema, this binding would not compile. The type and the shape cannot
 // drift out of sync.

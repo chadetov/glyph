@@ -206,11 +206,11 @@ impl<'a> Lowerer<'a> {
             | PreludeKind::Par
             | PreludeKind::Print
             | PreludeKind::Assert
-            // `infer_shape<S>` (D28) is a type-level operator the checker does
+            // `infer_output<S>` (D28) is a type-level operator the checker does
             // not reduce; the emitter lowers it to a TS mapped type and `tsc`
             // reduces and enforces it. Left `Unknown` here so it neither
             // resolves as a nominal type nor trips a diagnostic.
-            | PreludeKind::InferShape => Ty::Unknown,
+            | PreludeKind::InferOutput => Ty::Unknown,
         }
     }
 }

@@ -1,7 +1,7 @@
-// `infer_shape<Shape>` (D28): a schema combinator whose output type is derived
+// `infer_output<Shape>` (D28): a schema combinator whose output type is derived
 // from its input shape. The caller annotates `Schema<Point>` and the compiler
 // checks that the shape actually produces a `Point` — no hand-synced `Out`.
-module infer_shape
+module infer_output
 
 import std/result { Result, Ok, Err }
 
@@ -27,7 +27,7 @@ fn number_schema() -> Schema<number> {
   } }
 }
 
-fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_shape<Shape>> {
+fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_output<Shape>> {
   return { name: "object", parse: fn(input) {
     match input {
       is Record<string, unknown> => {

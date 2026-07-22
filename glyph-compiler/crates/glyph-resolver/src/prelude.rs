@@ -59,7 +59,7 @@ pub fn build_prelude() -> Prelude {
         ("Component", PreludeKind::Component),
         ("Issue", PreludeKind::Issue),
         // Type-level operators (D28)
-        ("infer_shape", PreludeKind::InferShape),
+        ("infer_output", PreludeKind::InferOutput),
         // Value constructors
         ("Ok", PreludeKind::Ok),
         ("Err", PreludeKind::Err),

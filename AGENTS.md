@@ -311,13 +311,13 @@ tagged unions and imported/`.d.ts` types don't get one (materialize an imported
 type with `glyph gen dts` to give it one).
 
 To build a validator *combinator* (a `zod`-style `object_schema`) whose output
-type follows the shape you pass, use the `infer_shape<Shape>` type operator so
+type follows the shape you pass, use the `infer_output<Shape>` type operator so
 you don't repeat the output type by hand:
 
 ```glyph
 fn object_schema<Shape: Record<string, Schema<unknown>>>(
   shape: Shape,
-) -> Schema<infer_shape<Shape>> { ... }
+) -> Schema<infer_output<Shape>> { ... }
 
 // The shape must produce a `User`, or this does not compile:
 const user_schema: Schema<User> = object_schema({
@@ -326,10 +326,13 @@ const user_schema: Schema<User> = object_schema({
 })
 ```
 
-`infer_shape<Shape>` unwraps each field's `Schema<V>` to `V`, so the compiler
-derives the schema's output type from the shape and checks it against your
-annotation. The generic parameter is bound with `<Shape: Bound>` (this is how
-generic bounds are written; they lower to a TypeScript `extends` clause).
+`infer_output<Shape>` unwraps each field's parser to the type it outputs, so the
+compiler derives the schema's output type from the shape and checks it against
+your annotation. It matches a parser field *structurally* (any
+`{ parse(input: unknown) -> Result<V, _> }`), so the wrapper need not be named
+`Schema` — your own `Codec<T>` works too. The generic parameter is bound with
+`<Shape: Bound>` (this is how generic bounds are written; they lower to a
+TypeScript `extends` clause).
 
 ### std/fs
 

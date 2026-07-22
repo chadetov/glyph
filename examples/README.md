@@ -12,7 +12,7 @@ The four hard-case example programs locked in step 2 (see `archive/SESSION_1.md`
 
 ## V1.0 deviations from the original step-2 corpus
 
-`01_validator.glyph` differs from the version inline in `archive/GLYPH.md §3.1` to reflect the **brainstorm Q1 resolution** (defer mapped types to v1.1). The original used `Schema<infer_shape<Shape>>`; v1.0 uses an explicit `<Out>` type parameter supplied by the caller's type annotation. V1.1 will re-introduce `infer_shape` so the caller's type and the shape's fields stay in sync automatically.
+`01_validator.glyph` differs from the version inline in `archive/GLYPH.md §3.1` to reflect the **brainstorm Q1 resolution** (defer mapped types to v1.1). The original used `Schema<infer_output<Shape>>`; v1.0 uses an explicit `<Out>` type parameter supplied by the caller's type annotation. V1.1 will re-introduce `infer_output` so the caller's type and the shape's fields stay in sync automatically.
 
 The other three files are faithful transfers, with template literals (D22) used in places where the original used `+` concatenation. The semantics are unchanged.
 

@@ -254,8 +254,8 @@ type Patient = {
           Two earlier edges here were closed in 0.1.10. The emitter used to insert a
           checked-by-Glyph-not-<code>tsc</code> return cast in <em>every</em> generic function; it now
           fires only where a validator combinator assembles a value of a shape-derived type
-          (<code>infer_shape&lt;Shape&gt;</code>), and every honest generic emits with no cast at all.
-          And a validator's output type is no longer trusted: <code>infer_shape</code> derives it from
+          (<code>infer_output&lt;Shape&gt;</code>), and every honest generic emits with no cast at all.
+          And a validator's output type is no longer trusted: <code>infer_output</code> derives it from
           the shape you pass, and <code>tsc</code> checks your annotation against it &mdash; a shape
           missing a field of the type you claim now fails to compile.
         </p>

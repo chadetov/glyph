@@ -54,4 +54,4 @@ against this runtime (and the React/`api/users` stubs in `examples/.types/`).
 That is the Phase 1 Week 4 gate, fully met. (`01_validator`'s `object_schema<Out>`
 returns a `Record<string, unknown>` as the caller's `Out`; with no `as` in
 Glyph, the emitter casts a generic function's return to its declared type — the
-v1 stand-in for infer_shape, Q1.)
+v1 stand-in for infer_output, Q1.)

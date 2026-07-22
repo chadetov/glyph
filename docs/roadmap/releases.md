@@ -317,6 +317,39 @@ symbols, formatting); these are the two most-requested gaps on top of it.
   `AGENTS.md` for the spec, `glyph build --json` for coded diagnostics) rather
   than replacing it. Requested by an early user.
 
+## Verifiability hardening — Linus 2nd-pass follow-ups
+
+**Status: from the second deep code-level review.** The review verified 0.1.10
+against the source and granted the "grudging nod" (the honesty fixes are real,
+the engineering is real, `definitely_incompatible` is good taste). It left four
+concrete follow-ups, in priority order:
+
+- **Don't let `tsc` be optional for the guarantee we advertise** (M) — `glyph run`
+  type-checks with `tsc` by default, but if `tsc` is not on `PATH` it prints a
+  warning and runs anyway (`glyph-cli/src/run.rs`). That quietly downgrades the
+  soundness story on a box without `tsc`. Make the skip loud and non-zero-exit,
+  or require `tsc` for the checked path, so the guarantee never evaporates
+  silently. (`glyph build --check` and CI already hard-fail; this is the `run`
+  path.)
+- **Rename and generalize `infer_shape`** (M) — ✅ **done.** The operator was
+  welded to the literal type name `Schema` (the emitted mapped type said
+  `S[K] extends Schema<infer V>`), so a validator type named anything else
+  silently mapped every field to `never`. Renamed to **`infer_output`** (honest:
+  it derives the output types the parsers produce) and generalized to match a
+  parser field **structurally** — any `{ parse(input: unknown) -> Result<V, _> }`,
+  reading the `Ok` payload out of the result's wire form — so it is independent of
+  the wrapper's name (a user's own `Codec<T>` works too, pinned by an integration
+  test). The one boundary cast now fires on `infer_output` returns. See spec D28.
+- **Prove the `tsc`-error source remap in a test** (S) — the `infer_shape` bite
+  integration test asserts only that `tsc` *failed*, not that the diagnostic maps
+  back onto the `.glyph` line, while the commit message claims "mapped back to
+  Glyph source." The remap works (verified manually); strengthen the test to
+  assert the diagnostic lands on the Glyph source span so the claim is pinned.
+- **Close the imported-`.d.ts` presence-only hole** (M) — already tracked as the
+  one remaining `T.parse` honest edge (see the 0.1.10 imported-type-descriptors
+  item). Reaffirmed as the softest spot in the runtime story: an imported type is
+  checked for presence only until materialized with `glyph gen dts`.
+
 ## Rolling · Ergonomics & polish
 
 The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,

@@ -6,10 +6,10 @@
 //! runtime. The server (`lib.rs`) converts `GlyphDiagnostic` to the protocol
 //! type using `LineIndex`.
 
-use glyph_ast::{Decl, Module, TypeExpr};
+use glyph_ast::{Decl, ImportKind, Module, TypeExpr};
 use glyph_resolver::{
     build_prelude, collect_module_symbols, resolve_module, verify_imports, ResolvedModule,
-    ResolvedRef, StdlibStubs, SymbolKind,
+    ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{assign_types, display_ty, TypeMap};
 
@@ -159,6 +159,38 @@ pub fn find_symbol_span(outline: &[OutlineSymbol], name: &str) -> Option<(u32, u
         }
     }
     None
+}
+
+/// The symbol under the cursor, classified for cross-file operations.
+#[derive(Debug, PartialEq, Eq)]
+pub enum SymbolTarget {
+    /// A file-private binding (a `let`, parameter, `match`/`for`/lambda binding).
+    /// It cannot be referenced from another file.
+    Local,
+    /// A module-level symbol identified globally by `(module path, name)` — where
+    /// it is declared, so every file's references agree on one identity.
+    Global { module: String, name: String },
+}
+
+/// Validate a proposed rename target name: a legal Glyph identifier that is not a
+/// reserved keyword. Shared by the local and workspace rename paths.
+pub fn validate_rename_name(new_name: &str) -> Result<(), RenameError> {
+    if !is_valid_ident(new_name) {
+        return Err(RenameError::InvalidIdentifier);
+    }
+    if KEYWORDS.contains(&new_name) {
+        return Err(RenameError::ReservedKeyword);
+    }
+    Ok(())
+}
+
+/// Join module-path segments into the `a/b` form used in imports and file paths.
+fn join_segments(segments: &[glyph_ast::Ident]) -> String {
+    segments
+        .iter()
+        .map(|s| s.as_ref())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 /// Why a rename request was refused.
@@ -429,18 +461,198 @@ impl Analysis {
         text: &str,
         new_name: &str,
     ) -> Result<Vec<(u32, u32)>, RenameError> {
-        if !is_valid_ident(new_name) {
-            return Err(RenameError::InvalidIdentifier);
-        }
-        if KEYWORDS.contains(&new_name) {
-            return Err(RenameError::ReservedKeyword);
-        }
+        validate_rename_name(new_name)?;
         let (identity, name, is_local) =
             self.binding_at(offset, text).ok_or(RenameError::NoBinding)?;
         if !is_local {
             return Err(RenameError::ModuleLevelUnsupported);
         }
         Ok(self.occurrences(identity, &name, is_local, text, true))
+    }
+
+    /// The global identity `(module_path, name)` of a module-level symbol id, or
+    /// `None` for a namespace import, alias, or prelude built-in. An imported
+    /// name reports the module it came from; any other module symbol reports
+    /// `this_module` (the file it is declared in).
+    fn module_global_of(&self, id: SymbolId, this_module: &str) -> Option<(String, String)> {
+        let sym = self.resolved.symbols.table.get(id)?;
+        match &sym.kind {
+            SymbolKind::ImportNamed { path, original } => {
+                Some((join_segments(&path.segments), original.to_string()))
+            }
+            SymbolKind::ImportNamespace { .. }
+            | SymbolKind::ImportAlias { .. }
+            | SymbolKind::Prelude { .. } => None,
+            _ => Some((this_module.to_string(), sym.name.to_string())),
+        }
+    }
+
+    /// Resolve the symbol at `offset` for cross-file operations, given the open
+    /// file's own module path `this_module`. `Local` is file-private and never
+    /// crosses files; `Global { module, name }` is a module-level symbol keyed by
+    /// where it is declared (its own module for a same-file declaration, the
+    /// import's module for an imported name). `None` when `offset` is not on a
+    /// resolvable name.
+    pub fn symbol_target(
+        &self,
+        offset: usize,
+        text: &str,
+        this_module: &str,
+    ) -> Option<SymbolTarget> {
+        // 1. A reference position.
+        let mut best: Option<(u32, ResolvedRef)> = None;
+        for (span, r) in self.resolved.resolutions.iter() {
+            if (span.start as usize) <= offset && offset < (span.end as usize) {
+                let width = span.end - span.start;
+                if best.as_ref().map_or(true, |(w, _)| width < *w) {
+                    best = Some((width, r));
+                }
+            }
+        }
+        if let Some((_, r)) = best {
+            return match r {
+                ResolvedRef::Local(_) => Some(SymbolTarget::Local),
+                ResolvedRef::Module(id) => self
+                    .module_global_of(id, this_module)
+                    .map(|(module, name)| SymbolTarget::Global { module, name }),
+                ResolvedRef::Prelude(_) => None,
+            };
+        }
+        // 2. A top-level declaration name.
+        for decl in &self.module.items {
+            if let Some((name, span)) = top_decl_name_and_span(decl) {
+                if let Some((ns, ne)) = whole_word_span(text, span.0, span.1, name) {
+                    if (ns as usize) <= offset && offset < (ne as usize) {
+                        return Some(SymbolTarget::Global {
+                            module: this_module.to_string(),
+                            name: name.to_string(),
+                        });
+                    }
+                }
+            }
+        }
+        // 2b. A tagged-union variant name (a module-scope constructor).
+        for top in module_outline(&self.module) {
+            for child in &top.children {
+                if let Some((ns, ne)) = whole_word_span(text, child.span.0, child.span.1, &child.name)
+                {
+                    if (ns as usize) <= offset && offset < (ne as usize) {
+                        return Some(SymbolTarget::Global {
+                            module: this_module.to_string(),
+                            name: child.name.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        // 3. An `import M { name }` binding.
+        for decl in &self.module.items {
+            if let Decl::Import(im) = decl {
+                if let ImportKind::Named(names) = &im.kind {
+                    let module = join_segments(&im.path.segments);
+                    for n in names {
+                        if let Some((ns, ne)) =
+                            whole_word_span(text, im.span.start, im.span.end, n.as_ref())
+                        {
+                            if (ns as usize) <= offset && offset < (ne as usize) {
+                                return Some(SymbolTarget::Global {
+                                    module,
+                                    name: n.to_string(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // 4. A local binding name.
+        for (span, r) in self.resolved.resolutions.iter() {
+            if let ResolvedRef::Local(def_start) = r {
+                let Some(name) = text.get(span.start as usize..span.end as usize) else {
+                    continue;
+                };
+                if let Some((ns, ne)) = local_name_span(text, def_start, name) {
+                    if (ns as usize) <= offset && offset < (ne as usize) {
+                        return Some(SymbolTarget::Local);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Every occurrence of the globally-identified symbol `(sym_module, name)` in
+    /// THIS file, whose own module path is `this_module`. Reference sites come
+    /// from the resolution table; the declaration or import-binding site is added
+    /// when `include_decl` — the declaration itself in the defining module, or
+    /// the `import sym_module { name }` token in an importing module. This is the
+    /// per-file half of a workspace-wide references/rename: the server runs it
+    /// over every file.
+    pub fn global_occurrences(
+        &self,
+        this_module: &str,
+        sym_module: &str,
+        name: &str,
+        text: &str,
+        include_decl: bool,
+    ) -> Vec<(u32, u32)> {
+        let mut out: Vec<(u32, u32)> = Vec::new();
+        for (span, r) in self.resolved.resolutions.iter() {
+            if let ResolvedRef::Module(id) = r {
+                if self.module_global_of(id, this_module).as_ref().map(|(m, n)| {
+                    (m.as_str(), n.as_str())
+                }) == Some((sym_module, name))
+                {
+                    out.push((span.start, span.end));
+                }
+            }
+        }
+        if include_decl {
+            if this_module == sym_module {
+                // The declaration in the defining module: a top-level decl name,
+                // or a tagged-union variant name.
+                for decl in &self.module.items {
+                    if let Some((n, span)) = top_decl_name_and_span(decl) {
+                        if n == name {
+                            if let Some(ws) = whole_word_span(text, span.0, span.1, n) {
+                                out.push(ws);
+                            }
+                        }
+                    }
+                }
+                for top in module_outline(&self.module) {
+                    for child in &top.children {
+                        if child.name == name {
+                            if let Some(ws) =
+                                whole_word_span(text, child.span.0, child.span.1, name)
+                            {
+                                out.push(ws);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // The `import sym_module { name }` binding token in an importer.
+                for decl in &self.module.items {
+                    if let Decl::Import(im) = decl {
+                        if join_segments(&im.path.segments) == sym_module {
+                            if let ImportKind::Named(names) = &im.kind {
+                                if names.iter().any(|nm| nm.as_ref() == name) {
+                                    if let Some(ws) =
+                                        whole_word_span(text, im.span.start, im.span.end, name)
+                                    {
+                                        out.push(ws);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        out.sort_unstable();
+        out.dedup();
+        out
     }
 
     /// The document outline: this module's top-level declarations, with a tagged
@@ -831,6 +1043,82 @@ mod tests {
             a.rename_edits(def, text, "2bad"),
             Err(RenameError::InvalidIdentifier)
         );
+    }
+
+    #[test]
+    fn global_occurrences_in_the_defining_module() {
+        let text = "module a\nfn foo() -> number {\n  return 1\n}\nfn bar() -> number {\n  return foo() + foo()\n}\n";
+        let an = analyze_full(text).expect("parses");
+        // Declaration + two calls, all named `foo`.
+        let occ = an.global_occurrences("a", "a", "foo", text, true);
+        assert_eq!(occ.len(), 3, "{:?}", spans_text(text, &occ));
+        assert!(spans_text(text, &occ).iter().all(|s| *s == "foo"));
+        // The declaration itself resolves to a global target.
+        let def = text.find("foo").unwrap();
+        assert_eq!(
+            an.symbol_target(def, text, "a"),
+            Some(SymbolTarget::Global {
+                module: "a".to_string(),
+                name: "foo".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn global_occurrences_in_an_importing_module() {
+        let text =
+            "module b\nimport a { foo }\nfn use_it() -> number {\n  return foo() + foo()\n}\n";
+        let an = analyze_full(text).expect("parses");
+        // The import binding token + two uses = 3, keyed to a's `foo`.
+        let occ = an.global_occurrences("b", "a", "foo", text, true);
+        assert_eq!(occ.len(), 3, "{:?}", spans_text(text, &occ));
+        assert!(spans_text(text, &occ).iter().all(|s| *s == "foo"));
+        // A use resolves to the same global identity as the declaration in `a`.
+        let use1 = text.rfind("foo").unwrap();
+        assert_eq!(
+            an.symbol_target(use1, text, "b"),
+            Some(SymbolTarget::Global {
+                module: "a".to_string(),
+                name: "foo".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn workspace_rename_spans_defining_and_importing_modules() {
+        // The composition the server performs: resolve the target in one module,
+        // then collect occurrences from every module.
+        let a_text = "module a\nfn foo() -> number {\n  return 1\n}\n";
+        let b_text = "module b\nimport a { foo }\nfn use_it() -> number {\n  return foo()\n}\n";
+        let a = analyze_full(a_text).expect("a parses");
+        let b = analyze_full(b_text).expect("b parses");
+
+        let def = a_text.find("foo").unwrap();
+        let SymbolTarget::Global { module, name } =
+            a.symbol_target(def, a_text, "a").expect("a global symbol")
+        else {
+            panic!("declaration should be a global symbol");
+        };
+
+        let in_a = a.global_occurrences("a", &module, &name, a_text, true);
+        let in_b = b.global_occurrences("b", &module, &name, b_text, true);
+        // a: the declaration only. b: the import binding + one use.
+        assert_eq!(in_a.len(), 1, "{:?}", spans_text(a_text, &in_a));
+        assert_eq!(in_b.len(), 2, "{:?}", spans_text(b_text, &in_b));
+        assert!(spans_text(a_text, &in_a)
+            .iter()
+            .chain(spans_text(b_text, &in_b).iter())
+            .all(|s| *s == "foo"));
+    }
+
+    #[test]
+    fn global_occurrences_covers_union_variants() {
+        let text = "module a\ntype Color = Red | Blue\nfn pick() -> Color {\n  return Red\n}\n";
+        let an = analyze_full(text).expect("parses");
+        // The variant definition in the union + one use.
+        let occ = an.global_occurrences("a", "a", "Red", text, true);
+        assert_eq!(occ.len(), 2, "{:?}", spans_text(text, &occ));
+        assert!(spans_text(text, &occ).iter().all(|s| *s == "Red"));
     }
 
     #[test]

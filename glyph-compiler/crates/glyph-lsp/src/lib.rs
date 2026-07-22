@@ -22,8 +22,8 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 use analysis::{
-    analyze, analyze_full, base_completions, find_symbol_span, outline_of, CompletionTag,
-    Definition, LineIndex, OutlineKind, OutlineSymbol, RenameError,
+    analyze, analyze_full, base_completions, find_symbol_span, outline_of, validate_rename_name,
+    CompletionTag, Definition, LineIndex, OutlineKind, OutlineSymbol, RenameError, SymbolTarget,
 };
 
 struct Backend {
@@ -319,17 +319,40 @@ impl LanguageServer for Backend {
         };
         let index = LineIndex::new(&text);
         let offset = index.offset(&text, pos.position.line, pos.position.character);
-        // File-scoped today: the open document only. A symbol used from another
-        // module is under-reported until the workspace index lands.
-        let spans = analysis.references(offset, &text, params.context.include_declaration);
-        if spans.is_empty() {
-            return Ok(None);
+        let include_decl = params.context.include_declaration;
+
+        // With a workspace, a module-level symbol's references span every file.
+        if let Some((root, this_module)) = self.file_module(&uri) {
+            if let Some(SymbolTarget::Global { module, name }) =
+                analysis.symbol_target(offset, &text, &this_module)
+            {
+                let mut locations = Vec::new();
+                for (u2, t2) in self.workspace_docs(&root) {
+                    let Some(fm) = u2
+                        .to_file_path()
+                        .ok()
+                        .and_then(|p| module_path_of(&root, &p))
+                    else {
+                        continue;
+                    };
+                    let Some(a2) = analyze_full(&t2) else {
+                        continue;
+                    };
+                    for (s, e) in a2.global_occurrences(&fm, &module, &name, &t2, include_decl) {
+                        locations.push(location_in(&u2, &t2, s, e));
+                    }
+                }
+                return Ok((!locations.is_empty()).then_some(locations));
+            }
         }
-        let locations = spans
-            .into_iter()
-            .map(|(s, e)| location_in(&uri, &text, s, e))
-            .collect();
-        Ok(Some(locations))
+        // A local binding, or no workspace: the open document only.
+        let spans = analysis.references(offset, &text, include_decl);
+        Ok((!spans.is_empty()).then(|| {
+            spans
+                .into_iter()
+                .map(|(s, e)| location_in(&uri, &text, s, e))
+                .collect()
+        }))
     }
 
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
@@ -343,19 +366,52 @@ impl LanguageServer for Backend {
         };
         let index = LineIndex::new(&text);
         let offset = index.offset(&text, pos.position.line, pos.position.character);
+
+        // With a workspace, a module-level rename edits every file that names the
+        // symbol — the declaration, its references, and each importing module's
+        // import binding — so it is complete and safe.
+        if let Some((root, this_module)) = self.file_module(&uri) {
+            if let Some(SymbolTarget::Global { module, name }) =
+                analysis.symbol_target(offset, &text, &this_module)
+            {
+                validate_rename_name(&params.new_name).map_err(rename_error)?;
+                let mut changes: HashMap<Url, Vec<TextEdit>> = HashMap::new();
+                for (u2, t2) in self.workspace_docs(&root) {
+                    let Some(fm) = u2
+                        .to_file_path()
+                        .ok()
+                        .and_then(|p| module_path_of(&root, &p))
+                    else {
+                        continue;
+                    };
+                    let Some(a2) = analyze_full(&t2) else {
+                        continue;
+                    };
+                    let idx2 = LineIndex::new(&t2);
+                    let edits: Vec<TextEdit> = a2
+                        .global_occurrences(&fm, &module, &name, &t2, true)
+                        .into_iter()
+                        .map(|(s, e)| text_edit(&idx2, &t2, s, e, &params.new_name))
+                        .collect();
+                    if !edits.is_empty() {
+                        changes.insert(u2, edits);
+                    }
+                }
+                return Ok(Some(WorkspaceEdit {
+                    changes: Some(changes),
+                    document_changes: None,
+                    change_annotations: None,
+                }));
+            }
+        }
+        // A local binding (or no workspace, where a module-level rename is refused
+        // because its cross-file references cannot be found): edit this file only.
         let spans = analysis
             .rename_edits(offset, &text, &params.new_name)
             .map_err(rename_error)?;
         let edits: Vec<TextEdit> = spans
             .into_iter()
-            .map(|(s, e)| {
-                let (sl, sc) = index.position(&text, s as usize);
-                let (el, ec) = index.position(&text, e as usize);
-                TextEdit {
-                    range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
-                    new_text: params.new_name.clone(),
-                }
-            })
+            .map(|(s, e)| text_edit(&index, &text, s, e, &params.new_name))
             .collect();
         let mut changes = HashMap::new();
         changes.insert(uri, edits);
@@ -455,6 +511,20 @@ fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
+/// The Glyph module path of a `.glyph` file under `root` — its path relative to
+/// the root, minus the extension, with `/` separators (`src/foo.glyph` →
+/// `src/foo`). This is the name an `import` uses and the key a cross-file
+/// symbol is identified by. `None` when the file is not under the root.
+fn module_path_of(root: &Path, file: &Path) -> Option<String> {
+    let rel = file.strip_prefix(root).ok()?;
+    let parts: Vec<String> = rel
+        .with_extension("")
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect();
+    Some(parts.join("/"))
+}
+
 /// Convert an outline node to the protocol `DocumentSymbol`, recursively. The
 /// declaration's byte span supplies both the full range and the selection range
 /// (the latter must be contained in the former, which an equal range satisfies).
@@ -521,6 +591,46 @@ impl Backend {
     /// The current text of an open document, if any.
     fn doc_text(&self, uri: &Url) -> Option<String> {
         self.docs.lock().expect("docs mutex").get(uri).cloned()
+    }
+
+    /// The workspace root and the open file's own module path, when both exist
+    /// (there is a workspace and the file lives under it). `None` falls back to
+    /// file-scoped behaviour.
+    fn file_module(&self, uri: &Url) -> Option<(PathBuf, String)> {
+        let root = self.root.lock().expect("root mutex").clone()?;
+        let path = uri.to_file_path().ok()?;
+        let module = module_path_of(&root, &path)?;
+        Some((root, module))
+    }
+
+    /// Every `.glyph` document in the workspace as `(uri, text)`, preferring an
+    /// open buffer (unsaved edits) over the on-disk text, and including any open
+    /// document not on disk (a new, unsaved file). The per-file input to a
+    /// workspace-wide references/rename.
+    fn workspace_docs(&self, root: &Path) -> Vec<(Url, String)> {
+        let mut files = Vec::new();
+        collect_glyph_files(root, &mut files);
+        let mut out = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for path in files {
+            let Ok(uri) = Url::from_file_path(&path) else {
+                continue;
+            };
+            let Some(text) = self
+                .doc_text(&uri)
+                .or_else(|| std::fs::read_to_string(&path).ok())
+            else {
+                continue;
+            };
+            seen.insert(uri.clone());
+            out.push((uri, text));
+        }
+        for (uri, text) in self.docs.lock().expect("docs mutex").iter() {
+            if !seen.contains(uri) {
+                out.push((uri.clone(), text.clone()));
+            }
+        }
+        out
     }
 
     /// Custom request `glyph/canonicalView`: return the canonical agent view
@@ -665,6 +775,16 @@ fn location_in(uri: &Url, text: &str, start: u32, end: u32) -> Location {
     }
 }
 
+/// A `TextEdit` replacing byte range `[start, end)` of `text` with `new_text`.
+fn text_edit(index: &LineIndex, text: &str, start: u32, end: u32, new_text: &str) -> TextEdit {
+    let (sl, sc) = index.position(text, start as usize);
+    let (el, ec) = index.position(text, end as usize);
+    TextEdit {
+        range: Range::new(Position::new(sl, sc), Position::new(el, ec)),
+        new_text: new_text.to_string(),
+    }
+}
+
 /// Run the language server over stdio (the transport an editor extension
 /// spawns: `glyph lsp`). Blocks until the client closes the connection.
 pub fn run_stdio() {
@@ -686,6 +806,21 @@ pub fn run_stdio() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn module_path_of_maps_files_under_root() {
+        let root = Path::new("/proj");
+        assert_eq!(
+            module_path_of(root, Path::new("/proj/foo.glyph")).as_deref(),
+            Some("foo")
+        );
+        assert_eq!(
+            module_path_of(root, Path::new("/proj/a/b.glyph")).as_deref(),
+            Some("a/b")
+        );
+        // Outside the root: no module path.
+        assert_eq!(module_path_of(root, Path::new("/other/x.glyph")), None);
+    }
 
     fn edit(sl: u32, sc: u32, el: u32, ec: u32, new_text: &str) -> TextEdit {
         TextEdit {

@@ -230,9 +230,9 @@ a clean npx cache.
     atom to a variant and continues as a union. Parser tests for both shapes;
     the emitted match lowers and passes tsc --strict.
 
-## 0.1.10 — Next · Make the verifiability guarantee match the pitch
+## 0.1.10 — Shipped · Make the verifiability guarantee match the pitch
 
-**Status: proposed, from a deep code-level review (the "Linus" pass).** The
+**Status: shipped.** From a deep code-level review (the "Linus" pass). The
 review confirmed the compiler is real and several decisions tasteful, but caught
 the marketing overclaiming relative to what the code guarantees — and the code's
 own doc-comments were more honest than the site. The honesty fixes shipped with
@@ -289,6 +289,33 @@ generic edges). 0.1.10 closes the engineering behind them:
   is now caught at the Glyph level (E0211) instead of only by `tsc`. Record-vs
   record is sound but mostly latent until object-literal argument inference
   improves (today those infer to `Unknown` and stay permissive).
+
+## 0.1.11 — Next · The editor & agent integration surface
+
+**Status: proposed.** 0.1.10 made the language itself trustworthy; this release
+widens how editors and agents *reach* it. The language server already ships
+(`glyph lsp` over stdio: diagnostics, hover, go-to-definition, completion,
+symbols, formatting); these are the two most-requested gaps on top of it.
+
+- **Rename + find-references in the LSP** (M) — the two editor features named
+  "on the way" on the site (`web/answers/tooling/`). The server (`glyph-lsp`)
+  already resolves cross-module definitions and holds the resolution side table;
+  `references` walks the same table in reverse, and `rename` is a workspace edit
+  over those reference sites (respecting D-decisions, e.g. it must not rename a
+  keyword-as-name or break a barrel-file diagnostic). Today the server analyzes a
+  single open document against the stdlib stub graph, so this pulls in a small
+  multi-file index (the workspace's `.glyph` set) as a prerequisite.
+- **First-party MCP server exposing the language server** (M) — an agent-facing
+  bridge so a coding agent can query Glyph's own understanding of a codebase
+  (hover types, go-to-definition, references, workspace symbols, live
+  diagnostics) as MCP tools, instead of only reading `glyph build --json`. The
+  server reuses the `glyph-lsp` analysis layer (which already has no `tower-lsp`
+  types — it is a plain, testable in-memory analyzer), so the MCP surface is a
+  thin adapter over the same queries the editor path uses, not a second
+  implementation. Sequenced after rename/references so the reference/symbol
+  queries exist to expose. Complements the existing agent path (`glyph llms` /
+  `AGENTS.md` for the spec, `glyph build --json` for coded diagnostics) rather
+  than replacing it. Requested by an early user.
 
 ## Rolling · Ergonomics & polish
 

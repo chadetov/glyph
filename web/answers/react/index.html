@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Does it work with React — components, hooks, and Context? — Glyph</title>
+    <title>Does it work with React: components, hooks, and Context? · Glyph</title>
     <meta name="description" content="React is built in: component compiles to a function component, JSX lowers to createElement, custom hooks are just functions, and reducer state is safer than TypeScript." />
     <link rel="canonical" href="https://glyphlang.io/answers/react/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -48,11 +48,11 @@
 
     <article class="answer-page">
       <p class="q-eyebrow">07 &middot; Frontend</p>
-      <h1 class="q-title">Does it work with React &mdash; components, hooks, and Context?</h1>
+      <h1 class="q-title">Does it work with React: components, hooks, and Context?</h1>
 
       <p class="short-answer">
         React is <strong>built in</strong>. A <code>component</code> compiles to a React function
-        component, JSX lowers to <code>createElement</code>, custom hooks are just functions &mdash;
+        component, JSX lowers to <code>createElement</code>, custom hooks are just functions,
         and complex state is <strong>safer than plain TypeScript</strong>.
       </p>
 
@@ -66,11 +66,11 @@
         </p>
 
         <p class="block-label">See it</p>
-        <p>A custom hook is a function that calls hooks. Reducer state gets something React alone can't give you &mdash; compile-time exhaustiveness on every action:</p>
+        <p>A custom hook is a function that calls hooks. Reducer state gets something React alone can't give you, compile-time exhaustiveness on every action:</p>
       </div>
 
       <div class="code">
-        <span class="cap">counter.glyph — a custom hook + a reducer that can't miss a case</span>
+        <span class="cap">counter.glyph: a custom hook + a reducer that can't miss a case</span>
 <pre>type Action = Inc | Dec | Reset
 
 fn reducer(n: number, a: Action) -&gt; number {
@@ -90,15 +90,15 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
       <div class="detail">
         <p>
           Add a <code>SetTo(number)</code> action and every reducer that doesn't handle it stops
-          compiling &mdash; the bug a plain TypeScript <code>switch</code> would let ship. React
+          compiling: the bug a plain TypeScript <code>switch</code> would let ship. React
           <strong>Context</strong> works today through <code>createContext</code> /
           <code>useContext</code>, and member-expression element names
-          (<code>&lt;ThemeContext.Provider&gt;</code>) work directly &mdash; no workaround.
+          (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.
         </p>
         <p>
           What doesn't carry over cleanly: a component takes a single props record (not multiple
-          positional params), and some React-<em>library</em> patterns &mdash; prop spreading, zod's
-          value-derived types &mdash; need a thin adapter today. See
+          positional params), and some React-<em>library</em> patterns (prop spreading, zod's
+          value-derived types) need a thin adapter today. See
           <a href="/answers/imports/">using your libraries</a> and the
           <a href="/hardening/">hardening page</a> for exactly where that boundary is.
         </p>
@@ -130,7 +130,7 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

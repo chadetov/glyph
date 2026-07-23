@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Can an AI reliably write a language it's barely seen? — Glyph</title>
+    <title>Can an AI reliably write a language it's barely seen? · Glyph</title>
     <meta name="description" content="Glyph is a disciplined subset of TypeScript with an ML core: about 80% transfers from TS intuition, and the compiler's fast, precise feedback closes the rest." />
     <link rel="canonical" href="https://glyphlang.io/answers/ai-authoring/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,7 +51,7 @@
       <h1 class="q-title">Can an AI reliably write a language it's barely seen?</h1>
 
       <p class="short-answer">
-        Yes &mdash; because Glyph is a <strong>disciplined subset of TypeScript</strong> with an ML
+        Yes, because Glyph is a <strong>disciplined subset of TypeScript</strong> with an ML
         core. About <strong>80% transfers</strong> from TS intuition, and the compiler's fast,
         precise feedback closes the rest.
       </p>
@@ -61,13 +61,13 @@
         <p>
           It's the fair skeptic's question: an LLM predicts the next token from the huge body of
           existing-language code, so a language with almost no training data should be hard to
-          write. The answer is structural &mdash; Glyph isn't alien. It looks like TypeScript, so
+          write. The answer is structural: Glyph isn't alien. It looks like TypeScript, so
           the model already knows most of it; the differences are few, enumerable, and each one
           fails <em>fast</em> at compile time rather than passing silently.
         </p>
 
         <p class="block-label">See it</p>
-        <p>An agent that guesses wrong doesn't ship the guess &mdash; it gets a precise, fixable error and corrects in the same loop:</p>
+        <p>An agent that guesses wrong doesn't ship the guess. It gets a precise, fixable error and corrects in the same loop:</p>
       </div>
 
       <div class="code">
@@ -76,16 +76,16 @@
 if user.admin { grant() }
 
 <span class="del">[E0006] Glyph has no `if`</span>
-   ╰─ `match` is the only conditional —
+   ╰─ `match` is the only conditional:
       match user.admin { true =&gt; grant(), false =&gt; void, }</pre>
       </div>
 
       <div class="detail">
         <p>
-          The error names the Glyph construct and shows the shape, so the fix is one edit away &mdash;
+          The error names the Glyph construct and shows the shape, so the fix is one edit away:
           no source-diving, no guessing. That tight loop is what compensates for the missing
-          training data. In our own adversarial testing, an agent built a real REST API &mdash;
-          typed records, tagged-union validation, auth middleware &mdash; to a <strong>green build in
+          training data. In our own adversarial testing, an agent built a real REST API
+          (typed records, tagged-union validation, auth middleware) to a <strong>green build in
           about two iterations</strong>. And to remove the last friction, one document
           (<a href="/llms.txt">llms.txt</a>) takes an agent from zero to correct, runnable Glyph.
         </p>
@@ -99,7 +99,7 @@ if user.admin { grant() }
         </div>
         <div class="status-card next">
           <p class="h">Being proven</p>
-          <p>A success-rate benchmark &mdash; tries-to-correct against TypeScript on the same task &mdash; to turn &ldquo;it held up&rdquo; into a measured number.</p>
+          <p>A success-rate benchmark (tries-to-correct against TypeScript on the same task) to turn &ldquo;it held up&rdquo; into a measured number.</p>
         </div>
       </div>
 
@@ -117,7 +117,7 @@ if user.admin { grant() }
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

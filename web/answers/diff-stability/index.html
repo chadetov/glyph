@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Will agent edits stay clean, or reformat my whole file? — Glyph</title>
+    <title>Will agent edits stay clean, or reformat my whole file? · Glyph</title>
     <meta name="description" content="Glyph has one canonical layout and requires trailing commas, so a one-line change is a one-line diff. Agents can't bury a real change under reformatting noise." />
     <link rel="canonical" href="https://glyphlang.io/answers/diff-stability/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,7 +51,7 @@
       <h1 class="q-title">Will agent edits stay clean, or reformat my whole file?</h1>
 
       <p class="short-answer">
-        A one-line change is a <strong>one-line diff</strong> &mdash; every time. Glyph has a
+        A one-line change is a <strong>one-line diff</strong>, every time. Glyph has a
         single canonical layout, so an agent <strong>can't bury a real change under a wall of
         reformatting</strong>.
       </p>
@@ -60,19 +60,19 @@
         <p class="block-label">Why it matters</p>
         <p>
           When an agent opens a pull request, the diff <em>is</em> the review. If a genuine
-          one-line fix arrives as a 200-line reformat, nobody can see what actually changed &mdash;
+          one-line fix arrives as a 200-line reformat, nobody can see what actually changed,
           and that noise is exactly where a bug slips through. Diff stability means the diff
           shows the change and <strong>nothing but the change</strong>.
         </p>
         <p>Two rules do most of the work. Here's each, shown as the diff you'd actually review.</p>
 
-        <p class="block-label">Example 1 &mdash; trailing commas, one item per line</p>
-        <p>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma &mdash; two lines move for a one-item change:</p>
+        <p class="block-label">Example 1: trailing commas, one item per line</p>
+        <p>Add a route. In TypeScript's common style the previous last line has to churn just to grow a comma. Two lines move for a one-item change:</p>
       </div>
 
       <div class="two-up">
         <div class="code">
-          <span class="cap">TypeScript &mdash; add "/billing"</span>
+          <span class="cap">TypeScript: add "/billing"</span>
 <pre> const routes = [
    "/home",
 <span class="del">-  "/about"</span>
@@ -82,7 +82,7 @@
           <div style="padding:0 16px 14px"><span class="verdict bad">3 lines moved for 1 change</span></div>
         </div>
         <div class="code">
-          <span class="cap">Glyph &mdash; add "/billing"</span>
+          <span class="cap">Glyph: add "/billing"</span>
 <pre> let routes = [
    "/home",
    "/about",
@@ -99,7 +99,7 @@
           neighbors. The same holds for record fields, parameters, match arms, and imports.
         </p>
 
-        <p class="block-label">Example 2 &mdash; one canonical layout</p>
+        <p class="block-label">Example 2: one canonical layout</p>
         <p>
           There is exactly one correct formatting, produced by <code>glyph fmt</code>. Whitespace,
           wrapping, and alignment aren't choices an agent can &ldquo;tidy,&rdquo; so a semantic
@@ -108,7 +108,7 @@
       </div>
 
       <div class="code">
-        <span class="cap">user.glyph — change one field, review one line</span>
+        <span class="cap">user.glyph: change one field, review one line</span>
 <pre> type User = {
    id: string,
 <span class="del">-  age: string,</span>
@@ -120,7 +120,7 @@
       <div class="detail">
         <p>
           Because the layout is fixed, two different agents editing the same file produce
-          <strong>byte-identical</strong> formatting &mdash; no reflow churn, no &ldquo;my
+          <strong>byte-identical</strong> formatting, no reflow churn, no &ldquo;my
           formatter vs. yours&rdquo; noise, and a clean <code>git blame</code> that points at the
           commit that actually changed a line, not the one that reformatted it.
         </p>
@@ -130,7 +130,7 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout &mdash; round-tripping and idempotent, with format-on-save in the editor.</p>
+          <p>Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor.</p>
         </div>
         <div class="status-card next">
           <p class="h">Measuring it</p>
@@ -145,14 +145,14 @@
         </a>
         <a href="/answers/greppability/" class="nx cta">
           <span class="dir">Next →</span>
-          <span class="t">Can an agent — or I — find where anything is defined?</span>
+          <span class="t">Can an agent (or I) find where anything is defined?</span>
         </a>
       </nav>
     </article>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

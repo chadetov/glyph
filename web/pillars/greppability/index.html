@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Greppability — one name, one place — Glyph</title>
+    <title>Greppability · one name, one place · Glyph</title>
     <meta name="description" content="Glyph's second pillar: every symbol has one syntactic form at its declaration. No overloads, decorators, namespace merging, or barrel re-exports. A plain grep finds the definition, always." />
     <link rel="canonical" href="https://glyphlang.io/pillars/greppability/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -42,15 +42,15 @@
 
       <p class="short-answer">
         <strong>One name, one place.</strong> Every symbol has exactly one syntactic form at the
-        spot it's declared, so a plain <code>grep</code> finds the definition &mdash; always, with no
+        spot it's declared, so a plain <code>grep</code> finds the definition, always, with no
         index, no language server, and no luck required.
       </p>
 
       <div class="detail">
         <p class="block-label">Why "where is this defined?" is hard</p>
         <p class="lede">
-          In a mature TypeScript codebase, the simplest question &mdash; <em>where does this name come
-          from?</em> &mdash; is often the hardest. The language offers half a dozen ways to spread one
+          In a mature TypeScript codebase, the simplest question, <em>where does this name come
+          from?</em>, is often the hardest. The language offers half a dozen ways to spread one
           symbol across many places: overloads split a function into several signatures, decorators
           wrap it in something else, <code>namespace</code> and <code>interface</code> merging scatter
           a type across files, <code>declare module</code> augments code you don't own, and barrel
@@ -58,8 +58,8 @@
           anything actually lives.
         </p>
         <p class="lede">
-          A human copes with an LSP and muscle memory. An <strong>agent</strong> greps &mdash; it
-          reads the repo as text &mdash; and every one of those constructs is a place the text lies
+          A human copes with an LSP and muscle memory. An <strong>agent</strong> greps: it
+          reads the repo as text, and every one of those constructs is a place the text lies
           about where the code is. Glyph removes them. The result is a language where search is a
           reliable primitive, not a heuristic.
         </p>
@@ -67,7 +67,7 @@
         <p class="block-label"><span class="ex-label">01</span> One declaration, one form</p>
         <p>
           A function, type, or component is declared exactly once, with one syntax. There are no
-          overloads to split a signature and no way to redeclare a name &mdash; two top-level things
+          overloads to split a signature and no way to redeclare a name: two top-level things
           with the same name is a hard error (<code>E0100</code>). So the search for a definition has
           exactly one answer.
         </p>
@@ -75,7 +75,7 @@
 
       <div class="two-up">
         <div class="code">
-          <span class="tag-bad">TypeScript &mdash; four hits, one is the body</span>
+          <span class="tag-bad">TypeScript: four hits, one is the body</span>
           <span class="cap">$ grep -n "parseUser" src/</span>
 <pre><span class="cm">users.ts:4:  export function parseUser(</span>
 <span class="cm">users.ts:9:  export function parseUser(</span>
@@ -83,7 +83,7 @@
 <span class="cm">api.ts:7:   import { parseUser } from</span></pre>
         </div>
         <div class="code">
-          <span class="tag-good">Glyph &mdash; the first hit is the definition</span>
+          <span class="tag-good">Glyph: the first hit is the definition</span>
           <span class="cap">$ grep -n "fn parseUser" src/</span>
 <pre>users.glyph:12:fn parseUser(
   raw: unknown,
@@ -94,15 +94,15 @@
       <div class="detail">
         <p class="pull-quote">
           The declaration keyword is part of the name you search for. <code>grep "fn parseUser"</code>
-          cannot match a call, an import, or a re-export &mdash; only the one place it's
+          cannot match a call, an import, or a re-export, only the one place it's
           <strong>defined</strong>.
         </p>
 
-        <p class="block-label"><span class="ex-label">02</span> No barrel files &mdash; the import path is the location</p>
+        <p class="block-label"><span class="ex-label">02</span> No barrel files: the import path is the location</p>
         <p>
           Glyph imports never re-export, and a module whose only contents are imports is rejected
           (<code>E0102</code>). There is no <code>index.ts</code> laundering layer. So an import names
-          the module the symbol actually lives in &mdash; the path <em>is</em> the address.
+          the module the symbol actually lives in: the path <em>is</em> the address.
         </p>
       </div>
 
@@ -125,7 +125,7 @@
 
         <p class="block-label"><span class="ex-label">04</span> Even mutation is greppable</p>
         <p>
-          Greppability isn't only about finding definitions &mdash; it's about finding
+          Greppability isn't only about finding definitions, it's about finding
           <em>effects</em>. Shared state lives in a <code>std/store</code>, and every change to it is a
           literal <code>.set(</code> or <code>.update(</code> call. So one search enumerates the entire
           write-surface of a piece of state, instead of hunting for assignments scattered through the
@@ -144,16 +144,16 @@
       <div class="detail">
         <p class="pull-quote">
           A codebase is greppable when its <strong>text tells the truth about its structure.</strong>
-          Every restriction here &mdash; one form per name, no re-exports, no merging &mdash; is there
+          Every restriction here (one form per name, no re-exports, no merging) is there
           so that a search returns the answer, not a lead.
         </p>
 
-        <p class="block-label">The benchmark &mdash; coming</p>
+        <p class="block-label">The benchmark: coming</p>
         <p>
           The measurable version of this claim is precision: for a given symbol, what fraction of a
           plain grep's hits are the thing you were actually looking for, and how many steps does it
           take an agent to reach a definition? Glyph isn't in real-world use yet, so the chart below is
-          a placeholder &mdash; it fills in with real numbers once there's a real codebase to measure.
+          a placeholder, it fills in with real numbers once there's a real codebase to measure.
         </p>
       </div>
 
@@ -178,26 +178,26 @@
       <div class="detail">
         <p>
           The payoff compounds with scale and with autonomy. A human learns a codebase's hiding
-          places; an agent starting cold does not. Greppability is what lets a tool &mdash; or a new
-          teammate &mdash; navigate by reading, the way the repo actually is.
+          places; an agent starting cold does not. Greppability is what lets a tool (or a new
+          teammate) navigate by reading, the way the repo actually is.
         </p>
       </div>
 
       <nav class="prevnext">
         <a href="/pillars/verifiability/">
           <span class="dir">&larr; Previous pillar</span>
-          <span class="t">Verifiability &mdash; true at runtime</span>
+          <span class="t">Verifiability: true at runtime</span>
         </a>
         <a href="/pillars/diff-stability/" class="nx cta">
           <span class="dir">Next pillar &rarr;</span>
-          <span class="t">Diff stability &mdash; a one-line change is a one-line diff</span>
+          <span class="t">Diff stability: a one-line change is a one-line diff</span>
         </a>
       </nav>
     </article>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

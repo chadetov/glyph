@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>What's the editor, debugging, and error experience? — Glyph</title>
+    <title>What's the editor, debugging, and error experience? · Glyph</title>
     <meta name="description" content="A real language server (glyph lsp over stdio, for any editor) plus a VS Code extension, Elm-quality error messages with stable codes and glyph --explain. You debug the clean emitted TypeScript today." />
     <link rel="canonical" href="https://glyphlang.io/answers/tooling/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,7 +51,7 @@
       <h1 class="q-title">What's the editor, debugging, and error experience?</h1>
 
       <p class="short-answer">
-        A real <strong>language server</strong> &mdash; <code>glyph lsp</code> speaks the Language
+        A real <strong>language server</strong>: <code>glyph lsp</code> speaks the Language
         Server Protocol over stdio, so <strong>any editor</strong> lights up: highlighting,
         diagnostics, hover types, go-to-definition, completion, format-on-save. A VS Code extension
         ships ready-made. Errors are held to an <strong>Elm-quality bar</strong>: a stable code, the
@@ -69,10 +69,10 @@
         <p class="block-label">Is it a real LSP, or just a VS Code plugin?</p>
         <p>
           A real one. The compiler ships a language server you launch as <code>glyph lsp</code>,
-          which speaks the Language Server Protocol over stdio &mdash; the standard JSON-RPC
-          transport every LSP client understands. The bundled VS Code extension is a thin client
-          around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor
-          &mdash; Neovim, Helix, Zed, Emacs (eglot) &mdash; at <code>glyph lsp</code> and it behaves
+          which speaks the Language Server Protocol over stdio (the standard JSON-RPC
+          transport every LSP client understands). The bundled VS Code extension is a thin client
+          around it, but nothing is VS-Code-specific: point <strong>any</strong> LSP-capable editor,
+          Neovim, Helix, Zed, Emacs (eglot), at <code>glyph lsp</code> and it behaves
           the same. It's the same binary you already installed (<code>npx @glyphlang/glyph lsp</code>),
           so there's no separate server to fetch.
         </p>
@@ -113,7 +113,7 @@
         <p>
           Type errors that only the TypeScript back-end can catch used to point at the generated
           <code>.ts</code>. Now they're <strong>mapped back onto your <code>.glyph</code></strong>
-          &mdash; same ariadne caret, same stable code &mdash; so a <code>tsc</code> error reads like
+          (same ariadne caret, same stable code), so a <code>tsc</code> error reads like
           a native Glyph one.
         </p>
         <p>
@@ -127,15 +127,15 @@
         </p>
         <p>
           <strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every
-          diagnostic as structured JSON &mdash; a stable code, severity, message, file, and 1-based
-          line/column range, plus the help and note &mdash; including <code>tsc</code> errors mapped
+          diagnostic as structured JSON: a stable code, severity, message, file, and 1-based
+          line/column range, plus the help and note, including <code>tsc</code> errors mapped
           onto your Glyph source. An agent reads and acts on them directly instead of scraping
           terminal text.
         </p>
         <p>
           For interactive agents there's more than batch diagnostics: <a href="/mcp/"><code>glyph mcp</code></a> runs a
-          <strong>Model Context Protocol server</strong> over stdio &mdash; the same binary, the same
-          analysis the editor uses &mdash; exposing the language server's queries as MCP tools. An
+          <strong>Model Context Protocol server</strong> over stdio (the same binary, the same
+          analysis the editor uses), exposing the language server's queries as MCP tools. An
           agent can ask for a file's <strong>diagnostics</strong>, the <strong>type</strong> at a
           position, where a name is <strong>defined</strong> (following imports), every
           <strong>reference</strong> to a symbol across the whole project, or a
@@ -148,7 +148,7 @@
           weight without failing the build: an <em>unused import</em> (<code>E0106</code>), an
           <em>unused</em> <code>let</code> (<code>E0107</code>, exempting names led by <code>_</code>),
           and <em>unreachable code</em> after a <code>return</code>/<code>break</code>/<code>continue</code>
-          (<code>E0108</code>). These keep a module honest &mdash; a dead import is exactly the kind of
+          (<code>E0108</code>). These keep a module honest: a dead import is exactly the kind of
           greppability noise that makes a reader hunt for a dependency the code doesn't really have.
           Warnings surface in the same rendered and <code>--json</code> output, marked by severity, and
           still emit TypeScript.
@@ -159,7 +159,7 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>A language server (<code>glyph lsp</code> over stdio &mdash; any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save; an <code>glyph mcp</code> Model Context Protocol server exposing those queries to agents as tools; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics.</p>
+          <p>A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save; an <code>glyph mcp</code> Model Context Protocol server exposing those queries to agents as tools; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
@@ -181,7 +181,7 @@
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

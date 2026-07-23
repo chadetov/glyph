@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Versions &amp; changelog — Glyph</title>
-    <meta name="description" content="What changed in each release of Glyph, newest first — the correctness fixes, the HTTP server, tooling, and the guided site." />
+    <title>Versions &amp; changelog · Glyph</title>
+    <meta name="description" content="What changed in each release of Glyph, newest first: the correctness fixes, the HTTP server, tooling, and the guided site." />
     <link rel="canonical" href="https://glyphlang.io/versions/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#0b1326" />
@@ -34,12 +34,12 @@
         <h1>What changed, <span class="accent">newest first</span>.</h1>
         <p class="lede">
           Glyph is an early preview and moves fast. Every release is here with what it fixed and
-          added, so you can see exactly what's in the version you're running &mdash; and what's
+          added, so you can see exactly what's in the version you're running, and what's
           waiting for you in the next one.
         </p>
         <p class="lede">
           <strong>Stability, pre-1.0:</strong> the language can still change between 0.1.x releases.
-          We hold two lines &mdash; your code stays runnable (it always compiles to plain TypeScript
+          We hold two lines: your code stays runnable (it always compiles to plain TypeScript
           you own, a permanent escape hatch), and when syntax changes we aim to make
           <code>glyph fmt</code> migrate it for you. The full policy is in
           <a href="https://github.com/chadetov/glyph/blob/main/docs/stability.md">docs/stability.md</a>.
@@ -56,7 +56,7 @@
           <div class="rel-body">
             <h3>Docs: the README finds its agents</h3>
             <ul class="changelist">
-              <li><span class="tag changed">Changed</span> The npm README now documents the <a href="/mcp/"><code>glyph mcp</code></a> Model Context Protocol server and the <code>glyph lsp</code> language server &mdash; the agent and editor surface that shipped in 0.1.11. No code changes.</li>
+              <li><span class="tag changed">Changed</span> The npm README now documents the <a href="/mcp/"><code>glyph mcp</code></a> Model Context Protocol server and the <code>glyph lsp</code> language server: the agent and editor surface that shipped in 0.1.11. No code changes.</li>
             </ul>
           </div>
         </div>
@@ -69,8 +69,8 @@
           <div class="rel-body">
             <h3>Wired into your agent</h3>
             <ul class="changelist">
-              <li><span class="tag added">Added</span> <a href="/mcp/"><code>glyph mcp</code></a>: a Model Context Protocol server that exposes Glyph's own analysis to a coding agent as tools &mdash; diagnostics, the type at a cursor, where a name is defined, every reference to a symbol across the project, and symbol search. The same analysis the editor uses, so it can't drift from the compiler.</li>
-              <li><span class="tag added">Added</span> Workspace-wide <strong>find-references and rename</strong> in the language server. A module-level rename edits the declaration, every reference, <em>and</em> each importing module's <code>import</code> binding across the whole project &mdash; complete and safe, with the new name validated first.</li>
+              <li><span class="tag added">Added</span> <a href="/mcp/"><code>glyph mcp</code></a>: a Model Context Protocol server that exposes Glyph's own analysis to a coding agent as tools: diagnostics, the type at a cursor, where a name is defined, every reference to a symbol across the project, and symbol search. The same analysis the editor uses, so it can't drift from the compiler.</li>
+              <li><span class="tag added">Added</span> Workspace-wide <strong>find-references and rename</strong> in the language server. A module-level rename edits the declaration, every reference, <em>and</em> each importing module's <code>import</code> binding across the whole project, complete and safe, with the new name validated first.</li>
               <li><span class="tag changed">Changed</span> <code>infer_shape</code> is now <code>infer_output</code> and generalized: it derives a validator combinator's output type by matching any parser-shaped field <em>structurally</em>, so your own <code>Codec&lt;T&gt;</code> works, not only a type literally named <code>Schema</code>.</li>
             </ul>
           </div>
@@ -84,11 +84,11 @@
           <div class="rel-body">
             <h3>Types that keep their word</h3>
             <ul class="changelist">
-              <li><span class="tag added">Added</span> <code>infer_shape&lt;Shape&gt;</code>: a validator combinator's output type is now <em>derived</em> from the shape you pass it, and the compiler checks your annotation against it &mdash; a schema and its type can no longer drift apart (drop a field from the shape and it won't compile).</li>
+              <li><span class="tag added">Added</span> <code>infer_shape&lt;Shape&gt;</code>: a validator combinator's output type is now <em>derived</em> from the shape you pass it, and the compiler checks your annotation against it: a schema and its type can no longer drift apart (drop a field from the shape and it won't compile).</li>
               <li><span class="tag added">Added</span> Generic types validate at runtime. <code>Paginated.parse&lt;User&gt;(body)</code> checks every element <em>as a <code>User</code></em>, not just for presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.</li>
-              <li><span class="tag added">Added</span> The typechecker catches more shape mismatches itself &mdash; a scalar where a function or record is expected, a function with the wrong return type &mdash; instead of leaving them to <code>tsc</code>. Function-typed fields are now validated by <code>typeof</code>, not presence.</li>
+              <li><span class="tag added">Added</span> The typechecker catches more shape mismatches itself (a scalar where a function or record is expected, a function with the wrong return type) instead of leaving them to <code>tsc</code>. Function-typed fields are now validated by <code>typeof</code>, not presence.</li>
               <li><span class="tag fixed">Fixed</span> <code>glyph fmt</code> no longer drops a generic bound (<code>&lt;T: Bound&gt;</code>), and the one invisible compiler-inserted cast is narrowed so every honest generic function emits cast-free.</li>
-              <li><span class="tag changed">Changed</span> The site now states exactly what the compiler guarantees and where the guarantee stops &mdash; every claim is backed by working code.</li>
+              <li><span class="tag changed">Changed</span> The site now states exactly what the compiler guarantees and where the guarantee stops. Every claim is backed by working code.</li>
             </ul>
           </div>
         </div>
@@ -101,9 +101,9 @@
           <div class="rel-body">
             <h3>The trust release</h3>
             <ul class="changelist">
-              <li><span class="tag added">Added</span> A signed supply chain: npm packages published with provenance, GitHub Release archives carry SLSA build attestations, and every archive has a published SHA-256 &mdash; all verifiable (<code>npm audit signatures</code>, <code>gh attestation verify</code>, <code>sha256sum -c</code>).</li>
-              <li><span class="tag added">Added</span> A <a href="/start/">10-minute Start Here</a> tutorial, a "why not just tooled TypeScript?" answer, a debugging/ops answer, and an "is it worth it without AI?" answer &mdash; the answers section is now a guided 14-page set with a real index.</li>
-              <li><span class="tag added">Added</span> Record descriptors are strict by default now &mdash; they reject undeclared keys (an <code>@open</code> type opts out).</li>
+              <li><span class="tag added">Added</span> A signed supply chain: npm packages published with provenance, GitHub Release archives carry SLSA build attestations, and every archive has a published SHA-256, all verifiable (<code>npm audit signatures</code>, <code>gh attestation verify</code>, <code>sha256sum -c</code>).</li>
+              <li><span class="tag added">Added</span> A <a href="/start/">10-minute Start Here</a> tutorial, a "why not just tooled TypeScript?" answer, a debugging/ops answer, and an "is it worth it without AI?" answer. The answers section is now a guided 14-page set with a real index.</li>
+              <li><span class="tag added">Added</span> Record descriptors are strict by default now: they reject undeclared keys (an <code>@open</code> type opts out).</li>
               <li><span class="tag added">Added</span> <code>glyph doctor</code> checks your node/tsx/tsc toolchain; <code>glyph init</code> pins <code>typescript</code>/<code>tsx</code>; <code>llms.txt</code> now inlines the full diagnostic catalogue and teaches <code>T.parse</code>.</li>
               <li><span class="tag fixed">Fixed</span> Running a library with no <code>main</code> gives a friendly <code>E0310</code> instead of a raw Node stack trace, and concurrent <code>glyph run</code>s no longer race on the temp directory.</li>
               <li><span class="tag added">Added</span> A <code>CONTRIBUTING.md</code> with issue and PR templates, a stated pre-1.0 stability policy, and a site link-check in CI.</li>
@@ -119,7 +119,7 @@
           <div class="rel-body">
             <h3>Install fix</h3>
             <ul class="changelist">
-              <li><span class="tag fixed">Fixed</span> The published compiler binary is now executable on install &mdash; a packaging step dropped the Unix execute bit, so <code>npx @glyphlang/glyph</code> failed with <code>EACCES</code>. The launcher now also restores it defensively.</li>
+              <li><span class="tag fixed">Fixed</span> The published compiler binary is now executable on install: a packaging step dropped the Unix execute bit, so <code>npx @glyphlang/glyph</code> failed with <code>EACCES</code>. The launcher now also restores it defensively.</li>
             </ul>
           </div>
         </div>
@@ -135,7 +135,7 @@
               <li><span class="tag added">Added</span> JSX fragments (<code>&lt;&gt;...&lt;/&gt;</code>) and member-expression tags (<code>&lt;Ctx.Provider&gt;</code>), so React Context and multi-child returns work.</li>
               <li><span class="tag added">Added</span> Machine-readable diagnostics (<code>glyph build --json</code>) and standard v3 source maps (<code>.ts.map</code>) on every emitted file.</li>
               <li><span class="tag added">Added</span> Bounded generics (<code>&lt;T: Bound&gt;</code>), a shared-state <code>std/store</code>, and <code>glyph regen</code> to refresh generated code from its spec.</li>
-              <li><span class="tag added">Added</span> A warning tier &mdash; unused import, unused binding, unreachable code &mdash; plus exhaustiveness for <code>number</code>/<code>string</code> matches (<code>E0218</code>) and real <code>@redact</code> PII masking (<code>E0219</code>).</li>
+              <li><span class="tag added">Added</span> A warning tier (unused import, unused binding, unreachable code) plus exhaustiveness for <code>number</code>/<code>string</code> matches (<code>E0218</code>) and real <code>@redact</code> PII masking (<code>E0219</code>).</li>
               <li><span class="tag added">Added</span> Discriminated-union generation from an OpenAPI <code>discriminator</code>, and <code>gen dts</code> on the TypeScript 7 native compiler.</li>
               <li><span class="tag fixed">Fixed</span> Template interpolations get distinct spans (go-to-definition works inside <code>"${x}"</code>), and a payload-carrying first union variant (<code>Wrap({...}) | Empty</code>) parses.</li>
             </ul>
@@ -150,7 +150,7 @@
           <div class="rel-body">
             <h3>Sharper errors and diagnostics</h3>
             <ul class="changelist">
-              <li><span class="tag added">Added</span> TypeScript back-end errors are mapped back onto your <code>.glyph</code> source &mdash; same caret and stable code &mdash; instead of pointing at the generated <code>.ts</code>.</li>
+              <li><span class="tag added">Added</span> TypeScript back-end errors are mapped back onto your <code>.glyph</code> source (same caret and stable code) instead of pointing at the generated <code>.ts</code>.</li>
               <li><span class="tag added">Added</span> A warning tier: diagnostics can be warnings that are surfaced without failing the build. The first is <code>E0217</code>, which warns when a <code>Result</code> is discarded and its error silently ignored.</li>
               <li><span class="tag fixed">Fixed</span> A literal <code>\${</code> in a string stays literal instead of silently interpolating, and non-ASCII text in a template string (<code>"café ${x}"</code>) is no longer mangled.</li>
               <li><span class="tag fixed">Fixed</span> Binding a whole record payload in a nested <code>match</code> (<code>Err(BadQty(b))</code>) no longer emits code <code>tsc</code> rejects.</li>
@@ -166,7 +166,7 @@
           <div class="rel-body">
             <h3>Typed clients and servers from your API spec</h3>
             <ul class="changelist">
-              <li><span class="tag added">Added</span> <code>glyph gen openapi --client</code> generates a typed <code>std/http</code> client &mdash; one <code>async fn</code> per operation, with typed path parameters and request bodies.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen openapi --client</code> generates a typed <code>std/http</code> client: one <code>async fn</code> per operation, with typed path parameters and request bodies.</li>
               <li><span class="tag added">Added</span> <code>glyph gen openapi --handlers</code> generates server handler stubs plus a <code>route</code> dispatcher that matches the method and path (array patterns capture <code>/tasks/{id}</code> for you).</li>
               <li><span class="tag added">Added</span> <code>glyph gen zod</code> materializes a module of zod schemas into committed, descriptor-bearing Glyph types.</li>
               <li><span class="tag added">Added</span> Untrusted request input is typed as <code>Option</code>: <code>header</code> and <code>query_param</code> return <code>Option&lt;string&gt;</code>, so a missing value can't slip past a <code>match</code>. The <code>std/http</code> client gains <code>put</code>/<code>patch</code>/<code>del</code>.</li>
@@ -197,7 +197,7 @@
           <div class="rel-body">
             <h3>Generated types, not hand-written DTOs</h3>
             <ul class="changelist">
-              <li><span class="tag added">Added</span> <code>glyph gen openapi &lt;spec&gt; --out &lt;dir&gt;</code> turns an OpenAPI 3, Swagger 2, or JSON Schema document into committed Glyph types &mdash; one real record per schema, each with a runtime descriptor, so bodies validate for free.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen openapi &lt;spec&gt; --out &lt;dir&gt;</code> turns an OpenAPI 3, Swagger 2, or JSON Schema document into committed Glyph types: one real record per schema, each with a runtime descriptor, so bodies validate for free.</li>
               <li><span class="tag added">Added</span> <code>glyph gen dts &lt;file.d.ts&gt; --out &lt;dir&gt;</code> materializes a TypeScript declaration file into first-class Glyph types you own and can validate, instead of an ambient, unvalidated phantom.</li>
               <li><span class="tag added">Added</span> A guide, <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/typed-apis.md">Typed APIs</a>, and a runnable <a href="https://github.com/chadetov/glyph/blob/main/examples/05_rest_api.glyph">REST API example</a>: declare a <code>type</code>, get a validated request boundary with no separate <code>zod</code> schema.</li>
               <li><span class="tag note">Note</span> Generation is wire-faithful: constructs Glyph cannot represent exactly (a string enum, an undiscriminated <code>oneOf</code>) narrow with a printed note rather than emit a validator that would reject real payloads.</li>
@@ -220,7 +220,7 @@
               <li><span class="tag added">Added</span> The typechecker checks call arity (<code>E0213</code>); unreachable match arms are flagged; the <code>?</code> error-type rule extends across the stdlib boundary.</li>
               <li><span class="tag added">Added</span> Hyphenated and scoped npm imports (<code>react-hook-form</code>, <code>@hookform/resolvers/zod</code>), <code>aria-*</code>/<code>data-*</code> JSX attributes, and significant JSX whitespace.</li>
               <li><span class="tag added">Added</span> Targeted diagnostics: <code>if</code>/<code>else</code> point at <code>match</code> (<code>E0006</code>), range patterns say so directly (<code>E0007</code>); <code>json.parse</code> deep-validates <code>Record</code> fields.</li>
-              <li><span class="tag added">Added</span> <code>std/http</code> gains a server: <code>serve</code>, <code>Handler</code>, <code>Request</code>, <code>Response</code>, <code>query</code>, and <code>path</code> &mdash; a thin, errors-as-values wrapper over <code>node:http</code>.</li>
+              <li><span class="tag added">Added</span> <code>std/http</code> gains a server: <code>serve</code>, <code>Handler</code>, <code>Request</code>, <code>Response</code>, <code>query</code>, and <code>path</code>, a thin, errors-as-values wrapper over <code>node:http</code>.</li>
               <li><span class="tag added">Added</span> <code>glyph init</code> scaffolds a runnable starter project, and <code>glyph llms</code> prints the agent bootstrap offline.</li>
               <li><span class="tag added">Added</span> A one-document agent reference (<code>AGENTS.md</code> / <a href="/llms.txt">llms.txt</a>), a standard-library reference, and an editor-setup guide.</li>
               <li><span class="tag added">Added</span> Quoted string keys in object literals, and clearer hints that suggest the Glyph spelling for common TypeScript type names.</li>
@@ -254,7 +254,7 @@
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/">Answers</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

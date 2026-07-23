@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>When it breaks in production, what does on-call see? — Glyph</title>
-    <meta name="description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source. The one honest edge is the glyph run stack. An ops-focused answer." />
+    <title>When it breaks in production, what does on-call see? · Glyph</title>
+    <meta name="description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source. One current limitation is the glyph run stack. An ops-focused answer." />
     <link rel="canonical" href="https://glyphlang.io/answers/debugging/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,16 +53,16 @@
       <p class="short-answer">
         Readable TypeScript you own, with a <strong>source map back to your <code>.glyph</code></strong>
         beside every emitted file. A debugger, a bundler, or an error tracker traces the running code
-        to your source &mdash; and even someone who's never seen Glyph can read the generated TS. One
-        honest edge, on the <code>glyph run</code> path, is called out below.
+        to your source, and even someone who's never seen Glyph can read the generated TS. One
+        limitation, on the <code>glyph run</code> path, is called out below.
       </p>
 
       <div class="detail">
         <p class="block-label">1 &middot; The generated TypeScript is yours to read</p>
         <p>
           Glyph doesn't ship an opaque runtime. It emits ordinary, formatted TypeScript that you
-          commit and deploy like any other TS. So the worst case &mdash; an on-call engineer who
-          doesn't know Glyph, at 3am &mdash; is still reading plain TypeScript, not a dialect. There's
+          commit and deploy like any other TS. So the worst case (an on-call engineer who
+          doesn't know Glyph, at 3am) is still reading plain TypeScript, not a dialect. There's
           no black box between your source and production.
         </p>
 
@@ -70,8 +70,8 @@
         <p>
           Every emitted <code>.ts</code> ships a standard v3 source map (<code>.ts.map</code>) next to
           it, with a <code>sourceMappingURL</code> comment and your Glyph source embedded
-          (<code>sourcesContent</code>). Anything that consumes source maps &mdash; Chrome DevTools, a
-          Node debugger, an error tracker like Sentry, your bundler &mdash; can chain through it and
+          (<code>sourcesContent</code>). Anything that consumes source maps (Chrome DevTools, a
+          Node debugger, an error tracker like Sentry, your bundler) can chain through it and
           show you the <code>.glyph</code> line, not the generated one.
         </p>
       </div>
@@ -86,21 +86,21 @@
         <p>
           You rarely get to production with a type error, because <code>glyph build</code> runs
           <code>tsc --strict</code> and <strong>maps every <code>tsc</code> error back onto your
-          <code>.glyph</code> source</strong> &mdash; same caret, the TypeScript error code preserved,
+          <code>.glyph</code> source</strong> (same caret, the TypeScript error code preserved),
           pointing at the line you wrote, not the generated <code>.ts</code>. And
           <code>glyph build --json</code> emits every diagnostic as structured JSON (code, severity,
           file, 1-based line/col, help) for your CI or tooling to act on.
         </p>
 
-        <p class="block-label">The honest edge</p>
+        <p class="block-label">One current limitation</p>
         <p>
           <strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line
           numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code>
-          doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform
-          &mdash; so an uncaught throw during <code>glyph run</code> reports the generated line.
+          doesn't chain the source map through its own <code>.ts</code>&rarr;<code>.js</code> transform,
+          so an uncaught throw during <code>glyph run</code> reports the generated line.
           Remapping that stack is a follow-up. It matters for the local <code>run</code> loop; in a
           real deployment you <code>glyph build</code> to <code>.ts</code>, bundle it with your normal
-          toolchain, and the <code>.ts.map</code> chains as usual &mdash; so the production stack you
+          toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you
           actually page on maps back to <code>.glyph</code>.
         </p>
       </div>
@@ -131,7 +131,7 @@
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

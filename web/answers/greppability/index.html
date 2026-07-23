@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Can an agent — or I — find where anything is defined? — Glyph</title>
-    <meta name="description" content="Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition — not fifty near-misses." />
+    <title>Can an agent (or I) find where anything is defined? · Glyph</title>
+    <meta name="description" content="Every construct in Glyph has one shape to search for, so grep (or an agent's search) lands on the one definition, not fifty near-misses." />
     <link rel="canonical" href="https://glyphlang.io/answers/greppability/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -48,11 +48,11 @@
 
     <article class="answer-page">
       <p class="q-eyebrow">03 &middot; Navigation by search</p>
-      <h1 class="q-title">Can an agent &mdash; or I &mdash; find where anything is defined?</h1>
+      <h1 class="q-title">Can an agent (or I) find where anything is defined?</h1>
 
       <p class="short-answer">
         Every construct has <strong>exactly one shape</strong> to search for. A plain
-        <code>grep</code> &mdash; the way agents actually navigate &mdash; lands on the one
+        <code>grep</code> (the way agents actually navigate) lands on the one
         definition, <strong>not fifty near-misses</strong>.
       </p>
 
@@ -60,7 +60,7 @@
         <p class="block-label">Why it matters</p>
         <p>
           An agent doesn't hold your whole repo in its head; it <strong>searches</strong>. If a
-          concept can be written five different ways, search misses cases &mdash; and a confident
+          concept can be written five different ways, search misses cases, and a confident
           agent that can't find the existing definition invents a second one. One shape per
           concept means search is complete, so the agent edits what's there instead of
           duplicating it.
@@ -71,7 +71,7 @@
       </div>
 
       <div class="code">
-        <span class="cap">grep -rn "mut " src/  — every mutation in the codebase</span>
+        <span class="cap">grep -rn "mut " src/ (every mutation in the codebase)</span>
 <pre><span class="dim">src/cart.glyph:14:</span>   mut items.push(item)
 <span class="dim">src/cart.glyph:22:</span>   mut total = total + price
 <span class="dim">src/user.glyph:8:</span>    mut session.token = fresh</pre>
@@ -81,7 +81,7 @@
         <p>
           Three mutations, all of them, in one search. In TypeScript a mutation can hide behind
           <code>=</code>, <code>.push()</code>, <code>Object.assign</code>, a setter, or a
-          spread &mdash; there's no single token to grep, so &ldquo;does anything change this?&rdquo;
+          spread. There's no single token to grep, so &ldquo;does anything change this?&rdquo;
           has no reliable answer. The same one-shape rule makes whole categories auditable:
         </p>
       </div>
@@ -101,7 +101,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
       <div class="detail">
         <p>
           There's no object-literal shorthand, no second way to declare a component, no
-          overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint &mdash;
+          overloaded syntax to disambiguate. Fewer ways to write a thing is a real constraint,
           and it's the point: it's what makes an agent's search, and yours, trustworthy.
         </p>
       </div>
@@ -114,7 +114,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
         </div>
         <div class="status-card next">
           <p class="h">Layered on top</p>
-          <p>The language server adds workspace-wide go-to-definition and find-references &mdash; the same guarantee, now interactive in your editor.</p>
+          <p>The language server adds workspace-wide go-to-definition and find-references: the same guarantee, now interactive in your editor.</p>
         </div>
       </div>
 
@@ -132,7 +132,7 @@ grep -rn <span class="add">"owned"</span> src/</pre>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Is Glyph worth it if I'm not using AI? — Glyph</title>
-    <meta name="description" content="Yes. The AI-agent framing is the headline, but every guarantee — exhaustive match, no any, runtime-checked types, greppability, stable diffs — is a plain engineering win a human benefits from directly." />
+    <title>Is Glyph worth it if I'm not using AI? · Glyph</title>
+    <meta name="description" content="Yes. The AI-agent framing is the headline, but every guarantee (exhaustive match, no any, runtime-checked types, greppability, stable diffs) is a plain engineering win a human benefits from directly." />
     <link rel="canonical" href="https://glyphlang.io/answers/human-value/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -51,7 +51,7 @@
       <h1 class="q-title">Is Glyph worth it if I'm not using AI?</h1>
 
       <p class="short-answer">
-        Yes. The AI-agent framing is the headline because agents break these things constantly &mdash;
+        Yes. The AI-agent framing is the headline because agents break these things constantly,
         but every guarantee underneath is a <strong>plain engineering win a human gets directly</strong>.
         Fewer runtime surprises, smaller diffs, code you can actually grep. None of it requires an LLM.
       </p>
@@ -62,7 +62,7 @@
           Strip the word "agent" out and read the list: no <code>any</code>, exhaustive
           <code>match</code>, errors as values, types that are checked at runtime, one declaration
           form per name, a canonical diff-stable format. Anyone who's written Rust, Elm, or OCaml
-          recognizes these as the things that make a codebase pleasant to maintain &mdash; they were
+          recognizes these as the things that make a codebase pleasant to maintain. They were
           good ideas long before AI wrote code. Glyph just brings them to a TypeScript-shaped language
           you can adopt one file at a time.
         </p>
@@ -70,12 +70,12 @@
         <p class="block-label">What you get, solo</p>
         <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 16px; padding-left: 22px;">
           <li><strong>Fewer 3am pages.</strong> Boundary data is validated by construction
-            (<code>User.parse</code>), and a missing case is a compile error &mdash; not an
+            (<code>User.parse</code>), and a missing case is a compile error, not an
             <code>undefined</code> that surfaces in production.</li>
           <li><strong>Faster review.</strong> A one-line change is a one-line diff, so a reviewer reads
             the change, not the reformatting churn around it.</li>
           <li><strong>You can find anything.</strong> <code>grep "fn parseUser"</code> lands on the
-            definition &mdash; no overloads, barrels, or decorators scattering it.</li>
+            definition: no overloads, barrels, or decorators scattering it.</li>
           <li><strong>Easier onboarding.</strong> A small core with one way to do each thing means
             less tribal knowledge for the next person to learn.</li>
         </ul>
@@ -83,14 +83,14 @@
         <p class="block-label">So why lead with agents?</p>
         <p>
           Because the payoff is <em>bigger</em> there. A human eventually learns to run the linter and
-          handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green
-          &mdash; and it can't be trusted to keep the opt-in tooling on. The value of making the
+          handle the case; an agent reaches for <code>any</code>, forgets the arm, and merges it green,
+          and it can't be trusted to keep the opt-in tooling on. The value of making the
           strictness <em>non-optional</em> compounds when a machine is writing the code. But the floor
-          &mdash; the wins above &mdash; is there whether you use an agent or not.
+          (the wins above) is there whether you use an agent or not.
         </p>
 
         <p class="callout">
-          Think of it as a stricter TypeScript that happens to be great for agents &mdash; not an
+          Think of it as a stricter TypeScript that happens to be great for agents, not an
           agent tool you can only justify if you use one.
         </p>
       </div>
@@ -98,8 +98,8 @@
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
-          <p class="h">The honest calculus</p>
-          <p>If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call &mdash; Glyph is an early preview, and that's a real cost to weigh.</p>
+          <p class="h">The tradeoff</p>
+          <p>If you're starting something new, or your team already values ML-family discipline, the wins land immediately. If you're solo on a mature, well-tooled TS stack, it's a closer call: Glyph is an early preview, and that's a real cost to weigh.</p>
         </div>
         <div class="status-card next">
           <p class="h">Either way</p>
@@ -121,7 +121,7 @@
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Verifiability — no any, exhaustive match, strict validators over tsc — Glyph</title>
-    <meta name="description" content="Glyph's first pillar: no any and no as you can write, provably-exhaustive match, and strict runtime validators for the types you declare — an enforced strict layer over tsc, honest about where the guarantee stops." />
+    <title>Verifiability · no any, exhaustive match, strict validators over tsc · Glyph</title>
+    <meta name="description" content="Glyph's first pillar: no any and no as you can write, provably-exhaustive match, and strict runtime validators for the types you declare: an enforced strict layer over tsc, honest about where the guarantee stops." />
     <link rel="canonical" href="https://glyphlang.io/pillars/verifiability/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -43,8 +43,8 @@
       <p class="short-answer">
         Glyph closes the holes an agent falls through: there's <strong>no <code>any</code> and no
         <code>as</code> you can write</strong>, <code>match</code> is <strong>provably
-        exhaustive</strong>, and the types you declare get <strong>strict runtime validators</strong>
-        &mdash; all enforced as a strict layer on top of <code>tsc</code>. It doesn't verify
+        exhaustive</strong>, and the types you declare get <strong>strict runtime validators</strong>,
+        all enforced as a strict layer on top of <code>tsc</code>. It doesn't verify
         everything itself, and it's honest below about exactly where the guarantee stops.
       </p>
 
@@ -56,7 +56,7 @@
           network call, a JSON parse, or a form field could be any shape at all. Worse, the language
           hands you three legal ways to lie to the checker about it: <code>any</code>, an
           <code>as</code> cast, and a non-null <code>!</code>. An agent working fast reaches for all
-          three &mdash; and <code>tsc --strict</code> stays green while the bug ships.
+          three, and <code>tsc --strict</code> stays green while the bug ships.
         </p>
         <p class="lede">
           Glyph's first job is to close those holes. Not with more annotations, but by removing the
@@ -69,14 +69,14 @@
           <code>any</code> is the single most expensive keyword in TypeScript: it switches off the
           type system for a value <em>and everything that value touches</em>. One <code>any</code> at
           a boundary quietly poisons the call graph downstream. Glyph doesn't have it. The top type is
-          <code>unknown</code>, and <code>unknown</code> is inert &mdash; you cannot call it, index it,
+          <code>unknown</code>, and <code>unknown</code> is inert: you cannot call it, index it,
           or pass it anywhere typed until you have <em>proven</em> what it is.
         </p>
       </div>
 
       <div class="two-up">
         <div class="code">
-          <span class="tag-bad">TypeScript &mdash; compiles, then crashes</span>
+          <span class="tag-bad">TypeScript: compiles, then crashes</span>
           <span class="cap">handler.ts</span>
 <pre>function handle(body: any) {
   <span class="cm">// tsc --strict: fine.</span>
@@ -85,7 +85,7 @@
 }</pre>
         </div>
         <div class="code">
-          <span class="tag-good">Glyph &mdash; the narrowing is the proof</span>
+          <span class="tag-good">Glyph: the narrowing is the proof</span>
           <span class="cap">handler.glyph</span>
 <pre>fn handle(body: unknown) -&gt; string {
   return match User.parse(body) {
@@ -99,22 +99,22 @@
       <div class="detail">
         <p class="pull-quote">
           You cannot get a typed value out of <code>unknown</code> without a check the compiler can
-          see. In Glyph, the narrowing <strong>is</strong> the runtime proof &mdash; there is no
+          see. In Glyph, the narrowing <strong>is</strong> the runtime proof. There is no
           syntax for skipping it.
         </p>
 
         <p class="block-label"><span class="ex-label">02</span> Types are real at runtime</p>
         <p>
           How does <code>User.parse</code> exist? Because every non-generic record type generates a
-          <strong>runtime descriptor</strong> alongside it &mdash; an <code>is</code> guard, a
+          <strong>runtime descriptor</strong> alongside it: an <code>is</code> guard, a
           <code>parse</code> that validates an <code>unknown</code> into a <code>Result</code>, and a
           composable <code>schema</code>. The record's shape is actually inspected at runtime, not
-          assumed &mdash; so an <code>is User</code> check is a real check, not an erased no-op.
+          assumed, so an <code>is User</code> check is a real check, not an erased no-op.
         </p>
       </div>
 
       <div class="code">
-        <span class="cap">the type you write &mdash; and the descriptor you get for free</span>
+        <span class="cap">the type you write, and the descriptor you get for free</span>
 <pre>type User = {
   id: number,
   name: string,
@@ -134,7 +134,7 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
       <div class="detail">
         <p>
           This is the answer to "every API needs a hand-written validator." The type is the
-          validator. A boundary &mdash; a request body, a config file, a third-party response &mdash;
+          validator. A boundary (a request body, a config file, a third-party response)
           becomes typed only by passing through a check that can actually reject bad data.
         </p>
         <p>
@@ -150,8 +150,8 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
         <p class="block-label"><span class="ex-label">03</span> Every case, or it doesn't compile</p>
         <p>
           A <code>match</code> over a sealed union must handle every variant. Add a variant later and
-          <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>) &mdash;
-          the new case cannot silently fall through to <code>undefined</code> the way a forgotten
+          <em>every</em> match that didn't account for it stops compiling (<code>E0200</code>).
+          The new case cannot silently fall through to <code>undefined</code> the way a forgotten
           <code>switch</code> branch does. And it isn't only unions: matching a <code>number</code> or
           <code>string</code> on literal values requires an <code>else</code> (<code>E0218</code>),
           because those domains are unbounded and a set of literals can never be complete.
@@ -187,9 +187,9 @@ fn label(s: Status) -&gt; string {
         <p class="block-label"><span class="ex-label">04</span> Errors are values, not surprises</p>
         <p>
           A function that can fail returns <code>Result&lt;T, E&gt;</code>. You handle it with
-          <code>match</code>, or propagate it with the <code>?</code> operator &mdash; and the error
+          <code>match</code>, or propagate it with the <code>?</code> operator, and the error
           type has to line up (there is no implicit conversion hiding a mismatch). Ignore a
-          <code>Result</code> entirely &mdash; call it for effect and drop what it returned &mdash;
+          <code>Result</code> entirely (call it for effect and drop what it returned)
           and Glyph warns you (<code>E0217</code>), because a discarded error is a swallowed failure.
           You silence it deliberately with <code>let _ = ...</code>, never by accident.
         </p>
@@ -216,7 +216,7 @@ fn main() -&gt; number {
           sensitive data. Put <code>@redact</code> on a type and its descriptor gains a
           <code>redact()</code> that masks those fields, so a stray
           <code>json.stringify(User.redact(u))</code> can't leak them. Name a field the type doesn't
-          have and it's a compile error (<code>E0219</code>) &mdash; not a redaction that silently
+          have and it's a compile error (<code>E0219</code>), not a redaction that silently
           protects nothing.
         </p>
       </div>
@@ -236,19 +236,19 @@ type Patient = {
 
       <div class="detail">
         <p class="pull-quote">
-          Five different failure modes &mdash; unchecked input, a missed case, a dropped error, a
-          leaked secret, an unvalidated key &mdash; and in every one the fix is the same shape:
+          Five different failure modes (unchecked input, a missed case, a dropped error, a
+          leaked secret, an unvalidated key) and in every one the fix is the same shape:
           <strong>the compiler refuses to pretend.</strong>
         </p>
 
-        <p class="block-label">How it's enforced &mdash; and where the guarantee stops</p>
+        <p class="block-label">How it's enforced, and where the guarantee stops</p>
         <p>
           Being precise, because the difference matters: Glyph is a <strong>strict, enforced dialect
-          over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself
-          &mdash; exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code>
+          over <code>tsc</code></strong>, not an independent verifier. Some things it proves itself:
+          exhaustiveness, the <code>?</code> error type, the absence of <code>any</code>/<code>as</code>
           in your source, strict-key validation. The rest of type compatibility it enforces by
           emitting TypeScript and running <code>tsc --strict</code>, which fails the build. The wedge
-          is that these checks are the <em>language</em>, not opt-in lint the agent can disable &mdash;
+          is that these checks are the <em>language</em>, not opt-in lint the agent can disable,
           not that Glyph re-implements a type checker.
         </p>
         <p>
@@ -257,7 +257,7 @@ type Patient = {
           fires only where a validator combinator assembles a value of a shape-derived type
           (<code>infer_output&lt;Shape&gt;</code>), and every honest generic emits with no cast at all.
           And a validator's output type is no longer trusted: <code>infer_output</code> derives it from
-          the shape you pass, and <code>tsc</code> checks your annotation against it &mdash; a shape
+          the shape you pass, and <code>tsc</code> checks your annotation against it: a shape
           missing a field of the type you claim now fails to compile.
         </p>
         <p>
@@ -266,16 +266,16 @@ type Patient = {
           remains, named plainly: an <em>imported</em> type from an external <code>.d.ts</code> you
           only reference carries no descriptor until you materialize it with
           <code>glyph gen dts</code>, so a field of that type is checked for presence, not shape.
-          That boundary is deliberate &mdash; a type Glyph didn't emit can't promise runtime
-          validation &mdash; and materializing it closes it.
+          That boundary is deliberate (a type Glyph didn't emit can't promise runtime
+          validation) and materializing it closes it.
         </p>
 
-        <p class="block-label">The benchmark &mdash; coming</p>
+        <p class="block-label">The benchmark: coming</p>
         <p>
           This claim is empirical, so we intend to measure it honestly: take a corpus of real
           agent-authored changes, run each through <code>tsc --strict</code> and through Glyph, and
           count what each one actually catches. Glyph isn't in real-world use yet, so there are no
-          numbers to report &mdash; the chart below is a placeholder, and it fills in with real data
+          numbers to report. The chart below is a placeholder, and it fills in with real data
           the moment there is real usage.
         </p>
       </div>
@@ -294,14 +294,14 @@ type Patient = {
         <div class="pending-note">
           <span class="h">Not measured yet</span>
           The methodology is set; the corpus needs real Glyph usage to draw from. We'll publish the
-          numbers &mdash; whatever they are &mdash; here as soon as they exist.
+          numbers (whatever they are) here as soon as they exist.
         </div>
       </div>
 
       <div class="detail">
         <p>
           None of this is bought with ceremony. There are no proof annotations, no contracts, no
-          verifier to satisfy &mdash; the code above is just ordinary Glyph. Verifiability isn't a
+          verifier to satisfy. The code above is just ordinary Glyph. Verifiability isn't a
           feature you turn on; it's what's left once the ways to lie are gone.
         </p>
       </div>
@@ -313,14 +313,14 @@ type Patient = {
         </a>
         <a href="/pillars/greppability/" class="nx cta">
           <span class="dir">Next pillar &rarr;</span>
-          <span class="t">Greppability &mdash; one name, one place</span>
+          <span class="t">Greppability: one name, one place</span>
         </a>
       </nav>
     </article>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Do I have to hand-write a validator for every API? — Glyph</title>
-    <meta name="description" content="No. In Glyph a type is its own runtime validator — declare a type, and request and response bodies validate for free. You can even generate the types from an OpenAPI spec or a TypeScript .d.ts." />
+    <title>Do I have to hand-write a validator for every API? · Glyph</title>
+    <meta name="description" content="No. In Glyph a type is its own runtime validator: declare a type, and request and response bodies validate for free. You can even generate the types from an OpenAPI spec or a TypeScript .d.ts." />
     <link rel="canonical" href="https://glyphlang.io/answers/typed-apis/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,7 +53,7 @@
       <p class="short-answer">
         No. In Glyph a <strong>type is its own validator</strong>. Declare a
         <code>type</code> and the compiler generates a runtime descriptor beside it, so an
-        untrusted request or response body validates with one call &mdash; no separate
+        untrusted request or response body validates with one call, no separate
         <code>zod</code> schema to write and keep in sync.
       </p>
 
@@ -63,7 +63,7 @@
           In most TypeScript stacks every payload is described <em>twice</em>: once as a
           <code>type</code> for the compiler, and again as a hand-written validator so the value is
           actually that shape at runtime. The two drift, and the drift is exactly where bad data
-          slips in. Glyph collapses them into one declaration &mdash; the type <em>produces</em> the
+          slips in. Glyph collapses them into one declaration: the type <em>produces</em> the
           validator, so they cannot disagree.
         </p>
 
@@ -103,18 +103,18 @@ const NewTask = z.object({
 // the validator, because there is
 // only one declaration.
 
-// A bad body — {"title": 123} —
+// A bad body, {"title": 123},
 // takes the Err arm. Only a
 // well-formed body reaches Ok.</pre>
         </div>
       </div>
 
       <div class="detail">
-        <p class="block-label">Composing your own &mdash; the output type is derived, not trusted</p>
+        <p class="block-label">Composing your own: the output type is derived, not trusted</p>
         <p>
           Sometimes you want a <code>zod</code>-style combinator: build a validator by composing
           smaller ones. The trap in TypeScript is that the combinator's <em>output type</em> and the
-          <em>shape</em> you passed it drift apart &mdash; you write the shape, then repeat yourself
+          <em>shape</em> you passed it drift apart. You write the shape, then repeat yourself
           in a second type parameter, and nothing checks that they agree. Glyph's
           <code>infer_output&lt;Shape&gt;</code> <strong>derives</strong> the output type from the shape,
           and <code>tsc</code> checks your annotation against it. A shape that omits a field of the
@@ -145,7 +145,7 @@ const user_schema: Schema&lt;User&gt; =
 // separate things you keep in sync by hand.
 const s = z.object({ name: z.string() });
 type User = { name: string; age: number };
-// `s` is inferred { name } — but nothing
+// `s` is inferred { name }, but nothing
 // checks it against User. The `age` you
 // forgot is caught at runtime, if ever.
 
@@ -160,20 +160,20 @@ type User = { name: string; age: number };
           The descriptor is the same one that makes <code>json.parse&lt;T&gt;</code> safe: give it a
           JSON string and it parses <em>and</em> validates in one step. A request body arrives
           already decoded as an <code>unknown</code>, so there you reach for
-          <code>T.parse(value)</code> instead &mdash; same guarantee, no cast.
+          <code>T.parse(value)</code> instead: same guarantee, no cast.
         </p>
         <p>
           The rest of the untrusted boundary is typed the same way: <code>header(req, name)</code>
           and <code>query_param(req, name)</code> return <code>Option&lt;string&gt;</code>, so a
           missing header or query parameter is <code>None</code> and the <code>match</code>
-          <em>forces</em> you to handle it &mdash; omit the <code>None</code> arm and it won't
+          <em>forces</em> you to handle it. Omit the <code>None</code> arm and it won't
           compile. Absent input can't be read as if it were present.
         </p>
 
         <p class="block-label">You don't even have to write the types</p>
         <p>
           If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate
-          the Glyph types from it &mdash; real, committed, greppable <code>type</code> declarations,
+          the Glyph types from it: real, committed, greppable <code>type</code> declarations,
           each with its descriptor, not an inferred phantom:
         </p>
       </div>
@@ -194,19 +194,19 @@ type User = { name: string; age: number };
       <div class="detail">
         <p>
           Regeneration is idempotent, so a spec change is a clean, reviewable diff. Generation is
-          <strong>wire-faithful</strong>: where a construct has no exact Glyph form &mdash; a string
-          enum, an undiscriminated union &mdash; it narrows and <em>prints a note</em> rather than
+          <strong>wire-faithful</strong>: where a construct has no exact Glyph form (a string
+          enum, an undiscriminated union), it narrows and <em>prints a note</em> rather than
           emit a validator that would reject real data.
         </p>
         <p>
           Generic types validate too. A <code>Paginated&lt;T&gt;</code> gets a descriptor whose
-          <code>parse</code> takes the type argument &mdash; <code>Paginated.parse&lt;User&gt;(body)</code>
+          <code>parse</code> takes the type argument: <code>Paginated.parse&lt;User&gt;(body)</code>
           checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for
           presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.
         </p>
         <p>
-          Where it stops: descriptors cover the shapes most payloads are made of
-          &mdash; objects, primitives, arrays, references, optional and nullable fields, and now
+          Where it stops: descriptors cover the shapes most payloads are made of:
+          objects, primitives, arrays, references, optional and nullable fields, and now
           generic types at a given instantiation. A type Glyph did not generate (an external
           <code>.d.ts</code> you only import) is type-checked but carries no descriptor until you
           materialize it with <code>glyph gen dts</code>. That boundary is deliberate: a type Glyph
@@ -222,7 +222,7 @@ type User = { name: string; age: number };
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Wider generation coverage (discriminated unions, richer enums). Typed client and server code from a spec already ships &mdash; see <a href="/answers/codegen/">client &amp; server</a>.</p>
+          <p>Wider generation coverage (discriminated unions, richer enums). Typed client and server code from a spec already ships. See <a href="/answers/codegen/">client &amp; server</a>.</p>
         </div>
       </div>
 
@@ -240,7 +240,7 @@ type User = { name: string; age: number };
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

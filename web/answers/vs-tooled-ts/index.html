@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Why not just strict TypeScript + zod + eslint + ts-pattern? — Glyph</title>
-    <meta name="description" content="Tooled TypeScript gets you far — but every guarantee is opt-in and an agent can route around it. Glyph's strictness is the language, not a config: non-optional, type-is-the-validator, greppable mutation. An honest comparison." />
+    <title>Why not just strict TypeScript + zod + eslint + ts-pattern? · Glyph</title>
+    <meta name="description" content="Tooled TypeScript gets you far, but every guarantee is opt-in and an agent can route around it. Glyph's strictness is the language, not a config: non-optional, type-is-the-validator, greppable mutation. An honest comparison." />
     <link rel="canonical" href="https://glyphlang.io/answers/vs-tooled-ts/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -52,17 +52,17 @@
 
       <p class="short-answer">
         Because every one of those guarantees is <strong>opt-in</strong>, and an agent can route
-        around each of them in one line. Glyph's strictness isn't a config file the agent can edit
-        &mdash; it's the language. The enforcement point moves from "did we remember to lint this
+        around each of them in one line. Glyph's strictness isn't a config file the agent can edit.
+        It's the language. The enforcement point moves from "did we remember to lint this
         file" to "does it compile."
       </p>
 
       <div class="detail">
-        <p class="block-label">First, the honest concession</p>
+        <p class="block-label">First, a concession</p>
         <p>
           A well-configured TypeScript setup gets you a long way, and if your team runs all of it in
-          CI you've already closed most of the gaps Glyph targets. Credit where it's due &mdash; this
-          is the real alternative, so here's the honest mapping:
+          CI you've already closed most of the gaps Glyph targets. Credit where it's due: this
+          is the real alternative, so here's the mapping:
         </p>
       </div>
 
@@ -79,13 +79,13 @@ deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
       <div class="detail">
         <p>
           If you have all that wired up and enforced, you're most of the way there. So the question
-          isn't "does TypeScript lack these ideas" &mdash; it's "what does bundling them into a
+          isn't "does TypeScript lack these ideas": it's "what does bundling them into a
           language, non-optionally, actually buy." Three things.
         </p>
 
         <p class="block-label"><span class="ex-label">01</span> Non-optional beats opt-in</p>
         <p>
-          Your eslint config only protects code the agent routes <em>through</em> it &mdash; and the
+          Your eslint config only protects code the agent routes <em>through</em> it, and the
           agent can write <code>as unknown as User</code>, <code>@ts-ignore</code>,
           <code>// eslint-disable-next-line</code>, or simply forget the <code>.exhaustive()</code>,
           and it still compiles and merges. Every one of those escape hatches is a config the agent
@@ -97,7 +97,7 @@ deterministic diffs <span class="cm">→ Biome / Prettier</span></pre>
 
       <div class="two-up">
         <div class="code">
-          <span class="tag-bad">TypeScript &mdash; the hatches exist</span>
+          <span class="tag-bad">TypeScript: the hatches exist</span>
           <span class="cap">handler.ts</span>
 <pre>const user = body as unknown as User;
 <span class="cm">// @ts-ignore</span>
@@ -106,7 +106,7 @@ doThing(user.mispelled);
 return anything as any;</pre>
         </div>
         <div class="code">
-          <span class="tag-good">Glyph &mdash; nothing to disable</span>
+          <span class="tag-good">Glyph: nothing to disable</span>
           <span class="cap">handler.glyph</span>
 <pre>return match User.parse(body) {
   Ok(user) =&gt; use(user),
@@ -123,11 +123,11 @@ return anything as any;</pre>
           different enforcement point than the strictness it can. That's the whole bet.
         </p>
 
-        <p class="block-label"><span class="ex-label">02</span> The type is the validator &mdash; no second artifact</p>
+        <p class="block-label"><span class="ex-label">02</span> The type is the validator: no second artifact</p>
         <p>
           zod inverts your source of truth: you write the <em>schema</em>, derive the type from it,
           and then keep the type, the schema, and any serializer in sync by hand. Keeping those
-          aligned is exactly where an agent introduces drift &mdash; it renames a field in the type
+          aligned is exactly where an agent introduces drift: it renames a field in the type
           and not the schema, and both still compile. In Glyph the type <em>is</em> the validator:
           declaring <code>type User = {...}</code> generates <code>User.parse</code> alongside it.
           One artifact, nothing to keep in sync, nothing to forget.
@@ -136,7 +136,7 @@ return anything as any;</pre>
         <p class="block-label"><span class="ex-label">03</span> Greppable mutation</p>
         <p>
           In TypeScript a state change can hide behind <code>=</code>, <code>.push()</code>,
-          <code>Object.assign</code>, a setter, or a spread &mdash; there's no single token to search
+          <code>Object.assign</code>, a setter, or a spread. There's no single token to search
           for, and no lint rule fully fixes it. In Glyph shared state lives in a store and every
           change is a literal <code>.set(</code>/<code>.update(</code>; <code>grep 'mut '</code>
           finds every local mutation. That's a property you can't buy for stock TypeScript at any
@@ -155,7 +155,7 @@ return anything as any;</pre>
       <div class="two-up">
         <div class="code">
           <span class="tag-bad">tooled TS</span>
-<pre><span class="cm">// ts-pattern .exhaustive() catches it —</span>
+<pre><span class="cm">// ts-pattern .exhaustive() catches it,</span>
 <span class="cm">// IF every site used ts-pattern and</span>
 <span class="cm">// nobody wrote a plain switch or</span>
 <span class="cm">// a default: case. One that didn't</span>
@@ -172,7 +172,7 @@ return anything as any;</pre>
       </div>
 
       <div class="detail">
-        <p class="block-label">Where tooled TypeScript is still ahead (the honest edge)</p>
+        <p class="block-label">Where tooled TypeScript is still ahead</p>
         <p>
           This cuts both ways, and pretending otherwise would be exactly the dishonesty this page is
           trying to avoid:
@@ -192,9 +192,9 @@ return anything as any;</pre>
             pool are enormous and battle-tested. Glyph is an early preview.</li>
         </ul>
         <p>
-          So the honest summary: if you've fully wired tooled TypeScript and your agents stay inside
+          If you've fully wired tooled TypeScript and your agents stay inside
           it, you've got most of this. Glyph's argument is that "stay inside it" is the load-bearing
-          phrase &mdash; and it's the phrase an agent breaks. Non-optionality, one-artifact
+          phrase, and it's the phrase an agent breaks. Non-optionality, one-artifact
           validation, and greppable mutation are the parts you genuinely cannot get by adding more
           opt-in tools.
         </p>
@@ -204,11 +204,11 @@ return anything as any;</pre>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>No <code>any</code>/<code>as</code>, exhaustive <code>match</code> (<code>E0200</code>/<code>E0218</code>), discarded-<code>Result</code> warning (<code>E0217</code>), type-generated validators, and greppable mutation &mdash; all non-optional, none an eslint rule you can disable.</p>
+          <p>No <code>any</code>/<code>as</code>, exhaustive <code>match</code> (<code>E0200</code>/<code>E0218</code>), discarded-<code>Result</code> warning (<code>E0217</code>), type-generated validators, and greppable mutation: all non-optional, none an eslint rule you can disable.</p>
         </div>
         <div class="status-card next">
           <p class="h">Being measured</p>
-          <p>The claim that agents produce fewer escaped defects in Glyph than in <em>well-configured</em> strict TS is the benchmark we're building &mdash; against tooled TS, not naive TS. See the <a href="/benchmarks/">benchmarks</a>.</p>
+          <p>The claim that agents produce fewer escaped defects in Glyph than in <em>well-configured</em> strict TS is the benchmark we're building, against tooled TS, not naive TS. See the <a href="/benchmarks/">benchmarks</a>.</p>
         </div>
       </div>
 
@@ -226,7 +226,7 @@ return anything as any;</pre>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

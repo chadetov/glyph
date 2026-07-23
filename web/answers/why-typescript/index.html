@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Why TypeScript, and not Go or a new language? — Glyph</title>
+    <title>Why TypeScript, and not Go or a new language? · Glyph</title>
     <meta name="description" content="TypeScript is where agents already write the most code and where npm, React, and Node live. Glyph is adoptable one file at a time only because its target is TS." />
     <link rel="canonical" href="https://glyphlang.io/answers/why-typescript/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,8 +51,8 @@
       <h1 class="q-title">Why TypeScript, and not Go or a new language?</h1>
 
       <p class="short-answer">
-        Because TypeScript is where agents already write the most code and where your ecosystem &mdash;
-        npm, React, Node &mdash; lives. Glyph is adoptable one file at a time <strong>only because
+        Because TypeScript is where agents already write the most code and where your ecosystem
+        (npm, React, Node) lives. Glyph is adoptable one file at a time <strong>only because
         its target is TS</strong>.
       </p>
 
@@ -61,29 +61,29 @@
         <p>
           A new language stands or falls on how you get from zero to shipping. Compiling to
           TypeScript means you never leave your codebase, your bundler, your test runner, or your
-          deploy. Glyph slots in beside the <code>.ts</code> files you already have &mdash; and
+          deploy. Glyph slots in beside the <code>.ts</code> files you already have, and
           both directions import cleanly:
         </p>
       </div>
 
       <div class="code">
-        <span class="cap">the same project — .glyph and .ts, side by side</span>
-<pre><span class="cm">// cart.glyph — new, written in Glyph</span>
+        <span class="cap">the same project: .glyph and .ts, side by side</span>
+<pre><span class="cm">// cart.glyph: new, written in Glyph</span>
 import { formatPrice } from "./format.ts"
 
-<span class="cm">// checkout.ts — existing, untouched</span>
+<span class="cm">// checkout.ts: existing, untouched</span>
 import { total } from "./cart.glyph"</pre>
       </div>
 
       <div class="detail">
         <p>
-          You cannot drop Go into a TypeScript codebase file by file &mdash; it's a different
+          You cannot drop Go into a TypeScript codebase file by file: it's a different
           runtime, a different module system, a different ecosystem. That single fact is why the
           target is TS.
         </p>
         <p>
           <strong>The fair point about Go:</strong> its small, stable keyword surface gives an
-          agent fewer ways to go wrong. We agree &mdash; it's exactly why Glyph keeps a deliberately
+          agent fewer ways to go wrong. We agree: it's exactly why Glyph keeps a deliberately
           small core with one way to do each thing. Go is included in our density
           <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">benchmark</a>
           for a straight comparison.
@@ -116,7 +116,7 @@ import { total } from "./cart.glyph"</pre>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

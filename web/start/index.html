@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Start Here — your first Glyph program in 10 minutes — Glyph</title>
-    <meta name="description" content="Install Glyph, scaffold a project, run it, break it on purpose, read the real compiler error, and fix it. A linear 10-minute first run — no prior Glyph knowledge assumed." />
+    <title>Start Here · your first Glyph program in 10 minutes · Glyph</title>
+    <meta name="description" content="Install Glyph, scaffold a project, run it, break it on purpose, read the real compiler error, and fix it. A linear 10-minute first run: no prior Glyph knowledge assumed." />
     <link rel="canonical" href="https://glyphlang.io/start/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -34,7 +34,7 @@
 
       <p class="short-answer">
         Install it, scaffold a project, run it, then <strong>break it on purpose</strong> and read
-        the error the compiler gives you. No prior Glyph knowledge assumed &mdash; if you've written
+        the error the compiler gives you. No prior Glyph knowledge assumed. If you've written
         a little TypeScript, you'll follow every line.
       </p>
 
@@ -54,7 +54,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
 
       <div class="detail">
         <p class="block-label">2 &middot; Scaffold a project</p>
-        <p><code>glyph init</code> creates a runnable starter &mdash; a <code>src/main.glyph</code>, a <code>package.json</code>, and a <code>.gitignore</code>.</p>
+        <p><code>glyph init</code> creates a runnable starter: a <code>src/main.glyph</code>, a <code>package.json</code>, and a <code>.gitignore</code>.</p>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
@@ -62,7 +62,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
 cd hello</pre>
       </div>
       <div class="detail">
-        <p>Open <code>src/main.glyph</code> &mdash; it's a hello-world:</p>
+        <p>Open <code>src/main.glyph</code>. It's a hello-world:</p>
       </div>
       <div class="code">
         <span class="cap">src/main.glyph</span>
@@ -76,7 +76,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
       <div class="detail">
         <p>
           Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code>
-          returns a <code>number</code> &mdash; the process exit code.
+          returns a <code>number</code> (the process exit code).
         </p>
 
         <p class="block-label">3 &middot; Run it</p>
@@ -94,7 +94,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
         <p class="block-label">4 &middot; Add something real</p>
         <p>
-          Now replace the body with a tiny bit of logic &mdash; a task status and a function that
+          Now replace the body with a tiny bit of logic: a task status and a function that
           labels it. This introduces the two things you'll use constantly: a <em>tagged union</em>
           (<code>type Status = ...</code>) and <code>match</code>, which is Glyph's only conditional.
         </p>
@@ -128,8 +128,8 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
         <p class="block-label">5 &middot; Break it on purpose</p>
         <p>
           Here's the part that shows you what Glyph is <em>for</em>. Delete the <code>Done</code> arm
-          from the <code>match</code> &mdash; the kind of thing an agent does when it adds a case
-          somewhere and forgets to handle it &mdash; and run again.
+          from the <code>match</code> (the kind of thing an agent does when it adds a case
+          somewhere and forgets to handle it), and run again.
         </p>
       </div>
       <div class="code">
@@ -174,12 +174,12 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
       <div class="detail">
         <p>
           That's the core loop: write, run, and when something's wrong the compiler tells you exactly
-          what and how &mdash; before your code ships, not after. From here:
+          what and how, before your code ships, not after. From here:
         </p>
         <ul style="color: var(--muted); line-height: 1.8; margin: 0 0 8px; padding-left: 22px;">
-          <li>The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a> &mdash; the whole language, quickly.</li>
-          <li><a href="/answers/">The answers</a> &mdash; straight replies to the questions engineers actually ask (React, typed APIs, why not tooled TS).</li>
-          <li><a href="/playground/">The playground</a> &mdash; try Glyph in your browser, no install.</li>
+          <li>The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md">five-minute tour</a>: the whole language, quickly.</li>
+          <li><a href="/answers/">The answers</a>: straight replies to the questions engineers actually ask (React, typed APIs, why not tooled TS).</li>
+          <li><a href="/playground/">The playground</a>: try Glyph in your browser, no install.</li>
         </ul>
       </div>
 
@@ -197,7 +197,7 @@ fn main(argv: Array&lt;string&gt;) -&gt; number {
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

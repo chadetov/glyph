@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>How do I share mutable state between functions? — Glyph</title>
+    <title>How do I share mutable state between functions? · Glyph</title>
     <meta name="description" content="Glyph has no mutable global variables. Shared state lives in a std/store: a module-level const whose get/set/update methods are the whole write-surface, greppable in one search." />
     <link rel="canonical" href="https://glyphlang.io/answers/state/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,18 +51,18 @@
       <h1 class="q-title">How do I share mutable state between functions?</h1>
 
       <p class="short-answer">
-        With a <strong>store</strong>. Glyph has no mutable global variables &mdash; module
+        With a <strong>store</strong>. Glyph has no mutable global variables. Module
         bindings are <code>const</code>. Shared state lives in a <code>std/store</code>: a
         module-level <code>const</code> holding a value you read with <code>get()</code> and change
         with <code>set()</code>/<code>update()</code>. The binding never moves; only the value
-        inside it does, through a method call &mdash; so every write is a literal
+        inside it does, through a method call, so every write is a literal
         <code>.set(</code> or <code>.update(</code> you can grep for.
       </p>
 
       <div class="detail">
         <p class="block-label">See it</p>
         <p>
-          Declare the store once at module scope. Every function in the module shares it &mdash; no
+          Declare the store once at module scope. Every function in the module shares it. No
           <code>let</code> threaded through <code>main</code>, no capturing closures:
         </p>
       </div>
@@ -116,13 +116,13 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
           globals is exactly what makes state hard to reason about and hard to <em>find</em>. A
           store needs neither rule loosened: the <code>const s</code> binding is immutable, and the
           value inside changes only through <code>set</code>/<code>update</code>. So shared state
-          arrives as a <strong>library, not new syntax</strong> &mdash; no linear types, no weakened
-          mutation rules &mdash; and the mutation lives in exactly one audited place instead of
+          arrives as a <strong>library, not new syntax</strong> (no linear types, no weakened
+          mutation rules), and the mutation lives in exactly one audited place instead of
           spread across your program.
         </p>
         <p>
           One sharp edge, shared with TypeScript: an empty collection can't infer its element type,
-          so seed it with an explicit type argument &mdash; <code>create&lt;Array&lt;Task&gt;&gt;([])</code>.
+          so seed it with an explicit type argument: <code>create&lt;Array&lt;Task&gt;&gt;([])</code>.
           A scalar store (<code>create(0)</code>) infers fine.
         </p>
       </div>
@@ -131,18 +131,18 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code> &mdash; the single, greppable home for shared mutable state.</p>
+          <p><code>std/store</code> with <code>create</code>, <code>get</code>, <code>set</code>, and <code>update</code>: the single, greppable home for shared mutable state.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Convenience over the same primitive (derived/computed stores, subscriptions) &mdash; layered on top without changing the language.</p>
+          <p>Convenience over the same primitive (derived/computed stores, subscriptions), layered on top without changing the language.</p>
         </div>
       </div>
 
       <nav class="prevnext">
         <a href="/answers/react/">
           <span class="dir">← Previous</span>
-          <span class="t">Does it work with React — components, hooks, and Context?</span>
+          <span class="t">Does it work with React: components, hooks, and Context?</span>
         </a>
         <a href="/answers/why-typescript/" class="nx cta">
           <span class="dir">Next →</span>
@@ -153,7 +153,7 @@ src/tasks.glyph:16:  tasks.update(fn(cur...
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

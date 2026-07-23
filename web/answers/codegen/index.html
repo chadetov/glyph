@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Can I generate a typed client and server from my API spec? — Glyph</title>
+    <title>Can I generate a typed client and server from my API spec? · Glyph</title>
     <meta name="description" content="Yes. Point glyph gen openapi at a spec: --client emits a typed HTTP client, --handlers emits server stubs and a router. gen zod does the same from zod schemas. All committed, greppable Glyph." />
     <link rel="canonical" href="https://glyphlang.io/answers/codegen/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -55,7 +55,7 @@
         emits a typed HTTP client, one function per operation; <code>--handlers</code> emits
         server stubs and a working <code>route</code> dispatcher. If your source of truth is a
         <code>zod</code> schema, <code>glyph gen zod</code> does the same. Everything comes out as
-        <strong>committed, greppable Glyph</strong> you own and edit &mdash; never a hidden
+        <strong>committed, greppable Glyph</strong> you own and edit, never a hidden
         codegen step.
       </p>
 
@@ -63,12 +63,12 @@
         <p class="block-label">Why it matters</p>
         <p>
           Hand-written API clients and their DTOs drift from the spec, and the drift is a class of
-          bug nobody enjoys. Because Glyph generates <em>real</em> code &mdash; typed functions,
-          real <code>type</code> declarations with runtime descriptors &mdash; the spec stays the
+          bug nobody enjoys. Because Glyph generates <em>real</em> code (typed functions,
+          real <code>type</code> declarations with runtime descriptors), the spec stays the
           source of truth, and regeneration is an idempotent, reviewable diff, not a black box.
         </p>
 
-        <p class="block-label">See it &mdash; the client</p>
+        <p class="block-label">See it: the client</p>
         <p>
           Each operation becomes an <code>async fn</code> with typed path parameters and a typed
           request body, returning the HTTP <code>Response</code>:
@@ -123,8 +123,8 @@ async fn getTask(base: string, id: number)
         </p>
         <p class="block-label">From a zod schema instead</p>
         <p>
-          If your team already defines shapes with <code>zod</code>, generate from those directly
-          &mdash; the schema becomes a first-class Glyph type with its own descriptor:
+          If your team already defines shapes with <code>zod</code>, generate from those directly.
+          The schema becomes a first-class Glyph type with its own descriptor:
         </p>
       </div>
 
@@ -153,19 +153,19 @@ async fn getTask(base: string, id: number)
         <p>
           A polymorphic <strong>discriminated union</strong> (an OpenAPI <code>discriminator</code>)
           comes out as a real Glyph tagged union plus a generated <code>parse_&lt;Name&gt;</code>
-          that reads the discriminator property and validates into the right variant &mdash; because
+          that reads the discriminator property and validates into the right variant. Because
           Glyph tags by constructor name, not an arbitrary property, the generated dispatcher bridges
           the wire object to the union for you.
         </p>
         <p>
-          Where it falls short: generation is wire-faithful, so it maps the common 80%
-          &mdash; objects, primitives, arrays, references, optional and nullable fields, and
-          discriminated unions &mdash; and narrows what it can't represent exactly (a string enum, an
+          Where it falls short: generation is wire-faithful, so it maps the common 80%:
+          objects, primitives, arrays, references, optional and nullable fields, and
+          discriminated unions. It narrows what it can't represent exactly (a string enum, an
           <em>un</em>discriminated union) with a printed note rather than a validator that would
           reject real data. Richer enums are next. And the tooling has real dependencies: <code>gen dts</code>/<code>gen
-          zod</code> need Node plus <code>typescript</code>/<code>zod</code> &mdash; <code>gen
+          zod</code> need Node plus <code>typescript</code>/<code>zod</code>. <code>gen
           dts</code> works with any TypeScript (5, 6, or the 7.x native port), resolved from your
-          project first &mdash; and they tell you exactly what to install if it's missing.
+          project first, and they tell you exactly what to install if it's missing.
         </p>
       </div>
 
@@ -173,7 +173,7 @@ async fn getTask(base: string, id: number)
         <p class="block-label">Keeping it in sync</p>
         <p>
           Every generated file records the exact command that made it in its header. When a spec
-          changes, you don't hunt for which commands to re-run &mdash; <code>glyph regen</code> scans
+          changes, you don't hunt for which commands to re-run: <code>glyph regen</code> scans
           for those headers and re-runs each one, rewriting the output. It's idempotent, so a regen
           with no spec change touches nothing; it drops cleanly into a pre-commit hook or a CI check
           that fails if the committed code has drifted from the spec.
@@ -184,11 +184,11 @@ async fn getTask(base: string, id: number)
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source &mdash; every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</p>
+          <p><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source: every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Richer enum mapping and broader OpenAPI coverage &mdash; each landing behind the same wire-faithful, note-when-narrowed rule.</p>
+          <p>Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule.</p>
         </div>
       </div>
 
@@ -199,14 +199,14 @@ async fn getTask(base: string, id: number)
         </a>
         <a href="/answers/react/" class="nx cta">
           <span class="dir">Next →</span>
-          <span class="t">Does it work with React — components, hooks, and Context?</span>
+          <span class="t">Does it work with React: components, hooks, and Context?</span>
         </a>
       </nav>
     </article>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

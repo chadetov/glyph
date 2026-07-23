@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>What stops an agent from silently breaking my code? — Glyph</title>
-    <meta name="description" content="In Glyph, the changes that silently compile-and-break in TypeScript — a missing case, an unhandled error, a renamed field — become compile errors the agent must fix first." />
+    <title>What stops an agent from silently breaking my code? · Glyph</title>
+    <meta name="description" content="In Glyph, changes that silently compile-and-break in TypeScript, like a missing case, an unhandled error, or a renamed field, become compile errors the agent must fix first." />
     <link rel="canonical" href="https://glyphlang.io/answers/verifiability/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -51,8 +51,8 @@
       <h1 class="q-title">What stops an agent from silently breaking my code?</h1>
 
       <p class="short-answer">
-        A whole class of change that <strong>quietly compiles</strong> in TypeScript &mdash; a
-        missing case, an unhandled error, a renamed field &mdash; becomes a
+        A whole class of change that <strong>quietly compiles</strong> in TypeScript (a
+        missing case, an unhandled error, a renamed field) becomes a
         <strong>compile error the agent has to fix before it can ship</strong>.
       </p>
 
@@ -73,11 +73,11 @@
         </p>
 
         <p class="block-label">See it</p>
-        <p>Add a state to a union, and every place that handled the old set stops compiling &mdash; pointing at the exact spot to update:</p>
+        <p>Add a state to a union, and every place that handled the old set stops compiling, pointing at the exact spot to update:</p>
       </div>
 
       <div class="code">
-        <span class="cap">status.glyph — one new variant, and the compiler finds every gap</span>
+        <span class="cap">status.glyph: one new variant, and the compiler finds every gap</span>
 <pre><span class="dim">type Status = Loading | Ready | Failed(string)<span class="cm">   // + Cancelled</span></span>
 
 fn label(s: Status) -&gt; string {
@@ -102,8 +102,8 @@ fn label(s: Status) -&gt; string {
           <code>undefined</code> at runtime. Same for errors: a function that returns
           <code>Result&lt;T, E&gt;</code> is meant to be handled with <code>match</code> or
           propagated with <code>?</code> (and the compiler checks the error type lines up). And if
-          you <em>drop</em> a <code>Result</code> on the floor &mdash; call it as a statement and
-          ignore what it returned &mdash; Glyph warns you (<code>E0217</code>), because a discarded
+          you <em>drop</em> a <code>Result</code> on the floor (call it as a statement and
+          ignore what it returned), Glyph warns you (<code>E0217</code>), because a discarded
           error is a swallowed failure. You silence it deliberately with <code>let _ = ...</code>,
           never by accident.
         </p>
@@ -132,7 +132,7 @@ fn label(s: Status) -&gt; string {
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing and richer validation for generic and imported types are on the roadmap &mdash; extending the same guarantee to more of the type system.</p>
+          <p>Deeper flow-narrowing and richer validation for generic and imported types are on the roadmap, extending the same guarantee to more of the type system.</p>
         </div>
       </div>
 
@@ -147,7 +147,7 @@ fn label(s: Status) -&gt; string {
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

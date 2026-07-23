@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Benchmarks — measured, not asserted — Glyph</title>
-    <meta name="description" content="Glyph's four pillars as numbers: verifiability caught at compile time, one grep per symbol, one-line diffs, and ~29% fewer tokens than TypeScript — with the honest caveats." />
+    <title>Benchmarks · measured, not asserted · Glyph</title>
+    <meta name="description" content="Glyph's four pillars as numbers: verifiability caught at compile time, one grep per symbol, one-line diffs, and ~29% fewer tokens than TypeScript, with the honest caveats." />
     <link rel="canonical" href="https://glyphlang.io/benchmarks/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#0b1326" />
@@ -37,34 +37,34 @@
           what does Glyph reject by construction that TypeScript accepts? That's provable today, shown
           below. <strong>Reliability:</strong> do agents actually ship fewer defects in Glyph than in a
           <em>well-configured</em> strict-TypeScript setup? That's the number that decides adoption, and
-          we don't have it yet &mdash; it's a study we're building, and we won't dress up a proxy as if
+          we don't have it yet. It's a study we're building, and we won't dress up a proxy as if
           it were that answer. (The real comparison isn't Glyph vs naive TS; it's Glyph vs
           <a href="/answers/vs-tooled-ts/">strict TS + zod + eslint + ts-pattern</a>.)
         </p>
       </header>
 
       <section>
-        <h2 class="section-head" style="text-align:left;">Structural &mdash; provable by construction</h2>
+        <h2 class="section-head" style="text-align:left;">Structural: provable by construction</h2>
         <p class="friction-intro" style="text-align:left; margin: 0 0 24px;">
-          Not a statistic &mdash; paired demonstrations. Each is a mistake Glyph rejects and
+          Not a statistic: paired demonstrations. Each is a mistake Glyph rejects and
           <code>tsc --strict</code> accepts, reproducible from the
           <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a> directory.
         </p>
         <div class="stat-row">
           <div class="card stat">
-            <span class="label">Verifiability &mdash; the bugs that cost you</span>
+            <span class="label">Verifiability: the bugs that cost you</span>
             <div class="big"><span class="accent">Both</span> caught at compile time</div>
             <p>
-              Two mistakes agents make constantly &mdash; a missing <code>match</code> variant and
-              an unsafe cast &mdash; are rejected by Glyph and accepted by <code>tsc --strict</code>.
+              Two mistakes agents make constantly (a missing <code>match</code> variant and
+              an unsafe cast) are rejected by Glyph and accepted by <code>tsc --strict</code>.
               Wrong code that compiles is the expensive failure. Glyph won't let it.
             </p>
           </div>
           <div class="card stat">
-            <span class="label">Greppability &mdash; one name, one place</span>
+            <span class="label">Greppability: one name, one place</span>
             <div class="big"><span class="accent">1</span> match, every time</div>
             <p>
-              Every symbol has exactly one declaration form &mdash; no overloads, decorators, or
+              Every symbol has exactly one declaration form: no overloads, decorators, or
               merged namespaces to scatter it.
             </p>
             <div class="grepout">
@@ -73,7 +73,7 @@
             </div>
           </div>
           <div class="card stat">
-            <span class="label">Diff stability &mdash; reviewable by default</span>
+            <span class="label">Diff stability: reviewable by default</span>
             <div class="big"><span class="accent">1 line &rarr; 1 line</span></div>
             <p>
               A one-line Glyph edit produces a one-line TypeScript diff through the transpiler, and
@@ -91,12 +91,12 @@
           <div class="bar-row"><span class="bar-lang">Go</span><div class="bar-track"><div class="bar-fill other" style="width: 91%">564</div></div></div>
           <div class="bar-row"><span class="bar-lang">Rust</span><div class="bar-track"><div class="bar-fill other" style="width: 100%">620</div></div></div>
           <p class="bench-note">
-            Safety usually costs length &mdash; Go and Rust, the other statically typed rows with
+            Safety usually costs length: Go and Rust, the other statically typed rows with
             explicit error handling, are the longest. Glyph is the only one that is both safe and
             lean: ~29% fewer tokens than TypeScript and ~40% fewer than Go, on real
-            <code>cl100k_base</code> counts. Honest caveat: on trivial one-liners Glyph's
-            <code>module</code> and <code>import</code> overhead can make it slightly larger than TS
-            &mdash; the lead only appears once there is real logic. Three functions, a small sample.
+            <code>cl100k_base</code> counts. On trivial one-liners, though, Glyph's
+            <code>module</code> and <code>import</code> overhead can make it slightly larger than TS.
+            The lead only appears once there is real logic. Three functions, a small sample.
             <a href="https://github.com/chadetov/glyph/blob/main/benchmarks/FINDINGS.md">See the methodology and caveats &rarr;</a>
           </p>
         </div>
@@ -104,14 +104,14 @@
       </section>
 
       <section>
-        <h2 class="section-head" style="text-align:left;">Reliability &mdash; the study we're building</h2>
+        <h2 class="section-head" style="text-align:left;">Reliability: the study we're building</h2>
         <p class="friction-intro" style="text-align:left; margin: 0 0 22px;">
           The structural results above are <em>reasons to expect</em> Glyph helps; they are not proof
           that it does. The proof is a differential study: the same agent, the same realistic tasks,
           written once in Glyph and once in a fully-tooled strict-TypeScript setup
           (<code>tsconfig strict</code> + typescript-eslint + ts-pattern + zod), scored on
           <strong>escaped semantic defects</strong> and one-shot green-build rate. That's the number
-          five different reviewers told us would move them &mdash; so we're building it, and until it
+          five different reviewers told us would move them, so we're building it, and until it
           exists these bars are a placeholder, not a claim.
         </p>
         <div class="chart">
@@ -120,8 +120,8 @@
           <div class="bar-row"><span class="bar-lang">Glyph</span><div class="bar-track"><div class="bar-fill pending" style="width: 30%">pending</div></div></div>
           <div class="bar-row"><span class="bar-lang">tooled TS</span><div class="bar-track"><div class="bar-fill pending" style="width: 55%">pending</div></div></div>
           <p class="bench-note">
-            The apparatus &mdash; a task corpus, a run/replay harness, and the pinned strongest-honest
-            TS baseline &mdash; is in the <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a>
+            The apparatus (a task corpus, a run/replay harness, and the pinned strongest-honest
+            TS baseline) is in the <a href="https://github.com/chadetov/glyph/tree/main/benchmarks">benchmarks</a>
             directory; the first real pilot (with its <em>n</em>, the model, and the cost stated on the
             label) publishes here the moment it runs. Whatever it shows.
           </p>
@@ -137,7 +137,7 @@
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

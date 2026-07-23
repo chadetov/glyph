@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Abstraction — a small, orthogonal core — Glyph</title>
+    <title>Abstraction · a small, orthogonal core · Glyph</title>
     <meta name="description" content="Glyph's fourth pillar: one good way per concept. Pattern matching over switch ladders, Result over exceptions, named records over tuples, match as the only conditional. Not TypeScript's accreted layers." />
     <link rel="canonical" href="https://glyphlang.io/pillars/abstraction/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -43,7 +43,7 @@
       <p class="short-answer">
         Say what you mean with a <strong>small, orthogonal core</strong>: pattern matching instead of
         switch ladders, <code>Result</code> instead of thrown exceptions, named records instead of
-        tuples. One good way per concept &mdash; not TypeScript's accreted layers.
+        tuples. One good way per concept, not TypeScript's accreted layers.
       </p>
 
       <div class="detail">
@@ -53,20 +53,20 @@
           an <code>enum</code>, a union of string literals, or a <code>const</code> object. You can
           describe a shape with an <code>interface</code>, a <code>type</code>, or a
           <code>class</code>. There are <code>namespace</code>s and modules, decorators and
-          higher-order functions, five idioms for nearly everything &mdash; each with its own edge
+          higher-order functions, five idioms for nearly everything, each with its own edge
           cases.
         </p>
         <p class="lede">
           For a human that's flexibility. For an <strong>agent</strong> it's a minefield: more ways to
           express a thing means more ways to pick the one with the footgun, and more idioms to keep
-          straight while doing it. Glyph's abstraction pillar is a deliberate subtraction &mdash; one
+          straight while doing it. Glyph's abstraction pillar is a deliberate subtraction: one
           sharp tool per job, chosen so the obvious way is also the safe way.
         </p>
 
         <p class="block-label"><span class="ex-label">01</span> <code>match</code> is the only conditional</p>
         <p>
           There is no <code>if</code>/<code>else</code> statement. Branching is <code>match</code>,
-          everywhere, and <code>match</code> is an expression &mdash; it produces a value. One
+          everywhere, and <code>match</code> is an expression: it produces a value. One
           construct covers a boolean test, a union dispatch, and a value table, so there's no decision
           to make about <em>which</em> branching form to reach for.
         </p>
@@ -74,7 +74,7 @@
 
       <div class="two-up">
         <div class="code">
-          <span class="tag-bad">TypeScript &mdash; statement, not a value</span>
+          <span class="tag-bad">TypeScript: statement, not a value</span>
           <span class="cap">grade.ts</span>
 <pre>let label: string;
 if (score &gt; 90) label = "A";
@@ -82,7 +82,7 @@ else if (score &gt; 80) label = "B";
 else label = "C";</pre>
         </div>
         <div class="code">
-          <span class="tag-good">Glyph &mdash; one expression</span>
+          <span class="tag-good">Glyph: one expression</span>
           <span class="cap">grade.glyph</span>
 <pre>let label = match score &gt; 90 {
   true =&gt; "A",
@@ -124,7 +124,7 @@ fn view(feed: Feed) -&gt; string {
         <p class="block-label"><span class="ex-label">03</span> <code>Result</code> over exceptions</p>
         <p>
           Failure is a value, not a hidden control-flow jump. A function that can fail says so in its
-          return type &mdash; <code>Result&lt;T, E&gt;</code> &mdash; and you compose failures with the
+          return type (<code>Result&lt;T, E&gt;</code>) and you compose failures with the
           <code>?</code> operator instead of wrapping call sites in <code>try</code>/<code>catch</code>
           and hoping the right thing throws the right class. The error path is as visible as the happy
           path.
@@ -140,7 +140,7 @@ fn view(feed: Feed) -&gt; string {
 
       <div class="two-up">
         <div class="code">
-          <span class="tag-bad">TypeScript &mdash; what are [0] and [1]?</span>
+          <span class="tag-bad">TypeScript: what are [0] and [1]?</span>
           <span class="cap">point.ts</span>
 <pre>function origin(): [number, number] {
   return [0, 0];
@@ -149,7 +149,7 @@ const p = origin();
 p[0]; p[1];  <span class="cm">// x? y? row? col?</span></pre>
         </div>
         <div class="code">
-          <span class="tag-good">Glyph &mdash; the names travel with the value</span>
+          <span class="tag-good">Glyph: the names travel with the value</span>
           <span class="cap">point.glyph</span>
 <pre>type Point = { x: number, y: number }
 
@@ -165,16 +165,16 @@ fn origin() -&gt; Point {
           When a concept genuinely needs its own tool, Glyph gives it exactly one. Shared mutable
           state lives in a <code>std/store</code>. A file or socket handle that must be closed once is
           an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single,
-          named, purpose-built primitive &mdash; not a pattern you re-derive from a grab-bag of
+          named, purpose-built primitive, not a pattern you re-derive from a grab-bag of
           general parts and get subtly wrong.
         </p>
 
         <p class="pull-quote">
-          Abstraction here means <strong>fewer, sharper tools</strong> &mdash; not more. Every concept
+          Abstraction here means <strong>fewer, sharper tools</strong>, not more. Every concept
           has an obvious form, and the obvious form is the one you're meant to use.
         </p>
 
-        <p class="block-label">The benchmark &mdash; coming</p>
+        <p class="block-label">The benchmark: coming</p>
         <p>
           The way to measure this is surface area: how many distinct concepts a reader has to hold to
           understand a program, and how much code it takes to express a common task cleanly. Glyph
@@ -212,18 +212,18 @@ fn origin() -&gt; Point {
       <nav class="prevnext">
         <a href="/pillars/diff-stability/">
           <span class="dir">&larr; Previous pillar</span>
-          <span class="t">Diff stability &mdash; a one-line change is a one-line diff</span>
+          <span class="t">Diff stability: a one-line change is a one-line diff</span>
         </a>
         <a href="/pillars/verifiability/" class="nx cta">
           <span class="dir">Back to the start &rarr;</span>
-          <span class="t">Verifiability &mdash; true at runtime</span>
+          <span class="t">Verifiability: true at runtime</span>
         </a>
       </nav>
     </article>
 
     <footer>
       <div class="wrap">
-        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
         <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
       </div>
     </footer>

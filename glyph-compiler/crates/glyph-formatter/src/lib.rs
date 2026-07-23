@@ -974,6 +974,11 @@ impl Printer {
                 self.push("}");
             }
             JsxAttr::Positional { name, .. } => self.push(name),
+            JsxAttr::Spread { value, .. } => {
+                self.push("{...");
+                self.expr(value);
+                self.push("}");
+            }
         }
     }
 

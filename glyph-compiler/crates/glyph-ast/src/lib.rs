@@ -421,6 +421,10 @@ pub enum JsxAttr {
     /// `<case Loaded>` — `Loaded` is a positional attribute (no name, no
     /// value). Allowed before any named attributes (D6).
     Positional { name: Ident, span: Span },
+    /// `{...expr}` — spread the object `expr` into the element's props (the
+    /// react-hook-form `{...register("name")}` idiom). Lowers to an object
+    /// spread inside the `createElement` props.
+    Spread { value: Expr, span: Span },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

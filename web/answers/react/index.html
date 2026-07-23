@@ -96,9 +96,12 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
           (<code>&lt;ThemeContext.Provider&gt;</code>) work directly: no workaround.
         </p>
         <p>
-          What doesn't carry over cleanly: a component takes a single props record (not multiple
-          positional params), and some React-<em>library</em> patterns (prop spreading, zod's
-          value-derived types) need a thin adapter today. See
+          JSX prop spreading works too: <code>&lt;input {...register("email")} /&gt;</code> lowers
+          to an object spread in the props, so the react-hook-form idiom needs no adapter. What
+          still doesn't carry over cleanly: a component takes a single props record (not multiple
+          positional params), and zod's value-derived types (<code>z.infer&lt;typeof s&gt;</code>)
+          are not inline-expressible yet, though you can materialize the schema with
+          <code>glyph gen zod</code>. See
           <a href="/answers/imports/">using your libraries</a> and the
           <a href="/hardening/">hardening page</a> for exactly where that boundary is.
         </p>
@@ -108,11 +111,11 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), built-in and custom hooks, <code>useReducer</code> with exhaustive tagged-union actions, and Context via <code>createContext</code>/<code>useContext</code>.</p>
+          <p>Components, JSX, fragments (<code>&lt;&gt;...&lt;/&gt;</code>), member-expression element names (<code>&lt;Ctx.Provider&gt;</code>), JSX prop spread (<code>{...register()}</code>), built-in and custom hooks, <code>useReducer</code> with exhaustive tagged-union actions, and Context via <code>createContext</code>/<code>useContext</code>.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Smoother interop for prop-spread-heavy component libraries.</p>
+          <p>Value-derived types (<code>z.infer&lt;typeof s&gt;</code>) as an inline primitive, so schema-driven libraries need no materialization step.</p>
         </div>
       </div>
 

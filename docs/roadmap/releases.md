@@ -485,6 +485,17 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
   above: prop spread in JSX (`<input {...register()} />`) and value-derived types
   (`z.infer<typeof s>`, generalizing `infer_output`). *Done:* `react-hook-form`
   used from `.glyph` with its real API and no adapter.
+  - **JSX prop spread** (M). ✅ **Done (Phase 3, first primitive).** `<input
+    {...register("email")} class="field" />` parses to a `JsxAttr::Spread`, lowers
+    to an object spread inside the `createElement` props (`{ ...register("email"),
+    className: "field" }`), round-trips through the formatter, and is resolved and
+    typechecked like any expression. Proven under `tsc --strict` against
+    react-hook-form-shaped types, so the canonical form idiom works end to end.
+    Parser, emit, and formatter tests cover it.
+  - **Value-derived types** (`z.infer<typeof s>`) — still open, the next Phase 3
+    primitive. The manifesto-native alternative (materialize the schema with
+    `glyph gen zod`/`gen dts`) already exists for schemas you own; this covers the
+    inline and library-schema cases.
 
 ### 0.2.x — Prove it (the evidence gate)
 

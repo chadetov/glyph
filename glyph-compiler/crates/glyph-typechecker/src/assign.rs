@@ -631,8 +631,9 @@ impl Assigner<'_> {
 
     fn walk_jsx(&mut self, j: &JsxElement) {
         for attr in &j.attrs {
-            if let JsxAttr::Expr { value, .. } = attr {
-                self.walk_expr(value);
+            match attr {
+                JsxAttr::Expr { value, .. } | JsxAttr::Spread { value, .. } => self.walk_expr(value),
+                JsxAttr::String { .. } | JsxAttr::Positional { .. } => {}
             }
         }
         // A JSX `<match value={s}>` directive is a conditional over a tagged

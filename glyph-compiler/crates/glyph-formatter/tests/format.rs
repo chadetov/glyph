@@ -102,6 +102,14 @@ fn jsx_fragment_round_trips() {
 }
 
 #[test]
+fn jsx_prop_spread_round_trips() {
+    let src = "module x\ncomponent F() -> Component {\n  return <input {...register(\"email\")} class=\"f\" />\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("{...register(\"email\")}"), "prop spread preserved:\n{out}");
+    assert_eq!(fmt(&out), out, "prop-spread format is not stable");
+}
+
+#[test]
 fn member_expression_jsx_name_round_trips() {
     let src = "module x\ncomponent T(v: string) -> Component {\n  return <Ctx.Provider value={v}>\n    <span>{v}</span>\n  </Ctx.Provider>\n}\n";
     let out = fmt(src);

@@ -1199,6 +1199,36 @@ component Foo(props: Props) -> Component {
     }
 
     #[test]
+    fn jsx_prop_spread_attr() {
+        // `{...expr}` is a prop-spread attribute (react-hook-form idiom), mixed
+        // with ordinary attributes.
+        let m = parse_or_panic(
+            "module x\ncomponent C() -> Component { return <input {...register(\"email\")} class=\"f\" /> }\n",
+        );
+        let c = match &m.items[0] {
+            glyph_ast::Decl::Component(c) => c,
+            _ => panic!(),
+        };
+        let ret = match &c.body.stmts[0] {
+            glyph_ast::Stmt::Return(r) => r,
+            _ => panic!(),
+        };
+        match ret.value.as_ref().unwrap() {
+            glyph_ast::Expr::Jsx(j) => {
+                assert_eq!(j.attrs.len(), 2);
+                match &j.attrs[0] {
+                    glyph_ast::JsxAttr::Spread { value, .. } => {
+                        assert!(matches!(value, glyph_ast::Expr::Call { .. }));
+                    }
+                    other => panic!("expected Spread, got {other:?}"),
+                }
+                assert!(matches!(j.attrs[1], glyph_ast::JsxAttr::String { .. }));
+            }
+            other => panic!("expected Jsx, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn jsx_hyphenated_attribute_names() {
         // `aria-label` / `data-testid` must parse as single attribute names, not
         // `aria` minus `label`. The lexer splits on `-`; the JSX name reader

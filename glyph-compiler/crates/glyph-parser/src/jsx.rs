@@ -181,6 +181,20 @@ fn parse_jsx_children(p: &mut Cursor) -> Result<Vec<JsxChild>, ParseError> {
 }
 
 fn parse_jsx_attr(p: &mut Cursor) -> Result<JsxAttr, ParseError> {
+    // Prop spread `{...expr}`: an attribute that starts with `{` rather than a
+    // name (the react-hook-form `{...register("name")}` idiom).
+    if matches!(p.peek(), Token::LBrace) {
+        let open = p.peek_span();
+        p.advance();
+        p.expect(&Token::DotDotDot, "`...` (JSX prop spread)")?;
+        let value = expr::parse_expr(p)?;
+        let close = p.expect(&Token::RBrace, "`}` (closing JSX prop spread)")?;
+        return Ok(JsxAttr::Spread {
+            value,
+            span: Span::new(open.start, close.end),
+        });
+    }
+
     let (name, name_span) = jsx_name(p)?;
 
     // `name="string"` or `name={expr}` or positional (no `=`).

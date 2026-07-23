@@ -3148,6 +3148,11 @@ impl<'a> Emitter<'a> {
                         span: *span,
                     })
                 }
+                // `{...expr}` becomes an object spread inside the props literal,
+                // which React merges just like `<input {...register()} />`.
+                JsxAttr::Spread { value, .. } => {
+                    fields.push(format!("...{}", self.expr(value)?))
+                }
             }
         }
         if fields.is_empty() {
@@ -4927,6 +4932,20 @@ mod tests {
             "module x\nimport react { Component }\ncomponent V() -> Component {\n  return <div></div>\n}\n",
         );
         assert!(ts.contains("React.createElement(\"div\", null)"), "{ts}");
+    }
+
+    #[test]
+    fn jsx_prop_spread_lowers_to_an_object_spread() {
+        // `{...register("email")}` merges into the props object, alongside the
+        // `class` -> `className` remap, exactly like `<input {...register()} />`.
+        let ts = emit(
+            "module x\nimport react { Component }\nfn register(n: string) -> unknown { return n }\n\
+             component F() -> Component {\n  return <input {...register(\"email\")} class=\"field\" />\n}\n",
+        );
+        assert!(
+            ts.contains("React.createElement(\"input\", { ...register(\"email\"), className: \"field\" })"),
+            "{ts}"
+        );
     }
 
     #[test]

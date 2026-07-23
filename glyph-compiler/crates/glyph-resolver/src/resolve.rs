@@ -579,6 +579,7 @@ impl Resolver<'_> {
                     }
                     self.resolve_name_ref(name, *span);
                 }
+                JsxAttr::Spread { value, .. } => self.walk_expr(value),
             }
         }
 

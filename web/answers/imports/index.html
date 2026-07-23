@@ -133,12 +133,12 @@ print(user.name)</pre>
           <a href="/answers/typed-apis/">do I have to hand-write a validator for every API?</a>
         </p>
         <p>
-          Where it still bites: idioms Glyph's grammar cannot yet spell. A value-derived type
-          (<code>type U = z.infer&lt;typeof s&gt;</code>) or prop spreading in JSX
-          (<code>{...register()}</code>) is not expressible inline today, so a library leaning on
-          those needs a thin TS shim for that part. Those two primitives are the active interop
-          work, and a scoped escape hatch is planned so no library ever forces a whole adapter
-          file. You do not need any of it to use the npm ecosystem now.
+          Where it still bites: a value-derived type (<code>type U = z.infer&lt;typeof s&gt;</code>)
+          is not expressible inline yet, so a library leaning on that needs a thin TS shim for
+          that part, or you materialize the schema with <code>glyph gen zod</code>. (JSX prop
+          spread, <code>&lt;input {...register()} /&gt;</code>, already works.) That last primitive
+          is the active interop work, and a scoped escape hatch is planned so no library ever
+          forces a whole adapter file. You do not need any of it to use the npm ecosystem now.
         </p>
       </div>
 
@@ -150,7 +150,7 @@ print(user.name)</pre>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Value-derived types (<code>z.infer</code>) and JSX prop spread as inline primitives, plus opt-in validation of the data types you cross the boundary with, so the wedge reaches the npm seam. A scoped escape hatch covers the long tail.</p>
+          <p>Value-derived types (<code>z.infer</code>) as an inline primitive (JSX prop spread already ships), plus opt-in validation of the data types you cross the boundary with, so the wedge reaches the npm seam. A scoped escape hatch covers the long tail.</p>
         </div>
       </div>
 

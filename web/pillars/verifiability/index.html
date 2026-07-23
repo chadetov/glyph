@@ -138,13 +138,13 @@ fn create(req: Request) -&gt; Result&lt;Response, string&gt; {
           becomes typed only by passing through a check that can actually reject bad data.
         </p>
         <p>
-          <strong>The honest edge:</strong> descriptors are generated for non-generic record types
-          today, and a record's check is strict by default &mdash; it confirms the declared fields
-          <em>and</em> rejects a value carrying undeclared keys (an <code>@open</code> type opts out).
-          What's still on the roadmap is coverage: a generic envelope (<code>Paginated&lt;T&gt;</code>),
-          a union, or a type imported from a <code>.d.ts</code> doesn't get a descriptor yet. Where a
-          check can only prove part of a shape, the compiler is being taught to say so rather than
-          imply a guarantee it can't make.
+          Where this stops: a record's descriptor is strict by default. It confirms the declared
+          fields and rejects a value carrying undeclared keys (put <code>@open</code> on the type to
+          allow extras). Record types get a descriptor, generic ones included, so
+          <code>Paginated&lt;User&gt;</code> checks each element as a <code>User</code>. What still
+          doesn't get one is a tagged union, or a type imported from a <code>.d.ts</code> you only
+          reference. Where a check can prove only part of a shape, the compiler says so instead of
+          implying a guarantee it can't make.
         </p>
 
         <p class="block-label"><span class="ex-label">03</span> Every case, or it doesn't compile</p>

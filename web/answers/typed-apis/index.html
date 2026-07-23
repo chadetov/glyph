@@ -205,7 +205,7 @@ type User = { name: string; age: number };
           presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.
         </p>
         <p>
-          <strong>The honest edge:</strong> descriptors cover the shapes most payloads are made of
+          Where it stops: descriptors cover the shapes most payloads are made of
           &mdash; objects, primitives, arrays, references, optional and nullable fields, and now
           generic types at a given instantiation. A type Glyph did not generate (an external
           <code>.d.ts</code> you only import) is type-checked but carries no descriptor until you

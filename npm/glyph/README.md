@@ -70,9 +70,9 @@ Glyph ships as a single prebuilt binary per platform (macOS, Linux, Windows — 
 
 Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — a single file that takes it from zero to correct, runnable Glyph: the canonical program shape, the full stdlib surface, the common gotchas, and the complete diagnostic catalogue with one-line fixes. Agents that write Glyph get compile-time feedback precise enough to self-correct.
 
-**Model Context Protocol.** For an agent that speaks MCP, `glyph mcp` runs a server over stdio that hands it Glyph's own analysis as tools — type-check a file for coded diagnostics, the inferred type at a cursor, where a name is defined (following imports), every reference to a symbol across the whole project, and symbol search. It's the same analysis the editor uses, so what the agent sees can't drift from the compiler. Point any MCP client at `glyph mcp <project>`; details at [glyphlang.io/mcp](https://glyphlang.io/mcp/).
+**Model Context Protocol.** For an agent that speaks MCP, `glyph mcp` runs a server over stdio that gives it five queries: type-check a file for coded diagnostics, the inferred type at a cursor, where a name is defined (following imports), every reference to a symbol across the project, and symbol search. It runs the same analysis the editor uses, so the agent's answers match the compiler. Point any MCP client at `glyph mcp <project>`; details at [glyphlang.io/mcp](https://glyphlang.io/mcp/).
 
-**Editors.** `glyph lsp` is a full language server (diagnostics, hover, go-to-definition, completion, symbols, workspace-wide find-references and rename, formatting) that any LSP client can drive over stdio — a VS Code extension ships ready-made.
+**Editors.** `glyph lsp` is a full language server (diagnostics, hover, go-to-definition, completion, symbols, workspace-wide find-references and rename, formatting) that any LSP client can drive over stdio. A VS Code extension ships ready-made.
 
 ## Where to go next
 

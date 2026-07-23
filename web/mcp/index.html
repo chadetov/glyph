@@ -33,30 +33,28 @@
       <h1 class="q-title">Wire your agent into Glyph's compiler</h1>
 
       <p class="short-answer">
-        <code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> that hands a
-        coding agent Glyph's own understanding of your project as tools &mdash; diagnostics, the type
-        at a cursor, where a name is defined, every reference to a symbol, symbol search. It's the
-        <em>same analysis the editor uses</em>, exposed over stdio, so what the agent sees can't
-        drift from what the compiler sees.
+        <code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> that gives a
+        coding agent five queries about your project: diagnostics, the type at a cursor, where a name
+        is defined, every reference to a symbol, and symbol search. It runs the same analysis the
+        editor uses, over stdio, so what the agent sees matches what the compiler sees.
       </p>
 
       <div class="detail">
         <p class="block-label">Why an agent wants this</p>
         <p>
-          An agent editing a codebase usually works blind: it reads files, guesses at types, and
+          An agent editing a codebase usually works blind. It reads files, guesses at types, and
           finds out whether it broke something only after a build. Glyph already answers those
-          questions precisely for an editor. <code>glyph mcp</code> gives an agent the same answers
-          directly &mdash; ground truth from the compiler, not inference &mdash; without scraping
-          build output or reading every file to find who calls what. It complements
-          <code>glyph build --json</code> (the batch path for coded diagnostics) with interactive,
-          position-level queries.
+          questions for an editor. <code>glyph mcp</code> gives an agent the same answers straight
+          from the compiler, without scraping build output or reading every file to find who calls
+          what. It sits alongside <code>glyph build --json</code>, which is the batch path for coded
+          diagnostics; MCP is the interactive one.
         </p>
 
         <p class="block-label">Set it up</p>
         <p>
           Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the
-          <code>mcp</code> subcommand; pass your project root as an argument, or run it from the
-          project directory. It speaks MCP over stdio &mdash; no port, no daemon.
+          <code>mcp</code> subcommand, and pass your project root as an argument or run it from the
+          project directory. It speaks MCP over stdio, so there's no port and no daemon.
         </p>
       </div>
 
@@ -75,7 +73,7 @@
       <div class="detail">
         <p>
           On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the
-          server reports the five tools below. Positions are the LSP convention &mdash; a 0-based
+          server reports the five tools below. Positions follow the LSP convention: a 0-based
           <code>line</code> and a 0-based <code>character</code> (UTF-16 code units).
         </p>
 
@@ -105,8 +103,8 @@ glyph_symbols(query)</pre>
         <p class="block-label">See it</p>
         <p>
           A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo
-          returns the compiler's own diagnostic &mdash; the stable code, the message, and the exact
-          range &mdash; as structured JSON the agent parses and acts on:
+          returns the compiler's own diagnostic as structured JSON the agent can act on: the stable
+          code, the message, and the exact range.
         </p>
       </div>
 
@@ -140,19 +138,18 @@ glyph_symbols(query)</pre>
         <p>
           <code>glyph_references</code> is workspace-wide: ask about a symbol and you get its
           declaration, every use, and each importing module's <code>import</code> binding, across
-          every file &mdash; the same cross-file identity the editor's rename uses, so the answer is
-          complete, not just same-file.
+          every file. It uses the same cross-file identity the editor's rename does, so the answer
+          covers the whole project, not just the file you asked from.
         </p>
 
-        <p class="block-label">Honest scope</p>
+        <p class="block-label">What it doesn't do yet</p>
         <p>
-          The tools are <strong>read-only queries</strong> today &mdash; the agent reads Glyph's
-          understanding; it doesn't apply edits through MCP (a rename tool that returns edits is a
-          planned follow-up). The workspace is scanned per request rather than cached (fine for real
-          projects, a speed optimization later), and a file that doesn't currently parse is skipped.
-          A local binding's references are file-scoped, since a local can't be named from another
-          file. And because every tool is a thin adapter over the same pure analysis layer the
-          editor calls, none of it is a second implementation that could disagree with the compiler.
+          The tools only read. You can't rename or apply edits through MCP yet; that's next. The
+          server rescans the project on each call rather than keeping a cached index, which is fine
+          for a normal project and something to speed up later, and it skips any file that doesn't
+          currently parse. References to a local variable stay within its file, since a local can't
+          be used from another one. Every tool runs the same analysis code the editor uses, so its
+          answers match the compiler.
         </p>
       </div>
 
@@ -160,7 +157,7 @@ glyph_symbols(query)</pre>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>An <code>glyph mcp [root]</code> server over stdio with five tools &mdash; <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), and <code>glyph_symbols</code> &mdash; each a thin adapter over the same analysis the language server uses.</p>
+          <p>A <code>glyph mcp [root]</code> server over stdio with five tools: <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), and <code>glyph_symbols</code>. Each one runs the same analysis the language server uses.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

@@ -10,8 +10,18 @@
 //! directory are copied alongside the output and picked up by the generated
 //! `tsconfig.json` (this is how the example programs supply their React and
 //! `api/users` stubs).
+//!
+//! An installed npm package that ships its own types (or has an `@types/*`
+//! companion) needs no such stub. The build emits `.ts` into an out directory
+//! that is not inside the project, so a bare `import { z } from "zod"` cannot
+//! reach the project's `node_modules` by the usual upward walk. To fix that,
+//! `write_build_support` locates the project's `node_modules` (walking up from
+//! the source directory) and injects a `"*"` `paths` entry pointing at it, so
+//! `tsc` resolves installed packages against the project's real dependencies.
+//! The emitter emits project-internal imports as *relative* specifiers, so the
+//! `"*"` wildcard only ever catches external (bare) package imports.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// (out-relative path, contents). The runtime prelude and stdlib type surface,
 /// embedded from `glyph-compiler/runtime/`. Written under a dotted directory so
@@ -101,7 +111,11 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
 /// relative `paths` entry resolves against the tsconfig's own directory (TS
 /// 4.1+), so no `baseUrl` is needed — and `baseUrl` is deprecated as of
 /// TypeScript 6, which would make `--check` fail on a current toolchain.
-const TSCONFIG: &str = r#"{
+///
+/// `{node_modules_paths}` is filled with a `"*"` entry pointing at the
+/// project's `node_modules` when one is found, so installed packages resolve;
+/// it is empty otherwise (behavior identical to a project with no dependencies).
+const TSCONFIG_TEMPLATE: &str = r#"{
   "compilerOptions": {
     "strict": true,
     "noEmit": true,
@@ -111,7 +125,9 @@ const TSCONFIG: &str = r#"{
     "moduleResolution": "bundler",
     "skipLibCheck": true,
     "types": [],
-    "paths": { "std/*": ["./.glyph-runtime/std/*"] }
+    "paths": {
+      "std/*": ["./.glyph-runtime/std/*"]{node_modules_paths}
+    }
   },
   "include": [
     "**/*.ts",
@@ -121,6 +137,52 @@ const TSCONFIG: &str = r#"{
   ]
 }
 "#;
+
+/// Build the `tsconfig.json` text, wiring the project's `node_modules` into
+/// `paths` when one was found so bare package imports resolve. Absolute path
+/// values are used verbatim by TypeScript (no `baseUrl` required); backslashes
+/// are escaped so a Windows path stays valid JSON.
+fn tsconfig_json(node_modules: Option<&Path>) -> String {
+    let node_modules_paths = match node_modules {
+        Some(nm) => {
+            let nm = nm.to_string_lossy().replace('\\', "\\\\");
+            format!(",\n      \"*\": [\"{nm}/*\", \"{nm}/@types/*\"]")
+        }
+        None => String::new(),
+    };
+    TSCONFIG_TEMPLATE.replace("{node_modules_paths}", &node_modules_paths)
+}
+
+/// Find the *project's* `node_modules` by walking up from the (canonicalized)
+/// source directory, returning the nearest one at or below the project root.
+///
+/// The walk stops at the project root — the nearest ancestor holding a `.git`
+/// directory or a `package.json` — and never climbs above it. Without that
+/// boundary the walk could reach an unrelated `node_modules` in a parent (a
+/// stray one in `$HOME` is common) and point `tsc` at the wrong dependencies.
+/// So: the nearest `node_modules` within the project wins; if the root is
+/// reached with none found, the project simply has no installed dependencies in
+/// scope and this returns `None` (the tsconfig then omits the wildcard, behaving
+/// exactly as it did before installed-package resolution existed).
+fn find_project_node_modules(src: &Path) -> Option<PathBuf> {
+    let start = src.canonicalize().ok()?;
+    let mut dir: &Path = &start;
+    loop {
+        // A `node_modules` at this level is the project's dependencies; nearest
+        // wins. Checked before the root marker so a root that carries both
+        // `package.json` and `node_modules` (the common case) resolves.
+        let candidate = dir.join("node_modules");
+        if candidate.is_dir() {
+            return Some(candidate);
+        }
+        // Reached the project root with no `node_modules` at or below it: stop
+        // rather than climb into an unrelated ancestor's dependencies.
+        if dir.join(".git").exists() || dir.join("package.json").is_file() {
+            return None;
+        }
+        dir = dir.parent()?;
+    }
+}
 
 /// Write the bundled runtime, a `tsconfig.json`, and any `<src>/.types/`
 /// ambient declarations into `out`, so `tsc -p <out>/tsconfig.json` can type
@@ -133,7 +195,8 @@ pub fn write_build_support(out: &Path, src: &Path) -> std::io::Result<()> {
         }
         std::fs::write(path, contents)?;
     }
-    std::fs::write(out.join("tsconfig.json"), TSCONFIG)?;
+    let node_modules = find_project_node_modules(src);
+    std::fs::write(out.join("tsconfig.json"), tsconfig_json(node_modules.as_deref()))?;
 
     // A project may supply ambient declarations for its external dependencies
     // (npm packages, sibling app modules) in `<src>/.types/`; copy them so the
@@ -193,9 +256,92 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::RUNTIME_FILES;
+    use super::{tsconfig_json, RUNTIME_FILES};
     use glyph_resolver::StdlibStubs;
     use std::collections::BTreeSet;
+    use std::path::Path;
+
+    /// With no project `node_modules`, the tsconfig is the plain form: `std/*`
+    /// resolves to the bundled runtime and nothing else is wired into `paths`.
+    /// This is byte-for-byte what every release before installed-package
+    /// resolution emitted, so a dependency-free project is unaffected.
+    #[test]
+    fn tsconfig_without_node_modules_only_maps_std() {
+        let ts = tsconfig_json(None);
+        assert!(ts.contains(r#""std/*": ["./.glyph-runtime/std/*"]"#));
+        assert!(!ts.contains(r#""*""#), "no wildcard mapping without node_modules");
+    }
+
+    /// With a project `node_modules`, a `"*"` entry points bare imports at both
+    /// the package root and its `@types` companion, so an installed package that
+    /// ships types (or has an `@types/*`) resolves without a hand-written stub.
+    /// The `std/*` mapping stays, and it is more specific so `std/...` still
+    /// resolves to the runtime rather than the wildcard.
+    #[test]
+    fn tsconfig_with_node_modules_wires_the_wildcard() {
+        let nm = Path::new("/proj/node_modules");
+        let ts = tsconfig_json(Some(nm));
+        assert!(ts.contains(r#""std/*": ["./.glyph-runtime/std/*"]"#));
+        assert!(ts.contains(
+            r#""*": ["/proj/node_modules/*", "/proj/node_modules/@types/*"]"#
+        ));
+    }
+
+    /// A Windows-style path with backslashes must stay valid JSON, so each
+    /// backslash is doubled in the emitted config.
+    #[test]
+    fn tsconfig_escapes_backslashes_in_the_path() {
+        let nm = Path::new(r"C:\proj\node_modules");
+        let ts = tsconfig_json(Some(nm));
+        assert!(ts.contains(r#""C:\\proj\\node_modules/*""#), "got: {ts}");
+    }
+
+    fn tmp_tree(prefix: &str) -> std::path::PathBuf {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("glyph_nm_{prefix}_{}_{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("mkdir tmp tree");
+        dir
+    }
+
+    /// The nearest `node_modules` at or below the project root is found.
+    #[test]
+    fn node_modules_found_within_the_project() {
+        use super::find_project_node_modules;
+        let root = tmp_tree("within");
+        std::fs::create_dir_all(root.join(".git")).unwrap();
+        std::fs::create_dir_all(root.join("node_modules")).unwrap();
+        let src = root.join("src");
+        std::fs::create_dir_all(&src).unwrap();
+
+        let found = find_project_node_modules(&src).expect("node_modules found");
+        assert_eq!(found.file_name().unwrap(), "node_modules");
+        assert_eq!(
+            found.parent().unwrap().canonicalize().unwrap(),
+            root.canonicalize().unwrap()
+        );
+    }
+
+    /// The walk must stop at the project root (`.git`) and never climb into an
+    /// unrelated ancestor's `node_modules` (the stray-`$HOME`-node_modules trap).
+    #[test]
+    fn node_modules_search_stops_at_the_project_root() {
+        use super::find_project_node_modules;
+        let home = tmp_tree("home");
+        // An ancestor that DOES have node_modules — it must not be used.
+        std::fs::create_dir_all(home.join("node_modules")).unwrap();
+        // A git project nested inside it, with no node_modules of its own.
+        let repo = home.join("repo");
+        std::fs::create_dir_all(repo.join(".git")).unwrap();
+        let src = repo.join("src");
+        std::fs::create_dir_all(&src).unwrap();
+
+        assert!(
+            find_project_node_modules(&src).is_none(),
+            "must stop at repo/.git, not climb to the ancestor node_modules"
+        );
+    }
 
     /// Top-level names a runtime `.ts` exports, parsed from `export <kind> NAME`
     /// declarations. Covers the direct forms the bundled stdlib uses (`function`,

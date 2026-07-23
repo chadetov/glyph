@@ -402,9 +402,17 @@ The make-or-break question. The design decision is now made (see
   boundary. Phase 1 is the cheap immediate unblock (installed package types load,
   generalizing the `"types"` fix); Phase 2 materializes data types at the boundary
   where the wedge matters; Phase 3 is the escape hatch plus the React primitives.
-- **Phase 1 — type availability** (M). Make installed package types load so any
-  installed package typechecks with no hand-written stub (the same `"types": []`
-  fix that unblocks node builtins, generalized). This is the immediate unblock.
+- **Phase 1 — type availability** (M). ✅ **Done.** The generated tsconfig now
+  wires the project's `node_modules` into `paths` (a `"*"` entry, found by walking
+  up from the source to the project root marked by `.git`/`package.json`, never
+  climbing into an unrelated ancestor's `node_modules`), so an installed package
+  that ships its own types (or has an `@types/*`) typechecks with no hand-written
+  `.types/` stub. The emitter emits project imports as relative specifiers, so the
+  wildcard only ever catches external packages. Proven end to end: a fake
+  installed package resolves and a wrong-typed call to it is rejected by tsc
+  (types loaded and enforced, not `any`). A dependency-free project (the examples)
+  emits the identical tsconfig as before. Node builtins (bare `fs`/`http` via the
+  `"types": []` ambient path) are still the separate deferred item.
 - **First slice** (L). Import one real library (`zod` is the natural first) and use
   its real API from `.glyph` with zero hand-written adapter, types materialized on
   import (opt-in). *Done:* a real npm package used with no bespoke `.types` adapter

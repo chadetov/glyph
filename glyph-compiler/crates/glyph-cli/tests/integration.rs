@@ -1088,6 +1088,103 @@ const good: Codec<Point> = object_codec({ x: number_codec() })
     }
 }
 
+/// Phase 1 of the interop work (Q43): an installed npm package that ships its own
+/// types resolves and type-checks with no hand-written `.types/` stub. The build
+/// emits into an out directory outside the project, so this only works because
+/// `write_build_support` wires the project's `node_modules` into the generated
+/// tsconfig's `paths`. Here a fake package `widgets` is installed at
+/// `<src>/node_modules/widgets` with a `.d.ts`; a correct call type-checks, and a
+/// wrong-typed call is rejected by tsc, proving the types are actually loaded and
+/// enforced rather than falling back to `any`.
+#[test]
+fn installed_package_types_resolve_without_a_stub() {
+    if !tsc_available() {
+        eprintln!("skipping installed-package resolution check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("installed_pkg");
+    let src = root.join("src");
+
+    // A fake installed package that ships its own types via package.json.
+    write_file(
+        &src,
+        "node_modules/widgets/package.json",
+        r#"{ "name": "widgets", "version": "1.0.0", "types": "index.d.ts" }"#,
+    );
+    write_file(
+        &src,
+        "node_modules/widgets/index.d.ts",
+        "export declare function make_widget(label: string): string;\n",
+    );
+
+    // Correct usage: the string argument matches the package's declared type.
+    write_file(
+        &src,
+        "good.glyph",
+        r#"module good
+
+import widgets { make_widget }
+
+fn main(argv: Array<string>) -> number {
+  let w = make_widget("hello")
+  print(w)
+  return 0
+}
+"#,
+    );
+
+    let out = root.join("dist-good");
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "importing an installed package is well-formed Glyph: {:?}",
+        report.diagnostics
+    );
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!(
+            "installed package `widgets` did not resolve/type-check (no stub, node_modules wired into tsconfig):\n{msg}"
+        ),
+        TscOutcome::NotFound => panic!("tsc vanished mid-test"),
+    }
+
+    // Wrong usage: a number where the package declares a string. If the types
+    // were not really loaded (resolved as `any`), tsc would accept this; it must
+    // fail, proving the declared types are enforced across the seam.
+    write_file(
+        &src,
+        "bad.glyph",
+        r#"module bad
+
+import widgets { make_widget }
+
+fn main(argv: Array<string>) -> number {
+  let w = make_widget(42)
+  print(w)
+  return 0
+}
+"#,
+    );
+    std::fs::remove_file(src.join("good.glyph")).expect("drop good module");
+
+    let out_bad = root.join("dist-bad");
+    let report = build_project_inner(&src, &out_bad, false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "the Glyph is well-formed; the type error is a tsc-level check: {:?}",
+        report.diagnostics
+    );
+    match check_with_tsc(&out_bad).expect("run tsc") {
+        TscOutcome::Passed => {
+            panic!("passing a number to make_widget(label: string) was accepted: package types were NOT enforced")
+        }
+        TscOutcome::Failed(_) => {}
+        TscOutcome::NotFound => panic!("tsc vanished mid-test"),
+    }
+}
+
 /// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
 /// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
 /// run fail for environmental reasons, not a real defect.

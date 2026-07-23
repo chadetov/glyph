@@ -759,14 +759,17 @@ fn build_skips_hidden_and_target_directories() {
         "module app\nfn main() -> number { return 1 }\n",
     );
     // Files under skipped roots — if the walker descended into them the
-    // build would fail on the deliberately-malformed source.
+    // build would fail on the deliberately-malformed source. `node_modules`
+    // holds installed dependencies (a real one contains stray `.glyph`-named
+    // files only by accident), never project sources to compile.
     write_file(&src, ".git/decoy.glyph", "module decoy\nfn main(\n");
     write_file(&src, "target/decoy.glyph", "module decoy\nfn main(\n");
+    write_file(&src, "node_modules/pkg/decoy.glyph", "module decoy\nfn main(\n");
 
     let report = build_project(&src, &out).expect("build_project ok");
     assert!(
         !report.has_errors(),
-        "decoy files under .git/ and target/ should be skipped; got: {:?}",
+        "decoy files under .git/, target/, node_modules/ should be skipped; got: {:?}",
         report.diagnostics
     );
     assert_eq!(

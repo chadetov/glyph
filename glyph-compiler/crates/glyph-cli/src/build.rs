@@ -528,7 +528,11 @@ fn walk_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError
         }
         if meta.is_dir() {
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if name.starts_with('.') || name == "target" {
+            // Skip dot-dirs, build output, and dependency trees: `node_modules`
+            // holds a project's installed packages (which the tsconfig now points
+            // `tsc` at), never Glyph sources to compile, and descending a large
+            // one would waste the walk.
+            if name.starts_with('.') || name == "target" || name == "node_modules" {
                 continue;
             }
             walk_glyph_files(&path, out)?;

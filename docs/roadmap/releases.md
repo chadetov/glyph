@@ -413,10 +413,20 @@ The make-or-break question. The design decision is now made (see
   (types loaded and enforced, not `any`). A dependency-free project (the examples)
   emits the identical tsconfig as before. Node builtins (bare `fs`/`http` via the
   `"types": []` ambient path) are still the separate deferred item.
-- **First slice** (L). Import one real library (`zod` is the natural first) and use
-  its real API from `.glyph` with zero hand-written adapter, types materialized on
-  import (opt-in). *Done:* a real npm package used with no bespoke `.types` adapter
-  and no per-library glue file.
+- **First slice** (L). ✅ **Done: real zod, no adapter.** With zod installed in a
+  project, `import zod { z }` and its real API (`z.object`, `z.string`, `.parse`)
+  type-check against zod's own published types and run end to end via `glyph run`,
+  with no `.types/zod.d.ts` and no glue file. A call zod does not define is a real
+  error mapped back to the Glyph source; the parse result is fully typed
+  (`user.name` is a `string`). The single tsconfig `paths` entry from Phase 1
+  resolves the package for both `tsc` and the tsx runtime. Captured in the
+  `external-imports` guide with the reproducible steps; the hermetic integration
+  test (a structurally-real fake package) guards the mechanism in CI without a
+  network install. Not yet expressible: a value-derived `type U = z.infer<typeof
+  s>` (the Phase 3 value-derived-type work). *This slice does not yet include the
+  opt-in boundary materialization (Phase 2); it is type availability plus runtime
+  resolution.* The walker now also skips `node_modules` so it never compiles a
+  dependency's stray `.glyph`-named file.
 
 ### Interop that scales (0.1.15 onward, milestone 0.2.0)
 

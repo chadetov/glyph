@@ -34,8 +34,24 @@ Import an npm package by its package name:
 import zod { z }               // import { z } from "zod";
 ```
 
-At runtime the emitted TypeScript runs `import { z } from "zod"`, so the package
-must be installed where that code runs (see the runtime caveat below).
+If the package is installed in your project and ships its own types (or has an
+`@types/...` companion), that is all you do. No stub, no adapter. `glyph build`
+finds your project's `node_modules` and points `tsc` at it, so the package's
+real types check your code, and a wrong call is a real error. See the zod
+walkthrough below.
+
+How the resolution works, and its one boundary: the build emits TypeScript into
+an output directory that sits outside your project, so a bare `import ... from
+"zod"` cannot reach your `node_modules` by the usual upward file walk. To fix
+that, `glyph build` walks up from your source directory to the project root (the
+nearest folder holding a `.git` or a `package.json`) and, if a `node_modules`
+lives there, wires it into the generated `tsconfig.json`. The walk stops at that
+root and never climbs past it, so a stray `node_modules` in a parent directory (a
+common one in your home folder) is never used by mistake. A project with no
+`node_modules` in scope builds exactly as before.
+
+A package that has no types of its own, and no `@types/...`, still needs a
+declaration you write. That is what `.types/` below is for.
 
 ## Node builtins: bare name, not `node:`
 
@@ -70,11 +86,14 @@ src/
     leftpad.d.ts
 ```
 
-Anything matching `<src>/.types/**/*.d.ts` is **auto-discovered** — it is copied
-into the build output and included in the `tsc` run. No registration step. For an
-npm package that already ships its own types, you would instead install the
-package (or its `@types/...`) where the build resolves modules; the `.types/`
-path is the zero-dependency way to declare a module yourself.
+Anything matching `<src>/.types/**/*.d.ts` is **auto-discovered**: it is copied
+into the build output and included in the `tsc` run. No registration step.
+
+You need `.types/` in two cases: a package that ships no types and has no
+`@types/...`, or a module you want to declare yourself without installing
+anything. An installed package that carries its own types does not need it (the
+`node_modules` wiring above handles those), so reach for `.types/` only when
+there is nothing to resolve.
 
 ## Worked example
 
@@ -134,6 +153,63 @@ import * as io from "std/io";
 import { createServer } from "http";
 import { leftpad } from "leftpad";
 ```
+
+## Worked example: real zod, no stub
+
+Install zod in a project (a folder with a `package.json`, so the build finds its
+`node_modules`):
+
+```sh
+npm install zod
+```
+
+`src/main.glyph`:
+
+```glyph
+module main
+
+import zod { z }
+
+fn main(argv: Array<string>) -> number {
+  let user_schema = z.object({
+    name: z.string(),
+    age: z.number(),
+  })
+  let user = user_schema.parse({ name: "Ada", age: 36 })
+  print(user.name)
+  return 0
+}
+```
+
+Run it:
+
+```sh
+glyph run src/main.glyph
+```
+
+```
+Ada
+```
+
+There is no `.types/zod.d.ts` and no adapter file. `glyph build` type-checks
+`z.object`, `z.string`, and `.parse` against zod's own published types, and
+`glyph run` executes against the installed zod (the same tsconfig `paths` entry
+resolves the package for both `tsc` and the runtime). A call zod does not define
+is a real error, mapped back onto your Glyph source:
+
+```glyph
+let n = z.string().nonexistent_method()
+```
+
+```
+[TS2339] Error: tsc: Property 'nonexistent_method' does not exist on type 'ZodString'.
+   ╭─[main:7:3]
+```
+
+One current limit: a value-derived type like `type User = z.infer<typeof
+user_schema>` is not expressible yet (that is the value-derived-type work still
+ahead). The parse result is fully typed, so `user.name` is a `string` here
+without it; you just cannot name the derived type with `z.infer` today.
 
 ## Runtime caveat
 

@@ -52,4 +52,4 @@ Every symbol has exactly one syntactic form at its declaration site. No method o
 
 Within five years, the median line of production code will be written by an agent and reviewed by a human. The languages that win that era will be the ones designed for that workflow, not retrofitted to it. TypeScript will retrofit eventually — it always does. The window between now and then is where Glyph earns its place.
 
-The benchmark: an agent given the same task produces correct code faster in Glyph than in TypeScript, and the reviewer finishes in half the time. Every pillar, every example, every "no" exists to make that benchmark true.
+The hypothesis, stated as one we intend to measure rather than a number we have earned: an agent given the same task produces correct code more reliably in Glyph than in TypeScript, and the reviewer spends less time confirming it is correct. That is the bet every pillar, every example, and every "no" is designed to make true. We have not run the study yet, so we do not put a figure on it. When we do (same task, many trials, Glyph versus TypeScript, tracking correctness and review time), the result stands on its own, whichever way it falls.

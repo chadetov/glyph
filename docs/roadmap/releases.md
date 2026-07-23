@@ -342,7 +342,9 @@ and real projects are all seam. The road below closes that seam, decides and
 builds interop, proves it on real apps, and settles the productivity claim.
 Everything here traces to a specific finding with file evidence.
 
-The **Next** marker is on 0.1.13.
+The **Next** marker: 0.1.13 shipped four of the six boundary items. The next
+0.1.x picks up the two that need design (node builtins typecheck out of the box,
+imported-`.d.ts` validate-or-diagnose), and 0.1.14 makes the interop decision.
 
 The version numbers below mark themes and milestones, not a fixed schedule. The
 0.1.x series stays open: expect several 0.1.x releases between the named ones as
@@ -356,31 +358,37 @@ honest and pointed at 1.0 rather than wandering. Do it at each milestone and
 whenever a release makes a claim worth stress-testing. The first three passes are
 recorded in this file's history; keep calling it.
 
-### 0.1.13 — Next · Close the boundary (honesty and hygiene)
+### 0.1.13 — Shipped · Close the boundary (honesty and hygiene)
 
-The cheap, concrete must-haves. Small, and they stop the verifiability wedge from
-leaking silently, which is the trap a 1.0 is most likely to fall into (rounding
-"presence-checked at the boundary" up to "validated, no lies").
+The cheap, concrete must-haves that stop the verifiability wedge from leaking
+silently, which is the trap a 1.0 is most likely to fall into (rounding
+"presence-checked at the boundary" up to "validated, no lies"). Four of the six
+shipped; two need real design and moved to the next 0.1.x.
 
-- **`tsc` stops being silently optional** (M). `glyph run`, `build`, and `publish`
-  exit non-zero when `tsc` is missing rather than running or shipping anyway
-  (`run.rs:183`, `main.rs:251` and `:464`). *Done:* no code path advertises a type
-  check it then skips without a non-zero exit.
-- **Node builtins typecheck out of the box** (M). The emitted tsconfig ships
-  `"types": []` (`runtime.rs:113`), so `import fs`/`http` fail `tsc` unless the
-  user hand-writes a `.types/*.d.ts` stub. Wire in `@types/node` (or the bundled
-  equivalent) so a fresh `glyph init` typechecks a Node builtin with no stub.
-  *Done:* the external-imports guide's `http` example needs no hand-written stub.
-- **Imported `.d.ts` type in a `.parse` position: validate or diagnose** (M). Today
-  it is presence-checked and presented as validated. Either validate structurally,
-  or emit a diagnostic that says the boundary is presence-only, not verified.
-  *Done:* no presence check is dressed up as validation.
-- **Enforce D27** (S). An unknown `@annotation` becomes the hard error the spec
-  already promises (today the checker ignores it; see Parked below).
-- **Publish discipline** (S). A CI gate that npm `latest` equals the repo version,
-  so nobody reviews a package two versions behind (Ashfaq hit exactly this).
-- **Manifesto honesty** (S). Reword the unmeasured "reviewer finishes in half the
-  time" claim as a hypothesis until 0.3.0 measures it.
+- **`tsc` stops being silently optional** (M). ✅ **Done.** `glyph run`, `build`,
+  and `publish` now exit non-zero when `tsc` is missing on the checked path,
+  pointing at the explicit `--no-check` opt-out (`run.rs` `RunOutcome::TscMissing`,
+  `main.rs`). No code path advertises a type check it then skips silently.
+- **Enforce D27** (S). ✅ **Done.** An unknown `@annotation` is now the hard error
+  the spec always promised (`E0221`, `assign.rs` `check_annotations`); a typo like
+  `@puer` no longer compiles clean. The typechecker's doc comment that claimed
+  this was already true is now true.
+- **Publish discipline** (S). ✅ **Done.** A CI job (`scripts/check_versions.py`)
+  hard-fails when the Cargo version and the six npm package.json versions (plus
+  optionalDependency pins) disagree, and flags non-fatally when npm `latest` has
+  fallen behind the repo. Ashfaq reviewed a package two versions behind; this
+  makes that drift visible.
+- **Manifesto honesty** (S). ✅ **Done.** The unmeasured "reviewer finishes in half
+  the time" line is reworded as a hypothesis to be measured (0.3.0), with no
+  figure put on it.
+- **Node builtins typecheck out of the box** (M). **Moved to a following 0.1.x.**
+  The emitted tsconfig ships `"types": []` (`runtime.rs:113`), and the bundled
+  shim only declares `node:fs`, not the bare `fs`/`http` a user imports. Making
+  `import fs`/`http` typecheck with no stub needs a real design (bundled shim vs
+  `@types/node` vs specifier rewriting), not a one-liner, so it is not in 0.1.13.
+- **Imported `.d.ts` type in a `.parse` position: validate or diagnose** (M).
+  **Moved to a following 0.1.x.** Needs a new warning when a descriptor field is
+  presence-only because its type is opaque, which is design, not a quick fix.
 
 ### 0.1.14 — Decide interop, ship the first slice (gated on the Q43 decision)
 

@@ -290,10 +290,10 @@ generic edges). 0.1.10 closes the engineering behind them:
   record is sound but mostly latent until object-literal argument inference
   improves (today those infer to `Unknown` and stay permissive).
 
-## 0.1.11 — Next · The editor & agent integration surface
+## 0.1.11 — Shipped · The editor & agent integration surface
 
-**Status: proposed.** 0.1.10 made the language itself trustworthy; this release
-widens how editors and agents *reach* it. The language server already ships
+**Status: shipped.** 0.1.10 made the language itself trustworthy; this release
+widened how editors and agents reach it. The language server already ships
 (`glyph lsp` over stdio: diagnostics, hover, go-to-definition, completion,
 symbols, formatting); these are the two most-requested gaps on top of it.
 
@@ -325,6 +325,118 @@ symbols, formatting); these are the two most-requested gaps on top of it.
   interactive semantic queries. Requested by an early user. Follow-ups: a rename
   tool (a write operation that returns edits), and sharing the workspace-scan
   helpers with the LSP path once the index is cached.
+
+## 0.1.12 — Shipped · Docs patch
+
+Republished so the npm README documents the MCP server and the language server
+that shipped in 0.1.11 (the README only updates on publish). No code changes.
+
+## Road to 1.0
+
+**Status: the committed plan, from the third review.** The review (docs and code
+grounded) credited the toolchain as real and tasteful but found that a 1.0 is
+gated on a question the project has not decided: can a working engineer use their
+existing npm dependencies without writing a hand-written adapter per library? The
+one-line diagnosis: Glyph is safe on code it owns and leaky at the seam with npm,
+and real projects are all seam. The road below closes that seam, decides and
+builds interop, proves it on real apps, and settles the productivity claim.
+Everything here traces to a specific finding with file evidence.
+
+The **Next** marker is on 0.1.13.
+
+### 0.1.13 — Next · Close the boundary (honesty and hygiene)
+
+The cheap, concrete must-haves. Small, and they stop the verifiability wedge from
+leaking silently, which is the trap a 1.0 is most likely to fall into (rounding
+"presence-checked at the boundary" up to "validated, no lies").
+
+- **`tsc` stops being silently optional** (M). `glyph run`, `build`, and `publish`
+  exit non-zero when `tsc` is missing rather than running or shipping anyway
+  (`run.rs:183`, `main.rs:251` and `:464`). *Done:* no code path advertises a type
+  check it then skips without a non-zero exit.
+- **Node builtins typecheck out of the box** (M). The emitted tsconfig ships
+  `"types": []` (`runtime.rs:113`), so `import fs`/`http` fail `tsc` unless the
+  user hand-writes a `.types/*.d.ts` stub. Wire in `@types/node` (or the bundled
+  equivalent) so a fresh `glyph init` typechecks a Node builtin with no stub.
+  *Done:* the external-imports guide's `http` example needs no hand-written stub.
+- **Imported `.d.ts` type in a `.parse` position: validate or diagnose** (M). Today
+  it is presence-checked and presented as validated. Either validate structurally,
+  or emit a diagnostic that says the boundary is presence-only, not verified.
+  *Done:* no presence check is dressed up as validation.
+- **Enforce D27** (S). An unknown `@annotation` becomes the hard error the spec
+  already promises (today the checker ignores it; see Parked below).
+- **Publish discipline** (S). A CI gate that npm `latest` equals the repo version,
+  so nobody reviews a package two versions behind (Ashfaq hit exactly this).
+- **Manifesto honesty** (S). Reword the unmeasured "reviewer finishes in half the
+  time" claim as a hypothesis until 0.3.0 measures it.
+
+### 0.1.14 — Decide interop, ship the first slice (gated on the Q43 decision)
+
+The make-or-break question. It needs a design decision first (see
+`docs/plan/interop-q43.md` for the costed options), then a first concrete win.
+
+- **Resolve Q43** (the decision). Pick the interop mechanism.
+- **First slice** (L). Import one real library (`zod` is the natural first) and use
+  its real API from `.glyph` with zero hand-written adapter, types materialized on
+  import. *Done:* a real npm package used with no bespoke `.types` adapter and no
+  per-library glue file.
+
+### 0.2.0 — Interop that scales
+
+Broaden the mechanism to the cases that broke every hands-on tester (Serhiy, Hayk,
+Adi, Ashfaq).
+
+- **The grammar-hostile idioms** (L). Prop spread (`{...register()}`), value-derived
+  types (`z.infer<typeof s>`), scoped/hyphenated package names. Whatever the Q43
+  decision, these need either a language primitive or a scoped, visible escape
+  hatch, not a hand-written adapter file.
+- **Real dependencies used directly** (L). Import `react-hook-form` and a Postgres
+  client and use their real APIs with no adapter.
+- **Stdlib breadth or a documented "use npm for X"** (M) for crypto, database, and
+  real servers, so the 744-line hand-written stdlib is not the only answer.
+
+*Done:* a real app's dependency list installs and is used with zero per-library
+adapters.
+
+### 0.2.x — Prove it (the evidence gate)
+
+One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project
+on.
+
+- **A second real app with persisted data on a real DB client** (L), no wrapper.
+- **If Glyph commits to React** (positioning decision, Q44): decide Context and
+  effectful custom hooks, then build a persisted React app.
+
+*Done:* two real apps built and kept on the shipped interop path, at least one
+backed by a database.
+
+### 0.3.0 — Settle the productivity claim
+
+- **One honest agent study** (M): the same task, N trials, Glyph vs TypeScript,
+  tracking correctness, tries-to-green, and review time. Either it backs the
+  manifesto's claim, or the claim stays a hypothesis and the copy says so.
+
+### 1.0 gate
+
+All of these true: interop without per-library adapters, proven on two or more
+real apps (one with a DB); every boundary verifiability hole closed or loudly
+labeled; node builtins typecheck out of the box; publish discipline CI-enforced;
+the productivity claim measured or downgraded.
+
+### Two decisions this road waits on
+
+1. **Interop approach (Q43).** Options and costs are in `docs/plan/interop-q43.md`.
+   This gates 0.1.14 onward.
+2. **Is Glyph a serious React language?** If yes, Q44 (Context + effectful hooks)
+   is a must-have and the React dogfood is required. If no, drop React from the
+   marketing and the roadmap, and the Q44 problem goes away.
+
+### Explicitly out of 1.0
+
+Self-hosting; the annotation wishlist (refinement types Q15, contracts Q14,
+effects Q17, typestate Q28, units Q36, taint Q33, budgets Q34, and the rest of
+Q13 to Q40); non-TS FFI (Q41); the full dual human/agent view (Q32). Keep them
+parked. They are the scope-creep trap `overview.md` already names.
 
 ## Verifiability hardening — Linus 2nd-pass follow-ups
 

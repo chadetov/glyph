@@ -243,6 +243,17 @@ refreshes it when you bump the dependency. This is the opt-in step: you run it f
 the types you actually cross the boundary with, and the result is committed and
 greppable, not generated invisibly on every build.
 
+`glyph gen zod` takes a package name too, for a package that *exports zod
+schemas* (a shared-schema package). It resolves the package's runtime entry,
+executes it, and materializes each exported schema:
+
+```sh
+glyph gen zod @acme/schemas --out src/gen
+```
+
+(`glyph gen openapi` stays file-based: an OpenAPI document is a file in your repo,
+not something `node_modules` points at.)
+
 ## Runtime caveat
 
 A `.types/*.d.ts` file gives the **type-checker** types; it is not the

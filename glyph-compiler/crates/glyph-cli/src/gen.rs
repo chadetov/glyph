@@ -278,6 +278,19 @@ fn package_module_name(pkg: &str) -> &str {
 /// missing package, a missing `node_modules`, or a package that ships no types
 /// is diagnosable rather than a bare "no such file".
 fn resolve_package_dts(pkg: &str) -> Result<PathBuf, GenError> {
+    resolve_package_entry(pkg, PackageEntry::Types, "a path to a `.d.ts` file")
+}
+
+/// Resolve an installed package's runtime module entry (for `gen zod`, which
+/// executes the module to read its exported schema values).
+fn resolve_package_zod_module(pkg: &str) -> Result<PathBuf, GenError> {
+    resolve_package_entry(pkg, PackageEntry::Runtime, "a path to a `.ts` schema file")
+}
+
+/// Find the project's `node_modules` from the current directory and resolve the
+/// requested entry of `pkg` within it. `alt` names the file-path alternative for
+/// the "no node_modules" hint, so each caller points at the right form.
+fn resolve_package_entry(pkg: &str, kind: PackageEntry, alt: &str) -> Result<PathBuf, GenError> {
     let cwd = std::env::current_dir().map_err(|e| GenError::PackageNotResolved {
         pkg: pkg.to_string(),
         reason: format!("cannot read the current directory: {e}"),
@@ -285,17 +298,99 @@ fn resolve_package_dts(pkg: &str) -> Result<PathBuf, GenError> {
     let node_modules =
         crate::runtime::find_project_node_modules(&cwd).ok_or_else(|| GenError::PackageNotResolved {
             pkg: pkg.to_string(),
-            reason: "no `node_modules` found in this project. Install the package first (`npm install`), \
-                     or pass a path to a `.d.ts` file instead of a package name."
-                .to_string(),
+            reason: format!(
+                "no `node_modules` found in this project. Install the package first \
+                 (`npm install`), or pass {alt} instead of a package name."
+            ),
         })?;
-    resolve_package_dts_in(pkg, &node_modules)
+    resolve_package_entry_in(pkg, &node_modules, kind)
 }
 
-/// Resolve a package's declaration entry within a specific `node_modules`. Split
-/// from `resolve_package_dts` so the manifest reading is testable without
+/// What entry of an installed package to resolve: its TypeScript declarations
+/// (for `gen dts`) or its runtime module (for `gen zod`, which executes the
+/// module to read exported schema values).
+#[derive(Clone, Copy)]
+enum PackageEntry {
+    /// `types`/`typings`, or the `types` condition of `exports["."]`; falls back
+    /// to a top-level `index.d.ts`.
+    Types,
+    /// `main`/`module`, or the `import`/`default` condition of `exports["."]`;
+    /// falls back to a top-level `index.js`.
+    Runtime,
+}
+
+impl PackageEntry {
+    fn fallback(self) -> &'static str {
+        match self {
+            PackageEntry::Types => "index.d.ts",
+            PackageEntry::Runtime => "index.js",
+        }
+    }
+
+    /// The relative entry path this package.json declares for this kind, if any.
+    fn entry_of(self, manifest: &Value) -> Option<String> {
+        match self {
+            PackageEntry::Types => package_field_entry(manifest, &["types", "typings"], &["types"]),
+            PackageEntry::Runtime => {
+                package_field_entry(manifest, &["module", "main"], &["import", "default"])
+            }
+        }
+    }
+
+    /// A specific, actionable message for a package that declares no entry of
+    /// this kind and has no conventional fallback file.
+    fn no_entry_reason(self) -> &'static str {
+        match self {
+            PackageEntry::Types => {
+                "the package declares no types (`types`/`typings` in package.json) and has no \
+                 top-level `index.d.ts`. It may ship no TypeScript types, or need its \
+                 `@types/...` companion installed and passed instead."
+            }
+            PackageEntry::Runtime => {
+                "the package declares no runtime entry (`main`/`module` in package.json) and has \
+                 no top-level `index.js`, so there is no module to execute for its zod schemas."
+            }
+        }
+    }
+}
+
+/// Read a relative entry path from a package.json: first the top-level string
+/// fields (`top_keys`), then the given conditions of the `"."` subpath in
+/// `exports`. Leading `./` is stripped so the result joins onto the package dir.
+fn package_field_entry(manifest: &Value, top_keys: &[&str], export_conds: &[&str]) -> Option<String> {
+    for key in top_keys {
+        if let Some(s) = manifest.get(key).and_then(Value::as_str) {
+            return Some(s.trim_start_matches("./").to_string());
+        }
+    }
+    let dot = manifest.get("exports")?.get(".")?;
+    // `exports["."]` may be a bare string (its own default) or a conditions map.
+    if let Some(s) = dot.as_str() {
+        return Some(s.trim_start_matches("./").to_string());
+    }
+    for cond in export_conds {
+        if let Some(s) = dot.get(cond).and_then(Value::as_str) {
+            return Some(s.trim_start_matches("./").to_string());
+        }
+    }
+    None
+}
+
+/// Read a package.json's declaration-file entry. Kept as a named helper for the
+/// unit tests that pin the common package.json shapes.
+#[cfg(test)]
+fn package_types_entry(manifest: &Value) -> Option<String> {
+    PackageEntry::Types.entry_of(manifest)
+}
+
+/// Resolve one entry of an installed package within a specific `node_modules`.
+/// Split from the cwd-based wrappers so the manifest reading is testable without
 /// touching the process working directory.
-fn resolve_package_dts_in(pkg: &str, node_modules: &Path) -> Result<PathBuf, GenError> {
+fn resolve_package_entry_in(
+    pkg: &str,
+    node_modules: &Path,
+    kind: PackageEntry,
+) -> Result<PathBuf, GenError> {
     // `join` on a scoped name (`@scope/pkg`) descends the two segments correctly.
     let pkg_dir = node_modules.join(pkg);
     let manifest_path = pkg_dir.join("package.json");
@@ -313,67 +408,74 @@ fn resolve_package_dts_in(pkg: &str, node_modules: &Path) -> Result<PathBuf, Gen
             reason: format!("{} is not valid JSON: {e}", manifest_path.display()),
         })?;
 
-    let types_rel = package_types_entry(&manifest).or_else(|| {
-        pkg_dir
-            .join("index.d.ts")
-            .is_file()
-            .then(|| "index.d.ts".to_string())
+    let rel = kind.entry_of(&manifest).or_else(|| {
+        let fallback = kind.fallback();
+        pkg_dir.join(fallback).is_file().then(|| fallback.to_string())
     });
-    let Some(types_rel) = types_rel else {
+    let Some(rel) = rel else {
         return Err(GenError::PackageNotResolved {
             pkg: pkg.to_string(),
-            reason: "the package declares no types (`types`/`typings` in package.json) and has no \
-                     top-level `index.d.ts`. It may ship no TypeScript types, or need its \
-                     `@types/...` companion installed and passed instead."
-                .to_string(),
+            reason: kind.no_entry_reason().to_string(),
         });
     };
 
-    let dts = pkg_dir.join(&types_rel);
-    if !dts.is_file() {
+    let entry = pkg_dir.join(&rel);
+    if !entry.is_file() {
         return Err(GenError::PackageNotResolved {
             pkg: pkg.to_string(),
             reason: format!(
-                "package.json points its types at `{types_rel}`, but {} does not exist.",
-                dts.display()
+                "package.json points its entry at `{rel}`, but {} does not exist.",
+                entry.display()
             ),
         });
     }
-    Ok(dts)
+    Ok(entry)
 }
 
-/// Read a package.json's declaration-file entry: `types` or `typings` at the top
-/// level, or the `types` condition of the `"."` subpath in `exports`.
-fn package_types_entry(manifest: &Value) -> Option<String> {
-    for key in ["types", "typings"] {
-        if let Some(s) = manifest.get(key).and_then(Value::as_str) {
-            return Some(s.trim_start_matches("./").to_string());
-        }
-    }
-    let dot = manifest.get("exports")?.get(".")?;
-    // `exports["."]` may be a string (no types condition) or a conditions map.
-    let types = dot.get("types").and_then(Value::as_str)?;
-    Some(types.trim_start_matches("./").to_string())
+/// Test-facing alias kept stable for the dts resolution unit tests.
+#[cfg(test)]
+fn resolve_package_dts_in(pkg: &str, node_modules: &Path) -> Result<PathBuf, GenError> {
+    resolve_package_entry_in(pkg, node_modules, PackageEntry::Types)
 }
 
 /// The `tsx` helper that executes a module of zod schemas and prints a JSON
 /// Schema `definitions` map. Bundled into the binary.
 const ZOD_TO_SCHEMA: &str = include_str!("../../../runtime/tools/zod-to-schema.mjs");
 
-/// Generate Glyph types from a TypeScript module of zod schemas.
+/// Generate Glyph types from a module of zod schemas, given either a TypeScript
+/// **file** or an installed **package name** that exports zod schemas.
 ///
-/// Runs a bundled `tsx` helper that imports the module (a zod schema is a
-/// runtime value, so the module is executed), converts each exported schema to
-/// JSON Schema, and feeds the same mapper as `glyph gen openapi`/`dts`. `tsx`
-/// must be on PATH and `zod` resolvable from the file's project.
-pub fn zod(file: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
-    if !file.exists() {
-        return Err(GenError::Read {
-            path: file.to_path_buf(),
-            source: std::io::Error::new(std::io::ErrorKind::NotFound, "no such file"),
-        });
+/// A path that exists as a file is executed directly; anything else is resolved
+/// as an installed package (its runtime entry from `node_modules`). Runs a
+/// bundled `tsx` helper that imports the module (a zod schema is a runtime value,
+/// so the module is executed), converts each exported schema to JSON Schema, and
+/// feeds the same mapper as `gen openapi`/`dts`. `tsx` must be on PATH and `zod`
+/// resolvable from the module's project.
+pub fn zod(target: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
+    if target.is_file() {
+        let module_name = sanitize_module(stem_of(target));
+        let source_label = target.display().to_string();
+        let regen = format!("glyph gen zod {} --out {}", target.display(), out_dir.display());
+        return zod_from_module(target, module_name, source_label, regen, out_dir);
     }
 
+    let pkg = target.to_string_lossy().into_owned();
+    let resolved = resolve_package_zod_module(&pkg)?;
+    let module_name = sanitize_module(package_module_name(&pkg));
+    let source_label = format!("{pkg} ({})", resolved.display());
+    let regen = format!("glyph gen zod {pkg} --out {}", out_dir.display());
+    zod_from_module(&resolved, module_name, source_label, regen, out_dir)
+}
+
+/// The shared core: run the zod-to-JSON-Schema helper on a resolved module and
+/// render the committed Glyph types.
+fn zod_from_module(
+    file: &Path,
+    module_name: String,
+    source_label: String,
+    regen: String,
+    out_dir: &Path,
+) -> Result<GenReport, GenError> {
     let doc = match run_helper(ZOD_TO_SCHEMA, "glyph-zod-to-schema", "tsx", file) {
         HelperOutcome::Ok(v) => v,
         HelperOutcome::RunnerMissing => return Err(GenError::TsxMissing),
@@ -392,9 +494,6 @@ pub fn zod(file: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
         path: file.to_path_buf(),
     })?;
 
-    let module_name = sanitize_module(stem_of(file));
-    let source_label = file.display().to_string();
-    let regen = format!("glyph gen zod {} --out {}", file.display(), out_dir.display());
     render_and_write(
         Generator::default(),
         schemas,
@@ -1453,6 +1552,65 @@ mod tests {
             GenError::PackageNotResolved { pkg, reason } => {
                 assert_eq!(pkg, "ghost");
                 assert!(reason.contains("not installed"), "reason: {reason}");
+            }
+            other => panic!("expected PackageNotResolved, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn package_runtime_entry_reads_main_module_and_exports() {
+        let main = serde_json::json!({ "main": "./dist/index.js" });
+        assert_eq!(
+            PackageEntry::Runtime.entry_of(&main).as_deref(),
+            Some("dist/index.js")
+        );
+
+        // `module` (ESM) is preferred over `main` when both are present.
+        let both = serde_json::json!({ "main": "cjs/index.js", "module": "esm/index.js" });
+        assert_eq!(
+            PackageEntry::Runtime.entry_of(&both).as_deref(),
+            Some("esm/index.js")
+        );
+
+        let exports = serde_json::json!({
+            "exports": { ".": { "import": "./index.mjs", "require": "./index.cjs" } }
+        });
+        assert_eq!(
+            PackageEntry::Runtime.entry_of(&exports).as_deref(),
+            Some("index.mjs")
+        );
+
+        // A bare-string `exports["."]` is its own entry.
+        let bare = serde_json::json!({ "exports": { ".": "./main.js" } });
+        assert_eq!(PackageEntry::Runtime.entry_of(&bare).as_deref(), Some("main.js"));
+    }
+
+    #[test]
+    fn resolve_package_runtime_finds_the_module_entry() {
+        let nm = tmp_nm("runtime");
+        let dir = nm.join("schemas");
+        std::fs::create_dir_all(dir.join("dist")).unwrap();
+        std::fs::write(
+            dir.join("package.json"),
+            r#"{ "name": "schemas", "version": "1.0.0", "main": "dist/index.js" }"#,
+        )
+        .unwrap();
+        std::fs::write(dir.join("dist/index.js"), "export const s = 1;\n").unwrap();
+        let resolved =
+            resolve_package_entry_in("schemas", &nm, PackageEntry::Runtime).expect("resolves");
+        assert!(resolved.ends_with("schemas/dist/index.js"), "got {resolved:?}");
+    }
+
+    #[test]
+    fn resolve_package_runtime_errors_with_a_zod_specific_message() {
+        let nm = tmp_nm("noruntime");
+        let dir = nm.join("empty");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("package.json"), r#"{ "name": "empty", "version": "1.0.0" }"#).unwrap();
+        let err = resolve_package_entry_in("empty", &nm, PackageEntry::Runtime).unwrap_err();
+        match err {
+            GenError::PackageNotResolved { reason, .. } => {
+                assert!(reason.contains("runtime entry"), "reason: {reason}");
             }
             other => panic!("expected PackageNotResolved, got {other:?}"),
         }

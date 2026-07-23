@@ -440,9 +440,18 @@ The make-or-break question. The design decision is now made (see
   regen re-runs it) with hermetic unit tests over the resolution and helpful
   errors for a missing package or one that ships no types. This keeps the
   verifiability wedge at the npm seam without new grammar or non-committed build
-  magic. Remaining Phase 2 scope: extending `gen zod`/`gen openapi` to the same
-  package-name resolution, and value-derived materialization (`z.infer`), which is
-  the Phase 3 primitive.
+  magic.
+- **Phase 2 — package-name parity for `gen zod`** (S). ✅ **Done.** `glyph gen zod
+  <package>` now resolves an installed package's *runtime* entry (`main`/`module`,
+  or the `import`/`default` condition of `exports["."]`, or a top-level
+  `index.js`) and executes it for its exported zod schemas, so a shared-schema
+  package (`@acme/schemas`) materializes with no file path. The resolver is shared
+  with `gen dts` via a `PackageEntry` kind (types vs runtime entry). Proven with a
+  scoped package exporting `z.object` schemas. `gen openapi` deliberately stays
+  file-based: an OpenAPI document is a committed file in your repo, and
+  package.json has no convention pointing at one, so there is nothing to resolve
+  from `node_modules`. Still ahead and folded into Phase 3: value-derived
+  materialization (`z.infer<typeof s>`).
 
 ### Interop that scales (0.1.15 onward, milestone 0.2.0)
 

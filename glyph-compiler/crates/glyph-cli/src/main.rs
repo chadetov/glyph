@@ -14,7 +14,7 @@
 //! - `glyph gen dts <file.d.ts | package> --out <dir>`  generate committed Glyph
 //!   types from a TypeScript declaration file or an installed package's own types
 //!   resolved from node_modules (needs node + the typescript package)
-//! - `glyph gen zod <file.ts> --out <dir>`  generate committed Glyph types from a
+//! - `glyph gen zod <file.ts | package> --out <dir>`  generate committed Glyph types from a
 //!   module of zod schemas (needs tsx + zod)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
 //! - `glyph --explain E0042`         long-form error documentation
@@ -156,11 +156,12 @@ enum GenTarget {
         #[arg(long, value_name = "DIR")]
         out: std::path::PathBuf,
     },
-    /// Generate Glyph types from a TypeScript module of zod schemas.
+    /// Generate Glyph types from a TypeScript module of zod schemas, or from an
+    /// installed package that exports zod schemas (resolved from node_modules).
     /// Needs `tsx` and `zod` (zod 4, or zod 3 with `zod-to-json-schema`).
     Zod {
-        /// The TypeScript file exporting zod schemas.
-        #[arg(value_name = "FILE")]
+        /// A `.ts` file exporting zod schemas, or an installed package name.
+        #[arg(value_name = "FILE_OR_PACKAGE")]
         file: std::path::PathBuf,
         /// Directory to write the generated `.glyph` file into.
         #[arg(long, value_name = "DIR")]

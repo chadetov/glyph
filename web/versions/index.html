@@ -23,6 +23,7 @@
         <a href="/hardening/">Hardening</a>
         <a href="/benchmarks/">Benchmarks</a>
         <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
         <a href="https://github.com/chadetov/glyph">GitHub</a>
       </div>
     </nav>
@@ -48,8 +49,23 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.10</span>
+            <span class="rel-ver">0.1.11</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Wired into your agent</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <a href="/mcp/"><code>glyph mcp</code></a>: a Model Context Protocol server that exposes Glyph's own analysis to a coding agent as tools &mdash; diagnostics, the type at a cursor, where a name is defined, every reference to a symbol across the project, and symbol search. The same analysis the editor uses, so it can't drift from the compiler.</li>
+              <li><span class="tag added">Added</span> Workspace-wide <strong>find-references and rename</strong> in the language server. A module-level rename edits the declaration, every reference, <em>and</em> each importing module's <code>import</code> binding across the whole project &mdash; complete and safe, with the new name validated first.</li>
+              <li><span class="tag changed">Changed</span> <code>infer_shape</code> is now <code>infer_output</code> and generalized: it derives a validator combinator's output type by matching any parser-shaped field <em>structurally</em>, so your own <code>Codec&lt;T&gt;</code> works, not only a type literally named <code>Schema</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.10</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

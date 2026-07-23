@@ -1,0 +1,8 @@
+module neg
+
+// D27: an unrecognized annotation is a hard error, so a typo cannot masquerade
+// as a working annotation. `@puer` is not `@pure`.
+@puer
+fn f() -> number {
+  return 1
+}

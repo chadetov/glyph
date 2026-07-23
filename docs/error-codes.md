@@ -70,6 +70,7 @@ led by `_` (the conventional "intentionally unused" marker).
 | `E0217` | Discarded `Result` &mdash; **warning**, not an error (its `Err` is silently ignored) |
 | `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest) |
 | `E0219` | `@redact` names a field the type does not have (D24) |
+| `E0221` | Unknown `@annotation` (D27); the recognized set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
 
 ### Emitter — `E03xx`
 

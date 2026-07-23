@@ -168,6 +168,7 @@ pub fn assign_types_with_resolver(
             local_tys: HashMap::new(),
         };
         for decl in &module.items {
+            assigner.check_annotations(decl);
             assigner.walk_decl(decl);
         }
     }
@@ -217,8 +218,33 @@ struct Assigner<'a> {
     local_tys: HashMap<u32, Ty>,
 }
 
+/// The `@<name>` annotations the compiler recognizes (D27). Anything else is a
+/// hard error (`UnknownAnnotation`, E0221), so a typo cannot masquerade as a
+/// working annotation. Names are stored without the leading `@`.
+const RECOGNIZED_ANNOTATIONS: &[&str] = &["example", "doc", "redact", "open", "pure", "public"];
+
 impl Assigner<'_> {
     // ----- decls -----
+
+    /// D27: reject any annotation the compiler does not recognize. Runs for every
+    /// top-level declaration before its own checks.
+    fn check_annotations(&mut self, decl: &Decl) {
+        let annotations = match decl {
+            Decl::Fn(f) => &f.annotations,
+            Decl::Type(t) => &t.annotations,
+            Decl::Const(c) => &c.annotations,
+            Decl::Component(c) => &c.annotations,
+            Decl::Import(_) => return,
+        };
+        for a in annotations {
+            if !RECOGNIZED_ANNOTATIONS.contains(&a.name.as_ref()) {
+                self.errors.push(TypeError::UnknownAnnotation {
+                    name: a.name.to_string(),
+                    span: a.span,
+                });
+            }
+        }
+    }
 
     fn walk_decl(&mut self, decl: &Decl) {
         match decl {

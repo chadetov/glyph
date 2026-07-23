@@ -275,6 +275,13 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// An `@<name>` annotation the compiler does not recognize (D27). Unknown
+    /// annotations are a hard error, not a silent no-op: a typo like `@puer`
+    /// would otherwise carry no meaning while looking like it did. The recognized
+    /// v1 set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public`.
+    #[error("unknown annotation `@{name}`")]
+    UnknownAnnotation { name: String, span: Span },
+
     /// A `component` declared with more than one parameter. A component lowers to
     /// a React function component, which is called with a single props object, so
     /// multiple positional parameters would silently bind the first to the whole
@@ -347,6 +354,7 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
             TypeError::NonExhaustiveValueMatch { span, .. } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
+            TypeError::UnknownAnnotation { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
@@ -374,6 +382,7 @@ impl TypeError {
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
             TypeError::NonExhaustiveValueMatch { .. } => "E0218",
             TypeError::RedactUnknownField { .. } => "E0219",
+            TypeError::UnknownAnnotation { .. } => "E0221",
             TypeError::UnknownField { .. } => "E0210",
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
             TypeError::MutateConst { .. } => "E0212",
@@ -423,6 +432,9 @@ impl TypeError {
             }
             TypeError::RedactUnknownField { .. } => {
                 "Check the field name for a typo. `@redact` lists fields of the record type it decorates, and only record types have redactable fields."
+            }
+            TypeError::UnknownAnnotation { .. } => {
+                "Check the annotation name for a typo. The recognized annotations are `@example`, `@doc`, `@redact`, `@open`, `@pure`, and `@public`."
             }
             TypeError::UnknownField { .. } => {
                 "Check the field name for a typo, or add the field to the type."

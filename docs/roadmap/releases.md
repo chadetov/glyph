@@ -344,6 +344,18 @@ Everything here traces to a specific finding with file evidence.
 
 The **Next** marker is on 0.1.13.
 
+The version numbers below mark themes and milestones, not a fixed schedule. The
+0.1.x series stays open: expect several 0.1.x releases between the named ones as
+the work lands incrementally. A minor bump (0.2.0, 0.3.0) marks a milestone
+actually reached, not a date. The interop build in particular will span multiple
+0.1.x releases before 0.2.0 declares "interop that scales" real.
+
+We also run the "Linus" review pass periodically, not only at the end: a
+read-only, adversarial third-party read that checks whether the direction is
+honest and pointed at 1.0 rather than wandering. Do it at each milestone and
+whenever a release makes a claim worth stress-testing. The first three passes are
+recorded in this file's history; keep calling it.
+
 ### 0.1.13 — Next · Close the boundary (honesty and hygiene)
 
 The cheap, concrete must-haves. Small, and they stop the verifiability wedge from
@@ -381,10 +393,11 @@ The make-or-break question. It needs a design decision first (see
   import. *Done:* a real npm package used with no bespoke `.types` adapter and no
   per-library glue file.
 
-### 0.2.0 — Interop that scales
+### Interop that scales (0.1.15 onward, milestone 0.2.0)
 
-Broaden the mechanism to the cases that broke every hands-on tester (Serhiy, Hayk,
-Adi, Ashfaq).
+The build that broadens the mechanism to the cases that broke every hands-on
+tester (Serhiy, Hayk, Adi, Ashfaq). This spans several 0.1.x releases; 0.2.0 is
+the version that declares it real, not the version it all lands in.
 
 - **The grammar-hostile idioms** (L). Prop spread (`{...register()}`), value-derived
   types (`z.infer<typeof s>`), scoped/hyphenated package names. Whatever the Q43
@@ -425,7 +438,7 @@ on.
 *Done:* real apps built and kept on the shipped interop path, at least one backed
 by a database and one a real React app.
 
-### 0.3.0 — Settle the productivity claim
+### Settle the productivity claim (milestone 0.3.0)
 
 - **One honest agent study** (M): the same task, N trials, Glyph vs TypeScript,
   tracking correctness, tries-to-green, and review time. Either it backs the

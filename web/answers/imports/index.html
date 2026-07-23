@@ -133,12 +133,15 @@ print(user.name)</pre>
           <a href="/answers/typed-apis/">do I have to hand-write a validator for every API?</a>
         </p>
         <p>
-          Where it still bites: a value-derived type (<code>type U = z.infer&lt;typeof s&gt;</code>)
-          is not expressible inline yet, so a library leaning on that needs a thin TS shim for
-          that part, or you materialize the schema with <code>glyph gen zod</code>. (JSX prop
-          spread, <code>&lt;input {...register()} /&gt;</code>, already works.) That last primitive
-          is the active interop work, and a scoped escape hatch is planned so no library ever
-          forces a whole adapter file. You do not need any of it to use the npm ecosystem now.
+          For the idioms Glyph's grammar does not spell, most often a value-derived type
+          (<code>z.infer&lt;typeof s&gt;</code>), there is a scoped escape hatch:
+          <code>extern_ts("...")</code> emits raw TypeScript in type position, and
+          <code>tsc</code> still checks it and every use of it, so it is not an unchecked hole.
+          For schemas you own, prefer materializing them with <code>glyph gen zod</code> (real
+          Glyph types with descriptors); reach for <code>extern_ts</code> when the type genuinely
+          lives in TypeScript. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>)
+          already works as a first-class form. So no library forces a hand-written adapter file
+          today; the remaining polish is a first-class inline primitive for value-derived types.
         </p>
       </div>
 
@@ -150,7 +153,7 @@ print(user.name)</pre>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Value-derived types (<code>z.infer</code>) as an inline primitive (JSX prop spread already ships), plus opt-in validation of the data types you cross the boundary with, so the wedge reaches the npm seam. A scoped escape hatch covers the long tail.</p>
+          <p>A first-class inline primitive for value-derived types (<code>z.infer</code>), which the <code>extern_ts</code> escape hatch already covers today, plus opt-in validation of the data types you cross the boundary with, so the wedge reaches the npm seam.</p>
         </div>
       </div>
 

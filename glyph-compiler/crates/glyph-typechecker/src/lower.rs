@@ -109,6 +109,11 @@ impl<'a> Lowerer<'a> {
                     })
                     .collect(),
             },
+            // The escape hatch is opaque to Glyph's own checker (like an
+            // imported `.d.ts` type): `tsc` type-checks its uses against the
+            // real emitted TypeScript, but Glyph neither reduces it nor gives it
+            // a runtime descriptor.
+            TypeExpr::Extern { .. } => Ty::Unknown,
         }
     }
 

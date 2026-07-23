@@ -492,10 +492,21 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
     typechecked like any expression. Proven under `tsc --strict` against
     react-hook-form-shaped types, so the canonical form idiom works end to end.
     Parser, emit, and formatter tests cover it.
-  - **Value-derived types** (`z.infer<typeof s>`) — still open, the next Phase 3
-    primitive. The manifesto-native alternative (materialize the schema with
-    `glyph gen zod`/`gen dts`) already exists for schemas you own; this covers the
-    inline and library-schema cases.
+  - **Interop escape hatch (type-level)** (M). ✅ **Done (D29).** `extern_ts("<raw
+    ts>")` in type position emits its string verbatim as the TypeScript type, so
+    an idiom Glyph's grammar does not spell is still nameable, most importantly a
+    value-derived `type User = extern_ts("z.infer<typeof user_schema>")`. It is
+    contained: `tsc` checks the raw type and every use of it (a bogus member is a
+    real error mapped to Glyph source), and an `extern_ts` type is opaque to
+    Glyph's own checker (no descriptor), exactly like an imported `.d.ts` type.
+    Recognized only in the `extern_ts("...")` shape, so it never shadows a user
+    name, and every escape is greppable. Proven end to end with real zod
+    (`z.infer` typechecks and runs) plus parser/emit/formatter tests. This is the
+    scoped escape hatch the interop plan called for; no library ever forces a
+    hand-written adapter file. Remaining Phase 3: an **expression-level**
+    `extern_ts` for the rare grammar-hostile runtime call, and (optionally) a
+    **native** value-derived-type primitive if the string escape proves too
+    awkward in practice.
 
 ### 0.2.x — Prove it (the evidence gate)
 

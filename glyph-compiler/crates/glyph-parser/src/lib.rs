@@ -493,6 +493,22 @@ type FeedError =
     }
 
     #[test]
+    fn type_decl_extern_ts_escape_hatch() {
+        let m = parse_or_panic(
+            "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n",
+        );
+        match &m.items[0] {
+            glyph_ast::Decl::Type(t) => match &t.body {
+                glyph_ast::TypeExpr::Extern { raw, .. } => {
+                    assert_eq!(raw, "z.infer<typeof user_schema>");
+                }
+                other => panic!("expected Extern, got {other:?}"),
+            },
+            other => panic!("expected Type decl, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn type_decl_record_with_optional_field() {
         let m = parse_or_panic("module x\ntype Props = { name: string, alias?: string }\n");
         match &m.items[0] {

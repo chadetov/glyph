@@ -92,6 +92,16 @@ fn parse_atom_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
 
 fn parse_path_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     let start = p.peek_span();
+
+    // `extern_ts("<raw ts type>")` — the type-level escape hatch. Recognized only
+    // in this exact `extern_ts(` shape, so it never collides with a user type
+    // named `extern_ts` used any other way.
+    if matches!(p.peek(), Token::Identifier(n) if n.as_ref() == "extern_ts")
+        && matches!(p.peek_at(1), Some(Token::LParen))
+    {
+        return parse_extern_ts_type(p, start.start);
+    }
+
     let mut segments = Vec::new();
     let mut end = start.end;
 
@@ -122,6 +132,31 @@ fn parse_path_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
         return parse_generic_args(p, base, start.start);
     }
     Ok(base)
+}
+
+/// Parse `extern_ts("<raw ts>")` in type position. The argument must be a single
+/// plain string literal; its contents become the raw TypeScript type.
+fn parse_extern_ts_type(p: &mut Cursor, start: u32) -> Result<TypeExpr, ParseError> {
+    p.advance(); // `extern_ts`
+    p.expect(&Token::LParen, "`(` after `extern_ts`")?;
+    let raw = match p.peek().clone() {
+        Token::String(s) => {
+            p.advance();
+            glyph_lexer::resolve_escaped_dollars(&s).into_owned()
+        }
+        other => {
+            return Err(ParseError::Expected {
+                expected: "a string literal of raw TypeScript inside `extern_ts(\"...\")`",
+                found: format!("{other:?}"),
+                span: p.peek_span(),
+            })
+        }
+    };
+    let close = p.expect(&Token::RParen, "`)` to close `extern_ts(...)`")?;
+    Ok(TypeExpr::Extern {
+        raw,
+        span: Span::new(start, close.end),
+    })
 }
 
 fn parse_generic_args(

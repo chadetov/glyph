@@ -879,6 +879,11 @@ impl Printer {
                     self.union_variant(v);
                 }
             }
+            TypeExpr::Extern { raw, .. } => {
+                self.push("extern_ts(\"");
+                self.push(&escape_string(raw));
+                self.push("\")");
+            }
         }
     }
 

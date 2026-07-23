@@ -1195,6 +1195,8 @@ fn collect_type_expr_spans(te: &TypeExpr, out: &mut HashSet<(u32, u32)>) {
                 }
             }
         }
+        // Raw TypeScript carries no Glyph name spans to collect.
+        TypeExpr::Extern { .. } => {}
     }
 }
 

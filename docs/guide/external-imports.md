@@ -254,6 +254,38 @@ glyph gen zod @acme/schemas --out src/gen
 (`glyph gen openapi` stays file-based: an OpenAPI document is a file in your repo,
 not something `node_modules` points at.)
 
+## The escape hatch: `extern_ts` for types Glyph can't spell
+
+Some TypeScript idioms have no Glyph form, most often a value-derived type like
+`z.infer<typeof schema>`. For those, `extern_ts("...")` in type position emits its
+string verbatim as the TypeScript type:
+
+```glyph
+import zod { z }
+
+const user_schema = z.object({ name: z.string(), age: z.number() })
+
+type User = extern_ts("z.infer<typeof user_schema>")
+
+fn greet(u: User) -> string {
+  return u.name
+}
+```
+
+`type User` emits `export type User = z.infer<typeof user_schema>`, and `tsc`
+checks it and every use of it: `u.name` is a `string`, and a bogus member inside
+the string is a real error mapped back to your `.glyph`. What `extern_ts` opts out
+of is only Glyph's own descriptor machinery, so an `extern_ts` type is opaque to
+Glyph (no `.parse`), exactly like an imported `.d.ts` type. It is recognized only
+in the `extern_ts("...")` shape, so it never shadows a type named `extern_ts`, and
+every escape is greppable by `extern_ts`.
+
+The string form is deliberately a little awkward: this is the rare-idiom fallback
+so no library ever forces a hand-written adapter file, not a first-class way to
+write types. For schemas you own, prefer materializing them with `glyph gen zod`
+/ `gen dts` (real Glyph types with descriptors); reach for `extern_ts` when the
+type genuinely lives in TypeScript and Glyph cannot name it.
+
 ## Runtime caveat
 
 A `.types/*.d.ts` file gives the **type-checker** types; it is not the

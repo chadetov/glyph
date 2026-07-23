@@ -687,6 +687,9 @@ impl Resolver<'_> {
                     }
                 }
             }
+            // The escape hatch carries raw TypeScript; there are no Glyph names
+            // inside it to resolve.
+            TypeExpr::Extern { .. } => {}
         }
     }
 }

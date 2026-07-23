@@ -97,11 +97,12 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
         </p>
         <p>
           JSX prop spreading works too: <code>&lt;input {...register("email")} /&gt;</code> lowers
-          to an object spread in the props, so the react-hook-form idiom needs no adapter. What
-          still doesn't carry over cleanly: a component takes a single props record (not multiple
-          positional params), and zod's value-derived types (<code>z.infer&lt;typeof s&gt;</code>)
-          are not inline-expressible yet, though you can materialize the schema with
-          <code>glyph gen zod</code>. See
+          to an object spread in the props, so the react-hook-form idiom needs no adapter. Zod's
+          value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are reachable through the
+          <code>extern_ts("...")</code> escape hatch (or by materializing the schema with
+          <code>glyph gen zod</code>); a first-class inline form is the remaining polish. The one
+          thing that genuinely differs: a component takes a single props record, not multiple
+          positional params. See
           <a href="/answers/imports/">using your libraries</a> and the
           <a href="/hardening/">hardening page</a> for exactly where that boundary is.
         </p>
@@ -115,7 +116,7 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Value-derived types (<code>z.infer&lt;typeof s&gt;</code>) as an inline primitive, so schema-driven libraries need no materialization step.</p>
+          <p>A first-class inline form for value-derived types (<code>z.infer&lt;typeof s&gt;</code>), which the <code>extern_ts</code> escape hatch already reaches today, so schema-driven libraries need neither a materialization step nor the escape.</p>
         </div>
       </div>
 

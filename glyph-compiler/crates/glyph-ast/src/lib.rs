@@ -581,6 +581,15 @@ pub enum TypeExpr {
         variants: Vec<UnionVariant>,
         span: Span,
     },
+    /// `extern_ts("<raw TypeScript type>")` — the type-level escape hatch. The
+    /// raw string is emitted verbatim as the TypeScript type, so an idiom Glyph
+    /// cannot spell (a value-derived `z.infer<typeof s>`, a conditional type) is
+    /// still nameable. Glyph's own checker treats it as opaque (`unknown`, no
+    /// descriptor); `tsc` checks every use of it. Greppable by `extern_ts`.
+    Extern {
+        raw: String,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -724,7 +733,8 @@ impl TypeExpr {
             | TypeExpr::Generic { span, .. }
             | TypeExpr::Fn { span, .. }
             | TypeExpr::Record { span, .. }
-            | TypeExpr::Union { span, .. } => *span,
+            | TypeExpr::Union { span, .. }
+            | TypeExpr::Extern { span, .. } => *span,
         }
     }
 }

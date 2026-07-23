@@ -102,6 +102,17 @@ fn jsx_fragment_round_trips() {
 }
 
 #[test]
+fn extern_ts_type_round_trips() {
+    let src = "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n";
+    let out = fmt(src);
+    assert!(
+        out.contains("extern_ts(\"z.infer<typeof user_schema>\")"),
+        "escape hatch preserved:\n{out}"
+    );
+    assert_eq!(fmt(&out), out, "extern_ts format is not stable");
+}
+
+#[test]
 fn jsx_prop_spread_round_trips() {
     let src = "module x\ncomponent F() -> Component {\n  return <input {...register(\"email\")} class=\"f\" />\n}\n";
     let out = fmt(src);

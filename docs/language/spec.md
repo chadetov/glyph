@@ -66,6 +66,10 @@ Principle: **prefer the choice an established language has already validated, un
 
   *History: shipped in 0.1.10 as `infer_shape`, welded to the literal name `Schema`; renamed and generalized to structural matching in the following release after review flagged the name overselling a `Schema`-only special case.*
 
+## Interop escape hatch (0.1.14)
+
+- **D29. `extern_ts("<raw TypeScript>")` is the type-level escape hatch.** In type position, `extern_ts("...")` emits its string argument verbatim as the TypeScript type. It exists for the interop idioms Glyph's grammar deliberately does not spell, chiefly value-derived types (`type User = extern_ts("z.infer<typeof user_schema>")`) and any conditional/mapped TS type the parked general type machinery would otherwise require. The construct is contained: `tsc` type-checks the raw type and every use of it (a bogus member inside the string is a real error mapped back to the Glyph source), so the escape is not an unchecked hole in the type system; what it opts out of is only Glyph's own descriptor machinery, so an `extern_ts` type is opaque to Glyph (`unknown`, no `.parse` descriptor), exactly like an imported `.d.ts` type. It is recognized only in the exact `extern_ts("...")` shape (a string-literal argument), so it never collides with a user type named `extern_ts` used otherwise, and every escape is greppable by `extern_ts`. The string form keeps the hatch deliberately a little awkward: it is the rare-idiom fallback so no library forces a hand-written adapter file, not a first-class way to write types. The manifesto-native alternative for schemas you own is to materialize them with `glyph gen zod`/`gen dts`; `extern_ts` covers the inline and library-schema cases. *[abstraction — one visible, greppable, `tsc`-checked construct instead of importing the general conditional/mapped-type surface]*
+
 ## Evaluation semantics and the prelude (not grammar decisions)
 
 These are normative behaviors that no single D-decision captures. They are facts

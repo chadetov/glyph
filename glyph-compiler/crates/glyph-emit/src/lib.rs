@@ -3381,6 +3381,8 @@ impl<'a> Emitter<'a> {
                     span: *span,
                 })
             }
+            // The escape hatch emits its raw TypeScript verbatim; `tsc` checks it.
+            TypeExpr::Extern { raw, .. } => raw.clone(),
         })
     }
 }
@@ -3410,6 +3412,9 @@ fn type_mentions(te: &TypeExpr, name: &str) -> bool {
         TypeExpr::Union { variants, .. } => variants
             .iter()
             .any(|v| v.payload.as_ref().is_some_and(|p| type_mentions(p, name))),
+        // A generic parameter mentioned only inside raw TS is not tracked; the
+        // escape hatch is opaque, so treat it as not mentioning the parameter.
+        TypeExpr::Extern { .. } => false,
     }
 }
 
@@ -3939,6 +3944,7 @@ fn type_mentions_infer_output(te: &TypeExpr) -> bool {
             fields.iter().any(|f| type_mentions_infer_output(&f.ty))
         }
         TypeExpr::Union { .. } => false,
+        TypeExpr::Extern { .. } => false,
     }
 }
 
@@ -4932,6 +4938,19 @@ mod tests {
             "module x\nimport react { Component }\ncomponent V() -> Component {\n  return <div></div>\n}\n",
         );
         assert!(ts.contains("React.createElement(\"div\", null)"), "{ts}");
+    }
+
+    #[test]
+    fn extern_ts_type_emits_raw_typescript() {
+        // The type-level escape hatch emits its raw TS verbatim as the aliased
+        // type; `tsc` (not Glyph) checks it.
+        let ts = emit(
+            "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n",
+        );
+        assert!(
+            ts.contains("export type User = z.infer<typeof user_schema>;"),
+            "{ts}"
+        );
     }
 
     #[test]

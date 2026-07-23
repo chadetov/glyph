@@ -19,7 +19,7 @@ members = [
 # Versions pinned per `docs/implementation-plan.md §P5`.
 # Update via brainstorm decision, not ad-hoc bumps.
 [workspace.package]
-version = "0.1.11"
+version = "0.1.12"
 edition = "2021"
 rust-version = "1.95"
 license = "MIT OR Apache-2.0"

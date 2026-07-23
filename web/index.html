@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Glyph — a typed language that transpiles to TypeScript, built for AI agents</title>
+    <title>Glyph: a typed language that transpiles to TypeScript, built for AI agents</title>
     <meta
       name="description"
       content="Glyph is a statically typed, transpile-to-TypeScript language designed so AI agents can read, write, and modify code safely. It looks almost like TypeScript."
@@ -15,13 +15,13 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Glyph" />
     <meta property="og:url" content="https://glyphlang.io/" />
-    <meta property="og:title" content="Glyph — a typed language that transpiles to TypeScript, built for AI agents" />
+    <meta property="og:title" content="Glyph: a typed language that transpiles to TypeScript, built for AI agents" />
     <meta
       property="og:description"
       content="A statically typed, transpile-to-TypeScript language designed so AI agents can read, write, and modify code safely. It looks almost like TypeScript."
     />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Glyph — a typed language that transpiles to TypeScript, built for AI agents" />
+    <meta name="twitter:title" content="Glyph: a typed language that transpiles to TypeScript, built for AI agents" />
     <meta
       name="twitter:description"
       content="A statically typed, transpile-to-TypeScript language designed so AI agents can read, write, and modify code safely."
@@ -926,10 +926,12 @@
           <a class="pill" href="/versions/" title="See what's new"><span class="dot"></span>v0.1.12 · early preview →</a>
           <h1>TypeScript your agents can't <span class="accent">quietly break</span>.</h1>
           <p class="sub">
-            Glyph compiles to clean TypeScript and reads almost identically — so
-            you adopt it one file at a time. But its types can't be lied to,
-            every symbol greps to one place, and a one-line change stays a
-            one-line diff. The footguns agents fall into are gone by construction.
+            Glyph compiles to clean TypeScript and reads almost identically, so
+            you can adopt it one file at a time. The difference is what it won't
+            let through: no <code>any</code> and no casts you can write, a
+            <code>match</code> that must handle every case, and record types that
+            validate themselves at runtime. The footguns an agent ships that
+            <code>tsc --strict</code> waves past don't compile here.
           </p>
           <div class="cta">
             <a class="btn primary" href="/start/">Start Here →</a>
@@ -967,14 +969,14 @@
       <div class="wrap">
         <h2 class="section-head">If you know TypeScript, you know most of this</h2>
         <p class="friction-intro">
-          Glyph reads almost identically &mdash; you don't learn a new language, you learn a
+          Glyph reads almost identically. You don't learn a new language, just a
           handful of deltas. Each one trades a footgun for a guarantee. Here are the ones in the
           sample above.
         </p>
         <div class="glossary">
           <div class="gloss">
             <code>match</code>
-            <span>an <em>exhaustive</em> <code>switch</code>: the compiler makes you handle every case. There is no <code>if</code>/<code>else</code> &mdash; <code>match</code> is the only conditional, so a case can't be silently forgotten.</span>
+            <span>an <em>exhaustive</em> <code>switch</code>: the compiler makes you handle every case. There is no <code>if</code>/<code>else</code>; <code>match</code> is the only conditional, so a case can't be silently forgotten.</span>
           </div>
           <div class="gloss">
             <code>Result&lt;T, E&gt;</code>
@@ -991,7 +993,7 @@
         </div>
         <p class="gloss-note">
           "Agents" here means AI coding assistants (Claude, Copilot, Cursor). Glyph helps them most,
-          but the guarantees are plain engineering wins whether or not you use one &mdash; and if you
+          but the guarantees are plain engineering wins whether or not you use one, and if you
           already run strict TypeScript with zod and eslint, <a href="/answers/vs-tooled-ts/">here's what a language buys over that &rarr;</a>
         </p>
       </div>
@@ -1019,14 +1021,14 @@
           </li>
           <li>
             <span class="x">✗</span>
-            <span>You <code>grep</code> for a symbol and find <b>ten unrelated matches</b> — overloads, decorators, merged namespaces.</span>
+            <span>You keep a <b>hand-written validator</b> next to every type (zod, and a serializer), and an agent renames a field in one but not the others; all of it still compiles.</span>
           </li>
           <li>
             <span class="x">✗</span>
-            <span>Reviewers <b>can't tell if a PR is correct</b>, because the diff is twelve hundred lines of reflowed whitespace.</span>
+            <span>You <code>grep</code> for a symbol and find <b>ten unrelated matches</b>: overloads, decorators, merged namespaces.</span>
           </li>
         </ul>
-        <p class="fix-line">Glyph removes each one — <span class="accent">by construction.</span></p>
+        <p class="fix-line">Glyph removes each one, <span class="accent">by construction.</span></p>
       </div>
     </section>
 
@@ -1034,7 +1036,7 @@
       <div class="wrap">
         <h2 class="section-head">Why Glyph wins</h2>
         <p class="friction-intro">
-          In order of what matters most. The first two are the wedge — problems
+          In order of what matters most. The first two are the wedge, the problems
           you feel every day. The last two are the polish that makes it pleasant.
         </p>
         <div class="grid">
@@ -1046,7 +1048,7 @@
               No <code>any</code> and no <code>as</code> you can write; <code>match</code>
               must cover every case; and your record types generate strict runtime
               validators, so a boundary value is checked, not assumed. An enforced
-              strict layer over <code>tsc</code> — the footguns an agent ships that
+              strict layer over <code>tsc</code>: the footguns an agent ships that
               <code>tsc --strict</code> waves through don't compile here.
             </p>
             <span class="card-more">Read the story →</span>
@@ -1057,7 +1059,7 @@
             <h3>Greppability</h3>
             <p>
               One name, one place. Every symbol has exactly one syntactic form at
-              its declaration — no overloads, decorators, implicit <code>this</code>,
+              its declaration, with no overloads, decorators, implicit <code>this</code>,
               or namespace merging. <code>grep "fn parseUser"</code> finds the
               definition. Always.
             </p>
@@ -1081,7 +1083,7 @@
             <p>
               Say what you mean: pattern matching over switch ladders,
               <code>Result</code> over thrown exceptions, named records over
-              tuples — a small orthogonal core, not TypeScript's accreted layers.
+              tuples, from a small orthogonal core rather than TypeScript's accreted layers.
             </p>
             <span class="card-more">Read the story →</span>
           </a>
@@ -1094,17 +1096,17 @@
       <div class="wrap">
         <h2 class="section-head">Questions engineers actually ask</h2>
         <p class="answers-intro">
-          Real questions, straight answers &mdash; what works today, and what's
+          Real questions, straight answers: what works today, and what's
           next. Read them as one guided walk-through.
         </p>
         <div class="ans-grid">
           <a class="ans-card" href="/answers/verifiability/"><span class="n">01</span><span class="q">What stops an agent from silently breaking my code?</span></a>
           <a class="ans-card" href="/answers/diff-stability/"><span class="n">02</span><span class="q">Will agent edits stay clean, or reformat my whole file?</span></a>
-          <a class="ans-card" href="/answers/greppability/"><span class="n">03</span><span class="q">Can an agent &mdash; or I &mdash; find where anything is defined?</span></a>
+          <a class="ans-card" href="/answers/greppability/"><span class="n">03</span><span class="q">Can an agent (or I) find where anything is defined?</span></a>
           <a class="ans-card" href="/answers/imports/"><span class="n">04</span><span class="q">Can I use my existing TypeScript, JS, and npm libraries?</span></a>
           <a class="ans-card" href="/answers/typed-apis/"><span class="n">05</span><span class="q">Do I have to hand-write a validator for every API?</span></a>
           <a class="ans-card" href="/answers/codegen/"><span class="n">06</span><span class="q">Can I generate a typed client and server from my API spec?</span></a>
-          <a class="ans-card" href="/answers/react/"><span class="n">07</span><span class="q">Does it work with React &mdash; components, hooks, and Context?</span></a>
+          <a class="ans-card" href="/answers/react/"><span class="n">07</span><span class="q">Does it work with React: components, hooks, and Context?</span></a>
           <a class="ans-card" href="/answers/state/"><span class="n">08</span><span class="q">How do I share mutable state between functions?</span></a>
           <a class="ans-card" href="/answers/why-typescript/"><span class="n">09</span><span class="q">Why TypeScript, and not Go or a new language?</span></a>
           <a class="ans-card" href="/answers/vs-tooled-ts/"><span class="n">10</span><span class="q">Why not just strict TypeScript + zod + eslint + ts-pattern?</span></a>

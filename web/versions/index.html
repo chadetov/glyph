@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.13</span>
+            <span class="rel-ver">0.1.14</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Use your npm dependencies without an adapter</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> An installed package that ships its own types (or has an <code>@types/...</code>) now type-checks and runs with no hand-written <code>.types/</code> stub. The build points <code>tsc</code> at your project's <code>node_modules</code>. Real zod works inline: <code>z.object</code>, <code>z.string</code>, <code>.parse</code>, all checked against zod's own types.</li>
+              <li><span class="tag added">Added</span> <code>glyph gen dts &lt;package&gt;</code> and <code>glyph gen zod &lt;package&gt;</code> resolve an installed package by name and materialize its types into committed Glyph types with runtime validators, so a value crossing the boundary gets a real <code>T.parse</code> instead of a presence check.</li>
+              <li><span class="tag added">Added</span> JSX prop spread: <code>&lt;input {...register("email")} /&gt;</code>, the react-hook-form idiom, now lowers to an object spread in the props with no adapter.</li>
+              <li><span class="tag added">Added</span> <code>extern_ts("...")</code>, a scoped escape hatch for the TypeScript idioms Glyph's grammar does not spell (a value-derived <code>z.infer&lt;typeof s&gt;</code>, a raw runtime call). It emits raw TypeScript that <code>tsc</code> still checks, in both type and expression position, and every use is greppable.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.13</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

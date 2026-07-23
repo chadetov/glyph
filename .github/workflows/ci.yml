@@ -6,6 +6,18 @@ on:
   pull_request:
 
 jobs:
+  versions:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # Publish discipline: the workspace Cargo version, the six npm
+      # package.json versions, and the launcher's optionalDependencies pins must
+      # all agree, or a release ships half-bumped. Also flags (non-fatally) when
+      # the published npm `latest` has fallen behind the repo.
+      - name: Check version consistency
+        run: python3 scripts/check_versions.py
+
   test:
     name: Test + type-check examples
     runs-on: ubuntu-latest

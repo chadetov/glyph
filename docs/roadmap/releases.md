@@ -392,14 +392,23 @@ shipped; two need real design and moved to the next 0.1.x.
 
 ### 0.1.14 — Decide interop, ship the first slice (gated on the Q43 decision)
 
-The make-or-break question. It needs a design decision first (see
-`docs/plan/interop-q43.md` for the costed options), then a first concrete win.
+The make-or-break question. The design decision is now made (see
+`docs/plan/interop-q43.md`), so this release builds the first concrete win.
 
-- **Resolve Q43** (the decision). Pick the interop mechanism.
+- **Resolve Q43** (the decision). ✅ **Resolved: Option 3 (phased hybrid), full
+  React-included scope. Phase 2 materialization is opt-in per module, not
+  auto-on-import** (predictable build cost, greppable descriptors, no implicit
+  codegen). Option 2 (trust the `.d.ts`) rejected: it spends verifiability at the
+  boundary. Phase 1 is the cheap immediate unblock (installed package types load,
+  generalizing the `"types"` fix); Phase 2 materializes data types at the boundary
+  where the wedge matters; Phase 3 is the escape hatch plus the React primitives.
+- **Phase 1 — type availability** (M). Make installed package types load so any
+  installed package typechecks with no hand-written stub (the same `"types": []`
+  fix that unblocks node builtins, generalized). This is the immediate unblock.
 - **First slice** (L). Import one real library (`zod` is the natural first) and use
   its real API from `.glyph` with zero hand-written adapter, types materialized on
-  import. *Done:* a real npm package used with no bespoke `.types` adapter and no
-  per-library glue file.
+  import (opt-in). *Done:* a real npm package used with no bespoke `.types` adapter
+  and no per-library glue file.
 
 ### Interop that scales (0.1.15 onward, milestone 0.2.0)
 
@@ -465,9 +474,10 @@ the productivity claim measured or downgraded.
    Q44 (Context + effectful hooks) and the React-library grammar primitives are
    must-haves, and a persisted React app is a required proof. This is the larger
    1.0.
-2. **Interop mechanism (Q43).** Recommended in `docs/plan/interop-q43.md`: the
-   phased hybrid (Option 3), full scope (Option 4 backend-first narrowing is off,
-   since React is in). Still gates 0.1.14 onward; confirm before building.
+2. **Interop mechanism (Q43).** ✅ **Resolved: Option 3 (phased hybrid), full
+   scope** (Option 4 backend-first narrowing is off, since React is in). Phase 2
+   boundary materialization is **opt-in per module**, not auto-on-import. See
+   `docs/plan/interop-q43.md`. Unblocks the 0.1.14 build.
 
 ### Explicitly out of 1.0
 

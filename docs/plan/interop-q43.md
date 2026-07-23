@@ -133,7 +133,18 @@ Glyph commits to being a serious React language, so:
 This is the larger 1.0 and the longer road. See the React track in
 `docs/roadmap/releases.md`.
 
-Still open, and worth confirming before 0.1.14 starts building: whether the
-import-path materialization (Phase 2) auto-runs on every import or is opt-in per
-module. Auto is more ergonomic; opt-in is more predictable about build cost. That
-is a smaller call that can be made when the work starts.
+## Resolved
+
+**Mechanism: Option 3 (phased hybrid), full React-included scope.** Confirmed for
+0.1.14 onward. Option 2 (trust the `.d.ts`) was rejected for the reason above: it
+spends verifiability at the boundary, the one thing the third review said Glyph
+must not spend.
+
+**Phase 2 materialization is opt-in per module, not auto-on-import.** You mark
+which imports get materialized descriptors; the build does not run codegen on
+every import. This keeps build cost predictable, keeps the generated descriptors
+greppable and reviewable, and matches Glyph's "no implicit magic" stance. The
+ergonomic loss (a per-import opt-in marker) is the deliberate trade for a
+predictable, auditable boundary. The exact opt-in surface (a per-import
+annotation vs a project manifest list) is a build-time detail to settle when
+Phase 2 starts; the semantics are decided.

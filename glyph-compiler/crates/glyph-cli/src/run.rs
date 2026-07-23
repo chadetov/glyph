@@ -66,6 +66,11 @@ pub enum RunOutcome {
     TypeCheckFailed(String),
     /// `tsx` was not found on `PATH`.
     TsxNotFound,
+    /// `tsc` was not found on `PATH` while the type check was requested (the
+    /// default). Rather than run unchecked, refuse: the guarantee we advertise
+    /// must not silently evaporate. The user can opt out explicitly with
+    /// `--no-check`.
+    TscMissing,
     /// The target module has no `fn main`, so there is nothing to run (it's a
     /// library). Carries the module's top-level function names as a hint.
     /// Reported as `E0310` and exits non-zero, instead of letting the generated
@@ -179,10 +184,10 @@ pub fn run_file(
                 return Ok(RunOutcome::TypeCheckFailed(remapped));
             }
             TscOutcome::NotFound => {
-                eprintln!(
-                    "glyph run: tsc not found on PATH; running without a type check. \
-                     Install TypeScript (`npm install -g typescript`) or pass --no-check."
-                );
+                // The type check was requested (the default) but tsc is absent.
+                // Refuse rather than run unchecked, so the guarantee never
+                // silently evaporates. `--no-check` is the explicit opt-out.
+                return Ok(RunOutcome::TscMissing);
             }
         }
     }

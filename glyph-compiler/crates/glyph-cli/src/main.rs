@@ -247,11 +247,15 @@ fn main() {
                             std::process::exit(1);
                         }
                         Ok(TscOutcome::NotFound) => {
+                            // The check was requested (the default) but tsc is
+                            // absent. Fail rather than emit an unchecked build
+                            // that looks verified. `--no-check` is the opt-out.
                             eprintln!(
-                                "glyph build: tsc not found on PATH; run \
-                                 `tsc -p {}/tsconfig.json` to type-check.",
-                                out.display()
+                                "glyph build: tsc not found on PATH, so the type check can't run. \
+                                 Install TypeScript (`npm install -g typescript`), or pass \
+                                 `--no-check` to emit without it."
                             );
+                            std::process::exit(2);
                         }
                         Err(e) => {
                             eprintln!("glyph build: failed to run tsc: {e}");
@@ -325,6 +329,14 @@ fn main() {
                     eprint!("{msg}");
                     eprintln!("glyph run: tsc reported type errors; not running. Pass --no-check to run anyway.");
                     std::process::exit(1);
+                }
+                Ok(glyph_cli::run::RunOutcome::TscMissing) => {
+                    eprintln!(
+                        "glyph run: tsc not found on PATH, so the type check can't run. \
+                         Install TypeScript (`npm install -g typescript`), or pass \
+                         `--no-check` to run without it. (`glyph doctor` checks your toolchain.)"
+                    );
+                    std::process::exit(2);
                 }
                 Ok(glyph_cli::run::RunOutcome::TsxNotFound) => {
                     eprintln!(
@@ -460,11 +472,14 @@ fn main() {
                             std::process::exit(1);
                         }
                         TscStatus::Skipped => {
+                            // Publishing an unchecked package is exactly what we
+                            // must not do silently. Refuse.
                             eprintln!(
-                                "glyph publish: tsc not found on PATH; type-check skipped \
-                                 (run `tsc -p {}/tsconfig.json`).",
-                                report.dist.display()
+                                "glyph publish: tsc not found on PATH, so the package can't be \
+                                 type-checked before publish. Install TypeScript \
+                                 (`npm install -g typescript`) and retry."
                             );
+                            std::process::exit(2);
                         }
                         TscStatus::Passed => {
                             eprintln!("glyph publish: tsc --strict passed.");

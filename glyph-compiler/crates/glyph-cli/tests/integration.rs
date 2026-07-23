@@ -1243,6 +1243,9 @@ fn run_executes_main_and_propagates_exit_code() {
         glyph_cli::run::RunOutcome::NoMain { exports } => {
             panic!("a program with a `main` should run, not report NoMain: {exports:?}");
         }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check, so tsc is never required");
+        }
     }
 }
 
@@ -1383,6 +1386,7 @@ fn outcome_name(o: &glyph_cli::run::RunOutcome) -> &'static str {
         glyph_cli::run::RunOutcome::BuildFailed(_) => "BuildFailed",
         glyph_cli::run::RunOutcome::TypeCheckFailed(_) => "TypeCheckFailed",
         glyph_cli::run::RunOutcome::TsxNotFound => "TsxNotFound",
+        glyph_cli::run::RunOutcome::TscMissing => "TscMissing",
         glyph_cli::run::RunOutcome::NoMain { .. } => "NoMain",
     }
 }
@@ -1467,6 +1471,9 @@ fn run_reports_build_failure_for_a_broken_target() {
         }
         glyph_cli::run::RunOutcome::NoMain { exports } => {
             panic!("a broken build should not reach the no-main check: {exports:?}");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check, so tsc is never required");
         }
     }
 }

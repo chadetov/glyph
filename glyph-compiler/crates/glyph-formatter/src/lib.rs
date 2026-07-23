@@ -645,6 +645,11 @@ impl Printer {
                 self.lambda_block(body);
             }
             Expr::Jsx(j) => self.jsx(j),
+            Expr::Extern { raw, .. } => {
+                self.push("extern_ts(\"");
+                self.push(&escape_string(raw));
+                self.push("\")");
+            }
         }
     }
 
@@ -1044,6 +1049,7 @@ fn is_atom(e: &Expr) -> bool {
             | Expr::Array { .. }
             | Expr::Object { .. }
             | Expr::Jsx(_)
+            | Expr::Extern { .. }
     )
 }
 

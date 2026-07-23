@@ -503,10 +503,19 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
     name, and every escape is greppable. Proven end to end with real zod
     (`z.infer` typechecks and runs) plus parser/emit/formatter tests. This is the
     scoped escape hatch the interop plan called for; no library ever forces a
-    hand-written adapter file. Remaining Phase 3: an **expression-level**
-    `extern_ts` for the rare grammar-hostile runtime call, and (optionally) a
-    **native** value-derived-type primitive if the string escape proves too
-    awkward in practice.
+    hand-written adapter file.
+  - **Interop escape hatch (expression-level)** (M). ✅ **Done (D29).** The
+    symmetric completion: `extern_ts("Date.now()")` in expression position emits
+    its string verbatim (parenthesized) and is typed `unknown`, so a
+    grammar-hostile runtime idiom stays reachable and, being `unknown`, must be
+    narrowed or validated before use. Same containment as the type form (`tsc`
+    checks the raw TS) and recognized only in the `extern_ts("...")` shape, so a
+    plain identifier `extern_ts` is unaffected. Proven end to end (emits
+    `(Date.now())`, typechecks, runs, narrows through a `match`), with parser,
+    emit, and formatter tests. Phase 3 is complete for v1: prop spread plus a
+    type- and expression-level escape hatch. A **native** inline value-derived
+    primitive is deliberately not built (the escape hatch covers it); revisit only
+    if the string form proves too awkward in practice.
 
 ### 0.2.x — Prove it (the evidence gate)
 

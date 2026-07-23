@@ -135,8 +135,9 @@ print(user.name)</pre>
         <p>
           For the idioms Glyph's grammar does not spell, most often a value-derived type
           (<code>z.infer&lt;typeof s&gt;</code>), there is a scoped escape hatch:
-          <code>extern_ts("...")</code> emits raw TypeScript in type position, and
-          <code>tsc</code> still checks it and every use of it, so it is not an unchecked hole.
+          <code>extern_ts("...")</code> emits raw TypeScript in type or expression position, and
+          <code>tsc</code> still checks it and every use of it, so it is not an unchecked hole
+          (a value comes back <code>unknown</code>, to be narrowed).
           For schemas you own, prefer materializing them with <code>glyph gen zod</code> (real
           Glyph types with descriptors); reach for <code>extern_ts</code> when the type genuinely
           lives in TypeScript. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>)

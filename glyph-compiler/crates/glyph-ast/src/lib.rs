@@ -396,6 +396,14 @@ pub enum Expr {
     },
     /// JSX element in expression position (D6).
     Jsx(JsxElement),
+    /// `extern_ts("<raw TypeScript expression>")` — the expression-level escape
+    /// hatch (D29). The raw string is emitted verbatim (parenthesized) and typed
+    /// `unknown` at the Glyph seam, so a grammar-hostile runtime idiom stays
+    /// reachable without an adapter. Greppable by `extern_ts`.
+    Extern {
+        raw: String,
+        span: Span,
+    },
 }
 
 /// D6: a JSX element. May be a normal HTML-like element (`<div>`), a
@@ -720,7 +728,8 @@ impl Expr {
             | Expr::Array { span, .. }
             | Expr::Object { span, .. }
             | Expr::Match { span, .. }
-            | Expr::Lambda { span, .. } => *span,
+            | Expr::Lambda { span, .. }
+            | Expr::Extern { span, .. } => *span,
             Expr::Jsx(e) => e.span,
         }
     }

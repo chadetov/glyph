@@ -493,6 +493,41 @@ type FeedError =
     }
 
     #[test]
+    fn extern_ts_expression_escape_hatch() {
+        let m = parse_or_panic(
+            "module x\nfn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n",
+        );
+        let f = match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => f,
+            other => panic!("expected Fn, got {other:?}"),
+        };
+        match &f.body.stmts[0] {
+            glyph_ast::Stmt::Return(r) => match r.value.as_ref().unwrap() {
+                glyph_ast::Expr::Extern { raw, .. } => assert_eq!(raw, "Date.now()"),
+                other => panic!("expected Extern, got {other:?}"),
+            },
+            other => panic!("expected Return, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn extern_ts_identifier_still_usable_when_not_called() {
+        // `extern_ts` is only special in the `extern_ts("...")` shape; used as a
+        // plain identifier it stays an ordinary name.
+        let m = parse_or_panic("module x\nfn f(extern_ts: number) -> number {\n  return extern_ts\n}\n");
+        let f = match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => f,
+            other => panic!("expected Fn, got {other:?}"),
+        };
+        match &f.body.stmts[0] {
+            glyph_ast::Stmt::Return(r) => {
+                assert!(matches!(r.value.as_ref().unwrap(), glyph_ast::Expr::Ident { .. }));
+            }
+            other => panic!("expected Return, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn type_decl_extern_ts_escape_hatch() {
         let m = parse_or_panic(
             "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n",

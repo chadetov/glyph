@@ -3017,6 +3017,9 @@ impl<'a> Emitter<'a> {
                 format!("(() => {{\n{}{pad}}})()", sub.out)
             }
             Expr::Jsx(j) => self.emit_jsx(j)?,
+            // The escape hatch emits its raw TypeScript verbatim, parenthesized
+            // so it composes safely in any expression position; `tsc` checks it.
+            Expr::Extern { raw, .. } => format!("({raw})"),
         })
     }
 
@@ -4938,6 +4941,14 @@ mod tests {
             "module x\nimport react { Component }\ncomponent V() -> Component {\n  return <div></div>\n}\n",
         );
         assert!(ts.contains("React.createElement(\"div\", null)"), "{ts}");
+    }
+
+    #[test]
+    fn extern_ts_expression_emits_parenthesized_raw() {
+        let ts = emit(
+            "module x\nfn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n",
+        );
+        assert!(ts.contains("return (Date.now());"), "{ts}");
     }
 
     #[test]

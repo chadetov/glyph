@@ -347,7 +347,8 @@ impl OwnedChecker<'_> {
             | Expr::Bool { .. }
             | Expr::Void { .. }
             | Expr::Lambda { .. }
-            | Expr::Jsx(_) => Flow::Fall,
+            | Expr::Jsx(_)
+            | Expr::Extern { .. } => Flow::Fall,
         }
     }
 

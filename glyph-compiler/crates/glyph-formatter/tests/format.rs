@@ -102,6 +102,14 @@ fn jsx_fragment_round_trips() {
 }
 
 #[test]
+fn extern_ts_expression_round_trips() {
+    let src = "module x\nfn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("extern_ts(\"Date.now()\")"), "expr escape preserved:\n{out}");
+    assert_eq!(fmt(&out), out, "extern_ts expr format is not stable");
+}
+
+#[test]
 fn extern_ts_type_round_trips() {
     let src = "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n";
     let out = fmt(src);

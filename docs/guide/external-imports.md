@@ -286,6 +286,23 @@ write types. For schemas you own, prefer materializing them with `glyph gen zod`
 / `gen dts` (real Glyph types with descriptors); reach for `extern_ts` when the
 type genuinely lives in TypeScript and Glyph cannot name it.
 
+`extern_ts` also works in **expression** position, for a grammar-hostile runtime
+idiom:
+
+```glyph
+let now: unknown = extern_ts("Date.now()")
+match now {
+  is number => use_it(now),
+  else => fallback(),
+}
+```
+
+The expression form emits `(Date.now())` verbatim and is typed `unknown`, so, like
+any untrusted value, you narrow or validate it before use (the `match` above).
+Same containment as the type form: `tsc` checks the raw TypeScript, and only the
+exact `extern_ts("...")` shape is special, so a variable named `extern_ts` is
+unaffected.
+
 ## Runtime caveat
 
 A `.types/*.d.ts` file gives the **type-checker** types; it is not the

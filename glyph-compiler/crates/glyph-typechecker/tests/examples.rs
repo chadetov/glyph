@@ -95,7 +95,8 @@ fn walk_expr_spans(e: &Expr, out: &mut Vec<Span>) {
         | Expr::String { .. }
         | Expr::Bool { .. }
         | Expr::Void { .. }
-        | Expr::Ident { .. } => {}
+        | Expr::Ident { .. }
+        | Expr::Extern { .. } => {}
         Expr::TemplateString { parts, .. } => {
             for p in parts {
                 if let TemplatePart::Expr { value, .. } = p {

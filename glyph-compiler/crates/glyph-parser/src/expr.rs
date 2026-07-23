@@ -299,6 +299,14 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             p.advance();
             Ok(Expr::Void { span })
         }
+        // `extern_ts("<raw ts>")` — the expression-level escape hatch. Recognized
+        // only in this exact shape, so a user identifier `extern_ts` used any
+        // other way is unaffected.
+        Token::Identifier(ref name)
+            if name.as_ref() == "extern_ts" && matches!(p.peek_at(1), Some(Token::LParen)) =>
+        {
+            parse_extern_ts_expr(p, span.start)
+        }
         Token::Identifier(name) => {
             p.advance();
             Ok(Expr::Ident { name, span })
@@ -337,6 +345,31 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             span,
         }),
     }
+}
+
+/// Parse `extern_ts("<raw ts>")` in expression position. The argument must be a
+/// single plain string literal; its contents become the raw TypeScript.
+fn parse_extern_ts_expr(p: &mut Cursor, start: u32) -> Result<Expr, ParseError> {
+    p.advance(); // `extern_ts`
+    p.expect(&Token::LParen, "`(` after `extern_ts`")?;
+    let raw = match p.peek().clone() {
+        Token::String(s) => {
+            p.advance();
+            resolve_escaped_dollars(&s).into_owned()
+        }
+        other => {
+            return Err(ParseError::Expected {
+                expected: "a string literal of raw TypeScript inside `extern_ts(\"...\")`",
+                found: format!("{other:?}"),
+                span: p.peek_span(),
+            })
+        }
+    };
+    let close = p.expect(&Token::RParen, "`)` to close `extern_ts(...)`")?;
+    Ok(Expr::Extern {
+        raw,
+        span: Span::new(start, close.end),
+    })
 }
 
 fn parse_array_literal(p: &mut Cursor) -> Result<Expr, ParseError> {

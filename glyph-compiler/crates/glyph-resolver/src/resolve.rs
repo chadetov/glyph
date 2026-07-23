@@ -427,7 +427,9 @@ impl Resolver<'_> {
             Expr::Number { .. }
             | Expr::String { .. }
             | Expr::Bool { .. }
-            | Expr::Void { .. } => {}
+            | Expr::Void { .. }
+            // Raw TypeScript: no Glyph names inside to resolve.
+            | Expr::Extern { .. } => {}
             Expr::TemplateString { parts, .. } => {
                 for p in parts {
                     if let TemplatePart::Expr { value, .. } = p {

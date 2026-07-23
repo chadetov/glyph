@@ -410,6 +410,9 @@ impl Assigner<'_> {
             Expr::String { span, .. } => self.tm.insert(*span, Ty::Prim(Primitive::String)),
             Expr::Bool { span, .. } => self.tm.insert(*span, Ty::Prim(Primitive::Bool)),
             Expr::Void { span } => self.tm.insert(*span, Ty::Prim(Primitive::Void)),
+            // The escape hatch is opaque to Glyph's checker; `tsc` checks its
+            // raw TypeScript. Type it `unknown` so any use must narrow first.
+            Expr::Extern { span, .. } => self.tm.insert(*span, Ty::Unknown),
             Expr::TemplateString { parts, span } => {
                 for p in parts {
                     if let TemplatePart::Expr { value, .. } = p {

@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.12</span>
+            <span class="rel-ver">0.1.13</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Close the boundary</h3>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> The type check is no longer silently optional. <code>glyph run</code>, <code>build</code>, and <code>publish</code> now stop with a non-zero exit when <code>tsc</code> is missing instead of quietly running unchecked. Pass <code>--no-check</code> if you really want to skip it.</li>
+              <li><span class="tag added">Added</span> An unknown annotation is now a hard error (<code>E0221</code>). A typo like <code>@puer</code> no longer compiles as if it meant something; the recognized set is <code>@example</code>, <code>@doc</code>, <code>@redact</code>, <code>@open</code>, <code>@pure</code>, <code>@public</code>.</li>
+              <li><span class="tag changed">Changed</span> The manifesto states the productivity claim as a hypothesis to measure, not a number we have earned. No figure until the study runs.</li>
+              <li><span class="tag added">Added</span> A CI gate that keeps every package version in sync and flags when the published npm release falls behind the repo.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.12</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

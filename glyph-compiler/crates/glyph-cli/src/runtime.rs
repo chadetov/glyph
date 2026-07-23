@@ -164,7 +164,10 @@ fn tsconfig_json(node_modules: Option<&Path>) -> String {
 /// reached with none found, the project simply has no installed dependencies in
 /// scope and this returns `None` (the tsconfig then omits the wildcard, behaving
 /// exactly as it did before installed-package resolution existed).
-fn find_project_node_modules(src: &Path) -> Option<PathBuf> {
+///
+/// Shared with `gen dts <pkg>`, which resolves an installed package's types out
+/// of the same project `node_modules`.
+pub(crate) fn find_project_node_modules(src: &Path) -> Option<PathBuf> {
     let start = src.canonicalize().ok()?;
     let mut dir: &Path = &start;
     loop {

@@ -69,6 +69,8 @@ pub enum GenError {
     ZodUnsupported,
     #[error("running the schema helper failed: {msg}")]
     Helper { msg: String },
+    #[error("cannot resolve package `{pkg}`: {reason}")]
+    PackageNotResolved { pkg: String, reason: String },
 }
 
 /// Summary of one `glyph gen openapi` run.
@@ -195,21 +197,44 @@ fn stem_of(path: &Path) -> &str {
 /// map. Bundled into the binary; written to a temp file at run time.
 const TS_TO_SCHEMA: &str = include_str!("../../../runtime/tools/ts-to-schema.mjs");
 
-/// Generate Glyph types from a TypeScript `.d.ts` declaration file.
+/// Generate Glyph types from a TypeScript `.d.ts`, given either a declaration
+/// **file** or an installed **package name**.
 ///
-/// Shells out to a bundled node helper that uses the TypeScript compiler to
-/// read the declarations and emit JSON Schema, which then flows through the
-/// exact same mapper as `glyph gen openapi`. `node` must be on PATH and the
-/// `typescript` package must be resolvable (a global `npm install -g
-/// typescript` is found via NODE_PATH).
-pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
-    if !dts_path.exists() {
-        return Err(GenError::Read {
-            path: dts_path.to_path_buf(),
-            source: std::io::Error::new(std::io::ErrorKind::NotFound, "no such file"),
-        });
+/// If `target` is an existing file it is read directly. Otherwise it is treated
+/// as an installed npm package name (`stripe`, `@scope/pkg`): the package's own
+/// `.d.ts` entry is resolved out of the project's `node_modules` (Phase 2 of the
+/// interop work, the committed opt-in materialization). Either way the resolved
+/// declarations flow through the same node helper and mapper as `gen openapi`.
+/// `node` must be on PATH and the `typescript` package resolvable.
+pub fn dts(target: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
+    // A path that exists as a file is a literal `.d.ts`; anything else is read
+    // as a package name and resolved from `node_modules`. This keeps the
+    // original file-path behavior byte-identical and adds package resolution
+    // only for arguments that are not files.
+    if target.is_file() {
+        let module_name = sanitize_module(stem_of(target));
+        let source_label = target.display().to_string();
+        let regen = format!("glyph gen dts {} --out {}", target.display(), out_dir.display());
+        return dts_from_file(target, module_name, source_label, regen, out_dir);
     }
 
+    let pkg = target.to_string_lossy().into_owned();
+    let resolved = resolve_package_dts(&pkg)?;
+    let module_name = sanitize_module(package_module_name(&pkg));
+    let source_label = format!("{pkg} ({})", resolved.display());
+    let regen = format!("glyph gen dts {pkg} --out {}", out_dir.display());
+    dts_from_file(&resolved, module_name, source_label, regen, out_dir)
+}
+
+/// The shared core: run the TypeScript-to-JSON-Schema helper on a resolved
+/// `.d.ts` and render the committed Glyph types.
+fn dts_from_file(
+    dts_path: &Path,
+    module_name: String,
+    source_label: String,
+    regen: String,
+    out_dir: &Path,
+) -> Result<GenReport, GenError> {
     let doc = match run_helper(TS_TO_SCHEMA, "glyph-ts-to-schema", "node", dts_path) {
         HelperOutcome::Ok(v) => v,
         HelperOutcome::RunnerMissing => return Err(GenError::NodeMissing),
@@ -228,9 +253,6 @@ pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
         path: dts_path.to_path_buf(),
     })?;
 
-    let module_name = sanitize_module(stem_of(dts_path));
-    let source_label = dts_path.display().to_string();
-    let regen = format!("glyph gen dts {} --out {}", dts_path.display(), out_dir.display());
     render_and_write(
         Generator::default(),
         schemas,
@@ -241,6 +263,97 @@ pub fn dts(dts_path: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
         String::new(),
         out_dir,
     )
+}
+
+/// The module name a package materializes into: the last path segment, so
+/// `@scope/pkg` becomes `pkg` and `stripe` stays `stripe`.
+fn package_module_name(pkg: &str) -> &str {
+    pkg.rsplit('/').next().unwrap_or(pkg)
+}
+
+/// Resolve an installed package's TypeScript declaration entry from the
+/// project's `node_modules`. Reads the package's `package.json` for its `types`
+/// / `typings` entry (or the `types` condition under `exports["."]`), falling
+/// back to a top-level `index.d.ts`. Returns a helpful error at each step so a
+/// missing package, a missing `node_modules`, or a package that ships no types
+/// is diagnosable rather than a bare "no such file".
+fn resolve_package_dts(pkg: &str) -> Result<PathBuf, GenError> {
+    let cwd = std::env::current_dir().map_err(|e| GenError::PackageNotResolved {
+        pkg: pkg.to_string(),
+        reason: format!("cannot read the current directory: {e}"),
+    })?;
+    let node_modules =
+        crate::runtime::find_project_node_modules(&cwd).ok_or_else(|| GenError::PackageNotResolved {
+            pkg: pkg.to_string(),
+            reason: "no `node_modules` found in this project. Install the package first (`npm install`), \
+                     or pass a path to a `.d.ts` file instead of a package name."
+                .to_string(),
+        })?;
+    resolve_package_dts_in(pkg, &node_modules)
+}
+
+/// Resolve a package's declaration entry within a specific `node_modules`. Split
+/// from `resolve_package_dts` so the manifest reading is testable without
+/// touching the process working directory.
+fn resolve_package_dts_in(pkg: &str, node_modules: &Path) -> Result<PathBuf, GenError> {
+    // `join` on a scoped name (`@scope/pkg`) descends the two segments correctly.
+    let pkg_dir = node_modules.join(pkg);
+    let manifest_path = pkg_dir.join("package.json");
+    let manifest_text =
+        std::fs::read_to_string(&manifest_path).map_err(|_| GenError::PackageNotResolved {
+            pkg: pkg.to_string(),
+            reason: format!(
+                "not installed: {} does not exist. Run `npm install {pkg}` first.",
+                manifest_path.display()
+            ),
+        })?;
+    let manifest: Value =
+        serde_json::from_str(&manifest_text).map_err(|e| GenError::PackageNotResolved {
+            pkg: pkg.to_string(),
+            reason: format!("{} is not valid JSON: {e}", manifest_path.display()),
+        })?;
+
+    let types_rel = package_types_entry(&manifest).or_else(|| {
+        pkg_dir
+            .join("index.d.ts")
+            .is_file()
+            .then(|| "index.d.ts".to_string())
+    });
+    let Some(types_rel) = types_rel else {
+        return Err(GenError::PackageNotResolved {
+            pkg: pkg.to_string(),
+            reason: "the package declares no types (`types`/`typings` in package.json) and has no \
+                     top-level `index.d.ts`. It may ship no TypeScript types, or need its \
+                     `@types/...` companion installed and passed instead."
+                .to_string(),
+        });
+    };
+
+    let dts = pkg_dir.join(&types_rel);
+    if !dts.is_file() {
+        return Err(GenError::PackageNotResolved {
+            pkg: pkg.to_string(),
+            reason: format!(
+                "package.json points its types at `{types_rel}`, but {} does not exist.",
+                dts.display()
+            ),
+        });
+    }
+    Ok(dts)
+}
+
+/// Read a package.json's declaration-file entry: `types` or `typings` at the top
+/// level, or the `types` condition of the `"."` subpath in `exports`.
+fn package_types_entry(manifest: &Value) -> Option<String> {
+    for key in ["types", "typings"] {
+        if let Some(s) = manifest.get(key).and_then(Value::as_str) {
+            return Some(s.trim_start_matches("./").to_string());
+        }
+    }
+    let dot = manifest.get("exports")?.get(".")?;
+    // `exports["."]` may be a string (no types condition) or a conditions map.
+    let types = dot.get("types").and_then(Value::as_str)?;
+    Some(types.trim_start_matches("./").to_string())
 }
 
 /// The `tsx` helper that executes a module of zod schemas and prints a JSON
@@ -1257,6 +1370,108 @@ fn sanitize_module(raw: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn package_module_name_takes_the_last_segment() {
+        assert_eq!(package_module_name("stripe"), "stripe");
+        assert_eq!(package_module_name("@scope/pkg"), "pkg");
+        assert_eq!(package_module_name("@scope/deep/sub"), "sub");
+    }
+
+    #[test]
+    fn package_types_entry_reads_the_common_shapes() {
+        let types = serde_json::json!({ "types": "./dist/index.d.ts" });
+        assert_eq!(package_types_entry(&types).as_deref(), Some("dist/index.d.ts"));
+
+        let typings = serde_json::json!({ "typings": "lib/main.d.ts" });
+        assert_eq!(package_types_entry(&typings).as_deref(), Some("lib/main.d.ts"));
+
+        let exports = serde_json::json!({
+            "exports": { ".": { "types": "./types/index.d.ts", "import": "./index.js" } }
+        });
+        assert_eq!(package_types_entry(&exports).as_deref(), Some("types/index.d.ts"));
+
+        // `types` wins over an `exports` types condition when both are present.
+        let both = serde_json::json!({
+            "types": "top.d.ts",
+            "exports": { ".": { "types": "./nested.d.ts" } }
+        });
+        assert_eq!(package_types_entry(&both).as_deref(), Some("top.d.ts"));
+
+        // A package that declares no types entry.
+        let none = serde_json::json!({ "name": "x", "main": "index.js" });
+        assert_eq!(package_types_entry(&none), None);
+    }
+
+    fn tmp_nm(prefix: &str) -> PathBuf {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir()
+            .join(format!("glyph_gen_nm_{prefix}_{}_{n}", std::process::id()))
+            .join("node_modules");
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn install_fake(nm: &Path, pkg: &str, manifest: &str, dts_rel: &str) {
+        let dir = nm.join(pkg);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("package.json"), manifest).unwrap();
+        let dts = dir.join(dts_rel);
+        std::fs::create_dir_all(dts.parent().unwrap()).unwrap();
+        std::fs::write(dts, "export interface X { a: string }\n").unwrap();
+    }
+
+    #[test]
+    fn resolve_package_dts_finds_the_declared_types_entry() {
+        let nm = tmp_nm("ok");
+        install_fake(
+            &nm,
+            "mysdk",
+            r#"{ "name": "mysdk", "version": "1.0.0", "types": "types/index.d.ts" }"#,
+            "types/index.d.ts",
+        );
+        let resolved = resolve_package_dts_in("mysdk", &nm).expect("resolves");
+        assert!(resolved.ends_with("mysdk/types/index.d.ts"), "got {resolved:?}");
+    }
+
+    #[test]
+    fn resolve_package_dts_falls_back_to_index_dts() {
+        let nm = tmp_nm("fallback");
+        // No `types` field; a top-level index.d.ts should be used.
+        install_fake(&nm, "bare", r#"{ "name": "bare", "version": "1.0.0" }"#, "index.d.ts");
+        let resolved = resolve_package_dts_in("bare", &nm).expect("resolves via index.d.ts");
+        assert!(resolved.ends_with("bare/index.d.ts"), "got {resolved:?}");
+    }
+
+    #[test]
+    fn resolve_package_dts_errors_when_not_installed() {
+        let nm = tmp_nm("missing");
+        let err = resolve_package_dts_in("ghost", &nm).unwrap_err();
+        match err {
+            GenError::PackageNotResolved { pkg, reason } => {
+                assert_eq!(pkg, "ghost");
+                assert!(reason.contains("not installed"), "reason: {reason}");
+            }
+            other => panic!("expected PackageNotResolved, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resolve_package_dts_errors_when_no_types() {
+        let nm = tmp_nm("notyped");
+        let dir = nm.join("notyped");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("package.json"), r#"{ "name": "notyped", "version": "1.0.0" }"#).unwrap();
+        let err = resolve_package_dts_in("notyped", &nm).unwrap_err();
+        match err {
+            GenError::PackageNotResolved { reason, .. } => {
+                assert!(reason.contains("no types"), "reason: {reason}");
+            }
+            other => panic!("expected PackageNotResolved, got {other:?}"),
+        }
+    }
 
     fn gen_from(json: &str) -> (String, Vec<String>) {
         let doc: Value = serde_json::from_str(json).unwrap();

@@ -11,8 +11,9 @@
 //! - `glyph regen [path]`            re-run the `gen` commands recorded in generated files (Q40)
 //! - `glyph gen openapi <spec> --out <dir>`  generate committed Glyph types from an
 //!   OpenAPI 3 / Swagger 2 / JSON Schema document (Q40 type-driven generation)
-//! - `glyph gen dts <file.d.ts> --out <dir>`  generate committed Glyph types from a
-//!   TypeScript declaration file (needs node + the typescript package)
+//! - `glyph gen dts <file.d.ts | package> --out <dir>`  generate committed Glyph
+//!   types from a TypeScript declaration file or an installed package's own types
+//!   resolved from node_modules (needs node + the typescript package)
 //! - `glyph gen zod <file.ts> --out <dir>`  generate committed Glyph types from a
 //!   module of zod schemas (needs tsx + zod)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
@@ -144,11 +145,12 @@ enum GenTarget {
         #[arg(long)]
         handlers: bool,
     },
-    /// Generate Glyph types from a TypeScript `.d.ts` declaration file.
+    /// Generate Glyph types from a TypeScript `.d.ts` file, or from an installed
+    /// npm package by name (its own types are resolved from `node_modules`).
     /// Needs `node` and the `typescript` package (npm install -g typescript).
     Dts {
-        /// The TypeScript declaration file (`.d.ts`).
-        #[arg(value_name = "FILE")]
+        /// A `.d.ts` file, or an installed package name (`stripe`, `@scope/pkg`).
+        #[arg(value_name = "FILE_OR_PACKAGE")]
         file: std::path::PathBuf,
         /// Directory to write the generated `.glyph` file into.
         #[arg(long, value_name = "DIR")]

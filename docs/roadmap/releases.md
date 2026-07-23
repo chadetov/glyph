@@ -427,6 +427,22 @@ The make-or-break question. The design decision is now made (see
   opt-in boundary materialization (Phase 2); it is type availability plus runtime
   resolution.* The walker now also skips `node_modules` so it never compiles a
   dependency's stray `.glyph`-named file.
+- **Phase 2 — boundary materialization, first increment** (M). ✅ **Done.** The
+  opt-in surface is resolved to **committed `glyph gen dts <package>`** (over an
+  import annotation or a manifest list): the existing `.d.ts` materializer now
+  resolves an installed package by name from `node_modules` (reading its
+  `types`/`typings`/`exports` entry, or a top-level `index.d.ts`), and writes real
+  committed Glyph types with runtime descriptors. `glyph gen dts stripe --out
+  src/types` gives you `Customer.parse(webhookBody)` that validates the wire value
+  deeply; the generated file records `glyph gen dts stripe --out src/types` so
+  `glyph regen` refreshes it on a dependency bump. Proven end to end (a fake
+  installed SDK materializes, its descriptor validates at build and runtime,
+  regen re-runs it) with hermetic unit tests over the resolution and helpful
+  errors for a missing package or one that ships no types. This keeps the
+  verifiability wedge at the npm seam without new grammar or non-committed build
+  magic. Remaining Phase 2 scope: extending `gen zod`/`gen openapi` to the same
+  package-name resolution, and value-derived materialization (`z.infer`), which is
+  the Phase 3 primitive.
 
 ### Interop that scales (0.1.15 onward, milestone 0.2.0)
 

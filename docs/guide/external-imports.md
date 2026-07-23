@@ -211,6 +211,38 @@ user_schema>` is not expressible yet (that is the value-derived-type work still
 ahead). The parse result is fully typed, so `user.name` is a `string` here
 without it; you just cannot name the derived type with `z.infer` today.
 
+## Validating a package's types at the boundary
+
+Type availability tells the checker what a package's types *are*. It does not, by
+itself, validate a value that crosses from that package at runtime, a webhook
+body, an SDK response, a row. When you want that boundary checked, materialize the
+package's types into committed Glyph types with descriptors:
+
+```sh
+glyph gen dts stripe --out src/types
+```
+
+This resolves the installed package's own declaration entry from `node_modules`
+(its `types`/`typings`/`exports` field, or a top-level `index.d.ts`) and writes a
+committed `src/types/stripe.glyph` where each type is a real Glyph record with an
+`is`/`parse`/`schema` descriptor. Import it and validate at the seam:
+
+```glyph
+import types/stripe { Customer }
+
+match Customer.parse(webhook_body) {
+  Ok(c) => handle(c),
+  Err(issues) => reject(issues),
+}
+```
+
+`Customer.parse` checks the value's fields deeply, so a malformed payload is an
+`Err` you handle, not a lie the type system waved through. The generated file
+records its own `glyph gen dts stripe --out src/types` command, so `glyph regen`
+refreshes it when you bump the dependency. This is the opt-in step: you run it for
+the types you actually cross the boundary with, and the result is committed and
+greppable, not generated invisibly on every build.
+
 ## Runtime caveat
 
 A `.types/*.d.ts` file gives the **type-checker** types; it is not the

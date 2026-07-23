@@ -143,8 +143,18 @@ must not spend.
 **Phase 2 materialization is opt-in per module, not auto-on-import.** You mark
 which imports get materialized descriptors; the build does not run codegen on
 every import. This keeps build cost predictable, keeps the generated descriptors
-greppable and reviewable, and matches Glyph's "no implicit magic" stance. The
-ergonomic loss (a per-import opt-in marker) is the deliberate trade for a
-predictable, auditable boundary. The exact opt-in surface (a per-import
-annotation vs a project manifest list) is a build-time detail to settle when
-Phase 2 starts; the semantics are decided.
+greppable and reviewable, and matches Glyph's "no implicit magic" stance.
+
+**The opt-in surface is `glyph gen dts <package>` writing committed types**, not
+a per-import annotation or a build-time hook. Extending the existing `gen dts`
+(which already materialized a `.d.ts` file into descriptor-bearing Glyph types)
+to resolve an installed package by name keeps the whole design manifesto-aligned:
+the output is a real committed `.glyph` file you import and can grep, `glyph
+regen` re-runs the recorded command so a dependency bump refreshes the types, and
+no new grammar or non-committed build magic enters the language. This was chosen
+over an `import pkg { T } @materialize` annotation (which adds import-annotation
+grammar and non-committed generated code) and over a project manifest list (which
+puts the opt-in in a separate file from the use site). First increment shipped:
+`glyph gen dts stripe --out src/types` resolves the package's own `.d.ts` entry
+from `node_modules`, and the materialized `T.parse(wireValue)` validates the
+boundary value deeply.

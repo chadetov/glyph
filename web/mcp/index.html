@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wire your agent into Glyph over MCP — Glyph</title>
+    <meta name="description" content="glyph mcp runs a Model Context Protocol server that exposes Glyph's own analysis — diagnostics, types, definitions, workspace-wide references, symbol search — to a coding agent as tools. The same analysis the editor uses, so it can't drift from the compiler." />
+    <link rel="canonical" href="https://glyphlang.io/mcp/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/" class="active">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">For agents &middot; Model Context Protocol</p>
+      <h1 class="q-title">Wire your agent into Glyph's compiler</h1>
+
+      <p class="short-answer">
+        <code>glyph mcp</code> runs a <strong>Model Context Protocol server</strong> that hands a
+        coding agent Glyph's own understanding of your project as tools &mdash; diagnostics, the type
+        at a cursor, where a name is defined, every reference to a symbol, symbol search. It's the
+        <em>same analysis the editor uses</em>, exposed over stdio, so what the agent sees can't
+        drift from what the compiler sees.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why an agent wants this</p>
+        <p>
+          An agent editing a codebase usually works blind: it reads files, guesses at types, and
+          finds out whether it broke something only after a build. Glyph already answers those
+          questions precisely for an editor. <code>glyph mcp</code> gives an agent the same answers
+          directly &mdash; ground truth from the compiler, not inference &mdash; without scraping
+          build output or reading every file to find who calls what. It complements
+          <code>glyph build --json</code> (the batch path for coded diagnostics) with interactive,
+          position-level queries.
+        </p>
+
+        <p class="block-label">Set it up</p>
+        <p>
+          Any MCP client can launch it. Point the client at the <code>glyph</code> binary with the
+          <code>mcp</code> subcommand; pass your project root as an argument, or run it from the
+          project directory. It speaks MCP over stdio &mdash; no port, no daemon.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">mcp client config (generic)</span>
+<pre>{
+  "mcpServers": {
+    "glyph": {
+      "command": "glyph",
+      "args": ["mcp", "/path/to/your/project"]
+    }
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          On first connect the client calls <code>initialize</code> and <code>tools/list</code>; the
+          server reports the five tools below. Positions are the LSP convention &mdash; a 0-based
+          <code>line</code> and a 0-based <code>character</code> (UTF-16 code units).
+        </p>
+
+        <p class="block-label">The five tools</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">tools exposed by glyph mcp</span>
+<pre><span class="cm">// type-check one file → diagnostics with stable codes + ranges</span>
+glyph_diagnostics(path)
+
+<span class="cm">// the inferred type at a position</span>
+glyph_hover(path, line, character)
+
+<span class="cm">// where the name is defined, following imports across modules</span>
+glyph_definition(path, line, character)
+
+<span class="cm">// every reference across the whole project: the declaration, all</span>
+<span class="cm">// uses, and each importing module's `import` binding</span>
+glyph_references(path, line, character)
+
+<span class="cm">// search top-level declarations and union variants by name</span>
+glyph_symbols(query)</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">See it</p>
+        <p>
+          A <code>tools/call</code> for <code>glyph_diagnostics</code> on a file with a field typo
+          returns the compiler's own diagnostic &mdash; the stable code, the message, and the exact
+          range &mdash; as structured JSON the agent parses and acts on:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">request</span>
+<pre>{
+  "method": "tools/call",
+  "params": {
+    "name": "glyph_diagnostics",
+    "arguments": { "path": "src/user.glyph" }
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">result (the tool's JSON content)</span>
+<pre>[
+  {
+    "code": "E0210",
+    "message": "type `U` has no field `naem`",
+    "range": {
+      "start": { "line": 7, "character": 9 },
+      "end":   { "line": 7, "character": 15 }
+    }
+  }
+]</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>glyph_references</code> is workspace-wide: ask about a symbol and you get its
+          declaration, every use, and each importing module's <code>import</code> binding, across
+          every file &mdash; the same cross-file identity the editor's rename uses, so the answer is
+          complete, not just same-file.
+        </p>
+
+        <p class="block-label">Honest scope</p>
+        <p>
+          The tools are <strong>read-only queries</strong> today &mdash; the agent reads Glyph's
+          understanding; it doesn't apply edits through MCP (a rename tool that returns edits is a
+          planned follow-up). The workspace is scanned per request rather than cached (fine for real
+          projects, a speed optimization later), and a file that doesn't currently parse is skipped.
+          A local binding's references are file-scoped, since a local can't be named from another
+          file. And because every tool is a thin adapter over the same pure analysis layer the
+          editor calls, none of it is a second implementation that could disagree with the compiler.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>An <code>glyph mcp [root]</code> server over stdio with five tools &mdash; <code>glyph_diagnostics</code>, <code>glyph_hover</code>, <code>glyph_definition</code>, <code>glyph_references</code> (workspace-wide), and <code>glyph_symbols</code> &mdash; each a thin adapter over the same analysis the language server uses.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>A rename tool that returns the edits to apply, a cached/incremental workspace index, and extending cross-file resolution to more of the query surface.</p>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          Not using MCP? An agent can still get the full language and diagnostic surface offline via
+          <a href="/llms.txt">llms.txt</a> (the spec) and <code>glyph build --json</code> (coded
+          diagnostics). MCP is the interactive layer on top.
+        </p>
+      </div>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph &mdash; TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/answers/tooling/">Editor &amp; agent tooling</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

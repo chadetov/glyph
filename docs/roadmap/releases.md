@@ -398,17 +398,32 @@ Adi, Ashfaq).
 *Done:* a real app's dependency list installs and is used with zero per-library
 adapters.
 
+### React track — required (scope decided: React-included)
+
+The scope decision is made: Glyph commits to being a serious React language, so
+the React work is a must-have, not a maybe. This is what makes the road longer.
+
+- **Answer Q44** (L). A Context primitive (`createContext`/provider/`useContext`
+  equivalent) and a story for effectful custom hooks that composes with the
+  `@pure` JSX-callable rule (D9). Today a hook that calls `use_state`/effects can
+  neither be written nor JSX-called. *Done:* a custom hook and a Context provider
+  written in `.glyph`, no TS adapter, used in a component.
+- **The React-library grammar primitives** (L), folded into the interop work
+  above: prop spread in JSX (`<input {...register()} />`) and value-derived types
+  (`z.infer<typeof s>`, generalizing `infer_output`). *Done:* `react-hook-form`
+  used from `.glyph` with its real API and no adapter.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project
 on.
 
 - **A second real app with persisted data on a real DB client** (L), no wrapper.
-- **If Glyph commits to React** (positioning decision, Q44): decide Context and
-  effectful custom hooks, then build a persisted React app.
+- **A persisted React app** (L) exercising Context, a custom hook, and a real form
+  library, since React is in scope for 1.0.
 
-*Done:* two real apps built and kept on the shipped interop path, at least one
-backed by a database.
+*Done:* real apps built and kept on the shipped interop path, at least one backed
+by a database and one a real React app.
 
 ### 0.3.0 — Settle the productivity claim
 
@@ -423,13 +438,15 @@ real apps (one with a DB); every boundary verifiability hole closed or loudly
 labeled; node builtins typecheck out of the box; publish discipline CI-enforced;
 the productivity claim measured or downgraded.
 
-### Two decisions this road waits on
+### Decisions
 
-1. **Interop approach (Q43).** Options and costs are in `docs/plan/interop-q43.md`.
-   This gates 0.1.14 onward.
-2. **Is Glyph a serious React language?** If yes, Q44 (Context + effectful hooks)
-   is a must-have and the React dogfood is required. If no, drop React from the
-   marketing and the roadmap, and the Q44 problem goes away.
+1. **Is Glyph a serious React language?** ✅ **Resolved: yes (React-included).**
+   Q44 (Context + effectful hooks) and the React-library grammar primitives are
+   must-haves, and a persisted React app is a required proof. This is the larger
+   1.0.
+2. **Interop mechanism (Q43).** Recommended in `docs/plan/interop-q43.md`: the
+   phased hybrid (Option 3), full scope (Option 4 backend-first narrowing is off,
+   since React is in). Still gates 0.1.14 onward; confirm before building.
 
 ### Explicitly out of 1.0
 

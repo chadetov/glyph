@@ -116,15 +116,24 @@ The recommendation deliberately does not pick Option 2 alone: it is the cheapest
 but it spends the one thing the third review said Glyph must not spend, which is
 verifiability at the boundary.
 
-## The decision the owner has to make
+## The scope decision: resolved to React-included
 
-The fork that most changes the road is not 1 vs 2 vs 3. It is scope:
+The fork that most changes the road was scope, and it is decided: **React-included.**
+Glyph commits to being a serious React language, so:
 
-- **Backend-first.** Interop is mostly "materialize types + typecheck," which is
-  tractable, and a 1.0 is reachable on the plan above. React is deferred or
-  dropped, and Q44 goes away.
-- **React-included.** You must also build the prop-spread and value-derived
-  primitives and answer Q44 (Context, effectful hooks). That is a materially bigger
-  1.0 and a longer road.
+- Option 4 (backend-first narrowing) is off. The grammar-hostile UI cases stay in
+  1.0 scope.
+- The recommended mechanism is Option 3 (phased hybrid), full scope. Phase 3 is now
+  a required build, not an escape hatch of last resort: the JSX prop-spread
+  operator and value-derived types (generalizing `infer_output`) ship, and Q44
+  (Context, effectful custom hooks) gets a spec answer.
+- The escape hatch still exists for the long tail, so no library ever forces a
+  hand-written adapter file, but the common React idioms become first-class.
 
-Pick the scope first. The mechanism (Option 3) follows from it.
+This is the larger 1.0 and the longer road. See the React track in
+`docs/roadmap/releases.md`.
+
+Still open, and worth confirming before 0.1.14 starts building: whether the
+import-path materialization (Phase 2) auto-runs on every import or is opt-in per
+module. Auto is more ergonomic; opt-in is more predictable about build cost. That
+is a smaller call that can be made when the work starts.

@@ -1188,6 +1188,59 @@ fn main(argv: Array<string>) -> number {
     }
 }
 
+/// Node builtins imported by their bare name (`import fs`/`path`/`os`) must
+/// type-check out of the box, with no `.types/` stub and no `@types/node`
+/// installed. The bundled Node shim (written when the project has no
+/// `@types/node`) declares the common builtins under their bare names, which is
+/// what a user's `import fs` emits.
+#[test]
+fn node_builtins_typecheck_out_of_the_box() {
+    if !tsc_available() {
+        eprintln!("skipping node-builtins check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("builtins");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "m.glyph",
+        r#"module m
+
+import fs { existsSync }
+import path { join }
+import os { platform }
+
+fn main(argv: Array<string>) -> number {
+  let p = join("a", "b")
+  let here = platform()
+  match existsSync(p) {
+    true => print(here),
+    false => print(p),
+  }
+  return 0
+}
+"#,
+    );
+
+    let out = root.join("dist");
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => {
+            panic!("bare node builtins did not type-check with the bundled shim:\n{msg}")
+        }
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+    // The bundled shim is written when there is no @types/node.
+    assert!(
+        out.join(".glyph-runtime/glyph-node-shims.d.ts").is_file(),
+        "bundled node shim should be present without @types/node"
+    );
+}
+
 /// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
 /// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
 /// run fail for environmental reasons, not a real defect.

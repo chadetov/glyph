@@ -381,11 +381,19 @@ shipped; two need real design and moved to the next 0.1.x.
 - **Manifesto honesty** (S). ✅ **Done.** The unmeasured "reviewer finishes in half
   the time" line is reworded as a hypothesis to be measured (0.3.0), with no
   figure put on it.
-- **Node builtins typecheck out of the box** (M). **Moved to a following 0.1.x.**
-  The emitted tsconfig ships `"types": []` (`runtime.rs:113`), and the bundled
-  shim only declares `node:fs`, not the bare `fs`/`http` a user imports. Making
-  `import fs`/`http` typecheck with no stub needs a real design (bundled shim vs
-  `@types/node` vs specifier rewriting), not a one-liner, so it is not in 0.1.13.
+- **Node builtins typecheck out of the box** (M). ✅ **Done.** The bundled Node
+  shim now declares the common builtins (`fs`, `http`, `path`, `os`, `crypto`,
+  `url`, plus the `process` global) under their **bare** names, which is what a
+  user's `import fs` emits, so a program using node builtins type-checks with
+  nothing installed. When the project ships `@types/node`, the build detects it,
+  loads its full surface (`types: ["node"]` with an explicit `typeRoots` at the
+  project's `@types`, since the out dir sits outside the project), and skips the
+  bundled shim so there is no duplicate `declare module "fs"` conflict, so an API
+  the shim does not cover (`os.uptime()`) type-checks the moment `@types/node` is
+  present. The chosen design is bundled-shim-first (out of the box) with
+  `@types/node` as the completeness escape, over `@types/node`-only (needs an
+  install) or specifier rewriting (would break the example `.types` stubs).
+  Hermetic + tsc-level tests; the examples still build unchanged.
 - **Imported `.d.ts` type in a `.parse` position: validate or diagnose** (M).
   **Moved to a following 0.1.x.** Needs a new warning when a descriptor field is
   presence-only because its type is opaque, which is design, not a quick fix.

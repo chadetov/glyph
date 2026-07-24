@@ -150,7 +150,7 @@ print(user.name)</pre>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Import any npm package (hyphenated and scoped names included). An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub. <code>.types/</code> ambient declarations for the rest, <code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types, and clean <code>.ts</code> output your existing TypeScript imports back.</p>
+          <p>Import any npm package (hyphenated and scoped names included). An installed package that ships its own types (or has <code>@types/...</code>) type-checks and runs with no stub. Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when you install it. <code>.types/</code> ambient declarations for anything else, <code>glyph gen dts</code> to materialize a <code>.d.ts</code> into validated Glyph types, and clean <code>.ts</code> output your existing TypeScript imports back.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

@@ -99,11 +99,15 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         ".glyph-runtime/glyph-stdlib.d.ts",
         include_str!("../../../runtime/glyph-stdlib.d.ts"),
     ),
-    (
-        ".glyph-runtime/glyph-node-shims.d.ts",
-        include_str!("../../../runtime/glyph-node-shims.d.ts"),
-    ),
 ];
+
+/// The bundled Node builtin shim, written only when the project has no
+/// `@types/node` (with `@types/node` installed we prefer it and skip this to
+/// avoid a duplicate `declare module "fs"` conflict).
+const NODE_SHIMS: (&str, &str) = (
+    ".glyph-runtime/glyph-node-shims.d.ts",
+    include_str!("../../../runtime/glyph-node-shims.d.ts"),
+);
 
 /// The generated `tsconfig.json`. `paths` resolves `std/*` imports to the
 /// bundled runtime; `include` covers the emitted output, the runtime, and any
@@ -124,7 +128,7 @@ const TSCONFIG_TEMPLATE: &str = r#"{
     "module": "esnext",
     "moduleResolution": "bundler",
     "skipLibCheck": true,
-    "types": [],
+    "types": [{node_types}]{type_roots},
     "paths": {
       "std/*": ["./.glyph-runtime/std/*"]{node_modules_paths}
     }
@@ -142,7 +146,13 @@ const TSCONFIG_TEMPLATE: &str = r#"{
 /// `paths` when one was found so bare package imports resolve. Absolute path
 /// values are used verbatim by TypeScript (no `baseUrl` required); backslashes
 /// are escaped so a Windows path stays valid JSON.
-fn tsconfig_json(node_modules: Option<&Path>) -> String {
+///
+/// When the project has `@types/node`, its full Node typings are loaded
+/// (`types: ["node"]` with an explicit `typeRoots` pointing at the project's
+/// `@types`, since the out dir sits outside the project). Otherwise `types: []`
+/// keeps the ambient global surface minimal and the bundled Node shim (written
+/// separately) covers the common builtins.
+fn tsconfig_json(node_modules: Option<&Path>, has_types_node: bool) -> String {
     let node_modules_paths = match node_modules {
         Some(nm) => {
             let nm = nm.to_string_lossy().replace('\\', "\\\\");
@@ -150,7 +160,30 @@ fn tsconfig_json(node_modules: Option<&Path>) -> String {
         }
         None => String::new(),
     };
-    TSCONFIG_TEMPLATE.replace("{node_modules_paths}", &node_modules_paths)
+    let (node_types, type_roots) = if has_types_node {
+        let nm = node_modules
+            .expect("has_types_node implies a node_modules")
+            .to_string_lossy()
+            .replace('\\', "\\\\");
+        (
+            "\"node\"".to_string(),
+            format!(",\n    \"typeRoots\": [\"{nm}/@types\"]"),
+        )
+    } else {
+        (String::new(), String::new())
+    };
+    TSCONFIG_TEMPLATE
+        .replace("{node_modules_paths}", &node_modules_paths)
+        .replace("{node_types}", &node_types)
+        .replace("{type_roots}", &type_roots)
+}
+
+/// Whether the project has `@types/node` installed (so its full Node typings can
+/// be preferred over the bundled shim).
+fn has_types_node(node_modules: Option<&Path>) -> bool {
+    node_modules
+        .map(|nm| nm.join("@types/node").join("package.json").is_file())
+        .unwrap_or(false)
 }
 
 /// Find the *project's* `node_modules` by walking up from the (canonicalized)
@@ -199,7 +232,24 @@ pub fn write_build_support(out: &Path, src: &Path) -> std::io::Result<()> {
         std::fs::write(path, contents)?;
     }
     let node_modules = find_project_node_modules(src);
-    std::fs::write(out.join("tsconfig.json"), tsconfig_json(node_modules.as_deref()))?;
+    let types_node = has_types_node(node_modules.as_deref());
+
+    // The bundled Node shim covers the common builtins out of the box. When the
+    // project ships `@types/node`, prefer its full, exact typings and skip the
+    // shim so its `declare module "fs"` does not collide with `@types/node`'s.
+    if !types_node {
+        let (rel, contents) = NODE_SHIMS;
+        let path = out.join(rel);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(path, contents)?;
+    }
+
+    std::fs::write(
+        out.join("tsconfig.json"),
+        tsconfig_json(node_modules.as_deref(), types_node),
+    )?;
 
     // A project may supply ambient declarations for its external dependencies
     // (npm packages, sibling app modules) in `<src>/.types/`; copy them so the
@@ -270,9 +320,23 @@ mod tests {
     /// resolution emitted, so a dependency-free project is unaffected.
     #[test]
     fn tsconfig_without_node_modules_only_maps_std() {
-        let ts = tsconfig_json(None);
+        let ts = tsconfig_json(None, false);
         assert!(ts.contains(r#""std/*": ["./.glyph-runtime/std/*"]"#));
         assert!(!ts.contains(r#""*""#), "no wildcard mapping without node_modules");
+        assert!(ts.contains(r#""types": [],"#), "no @types/node: empty types array");
+        assert!(!ts.contains("typeRoots"), "no typeRoots without @types/node");
+    }
+
+    /// With `@types/node` installed, the tsconfig loads it (`types: ["node"]`)
+    /// with an explicit `typeRoots` pointing at the project's `@types`, since the
+    /// out dir lives outside the project and default type-root resolution would
+    /// miss it.
+    #[test]
+    fn tsconfig_with_types_node_loads_it() {
+        let nm = Path::new("/proj/node_modules");
+        let ts = tsconfig_json(Some(nm), true);
+        assert!(ts.contains(r#""types": ["node"],"#), "got: {ts}");
+        assert!(ts.contains(r#""typeRoots": ["/proj/node_modules/@types"]"#), "got: {ts}");
     }
 
     /// With a project `node_modules`, a `"*"` entry points bare imports at both
@@ -283,7 +347,7 @@ mod tests {
     #[test]
     fn tsconfig_with_node_modules_wires_the_wildcard() {
         let nm = Path::new("/proj/node_modules");
-        let ts = tsconfig_json(Some(nm));
+        let ts = tsconfig_json(Some(nm), false);
         assert!(ts.contains(r#""std/*": ["./.glyph-runtime/std/*"]"#));
         assert!(ts.contains(
             r#""*": ["/proj/node_modules/*", "/proj/node_modules/@types/*"]"#
@@ -295,7 +359,7 @@ mod tests {
     #[test]
     fn tsconfig_escapes_backslashes_in_the_path() {
         let nm = Path::new(r"C:\proj\node_modules");
-        let ts = tsconfig_json(Some(nm));
+        let ts = tsconfig_json(Some(nm), false);
         assert!(ts.contains(r#""C:\\proj\\node_modules/*""#), "got: {ts}");
     }
 

@@ -62,7 +62,7 @@ import http { createServer }   // import { createServer } from "http";
 import fs { readFileSync }     // import { readFileSync } from "fs";
 ```
 
-You **cannot** write the `node:` prefix — a colon is not a legal character in a
+You **cannot** write the `node:` prefix: a colon is not a legal character in a
 Glyph import path, so `import node:http { ... }` fails:
 
 ```
@@ -72,11 +72,19 @@ Glyph import path, so `import node:http { ... }` fails:
 Use the bare name (`import http { ... }`); Node resolves `"http"` to the builtin
 just as it resolves `"node:http"`.
 
+The common builtins type-check **out of the box**, with nothing installed:
+`glyph build` bundles ambient declarations for `fs`, `http`, `path`, `os`,
+`crypto`, and `url` (plus the `process` global) under their bare names. For the
+full, exact Node surface, install `@types/node` in your project. The build
+detects it, prefers its complete typings, and skips the bundled shim, so there is
+no duplicate-declaration conflict and a builtin API the shim does not cover (say
+`os.uptime()`) type-checks the moment `@types/node` is present.
+
 ## Giving the type-checker types: `.types/`
 
-`glyph build` type-checks the emitted TypeScript with `tsc --strict`, so every
-external module needs a type declaration. Drop an ambient declaration file under
-your source root's `.types/` directory:
+`glyph build` type-checks the emitted TypeScript with `tsc --strict`, so an
+external module with no types needs a declaration. Drop an ambient declaration
+file under your source root's `.types/` directory:
 
 ```
 src/

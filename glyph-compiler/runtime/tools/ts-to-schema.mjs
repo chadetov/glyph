@@ -12,8 +12,12 @@
 // resolved against the enclosing scope. A generic parameter (`interface Box<T>`)
 // has no JSON-Schema form and maps to `unknown`. An ambient `declare module "x"`
 // (string-literal name) is skipped — it declares another module, not this
-// package's own types. Cross-file re-exports (`export … from "./other"`) are not
-// yet followed; a bundled single-file `.d.ts` (the common shape) is fully walked.
+// package's own types. The entry file and every `.d.ts` reachable through a
+// relative `import`/`export … from` specifier are walked, so a package that
+// splits its types across files (re-exported from an index barrel) materializes
+// fully; a bare specifier (`"react"`) points at another package and is not
+// followed. Cross-file following is best-effort on the TypeScript 7 native path
+// (see `loadToolkit`).
 //
 // Works with either TypeScript compiler:
 //   - the classic API (typescript 5/6): `createSourceFile` in-process;
@@ -33,6 +37,7 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import * as fs from "node:fs";
+import * as path from "node:path";
 
 const file = process.argv[2];
 if (!file) {
@@ -41,9 +46,9 @@ if (!file) {
 }
 const source = fs.readFileSync(file, "utf8");
 
-// `K` is the SyntaxKind enum; `sf` is the parsed source file. Both come from
-// whichever compiler is available.
-let K, sf;
+// `K` is the SyntaxKind enum; `sf` is the parsed entry source file; `parseFile`
+// parses an additional file with the same compiler (for cross-file re-exports).
+let K, sf, parseFile;
 {
   const tk = loadToolkit(file, source);
   if (!tk) {
@@ -63,9 +68,11 @@ let K, sf;
   }
   K = tk.K;
   sf = tk.sf;
+  parseFile = tk.parseFile;
 }
 
-/** Load `{ K, sf }` from the classic API, else the TypeScript 7 native API. */
+/** Load `{ K, sf, parseFile }` from the classic API, else the TypeScript 7
+ *  native API. `parseFile(absPath)` returns a parsed source file, or null. */
 function loadToolkit(file, source) {
   // Classic API — resolve `typescript` from the file's project first, then this
   // helper (a global install via NODE_PATH). `require` (not ESM import) honors
@@ -76,9 +83,19 @@ function loadToolkit(file, source) {
       let ts = req("typescript");
       if (ts && ts.default && !ts.ScriptTarget) ts = ts.default;
       if (ts && typeof ts.createSourceFile === "function" && ts.ScriptTarget) {
+        const mk = (f, s) => ts.createSourceFile(f, s, ts.ScriptTarget.Latest, /*setParentNodes*/ true);
         return {
           K: ts.SyntaxKind,
-          sf: ts.createSourceFile(file, source, ts.ScriptTarget.Latest, /*setParentNodes*/ true),
+          sf: mk(file, source),
+          // Read and parse any additional `.d.ts` reachable by a relative
+          // re-export; returns null if the file can't be read.
+          parseFile: (f) => {
+            try {
+              return mk(f, fs.readFileSync(f, "utf8"));
+            } catch {
+              return null;
+            }
+          },
         };
       }
     } catch {
@@ -99,7 +116,20 @@ function loadToolkit(file, source) {
         .getDefaultProjectForFile(file);
       const nativeSf = project && project.program.getSourceFile(file);
       if (nativeSf) {
-        return { K: ast.SyntaxKind, sf: nativeSf };
+        return {
+          K: ast.SyntaxKind,
+          sf: nativeSf,
+          // The native port has no standalone `createSourceFile`; a re-exported
+          // file resolves only if the program already pulled it in. Cross-file
+          // re-export following is best-effort on the native path.
+          parseFile: (f) => {
+            try {
+              return project.program.getSourceFile(f) || null;
+            } catch {
+              return null;
+            }
+          },
+        };
       }
     }
   } catch {
@@ -260,8 +290,13 @@ function collect(statements, scope) {
   for (const stmt of statements) {
     if (stmt.kind === K.InterfaceDeclaration || stmt.kind === K.TypeAliasDeclaration) {
       const qualified = [...scope, nameText(stmt.name)].join(".");
-      declaredNames.add(qualified);
-      collected.push({ node: stmt, qualified, scope });
+      if (!declaredNames.has(qualified)) {
+        // First declaration of a name wins; the entry file is walked first, so
+        // its own types take precedence over a same-named type in a re-exported
+        // file.
+        declaredNames.add(qualified);
+        collected.push({ node: stmt, qualified, scope });
+      }
     } else if (
       stmt.kind === K.ModuleDeclaration &&
       stmt.body &&
@@ -281,7 +316,52 @@ function collect(statements, scope) {
     }
   }
 }
-collect(sf.statements, []);
+
+/** Resolve a relative module specifier to a `.d.ts` file, or null. Only
+ *  relative specifiers are followed; a bare `"react"` points at another package
+ *  whose types are not this one's to materialize. */
+function resolveModuleFile(fromFile, spec) {
+  if (!spec.startsWith(".")) return null;
+  const base = path.resolve(path.dirname(fromFile), spec);
+  const candidates = [
+    base, // spec already carried an extension
+    base + ".d.ts",
+    base + ".d.mts",
+    base + ".d.cts",
+    path.join(base, "index.d.ts"),
+  ];
+  for (const c of candidates) {
+    try {
+      if (fs.statSync(c).isFile()) return c;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return null;
+}
+
+// Walk the entry file and every `.d.ts` reachable through a relative
+// `import ... from` / `export ... from` specifier, so a package that splits its
+// types across files (re-exported from an index barrel) materializes fully.
+const visitedFiles = new Set();
+function walkFile(absPath, sourceFile) {
+  const real = path.resolve(absPath);
+  if (visitedFiles.has(real)) return;
+  visitedFiles.add(real);
+  const sfi = sourceFile || parseFile(real);
+  if (!sfi) return;
+  collect(sfi.statements, []);
+  for (const stmt of sfi.statements) {
+    if (
+      (stmt.kind === K.ImportDeclaration || stmt.kind === K.ExportDeclaration) &&
+      stmt.moduleSpecifier
+    ) {
+      const resolved = resolveModuleFile(real, nameText(stmt.moduleSpecifier));
+      if (resolved) walkFile(resolved);
+    }
+  }
+}
+walkFile(file, sf);
 
 /** Resolve a written type name against the namespace scope, innermost first;
  *  fall back to the name as written (may dangle, as before namespaces). */

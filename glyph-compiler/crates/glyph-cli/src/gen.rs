@@ -1970,6 +1970,56 @@ mod tests {
     }
 
     #[test]
+    fn dts_follows_cross_file_reexports() {
+        // A multi-file SDK: an index barrel re-exports from sibling files, one of
+        // which imports a type from a third. All three must materialize, and the
+        // cross-file reference must resolve. Regression for the Linus-04 cross-file
+        // gap.
+        let dir = std::env::temp_dir().join(format!("glyph-dts-multi-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let lib = dir.join("lib");
+        std::fs::create_dir_all(&lib).unwrap();
+        std::fs::write(
+            dir.join("index.d.ts"),
+            "export { Customer } from \"./lib/customer\";\nexport * from \"./lib/order\";\n",
+        )
+        .unwrap();
+        std::fs::write(
+            lib.join("customer.d.ts"),
+            "import { Address } from \"./address\";\n\
+             export interface Customer { id: string; address: Address; }\n",
+        )
+        .unwrap();
+        std::fs::write(
+            lib.join("address.d.ts"),
+            "export interface Address { city: string; zip?: string; }\n",
+        )
+        .unwrap();
+        std::fs::write(
+            lib.join("order.d.ts"),
+            "export interface Order { id: string; amount: number; }\n",
+        )
+        .unwrap();
+
+        match dts(&dir.join("index.d.ts"), &dir.join("out")) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                assert!(text.contains("type Customer"), "re-exported type; got:\n{text}");
+                assert!(text.contains("type Order"), "`export *` type; got:\n{text}");
+                assert!(text.contains("type Address"), "transitively-imported type; got:\n{text}");
+                assert!(text.contains("address: Address"), "cross-file ref resolved; got:\n{text}");
+                assert!(glyph_parser::parse(&text).is_ok(), "generated must parse:\n{text}");
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn zod_generates_or_skips_cleanly() {
         // `glyph gen zod` needs tsx + a resolvable zod. Where either is absent
         // (most CI/sandboxes), it must return a clean Missing/Unsupported error

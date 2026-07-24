@@ -207,12 +207,12 @@ match Customer.parse(webhook_body) {
         <p>
           What materializes today: <code>gen dts</code> reads the <code>interface</code> and
           <code>type</code> declarations a package exports, including those inside a
-          <code>declare namespace</code> tree (bare cross-references resolve through the scope). A
-          generic parameter has no runtime form, so it degrades to <code>unknown</code>. Not yet
-          followed: cross-file re-exports (<code>export … from "./other"</code>), so a package that
-          splits its types across files materializes only what its entry <code>.d.ts</code>
-          declares; a bundled single-file <code>.d.ts</code> is fully walked. For the rest, hand-write
-          the shapes you cross the boundary with, or use the <code>extern_ts</code> escape hatch.
+          <code>declare namespace</code> tree (bare cross-references resolve through the scope) and
+          those in sibling files an <code>index</code> barrel re-exports (the entry
+          <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic
+          parameter has no runtime form, so it degrades to <code>unknown</code>. For anything the
+          materializer can't reach, hand-write the shapes you cross the boundary with, or use the
+          <code>extern_ts</code> escape hatch.
         </p>
       </div>
 

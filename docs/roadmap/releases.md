@@ -490,15 +490,18 @@ the version that declares it real, not the version it all lands in.
 **Interop code fixes from Linus review 04** (the verified gaps behind the honesty
 edits; each is real engineering, not a doc tweak):
 
-- **Deeper `.d.ts` materialization** (L). 🟨 **Partially done.** `ts-to-schema.mjs`
+- **Deeper `.d.ts` materialization** (L). 🟨 **Mostly done.** `ts-to-schema.mjs`
   now walks `declare namespace` trees (two-pass, qualified names, scope-aware
-  reference resolution) and degrades a generic parameter to `unknown`, so a
-  bundled single-file SDK `.d.ts` materializes usable descriptor-bearing types
-  (regression-tested). **Remaining:** follow cross-file re-exports (`export …
-  from "./other"` and `export *`), which needs multi-file resolution, and
-  first-class generic materialization (emit a Glyph generic instead of erasing
-  the parameter to `unknown`). *Done:* `gen dts` on a real multi-file SDK produces
-  usable types; a generic type keeps its parameter.
+  reference resolution), degrades a generic parameter to `unknown`, and follows
+  cross-file re-exports: the entry file plus every `.d.ts` reachable through a
+  relative `import`/`export … from` (an `index` barrel re-exporting sibling
+  files, `export *`, transitive imports) is walked, with cross-file references
+  resolved. So a real multi-file SDK now materializes usable descriptor-bearing
+  types (both regression-tested). **Remaining:** first-class generic
+  materialization (emit a Glyph generic instead of erasing the parameter to
+  `unknown`); a bare specifier is not followed (it points at another package),
+  and cross-file following is best-effort on the TypeScript 7 native path.
+  *Done:* a generic type keeps its parameter through materialization.
 - **Subpath-`exports` resolution** (M). The Phase 1 tsconfig `"*"` wildcard
   (`runtime.rs`) substitutes `@scope/pkg/sub` to a physical path and bypasses the
   target package's `exports` map, so a package whose subpath types live behind

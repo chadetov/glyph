@@ -186,7 +186,7 @@ type User = { name: string; age: number };
         </div>
         <div class="code">
           <span class="cap">from an installed package, by name</span>
-<pre>glyph gen dts stripe \
+<pre>glyph gen dts api-types \
   --out src/types</pre>
         </div>
       </div>
@@ -195,15 +195,23 @@ type User = { name: string; age: number };
         <p>
           Point <code>glyph gen dts</code> at a <code>.d.ts</code> file, or, as above, at an
           installed npm package by name: it resolves the package's own declaration entry from
-          <code>node_modules</code> and writes committed types you import. So an SDK's response
-          becomes a validated boundary in two lines, with nothing hand-written:
+          <code>node_modules</code> and writes committed types you import. A wire type becomes a
+          validated boundary, with nothing hand-written:
         </p>
-<pre>import types/stripe { Customer }
+<pre>import types/api_types { Customer }
 
 match Customer.parse(webhook_body) {
   Ok(c) =&gt; handle(c),
   Err(issues) =&gt; reject(issues),
 }</pre>
+        <p>
+          The honest scope of what materializes today: <code>gen dts</code> reads the top-level
+          <code>interface</code> and <code>type</code> declarations a package exports. A package
+          whose types are a <code>declare namespace</code> tree, heavy re-exports, or deep generics
+          (many large SDKs) needs the deeper <code>.d.ts</code> support that is on the roadmap; for
+          those, materialize the specific shapes you need by hand or use the <code>extern_ts</code>
+          escape hatch until then.
+        </p>
       </div>
 
       <div class="detail">
@@ -225,9 +233,10 @@ match Customer.parse(webhook_body) {
           generic types at a given instantiation. A type Glyph did not generate (an external
           package or <code>.d.ts</code> you only import) is type-checked but carries no descriptor
           until you materialize it, which is now one command against the installed package
-          (<code>glyph gen dts stripe</code>). That boundary is deliberate: a type Glyph didn't
-          emit can't promise runtime validation, so you opt in per package and the result is
-          committed and greppable, not conjured on every build.
+          (<code>glyph gen dts &lt;package&gt;</code>, for the top-level interfaces and type aliases
+          it exports). That boundary is deliberate: a type Glyph didn't emit can't promise runtime
+          validation, so you opt in per package and the result is committed and greppable, not
+          conjured on every build.
         </p>
       </div>
 

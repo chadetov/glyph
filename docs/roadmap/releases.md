@@ -440,15 +440,23 @@ The make-or-break question. The design decision is now made (see
   import annotation or a manifest list): the existing `.d.ts` materializer now
   resolves an installed package by name from `node_modules` (reading its
   `types`/`typings`/`exports` entry, or a top-level `index.d.ts`), and writes real
-  committed Glyph types with runtime descriptors. `glyph gen dts stripe --out
-  src/types` gives you `Customer.parse(webhookBody)` that validates the wire value
-  deeply; the generated file records `glyph gen dts stripe --out src/types` so
-  `glyph regen` refreshes it on a dependency bump. Proven end to end (a fake
-  installed SDK materializes, its descriptor validates at build and runtime,
-  regen re-runs it) with hermetic unit tests over the resolution and helpful
-  errors for a missing package or one that ships no types. This keeps the
-  verifiability wedge at the npm seam without new grammar or non-committed build
-  magic.
+  committed Glyph types with runtime descriptors. `glyph gen dts api-types --out
+  src/types` gives you `Customer.parse(webhookBody)` that validates the wire
+  value's *structure* deeply (nested records, arrays, optional fields all the way
+  down); leaf values are still shallow (an `integer` field checks as a number,
+  a string enum as a `string`). The generated file records its command so `glyph
+  regen` refreshes it on a dependency bump. Proven end to end (a fake installed
+  SDK materializes, its descriptor validates at build and runtime, regen re-runs
+  it) with hermetic unit tests over the resolution and helpful errors.
+  *Honest scope, per Linus review 04:* the `.d.ts` reader (`ts-to-schema.mjs`)
+  reads only top-level `interface`/`type` declarations, so a `declare namespace`
+  tree, re-exports, or deep generics (the shape large SDKs like stripe actually
+  ship) materialize to little or nothing today; that deeper `.d.ts` support is
+  tracked below. This keeps the verifiability wedge at the seam **for the types
+  you materialize** (not for every installed package: an un-materialized package's
+  outputs are type-checked against its `.d.ts` but not runtime-validated, which is
+  the Option-2 trust boundary, so the "wedge at the npm seam" holds only where you
+  opt in). No new grammar or non-committed build magic.
 - **Phase 2 — package-name parity for `gen zod`** (S). ✅ **Done.** `glyph gen zod
   <package>` now resolves an installed package's *runtime* entry (`main`/`module`,
   or the `import`/`default` condition of `exports["."]`, or a top-level
@@ -475,6 +483,39 @@ the version that declares it real, not the version it all lands in.
   client and use their real APIs with no adapter.
 - **Stdlib breadth or a documented "use npm for X"** (M) for crypto, database, and
   real servers, so the 744-line hand-written stdlib is not the only answer.
+
+**Interop code fixes from Linus review 04** (the verified gaps behind the honesty
+edits; each is real engineering, not a doc tweak):
+
+- **Deeper `.d.ts` materialization** (L, the big one). `runtime/tools/ts-to-schema.mjs`
+  reads only top-level `interface`/`type` declarations (`:231-236`). Teach it
+  `ModuleDeclaration` (`declare namespace`), re-exports (`export ... from`),
+  `export =`, and generic instantiation, so `gen dts <real-SDK>` materializes
+  something instead of an empty/near-empty definitions map. *Until this lands, no
+  doc names a real namespaced SDK (stripe) as a working `gen dts` example.* *Done:*
+  `gen dts` on a real SDK's `.d.ts` produces usable, descriptor-bearing types.
+- **Subpath-`exports` resolution** (M). The Phase 1 tsconfig `"*"` wildcard
+  (`runtime.rs`) substitutes `@scope/pkg/sub` to a physical path and bypasses the
+  target package's `exports` map, so a package whose subpath types live behind
+  `exports` conditions (the modern default, e.g. `@hookform/resolvers/zod`) may not
+  resolve. Resolve packages through their `exports` map, or generate per-subpath
+  path entries. Verify against a real subpath-`exports` package (this was *inferred*
+  in review 04, not run: confirm it first). *Done:* a subpath-`exports` package's
+  types resolve with no stub.
+- **Leaf-value validation in generated descriptors** (M). A JSON-Schema `integer`
+  and `number` both lower to Glyph `number` (`gen.rs:1127`), so `3.5` passes an
+  integer field; string enums narrow to `string` (documented, with a note). Add
+  optional leaf checks (integer, string enum values, common formats) so "validates
+  deeply" is true at the leaves, not only the structure. *Done:* a generated
+  descriptor rejects a wrong-typed leaf, not just a wrong shape.
+- **`@open` policy for materialized wire records** (S, decision). Generated records
+  are strict-by-default (reject undeclared keys), so a materialized DTO rejects a
+  forward-compatible API response that adds a field. Decide whether `gen dts`/`gen
+  openapi` should emit `@open` for wire types, and test against an evolving API.
+- **Node-shim / `@types/node` consistency** (S). A build green against the bundled
+  shim can flip red (or vice versa) when `@types/node` is later installed, because
+  the surfaces differ. Minor, but worth a note in the docs and a thought about
+  narrowing the shim's signatures to match `@types/node` where they diverge.
 
 *Done:* a real app's dependency list installs and is used with zero per-library
 adapters.

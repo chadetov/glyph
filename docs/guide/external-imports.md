@@ -227,16 +227,16 @@ body, an SDK response, a row. When you want that boundary checked, materialize t
 package's types into committed Glyph types with descriptors:
 
 ```sh
-glyph gen dts stripe --out src/types
+glyph gen dts api-types --out src/types
 ```
 
 This resolves the installed package's own declaration entry from `node_modules`
 (its `types`/`typings`/`exports` field, or a top-level `index.d.ts`) and writes a
-committed `src/types/stripe.glyph` where each type is a real Glyph record with an
-`is`/`parse`/`schema` descriptor. Import it and validate at the seam:
+committed `src/types/api-types.glyph` where each type is a real Glyph record with
+an `is`/`parse`/`schema` descriptor. Import it and validate at the seam:
 
 ```glyph
-import types/stripe { Customer }
+import types/api_types { Customer }
 
 match Customer.parse(webhook_body) {
   Ok(c) => handle(c),
@@ -244,12 +244,22 @@ match Customer.parse(webhook_body) {
 }
 ```
 
-`Customer.parse` checks the value's fields deeply, so a malformed payload is an
-`Err` you handle, not a lie the type system waved through. The generated file
-records its own `glyph gen dts stripe --out src/types` command, so `glyph regen`
-refreshes it when you bump the dependency. This is the opt-in step: you run it for
-the types you actually cross the boundary with, and the result is committed and
-greppable, not generated invisibly on every build.
+`Customer.parse` checks the value's structure deeply (nested records, arrays, and
+optional fields all the way down), so a structurally-malformed payload is an `Err`
+you handle, not a lie the type system waved through. It does not yet check leaf
+*values*: an `integer` field is validated as a number (so `3.5` passes), and a
+string enum as a `string`. The generated file records its own `glyph gen dts
+api-types --out src/types` command, so `glyph regen` refreshes it when you bump
+the dependency. This is the opt-in step: you run it for the types you actually
+cross the boundary with, and the result is committed and greppable, not generated
+invisibly on every build.
+
+**What materializes today:** `gen dts` reads the top-level `interface` and `type`
+declarations a package exports. A package whose types are a `declare namespace`
+tree, heavy re-exports, or deep generics (many large SDKs) needs the deeper
+`.d.ts` support tracked on the roadmap; for those, hand-write the specific shapes
+you cross the boundary with, or reach for the `extern_ts` escape hatch, until that
+lands.
 
 `glyph gen zod` takes a package name too, for a package that *exports zod
 schemas* (a shared-schema package). It resolves the package's runtime entry,

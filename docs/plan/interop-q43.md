@@ -155,6 +155,17 @@ no new grammar or non-committed build magic enters the language. This was chosen
 over an `import pkg { T } @materialize` annotation (which adds import-annotation
 grammar and non-committed generated code) and over a project manifest list (which
 puts the opt-in in a separate file from the use site). First increment shipped:
-`glyph gen dts stripe --out src/types` resolves the package's own `.d.ts` entry
-from `node_modules`, and the materialized `T.parse(wireValue)` validates the
-boundary value deeply.
+`glyph gen dts <package>` resolves the package's own `.d.ts` entry from
+`node_modules`, and the materialized `T.parse(wireValue)` validates the boundary
+value's *structure* deeply (leaf values are shallow: `integer` checks as a number,
+a string enum as a `string`).
+
+*Correction, per Linus review 04:* the `.d.ts` reader (`ts-to-schema.mjs`) reads
+only top-level `interface`/`type` declarations. Namespaced (`declare namespace`),
+re-exporting, or heavily-generic `.d.ts` files (the shape large SDKs like stripe
+ship) materialize to little or nothing today, so the earlier `stripe` framing
+oversold what runs. Deeper `.d.ts` support is on the road-to-1.0 list. And note
+the scope of the wedge: Phase 1 type availability trusts an installed package's
+`.d.ts` (the Option-2 boundary); materialization is what adds a runtime validator,
+and only for the types you opt in. So "keeps the wedge at the seam" is true for
+materialized types, not for every installed dependency.

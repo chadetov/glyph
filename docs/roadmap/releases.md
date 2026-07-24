@@ -502,14 +502,16 @@ edits; each is real engineering, not a doc tweak):
   `unknown`); a bare specifier is not followed (it points at another package),
   and cross-file following is best-effort on the TypeScript 7 native path.
   *Done:* a generic type keeps its parameter through materialization.
-- **Subpath-`exports` resolution** (M). The Phase 1 tsconfig `"*"` wildcard
-  (`runtime.rs`) substitutes `@scope/pkg/sub` to a physical path and bypasses the
-  target package's `exports` map, so a package whose subpath types live behind
-  `exports` conditions (the modern default, e.g. `@hookform/resolvers/zod`) may not
-  resolve. Resolve packages through their `exports` map, or generate per-subpath
-  path entries. Verify against a real subpath-`exports` package (this was *inferred*
-  in review 04, not run: confirm it first). *Done:* a subpath-`exports` package's
-  types resolve with no stub.
+- **Subpath-`exports` resolution** (M). ✅ **Verified working, no fix needed.**
+  Review 04 *inferred* (did not run) that the Phase 1 `"*"` wildcard would bypass a
+  package's `exports` map and fail to resolve a subpath like `@scope/pkg/sub`.
+  Tested empirically: it resolves correctly and the subpath's real types are
+  enforced (a wrong-typed call is a genuine `tsc` error, not `any`), because TS
+  `moduleResolution: bundler` falls back to normal `exports`-aware node resolution
+  when the wildcard path substitution misses a physical file. Both a subpath
+  (`pkg/sub`) and the root `exports` (`.`) resolve. The incorrect honesty caveat
+  added for this has been removed from the site. A cautionary tale for trusting an
+  unverified review claim.
 - **Leaf-value validation in generated descriptors** (M). A JSON-Schema `integer`
   and `number` both lower to Glyph `number` (`gen.rs:1127`), so `3.5` passes an
   integer field; string enums narrow to `string` (documented, with a note). Add

@@ -90,13 +90,13 @@ import { zodResolver }
 
       <div class="detail">
         <p>
-          If the package is installed and its main entry ships its own types (or has an
+          If the package is installed and ships its own types (or has an
           <code>@types/...</code>), that is all you do. No stub, no adapter file. <code>glyph
           build</code> finds your project's <code>node_modules</code> and points the type-checker
           at it, so the package's real types check your code and a wrong call is a real error.
-          (One known edge: a package whose types live behind an <code>exports</code> subpath, like
-          <code>pkg/sub</code>, may not resolve through this yet; that fix is on the roadmap.)
-          Here is zod used inline, with nothing hand-written:
+          Subpath imports (<code>pkg/sub</code>) resolve through the package's <code>exports</code>
+          map too, so a subpath's own types are checked. Here is zod used inline, with nothing
+          hand-written:
         </p>
       </div>
 
@@ -159,7 +159,7 @@ print(user.name)</pre>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>A first-class inline primitive for value-derived types (<code>z.infer</code>), which the <code>extern_ts</code> escape hatch already covers today; first-class generic materialization in <code>gen dts</code> (namespaces, cross-file re-exports, and generic-to-<code>unknown</code> already work); and package resolution through <code>exports</code> subpaths. Until then, a package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.</p>
+          <p>A first-class inline primitive for value-derived types (<code>z.infer</code>), which the <code>extern_ts</code> escape hatch already covers today, and first-class generic materialization in <code>gen dts</code> (namespaces, cross-file re-exports, subpath <code>exports</code>, and generic-to-<code>unknown</code> already work). Until then, a package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.</p>
         </div>
       </div>
 

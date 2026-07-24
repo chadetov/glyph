@@ -2,10 +2,18 @@
 // `definitions` map that `glyph gen` can map to Glyph types.
 //
 // Invoked by `glyph gen dts <file.d.ts>`: reads the file path from argv[2],
-// walks the exported `interface` and `type` declarations *syntactically* (a
-// `.d.ts` is already declarations, so the syntax is a faithful, predictable
-// source — no type-checker expansion of generics or conditional types), and
-// prints `{"definitions": { TypeName: <json-schema>, ... }}` to stdout.
+// walks the `interface` and `type` declarations *syntactically* (a `.d.ts` is
+// already declarations, so the syntax is a faithful, predictable source — no
+// type-checker expansion of generics or conditional types), and prints
+// `{"definitions": { TypeName: <json-schema>, ... }}` to stdout.
+//
+// Declarations inside `declare namespace Ns { ... }` are walked too, keyed by
+// their fully-qualified name (`Ns.Type`); a bare reference inside a namespace is
+// resolved against the enclosing scope. A generic parameter (`interface Box<T>`)
+// has no JSON-Schema form and maps to `unknown`. An ambient `declare module "x"`
+// (string-literal name) is skipped — it declares another module, not this
+// package's own types. Cross-file re-exports (`export … from "./other"`) are not
+// yet followed; a bundled single-file `.d.ts` (the common shape) is fully walked.
 //
 // Works with either TypeScript compiler:
 //   - the classic API (typescript 5/6): `createSourceFile` in-process;
@@ -143,8 +151,13 @@ function isOptional(m) {
 // Walk
 // ---------------------------------------------------------------------------
 
+// `ctx` threads two things through the walk: `scope` (the enclosing namespace
+// names, so a bare reference can be resolved to its fully-qualified declaration)
+// and `typeParams` (the current declaration's generic parameter names, which
+// JSON Schema cannot express and so map to `unknown`).
+
 /** Map a TS type node to a JSON Schema fragment. */
-function typeToSchema(node) {
+function typeToSchema(node, ctx) {
   switch (node.kind) {
     case K.StringKeyword:
       return { type: "string" };
@@ -153,27 +166,34 @@ function typeToSchema(node) {
     case K.BooleanKeyword:
       return { type: "boolean" };
     case K.ParenthesizedType:
-      return typeToSchema(node.type);
+      return typeToSchema(node.type, ctx);
     case K.ArrayType:
-      return { type: "array", items: typeToSchema(node.elementType) };
+      return { type: "array", items: typeToSchema(node.elementType, ctx) };
     case K.TypeLiteral:
-      return objectToSchema(node.members);
+      return objectToSchema(node.members, ctx);
     case K.LiteralType:
       if (node.literal && isStringLiteral(node.literal)) {
         return { type: "string", enum: [nameText(node.literal)] };
       }
       return { "x-unsupported": "literal" };
     case K.UnionType:
-      return unionToSchema(node.types);
+      return unionToSchema(node.types, ctx);
     case K.TypeReference: {
       const name = typeRefName(node.typeName);
       if ((name === "Array" || name === "ReadonlyArray") && node.typeArguments?.length === 1) {
-        return { type: "array", items: typeToSchema(node.typeArguments[0]) };
+        return { type: "array", items: typeToSchema(node.typeArguments[0], ctx) };
       }
       if (name === "Record" && node.typeArguments?.length === 2) {
-        return { type: "object", additionalProperties: typeToSchema(node.typeArguments[1]) };
+        return { type: "object", additionalProperties: typeToSchema(node.typeArguments[1], ctx) };
       }
-      return { $ref: "#/definitions/" + name };
+      // A reference to the enclosing declaration's own type parameter has no
+      // JSON-Schema form; the Glyph mapper turns this into `unknown`.
+      if (ctx.typeParams.has(name.split(".")[0])) {
+        return { "x-unsupported": "type-parameter" };
+      }
+      // Resolve a (possibly bare) name against the namespace scope so a
+      // reference inside `namespace Ns` finds `Ns.Type`.
+      return { $ref: "#/definitions/" + resolveRef(name, ctx.scope) };
     }
     default:
       return { "x-unsupported": K[node.kind] };
@@ -181,13 +201,13 @@ function typeToSchema(node) {
 }
 
 /** Object member list → object schema with `properties` + `required`. */
-function objectToSchema(members) {
+function objectToSchema(members, ctx) {
   const properties = {};
   const required = [];
   for (const m of members) {
     if (m.kind !== K.PropertySignature || !m.name) continue;
     const name = nameText(m.name);
-    const schema = m.type ? typeToSchema(m.type) : { "x-unsupported": "no-type" };
+    const schema = m.type ? typeToSchema(m.type, ctx) : { "x-unsupported": "no-type" };
     // A `field?:` member is optional. A `| null`/`| undefined` in the type is
     // carried as `nullable` on the schema (set by unionToSchema) and also makes
     // the field optional; the Glyph mapper turns either into an optional field.
@@ -201,7 +221,7 @@ function objectToSchema(members) {
 }
 
 /** Union type → enum (all string literals), nullable base, or oneOf. */
-function unionToSchema(types) {
+function unionToSchema(types, ctx) {
   const nonNull = [];
   let nullable = false;
   for (const t of types) {
@@ -219,21 +239,68 @@ function unionToSchema(types) {
   if (allStringLiterals) {
     base = { type: "string", enum: nonNull.map((t) => nameText(t.literal)) };
   } else if (nonNull.length === 1) {
-    base = typeToSchema(nonNull[0]);
+    base = typeToSchema(nonNull[0], ctx);
   } else {
-    base = { oneOf: nonNull.map(typeToSchema) };
+    base = { oneOf: nonNull.map((t) => typeToSchema(t, ctx)) };
   }
   if (nullable) base.nullable = true;
   return base;
 }
 
-const definitions = {};
-for (const stmt of sf.statements) {
-  if (stmt.kind === K.InterfaceDeclaration) {
-    definitions[nameText(stmt.name)] = objectToSchema(stmt.members);
-  } else if (stmt.kind === K.TypeAliasDeclaration) {
-    definitions[nameText(stmt.name)] = typeToSchema(stmt.type);
+// ---------------------------------------------------------------------------
+// Two-pass collection: gather every declaration (including inside `declare
+// namespace` trees) under its fully-qualified name first, then build each
+// schema so references can resolve against the full name set.
+// ---------------------------------------------------------------------------
+
+const collected = []; // { node, qualified, scope }
+const declaredNames = new Set();
+
+function collect(statements, scope) {
+  for (const stmt of statements) {
+    if (stmt.kind === K.InterfaceDeclaration || stmt.kind === K.TypeAliasDeclaration) {
+      const qualified = [...scope, nameText(stmt.name)].join(".");
+      declaredNames.add(qualified);
+      collected.push({ node: stmt, qualified, scope });
+    } else if (
+      stmt.kind === K.ModuleDeclaration &&
+      stmt.body &&
+      stmt.name &&
+      stmt.name.kind !== K.StringLiteral
+    ) {
+      // `declare namespace Ns { ... }` (an ambient `declare module "x"` has a
+      // string-literal name and is skipped: it declares another module, not
+      // this package's own types). `namespace A.B` nests as ModuleDeclarations.
+      const inner =
+        stmt.body.kind === K.ModuleBlock
+          ? stmt.body.statements
+          : stmt.body.kind === K.ModuleDeclaration
+            ? [stmt.body]
+            : null;
+      if (inner) collect(inner, [...scope, nameText(stmt.name)]);
+    }
   }
+}
+collect(sf.statements, []);
+
+/** Resolve a written type name against the namespace scope, innermost first;
+ *  fall back to the name as written (may dangle, as before namespaces). */
+function resolveRef(name, scope) {
+  for (let i = scope.length; i >= 0; i--) {
+    const cand = [...scope.slice(0, i), name].join(".");
+    if (declaredNames.has(cand)) return cand;
+  }
+  return name;
+}
+
+const definitions = {};
+for (const { node, qualified, scope } of collected) {
+  const typeParams = new Set((node.typeParameters || []).map((tp) => nameText(tp.name)));
+  const ctx = { scope, typeParams };
+  definitions[qualified] =
+    node.kind === K.InterfaceDeclaration
+      ? objectToSchema(node.members, ctx)
+      : typeToSchema(node.type, ctx);
 }
 
 process.stdout.write(JSON.stringify({ definitions }));

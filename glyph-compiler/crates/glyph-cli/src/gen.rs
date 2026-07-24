@@ -1926,6 +1926,50 @@ mod tests {
     }
 
     #[test]
+    fn dts_walks_namespaces_and_generics() {
+        // The shape real SDKs ship: a `declare namespace` of interfaces, a bare
+        // cross-reference resolved through the namespace scope, and a generic
+        // whose type parameter has no JSON-Schema form (maps to `unknown`).
+        // Regression for Linus review 04: this used to materialize nothing.
+        let dir = std::env::temp_dir().join(format!("glyph-dts-ns-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("sdk.d.ts");
+        std::fs::write(
+            &src,
+            "export = SDK;\n\
+             declare namespace SDK {\n\
+               interface Customer { id: string; address: Address; }\n\
+               interface Address { city: string; zip?: string; }\n\
+               interface Page<T> { items: T[]; total: number; }\n\
+             }\n",
+        )
+        .unwrap();
+
+        match dts(&src, &dir.join("out")) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                // Namespaced types materialize under their qualified (sanitized)
+                // names, and the bare `Address` reference resolves to the
+                // namespaced type.
+                assert!(text.contains("type SDKCustomer"), "got:\n{text}");
+                assert!(text.contains("type SDKAddress"), "got:\n{text}");
+                assert!(text.contains("address: SDKAddress"), "scope-resolved ref; got:\n{text}");
+                assert!(text.contains("zip?: string"), "got:\n{text}");
+                // The generic parameter degrades to `unknown`, not a dangling ref.
+                assert!(text.contains("items: Array<unknown>"), "generic → unknown; got:\n{text}");
+                assert!(glyph_parser::parse(&text).is_ok(), "generated must parse:\n{text}");
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn zod_generates_or_skips_cleanly() {
         // `glyph gen zod` needs tsx + a resolvable zod. Where either is absent
         // (most CI/sandboxes), it must return a clean Missing/Unsupported error

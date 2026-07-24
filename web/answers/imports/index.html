@@ -159,7 +159,7 @@ print(user.name)</pre>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>A first-class inline primitive for value-derived types (<code>z.infer</code>), which the <code>extern_ts</code> escape hatch already covers today; deeper <code>.d.ts</code> materialization (namespaces, re-exports, generics) so more real SDKs get validators; and package resolution through <code>exports</code> subpaths. Until then, a package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.</p>
+          <p>A first-class inline primitive for value-derived types (<code>z.infer</code>), which the <code>extern_ts</code> escape hatch already covers today; cross-file re-export following in <code>gen dts</code> (namespaces and generics already materialize) so multi-file SDKs get validators; and package resolution through <code>exports</code> subpaths. Until then, a package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.</p>
         </div>
       </div>
 

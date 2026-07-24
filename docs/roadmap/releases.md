@@ -448,15 +448,18 @@ The make-or-break question. The design decision is now made (see
   regen` refreshes it on a dependency bump. Proven end to end (a fake installed
   SDK materializes, its descriptor validates at build and runtime, regen re-runs
   it) with hermetic unit tests over the resolution and helpful errors.
-  *Honest scope, per Linus review 04:* the `.d.ts` reader (`ts-to-schema.mjs`)
-  reads only top-level `interface`/`type` declarations, so a `declare namespace`
-  tree, re-exports, or deep generics (the shape large SDKs like stripe actually
-  ship) materialize to little or nothing today; that deeper `.d.ts` support is
-  tracked below. This keeps the verifiability wedge at the seam **for the types
-  you materialize** (not for every installed package: an un-materialized package's
-  outputs are type-checked against its `.d.ts` but not runtime-validated, which is
-  the Option-2 trust boundary, so the "wedge at the npm seam" holds only where you
-  opt in). No new grammar or non-committed build magic.
+  *Scope (per Linus review 04, now widened):* the `.d.ts` reader
+  (`ts-to-schema.mjs`) walks a `declare namespace` tree (keying types by their
+  qualified name and resolving bare cross-references through the scope) and
+  degrades a generic parameter to `unknown`, so a bundled single-file SDK `.d.ts`
+  materializes real types instead of nothing. Still not followed: cross-file
+  re-exports (`export … from "./other"`), tracked below; a bundled `.d.ts` (the
+  common shape) is fully walked. This keeps the verifiability wedge at the seam
+  **for the types you materialize** (not for every installed package: an
+  un-materialized package's outputs are type-checked against its `.d.ts` but not
+  runtime-validated, which is the Option-2 trust boundary, so the "wedge at the
+  npm seam" holds only where you opt in). No new grammar or non-committed build
+  magic.
 - **Phase 2 — package-name parity for `gen zod`** (S). ✅ **Done.** `glyph gen zod
   <package>` now resolves an installed package's *runtime* entry (`main`/`module`,
   or the `import`/`default` condition of `exports["."]`, or a top-level
@@ -487,13 +490,15 @@ the version that declares it real, not the version it all lands in.
 **Interop code fixes from Linus review 04** (the verified gaps behind the honesty
 edits; each is real engineering, not a doc tweak):
 
-- **Deeper `.d.ts` materialization** (L, the big one). `runtime/tools/ts-to-schema.mjs`
-  reads only top-level `interface`/`type` declarations (`:231-236`). Teach it
-  `ModuleDeclaration` (`declare namespace`), re-exports (`export ... from`),
-  `export =`, and generic instantiation, so `gen dts <real-SDK>` materializes
-  something instead of an empty/near-empty definitions map. *Until this lands, no
-  doc names a real namespaced SDK (stripe) as a working `gen dts` example.* *Done:*
-  `gen dts` on a real SDK's `.d.ts` produces usable, descriptor-bearing types.
+- **Deeper `.d.ts` materialization** (L). 🟨 **Partially done.** `ts-to-schema.mjs`
+  now walks `declare namespace` trees (two-pass, qualified names, scope-aware
+  reference resolution) and degrades a generic parameter to `unknown`, so a
+  bundled single-file SDK `.d.ts` materializes usable descriptor-bearing types
+  (regression-tested). **Remaining:** follow cross-file re-exports (`export …
+  from "./other"` and `export *`), which needs multi-file resolution, and
+  first-class generic materialization (emit a Glyph generic instead of erasing
+  the parameter to `unknown`). *Done:* `gen dts` on a real multi-file SDK produces
+  usable types; a generic type keeps its parameter.
 - **Subpath-`exports` resolution** (M). The Phase 1 tsconfig `"*"` wildcard
   (`runtime.rs`) substitutes `@scope/pkg/sub` to a physical path and bypasses the
   target package's `exports` map, so a package whose subpath types live behind

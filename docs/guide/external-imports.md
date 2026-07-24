@@ -254,12 +254,16 @@ the dependency. This is the opt-in step: you run it for the types you actually
 cross the boundary with, and the result is committed and greppable, not generated
 invisibly on every build.
 
-**What materializes today:** `gen dts` reads the top-level `interface` and `type`
-declarations a package exports. A package whose types are a `declare namespace`
-tree, heavy re-exports, or deep generics (many large SDKs) needs the deeper
-`.d.ts` support tracked on the roadmap; for those, hand-write the specific shapes
-you cross the boundary with, or reach for the `extern_ts` escape hatch, until that
-lands.
+**What materializes today:** `gen dts` reads the `interface` and `type`
+declarations a package exports, including those inside a `declare namespace` tree
+(keyed by their qualified name, with bare cross-references resolved through the
+scope). A generic parameter has no runtime form, so it degrades to `unknown`
+(`Page<T>` with `items: T[]` materializes as `{ items: Array<unknown> }`). What is
+not yet followed: cross-file re-exports (`export … from "./other"`), so a package
+that splits its types across many files materializes only what its entry `.d.ts`
+declares directly. A bundled single-file `.d.ts` (the common shape) is fully
+walked. For anything the materializer can't reach, hand-write the shapes you cross
+the boundary with, or reach for the `extern_ts` escape hatch.
 
 `glyph gen zod` takes a package name too, for a package that *exports zod
 schemas* (a shared-schema package). It resolves the package's runtime entry,

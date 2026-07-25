@@ -139,6 +139,7 @@ Module {
             TypeDecl {
                 name: "Todo",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -210,6 +211,7 @@ Module {
             TypeDecl {
                 name: "TodoFile",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -281,6 +283,7 @@ Module {
             TypeDecl {
                 name: "LoadError",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Union {
@@ -403,6 +406,7 @@ Module {
             TypeDecl {
                 name: "SaveError",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Union {
@@ -474,6 +478,7 @@ Module {
             TypeDecl {
                 name: "Command",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Union {
@@ -638,6 +643,7 @@ Module {
             TypeDecl {
                 name: "ParseError",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Union {
@@ -794,6 +800,7 @@ Module {
             FnDecl {
                 name: "parse_args",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [
@@ -2026,6 +2033,7 @@ Module {
             FnDecl {
                 name: "parse_id",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [
@@ -2326,6 +2334,7 @@ Module {
             FnDecl {
                 name: "format_parse_error",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [
@@ -2639,6 +2648,7 @@ Module {
             ConstDecl {
                 name: "TODO_PATH",
                 annotations: [],
+                is_public: false,
                 ty: None,
                 value: String {
                     value: "./.todos.json",
@@ -2657,6 +2667,7 @@ Module {
             FnDecl {
                 name: "load",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [
@@ -3230,6 +3241,7 @@ Module {
             FnDecl {
                 name: "save",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [
@@ -3590,6 +3602,7 @@ Module {
             FnDecl {
                 name: "run",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [
@@ -6257,6 +6270,7 @@ Module {
             FnDecl {
                 name: "format_load_error",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [
@@ -6514,6 +6528,7 @@ Module {
             FnDecl {
                 name: "format_save_error",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [
@@ -6680,6 +6695,7 @@ Module {
             FnDecl {
                 name: "help_text",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [],
@@ -6729,6 +6745,7 @@ Module {
             FnDecl {
                 name: "main",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [

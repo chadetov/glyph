@@ -352,6 +352,29 @@ impl Resolver<'_> {
                 self.walk_expr(&c.value);
                 self.pop_scope();
             }
+            Decl::Interface(i) => {
+                // Generic params are in scope for the member signatures only.
+                self.push_scope();
+                for g in &i.generics {
+                    self.bind_local(g.name.clone(), g.span);
+                }
+                for m in &i.members {
+                    match m {
+                        glyph_ast::InterfaceMember::Method {
+                            params, return_ty, ..
+                        } => {
+                            for p in params {
+                                self.walk_type_expr(&p.ty);
+                            }
+                            if let Some(rt) = return_ty {
+                                self.walk_type_expr(rt);
+                            }
+                        }
+                        glyph_ast::InterfaceMember::Field(f) => self.walk_type_expr(&f.ty),
+                    }
+                }
+                self.pop_scope();
+            }
         }
     }
 
@@ -416,6 +439,7 @@ impl Resolver<'_> {
             }
             Stmt::Loop(l) => self.walk_block(&l.body),
             Stmt::Break(_) | Stmt::Continue(_) => {}
+            Stmt::Defer(d) => self.walk_expr(&d.expr),
             Stmt::Expr(e) => self.walk_expr(e),
         }
     }

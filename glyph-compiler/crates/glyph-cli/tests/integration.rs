@@ -42,7 +42,7 @@ fn build_reports_no_diagnostics_on_clean_project() {
     write_file(
         &src,
         "lib.glyph",
-        "module lib\nfn helper() -> number { return 1 }\n",
+        "module lib\npub fn helper() -> number { return 1 }\n",
     );
     write_file(
         &src,
@@ -166,7 +166,7 @@ fn build_emits_typescript_for_a_clean_module() {
     write_file(
         &src,
         "main.glyph",
-        "module main\nfn add(a: number, b: number) -> number { return a + b }\n",
+        "module main\npub fn add(a: number, b: number) -> number { return a + b }\n",
     );
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");
@@ -191,9 +191,9 @@ fn record_descriptor_rejects_extra_keys_unless_open() {
         &root.join("src"),
         "main.glyph",
         "module main\n\
-         type Point = { x: number, y: number }\n\
+         pub type Point = { x: number, y: number }\n\
          @open\n\
-         type Loose = { x: number }\n",
+         pub type Loose = { x: number }\n",
     );
     let report = build_project_inner(&root.join("src"), &out, false).expect("build ok");
     assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
@@ -523,7 +523,7 @@ fn build_flags_unknown_cross_module_export() {
     write_file(
         &src,
         "lib.glyph",
-        "module lib\nfn helper() -> number { return 1 }\n",
+        "module lib\npub fn helper() -> number { return 1 }\n",
     );
     write_file(
         &src,
@@ -547,7 +547,7 @@ fn build_recurses_into_subdirectories() {
     write_file(
         &src,
         "lib/users.glyph",
-        "module lib/users\nfn find() -> number { return 1 }\n",
+        "module lib/users\npub fn find() -> number { return 1 }\n",
     );
     write_file(
         &src,
@@ -602,7 +602,7 @@ fn diagnostics_include_source_context_via_ariadne() {
     write_file(
         &src,
         "lib.glyph",
-        "module lib\nfn helper() -> number { return 1 }\n",
+        "module lib\npub fn helper() -> number { return 1 }\n",
     );
     write_file(
         &src,

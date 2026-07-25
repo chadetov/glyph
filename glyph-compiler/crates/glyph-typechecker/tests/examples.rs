@@ -48,7 +48,7 @@ fn all_expr_spans(module: &Module) -> Vec<Span> {
     let mut out = Vec::new();
     for decl in &module.items {
         match decl {
-            Decl::Import(_) | Decl::Type(_) => {}
+            Decl::Import(_) | Decl::Type(_) | Decl::Interface(_) => {}
             Decl::Fn(f) => walk_block_spans(&f.body, &mut out),
             Decl::Component(c) => walk_block_spans(&c.body, &mut out),
             Decl::Const(c) => walk_expr_spans(&c.value, &mut out),
@@ -84,6 +84,7 @@ fn walk_stmt_spans(s: &Stmt, out: &mut Vec<Span>) {
         }
         Stmt::Loop(l) => walk_block_spans(&l.body, out),
         Stmt::Break(_) | Stmt::Continue(_) => {}
+        Stmt::Defer(d) => walk_expr_spans(&d.expr, out),
         Stmt::Expr(e) => walk_expr_spans(e, out),
     }
 }

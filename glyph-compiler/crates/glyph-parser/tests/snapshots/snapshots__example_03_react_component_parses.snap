@@ -117,6 +117,7 @@ Module {
             TypeDecl {
                 name: "User",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -188,6 +189,7 @@ Module {
             TypeDecl {
                 name: "SearchState",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Union {
@@ -309,6 +311,7 @@ Module {
             TypeDecl {
                 name: "Props",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -391,6 +394,7 @@ Module {
             ComponentDecl {
                 name: "UserSearch",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 params: [
                     Param {
@@ -1195,6 +1199,7 @@ Module {
             TypeDecl {
                 name: "ResultsListProps",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -1277,6 +1282,7 @@ Module {
             ComponentDecl {
                 name: "ResultsList",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 params: [
                     Param {
@@ -1892,6 +1898,7 @@ Module {
             FnDecl {
                 name: "run_search",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [

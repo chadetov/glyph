@@ -165,7 +165,7 @@ impl<'a> Lowerer<'a> {
         match decl {
             Decl::Fn(f) => self.lower_callable_signature(&f.params, f.return_ty.as_ref(), f.is_async),
             Decl::Component(c) => self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false),
-            Decl::Import(_) | Decl::Type(_) | Decl::Const(_) => Ty::Unknown,
+            Decl::Import(_) | Decl::Type(_) | Decl::Const(_) | Decl::Interface(_) => Ty::Unknown,
         }
     }
 

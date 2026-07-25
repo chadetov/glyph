@@ -224,6 +224,27 @@ fn format_is_idempotent_on_a_reformatted_snippet() {
 }
 
 #[test]
+fn pub_interface_and_defer_round_trip() {
+    // 0.1.16 constructs must survive the formatter unchanged: dropping `pub`
+    // would change what the module exports, and dropping `defer` would drop the
+    // cleanup (the class of bug the 0.1.10 bound-drop regression was).
+    let src = "module x\n\
+        pub interface Named {\n  fn name() -> string\n  id: number\n}\n\n\
+        pub fn label<T: Named>(x: T) -> string {\n  return x.name()\n}\n\n\
+        fn read() -> string {\n  defer close()\n  return \"r\"\n}\n\n\
+        fn close() -> void {\n  return void\n}\n";
+    let once = fmt(src);
+    assert!(once.contains("pub interface Named {"), "{once}");
+    assert!(once.contains("fn name() -> string"), "{once}");
+    assert!(once.contains("id: number"), "{once}");
+    assert!(once.contains("pub fn label<T: Named>(x: T) -> string"), "{once}");
+    assert!(once.contains("defer close()"), "{once}");
+    // A private fn keeps no `pub`.
+    assert!(once.contains("\nfn read() -> string"), "{once}");
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
+}
+
+#[test]
 fn blank_lines_are_preserved_collapsed_to_one() {
     // A source blank line between declarations, between a section comment and
     // its declaration, and between statements survives a format (collapsed to a

@@ -130,13 +130,15 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
         }
         let path = tsrc.join(&fe.rel);
         let mut text = read(&path)?;
+        // These synthesized functions are imported by the external harness, so
+        // they must be `pub` to export (0.1.16 module-private default).
         for (i, (l, r)) in fe.cases.iter().enumerate() {
             text.push_str(&format!(
-                "\nfn __glyph_example_{i}() {{\n  return {{ lhs: {l}, rhs: {r} }}\n}}\n"
+                "\npub fn __glyph_example_{i}() {{\n  return {{ lhs: {l}, rhs: {r} }}\n}}\n"
             ));
         }
         for (i, code) in fe.runs.iter().enumerate() {
-            text.push_str(&format!("\nfn __glyph_run_{i}() -> void {{\n{code}\n}}\n"));
+            text.push_str(&format!("\npub fn __glyph_run_{i}() -> void {{\n{code}\n}}\n"));
         }
         write(&path, &text)?;
     }
@@ -246,6 +248,7 @@ fn decl_annotations(d: &Decl) -> &[glyph_ast::Annotation] {
         Decl::Type(x) => &x.annotations,
         Decl::Const(x) => &x.annotations,
         Decl::Component(x) => &x.annotations,
+        Decl::Interface(x) => &x.annotations,
         Decl::Import(_) => &[],
     }
 }

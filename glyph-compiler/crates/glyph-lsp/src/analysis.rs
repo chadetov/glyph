@@ -216,6 +216,7 @@ fn top_decl_name_and_span(decl: &Decl) -> Option<(&str, (u32, u32))> {
         Decl::Component(c) => Some((c.name.as_ref(), (c.span.start, c.span.end))),
         Decl::Const(c) => Some((c.name.as_ref(), (c.span.start, c.span.end))),
         Decl::Type(t) => Some((t.name.as_ref(), (t.span.start, t.span.end))),
+        Decl::Interface(i) => Some((i.name.as_ref(), (i.span.start, i.span.end))),
         Decl::Import(_) => None,
     }
 }
@@ -698,6 +699,10 @@ impl Analysis {
                         }
                     }
                 }
+                Decl::Interface(i) => out.push(Completion {
+                    label: i.name.to_string(),
+                    tag: CompletionTag::Type,
+                }),
                 Decl::Import(_) => {}
             }
         }
@@ -751,6 +756,12 @@ pub fn module_outline(module: &glyph_ast::Module) -> Vec<OutlineSymbol> {
                     children,
                 }
             }
+            Decl::Interface(i) => OutlineSymbol {
+                name: i.name.to_string(),
+                kind: OutlineKind::Type,
+                span: (i.span.start, i.span.end),
+                children: Vec::new(),
+            },
             Decl::Import(_) => continue,
         };
         out.push(sym);

@@ -27,6 +27,10 @@ pub struct Symbol {
     /// Source span of the declaration site, or a zero-span for prelude
     /// built-ins (which have no source).
     pub span: Span,
+    /// Whether the declaration is exported from its module (`pub`, 0.1.16).
+    /// Drives the module's export surface: a non-public name is invisible to
+    /// `import M { N }` in another module. Prelude/built-in symbols are public.
+    pub is_public: bool,
 }
 
 /// What kind of thing this name refers to. Drives type lookup at the
@@ -166,6 +170,7 @@ pub fn prelude_symbol(name: &str, kind: PreludeKind) -> Symbol {
         name: Arc::from(name),
         kind: SymbolKind::Prelude { kind },
         span: Span::new(0, 0),
+        is_public: true,
     }
 }
 

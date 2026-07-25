@@ -19,6 +19,7 @@ Module {
             FnDecl {
                 name: "f",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [],

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use glyph_ast::{
     Annotation, ComponentDecl, ConstDecl, Decl, FnDecl, GenericParam, ImportDecl, ImportKind,
-    Module, ModulePath, Param, TypeDecl,
+    InterfaceDecl, InterfaceMember, Module, ModulePath, Param, RecordTypeField, TypeDecl,
 };
 use glyph_lexer::{Span, Token};
 
@@ -104,18 +104,35 @@ fn parse_top_level(p: &mut Cursor) -> Result<Decl, ParseError> {
     // this declaration. They attach to the next fn/type/component/const.
     let annotations = parse_annotations(p)?;
 
+    // 0.1.16: optional `pub` visibility prefix. Declarations are module-private
+    // by default; `pub` exports them. `pub` sits between the annotations and the
+    // declaration keyword (`pub fn`, `pub async fn`, `pub type`, `pub const`,
+    // `pub component`, `pub interface`, `pub resource type`).
+    let is_public = if matches!(p.peek(), Token::Pub) {
+        p.advance();
+        true
+    } else {
+        false
+    };
+
     match p.peek() {
         Token::Import => {
-            // Imports do not carry annotations in v1; reject if any preceded.
+            // Imports do not carry annotations or `pub` in v1.
             if !annotations.is_empty() {
                 return Err(ParseError::Unexpected {
                     found: "@annotation on `import`".to_string(),
                     span: annotations[0].span,
                 });
             }
+            if is_public {
+                return Err(ParseError::Unexpected {
+                    found: "`pub` on `import` (an import re-binds another module's name)".to_string(),
+                    span: p.peek_span(),
+                });
+            }
             parse_import(p).map(Decl::Import)
         }
-        Token::Fn => parse_fn(p, /* is_async */ false, annotations).map(Decl::Fn),
+        Token::Fn => parse_fn(p, /* is_async */ false, annotations, is_public).map(Decl::Fn),
         Token::Async => {
             p.advance();
             if !matches!(p.peek(), Token::Fn) {
@@ -125,20 +142,105 @@ fn parse_top_level(p: &mut Cursor) -> Result<Decl, ParseError> {
                     span: p.peek_span(),
                 });
             }
-            parse_fn(p, true, annotations).map(Decl::Fn)
+            parse_fn(p, true, annotations, is_public).map(Decl::Fn)
         }
-        Token::Type => parse_type_decl(p, annotations).map(Decl::Type),
+        Token::Type => parse_type_decl(p, annotations, is_public).map(Decl::Type),
         // D25: `resource type X = ...` marks a resource handle type. The
         // `resource` keyword only precedes `type`; anything else is an error.
-        Token::Resource => parse_type_decl(p, annotations).map(Decl::Type),
-        Token::Const => parse_const_decl(p, annotations).map(Decl::Const),
-        Token::Component => parse_component(p, annotations).map(Decl::Component),
+        Token::Resource => parse_type_decl(p, annotations, is_public).map(Decl::Type),
+        Token::Const => parse_const_decl(p, annotations, is_public).map(Decl::Const),
+        Token::Component => parse_component(p, annotations, is_public).map(Decl::Component),
+        Token::Interface => parse_interface(p, annotations, is_public).map(Decl::Interface),
         // record (top-level `record X { ... }`) — deferred to v1.1 cleanup;
         // for now records are written as `type X = { ... }` per D8 inline.
         other => Err(ParseError::Unexpected {
             found: format!("{other:?}"),
             span: p.peek_span(),
         }),
+    }
+}
+
+/// 0.1.16: `interface Name<T> { fn method(p: P) -> R  field: T }`. A structural
+/// interface: a set of member signatures, usable as a generic bound and as a
+/// type. Members are newline-separated; a `fn` member is a method signature, a
+/// `name: Type` member is a property.
+fn parse_interface(
+    p: &mut Cursor,
+    annotations: Vec<Annotation>,
+    is_public: bool,
+) -> Result<InterfaceDecl, ParseError> {
+    let kw_span = p.expect(&Token::Interface, "`interface`")?;
+    let (name, _) = p.expect_ident("interface name")?;
+    let generics = if matches!(p.peek(), Token::LAngle) {
+        parse_generic_params(p)?
+    } else {
+        Vec::new()
+    };
+    p.expect(&Token::LBrace, "`{` (interface body)")?;
+    let mut members = Vec::new();
+    p.skip_newlines();
+    while !matches!(p.peek(), Token::RBrace) && !p.is_at_end() {
+        members.push(parse_interface_member(p)?);
+        // Members are separated by a newline or an optional comma.
+        if matches!(p.peek(), Token::Comma) {
+            p.advance();
+        }
+        p.skip_newlines();
+    }
+    let close = p.expect(&Token::RBrace, "`}` (interface body)")?;
+    if matches!(p.peek(), Token::Newline) {
+        p.advance();
+    }
+    Ok(InterfaceDecl {
+        name,
+        annotations,
+        is_public,
+        generics,
+        members,
+        span: Span::new(kw_span.start, close.end),
+    })
+}
+
+fn parse_interface_member(p: &mut Cursor) -> Result<InterfaceMember, ParseError> {
+    if matches!(p.peek(), Token::Fn) {
+        // `fn name(params) -> ret` — a method signature (no body).
+        let fn_span = p.expect(&Token::Fn, "`fn`")?;
+        let (name, _) = p.expect_ident("method name")?;
+        p.expect(&Token::LParen, "`(`")?;
+        let params = p.parse_comma_separated(&Token::RParen, true, parse_param)?;
+        let rparen = p.expect(&Token::RParen, "`)`")?;
+        let (return_ty, end) = if matches!(p.peek(), Token::Arrow) {
+            p.advance();
+            let ty = types::parse_type(p)?;
+            let end = ty.span().end;
+            (Some(ty), end)
+        } else {
+            (None, rparen.end)
+        };
+        Ok(InterfaceMember::Method {
+            name,
+            params,
+            return_ty,
+            span: Span::new(fn_span.start, end),
+        })
+    } else {
+        // `name: Type` or `name?: Type` — a property signature.
+        let (name, name_span) = p.expect_field_name("interface member name")?;
+        let optional = if matches!(p.peek(), Token::Question) {
+            p.advance();
+            true
+        } else {
+            false
+        };
+        p.expect(&Token::Colon, "`:` after interface member name")?;
+        let ty = types::parse_type(p)?;
+        let end = ty.span().end;
+        Ok(InterfaceMember::Field(RecordTypeField {
+            name,
+            ty,
+            optional,
+            span: Span::new(name_span.start, end),
+        }))
     }
 }
 
@@ -180,6 +282,7 @@ fn parse_annotations(p: &mut Cursor) -> Result<Vec<Annotation>, ParseError> {
 fn parse_component(
     p: &mut Cursor,
     annotations: Vec<Annotation>,
+    is_public: bool,
 ) -> Result<ComponentDecl, ParseError> {
     let kw_span = p.expect(&Token::Component, "`component`")?;
     let (name, _) = p.expect_ident("component name")?;
@@ -187,6 +290,7 @@ fn parse_component(
     Ok(ComponentDecl {
         name,
         annotations,
+        is_public,
         generics: sig.generics,
         params: sig.params,
         return_ty: sig.return_ty,
@@ -195,7 +299,11 @@ fn parse_component(
     })
 }
 
-fn parse_type_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<TypeDecl, ParseError> {
+fn parse_type_decl(
+    p: &mut Cursor,
+    annotations: Vec<Annotation>,
+    is_public: bool,
+) -> Result<TypeDecl, ParseError> {
     // D25: an optional leading `resource` marks the type as a resource handle.
     // The declaration still starts at `resource` when present so the span
     // covers the whole form.
@@ -221,6 +329,7 @@ fn parse_type_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<TypeD
     Ok(TypeDecl {
         name,
         annotations,
+        is_public,
         generics,
         is_resource,
         body,
@@ -228,7 +337,11 @@ fn parse_type_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<TypeD
     })
 }
 
-fn parse_const_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<ConstDecl, ParseError> {
+fn parse_const_decl(
+    p: &mut Cursor,
+    annotations: Vec<Annotation>,
+    is_public: bool,
+) -> Result<ConstDecl, ParseError> {
     let const_span = p.expect(&Token::Const, "`const`")?;
     let (name, _) = p.expect_ident("constant name")?;
     let ty = if matches!(p.peek(), Token::Colon) {
@@ -246,6 +359,7 @@ fn parse_const_decl(p: &mut Cursor, annotations: Vec<Annotation>) -> Result<Cons
     Ok(ConstDecl {
         name,
         annotations,
+        is_public,
         ty,
         value,
         span: Span::new(const_span.start, end),
@@ -295,6 +409,7 @@ fn parse_fn(
     p: &mut Cursor,
     is_async: bool,
     annotations: Vec<Annotation>,
+    is_public: bool,
 ) -> Result<FnDecl, ParseError> {
     let fn_span = p.expect(&Token::Fn, "`fn`")?;
     let (name, _) = p.expect_ident("function name")?;
@@ -302,6 +417,7 @@ fn parse_fn(
     Ok(FnDecl {
         name: Arc::from(name.as_ref()),
         annotations,
+        is_public,
         is_async,
         generics: sig.generics,
         params: sig.params,

@@ -63,6 +63,7 @@ Module {
             TypeDecl {
                 name: "Issue",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -134,6 +135,7 @@ Module {
             TypeDecl {
                 name: "Schema",
                 annotations: [],
+                is_public: false,
                 generics: [
                     GenericParam {
                         name: "T",
@@ -268,6 +270,7 @@ Module {
             FnDecl {
                 name: "string_schema",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [],
@@ -529,6 +532,7 @@ Module {
             FnDecl {
                 name: "number_schema",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [],
@@ -790,6 +794,7 @@ Module {
             FnDecl {
                 name: "object_schema",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [
                     GenericParam {
@@ -1695,6 +1700,7 @@ Module {
             FnDecl {
                 name: "array_schema",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [
                     GenericParam {
@@ -2543,6 +2549,7 @@ Module {
             TypeDecl {
                 name: "User",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -2597,6 +2604,7 @@ Module {
             ConstDecl {
                 name: "user_schema",
                 annotations: [],
+                is_public: false,
                 ty: Some(
                     Generic {
                         base: Path {
@@ -2703,6 +2711,7 @@ Module {
             FnDecl {
                 name: "demo",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [],

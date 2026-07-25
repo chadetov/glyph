@@ -54,6 +54,17 @@ fn parse_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
             p.advance();
             Ok(Stmt::Continue(ContinueStmt { span }))
         }
+        // 0.1.16: `defer <expr>` runs its expression on exit of the enclosing
+        // block (lowered to `try`/`finally`).
+        Token::Defer => {
+            let defer_span = p.expect(&Token::Defer, "`defer`")?;
+            let expr = expr::parse_expr(p)?;
+            let end = expr.span().end;
+            Ok(Stmt::Defer(glyph_ast::DeferStmt {
+                expr,
+                span: Span::new(defer_span.start, end),
+            }))
+        }
         // `if`/`else` are keywords with no statement form (D3). Point at `match`
         // rather than emitting a generic "unexpected token" for the single most
         // common mistake a TypeScript-trained author makes.

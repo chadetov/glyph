@@ -226,6 +226,11 @@ impl OwnedChecker<'_> {
                 Flow::Fall
             }
             Stmt::Break(_) | Stmt::Continue(_) => Flow::Fall,
+            // A deferred expression runs at scope exit. Its owned-flow effects
+            // (typically a borrowing `defer f.close()`) are approximated by
+            // walking it here; the common cleanup form only borrows the handle,
+            // so it does not spuriously consume a still-live binding.
+            Stmt::Defer(d) => self.walk_expr(&d.expr, state),
             Stmt::Expr(e) => self.walk_expr(e, state),
         }
     }

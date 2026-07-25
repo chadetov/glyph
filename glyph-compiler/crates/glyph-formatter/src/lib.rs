@@ -257,7 +257,52 @@ impl Printer {
             Decl::Type(t) => self.type_decl(t),
             Decl::Const(c) => self.const_decl(c),
             Decl::Component(c) => self.component_decl(c),
+            Decl::Interface(i) => self.interface_decl(i),
         }
+    }
+
+    fn interface_decl(&mut self, i: &glyph_ast::InterfaceDecl) {
+        self.annotations(&i.annotations);
+        self.visibility(i.is_public);
+        self.push("interface ");
+        self.push(&i.name);
+        self.generics(&i.generics);
+        if i.members.is_empty() {
+            self.push(" {}\n");
+            return;
+        }
+        self.push(" {");
+        self.indent += 1;
+        for m in &i.members {
+            self.newline();
+            match m {
+                glyph_ast::InterfaceMember::Method {
+                    name,
+                    params,
+                    return_ty,
+                    ..
+                } => {
+                    self.push("fn ");
+                    self.push(name);
+                    self.params(params);
+                    if let Some(rt) = return_ty {
+                        self.push(" -> ");
+                        self.type_expr(rt);
+                    }
+                }
+                glyph_ast::InterfaceMember::Field(f) => {
+                    self.push(&f.name);
+                    if f.optional {
+                        self.push("?");
+                    }
+                    self.push(": ");
+                    self.type_expr(&f.ty);
+                }
+            }
+        }
+        self.indent -= 1;
+        self.newline();
+        self.push("}\n");
     }
 
     fn annotations(&mut self, anns: &[Annotation]) {
@@ -297,8 +342,18 @@ impl Printer {
         self.push("\n");
     }
 
+    /// `pub ` visibility prefix (0.1.16). Sits between the annotations and the
+    /// declaration keyword; dropping it would silently change what the module
+    /// exports.
+    fn visibility(&mut self, is_public: bool) {
+        if is_public {
+            self.push("pub ");
+        }
+    }
+
     fn fn_decl(&mut self, f: &FnDecl) {
         self.annotations(&f.annotations);
+        self.visibility(f.is_public);
         if f.is_async {
             self.push("async ");
         }
@@ -317,6 +372,7 @@ impl Printer {
 
     fn component_decl(&mut self, c: &ComponentDecl) {
         self.annotations(&c.annotations);
+        self.visibility(c.is_public);
         self.push("component ");
         self.push(&c.name);
         self.generics(&c.generics);
@@ -332,6 +388,7 @@ impl Printer {
 
     fn const_decl(&mut self, c: &ConstDecl) {
         self.annotations(&c.annotations);
+        self.visibility(c.is_public);
         self.push("const ");
         self.push(&c.name);
         if let Some(t) = &c.ty {
@@ -345,6 +402,7 @@ impl Printer {
 
     fn type_decl(&mut self, t: &TypeDecl) {
         self.annotations(&t.annotations);
+        self.visibility(t.is_public);
         if t.is_resource {
             self.push("resource ");
         }
@@ -515,6 +573,10 @@ impl Printer {
             }
             Stmt::Break(_) => self.push("break"),
             Stmt::Continue(_) => self.push("continue"),
+            Stmt::Defer(d) => {
+                self.push("defer ");
+                self.expr(&d.expr);
+            }
             Stmt::Expr(e) => self.expr(e),
         }
     }
@@ -1037,6 +1099,7 @@ fn decl_start(d: &Decl) -> u32 {
         Decl::Type(x) => with_anns(&x.annotations, x.span.start),
         Decl::Const(x) => with_anns(&x.annotations, x.span.start),
         Decl::Component(x) => with_anns(&x.annotations, x.span.start),
+        Decl::Interface(x) => with_anns(&x.annotations, x.span.start),
     }
 }
 

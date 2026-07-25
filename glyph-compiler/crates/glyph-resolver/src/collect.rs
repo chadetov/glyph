@@ -73,21 +73,53 @@ pub fn collect_module_symbols(module: &Module) -> Result<ModuleSymbols, Vec<Reso
     for (idx, item) in module.items.iter().enumerate() {
         let decl_idx = idx as u32;
         match item {
-            Decl::Fn(f) => ctx.intern(f.name.clone(), f.span, SymbolKind::Function { decl_idx }),
+            Decl::Fn(f) => ctx.intern_vis(
+                f.name.clone(),
+                f.span,
+                SymbolKind::Function { decl_idx },
+                item.is_public(),
+            ),
             Decl::Type(t) => {
-                ctx.intern(t.name.clone(), t.span, SymbolKind::Type { decl_idx });
+                ctx.intern_vis(
+                    t.name.clone(),
+                    t.span,
+                    SymbolKind::Type { decl_idx },
+                    t.is_public,
+                );
                 // Tagged-union variants hoist into module scope alongside the
-                // type itself so `NetworkError({ ... })` resolves directly.
+                // type itself so `NetworkError({ ... })` resolves directly; they
+                // share the type's visibility.
                 if let glyph_ast::TypeExpr::Union { variants, .. } = &t.body {
                     for v in variants {
-                        ctx.intern(v.name.clone(), v.span, SymbolKind::Variant { decl_idx });
+                        ctx.intern_vis(
+                            v.name.clone(),
+                            v.span,
+                            SymbolKind::Variant { decl_idx },
+                            t.is_public,
+                        );
                     }
                 }
             }
-            Decl::Const(c) => ctx.intern(c.name.clone(), c.span, SymbolKind::Const { decl_idx }),
-            Decl::Component(c) => {
-                ctx.intern(c.name.clone(), c.span, SymbolKind::Component { decl_idx })
-            }
+            Decl::Const(c) => ctx.intern_vis(
+                c.name.clone(),
+                c.span,
+                SymbolKind::Const { decl_idx },
+                c.is_public,
+            ),
+            Decl::Component(c) => ctx.intern_vis(
+                c.name.clone(),
+                c.span,
+                SymbolKind::Component { decl_idx },
+                c.is_public,
+            ),
+            // An interface is a type name: usable as a generic bound and as an
+            // ordinary type. Intern it in the same namespace as `type`.
+            Decl::Interface(i) => ctx.intern_vis(
+                i.name.clone(),
+                i.span,
+                SymbolKind::Type { decl_idx },
+                i.is_public,
+            ),
             Decl::Import(imp) => {
                 if path_is_relative(&imp.path) {
                     ctx.errors
@@ -153,10 +185,18 @@ struct CollectCtx<'a> {
 
 impl CollectCtx<'_> {
     fn intern(&mut self, name: Ident, span: Span, kind: SymbolKind) {
+        self.intern_vis(name, span, kind, false);
+    }
+
+    /// Intern a symbol with an explicit visibility (0.1.16). Top-level decls pass
+    /// their `pub` status; imported bindings are never public (they re-bind
+    /// another module's name and are not re-exported, D15).
+    fn intern_vis(&mut self, name: Ident, span: Span, kind: SymbolKind, is_public: bool) {
         let id = self.table.intern(Symbol {
             name: name.clone(),
             kind,
             span,
+            is_public,
         });
         if let Some(prev) = self.by_name.insert(name.clone(), id) {
             // First declaration wins for downstream resolution; the duplicate

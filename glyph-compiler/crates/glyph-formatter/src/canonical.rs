@@ -127,6 +127,12 @@ fn decl_extent(d: &Decl) -> (usize, usize, &'static str, String) {
             "component",
             c.name.to_string(),
         ),
+        Decl::Interface(i) => (
+            ann_start(i.annotations.first().map(|a| a.span.start), i.span.start),
+            i.span.end as usize,
+            "interface",
+            i.name.to_string(),
+        ),
     }
 }
 

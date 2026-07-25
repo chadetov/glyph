@@ -82,6 +82,7 @@ Module {
             TypeDecl {
                 name: "User",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -136,6 +137,7 @@ Module {
             TypeDecl {
                 name: "Post",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -207,6 +209,7 @@ Module {
             TypeDecl {
                 name: "Comment",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -278,6 +281,7 @@ Module {
             TypeDecl {
                 name: "PostWithComments",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -349,6 +353,7 @@ Module {
             TypeDecl {
                 name: "Feed",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Record {
@@ -420,6 +425,7 @@ Module {
             TypeDecl {
                 name: "FeedError",
                 annotations: [],
+                is_public: false,
                 generics: [],
                 is_resource: false,
                 body: Union {
@@ -593,6 +599,7 @@ Module {
             FnDecl {
                 name: "fetch_json",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [
                     GenericParam {
@@ -1093,6 +1100,7 @@ Module {
             FnDecl {
                 name: "fetch_user",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [
@@ -1244,6 +1252,7 @@ Module {
             FnDecl {
                 name: "fetch_posts",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [
@@ -1435,6 +1444,7 @@ Module {
             FnDecl {
                 name: "fetch_comments",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [
@@ -1626,6 +1636,7 @@ Module {
             FnDecl {
                 name: "load_feed",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [
@@ -2200,6 +2211,7 @@ Module {
             FnDecl {
                 name: "handle_request",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [

@@ -84,6 +84,7 @@ Module {
             FnDecl {
                 name: "add",
                 annotations: [],
+                is_public: false,
                 is_async: false,
                 generics: [],
                 params: [
@@ -182,6 +183,7 @@ Module {
             FnDecl {
                 name: "greet",
                 annotations: [],
+                is_public: false,
                 is_async: true,
                 generics: [],
                 params: [

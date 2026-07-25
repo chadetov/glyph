@@ -32,6 +32,14 @@ pub enum Token {
     Mut,
     Owned,
     Resource,
+    /// D-decision (0.1.16): module-private-by-default visibility. A top-level
+    /// declaration is exported only when marked `pub`.
+    Pub,
+    /// D-decision (0.1.16): a structural interface, usable as a generic bound.
+    Interface,
+    /// D-decision (0.1.16): `defer <expr>` runs its expression on scope exit
+    /// (lowered to `try`/`finally`).
+    Defer,
     Module,
     Import,
     As,
@@ -149,6 +157,9 @@ static KEYWORDS: &[(&str, Token)] = &[
     ("mut", Token::Mut),
     ("owned", Token::Owned),
     ("resource", Token::Resource),
+    ("pub", Token::Pub),
+    ("interface", Token::Interface),
+    ("defer", Token::Defer),
     ("module", Token::Module),
     ("import", Token::Import),
     ("as", Token::As),

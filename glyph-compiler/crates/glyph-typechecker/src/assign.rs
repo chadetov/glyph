@@ -234,6 +234,7 @@ impl Assigner<'_> {
             Decl::Type(t) => &t.annotations,
             Decl::Const(c) => &c.annotations,
             Decl::Component(c) => &c.annotations,
+            Decl::Interface(i) => &i.annotations,
             Decl::Import(_) => return,
         };
         for a in annotations {
@@ -249,6 +250,9 @@ impl Assigner<'_> {
     fn walk_decl(&mut self, decl: &Decl) {
         match decl {
             Decl::Import(_) => {}
+            // An interface is a set of type-level member signatures; there is no
+            // value body to check. Its use as a bound/type is checked by `tsc`.
+            Decl::Interface(_) => {}
             Decl::Type(t) => self.check_redact_annotation(t),
             Decl::Fn(f) => {
                 let er = self.enclosing_return(f.return_ty.as_ref());
@@ -398,6 +402,7 @@ impl Assigner<'_> {
             }
             Stmt::Loop(l) => self.walk_block(&l.body),
             Stmt::Break(_) | Stmt::Continue(_) => {}
+            Stmt::Defer(d) => self.walk_expr(&d.expr),
             Stmt::Expr(e) => self.walk_expr(e),
         }
     }

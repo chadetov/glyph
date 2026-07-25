@@ -132,6 +132,7 @@ impl LintWalk<'_> {
             }
             Stmt::Loop(l) => self.block(&l.body),
             Stmt::Break(_) | Stmt::Continue(_) => {}
+            Stmt::Defer(d) => self.expr(&d.expr),
             Stmt::Expr(e) => self.expr(e),
         }
     }
@@ -212,6 +213,7 @@ fn stmt_span(s: &Stmt) -> Span {
         Stmt::Loop(l) => l.span,
         Stmt::Break(b) => b.span,
         Stmt::Continue(c) => c.span,
+        Stmt::Defer(d) => d.span,
         Stmt::Expr(e) => e.span(),
     }
 }

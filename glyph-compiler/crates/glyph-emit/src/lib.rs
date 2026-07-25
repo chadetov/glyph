@@ -391,6 +391,7 @@ pub fn emit_module_mapped(
         used_infer_output: Rc::new(Cell::new(false)),
         desc_param_guards: RefCell::new(Vec::new()),
         return_cast: None,
+        emit_export: "export ",
         loop_labels: Vec::new(),
         module,
         resolved,
@@ -438,6 +439,13 @@ struct Emitter<'a> {
     /// cast-free), and reset for lambdas and value-position match IIFEs (their
     /// returns are not the enclosing function's return).
     return_cast: Option<String>,
+    /// The export prefix for the declaration currently being emitted: `"export "`
+    /// when the decl is `pub` (or is `fn main`, always exported), `""` otherwise
+    /// (0.1.16 module-private-by-default). Set per top-level decl and read by
+    /// every sub-emit (the type alias, its runtime descriptor, union variant
+    /// constructors) so a private type's descriptor and constructors are private
+    /// too.
+    emit_export: &'static str,
     /// Stack of enclosing loops, innermost last. Each entry is the loop's TS
     /// label when it needs one (a `break`/`continue` buried in a `match` arm,
     /// which lowers to a `switch` that would otherwise capture the jump), or
@@ -491,6 +499,9 @@ impl<'a> Emitter<'a> {
             // inherit the function's return cast; its returns are not the
             // function's. `emit_fn_block` sets it from the lambda's own type.
             return_cast: None,
+            // Inherit the enclosing decl's export prefix (a lambda body rendered
+            // by a sub-emitter belongs to the same decl).
+            emit_export: self.emit_export,
             // A sub-emitter is a fresh function scope: an inner `break`/
             // `continue` cannot reach a loop in the enclosing emitter.
             loop_labels: Vec::new(),
@@ -663,6 +674,11 @@ impl<'a> Emitter<'a> {
 
     fn emit_decl(&mut self, decl: &Decl) -> Result<(), EmitError> {
         self.source_map.push((self.out.len(), decl.span()));
+        // 0.1.16: module-private by default. A decl is `export`ed only when `pub`
+        // (or it is `fn main`, the entrypoint the runner imports). The prefix is
+        // read by every sub-emit for this decl (descriptor, constructors).
+        self.emit_export = if decl.is_public() { "export " } else { "" };
+        let ex = self.emit_export;
         match decl {
             Decl::Import(im) => self.emit_import(im),
             Decl::Fn(f) => {
@@ -676,9 +692,9 @@ impl<'a> Emitter<'a> {
                     None => String::new(),
                 };
                 let prefix = if f.is_async {
-                    "export async function"
+                    format!("{ex}async function")
                 } else {
-                    "export function"
+                    format!("{ex}function")
                 };
                 self.pad();
                 self.out
@@ -694,16 +710,17 @@ impl<'a> Emitter<'a> {
                     None => String::new(),
                 };
                 let value = self.expr(&c.value)?;
-                self.line(&format!("export const {}{ty} = {value};", c.name));
+                self.line(&format!("{ex}const {}{ty} = {value};", c.name));
                 Ok(())
             }
+            Decl::Interface(i) => self.emit_interface(i),
             Decl::Type(t) => {
                 if let TypeExpr::Union { variants, .. } = &t.body {
                     return self.emit_union(&t.name, &t.generics, variants);
                 }
                 let generics = self.generics(&t.generics)?;
                 let body = self.ty(&t.body)?;
-                self.line(&format!("export type {}{generics} = {body};", t.name));
+                self.line(&format!("{ex}type {}{generics} = {body};", t.name));
                 // Q8: a record type also emits a runtime descriptor whose `is`
                 // predicate makes `is TypeName` checks work at runtime (no type
                 // erasure). A generic record emits a checker-threaded descriptor
@@ -717,6 +734,46 @@ impl<'a> Emitter<'a> {
             }
             Decl::Component(c) => self.emit_component(c),
         }
+    }
+
+    /// Emit a structural interface (0.1.16) as a TypeScript `interface`. A method
+    /// member emits as a method signature (`name(p: T): R`), a field member as a
+    /// property signature (`name: T` / `name?: T`). Purely type-level: no runtime
+    /// descriptor (like a `.d.ts` type, it is checked by `tsc`, not validated).
+    fn emit_interface(&mut self, i: &glyph_ast::InterfaceDecl) -> Result<(), EmitError> {
+        let ex = self.emit_export;
+        let generics = self.generics(&i.generics)?;
+        if i.members.is_empty() {
+            self.line(&format!("{ex}interface {}{generics} {{}}", i.name));
+            return Ok(());
+        }
+        self.line(&format!("{ex}interface {}{generics} {{", i.name));
+        self.indent += 1;
+        for m in &i.members {
+            match m {
+                glyph_ast::InterfaceMember::Method {
+                    name,
+                    params,
+                    return_ty,
+                    ..
+                } => {
+                    let ps = self.params(params)?;
+                    let ret = match return_ty {
+                        Some(te) => format!(": {}", self.ty(te)?),
+                        None => ": void".to_string(),
+                    };
+                    self.line(&format!("{name}({ps}){ret};"));
+                }
+                glyph_ast::InterfaceMember::Field(f) => {
+                    let opt = if f.optional { "?" } else { "" };
+                    let ty = self.ty(&f.ty)?;
+                    self.line(&format!("{}{opt}: {ty};", f.name));
+                }
+            }
+        }
+        self.indent -= 1;
+        self.line("}");
+        Ok(())
     }
 
     /// Emit the Q8 runtime descriptor for a record type: an `is` type guard
@@ -808,7 +865,7 @@ impl<'a> Emitter<'a> {
                 ));
             }
         }
-        self.line(&format!("export const {name} = {{"));
+        self.line(&format!("{}const {name} = {{", self.emit_export));
         self.indent += 1;
         self.line(&format!("is{decl_generics}({entry_params}): value is {self_ty} {{"));
         self.indent += 1;
@@ -948,7 +1005,7 @@ impl<'a> Emitter<'a> {
             }
         }
         let generics_str = self.generics(generics)?;
-        self.line(&format!("export type {name}{generics_str} ="));
+        self.line(&format!("{}type {name}{generics_str} =", self.emit_export));
         self.indent += 1;
         for (i, v) in variants.iter().enumerate() {
             let term = if i + 1 == variants.len() { ";" } else { "" };
@@ -982,7 +1039,7 @@ impl<'a> Emitter<'a> {
     /// is checked against its type, and a no-payload variant passes on the tag
     /// alone.
     fn emit_union_descriptor(&mut self, name: &str, variants: &[UnionVariant]) {
-        self.line(&format!("export const {name} = {{"));
+        self.line(&format!("{}const {name} = {{", self.emit_export));
         self.indent += 1;
         self.line(&format!("is(value: unknown): value is {name} {{"));
         self.indent += 1;
@@ -1080,16 +1137,17 @@ impl<'a> Emitter<'a> {
                 format!("<{}>", names.join(", "))
             }
         };
+        let ex = self.emit_export;
         match &v.payload {
-            None => self.line(&format!("export const {name}: {ret} = {{ {TAG}: \"{name}\" }};")),
+            None => self.line(&format!("{ex}const {name}: {ret} = {{ {TAG}: \"{name}\" }};")),
             // Spread the fields FIRST so the discriminant always wins, even if
             // the record (somehow) carried a colliding key.
             Some(payload @ TypeExpr::Record { .. }) => self.line(&format!(
-                "export function {name}{ctor_generics}(fields: {}): {ret} {{ return {{ ...fields, {TAG}: \"{name}\" }}; }}",
+                "{ex}function {name}{ctor_generics}(fields: {}): {ret} {{ return {{ ...fields, {TAG}: \"{name}\" }}; }}",
                 self.ty(payload)?
             )),
             Some(other) => self.line(&format!(
-                "export function {name}{ctor_generics}({PAYLOAD}: {}): {ret} {{ return {{ {TAG}: \"{name}\", {PAYLOAD} }}; }}",
+                "{ex}function {name}{ctor_generics}({PAYLOAD}: {}): {ret} {{ return {{ {TAG}: \"{name}\", {PAYLOAD} }}; }}",
                 self.ty(other)?
             )),
         }
@@ -1143,13 +1201,44 @@ impl<'a> Emitter<'a> {
     fn emit_block(&mut self, block: &Block) -> Result<(), EmitError> {
         self.out.push_str("{\n");
         self.indent += 1;
-        for stmt in &block.stmts {
-            self.emit_stmt(stmt)?;
-        }
+        self.emit_void_stmts(&block.stmts)?;
         self.indent -= 1;
         self.pad();
         self.out.push('}');
         Ok(())
+    }
+
+    /// Emit a statement sequence for effect (void context), lowering `defer`.
+    /// The first `defer` splits the sequence: statements before it emit plainly,
+    /// then the rest are wrapped in `try { ... } finally { <deferred>; }` so the
+    /// deferred expression runs on every exit path. Nested defers recurse, giving
+    /// last-in-first-out cleanup order.
+    fn emit_void_stmts(&mut self, stmts: &[Stmt]) -> Result<(), EmitError> {
+        match stmts.iter().position(|s| matches!(s, Stmt::Defer(_))) {
+            Some(i) => {
+                for s in &stmts[..i] {
+                    self.emit_stmt(s)?;
+                }
+                let Stmt::Defer(d) = &stmts[i] else { unreachable!() };
+                self.line("try {");
+                self.indent += 1;
+                self.emit_void_stmts(&stmts[i + 1..])?;
+                self.indent -= 1;
+                self.line("} finally {");
+                self.indent += 1;
+                let v = self.emit_value(&d.expr)?;
+                self.line(&format!("{v};"));
+                self.indent -= 1;
+                self.line("}");
+                Ok(())
+            }
+            None => {
+                for s in stmts {
+                    self.emit_stmt(s)?;
+                }
+                Ok(())
+            }
+        }
     }
 
     /// Emit a function body, applying implicit tail returns when the function
@@ -1276,6 +1365,13 @@ impl<'a> Emitter<'a> {
             // `switch`, that would otherwise capture it), emit the labeled form.
             Stmt::Break(_) => self.line(&self.loop_jump("break")),
             Stmt::Continue(_) => self.line(&self.loop_jump("continue")),
+            // A `defer` reached here has no following statements to guard (the
+            // sequence emitters wrap the rest of a block in `try`/`finally` when
+            // a defer precedes it); running it in place is the equivalent effect.
+            Stmt::Defer(d) => {
+                let v = self.emit_value(&d.expr)?;
+                self.line(&format!("{v};"));
+            }
             Stmt::Expr(Expr::Match { scrutinee, arms, .. }) => {
                 // A statement-position `match` runs each arm for its effects
                 // and `break`s out of the switch.
@@ -2582,6 +2678,28 @@ impl<'a> Emitter<'a> {
         term: ArmTerm,
         break_on_fall: bool,
     ) -> Result<(), EmitError> {
+        // 0.1.16 `defer`: the first defer wraps the statements after it in
+        // `try { ... } finally { <deferred>; }`. The wrapped rest keeps this
+        // block's terminal context (`term`), so a tail `return`/value inside the
+        // `try` still produces the block's value and the deferred runs after it
+        // on every path. Nested defers recurse for last-in-first-out order.
+        if let Some(i) = stmts.iter().position(|s| matches!(s, Stmt::Defer(_))) {
+            for s in &stmts[..i] {
+                self.emit_stmt(s)?;
+            }
+            let Stmt::Defer(d) = &stmts[i] else { unreachable!() };
+            self.line("try {");
+            self.indent += 1;
+            self.emit_value_block_stmts(&stmts[i + 1..], term, break_on_fall)?;
+            self.indent -= 1;
+            self.line("} finally {");
+            self.indent += 1;
+            let v = self.emit_value(&d.expr)?;
+            self.line(&format!("{v};"));
+            self.indent -= 1;
+            self.line("}");
+            return Ok(());
+        }
         let Some((last, init)) = stmts.split_last() else {
             // An empty block yields nothing; only a `switch` case needs a break.
             if matches!(term, ArmTerm::Break) && break_on_fall {
@@ -3120,7 +3238,7 @@ impl<'a> Emitter<'a> {
         };
         self.pad();
         self.out
-            .push_str(&format!("export function {}{generics}({params}){ret} ", c.name));
+            .push_str(&format!("{}function {}{generics}({params}){ret} ", self.emit_export, c.name));
         let cast = self.fn_return_cast(&c.return_ty)?;
         self.emit_fn_block(&c.body, true, cast)?;
         self.out.push('\n');
@@ -3663,6 +3781,7 @@ fn stmt_has_captured_jump(stmt: &Stmt, in_switch: bool) -> bool {
         Stmt::Loop(_) | Stmt::For(_) => false,
         Stmt::Expr(e) => expr_has_captured_jump(e),
         Stmt::Return(r) => r.value.as_ref().is_some_and(expr_has_captured_jump),
+        Stmt::Defer(d) => expr_has_captured_jump(&d.expr),
         Stmt::Let(_) | Stmt::Mut(_) => false,
     }
 }
@@ -4119,7 +4238,7 @@ mod tests {
 
     #[test]
     fn fn_with_params_and_body() {
-        let ts = emit("module x\nfn add(a: number, b: number) -> number { return a + b }\n");
+        let ts = emit("module x\npub fn add(a: number, b: number) -> number { return a + b }\n");
         assert_eq!(
             ts,
             "import \"./.glyph-runtime/glyph-bootstrap\";\n\n\
@@ -4131,7 +4250,7 @@ mod tests {
     fn hyphenated_jsx_attr_keys_are_quoted() {
         // A bare `aria-label:` object key is invalid TS; it must be quoted.
         let ts = emit(
-            "module x\n@pure\nfn t() -> string { return \"x\" }\ncomponent C() -> Component { return <button aria-label=\"Delete\" data-testid={t()}>x</button> }\n",
+            "module x\n@pure\npub fn t() -> string { return \"x\" }\npub component C() -> Component { return <button aria-label=\"Delete\" data-testid={t()}>x</button> }\n",
         );
         assert!(ts.contains("\"aria-label\": \"Delete\""), "{ts}");
         assert!(ts.contains("\"data-testid\": t()"), "{ts}");
@@ -4144,7 +4263,7 @@ mod tests {
         // The bootstrap installs the ambient `number`/`par`/`print` globals; a
         // module must pull it in so an external bundler's entry has them (the bug
         // Serhiy hit: a Vite build never loaded it, so `number` was undefined).
-        let ts = emit("module x\nfn noop() -> number { return 0 }\n");
+        let ts = emit("module x\npub fn noop() -> number { return 0 }\n");
         assert!(
             ts.starts_with("import \"./.glyph-runtime/glyph-bootstrap\";"),
             "{ts}"
@@ -4157,7 +4276,7 @@ mod tests {
         let modules: std::collections::BTreeSet<String> =
             ["sub/a".to_string()].into_iter().collect();
         let (module, resolved, types, prelude) =
-            pipeline("module sub/a\nfn noop() -> number { return 0 }\n");
+            pipeline("module sub/a\npub fn noop() -> number { return 0 }\n");
         let ctx = EmitContext {
             module_path: "sub/a",
             project_modules: &modules,
@@ -4171,14 +4290,14 @@ mod tests {
 
     #[test]
     fn bool_maps_to_boolean_and_eq_is_strict() {
-        let ts = emit("module x\nfn p(a: number, b: number) -> bool { return a == b }\n");
+        let ts = emit("module x\npub fn p(a: number, b: number) -> bool { return a == b }\n");
         assert!(ts.contains("): boolean {"), "{ts}");
         assert!(ts.contains("(a === b)"), "{ts}");
     }
 
     #[test]
     fn async_fn_and_await() {
-        let ts = emit("module x\nasync fn run() -> number { return await fetch() }\n");
+        let ts = emit("module x\npub async fn run() -> number { return await fetch() }\n");
         assert!(
             ts.contains("export async function run(): Promise<number> {"),
             "{ts}"
@@ -4188,7 +4307,7 @@ mod tests {
 
     #[test]
     fn template_literal_passes_through() {
-        let ts = emit("module x\nfn greet(name: string) -> string { return \"hi ${name}\" }\n");
+        let ts = emit("module x\npub fn greet(name: string) -> string { return \"hi ${name}\" }\n");
         assert!(ts.contains("return `hi ${name}`;"), "{ts}");
     }
 
@@ -4198,7 +4317,7 @@ mod tests {
         // emitted JS template escapes the literal `${` so it doesn't interpolate
         // in JS either.
         let ts = emit(
-            "module x\nfn f(x: string) -> string { return \"lit \\${x} and ${x}\" }\n",
+            "module x\npub fn f(x: string) -> string { return \"lit \\${x} and ${x}\" }\n",
         );
         assert!(ts.contains("`lit \\${x} and ${x}`"), "{ts}");
     }
@@ -4208,7 +4327,7 @@ mod tests {
         // The template splitter must be char-aware: multi-byte text used to be
         // pushed byte-by-byte, producing mojibake.
         let ts = emit(
-            "module x\nfn f(n: string) -> string { return \"café ${n} 日本\" }\n",
+            "module x\npub fn f(n: string) -> string { return \"café ${n} 日本\" }\n",
         );
         assert!(ts.contains("`café ${n} 日本`"), "{ts}");
     }
@@ -4216,20 +4335,20 @@ mod tests {
     #[test]
     fn plain_string_with_escaped_dollar_resolves() {
         // A non-interpolating string with `\${` becomes a literal `${`.
-        let ts = emit("module x\nconst P: string = \"price: \\${5}\"\n");
+        let ts = emit("module x\npub const P: string = \"price: \\${5}\"\n");
         assert!(ts.contains("\"price: ${5}\""), "{ts}");
     }
 
     #[test]
     fn const_and_type_alias() {
-        let ts = emit("module x\nconst MAX: number = 10\ntype Sku = string\n");
+        let ts = emit("module x\npub const MAX: number = 10\npub type Sku = string\n");
         assert!(ts.contains("export const MAX: number = 10;"), "{ts}");
         assert!(ts.contains("export type Sku = string;"), "{ts}");
     }
 
     #[test]
     fn record_type_alias_and_void_value() {
-        let ts = emit("module x\ntype User = { name: string, age?: number }\n");
+        let ts = emit("module x\npub type User = { name: string, age?: number }\n");
         assert!(
             ts.contains("export type User = { name: string; age?: number };"),
             "{ts}"
@@ -4239,7 +4358,7 @@ mod tests {
     #[test]
     fn record_type_emits_an_is_descriptor() {
         let ts = emit(
-            "module x\ntype User = { id: string, age: number, admin?: bool, parent: User }\n",
+            "module x\npub type User = { id: string, age: number, admin?: bool, parent: User }\n",
         );
         assert!(ts.contains("export const User = {"), "{ts}");
         assert!(ts.contains("is(value: unknown): value is User {"), "{ts}");
@@ -4269,7 +4388,7 @@ mod tests {
         // BUG-2: a `Record<K, V>` field must be checked for object-ness (and its
         // value type recursed over every entry), not merely presence-checked, so
         // a string can never bind where a `Record<string, number>` is required.
-        let ts = emit("module x\ntype Config = { name: string, limits: Record<string, number> }\n");
+        let ts = emit("module x\npub type Config = { name: string, limits: Record<string, number> }\n");
         // No shallow `!== undefined` presence check for the Record field.
         assert!(
             !ts.contains("(value as Record<string, unknown>).limits !== undefined"),
@@ -4292,7 +4411,7 @@ mod tests {
 
     #[test]
     fn record_descriptor_emits_a_self_contained_parse() {
-        let ts = emit("module x\ntype User = { id: string }\n");
+        let ts = emit("module x\npub type User = { id: string }\n");
         // `parse` returns the inline `Result` shape — no `std/result` import,
         // no `Ok`/`Err` constructor reference; the only name it mentions is the
         // record type itself.
@@ -4316,7 +4435,7 @@ mod tests {
 
     #[test]
     fn record_descriptor_emits_a_schema_member() {
-        let ts = emit("module x\ntype User = { id: string }\n");
+        let ts = emit("module x\npub type User = { id: string }\n");
         // `T.schema` is a `Schema<T>` built by the prelude factory from the `is`
         // guard (referenced by name in a lazy closure, since `this` is not the
         // descriptor object inside the object literal).
@@ -4338,14 +4457,14 @@ mod tests {
         // A record literally named `value` collides with the `parse` parameter.
         // Reaching the guard via `this` (not `value.is(...)`) keeps the emitted
         // TS valid: the parameter no longer shadows the descriptor binding.
-        let ts = emit("module x\ntype value = { id: string }\n");
+        let ts = emit("module x\npub type value = { id: string }\n");
         assert!(ts.contains("return this.is(value)"), "{ts}");
         assert!(!ts.contains("return value.is(value)"), "{ts}");
     }
 
     #[test]
     fn primitive_alias_gets_no_descriptor() {
-        let ts = emit("module x\ntype Sku = string\n");
+        let ts = emit("module x\npub type Sku = string\n");
         assert!(ts.contains("export type Sku = string;"), "{ts}");
         assert!(!ts.contains("export const Sku"), "{ts}");
     }
@@ -4355,7 +4474,7 @@ mod tests {
         // A generic record now emits a descriptor whose `is`/`parse` take one
         // runtime checker per type parameter, and a `T`-typed field is validated
         // with that checker (not presence). It omits the `schema` member.
-        let ts = emit("module x\ntype Box<T> = { value: T }\n");
+        let ts = emit("module x\npub type Box<T> = { value: T }\n");
         assert!(ts.contains("export type Box<T> = { value: T };"), "{ts}");
         assert!(ts.contains("export const Box = {"), "{ts}");
         assert!(
@@ -4380,7 +4499,7 @@ mod tests {
     fn generic_descriptor_parse_call_threads_a_checker() {
         // `Box.parse<User>(v)` appends a checker synthesized from `User`.
         let ts = emit(
-            "module x\ntype User = { name: string }\ntype Box<T> = { value: T }\nfn f(v: unknown) -> string {\n  return match Box.parse<User>(v) {\n    Ok(_) => \"ok\",\n    Err(_) => \"no\",\n  }\n}\n",
+            "module x\npub type User = { name: string }\npub type Box<T> = { value: T }\npub fn f(v: unknown) -> string {\n  return match Box.parse<User>(v) {\n    Ok(_) => \"ok\",\n    Err(_) => \"no\",\n  }\n}\n",
         );
         assert!(
             ts.contains("Box.parse<User>(v, (__cv: unknown) => User.is(__cv))"),
@@ -4392,7 +4511,7 @@ mod tests {
     fn is_pattern_on_a_generic_descriptor_threads_a_checker() {
         // `is Box<User>` narrows via `Box.is<User>(m, checker)`.
         let ts = emit(
-            "module x\ntype User = { name: string }\ntype Box<T> = { value: T }\nfn f(v: unknown) -> string {\n  return match v {\n    is Box<User> => \"box\",\n    else => \"no\",\n  }\n}\n",
+            "module x\npub type User = { name: string }\npub type Box<T> = { value: T }\npub fn f(v: unknown) -> string {\n  return match v {\n    is Box<User> => \"box\",\n    else => \"no\",\n  }\n}\n",
         );
         assert!(
             ts.contains("Box.is<User>(") && ts.contains("(__cv: unknown) => User.is(__cv)"),
@@ -4404,7 +4523,7 @@ mod tests {
     fn function_typed_field_is_checked_by_typeof_function() {
         // A function-typed field is validated by `typeof === "function"`, not
         // the old presence-only `!== undefined` (which let `run: 5` pass).
-        let ts = emit("module x\ntype Handler = { run: fn(x: number) -> number }\n");
+        let ts = emit("module x\npub type Handler = { run: fn(x: number) -> number }\n");
         assert!(
             ts.contains("typeof (value as Record<string, unknown>).run === \"function\""),
             "{ts}"
@@ -4418,7 +4537,7 @@ mod tests {
     #[test]
     fn imports_three_forms() {
         let ts = emit(
-            "module x\nimport std/result { Ok, Err }\nimport std/io\nimport std/http as h\nfn noop() -> void { return void }\n",
+            "module x\nimport std/result { Ok, Err }\nimport std/io\nimport std/http as h\npub fn noop() -> void { return void }\n",
         );
         assert!(ts.contains("import { Ok, Err } from \"std/result\";"), "{ts}");
         assert!(ts.contains("import * as io from \"std/io\";"), "{ts}");
@@ -4428,7 +4547,7 @@ mod tests {
     #[test]
     fn loop_for_and_array_object() {
         let ts = emit(
-            "module x\nfn f(xs: Array<number>) -> void {\n  for x in xs {\n    log(x)\n  }\n  let o = { a: 1, b: 2 }\n  return void\n}\n",
+            "module x\npub fn f(xs: Array<number>) -> void {\n  for x in xs {\n    log(x)\n  }\n  let o = { a: 1, b: 2 }\n  return void\n}\n",
         );
         assert!(ts.contains("for (const x of xs) {"), "{ts}");
         assert!(ts.contains("let o = { a: 1, b: 2 };"), "{ts}");
@@ -4441,7 +4560,7 @@ mod tests {
         // the loop, not the switch — otherwise the loop spins forever. The loop
         // is labeled and the jumps carry the label.
         let ts = emit(
-            "module x\nfn f(c: bool) -> void {\n  loop {\n    match c {\n      true => break,\n      false => continue,\n    }\n  }\n  return void\n}\n",
+            "module x\npub fn f(c: bool) -> void {\n  loop {\n    match c {\n      true => break,\n      false => continue,\n    }\n  }\n  return void\n}\n",
         );
         assert!(ts.contains("__loop0: while (true) {"), "{ts}");
         assert!(ts.contains("break __loop0;"), "{ts}");
@@ -4453,7 +4572,7 @@ mod tests {
         // A `break` directly in the loop body (not inside a `match`) breaks the
         // loop already, so no label is emitted.
         let ts = emit(
-            "module x\nfn f() -> void {\n  loop {\n    log(1)\n    break\n  }\n  return void\n}\n",
+            "module x\npub fn f() -> void {\n  loop {\n    log(1)\n    break\n  }\n  return void\n}\n",
         );
         assert!(ts.contains("while (true) {"), "{ts}");
         assert!(!ts.contains("__loop"), "should not label a plain loop:\n{ts}");
@@ -4464,7 +4583,7 @@ mod tests {
     fn break_in_match_in_for_loop_labels_the_for() {
         // The same applies to `for` loops.
         let ts = emit(
-            "module x\nfn f(xs: Array<bool>) -> void {\n  for c in xs {\n    match c {\n      true => break,\n      false => log(0),\n    }\n  }\n  return void\n}\n",
+            "module x\npub fn f(xs: Array<bool>) -> void {\n  for c in xs {\n    match c {\n      true => break,\n      false => log(0),\n    }\n  }\n  return void\n}\n",
         );
         assert!(ts.contains("__loop0: for (const c of xs) {"), "{ts}");
         assert!(ts.contains("break __loop0;"), "{ts}");
@@ -4488,7 +4607,7 @@ mod tests {
         // A project module import becomes a relative specifier; `std/*` stays
         // bare (tsconfig-mapped) and an unknown module stays bare (external npm).
         let (module, resolved, types, prelude) = pipeline(
-            "module a\nimport helpers { greet }\nimport std/io\nfn f() -> void {\n  return void\n}\n",
+            "module a\nimport helpers { greet }\nimport std/io\npub fn f() -> void {\n  return void\n}\n",
         );
         let mut project = std::collections::BTreeSet::new();
         project.insert("a".to_string());
@@ -4508,7 +4627,7 @@ mod tests {
         // elements (via `.every`), and option payloads (by tag + value type),
         // not just one level.
         let ts = emit(
-            "module x\ntype Item = { name: string }\ntype Bag = { items: Array<Item>, note: Option<string> }\nfn f(b: Bag) -> number {\n  return 0\n}\n",
+            "module x\npub type Item = { name: string }\npub type Bag = { items: Array<Item>, note: Option<string> }\npub fn f(b: Bag) -> number {\n  return 0\n}\n",
         );
         assert!(ts.contains(".every((__e: unknown) => Item.is(__e))"), "{ts}");
         assert!(ts.contains("Array.isArray("), "{ts}");
@@ -4522,7 +4641,7 @@ mod tests {
         // A field typed as an inline record validates its nested fields, not
         // just presence (review finding #11).
         let ts = emit(
-            "module x\ntype Shape = { name: string, origin: { x: number, y: number } }\nfn f(s: Shape) -> number {\n  return 0\n}\n",
+            "module x\npub type Shape = { name: string, origin: { x: number, y: number } }\npub fn f(s: Shape) -> number {\n  return 0\n}\n",
         );
         assert!(
             ts.contains("typeof ((value as Record<string, unknown>).origin as Record<string, unknown>).x === \"number\""),
@@ -4534,7 +4653,7 @@ mod tests {
     fn json_parse_array_routes_through_schema_array() {
         // `json.parse<Array<T>>` validates via `T.schema.array()` (review #12).
         let ts = emit(
-            "module x\nimport std/json\ntype User = { name: string }\nfn load(text: string) -> Result<Array<User>, Array<Issue>> {\n  return json.parse<Array<User>>(text)\n}\n",
+            "module x\nimport std/json\npub type User = { name: string }\npub fn load(text: string) -> Result<Array<User>, Array<Issue>> {\n  return json.parse<Array<User>>(text)\n}\n",
         );
         assert!(ts.contains("json.parse_with(text, User.schema.array())"), "{ts}");
     }
@@ -4544,7 +4663,7 @@ mod tests {
         // G3: `json.parse<T>(text)` for a type with a descriptor validates via
         // `T.schema`; a type without one keeps the plain (casting) parse.
         let ts = emit(
-            "module x\nimport std/json\ntype User = { name: string }\nfn load(text: string) -> Result<User, Array<Issue>> {\n  return json.parse<User>(text)\n}\nfn loose(text: string) -> Result<number, Array<Issue>> {\n  return json.parse<number>(text)\n}\n",
+            "module x\nimport std/json\npub type User = { name: string }\npub fn load(text: string) -> Result<User, Array<Issue>> {\n  return json.parse<User>(text)\n}\npub fn loose(text: string) -> Result<number, Array<Issue>> {\n  return json.parse<number>(text)\n}\n",
         );
         assert!(ts.contains("json.parse_with(text, User.schema)"), "{ts}");
         assert!(ts.contains("json.parse<number>(text)"), "{ts}");
@@ -4555,7 +4674,7 @@ mod tests {
         // G7: a module that uses prelude `Ok`/`Result`/`None`/`Option` without an
         // explicit import still needs the runtime `import` in the emitted TS.
         let ts = emit(
-            "module x\nfn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\nfn g() -> Option<number> {\n  return None\n}\n",
+            "module x\npub fn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\npub fn g() -> Option<number> {\n  return None\n}\n",
         );
         assert!(ts.contains("import { Ok, Result } from \"std/result\";"), "{ts}");
         assert!(ts.contains("import { None, Option } from \"std/option\";"), "{ts}");
@@ -4566,7 +4685,7 @@ mod tests {
         // The explicit import resolves to a module symbol, not the prelude, so
         // no second generated import is injected.
         let ts = emit(
-            "module x\nimport std/result { Result, Ok }\nfn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\n",
+            "module x\nimport std/result { Result, Ok }\npub fn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\n",
         );
         // Exactly one import line mentioning std/result (the user's), no injected one.
         assert_eq!(ts.matches("from \"std/result\"").count(), 1, "{ts}");
@@ -4578,7 +4697,7 @@ mod tests {
         // async call `load()`, not the whole chain, so the chained `.map_err`
         // runs on the awaited `Result` and not on a `Promise`.
         let ts = emit(
-            "module x\nasync fn load() -> Result<number, string> { return Ok(0) }\nfn id(e: string) -> string { return e }\nasync fn run() -> Result<number, string> {\n  let r = await load().map_err(id)\n  return r\n}\n",
+            "module x\npub async fn load() -> Result<number, string> { return Ok(0) }\npub fn id(e: string) -> string { return e }\npub async fn run() -> Result<number, string> {\n  let r = await load().map_err(id)\n  return r\n}\n",
         );
         assert!(ts.contains("(await load()).map_err(id)"), "{ts}");
         assert!(!ts.contains("(await load().map_err"), "{ts}");
@@ -4588,7 +4707,7 @@ mod tests {
     fn plain_await_of_a_call_is_unchanged() {
         // A bare `await f()` still awaits the call directly.
         let ts = emit(
-            "module x\nasync fn f() -> number { return 1 }\nasync fn run() -> number {\n  return await f()\n}\n",
+            "module x\npub async fn f() -> number { return 1 }\npub async fn run() -> number {\n  return await f()\n}\n",
         );
         assert!(ts.contains("return (await f());"), "{ts}");
     }
@@ -4599,7 +4718,7 @@ mod tests {
         // array-destructure binding. This is example 01's `for key, sub_schema
         // in shape` shape.
         let ts = emit(
-            "module x\nfn f(rec: Record<string, number>) -> void {\n  for k, v in rec {\n    log(k)\n    log(v)\n  }\n  return void\n}\n",
+            "module x\npub fn f(rec: Record<string, number>) -> void {\n  for k, v in rec {\n    log(k)\n    log(v)\n  }\n  return void\n}\n",
         );
         assert!(
             ts.contains("for (const [k, v] of Object.entries(rec)) {"),
@@ -4613,7 +4732,7 @@ mod tests {
         // not `Object.entries(xs)` (string keys). The iterand type picks the
         // form.
         let ts = emit(
-            "module x\nfn f(xs: Array<string>) -> void {\n  for i, item in xs {\n    log(i)\n  }\n  return void\n}\n",
+            "module x\npub fn f(xs: Array<string>) -> void {\n  for i, item in xs {\n    log(i)\n  }\n  return void\n}\n",
         );
         assert!(
             ts.contains("for (const [i, item] of xs.entries()) {"),
@@ -4629,7 +4748,7 @@ mod tests {
         // inference the binding typed `Unknown` and misclassified as a record
         // (`Object.entries`, string keys), which miscompiled `match i == 0`.
         let ts = emit(
-            "module x\nfn f() -> void {\n  let xs = [\"a\", \"b\"]\n  for i, item in xs {\n    log(i)\n  }\n  return void\n}\n",
+            "module x\npub fn f() -> void {\n  let xs = [\"a\", \"b\"]\n  for i, item in xs {\n    log(i)\n  }\n  return void\n}\n",
         );
         assert!(
             ts.contains("for (const [i, item] of xs.entries()) {"),
@@ -4642,21 +4761,21 @@ mod tests {
     fn string_escapes_line_separators_and_controls() {
         // The lexer de-escapes `\u{2028}` to a raw LINE SEPARATOR, which is an
         // unterminated-string error in TS unless re-escaped.
-        let ts = emit("module x\nconst s: string = \"a\\u{2028}b\\u{0}c\"\n");
+        let ts = emit("module x\npub const s: string = \"a\\u{2028}b\\u{0}c\"\n");
         assert!(ts.contains("\"a\\u2028b\\u0000c\""), "{ts}");
         assert!(!ts.contains('\u{2028}'), "raw U+2028 leaked: {ts}");
     }
 
     #[test]
     fn empty_object_literal_has_no_double_space() {
-        let ts = emit("module x\nconst o = {}\n");
+        let ts = emit("module x\npub const o = {}\n");
         assert!(ts.contains("export const o = {};"), "{ts}");
     }
 
     #[test]
     fn return_match_lowers_to_switch_on_tag() {
         let ts = emit(
-            "module x\nfn classify(r: Result<number, string>) -> number {\n  return match r {\n    Ok(value) => value,\n    Err(msg) => 0,\n  }\n}\n",
+            "module x\npub fn classify(r: Result<number, string>) -> number {\n  return match r {\n    Ok(value) => value,\n    Err(msg) => 0,\n  }\n}\n",
         );
         assert!(ts.contains("const __m0 = r;"), "{ts}");
         assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
@@ -4675,7 +4794,7 @@ mod tests {
     #[test]
     fn try_operator_in_let_unwraps_and_propagates() {
         let ts = emit(
-            "module x\nfn parse(n: number) -> Result<number, string> { return Ok(n) }\nfn load(n: number) -> Result<number, string> {\n  let x = parse(n)?\n  return Ok(x)\n}\n",
+            "module x\npub fn parse(n: number) -> Result<number, string> { return Ok(n) }\npub fn load(n: number) -> Result<number, string> {\n  let x = parse(n)?\n  return Ok(x)\n}\n",
         );
         // A module using `?` gets the aliased `Err` import the re-wrap needs.
         assert!(
@@ -4698,7 +4817,7 @@ mod tests {
         // labels: the first bound the nullary name (`const Empty = __m.value`)
         // and swallowed every `Err`, silently misdispatching or crashing.
         let ts = emit(
-            "module x\nimport std/result { Result, Ok, Err }\ntype OrderErr = Empty | BadQty({ sku: string })\nfn describe(r: Result<number, OrderErr>) -> string {\n  return match r {\n    Ok(v) => \"ok\",\n    Err(Empty) => \"empty\",\n    Err(BadQty({ sku })) => sku,\n  }\n}\n",
+            "module x\nimport std/result { Result, Ok, Err }\npub type OrderErr = Empty | BadQty({ sku: string })\npub fn describe(r: Result<number, OrderErr>) -> string {\n  return match r {\n    Ok(v) => \"ok\",\n    Err(Empty) => \"empty\",\n    Err(BadQty({ sku })) => sku,\n  }\n}\n",
         );
         assert_eq!(
             ts.matches("case \"Err\"").count(),
@@ -4714,7 +4833,7 @@ mod tests {
     #[test]
     fn try_operator_as_statement_propagates_only() {
         let ts = emit(
-            "module x\nfn step() -> Result<number, string> { return Ok(0) }\nfn run() -> Result<number, string> {\n  step()?\n  return Ok(1)\n}\n",
+            "module x\npub fn step() -> Result<number, string> { return Ok(0) }\npub fn run() -> Result<number, string> {\n  step()?\n  return Ok(1)\n}\n",
         );
         assert!(ts.contains("const __r0 = step();"), "{ts}");
         assert!(
@@ -4729,7 +4848,7 @@ mod tests {
     #[test]
     fn value_match_switches_on_the_scrutinee() {
         let ts = emit(
-            "module x\nfn sign(n: number) -> string {\n  return match n {\n    0 => \"zero\",\n    1 => \"one\",\n    else => \"many\",\n  }\n}\n",
+            "module x\npub fn sign(n: number) -> string {\n  return match n {\n    0 => \"zero\",\n    1 => \"one\",\n    else => \"many\",\n  }\n}\n",
         );
         assert!(ts.contains("const __m0 = n;"), "{ts}");
         assert!(ts.contains("switch (__m0) {"), "{ts}");
@@ -4743,7 +4862,7 @@ mod tests {
     #[test]
     fn bool_value_match_gets_exhaustiveness_default() {
         let ts = emit(
-            "module x\nfn flag(b: bool) -> number {\n  return match b {\n    true => 1,\n    false => 0,\n  }\n}\n",
+            "module x\npub fn flag(b: bool) -> number {\n  return match b {\n    true => 1,\n    false => 0,\n  }\n}\n",
         );
         assert!(ts.contains("case true: {"), "{ts}");
         assert!(ts.contains("case false: {"), "{ts}");
@@ -4756,7 +4875,7 @@ mod tests {
     #[test]
     fn is_match_lowers_to_an_if_chain_and_calls_the_descriptor() {
         let ts = emit(
-            "module x\ntype User = { id: string }\nfn check(v: unknown) -> string {\n  return match v {\n    is string => \"str\",\n    is number => \"num\",\n    is User => \"user\",\n    else => \"other\",\n  }\n}\n",
+            "module x\npub type User = { id: string }\npub fn check(v: unknown) -> string {\n  return match v {\n    is string => \"str\",\n    is number => \"num\",\n    is User => \"user\",\n    else => \"other\",\n  }\n}\n",
         );
         // An identifier scrutinee is checked directly (no temporary) so the
         // checks narrow it for the arm bodies.
@@ -4774,7 +4893,7 @@ mod tests {
     #[test]
     fn is_match_without_else_throws() {
         let ts = emit(
-            "module x\nfn f(v: unknown) -> string {\n  return match v {\n    is string => \"s\",\n    is number => \"n\",\n  }\n}\n",
+            "module x\npub fn f(v: unknown) -> string {\n  return match v {\n    is string => \"s\",\n    is number => \"n\",\n  }\n}\n",
         );
         assert!(
             ts.contains("} else {\n    throw new Error(\"non-exhaustive match\");"),
@@ -4785,7 +4904,7 @@ mod tests {
     #[test]
     fn array_match_lowers_to_a_length_and_element_if_chain() {
         let ts = emit(
-            "module x\nfn f(argv: Array<string>) -> string {\n  return match argv {\n    [] => \"empty\",\n    [\"add\", ...rest] => \"add\",\n    [\"list\", \"--all\"] => \"la\",\n    [\"get\", id] => id,\n    [other, ..._] => other,\n  }\n}\n",
+            "module x\npub fn f(argv: Array<string>) -> string {\n  return match argv {\n    [] => \"empty\",\n    [\"add\", ...rest] => \"add\",\n    [\"list\", \"--all\"] => \"la\",\n    [\"get\", id] => id,\n    [other, ..._] => other,\n  }\n}\n",
         );
         // Empty array: exact length zero.
         assert!(ts.contains("if (__m0.length === 0) {"), "{ts}");
@@ -4823,7 +4942,7 @@ mod tests {
     #[test]
     fn array_match_with_an_else_arm_omits_the_throw() {
         let ts = emit(
-            "module x\nfn f(argv: Array<string>) -> string {\n  return match argv {\n    [] => \"empty\",\n    else => \"other\",\n  }\n}\n",
+            "module x\npub fn f(argv: Array<string>) -> string {\n  return match argv {\n    [] => \"empty\",\n    else => \"other\",\n  }\n}\n",
         );
         assert!(ts.contains("if (__m0.length === 0) {"), "{ts}");
         assert!(ts.contains("} else {"), "{ts}");
@@ -4834,7 +4953,7 @@ mod tests {
     #[test]
     fn is_record_and_array_checks() {
         let ts = emit(
-            "module x\nfn f(v: unknown) -> string {\n  return match v {\n    is Array<string> => \"arr\",\n    is Record<string, unknown> => \"obj\",\n    else => \"x\",\n  }\n}\n",
+            "module x\npub fn f(v: unknown) -> string {\n  return match v {\n    is Array<string> => \"arr\",\n    is Record<string, unknown> => \"obj\",\n    else => \"x\",\n  }\n}\n",
         );
         // Identifier scrutinee is checked directly so it narrows in the arms;
         // `is Array<string>` also element-checks (sound, like the descriptor).
@@ -4858,7 +4977,7 @@ mod tests {
     #[test]
     fn is_match_with_two_catch_alls_is_rejected() {
         let err = emit_err(
-            "module x\nfn f(v: unknown) -> number {\n  return match v {\n    is string => 1,\n    else => 2,\n    else => 3,\n  }\n}\n",
+            "module x\npub fn f(v: unknown) -> number {\n  return match v {\n    is string => 1,\n    else => 2,\n    else => 3,\n  }\n}\n",
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
@@ -4871,7 +4990,7 @@ mod tests {
         // A generic union has no runtime descriptor (its type arguments live at
         // the call site), so `is S` over one is still unsupported.
         let err = emit_err(
-            "module x\ntype S<T> = A | B(T)\nfn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
+            "module x\npub type S<T> = A | B(T)\npub fn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("`is` check")),
@@ -4881,7 +5000,7 @@ mod tests {
 
     #[test]
     fn union_type_emits_an_is_descriptor() {
-        let ts = emit("module x\ntype S = A | B\nfn f() {}\n");
+        let ts = emit("module x\npub type S = A | B\npub fn f() {}\n");
         assert!(ts.contains("export const S = {"), "{ts}");
         assert!(ts.contains("is(value: unknown): value is S {"), "{ts}");
         // No-payload variants: the tag switch returns true for each.
@@ -4893,7 +5012,7 @@ mod tests {
     fn union_descriptor_validates_variant_payloads() {
         // A record-payload variant's fields are validated (not just the tag),
         // and a no-payload variant passes on the tag alone.
-        let ts = emit("module x\ntype Msg =\n  | Ping\n  | Say({ text: string })\nfn f() {}\n");
+        let ts = emit("module x\npub type Msg =\n  | Ping\n  | Say({ text: string })\npub fn f() {}\n");
         assert!(ts.contains("case \"Ping\": return true;"), "{ts}");
         assert!(
             ts.contains("case \"Say\": return typeof (value as Record<string, unknown>).text === \"string\";"),
@@ -4903,7 +5022,7 @@ mod tests {
 
     #[test]
     fn union_descriptor_emits_parse_and_schema() {
-        let ts = emit("module x\ntype S = A | B\nfn f() {}\n");
+        let ts = emit("module x\npub type S = A | B\npub fn f() {}\n");
         assert!(ts.contains("parse(value: unknown):"), "{ts}");
         assert!(ts.contains("return this.is(value)"), "{ts}");
         assert!(ts.contains("schema: __glyph_schema<S>(\"S\""), "{ts}");
@@ -4912,7 +5031,7 @@ mod tests {
     #[test]
     fn is_union_type_calls_its_descriptor() {
         let ts = emit(
-            "module x\ntype S = A | B\nfn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
+            "module x\npub type S = A | B\npub fn f(v: unknown) -> number {\n  return match v {\n    is S => 1,\n    else => 0,\n  }\n}\n",
         );
         assert!(ts.contains("S.is("), "{ts}");
     }
@@ -4920,7 +5039,7 @@ mod tests {
     #[test]
     fn generic_union_emits_no_descriptor() {
         // The alias and constructors are generic; no `const S = {` descriptor.
-        let ts = emit("module x\ntype S<T> = A | B(T)\nfn f() {}\n");
+        let ts = emit("module x\npub type S<T> = A | B(T)\npub fn f() {}\n");
         assert!(!ts.contains("export const S = {"), "{ts}");
     }
 
@@ -4948,7 +5067,7 @@ mod tests {
         // A literal arm and a variant arm in one match would switch some arms
         // on the value and others on the tag; reject rather than misemit.
         let err = emit_err(
-            "module x\ntype S = Idle | Busy\nfn f(s: S) -> number {\n  return match s {\n    0 => 1,\n    Idle => 2,\n    else => 9,\n  }\n}\n",
+            "module x\npub type S = Idle | Busy\npub fn f(s: S) -> number {\n  return match s {\n    0 => 1,\n    Idle => 2,\n    else => 9,\n  }\n}\n",
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("mixing")),
@@ -4959,7 +5078,7 @@ mod tests {
     #[test]
     fn string_value_match_quotes_case_labels() {
         let ts = emit(
-            "module x\nfn parse(s: string) -> number {\n  return match s {\n    \"yes\" => 1,\n    else => 0,\n  }\n}\n",
+            "module x\npub fn parse(s: string) -> number {\n  return match s {\n    \"yes\" => 1,\n    else => 0,\n  }\n}\n",
         );
         assert!(ts.contains("case \"yes\": {"), "{ts}");
     }
@@ -4969,7 +5088,7 @@ mod tests {
         // A `?` nested inside a call argument hoists its unwrap before the
         // statement and substitutes the `Ok` payload.
         let ts = emit(
-            "module x\nfn p() -> Result<number, string> { return Ok(0) }\nfn run() -> Result<number, string> {\n  return Ok(p()?)\n}\n",
+            "module x\npub fn p() -> Result<number, string> { return Ok(0) }\npub fn run() -> Result<number, string> {\n  return Ok(p()?)\n}\n",
         );
         assert!(ts.contains("const __r0 = p();"), "{ts}");
         assert!(
@@ -4988,7 +5107,7 @@ mod tests {
         // the AWAITED `Result` (its `tag`/`value` are real, not a Promise's), and
         // `.map_err` runs on the unwrapped payload with no outer await.
         let ts = emit(
-            "module x\nasync fn run(url: string) -> Result<number, string> {\n  let response = await get(url)?\n    .map_err(fn(e) { return e })\n  return Ok(0)\n}\n",
+            "module x\npub async fn run(url: string) -> Result<number, string> {\n  let response = await get(url)?\n    .map_err(fn(e) { return e })\n  return Ok(0)\n}\n",
         );
         assert!(ts.contains("const __r0 = (await get(url));"), "{ts}");
         assert!(
@@ -5005,7 +5124,7 @@ mod tests {
         // `s(a()?, b()?)` hoists the left argument's `?` before the right's, so
         // the unwraps run in source order.
         let ts = emit(
-            "module x\nfn a() -> Result<number, string> { return Ok(1) }\nfn b() -> Result<number, string> { return Ok(2) }\nfn s(x: number, y: number) -> number { return x }\nfn f() -> Result<number, string> {\n  return Ok(s(a()?, b()?))\n}\n",
+            "module x\npub fn a() -> Result<number, string> { return Ok(1) }\npub fn b() -> Result<number, string> { return Ok(2) }\npub fn s(x: number, y: number) -> number { return x }\npub fn f() -> Result<number, string> {\n  return Ok(s(a()?, b()?))\n}\n",
         );
         let i0 = ts.find("const __r0 = a();").expect("r0 hoist");
         let i1 = ts.find("const __r1 = b();").expect("r1 hoist");
@@ -5019,7 +5138,7 @@ mod tests {
     #[test]
     fn try_inside_an_array_literal_is_hoisted() {
         let ts = emit(
-            "module x\nfn a() -> Result<number, string> { return Ok(1) }\nfn f() -> Result<Array<number>, string> {\n  return Ok([a()?, a()?])\n}\n",
+            "module x\npub fn a() -> Result<number, string> { return Ok(1) }\npub fn f() -> Result<Array<number>, string> {\n  return Ok([a()?, a()?])\n}\n",
         );
         assert!(ts.contains("return Ok([__r0.value, __r1.value]);"), "{ts}");
     }
@@ -5027,7 +5146,7 @@ mod tests {
     #[test]
     fn empty_jsx_element_emits_null_props_and_no_children() {
         let ts = emit(
-            "module x\nimport react { Component }\ncomponent V() -> Component {\n  return <div></div>\n}\n",
+            "module x\nimport react { Component }\npub component V() -> Component {\n  return <div></div>\n}\n",
         );
         assert!(ts.contains("React.createElement(\"div\", null)"), "{ts}");
     }
@@ -5035,7 +5154,7 @@ mod tests {
     #[test]
     fn extern_ts_expression_emits_parenthesized_raw() {
         let ts = emit(
-            "module x\nfn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n",
+            "module x\npub fn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n",
         );
         assert!(ts.contains("return (Date.now());"), "{ts}");
     }
@@ -5045,7 +5164,7 @@ mod tests {
         // A field typed by a named alias to a string-literal union or `int` gets
         // the same leaf check as the inline type, not a bare presence check.
         let ts = emit(
-            "module x\ntype Tier = \"free\" | \"pro\"\ntype Count = int\n\
+            "module x\npub type Tier = \"free\" | \"pro\"\npub type Count = int\n\
              type Item = { tier: Tier, qty: Count }\n",
         );
         assert!(
@@ -5057,7 +5176,7 @@ mod tests {
 
     #[test]
     fn int_emits_ts_number_with_an_isinteger_check() {
-        let ts = emit("module x\ntype Item = { qty: int }\n");
+        let ts = emit("module x\npub type Item = { qty: int }\n");
         // `int` is TS `number` (TypeScript has no integer type).
         assert!(ts.contains("qty: number"), "{ts}");
         // The descriptor adds the whole-number check a bare `number` can't.
@@ -5067,7 +5186,7 @@ mod tests {
     #[test]
     fn string_literal_union_emits_ts_union_and_membership_check() {
         let ts = emit(
-            "module x\ntype Account = { id: string, tier: \"free\" | \"pro\" }\n",
+            "module x\npub type Account = { id: string, tier: \"free\" | \"pro\" }\n",
         );
         // The TS type is the literal union, so tsc enforces the narrowed type.
         assert!(ts.contains(r#"tier: "free" | "pro""#), "{ts}");
@@ -5081,7 +5200,7 @@ mod tests {
     #[test]
     fn value_derived_type_emits_typeof_query() {
         let ts = emit(
-            "module x\nimport zod { z }\ntype User = z.infer<typeof user_schema>\n",
+            "module x\nimport zod { z }\npub type User = z.infer<typeof user_schema>\n",
         );
         assert!(ts.contains("export type User = z.infer<typeof user_schema>;"), "{ts}");
     }
@@ -5091,7 +5210,7 @@ mod tests {
         // The type-level escape hatch emits its raw TS verbatim as the aliased
         // type; `tsc` (not Glyph) checks it.
         let ts = emit(
-            "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n",
+            "module x\npub type User = extern_ts(\"z.infer<typeof user_schema>\")\n",
         );
         assert!(
             ts.contains("export type User = z.infer<typeof user_schema>;"),
@@ -5104,7 +5223,7 @@ mod tests {
         // `{...register("email")}` merges into the props object, alongside the
         // `class` -> `className` remap, exactly like `<input {...register()} />`.
         let ts = emit(
-            "module x\nimport react { Component }\nfn register(n: string) -> unknown { return n }\n\
+            "module x\nimport react { Component }\npub fn register(n: string) -> unknown { return n }\n\
              component F() -> Component {\n  return <input {...register(\"email\")} class=\"field\" />\n}\n",
         );
         assert!(
@@ -5117,7 +5236,7 @@ mod tests {
     fn nested_jsx_for_inside_if_lowers() {
         // A `<for>` nested inside an `<if>` branch, paired with an `<else>`.
         let ts = emit(
-            "module x\nimport react { Component }\ncomponent V(xs: Array<string>) -> Component {\n  return <ul>\n    <if cond={true}>\n      <for x in={xs}><li>{x}</li></for>\n    </if>\n    <else><p>empty</p></else>\n  </ul>\n}\n",
+            "module x\nimport react { Component }\npub component V(xs: Array<string>) -> Component {\n  return <ul>\n    <if cond={true}>\n      <for x in={xs}><li>{x}</li></for>\n    </if>\n    <else><p>empty</p></else>\n  </ul>\n}\n",
         );
         assert!(
             ts.contains("(true ? xs.map((x) => React.createElement(\"li\", null, x)) : React.createElement(\"p\", null, \"empty\"))"),
@@ -5128,7 +5247,7 @@ mod tests {
     #[test]
     fn value_position_match_wraps_in_an_iife() {
         let ts = emit(
-            "module x\nfn f(r: Result<number, string>) -> string {\n  let label = match r {\n    Ok(n) => \"ok\",\n    Err(e) => \"err\",\n  }\n  return label\n}\n",
+            "module x\npub fn f(r: Result<number, string>) -> string {\n  let label = match r {\n    Ok(n) => \"ok\",\n    Err(e) => \"err\",\n  }\n  return label\n}\n",
         );
         assert!(ts.contains("let label = (() => {"), "{ts}");
         assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
@@ -5139,7 +5258,7 @@ mod tests {
     #[test]
     fn match_object_pattern_binds_spread_fields() {
         let ts = emit(
-            "module x\ntype E =\n  | NetworkError({ url: string, status: number })\n  | NotFound({ id: string })\nfn show(e: E) -> string {\n  return match e {\n    NetworkError({ url, status }) => url,\n    NotFound({ id }) => id,\n  }\n}\n",
+            "module x\npub type E =\n  | NetworkError({ url: string, status: number })\n  | NotFound({ id: string })\npub fn show(e: E) -> string {\n  return match e {\n    NetworkError({ url, status }) => url,\n    NotFound({ id }) => id,\n  }\n}\n",
         );
         assert!(ts.contains("case \"NetworkError\": {"), "{ts}");
         assert!(ts.contains("const url = __m0.url;"), "{ts}");
@@ -5150,7 +5269,7 @@ mod tests {
     #[test]
     fn two_match_statements_use_distinct_temporaries() {
         let ts = emit(
-            "module x\nfn f(a: Result<number, string>, b: Result<number, string>) -> number {\n  match a {\n    Ok(x) => log(x),\n    Err(e) => log(e),\n  }\n  return match b {\n    Ok(y) => y,\n    Err(e) => 0,\n  }\n}\n",
+            "module x\npub fn f(a: Result<number, string>, b: Result<number, string>) -> number {\n  match a {\n    Ok(x) => log(x),\n    Err(e) => log(e),\n  }\n  return match b {\n    Ok(y) => y,\n    Err(e) => 0,\n  }\n}\n",
         );
         assert!(ts.contains("const __m0 = a;"), "{ts}");
         assert!(ts.contains("const __m1 = b;"), "{ts}");
@@ -5160,7 +5279,7 @@ mod tests {
     fn two_catch_all_arms_are_rejected() {
         // Two `else` arms would emit two `default:` clauses (TS1113).
         let err = emit_err(
-            "module x\ntype E =\n  | A({ x: number })\n  | B({ y: number })\nfn f(e: E) -> number {\n  return match e {\n    A({ x }) => x,\n    else => 1,\n    else => 2,\n  }\n}\n",
+            "module x\npub type E =\n  | A({ x: number })\n  | B({ y: number })\npub fn f(e: E) -> number {\n  return match e {\n    A({ x }) => x,\n    else => 1,\n    else => 2,\n  }\n}\n",
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
@@ -5171,7 +5290,7 @@ mod tests {
     #[test]
     fn statement_block_arm_emits_block_statements() {
         let ts = emit(
-            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  match e {\n    A => {\n      let x = 1\n      return x\n    },\n    B => {\n      return 2\n    },\n  }\n  return 0\n}\n",
+            "module x\npub type E = A | B\npub fn f(e: E) -> number {\n  match e {\n    A => {\n      let x = 1\n      return x\n    },\n    B => {\n      return 2\n    },\n  }\n  return 0\n}\n",
         );
         assert!(ts.contains("case \"A\": {"), "{ts}");
         assert!(ts.contains("let x = 1;"), "{ts}");
@@ -5183,7 +5302,7 @@ mod tests {
     #[test]
     fn statement_block_arm_without_return_gets_break() {
         let ts = emit(
-            "module x\ntype E = A | B\nfn nop(n: number) -> void { return void }\nfn f(e: E) -> void {\n  match e {\n    A => {\n      nop(1)\n    },\n    B => {\n      nop(2)\n    },\n  }\n  return void\n}\n",
+            "module x\npub type E = A | B\npub fn nop(n: number) -> void { return void }\npub fn f(e: E) -> void {\n  match e {\n    A => {\n      nop(1)\n    },\n    B => {\n      nop(2)\n    },\n  }\n  return void\n}\n",
         );
         assert!(ts.contains("nop(1);"), "{ts}");
         assert!(ts.contains("break;"), "{ts}");
@@ -5195,7 +5314,7 @@ mod tests {
         // expression implicitly returns that value (like Rust), rather than
         // being rejected for not ending in `return`.
         let ts = emit(
-            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  return match e {\n    A => {\n      let x = 1\n      x\n    },\n    B => 2,\n  }\n}\n",
+            "module x\npub type E = A | B\npub fn f(e: E) -> number {\n  return match e {\n    A => {\n      let x = 1\n      x\n    },\n    B => 2,\n  }\n}\n",
         );
         assert!(ts.contains("case \"A\": {"), "{ts}");
         assert!(ts.contains("let x = 1;"), "{ts}");
@@ -5208,7 +5327,7 @@ mod tests {
         // A non-void function whose body ends in a bare expression returns that
         // value (implicit tail return). Without this the value is dropped and
         // the function falls off the end, which `tsc --strict` rejects (TS2355).
-        let ts = emit("module x\nfn f() -> number {\n  let y = 1\n  y + 41\n}\n");
+        let ts = emit("module x\npub fn f() -> number {\n  let y = 1\n  y + 41\n}\n");
         assert!(ts.contains("let y = 1;"), "{ts}");
         assert!(ts.contains("return (y + 41);"), "{ts}");
     }
@@ -5219,7 +5338,7 @@ mod tests {
         // arms end in bare expressions. The match is in tail position, so each
         // arm `return`s its value rather than dropping it.
         let ts = emit(
-            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  match e {\n    A => 0,\n    B => 1,\n  }\n}\n",
+            "module x\npub type E = A | B\npub fn f(e: E) -> number {\n  match e {\n    A => 0,\n    B => 1,\n  }\n}\n",
         );
         assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
         assert!(ts.contains("return 0;"), "{ts}");
@@ -5230,7 +5349,7 @@ mod tests {
     fn void_function_runs_its_tail_for_effect() {
         // A `void` function does not implicitly return; its tail expression
         // runs for effect.
-        let ts = emit("module x\nfn f() -> void {\n  log(1)\n}\n");
+        let ts = emit("module x\npub fn f() -> void {\n  log(1)\n}\n");
         assert!(ts.contains("log(1);"), "{ts}");
         assert!(!ts.contains("return"), "{ts}");
     }
@@ -5240,7 +5359,7 @@ mod tests {
         // A function whose return type is just its own generic parameter is
         // checked precisely by tsc — no cast. The pre-0.1.10 blanket cast on
         // any generic return is gone (D28).
-        let ts = emit("module x\nfn id<T>(x: T) -> T { return x }\n");
+        let ts = emit("module x\npub fn id<T>(x: T) -> T { return x }\n");
         assert!(ts.contains("return x;"), "{ts}");
         assert!(!ts.contains("as T"), "honest generic return is cast-free: {ts}");
     }
@@ -5252,7 +5371,7 @@ mod tests {
         // the shape-derived type. The module also gets the injected mapped-type
         // alias `infer_output` lowers to.
         let ts = emit(
-            "module x\nfn s<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_output<Shape>> {\n  return shape\n}\n",
+            "module x\npub fn s<Shape: Record<string, Schema<unknown>>>(shape: Shape) -> Schema<infer_output<Shape>> {\n  return shape\n}\n",
         );
         assert!(
             ts.contains("type __GlyphInferOutput<S> = { [K in keyof S]: S[K] extends { parse(input: unknown): infer R } ? (Extract<R, { tag: \"Ok\" }> extends { value: infer V } ? V : never) : never };"),
@@ -5272,7 +5391,7 @@ mod tests {
     fn bounded_generic_emits_an_extends_clause() {
         // `<T: Bound>` lowers to a TS `extends` clause; tsc enforces the bound.
         let ts = emit(
-            "module x\ntype Named = { name: string }\nfn label<T: Named>(x: T) -> string {\n  return x.name\n}\n",
+            "module x\npub type Named = { name: string }\npub fn label<T: Named>(x: T) -> string {\n  return x.name\n}\n",
         );
         assert!(
             ts.contains("export function label<T extends Named>(x: T): string {"),
@@ -5282,7 +5401,7 @@ mod tests {
 
     #[test]
     fn unbounded_generic_has_no_extends() {
-        let ts = emit("module x\nfn id<T>(x: T) -> T { return x }\n");
+        let ts = emit("module x\npub fn id<T>(x: T) -> T { return x }\n");
         assert!(ts.contains("export function id<T>("), "{ts}");
         assert!(!ts.contains("extends"), "no bound, no extends: {ts}");
     }
@@ -5290,7 +5409,7 @@ mod tests {
     #[test]
     fn non_generic_return_is_not_cast() {
         // A non-generic return type is checked precisely, no cast.
-        let ts = emit("module x\nfn f() -> number { return 1 }\n");
+        let ts = emit("module x\npub fn f() -> number { return 1 }\n");
         assert!(ts.contains("return 1;"), "{ts}");
         assert!(!ts.contains(" as number"), "{ts}");
     }
@@ -5301,7 +5420,7 @@ mod tests {
         // returned value; a lambda the function returns keeps its own (un-cast)
         // returns — the sub-emitter resets `return_cast`.
         let ts = emit(
-            "module x\nfn mk<Shape: Record<string, Schema<unknown>>>(v: Shape) -> fn() -> infer_output<Shape> {\n  return fn() { v }\n}\n",
+            "module x\npub fn mk<Shape: Record<string, Schema<unknown>>>(v: Shape) -> fn() -> infer_output<Shape> {\n  return fn() { v }\n}\n",
         );
         // The function return is cast; the lambda's `v` is not.
         assert!(ts.contains("as () => __GlyphInferOutput<Shape>;"), "{ts}");
@@ -5311,7 +5430,7 @@ mod tests {
     #[test]
     fn value_position_block_arm_is_unsupported() {
         let err = emit_err(
-            "module x\ntype E = A | B\nfn f(e: E) -> number {\n  let x = match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n  return x\n}\n",
+            "module x\npub type E = A | B\npub fn f(e: E) -> number {\n  let x = match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n  return x\n}\n",
         );
         assert!(matches!(
             err,
@@ -5327,7 +5446,7 @@ mod tests {
         // With the scrutinee type known, `Idle`/`Busy` are recognized as
         // no-payload variants and become `case` labels (not bindings).
         let ts = emit(
-            "module x\ntype S = Idle | Busy\nfn f(s: S) -> number {\n  return match s {\n    Idle => 0,\n    Busy => 1,\n  }\n}\n",
+            "module x\npub type S = Idle | Busy\npub fn f(s: S) -> number {\n  return match s {\n    Idle => 0,\n    Busy => 1,\n  }\n}\n",
         );
         assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
         assert!(ts.contains("case \"Idle\": {"), "{ts}");
@@ -5339,7 +5458,7 @@ mod tests {
         // Example 03's SearchState shape: bare `Idle`/`Loading` plus payload
         // `Loaded({ users })` / `Failed({ message })`.
         let ts = emit(
-            "module x\ntype State =\n  | Idle\n  | Loading\n  | Loaded({ users: number })\n  | Failed({ message: string })\nfn show(s: State) -> number {\n  return match s {\n    Idle => 0,\n    Loading => 1,\n    Loaded({ users }) => users,\n    Failed({ message }) => 2,\n  }\n}\n",
+            "module x\npub type State =\n  | Idle\n  | Loading\n  | Loaded({ users: number })\n  | Failed({ message: string })\npub fn show(s: State) -> number {\n  return match s {\n    Idle => 0,\n    Loading => 1,\n    Loaded({ users }) => users,\n    Failed({ message }) => 2,\n  }\n}\n",
         );
         assert!(ts.contains("case \"Idle\": {"), "{ts}");
         assert!(ts.contains("case \"Loaded\": {"), "{ts}");
@@ -5353,7 +5472,7 @@ mod tests {
         // read `.value`, which does not exist. A single-value payload (`Ok(x)`)
         // still reads `.value`.
         let ts = emit(
-            "module x\ntype Row =\n  | Valid({ id: string, amount: number })\n  | Invalid({ id: string })\nfn amt(r: Row) -> number {\n  return match r {\n    Valid(v) => v.amount,\n    Invalid(_) => 0,\n  }\n}\n",
+            "module x\npub type Row =\n  | Valid({ id: string, amount: number })\n  | Invalid({ id: string })\npub fn amt(r: Row) -> number {\n  return match r {\n    Valid(v) => v.amount,\n    Invalid(_) => 0,\n  }\n}\n",
         );
         assert!(ts.contains("case \"Valid\": {"), "{ts}");
         assert!(ts.contains("const v = __m0;"), "{ts}");
@@ -5367,7 +5486,7 @@ mod tests {
         // synthesized temp the TypeMap doesn't know, so without the payload-type
         // side table the bind would wrongly read `.value` off the flat object.
         let ts = emit(
-            "module x\nimport std/result { Result, Ok, Err }\ntype OrderError =\n  | Empty\n  | BadQty({ sku: string, qty: number })\nfn describe(r: Result<number, OrderError>) -> string {\n  return match r {\n    Ok(v) => \"ok\",\n    Err(Empty) => \"empty\",\n    Err(BadQty(b)) => b.sku,\n  }\n}\n",
+            "module x\nimport std/result { Result, Ok, Err }\npub type OrderError =\n  | Empty\n  | BadQty({ sku: string, qty: number })\npub fn describe(r: Result<number, OrderError>) -> string {\n  return match r {\n    Ok(v) => \"ok\",\n    Err(Empty) => \"empty\",\n    Err(BadQty(b)) => b.sku,\n  }\n}\n",
         );
         assert!(ts.contains("case \"BadQty\": {"), "{ts}");
         // The whole flattened payload object, not a non-existent `.value`.
@@ -5382,7 +5501,7 @@ mod tests {
         // A user variant whose payload is a single (non-record) value stores it
         // under `value`, so `Wrap(v)` must read `.value`.
         let ts = emit(
-            "module x\ntype Box =\n  | Wrap(number)\n  | Empty\nfn f(b: Box) -> number {\n  return match b {\n    Wrap(v) => v,\n    Empty => 0,\n  }\n}\n",
+            "module x\npub type Box =\n  | Wrap(number)\n  | Empty\npub fn f(b: Box) -> number {\n  return match b {\n    Wrap(v) => v,\n    Empty => 0,\n  }\n}\n",
         );
         assert!(ts.contains("const v = __m0.value;"), "{ts}");
     }
@@ -5394,7 +5513,7 @@ mod tests {
         // inner FeedError tag. The three `Err(..)` arms collapse to one outer
         // `case "Err"` carrying an inner switch.
         let ts = emit(
-            "module x\ntype FeedError =\n  | NetworkError({ status: number })\n  | DecodeError({ reason: string })\nfn handle(r: Result<number, FeedError>) -> number {\n  return match r {\n    Ok(v) => v,\n    Err(NetworkError({ status })) => status,\n    Err(DecodeError({ reason })) => 0,\n  }\n}\n",
+            "module x\npub type FeedError =\n  | NetworkError({ status: number })\n  | DecodeError({ reason: string })\npub fn handle(r: Result<number, FeedError>) -> number {\n  return match r {\n    Ok(v) => v,\n    Err(NetworkError({ status })) => status,\n    Err(DecodeError({ reason })) => 0,\n  }\n}\n",
         );
         assert!(ts.contains("case \"Ok\": {"), "{ts}");
         assert!(ts.contains("case \"NetworkError\": {"), "{ts}");
@@ -5410,7 +5529,7 @@ mod tests {
         // un-annotated parameter emits without a type so TS infers it from the
         // call-site context rather than being pinned to `unknown`.
         let ts = emit(
-            "module x\nfn apply(f: fn(n: number) -> number) -> number { return f(1) }\nfn use_it() -> number {\n  return apply(fn(n) { n + 1 })\n}\n",
+            "module x\npub fn apply(f: fn(n: number) -> number) -> number { return f(1) }\npub fn use_it() -> number {\n  return apply(fn(n) { n + 1 })\n}\n",
         );
         assert!(ts.contains("(n) => {"), "{ts}");
         assert!(ts.contains("return (n + 1);"), "{ts}");
@@ -5419,7 +5538,7 @@ mod tests {
     #[test]
     fn explicitly_typed_lambda_param_keeps_its_annotation() {
         let ts = emit(
-            "module x\nfn apply(f: fn(n: number) -> number) -> number { return f(1) }\nfn use_it() -> number {\n  return apply(fn(n: number) { n + 1 })\n}\n",
+            "module x\npub fn apply(f: fn(n: number) -> number) -> number { return f(1) }\npub fn use_it() -> number {\n  return apply(fn(n: number) { n + 1 })\n}\n",
         );
         assert!(ts.contains("(n: number) => {"), "{ts}");
     }
@@ -5427,7 +5546,7 @@ mod tests {
     #[test]
     fn component_emits_a_react_function_with_create_element() {
         let ts = emit(
-            "module x\ncomponent Greeting(name: string) -> Component {\n  return <div class=\"g\">{name}</div>\n}\n",
+            "module x\npub component Greeting(name: string) -> Component {\n  return <div class=\"g\">{name}</div>\n}\n",
         );
         assert!(ts.contains("import * as React from \"react\";"), "{ts}");
         assert!(
@@ -5443,7 +5562,7 @@ mod tests {
     #[test]
     fn jsx_fragment_lowers_to_react_fragment() {
         let ts = emit(
-            "module x\ncomponent P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{\"body\"}</p>\n  </>\n}\n",
+            "module x\npub component P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{\"body\"}</p>\n  </>\n}\n",
         );
         assert!(ts.contains("import * as React from \"react\";"), "{ts}");
         assert!(
@@ -5457,7 +5576,7 @@ mod tests {
     fn member_expression_jsx_name_emits_the_dotted_type() {
         // `<Ctx.Provider value={x}>` — a namespaced component (React Context).
         let ts = emit(
-            "module x\ncomponent T(v: string) -> Component {\n  return <Ctx.Provider value={v}>\n    <span>{\"c\"}</span>\n  </Ctx.Provider>\n}\n",
+            "module x\npub component T(v: string) -> Component {\n  return <Ctx.Provider value={v}>\n    <span>{\"c\"}</span>\n  </Ctx.Provider>\n}\n",
         );
         assert!(
             ts.contains("React.createElement(Ctx.Provider, { value: v },"),
@@ -5471,7 +5590,7 @@ mod tests {
         // an `{expr}` child on the same line. Trimming both would render
         // "HelloAlicewelcome"; the space before and after `{name}` must survive.
         let ts = emit(
-            "module x\nimport react { Component }\ncomponent W(name: string) -> Component {\n  return <p>Hello {name} and welcome</p>\n}\n",
+            "module x\nimport react { Component }\npub component W(name: string) -> Component {\n  return <p>Hello {name} and welcome</p>\n}\n",
         );
         assert!(
             ts.contains("React.createElement(\"p\", null, \"Hello \", name, \" and welcome\")"),
@@ -5485,7 +5604,7 @@ mod tests {
         // single-brace `{expr}` interpolation, so `$` carries no meaning and
         // must not be a lex error. It should survive into the emitted text run.
         let ts = emit(
-            "module x\nimport react { Component }\ncomponent Price() -> Component {\n  return <div><span>Cost: $5 today</span></div>\n}\n",
+            "module x\nimport react { Component }\npub component Price() -> Component {\n  return <div><span>Cost: $5 today</span></div>\n}\n",
         );
         assert!(
             ts.contains("React.createElement(\"span\", null, \"Cost: $5 today\")"),
@@ -5500,7 +5619,7 @@ mod tests {
         // dropped by React. `class` -> `className`, `on_click` -> `onClick`,
         // `on_input` -> `onInput`.
         let ts = emit(
-            "module x\ncomponent B() -> Component {\n  return <button class=\"x\" on_click={fn() { void }}>hi</button>\n}\n",
+            "module x\npub component B() -> Component {\n  return <button class=\"x\" on_click={fn() { void }}>hi</button>\n}\n",
         );
         assert!(ts.contains("className: \"x\""), "class not remapped: {ts}");
         assert!(ts.contains("onClick: () =>"), "on_click not remapped: {ts}");
@@ -5515,7 +5634,7 @@ mod tests {
         // `on_select` -> `onSelect` would break the component that reads
         // `props.on_select`.
         let ts = emit(
-            "module x\ntype P = { on_select: fn() -> void }\ncomponent Row(props: P) -> Component { return <button>x</button> }\ncomponent List() -> Component {\n  return <Row on_select={fn() { void }} />\n}\n",
+            "module x\npub type P = { on_select: fn() -> void }\npub component Row(props: P) -> Component { return <button>x</button> }\npub component List() -> Component {\n  return <Row on_select={fn() { void }} />\n}\n",
         );
         assert!(ts.contains("on_select: () =>"), "component prop remapped: {ts}");
         assert!(!ts.contains("onSelect"), "component prop remapped: {ts}");
@@ -5524,7 +5643,7 @@ mod tests {
     #[test]
     fn jsx_match_lowers_to_a_switch_returning_iife() {
         let ts = emit(
-            "module x\ntype S =\n  | Idle\n  | Loaded({ items: number })\ncomponent V(s: S) -> Component {\n  return <match value={s}>\n    <case Idle><p>idle</p></case>\n    <case Loaded bind={items}><p>{items}</p></case>\n  </match>\n}\n",
+            "module x\npub type S =\n  | Idle\n  | Loaded({ items: number })\npub component V(s: S) -> Component {\n  return <match value={s}>\n    <case Idle><p>idle</p></case>\n    <case Loaded bind={items}><p>{items}</p></case>\n  </match>\n}\n",
         );
         assert!(ts.contains("((__v) => { switch (__v.tag) {"), "{ts}");
         assert!(
@@ -5541,7 +5660,7 @@ mod tests {
     #[test]
     fn jsx_if_else_lowers_to_a_ternary() {
         let ts = emit(
-            "module x\ncomponent V(flag: bool) -> Component {\n  return <div>\n    <if cond={flag}><p>yes</p></if>\n    <else><p>no</p></else>\n  </div>\n}\n",
+            "module x\npub component V(flag: bool) -> Component {\n  return <div>\n    <if cond={flag}><p>yes</p></if>\n    <else><p>no</p></else>\n  </div>\n}\n",
         );
         assert!(
             ts.contains("(flag ? React.createElement(\"p\", null, \"yes\") : React.createElement(\"p\", null, \"no\"))"),
@@ -5555,7 +5674,7 @@ mod tests {
         // pairing (D6 adjacency rule). The diagnostic must name that rule and
         // must not frame it as an unimplemented feature.
         let err = emit_err(
-            "module f\ncomponent Sep(show: bool) -> Component {\n  return <div>\n    <if cond={show}><span>yes</span></if>\n    <p>middle</p>\n    <else><span>no</span></else>\n  </div>\n}\n",
+            "module f\npub component Sep(show: bool) -> Component {\n  return <div>\n    <if cond={show}><span>yes</span></if>\n    <p>middle</p>\n    <else><span>no</span></else>\n  </div>\n}\n",
         );
         assert!(matches!(err, EmitError::MisplacedElse { .. }), "{err:?}");
         assert_eq!(err.code(), "E0301");
@@ -5568,7 +5687,7 @@ mod tests {
     #[test]
     fn jsx_for_lowers_to_map_with_key_merged() {
         let ts = emit(
-            "module x\ncomponent V(xs: Array<string>) -> Component {\n  return <ul>\n    <for x in={xs} key={x}><li>{x}</li></for>\n  </ul>\n}\n",
+            "module x\npub component V(xs: Array<string>) -> Component {\n  return <ul>\n    <for x in={xs} key={x}><li>{x}</li></for>\n  </ul>\n}\n",
         );
         assert!(
             ts.contains("xs.map((x) => React.createElement(\"li\", { key: x }, x))"),
@@ -5584,7 +5703,7 @@ mod tests {
         // lets the inner arms use `return`/block bodies; the IIFE path rejects
         // them.
         let ts = emit(
-            "module x\ntype C = A | B\nfn run(c: C) -> number {\n  return match c {\n    A => match c {\n      A => 0,\n      B => 1,\n    },\n    B => 2,\n  }\n}\n",
+            "module x\npub type C = A | B\npub fn run(c: C) -> number {\n  return match c {\n    A => match c {\n      A => 0,\n      B => 1,\n    },\n    B => 2,\n  }\n}\n",
         );
         // Two match switches (outer + nested) on the scrutinee temporaries, no
         // value IIFE wrapper. (The union descriptor also emits a tag switch;
@@ -5601,7 +5720,7 @@ mod tests {
         // not a binding `default:`. The old behavior bound `const None = __m0`
         // and relied on default fall-through, which broke nested patterns.
         let ts = emit(
-            "module x\nfn f() -> number {\n  return match find() {\n    None => 0,\n    Some(_) => 1,\n  }\n}\n",
+            "module x\npub fn f() -> number {\n  return match find() {\n    None => 0,\n    Some(_) => 1,\n  }\n}\n",
         );
         assert!(ts.contains("case \"Some\": {"), "{ts}");
         assert!(ts.contains("case \"None\": {"), "{ts}");
@@ -5616,7 +5735,7 @@ mod tests {
         // variant: the payload `Some(_)` arm stays a `case`, and the bare `rest`
         // binding lowers to a `default:` that binds the scrutinee.
         let ts = emit(
-            "module x\nfn f() -> number {\n  return match find() {\n    Some(_) => 1,\n    rest => 0,\n  }\n}\n",
+            "module x\npub fn f() -> number {\n  return match find() {\n    Some(_) => 1,\n    rest => 0,\n  }\n}\n",
         );
         assert!(ts.contains("case \"Some\": {"), "{ts}");
         assert!(ts.contains("default: {"), "{ts}");
@@ -5630,7 +5749,7 @@ mod tests {
         // A match whose only arm is a binding has no tag to switch on: bind the
         // scrutinee to the name and run the body.
         let ts = emit(
-            "module x\nfn f() -> number {\n  return match find() {\n    other => other,\n  }\n}\n",
+            "module x\npub fn f() -> number {\n  return match find() {\n    other => other,\n  }\n}\n",
         );
         assert!(ts.contains("const other = find();"), "{ts}");
         assert!(!ts.contains("switch"), "{ts}");
@@ -5641,7 +5760,7 @@ mod tests {
         // Without scrutinee type information two bare bindings are both
         // catch-alls, which would emit two `default:` clauses; reject instead.
         let err = emit_err(
-            "module x\nfn f() -> number {\n  return match find() {\n    a => 0,\n    b => 1,\n  }\n}\n",
+            "module x\npub fn f() -> number {\n  return match find() {\n    a => 0,\n    b => 1,\n  }\n}\n",
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
@@ -5655,7 +5774,7 @@ mod tests {
         // dispatch the payload by tag — not emit a duplicate `case "Ok"` that
         // binds `None` as a payload and throws on the `None` value at runtime.
         let ts = emit(
-            "module x\nfn f(r: unknown) -> number {\n  return match r {\n    Ok(Some(x)) => x,\n    Ok(None) => 0,\n    Err(_) => -1,\n  }\n}\n",
+            "module x\npub fn f(r: unknown) -> number {\n  return match r {\n    Ok(Some(x)) => x,\n    Ok(None) => 0,\n    Err(_) => -1,\n  }\n}\n",
         );
         // Exactly one outer `case "Ok"` (no duplicate from the un-grouped arm).
         assert_eq!(ts.matches("case \"Ok\":").count(), 1, "{ts}");
@@ -5671,7 +5790,7 @@ mod tests {
         // `Ok(_)` matches the variant and discards its payload: a `case` with
         // no binding, like a no-payload variant.
         let ts = emit(
-            "module x\ntype R =\n  | Ok(number)\n  | Bad(string)\nfn f(r: R) -> string {\n  return match r {\n    Ok(_) => \"ok\",\n    Bad(msg) => msg,\n  }\n}\n",
+            "module x\npub type R =\n  | Ok(number)\n  | Bad(string)\npub fn f(r: R) -> string {\n  return match r {\n    Ok(_) => \"ok\",\n    Bad(msg) => msg,\n  }\n}\n",
         );
         assert!(ts.contains("case \"Ok\": {"), "{ts}");
         // No payload binding is emitted for the discarded `_`.
@@ -5682,7 +5801,7 @@ mod tests {
     #[test]
     fn tagged_union_emits_discriminated_union_and_constructors() {
         let ts = emit(
-            "module x\ntype SearchState =\n  | Idle\n  | Loaded({ users: number })\n  | Failed({ message: string })\n",
+            "module x\npub type SearchState =\n  | Idle\n  | Loaded({ users: number })\n  | Failed({ message: string })\n",
         );
         assert!(ts.contains("export type SearchState ="), "{ts}");
         assert!(ts.contains("| { tag: \"Idle\" }"), "{ts}");
@@ -5708,7 +5827,7 @@ mod tests {
     #[test]
     fn payload_field_named_tag_is_rejected() {
         let err = emit_err(
-            "module x\ntype T =\n  | V({ tag: string })\n  | W\n",
+            "module x\npub type T =\n  | V({ tag: string })\n  | W\n",
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("tag")),
@@ -5718,14 +5837,14 @@ mod tests {
 
     #[test]
     fn single_line_no_payload_union_emits_consts() {
-        let ts = emit("module x\ntype Color = Red | Green | Blue\n");
+        let ts = emit("module x\npub type Color = Red | Green | Blue\n");
         assert!(ts.contains("export const Red: Color = { tag: \"Red\" };"), "{ts}");
         assert!(ts.contains("| { tag: \"Blue\" };"), "{ts}");
     }
 
     #[test]
     fn generic_tagged_union_emits_with_type_params() {
-        let ts = emit("module x\ntype Box<T> =\n  | Full({ value: T })\n  | Empty\n");
+        let ts = emit("module x\npub type Box<T> =\n  | Full({ value: T })\n  | Empty\n");
         assert!(ts.contains("export type Box<T> ="), "{ts}");
         assert!(ts.contains("| { tag: \"Full\"; value: T }"), "{ts}");
         // Payload constructor is generic and returns the applied type.
@@ -5743,7 +5862,7 @@ mod tests {
     #[test]
     fn generic_union_constructors_are_generic_only_over_used_params() {
         let ts = emit(
-            "module x\ntype Either<A, B> =\n  | Left({ a: A })\n  | Right({ b: B })\n  | Neither\n",
+            "module x\npub type Either<A, B> =\n  | Left({ a: A })\n  | Right({ b: B })\n  | Neither\n",
         );
         // Each constructor is generic over only the param it uses; the rest
         // are widened to `never` in the return type.
@@ -5764,11 +5883,91 @@ mod tests {
     #[test]
     fn match_on_a_generic_union_resolves_bare_variants() {
         let ts = emit(
-            "module x\ntype Box<T> =\n  | Full({ value: T })\n  | Empty\nfn f(b: Box<string>) -> string {\n  return match b {\n    Full({ value }) => value,\n    Empty => \"\",\n  }\n}\n",
+            "module x\npub type Box<T> =\n  | Full({ value: T })\n  | Empty\npub fn f(b: Box<string>) -> string {\n  return match b {\n    Full({ value }) => value,\n    Empty => \"\",\n  }\n}\n",
         );
         assert!(ts.contains("case \"Full\": {"), "{ts}");
         // `Empty` (a bare no-payload variant) resolves even though the
         // scrutinee type is `Box<string>` (a `Ty::App`).
         assert!(ts.contains("case \"Empty\": {"), "{ts}");
+    }
+
+    // ----- 0.1.16 language features -----
+
+    #[test]
+    fn private_decl_omits_export_and_pub_and_main_keep_it() {
+        // Module-private by default: a plain `fn`/`type` emits with no `export`.
+        // `pub` exports; `fn main` always exports (the runner imports it).
+        let ts = emit(
+            "module x\nfn helper() -> number { return 1 }\npub fn api() -> number { return 2 }\ntype Local = { a: number }\npub type Wire = { b: number }\nfn main() -> void { return void }\n",
+        );
+        assert!(ts.contains("function helper("), "{ts}");
+        assert!(!ts.contains("export function helper("), "helper is private: {ts}");
+        assert!(ts.contains("export function api("), "{ts}");
+        assert!(ts.contains("type Local ="), "{ts}");
+        assert!(!ts.contains("export type Local ="), "Local is private: {ts}");
+        // A private record's runtime descriptor is private too.
+        assert!(ts.contains("const Local = {"), "{ts}");
+        assert!(!ts.contains("export const Local = {"), "descriptor is private: {ts}");
+        assert!(ts.contains("export type Wire ="), "{ts}");
+        assert!(ts.contains("export const Wire = {"), "{ts}");
+        assert!(ts.contains("export function main("), "main always exports: {ts}");
+    }
+
+    #[test]
+    fn interface_emits_typescript_interface_and_bound() {
+        let ts = emit(
+            "module x\npub interface Named {\n  fn name() -> string\n  id: number\n}\npub fn label<T: Named>(x: T) -> string {\n  return x.name()\n}\n",
+        );
+        assert!(ts.contains("export interface Named {"), "{ts}");
+        assert!(ts.contains("name(): string;"), "method signature: {ts}");
+        assert!(ts.contains("id: number;"), "property signature: {ts}");
+        // The interface is a purely type-level construct — no runtime descriptor.
+        assert!(!ts.contains("const Named = {"), "no descriptor for an interface: {ts}");
+        // Used as a bound it lowers to a TS `extends` clause.
+        assert!(
+            ts.contains("export function label<T extends Named>(x: T): string {"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn private_interface_omits_export() {
+        let ts = emit("module x\ninterface Show {\n  fn show() -> string\n}\n");
+        assert!(ts.contains("interface Show {"), "{ts}");
+        assert!(!ts.contains("export interface Show"), "private interface: {ts}");
+    }
+
+    #[test]
+    fn defer_lowers_to_try_finally_around_the_tail() {
+        // The deferred expression runs on scope exit; the statements after it
+        // (including the tail `return`) go inside the `try`.
+        let ts = emit(
+            "module x\npub fn read() -> string {\n  defer log()\n  return \"r\"\n}\npub fn log() -> void { return void }\n",
+        );
+        let read = ts.split("function read(").nth(1).unwrap_or("");
+        let read = read.split("function log").next().unwrap_or("");
+        assert!(read.contains("try {"), "{read}");
+        assert!(read.contains("return \"r\";"), "{read}");
+        assert!(read.contains("} finally {"), "{read}");
+        assert!(read.contains("log();"), "{read}");
+        // The return sits before the finally block (inside the try).
+        let try_pos = read.find("try {").unwrap();
+        let ret_pos = read.find("return \"r\";").unwrap();
+        let fin_pos = read.find("} finally {").unwrap();
+        assert!(try_pos < ret_pos && ret_pos < fin_pos, "ordering: {read}");
+    }
+
+    #[test]
+    fn nested_defers_run_last_in_first_out() {
+        // Two defers: the second wraps inside the first, so it runs first.
+        let ts = emit(
+            "module x\npub fn f() -> void {\n  defer a()\n  defer b()\n  return void\n}\npub fn a() -> void { return void }\npub fn b() -> void { return void }\n",
+        );
+        let f = ts.split("function f(").nth(1).unwrap_or("");
+        let f = f.split("function a").next().unwrap_or("");
+        // b()'s finally is nested inside a()'s try, so b() runs before a().
+        let b_pos = f.find("b();").expect("b in finally");
+        let a_pos = f.find("a();").expect("a in finally");
+        assert!(b_pos < a_pos, "LIFO: b before a: {f}");
     }
 }

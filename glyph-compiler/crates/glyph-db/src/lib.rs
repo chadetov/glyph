@@ -718,6 +718,7 @@ fn decl_outer_span(d: &Decl) -> glyph_ast::Span {
         Decl::Type(t) => t.span,
         Decl::Const(c) => c.span,
         Decl::Component(c) => c.span,
+        Decl::Interface(i) => i.span,
     }
 }
 
@@ -948,14 +949,18 @@ pub fn module_exports(db: &dyn Db, file: SourceFile) -> Exports {
                 .table
                 .get(**id)
                 .expect("by_name points at table entry");
-            matches!(
-                sym.kind,
-                SymbolKind::Function { .. }
-                    | SymbolKind::Type { .. }
-                    | SymbolKind::Const { .. }
-                    | SymbolKind::Component { .. }
-                    | SymbolKind::Variant { .. }
-            )
+            // 0.1.16: only `pub` declarations form the export surface. A private
+            // name is invisible to `import M { N }` in another module, which then
+            // reports `UnknownExportedName` at the import site.
+            sym.is_public
+                && matches!(
+                    sym.kind,
+                    SymbolKind::Function { .. }
+                        | SymbolKind::Type { .. }
+                        | SymbolKind::Const { .. }
+                        | SymbolKind::Component { .. }
+                        | SymbolKind::Variant { .. }
+                )
         })
         .map(|(name, _)| name.clone())
         .collect();
@@ -1152,7 +1157,7 @@ fn collect_signature_spans(decl: &Decl, out: &mut HashSet<(u32, u32)>) {
         // Non-callable decls have no signature spans to collect; the
         // matching `decl_ty` arm returns `Ty::Unknown` and the Lowerer is
         // never invoked, so the slice doesn't matter.
-        Decl::Import(_) | Decl::Type(_) | Decl::Const(_) => return,
+        Decl::Import(_) | Decl::Type(_) | Decl::Const(_) | Decl::Interface(_) => return,
     };
     for p in params {
         collect_type_expr_spans(&p.ty, out);
@@ -1265,7 +1270,7 @@ pub mod tests {
     #[test]
     fn parse_query_returns_module_for_valid_source() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "ok.glyph", "module x\nfn main() {}\n");
+        let file = new_file(&db, "ok.glyph", "module x\npub fn main() {}\n");
         let parsed = parse_module(&db, file);
         assert!(parsed.module().is_some());
         assert!(parsed.error().is_none());
@@ -1274,7 +1279,7 @@ pub mod tests {
     #[test]
     fn parse_query_returns_error_for_invalid_source() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "bad.glyph", "module x\nfn main(\n");
+        let file = new_file(&db, "bad.glyph", "module x\npub fn main(\n");
         let parsed = parse_module(&db, file);
         assert!(parsed.module().is_none());
         assert!(parsed.error().is_some());
@@ -1283,7 +1288,7 @@ pub mod tests {
     #[test]
     fn module_symbols_query_finds_top_level_fn() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "ok.glyph", "module x\nfn helper() {}\n");
+        let file = new_file(&db, "ok.glyph", "module x\npub fn helper() {}\n");
         let syms = module_symbols(&db, file);
         let table = syms.symbols().expect("collect should succeed");
         assert!(table.lookup("helper").is_some());
@@ -1324,7 +1329,7 @@ pub mod tests {
         let file = new_file(
             &db,
             "ok.glyph",
-            "module x\nfn id(a: number) -> number { return a }\n",
+            "module x\npub fn id(a: number) -> number { return a }\n",
         );
         let r = resolve(&db, file);
         assert!(r.resolved().is_some());
@@ -1334,7 +1339,7 @@ pub mod tests {
     #[test]
     fn type_map_query_assigns_concrete_type_to_literal() {
         let db = CompilerDb::with_default_stdlib();
-        let src = "module x\nfn main() { let x = 42 }\n";
+        let src = "module x\npub fn main() { let x = 42 }\n";
         let file = new_file(&db, "ok.glyph", src);
         let types = type_map(&db, file);
         assert!(!types.type_map().is_empty());
@@ -1363,7 +1368,7 @@ pub mod tests {
     #[test]
     fn downstream_queries_short_circuit_on_parse_error() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "bad.glyph", "module x\nfn main(\n");
+        let file = new_file(&db, "bad.glyph", "module x\npub fn main(\n");
         let parsed = parse_module(&db, file);
         let syms = module_symbols(&db, file);
         let r = resolve(&db, file);
@@ -1378,7 +1383,7 @@ pub mod tests {
     #[test]
     fn changing_text_invalidates_downstream() {
         let mut db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "a.glyph", "module x\nfn main() {}\n");
+        let file = new_file(&db, "a.glyph", "module x\npub fn main() {}\n");
         // Snapshot pre-change values from every stage of the pipeline.
         let items_before = parse_module(&db, file).module().unwrap().items.len();
         let symbols_before = module_symbols(&db, file)
@@ -1388,7 +1393,7 @@ pub mod tests {
         let typed_entries_before = type_map(&db, file).type_map().len();
         // Mutate the input.
         file.set_text(&mut db).to(
-            "module x\nfn main() {}\nfn helper(x: number) -> number { return x }\n".to_string(),
+            "module x\npub fn main() {}\npub fn helper(x: number) -> number { return x }\n".to_string(),
         );
         // Each downstream stage observes the new AST — not just parse.
         let items_after = parse_module(&db, file).module().unwrap().items.len();
@@ -1412,7 +1417,7 @@ pub mod tests {
     #[test]
     fn unchanged_text_returns_same_result() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "a.glyph", "module x\nfn main() {}\n");
+        let file = new_file(&db, "a.glyph", "module x\npub fn main() {}\n");
         let first = parse_module(&db, file);
         let second = parse_module(&db, file);
         // Salsa memoizes on unchanged input: the second call returns a clone
@@ -1428,12 +1433,12 @@ pub mod tests {
         // I4's central promise: mutating file A's text does not invalidate
         // file B's queries.
         let mut db = CompilerDb::with_default_stdlib();
-        let a = new_file(&db, "a.glyph", "module a\nfn main() {}\n");
-        let b = new_file(&db, "b.glyph", "module b\nfn helper() {}\n");
+        let a = new_file(&db, "a.glyph", "module a\npub fn main() {}\n");
+        let b = new_file(&db, "b.glyph", "module b\npub fn helper() {}\n");
         let b_first = parse_module(&db, b);
         // Touch file A.
         a.set_text(&mut db).to(
-            "module a\nfn main() {}\nfn extra() {}\n".to_string(),
+            "module a\npub fn main() {}\npub fn extra() {}\n".to_string(),
         );
         let b_second = parse_module(&db, b);
         // File B's parsed AST should still be the same Arc — salsa didn't
@@ -1447,7 +1452,7 @@ pub mod tests {
         let file = new_file(
             &db,
             "ok.glyph",
-            "module x\nfn add(a: number, b: number) -> number { return a + b }\n",
+            "module x\npub fn add(a: number, b: number) -> number { return a + b }\n",
         );
         let d = decl_ty(&db, file, 0);
         match d.ty() {
@@ -1469,7 +1474,7 @@ pub mod tests {
         let file = new_file(
             &db,
             "ok.glyph",
-            "module x\ntype User = { name: string }\n",
+            "module x\npub type User = { name: string }\n",
         );
         // Type decls don't produce a Fn-shaped DeclTy in this query.
         let d = decl_ty(&db, file, 0);
@@ -1479,7 +1484,7 @@ pub mod tests {
     #[test]
     fn decl_ty_unknown_for_out_of_range_idx() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "ok.glyph", "module x\nfn one() {}\n");
+        let file = new_file(&db, "ok.glyph", "module x\npub fn one() {}\n");
         let d = decl_ty(&db, file, 99);
         assert!(matches!(d.ty(), Ty::Unknown));
     }
@@ -1493,7 +1498,7 @@ pub mod tests {
         let file = new_file(
             &db,
             "two.glyph",
-            "module x\nfn add(a: number, b: number) -> number { return a + b }\nfn ident(x: string) -> string { return x }\n",
+            "module x\npub fn add(a: number, b: number) -> number { return a + b }\npub fn ident(x: string) -> string { return x }\n",
         );
         // Discard any events produced by `SourceFile::new` itself so the
         // phase-1 count reflects only the decl_ty fetches.
@@ -1562,12 +1567,12 @@ fn ident(x: string) -> string { return x }
         let file = new_file(
             &db,
             "one.glyph",
-            "module x\nfn id(a: number) -> number { return a }\n",
+            "module x\npub fn id(a: number) -> number { return a }\n",
         );
         let before = decl_ty(&db, file, 0);
         // Change `a: number` to `a: string`.
         file.set_text(&mut db).to(
-            "module x\nfn id(a: string) -> number { return a }\n".to_string(),
+            "module x\npub fn id(a: string) -> number { return a }\n".to_string(),
         );
         let after = decl_ty(&db, file, 0);
         assert_ne!(before.ty(), after.ty(), "signature change should change DeclTy");
@@ -1589,7 +1594,7 @@ fn ident(x: string) -> string { return x }
         let file = new_file(
             &db,
             "comp.glyph",
-            "module x\ncomponent Btn(label: string) -> Component { return <button></button> }\n",
+            "module x\npub component Btn(label: string) -> Component { return <button></button> }\n",
         );
         let d = decl_ty(&db, file, 0);
         match d.ty() {
@@ -1604,7 +1609,7 @@ fn ident(x: string) -> string { return x }
     #[test]
     fn decl_ty_unknown_for_const_decl() {
         let db = CompilerDb::with_default_stdlib();
-        let file = new_file(&db, "ok.glyph", "module x\nconst PI = 3.14\n");
+        let file = new_file(&db, "ok.glyph", "module x\npub const PI = 3.14\n");
         let d = decl_ty(&db, file, 0);
         assert!(matches!(d.ty(), Ty::Unknown));
     }
@@ -1702,7 +1707,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let file = new_file(
             &db,
             "calls.glyph",
-            "module x\nfn helper() -> number { return 1 }\nfn main() -> number { return helper() }\n",
+            "module x\npub fn helper() -> number { return 1 }\npub fn main() -> number { return helper() }\n",
         );
         // Pin the (idx, name) mapping the rest of the test relies on. If a
         // future contributor reorders the fixture, this assertion fails
@@ -1748,7 +1753,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let file = new_file(
             &db,
             "lib.glyph",
-            "module lib\nimport std/array\nfn helper() -> number { return 1 }\ntype User = { name: string }\nconst PI = 3.14\n",
+            "module lib\nimport std/array\npub fn helper() -> number { return 1 }\npub type User = { name: string }\npub const PI = 3.14\n",
         );
         let exports = module_exports(&db, file);
         let names = &exports.exports().names;
@@ -1761,6 +1766,22 @@ fn use_helper(x: number) -> number { return helper(x) }
     }
 
     #[test]
+    fn module_exports_excludes_private_decls() {
+        // 0.1.16: only `pub` names form the export surface. A private helper is
+        // invisible to another module's `import M { N }`.
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\npub fn api() -> number { return 1 }\nfn secret() -> number { return 2 }\n",
+        );
+        let exports = module_exports(&db, file);
+        let names = &exports.exports().names;
+        assert!(names.contains("api" as &str), "pub is exported");
+        assert!(!names.contains("secret" as &str), "private is not exported");
+    }
+
+    #[test]
     fn module_exports_includes_union_variants() {
         // Tagged-union variants are hoisted into module scope as Variant
         // symbols (see glyph-resolver/collect.rs); they're part of the
@@ -1769,7 +1790,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let file = new_file(
             &db,
             "lib.glyph",
-            "module lib\ntype FeedError = | NotFound | Timeout\n",
+            "module lib\npub type FeedError = | NotFound | Timeout\n",
         );
         let exports = module_exports(&db, file);
         let names = &exports.exports().names;
@@ -1784,7 +1805,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let lib = new_file(
             &db,
             "lib.glyph",
-            "module lib\nfn helper() -> number { return 1 }\nfn other() -> number { return 2 }\n",
+            "module lib\npub fn helper() -> number { return 1 }\npub fn other() -> number { return 2 }\n",
         );
         let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
         let project = ProjectGraph::build(&db, [("lib", lib)]);
@@ -1807,7 +1828,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let lib = new_file(
             &db,
             "lib.glyph",
-            "module lib\nfn helper() -> number { return 1 }\n",
+            "module lib\npub fn helper() -> number { return 1 }\n",
         );
         let app = new_file(&db, "app.glyph", "module app\nimport lib { bogus }\n");
         let project = ProjectGraph::build(&db, [("lib", lib)]);
@@ -1844,12 +1865,12 @@ fn use_helper(x: number) -> number { return helper(x) }
         let file = new_file(
             &db,
             "lib.glyph",
-            "module lib\nfn helper(a: number) -> number { return a + 1 }\n",
+            "module lib\npub fn helper(a: number) -> number { return a + 1 }\n",
         );
         let _ = module_exports(&db, file);
         // Body-only edit, same length so spans stay stable.
         file.set_text(&mut db).to(
-            "module lib\nfn helper(a: number) -> number { return 1 + a }\n".to_string(),
+            "module lib\npub fn helper(a: number) -> number { return 1 + a }\n".to_string(),
         );
         db.drain_events();
         let _ = module_exports(&db, file);
@@ -1881,7 +1902,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let lib = new_file(
             &db,
             "lib.glyph",
-            "module lib\nfn helper() -> number { return 1 }\n",
+            "module lib\npub fn helper() -> number { return 1 }\n",
         );
         let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
         db.set_project(vec![("lib".to_string(), lib)]);
@@ -1895,7 +1916,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let lib = new_file(
             &db,
             "lib.glyph",
-            "module lib\nfn helper() -> number { return 1 }\n",
+            "module lib\npub fn helper() -> number { return 1 }\n",
         );
         let app = new_file(
             &db,
@@ -1926,7 +1947,7 @@ fn use_helper(x: number) -> number { return helper(x) }
         let lib = new_file(
             &db,
             "lib.glyph",
-            "module lib\nfn helper() -> number { return 1 }\n",
+            "module lib\npub fn helper() -> number { return 1 }\n",
         );
         let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
         db.set_project(vec![("lib".to_string(), lib)]);
@@ -1935,7 +1956,7 @@ fn use_helper(x: number) -> number { return helper(x) }
 
         // Remove `helper` from lib (replace with a differently-named fn).
         lib.set_text(&mut db).to(
-            "module lib\nfn other() -> number { return 1 }\n".to_string(),
+            "module lib\npub fn other() -> number { return 1 }\n".to_string(),
         );
         let after = import_diagnostics(&db, app);
         assert!(
@@ -1965,14 +1986,14 @@ fn use_helper(x: number) -> number { return helper(x) }
         let lib = new_file(
             &db,
             "lib.glyph",
-            "module lib\nfn helper(a: number) -> number { return a + 1 }\n",
+            "module lib\npub fn helper(a: number) -> number { return a + 1 }\n",
         );
         let app = new_file(&db, "app.glyph", "module app\nimport lib { helper }\n");
         db.set_project(vec![("lib".to_string(), lib)]);
         let _ = import_diagnostics(&db, app);
         // Same-length body swap, exports unchanged.
         lib.set_text(&mut db).to(
-            "module lib\nfn helper(a: number) -> number { return 1 + a }\n".to_string(),
+            "module lib\npub fn helper(a: number) -> number { return 1 + a }\n".to_string(),
         );
         db.drain_events();
         let _ = import_diagnostics(&db, app);

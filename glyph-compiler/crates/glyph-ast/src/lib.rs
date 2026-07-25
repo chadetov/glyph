@@ -57,6 +57,7 @@ pub enum Decl {
     Type(TypeDecl),
     Const(ConstDecl),
     Component(ComponentDecl),
+    Interface(InterfaceDecl),
 }
 
 impl Decl {
@@ -68,6 +69,23 @@ impl Decl {
             Decl::Type(d) => d.span,
             Decl::Const(d) => d.span,
             Decl::Component(d) => d.span,
+            Decl::Interface(d) => d.span,
+        }
+    }
+
+    /// Whether this declaration is exported from its module (`pub`). Visibility
+    /// is module-private by default (0.1.16); an `import` has no visibility of
+    /// its own (it re-binds another module's name) and is treated as non-public.
+    /// A `fn main` is always exported regardless of `pub` — it is the program
+    /// entrypoint the generated runner imports.
+    pub fn is_public(&self) -> bool {
+        match self {
+            Decl::Fn(d) => d.is_public || d.name.as_ref() == "main",
+            Decl::Type(d) => d.is_public,
+            Decl::Const(d) => d.is_public,
+            Decl::Component(d) => d.is_public,
+            Decl::Interface(d) => d.is_public,
+            Decl::Import(_) => false,
         }
     }
 }
@@ -93,6 +111,8 @@ pub enum ImportKind {
 pub struct FnDecl {
     pub name: Ident,
     pub annotations: Vec<Annotation>,
+    /// `pub fn` (0.1.16). Module-private by default; `main` is always exported.
+    pub is_public: bool,
     pub is_async: bool,
     /// Generic type parameters: `fn name<T, U>(args)` produces two `GenericParam`s.
     pub generics: Vec<GenericParam>,
@@ -127,6 +147,8 @@ pub struct Param {
 pub struct TypeDecl {
     pub name: Ident,
     pub annotations: Vec<Annotation>,
+    /// `pub type` (0.1.16). Module-private by default.
+    pub is_public: bool,
     pub generics: Vec<GenericParam>,
     /// D25: `resource type X = ...`. A value of a resource type may be bound
     /// with `let owned` and is then tracked for single-consumption. Plain
@@ -140,6 +162,8 @@ pub struct TypeDecl {
 pub struct ConstDecl {
     pub name: Ident,
     pub annotations: Vec<Annotation>,
+    /// `pub const` (0.1.16). Module-private by default.
+    pub is_public: bool,
     pub ty: Option<TypeExpr>,
     pub value: Expr,
     pub span: Span,
@@ -152,11 +176,41 @@ pub struct ConstDecl {
 pub struct ComponentDecl {
     pub name: Ident,
     pub annotations: Vec<Annotation>,
+    /// `pub component` (0.1.16). Module-private by default.
+    pub is_public: bool,
     pub generics: Vec<GenericParam>,
     pub params: Vec<Param>,
     pub return_ty: Option<TypeExpr>,
     pub body: Block,
     pub span: Span,
+}
+
+/// A structural interface (0.1.16): a named set of member signatures usable as a
+/// generic bound (`fn label<T: Show>(x: T)`) and as an ordinary type. Structural,
+/// like Glyph's records and like a TypeScript `interface`: any value with the
+/// members satisfies it, no explicit conformance declaration. Emits to an
+/// `export interface`/`interface` in TypeScript, which `tsc` enforces.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InterfaceDecl {
+    pub name: Ident,
+    pub annotations: Vec<Annotation>,
+    pub is_public: bool,
+    pub generics: Vec<GenericParam>,
+    pub members: Vec<InterfaceMember>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InterfaceMember {
+    /// `fn name(params) -> ret` — a method signature (no body).
+    Method {
+        name: Ident,
+        params: Vec<Param>,
+        return_ty: Option<TypeExpr>,
+        span: Span,
+    },
+    /// `name: Type` or `name?: Type` — a property signature.
+    Field(RecordTypeField),
 }
 
 // ============================================================================
@@ -227,7 +281,19 @@ pub enum Stmt {
     Loop(LoopStmt),
     Break(BreakStmt),
     Continue(ContinueStmt),
+    Defer(DeferStmt),
     Expr(Expr),
+}
+
+/// `defer <expr>` (0.1.16): the expression runs on exit of the enclosing block,
+/// on every path (normal completion, `return`, or a thrown error). Lowered to a
+/// `try`/`finally` wrapping the statements that follow it; multiple defers in one
+/// block run last-in-first-out. Composes with `owned`/`resource` handles for
+/// deterministic cleanup (`defer file.close()`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeferStmt {
+    pub expr: Expr,
+    pub span: Span,
 }
 
 /// D5: `mut` is a statement prefix restricted by the grammar to two shapes:
@@ -795,6 +861,7 @@ impl Stmt {
             Stmt::Loop(s) => s.span,
             Stmt::Break(s) => s.span,
             Stmt::Continue(s) => s.span,
+            Stmt::Defer(s) => s.span,
             Stmt::Expr(e) => e.span(),
         }
     }

@@ -490,18 +490,20 @@ the version that declares it real, not the version it all lands in.
 **Interop code fixes from Linus review 04** (the verified gaps behind the honesty
 edits; each is real engineering, not a doc tweak):
 
-- **Deeper `.d.ts` materialization** (L). 🟨 **Mostly done.** `ts-to-schema.mjs`
-  now walks `declare namespace` trees (two-pass, qualified names, scope-aware
-  reference resolution), degrades a generic parameter to `unknown`, and follows
-  cross-file re-exports: the entry file plus every `.d.ts` reachable through a
-  relative `import`/`export … from` (an `index` barrel re-exporting sibling
-  files, `export *`, transitive imports) is walked, with cross-file references
-  resolved. So a real multi-file SDK now materializes usable descriptor-bearing
-  types (both regression-tested). **Remaining:** first-class generic
-  materialization (emit a Glyph generic instead of erasing the parameter to
-  `unknown`); a bare specifier is not followed (it points at another package),
-  and cross-file following is best-effort on the TypeScript 7 native path.
-  *Done:* a generic type keeps its parameter through materialization.
+- **Deeper `.d.ts` materialization** (L). ✅ **Done.** `ts-to-schema.mjs` walks
+  `declare namespace` trees (two-pass, qualified names, scope-aware reference
+  resolution); follows cross-file re-exports (the entry file plus every `.d.ts`
+  reachable through a relative `import`/`export … from`: an `index` barrel,
+  `export *`, transitive imports, with cross-file references resolved); and
+  materializes generics **first-class** (`interface Page<T>` → `type Page<T> = {
+  items: Array<T> }`, keeping the parameter, and a `Page<User>` instantiation
+  keeps its argument), so a generic type gets a real checker-threaded descriptor
+  that validates deeply through nested generic fields (`UserList.parse` rejects a
+  `Page<User>` whose item isn't a valid `User`). All regression-tested. A bare
+  specifier is not followed (it points at another package), and cross-file
+  following is best-effort on the TypeScript 7 native path. *Done:* a real
+  multi-file, namespaced, generic SDK materializes usable descriptor-bearing
+  types.
 - **Subpath-`exports` resolution** (M). ✅ **Verified working, no fix needed.**
   Review 04 *inferred* (did not run) that the Phase 1 `"*"` wildcard would bypass a
   package's `exports` map and fail to resolve a subpath like `@scope/pkg/sub`.
@@ -668,6 +670,18 @@ concrete follow-ups, in priority order:
 The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
+
+- **Cross-module generic-descriptor `.parse<T>()` call** (M, correctness). Calling
+  a generic type's descriptor parse with an explicit type argument works
+  same-module (`Box.parse<User>(v)` synthesizes the `__is_User` checker), but a
+  generic type **imported from another module** emits the call with the checker
+  argument missing (`tsc` TS2554: "Expected 2 arguments, but got 1"). Found while
+  materializing first-class generics; it is **pre-existing and general** (it
+  reproduces with a hand-written cross-module generic, not just materialized
+  ones), so it belongs to the 0.1.10 generic-descriptor call-site synthesis, not
+  the interop work. Nested generic fields validate correctly (the emitter threads
+  the checker when generating a descriptor), so the gap is only the explicit
+  top-level `Imported.parse<T>(v)` call across a module boundary.
 
 ## Parked (v2 / later)
 

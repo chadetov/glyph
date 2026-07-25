@@ -9,8 +9,11 @@
 //
 // Declarations inside `declare namespace Ns { ... }` are walked too, keyed by
 // their fully-qualified name (`Ns.Type`); a bare reference inside a namespace is
-// resolved against the enclosing scope. A generic parameter (`interface Box<T>`)
-// has no JSON-Schema form and maps to `unknown`. An ambient `declare module "x"`
+// resolved against the enclosing scope. A generic declaration (`interface Box<T>`)
+// keeps its parameters (carried as `x-type-params`), and a reference to a
+// parameter (`x-type-param`) or a generic instantiation (`x-type-args`) is
+// carried out so the mapper emits a first-class Glyph generic. An ambient
+// `declare module "x"`
 // (string-literal name) is skipped — it declares another module, not this
 // package's own types. The entry file and every `.d.ts` reachable through a
 // relative `import`/`export … from` specifier are walked, so a package that
@@ -183,8 +186,8 @@ function isOptional(m) {
 
 // `ctx` threads two things through the walk: `scope` (the enclosing namespace
 // names, so a bare reference can be resolved to its fully-qualified declaration)
-// and `typeParams` (the current declaration's generic parameter names, which
-// JSON Schema cannot express and so map to `unknown`).
+// and `typeParams` (the current declaration's generic parameter names, so a
+// reference to one is carried out by name for a first-class Glyph generic).
 
 /** Map a TS type node to a JSON Schema fragment. */
 function typeToSchema(node, ctx) {
@@ -216,14 +219,19 @@ function typeToSchema(node, ctx) {
       if (name === "Record" && node.typeArguments?.length === 2) {
         return { type: "object", additionalProperties: typeToSchema(node.typeArguments[1], ctx) };
       }
-      // A reference to the enclosing declaration's own type parameter has no
-      // JSON-Schema form; the Glyph mapper turns this into `unknown`.
+      // A reference to the enclosing declaration's own type parameter is carried
+      // by name so the mapper emits a first-class generic (`Page<T>` keeps `T`).
       if (ctx.typeParams.has(name.split(".")[0])) {
-        return { "x-unsupported": "type-parameter" };
+        return { "x-type-param": name };
       }
       // Resolve a (possibly bare) name against the namespace scope so a
-      // reference inside `namespace Ns` finds `Ns.Type`.
-      return { $ref: "#/definitions/" + resolveRef(name, ctx.scope) };
+      // reference inside `namespace Ns` finds `Ns.Type`. A generic instantiation
+      // (`Page<User>`) carries its arguments so the mapper emits `Page<User>`.
+      const out = { $ref: "#/definitions/" + resolveRef(name, ctx.scope) };
+      if (node.typeArguments?.length) {
+        out["x-type-args"] = node.typeArguments.map((a) => typeToSchema(a, ctx));
+      }
+      return out;
     }
     default:
       return { "x-unsupported": K[node.kind] };
@@ -375,12 +383,17 @@ function resolveRef(name, scope) {
 
 const definitions = {};
 for (const { node, qualified, scope } of collected) {
-  const typeParams = new Set((node.typeParameters || []).map((tp) => nameText(tp.name)));
-  const ctx = { scope, typeParams };
-  definitions[qualified] =
+  const params = (node.typeParameters || []).map((tp) => nameText(tp.name));
+  const ctx = { scope, typeParams: new Set(params) };
+  const schema =
     node.kind === K.InterfaceDeclaration
       ? objectToSchema(node.members, ctx)
       : typeToSchema(node.type, ctx);
+  // Carry the declaration's generic parameters so the mapper emits
+  // `type Name<T, ...> = ...` (typeToSchema/objectToSchema always return an
+  // object literal, so attaching the key is safe).
+  if (params.length) schema["x-type-params"] = params;
+  definitions[qualified] = schema;
 }
 
 process.stdout.write(JSON.stringify({ definitions }));

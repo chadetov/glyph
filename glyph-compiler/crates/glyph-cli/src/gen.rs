@@ -1002,15 +1002,18 @@ impl Generator {
             return format!("// enum: {vals}\ntype {name} = string\n");
         }
 
-        // Object with properties → record.
+        // Object with properties → record. A generic declaration keeps its
+        // parameters, so `interface Page<T>` becomes `type Page<T> = { ... }`
+        // (a first-class generic that gets a checker-threaded descriptor).
         if is_object(schema) {
             let fields = self.object_fields(name, schema);
-            return self.render_record(name, &fields, !schema_is_closed(schema));
+            let head = format!("{name}{}", type_param_suffix(schema));
+            return self.render_record(&head, &fields, !schema_is_closed(schema));
         }
 
         // Everything else at the top level: emit an alias to the mapped type.
         let ty = self.type_ref(name, schema);
-        format!("type {name} = {ty}\n")
+        format!("type {name}{} = {ty}\n", type_param_suffix(schema))
     }
 
     /// Collect `(field_name, type, optional)` for an object schema.
@@ -1119,9 +1122,22 @@ impl Generator {
     /// Map a schema to a Glyph *type expression* string (used in field / alias
     /// position). `ctx` is a dotted path for diagnostics.
     fn type_ref(&mut self, ctx: &str, schema: &Value) -> String {
+        // A reference to the enclosing declaration's own generic parameter
+        // (`items: T[]` inside `interface Page<T>`) maps to that parameter, so
+        // the generated `type Page<T>` keeps it first-class.
+        if let Some(tp) = schema.get("x-type-param").and_then(|v| v.as_str()) {
+            return sanitize_type(tp);
+        }
         if let Some(r) = schema.get("$ref").and_then(|v| v.as_str()) {
-            let base = ref_name(r);
-            return sanitize_type(&base);
+            let base = sanitize_type(&ref_name(r));
+            // A generic instantiation (`Page<User>`) carries its arguments.
+            if let Some(args) = schema.get("x-type-args").and_then(|v| v.as_array()) {
+                let rendered: Vec<String> = args.iter().map(|a| self.type_ref(ctx, a)).collect();
+                if !rendered.is_empty() {
+                    return format!("{base}<{}>", rendered.join(", "));
+                }
+            }
+            return base;
         }
         // `nullable` is handled at the field level (as optionality); the type
         // itself is always the base type, so its descriptor matches the wire.
@@ -1200,6 +1216,20 @@ fn is_object(schema: &Value) -> bool {
 /// open, which is the default in both JSON Schema and a `.d.ts` interface.
 fn schema_is_closed(schema: &Value) -> bool {
     matches!(schema.get("additionalProperties"), Some(Value::Bool(false)))
+}
+
+/// The Glyph generic-parameter suffix for a declaration that carries
+/// `x-type-params` (`interface Page<T, U>` → `<T, U>`), or empty. The names are
+/// sanitized so they are legal Glyph type-parameter identifiers, matching how a
+/// reference to a parameter is rendered.
+fn type_param_suffix(schema: &Value) -> String {
+    match schema.get("x-type-params").and_then(|v| v.as_array()) {
+        Some(ps) if !ps.is_empty() => {
+            let names: Vec<String> = ps.iter().filter_map(|p| p.as_str()).map(sanitize_type).collect();
+            format!("<{}>", names.join(", "))
+        }
+        _ => String::new(),
+    }
 }
 
 /// The final path segment of a `$ref` (`#/components/schemas/Pet` → `Pet`).
@@ -1994,8 +2024,44 @@ mod tests {
                 assert!(text.contains("type SDKAddress"), "got:\n{text}");
                 assert!(text.contains("address: SDKAddress"), "scope-resolved ref; got:\n{text}");
                 assert!(text.contains("zip?: string"), "got:\n{text}");
-                // The generic parameter degrades to `unknown`, not a dangling ref.
-                assert!(text.contains("items: Array<unknown>"), "generic → unknown; got:\n{text}");
+                // A generic keeps its parameter first-class, not erased.
+                assert!(text.contains("type SDKPage<T>"), "generic decl keeps <T>; got:\n{text}");
+                assert!(text.contains("items: Array<T>"), "generic field keeps T; got:\n{text}");
+                assert!(glyph_parser::parse(&text).is_ok(), "generated must parse:\n{text}");
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn dts_materializes_generics_first_class() {
+        // A generic declaration keeps its parameter, and a generic instantiation
+        // used in another type keeps its argument, so the materialized type gets
+        // a real generic descriptor rather than erasing to `unknown`.
+        let dir = std::env::temp_dir().join(format!("glyph-dts-gen-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("g.d.ts");
+        std::fs::write(
+            &src,
+            "export interface User { id: string; name: string; }\n\
+             export interface Page<T> { items: T[]; total: number; }\n\
+             export interface UserList { page: Page<User>; }\n",
+        )
+        .unwrap();
+
+        match dts(&src, &dir.join("out")) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                assert!(text.contains("type Page<T>"), "generic decl keeps <T>; got:\n{text}");
+                assert!(text.contains("items: Array<T>"), "param in a field; got:\n{text}");
+                // A generic instantiation keeps its argument.
+                assert!(text.contains("page: Page<User>"), "instantiation kept; got:\n{text}");
                 assert!(glyph_parser::parse(&text).is_ok(), "generated must parse:\n{text}");
             }
             Err(GenError::NodeMissing)

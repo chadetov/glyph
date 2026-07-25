@@ -210,9 +210,10 @@ match Customer.parse(webhook_body) {
           <code>declare namespace</code> tree (bare cross-references resolve through the scope) and
           those in sibling files an <code>index</code> barrel re-exports (the entry
           <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic
-          parameter has no runtime form, so it degrades to <code>unknown</code>. For anything the
-          materializer can't reach, hand-write the shapes you cross the boundary with, or use the
-          <code>extern_ts</code> escape hatch.
+          is kept first-class: <code>interface Page&lt;T&gt;</code> materializes as
+          <code>type Page&lt;T&gt;</code> and gets a descriptor that validates each item as its type
+          argument, not just for presence. For anything the materializer can't reach, hand-write the
+          shapes you cross the boundary with, or use the <code>extern_ts</code> escape hatch.
         </p>
       </div>
 

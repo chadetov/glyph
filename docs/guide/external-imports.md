@@ -269,11 +269,12 @@ declarations a package exports, including those inside a `declare namespace` tre
 scope) and those in sibling files that an `index` barrel re-exports: the entry
 `.d.ts` plus every `.d.ts` reachable through a relative `import`/`export … from`
 is walked, so a package that splits its types across files materializes fully. A
-generic parameter has no runtime form, so it degrades to `unknown` (`Page<T>` with
-`items: T[]` materializes as `{ items: Array<unknown> }`). A bare specifier
-(`from "react"`) is not followed, since it points at another package. For anything
-the materializer can't reach, hand-write the shapes you cross the boundary with,
-or reach for the `extern_ts` escape hatch.
+generic is kept first-class: `interface Page<T> { items: T[] }` materializes as
+`type Page<T> = { items: Array<T> }`, and a `Page<User>` keeps its argument, so
+the type gets a real descriptor that validates each item as a `User`, not just for
+presence. A bare specifier (`from "react"`) is not followed, since it points at
+another package. For anything the materializer can't reach, hand-write the shapes
+you cross the boundary with, or reach for the `extern_ts` escape hatch.
 
 `glyph gen zod` takes a package name too, for a package that *exports zod
 schemas* (a shared-schema package). It resolves the package's runtime entry,

@@ -887,6 +887,13 @@ land here until they're assigned a release.
 - **Automatic `@redact` boundary masking.** Today redaction is via the explicit
   `T.redact(value)` descriptor method; masking every serialize/log call
   automatically needs a runtime type tag on values.
+- **Bitwise shift operators (`<< >> >>>`).** The non-shift bitwise ops (`& | ^ ~`)
+  shipped in 0.1.20 (D36); shifts are deferred because `>>` collides with a
+  generic-close angle bracket (`Array<Array<T>>` lexes `>>` as two closes). Doing
+  them right needs the contextual disambiguation TypeScript does (split `>>` in
+  type position, combine adjacent `>`/`<` into a shift in expression position),
+  which builds on the existing single-angle-token lexing. Until then a
+  shift-dependent numeric kernel (mulberry32 in `std/random`) stays TS.
 - `@ffi target:` syntax (v2).
 - General TS mapped-/conditional-type surface (`{ [K in keyof T]: ... }`,
   `X extends Y ? A : B`, user-written `infer`). Deliberately *not* shipped: the

@@ -100,7 +100,23 @@ fn parse_or(p: &mut Cursor) -> Result<Expr, ParseError> {
 
 // Level 8 — `&&` left-assoc
 fn parse_and(p: &mut Cursor) -> Result<Expr, ParseError> {
-    left_assoc(p, parse_eq, &[(Token::AmpAmp, BinOp::LogicalAnd)])
+    left_assoc(p, parse_bit_or, &[(Token::AmpAmp, BinOp::LogicalAnd)])
+}
+
+// Bitwise OR `|` — expression position only (a union/pattern `|` never reaches
+// here). Binds tighter than `&&`, looser than `^` (JS precedence).
+fn parse_bit_or(p: &mut Cursor) -> Result<Expr, ParseError> {
+    left_assoc(p, parse_bit_xor, &[(Token::Pipe, BinOp::BitOr)])
+}
+
+// Bitwise XOR `^`.
+fn parse_bit_xor(p: &mut Cursor) -> Result<Expr, ParseError> {
+    left_assoc(p, parse_bit_and, &[(Token::Caret, BinOp::BitXor)])
+}
+
+// Bitwise AND `&` (single `&`; `&&` is logical-and above).
+fn parse_bit_and(p: &mut Cursor) -> Result<Expr, ParseError> {
+    left_assoc(p, parse_eq, &[(Token::Amp, BinOp::BitAnd)])
 }
 
 // Level 7 — `==`, `!=`
@@ -164,6 +180,16 @@ fn parse_unary(p: &mut Cursor) -> Result<Expr, ParseError> {
             let end = operand.span().end;
             Ok(Expr::Unary {
                 op: UnaryOp::Neg,
+                operand: Box::new(operand),
+                span: Span::new(span.start, end),
+            })
+        }
+        Token::Tilde => {
+            p.advance();
+            let operand = parse_unary(p)?;
+            let end = operand.span().end;
+            Ok(Expr::Unary {
+                op: UnaryOp::BitNot,
                 operand: Box::new(operand),
                 span: Span::new(span.start, end),
             })

@@ -1138,10 +1138,13 @@ fn bin_prec(op: BinOp) -> u8 {
         NullishCoalesce => 1,
         LogicalOr => 2,
         LogicalAnd => 3,
-        Eq | NotEq => 4,
-        Lt | Gt | LtEq | GtEq => 5,
-        Add | Sub => 6,
-        Mul | Div | Rem => 7,
+        BitOr => 4,
+        BitXor => 5,
+        BitAnd => 6,
+        Eq | NotEq => 7,
+        Lt | Gt | LtEq | GtEq => 8,
+        Add | Sub => 9,
+        Mul | Div | Rem => 10,
     }
 }
 
@@ -1151,6 +1154,9 @@ fn bin_sym(op: BinOp) -> &'static str {
         NullishCoalesce => "??",
         LogicalOr => "||",
         LogicalAnd => "&&",
+        BitOr => "|",
+        BitXor => "^",
+        BitAnd => "&",
         Eq => "==",
         NotEq => "!=",
         Lt => "<",
@@ -1169,6 +1175,7 @@ fn unary_sym(op: UnaryOp) -> &'static str {
     match op {
         UnaryOp::Not => "!",
         UnaryOp::Neg => "-",
+        UnaryOp::BitNot => "~",
     }
 }
 

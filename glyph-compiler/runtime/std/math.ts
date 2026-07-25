@@ -48,3 +48,8 @@ export function clamp(x: number, lo: number, hi: number): number {
 export function sign(x: number): number {
   return Math.sign(x);
 }
+
+// 32-bit integer multiplication (C-like overflow), for hashing and PRNGs.
+export function imul(a: number, b: number): number {
+  return Math.imul(a, b);
+}

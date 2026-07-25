@@ -1,5 +1,11 @@
 // std/random — a seeded, reproducible pseudo-random generator.
 //
+// Native kernel: this module stays TypeScript on purpose. mulberry32 needs the
+// shift operators (`>>>`, `<<`) whose Glyph support is deferred (they collide
+// with generic-close angle brackets; see spec D36), so the PRNG core is written
+// against `Math.imul` and JS bitwise directly. It is the equivalent of a libc
+// numeric primitive, not a dogfooding gap.
+//
 // `seeded(n)` returns an `Rng` whose sequence is fully determined by the seed,
 // so a test or simulation replays identically. It is a small, fast PRNG
 // (mulberry32), suitable for generation and sampling, *not* for cryptography,

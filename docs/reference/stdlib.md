@@ -267,7 +267,7 @@ Numeric helpers over JavaScript's `Math`.
 ```
 math.PI, math.E                                  // constants
 math.abs / floor / ceil / round / trunc / sqrt / sign (x: number) -> number
-math.min / max / pow (a: number, b: number) -> number
+math.min / max / pow / imul (a: number, b: number) -> number   // imul: 32-bit integer multiply
 math.clamp(x: number, lo: number, hi: number) -> number
 ```
 

@@ -153,7 +153,7 @@ impl StdlibStubs {
             "std/math",
             &[
                 "PI", "E", "abs", "min", "max", "floor", "ceil", "round", "trunc", "sqrt", "pow",
-                "clamp", "sign",
+                "clamp", "sign", "imul",
             ],
         );
         // A seeded, reproducible PRNG (not cryptographic; use std/crypto for that).

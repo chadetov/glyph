@@ -83,8 +83,15 @@ pub enum Token {
     Slash,
     Percent,
     Bang,
-    /// `|` — tagged union separator (D8) or bitwise-OR (not currently used).
+    /// `|` — tagged union separator (D8) in type/pattern position, bitwise-OR in
+    /// expression position.
     Pipe,
+    /// `&` — bitwise-AND (expression position). `&&` is the separate `AmpAmp`.
+    Amp,
+    /// `^` — bitwise-XOR.
+    Caret,
+    /// `~` — bitwise-NOT (prefix unary).
+    Tilde,
     Question,
     Equals,
     /// `$` — has no operator meaning in Glyph. It is emitted only so a bare

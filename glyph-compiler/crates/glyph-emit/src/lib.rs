@@ -3072,6 +3072,7 @@ impl<'a> Emitter<'a> {
                 let op = match op {
                     UnaryOp::Not => "!",
                     UnaryOp::Neg => "-",
+                    UnaryOp::BitNot => "~",
                 };
                 format!("({op}{})", self.expr(operand)?)
             }
@@ -3676,6 +3677,9 @@ fn bin_op(op: BinOp) -> &'static str {
         BinOp::NullishCoalesce => "??",
         BinOp::LogicalOr => "||",
         BinOp::LogicalAnd => "&&",
+        BinOp::BitOr => "|",
+        BinOp::BitXor => "^",
+        BinOp::BitAnd => "&",
         // Glyph `==`/`!=` are value equality; emit the strict TS forms.
         BinOp::Eq => "===",
         BinOp::NotEq => "!==",
@@ -5891,6 +5895,17 @@ mod tests {
         // `Empty` (a bare no-payload variant) resolves even though the
         // scrutinee type is `Box<string>` (a `Ty::App`).
         assert!(ts.contains("case \"Empty\": {"), "{ts}");
+    }
+
+    #[test]
+    fn bitwise_operators_emit_and_precede_correctly() {
+        // `& | ^ ~` emit verbatim; precedence is JS's (| looser than ^ looser
+        // than &, all tighter than && and looser than ==).
+        let ts = emit("module x\npub fn f(a: number, b: number) -> number { return a & b | a ^ ~b }\n");
+        assert!(ts.contains("(a & b)"), "{ts}");
+        assert!(ts.contains("(a ^ (~b))"), "{ts}");
+        // | is the loosest bitwise, so it wraps the & and ^ subtrees.
+        assert!(ts.contains("((a & b) | (a ^ (~b)))"), "{ts}");
     }
 
     // ----- 0.1.16 language features -----

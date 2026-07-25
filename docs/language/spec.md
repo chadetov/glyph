@@ -1,6 +1,6 @@
-# Glyph syntactic spec — D1 through D35
+# Glyph syntactic spec — D1 through D36
 
-Condensed view of the numbered decisions that drive the grammar (D1–D27 from the original brainstorm; D28–D32 added post-1.0-brainstorm as the interop/type-feature work shipped: `infer_output`, `extern_ts`, string-literal unions, `int`, and `typeof` value-derived types; D33–D35 the 0.1.16 language-completeness features: module visibility, structural interfaces, and `defer`). Each rule below cites the pillar it serves; the original rationale lives in `archive/SPEC_DECISIONS.md`. The hand-written Rust parser is the normative implementation; if it disagrees with this file, the parser wins, but flag the divergence as a bug.
+Condensed view of the numbered decisions that drive the grammar (D1–D27 from the original brainstorm; D28–D32 added post-1.0-brainstorm as the interop/type-feature work shipped: `infer_output`, `extern_ts`, string-literal unions, `int`, and `typeof` value-derived types; D33–D35 the 0.1.16 language-completeness features (module visibility, structural interfaces, defer); D36 bitwise operators). Each rule below cites the pillar it serves; the original rationale lives in `archive/SPEC_DECISIONS.md`. The hand-written Rust parser is the normative implementation; if it disagrees with this file, the parser wins, but flag the divergence as a bug.
 
 Principle: **prefer the choice an established language has already validated, unless a Glyph pillar overrides it.** Novelty for its own sake is rejected.
 
@@ -82,6 +82,8 @@ Principle: **prefer the choice an established language has already validated, un
 
 - **D35. `defer <expr>` for deterministic scope-exit cleanup.** `defer <expr>` runs its expression on exit of the enclosing block, on **every** path (normal completion, `return`, or a thrown error), lowered to a `try { <the statements after it> } finally { <expr>; }`. The tail expression stays inside the `try`, so the block's value is unchanged and the cleanup runs after it; multiple defers in one block **nest for last-in-first-out order**. It composes with `owned`/`resource` handles for release without a `Symbol.dispose` protocol (`defer file.close()`), and it works with any cleanup expression, not only disposables (the reason `defer` was chosen over a TS `using` binding). *[greppability — `grep defer` finds every cleanup; verifiability — release happens on every exit path, not just the happy one]*
 
+- **D36. Bitwise operators `& | ^ ~` (non-shift).** Expression-position bitwise AND (`&`), OR (`|`), XOR (`^`), and prefix NOT (`~`) emit verbatim to TypeScript and are number-typed (enforced by `tsc`). Precedence follows JavaScript: `|` looser than `^` looser than `&`, all binding tighter than `&&` and looser than `==`. In expression position `|` and `&` are unambiguous, a union/pattern `|` (D8) never appears there, and `&&` is the separate logical-and, so no grammar conflict. **Shift operators (`<< >> >>>`) are deliberately deferred:** `>>` collides with a generic-close (`Array<Array<T>>` produces `>>`), so shifts need the same contextual angle-bracket disambiguation TypeScript does; that is roadmapped. A numeric kernel that needs shifts (a mulberry32 PRNG) legitimately stays in the TS native-core layer meanwhile; `math.imul` is exposed for 32-bit multiply. Surfaced by the improve-glyph dogfooding loop when a pure-Glyph PRNG could not be written. *[abstraction — real bit manipulation is expressible without an `extern_ts` escape; the parked shifts avoid a grammar ambiguity rather than paper over it]*
+
 ## Semantics inherited from the JavaScript runtime (declared, not built)
 
 Glyph transpiles to TypeScript and runs on a JavaScript engine, so several
@@ -131,6 +133,6 @@ an agent needs and previously had to discover by reading the compiler.
 | Verifiability | D5, D16, D23, D24, D25, D26, D28, D31 |
 | Greppability | D1, D4, D10, D14, D19, D20, D21, D33, D35 |
 | Diff stability | D2, D8, D15, D17 |
-| Abstraction | D3, D6, D9, D12, D22, D27, D30, D32, D34 |
+| Abstraction | D3, D6, D9, D12, D22, D27, D30, D32, D34, D36 |
 | TS compatibility (no pillar override) | D7, D11 |
 | Baseline / locked | D13, D18 |

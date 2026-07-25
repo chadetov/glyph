@@ -593,6 +593,11 @@ pub enum BinOp {
     LogicalOr, // ||
     // Level 8
     LogicalAnd, // &&
+    // Bitwise (between logical and equality, JS precedence): `|` looser than `^`
+    // looser than `&`.
+    BitOr,  // |
+    BitXor, // ^
+    BitAnd, // &
     // Level 7
     Eq,    // ==
     NotEq, // !=
@@ -612,8 +617,9 @@ pub enum BinOp {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOp {
-    Not, // !
-    Neg, // -
+    Not,    // !
+    Neg,    // -
+    BitNot, // ~
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

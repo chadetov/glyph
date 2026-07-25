@@ -123,6 +123,7 @@ impl LanguageServer for Backend {
                 references_provider: Some(OneOf::Left(true)),
                 rename_provider: Some(OneOf::Left(true)),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
+                inlay_hint_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
         })
@@ -229,6 +230,35 @@ impl LanguageServer for Backend {
             }
         };
         Ok(location.map(GotoDefinitionResponse::Scalar))
+    }
+
+    async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
+        let uri = params.text_document.uri;
+        let Some(text) = self.doc_text(&uri) else {
+            return Ok(None);
+        };
+        let Some(analysis) = analyze_full(&text) else {
+            return Ok(None);
+        };
+        let index = LineIndex::new(&text);
+        let hints = analysis
+            .inlay_type_hints(&text)
+            .into_iter()
+            .map(|(offset, label)| {
+                let (line, character) = index.position(&text, offset);
+                InlayHint {
+                    position: Position { line, character },
+                    label: InlayHintLabel::String(label),
+                    kind: Some(InlayHintKind::TYPE),
+                    text_edits: None,
+                    tooltip: None,
+                    padding_left: None,
+                    padding_right: None,
+                    data: None,
+                }
+            })
+            .collect();
+        Ok(Some(hints))
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
@@ -950,6 +980,19 @@ mod tests {
         )
         .unwrap();
         assert!(!analyze(&candidate).is_empty());
+    }
+
+    #[test]
+    fn inlay_hints_show_inferred_let_types() {
+        let text = "module m\nfn f() -> number {\n  let x = 1\n  let y: number = 2\n  return x + y\n}\n";
+        let a = analysis::analyze_full(text).expect("analyze");
+        let hints = a.inlay_type_hints(text);
+        // `x` (untyped) gets a hint; `y` (annotated) does not.
+        assert_eq!(hints.len(), 1, "one untyped let: {hints:?}");
+        let (offset, label) = &hints[0];
+        assert_eq!(label, ": number");
+        // The hint sits right after the `x` name.
+        assert_eq!(&text[..*offset], "module m\nfn f() -> number {\n  let x");
     }
 
     #[test]

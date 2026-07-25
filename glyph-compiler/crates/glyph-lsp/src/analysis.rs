@@ -302,6 +302,58 @@ impl Analysis {
         best.map(|(_, rendered)| rendered).filter(|s| s != "?")
     }
 
+    /// Inlay type hints: for each `let` with no written type annotation, the
+    /// inferred type of its initializer, positioned just after the binding name
+    /// (`let x‹: number› = 1`). Returns `(byte offset, label)` pairs. Only
+    /// concrete inferences are shown; an un-inferred (`?`) or `unknown` type is
+    /// skipped rather than shown as noise.
+    pub fn inlay_type_hints(&self, text: &str) -> Vec<(usize, String)> {
+        let mut out = Vec::new();
+        for decl in &self.module.items {
+            let body = match decl {
+                glyph_ast::Decl::Fn(f) => Some(&f.body),
+                glyph_ast::Decl::Component(c) => Some(&c.body),
+                _ => None,
+            };
+            if let Some(b) = body {
+                self.block_inlay_hints(b, text, &mut out);
+            }
+        }
+        out
+    }
+
+    fn block_inlay_hints(&self, block: &glyph_ast::Block, text: &str, out: &mut Vec<(usize, String)>) {
+        for stmt in &block.stmts {
+            match stmt {
+                glyph_ast::Stmt::Let(l) if l.ty.is_none() => {
+                    let vs = l.value.span();
+                    if let Some(ty) = self.type_of_exact(vs) {
+                        if let Some(pos) = let_name_end(text, l) {
+                            out.push((pos, format!(": {ty}")));
+                        }
+                    }
+                }
+                glyph_ast::Stmt::For(f) => self.block_inlay_hints(&f.body, text, out),
+                glyph_ast::Stmt::Loop(l) => self.block_inlay_hints(&l.body, text, out),
+                _ => {}
+            }
+        }
+    }
+
+    /// The rendered type recorded exactly for `span` (the initializer), skipping
+    /// the not-yet-inferred `?` placeholder and the uninformative `unknown`.
+    fn type_of_exact(&self, span: glyph_ast::Span) -> Option<String> {
+        for (sp, ty) in self.types.iter() {
+            if sp.start == span.start && sp.end == span.end {
+                let d = display_ty(ty);
+                if d != "?" && d != "unknown" && !d.is_empty() {
+                    return Some(d);
+                }
+            }
+        }
+        None
+    }
+
     /// Where the name reference covering `offset` is defined, for
     /// go-to-definition: within this file (`Here`), or in another module (an
     /// imported name — `InModule`, which the server resolves to a file). A
@@ -724,6 +776,17 @@ impl Analysis {
 /// The top-level outline of a parsed module (used for both per-file document
 /// symbols and the workspace symbol index). A tagged union's variants nest as
 /// children.
+/// The byte offset just after a `let` binding's name, where an inlay type hint
+/// sits. Locates the name in the source between `let` and the initializer.
+fn let_name_end(text: &str, l: &glyph_ast::LetStmt) -> Option<usize> {
+    let start = l.span.start as usize;
+    let vs = l.value.span().start as usize;
+    let head = text.get(start..vs)?;
+    let name = l.name.as_ref();
+    let rel = head.rfind(name)?;
+    Some(start + rel + name.len())
+}
+
 pub fn module_outline(module: &glyph_ast::Module) -> Vec<OutlineSymbol> {
     let mut out = Vec::new();
     for decl in &module.items {

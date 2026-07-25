@@ -1,0 +1,95 @@
+// Pure-Glyph lowercase-hex codec over byte arrays. std/encoding wraps the
+// platform `Buffer` for this; here the whole transform is Glyph: each octet
+// splits into a high and low nibble by integer division and remainder, the
+// nibble indexes a 16-character digit table, and a decode that returns an
+// Option so malformed input (an odd length or a non-hex character) is a value,
+// not an exception. Decode folds case first, so "FF" and "ff" agree. The only
+// platform leaves are math.floor, string.lower, and the len accessors; there is
+// no bit-twiddling primitive, so nibbles are split with `/` and `%`.
+module hex
+
+import std/math
+import std/array
+import std/string
+import std/option { Option, Some, None }
+
+// The 16 hex digits, index i -> character. Position in this string IS the
+// nibble value, so it doubles as the decode table.
+fn alphabet() -> string {
+  return "0123456789abcdef"
+}
+
+// The nibble value `v` (0..15) as its hex character.
+fn enc_digit(v: number) -> string {
+  return alphabet()[v]
+}
+
+// Value of a hex character, or None if it is outside the alphabet. A linear
+// scan of the table; `i` walks the 16 positions.
+fn dec_scan(ch: string, i: number) -> Option<number> {
+  let table = alphabet()
+  return match i >= string.len(table) {
+    true => None,
+    false => match table[i] == ch {
+      true => Some(i),
+      false => dec_scan(ch, i + 1),
+    },
+  }
+}
+
+// Value of a hex character, case-insensitively: "A" and "a" both decode to 10.
+fn dec_digit(ch: string) -> Option<number> {
+  return dec_scan(string.lower(ch), 0)
+}
+
+// Encode a byte array (each element a 0..255 octet) to a lowercase hex string.
+// Written imperatively: `i` walks the bytes and `out` accumulates the two
+// digits per octet. A `loop` with an explicit `break` on the end condition
+// stands in for the `while` Glyph deliberately omits.
+pub fn encode(bytes: Array<number>) -> string {
+  let n = array.len(bytes)
+  let out = ""
+  let i = 0
+  loop {
+    match i >= n {
+      true => {
+        break
+      },
+      false => {
+        let b = bytes[i]
+        let hi = math.floor(b / 16) % 16
+        let lo = b % 16
+        mut out = out + enc_digit(hi) + enc_digit(lo)
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+// Decode from index `i`, two characters at a time. Each pair is a high and low
+// nibble; either being non-hex collapses the whole result to None.
+fn decode_from(text: string, i: number) -> Option<Array<number>> {
+  return match i >= string.len(text) {
+    true => Some([]),
+    false => match dec_digit(text[i]) {
+      None => None,
+      Some(hi) => match dec_digit(text[i + 1]) {
+        None => None,
+        Some(lo) => match decode_from(text, i + 2) {
+          None => None,
+          Some(tail) => Some(array.concat([hi * 16 + lo], tail)),
+        },
+      },
+    },
+  }
+}
+
+// Decode a hex string to its bytes. The length must be even (two digits per
+// octet); an odd length, or any non-hex character, yields None.
+pub fn decode(text: string) -> Option<Array<number>> {
+  return match string.len(text) % 2 == 0 {
+    true => decode_from(text, 0),
+    false => None,
+  }
+}

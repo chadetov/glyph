@@ -1,0 +1,168 @@
+// Pure-Glyph pairing heap: a priority queue with constant-time insert and
+// merge and amortized-logarithmic delete-min, expressed entirely as recursion
+// over a generic recursive tagged union. No platform leaves. The ordering is a
+// comparator `fn(T, T) -> number` (negative when the first argument has higher
+// priority), so the same structure is a min-heap, a max-heap, or any total
+// order. A heap is either empty or a node holding the current minimum and a
+// list of sub-heaps whose roots are all no smaller than it.
+module pairing_heap
+
+import std/option { Option, Some, None }
+
+pub type Heap<T> =
+  | Empty
+  | Node({ value: T, children: Array<Heap<T>> })
+
+// The result of removing the minimum: the value and the remaining heap.
+pub type Popped<T> = { value: T, rest: Heap<T> }
+
+// An empty heap.
+pub fn empty<T>() -> Heap<T> {
+  return Empty
+}
+
+// A one-element heap.
+pub fn singleton<T>(value: T) -> Heap<T> {
+  return Node({ value: value, children: [] })
+}
+
+pub fn is_empty<T>(h: Heap<T>) -> bool {
+  return match h {
+    Empty => true,
+    Node(_n) => false,
+  }
+}
+
+// Merge two heaps, keeping the higher-priority root on top and hanging the
+// other heap as its first child.
+pub fn merge<T>(
+  cmp: fn(T, T) -> number,
+  a: Heap<T>,
+  b: Heap<T>,
+) -> Heap<T> {
+  return match a {
+    Empty => b,
+    Node(na) => match b {
+      Empty => a,
+      Node(nb) => match cmp(na.value, nb.value) <= 0 {
+        true => Node({ value: na.value, children: [b, ...na.children] }),
+        false => Node({ value: nb.value, children: [a, ...nb.children] }),
+      },
+    },
+  }
+}
+
+// Insert a value.
+pub fn insert<T>(
+  cmp: fn(T, T) -> number,
+  h: Heap<T>,
+  value: T,
+) -> Heap<T> {
+  return merge(
+    cmp,
+    singleton(value),
+    h,
+  )
+}
+
+// The current minimum without removing it.
+pub fn peek_min<T>(h: Heap<T>) -> Option<T> {
+  return match h {
+    Empty => None,
+    Node(n) => Some(n.value),
+  }
+}
+
+// The two-pass merge of a node's children: merge adjacent pairs left to right,
+// then fold the results right to left. This is what gives the pairing heap its
+// amortized bound.
+fn merge_pairs<T>(cmp: fn(T, T) -> number, hs: Array<Heap<T>>) -> Heap<T> {
+  return match hs {
+    [] => Empty,
+    [single] => single,
+    [a, b, ...rest] => merge(
+      cmp,
+      merge(
+        cmp,
+        a,
+        b,
+      ),
+      merge_pairs(cmp, rest),
+    ),
+  }
+}
+
+// Remove the minimum, returning it and the rebuilt heap, or None when empty.
+pub fn delete_min<T>(cmp: fn(T, T) -> number, h: Heap<T>) -> Option<Popped<T>> {
+  return match h {
+    Empty => None,
+    Node(n) => Some({ value: n.value, rest: merge_pairs(cmp, n.children) }),
+  }
+}
+
+// Build a heap from a list by repeated insertion.
+pub fn from_array<T>(cmp: fn(T, T) -> number, xs: Array<T>) -> Heap<T> {
+  return build(
+    cmp,
+    xs,
+    Empty,
+  )
+}
+
+fn build<T>(
+  cmp: fn(T, T) -> number,
+  xs: Array<T>,
+  acc: Heap<T>,
+) -> Heap<T> {
+  return match xs {
+    [] => acc,
+    [head, ...tail] => build(
+      cmp,
+      tail,
+      insert(
+        cmp,
+        acc,
+        head,
+      ),
+    ),
+  }
+}
+
+// Drain the whole heap in priority order (a heapsort).
+pub fn to_sorted<T>(cmp: fn(T, T) -> number, h: Heap<T>) -> Array<T> {
+  return drain(
+    cmp,
+    h,
+    [],
+  )
+}
+
+fn drain<T>(
+  cmp: fn(T, T) -> number,
+  h: Heap<T>,
+  acc: Array<T>,
+) -> Array<T> {
+  return match delete_min(cmp, h) {
+    None => acc,
+    Some(p) => drain(
+      cmp,
+      p.rest,
+      [...acc, p.value],
+    ),
+  }
+}
+
+// Number of elements.
+pub fn size<T>(h: Heap<T>) -> number {
+  return match h {
+    Empty => 0,
+    Node(n) => 1 + sum_sizes(n.children),
+  }
+}
+
+fn sum_sizes<T>(hs: Array<Heap<T>>) -> number {
+  return match hs {
+    [] => 0,
+    [head, ...tail] => size(head) + sum_sizes(tail),
+  }
+}

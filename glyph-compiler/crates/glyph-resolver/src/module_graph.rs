@@ -122,6 +122,9 @@ impl StdlibStubs {
         // A shared-state primitive: `create(initial)` returns a `Store<T>` whose
         // `get`/`set`/`update` methods read and mutate a value held in a closure.
         s.add("std/store", &["Store", "create"]);
+        // Structured-concurrency helpers over Promises: `all` (fail-fast join),
+        // `race` (first to settle), `all_settled` (one outcome per task).
+        s.add("std/task", &["all", "race", "all_settled", "Settled"]);
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
         // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(

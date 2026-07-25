@@ -171,6 +171,25 @@ store.update(change: fn(T) -> T) -> void         // method: map it
 An empty-collection seed can't infer its element type, so pass an explicit type
 argument: `const tasks = create<Array<Task>>([])`.
 
+## std/task
+
+Structured-concurrency helpers over promises. Pass task thunks (`fn() -> T`,
+usually `async`); the scope bounds the lifetime you await, so concurrent work is
+joinable rather than detached. `all` is fail-fast; `all_settled` keeps every
+outcome so a partial failure never loses the successes.
+
+```
+type Settled<T>                                          // { ok: true, value: T } | { ok: false, error: unknown }
+all<T>(tasks: Array<fn() -> T>) -> Array<T>              // run concurrently, join in order (fail-fast)
+race<T>(tasks: Array<fn() -> T>) -> T                    // first task to settle
+all_settled<T>(tasks: Array<fn() -> T>) -> Array<Settled<T>>  // one outcome per task, never rejects
+```
+
+Each is `async`, so `await` the result. JavaScript can't force-cancel a running
+task, so a failure in `all` abandons its siblings' results rather than halting
+their work; thread an AbortSignal into your task bodies for cooperative
+cancellation.
+
 ## std/stream
 
 Deterministic generators for property testing (sampled by index, no RNG).

@@ -1,0 +1,130 @@
+// A pure-Glyph reproducible PRNG (Park-Miller MINSTD), the value-threaded
+// cousin of std/random's closure-based mulberry32. The state is threaded
+// through the return value instead of hidden in a closure, so a draw is a pure
+// function: same generator in, same value and next generator out. The only
+// platform leaves are math.floor/abs; the generator itself is integer
+// arithmetic, records, Option, branching, and recursion.
+module random
+
+import std/option { Option, Some, None }
+import std/math
+import std/array
+
+// Park-Miller MINSTD constants. The product MULTIPLIER * state stays below
+// 2^53, so it is exact in a double: no bitwise tricks (and no bitwise
+// operators, which Glyph does not have) are needed.
+const MODULUS: number = 2147483647
+const MULTIPLIER: number = 16807
+
+// A generator is just its state. Advancing it yields a fresh generator; the old
+// one is never mutated.
+pub type Rng = { state: number }
+
+// The advanced generator paired with the value it produced. Every draw returns
+// this so the caller threads `rng` forward.
+pub type Draw<T> = { value: T, rng: Rng }
+
+// Seed a generator. State lives in [1, MODULUS - 1]; 0 is a fixed point of the
+// recurrence, so it is remapped to 1.
+pub fn seeded(seed: number) -> Rng {
+  let s = math.floor(math.abs(seed)) % MODULUS
+  return match s == 0 {
+    true => { state: 1 },
+    false => { state: s },
+  }
+}
+
+// One step of the recurrence: state' = (MULTIPLIER * state) mod MODULUS.
+fn step(rng: Rng) -> Rng {
+  return { state: (MULTIPLIER * rng.state) % MODULUS }
+}
+
+// The next float in [0, 1), with the advanced generator.
+pub fn next_float(rng: Rng) -> Draw<number> {
+  let n = step(rng)
+  return { value: n.state / MODULUS, rng: n }
+}
+
+// A whole number in the half-open range [lo, hi).
+pub fn next_int(rng: Rng, lo: number, hi: number) -> Draw<number> {
+  let f = next_float(rng)
+  let span = hi - lo
+  return { value: lo + math.floor(f.value * span), rng: f.rng }
+}
+
+// A boolean, true with the given probability.
+pub fn next_bool(rng: Rng, probability: number) -> Draw<bool> {
+  let f = next_float(rng)
+  return { value: f.value < probability, rng: f.rng }
+}
+
+// A uniformly chosen element, or None for an empty array.
+pub fn pick<T>(rng: Rng, items: Array<T>) -> Draw<Option<T>> {
+  let n = array.len(items)
+  return match n == 0 {
+    true => { value: None, rng: rng },
+    false => {
+      let r = next_int(rng, 0, n)
+      return { value: Some(items[r.value]), rng: r.rng }
+    },
+  }
+}
+
+// `count` successive floats, collected by recursion. The generator is threaded
+// through the produced list so the returned `rng` is the one after the last
+// draw.
+pub fn floats(rng: Rng, count: number) -> Draw<Array<number>> {
+  return match count <= 0 {
+    true => { value: [], rng: rng },
+    false => {
+      let head = next_float(rng)
+      let tail = floats(head.rng, count - 1)
+      return { value: [head.value, ...tail.value], rng: tail.rng }
+    },
+  }
+}
+
+// `count` whole numbers in [lo, hi), the integer analogue of `floats`.
+pub fn ints(
+  rng: Rng,
+  count: number,
+  lo: number,
+  hi: number,
+) -> Draw<Array<number>> {
+  return match count <= 0 {
+    true => { value: [], rng: rng },
+    false => {
+      let head = next_int(rng, lo, hi)
+      let tail = ints(head.rng, count - 1, lo, hi)
+      return { value: [head.value, ...tail.value], rng: tail.rng }
+    },
+  }
+}
+
+// Remove the element at index `i` from `xs`, order-preserving. A helper for
+// `shuffle`, which draws a position and pulls that element out.
+fn remove_at<T>(xs: Array<T>, i: number) -> Array<T> {
+  return match xs {
+    [] => [],
+    [head, ...rest] => match i <= 0 {
+      true => rest,
+      false => [head, ...remove_at(rest, i - 1)],
+    },
+  }
+}
+
+// A uniformly random permutation of `xs` (a value-oriented Fisher-Yates): draw
+// a position in the remaining pool, emit that element, and recurse on the rest.
+pub fn shuffle<T>(rng: Rng, xs: Array<T>) -> Draw<Array<T>> {
+  let n = array.len(xs)
+  return match n == 0 {
+    true => { value: [], rng: rng },
+    false => {
+      let r = next_int(rng, 0, n)
+      let chosen = xs[r.value]
+      let rest = remove_at(xs, r.value)
+      let tail = shuffle(r.rng, rest)
+      return { value: [chosen, ...tail.value], rng: tail.rng }
+    },
+  }
+}

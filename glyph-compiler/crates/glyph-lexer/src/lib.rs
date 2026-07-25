@@ -157,6 +157,30 @@ mod tests {
     }
 
     #[test]
+    fn fractional_underscores_lex_d13() {
+        let tokens = tokenize("0.000_1").unwrap();
+        match &tokens[0].token {
+            Token::Number(s) => assert_eq!(s, "0.000_1"),
+            other => panic!("expected Number, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn malformed_underscores_are_rejected_d13() {
+        // A `_` must sit between two digits; these leaked a raw tsc TS6188/6189
+        // before the lexer validated separator placement.
+        for bad in ["1_", "1__0", "1_.5", "1_e5", "1e_5"] {
+            assert!(
+                matches!(
+                    tokenize(bad),
+                    Err(crate::error::LexError::MalformedNumber { .. })
+                ),
+                "expected MalformedNumber for `{bad}`"
+            );
+        }
+    }
+
+    #[test]
     fn decimal_literal() {
         let tokens = tokenize("3.14").unwrap();
         match &tokens[0].token {

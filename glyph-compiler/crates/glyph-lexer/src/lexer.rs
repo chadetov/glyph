@@ -257,6 +257,20 @@ impl<'a> Lexer<'a> {
         }
 
         let text = self.source[start..self.pos].to_string();
+        // D13 digit separators: every `_` must sit between two digits. The digit
+        // runs above consume `_` loosely (so `1_`, `1__0`, `1_.5`, `1e_5` all
+        // lex), which would otherwise leak a raw `tsc` TS6188/TS6189 at the seam.
+        // Reject them here with a Glyph-level diagnostic instead.
+        let bytes = text.as_bytes();
+        for (i, &b) in bytes.iter().enumerate() {
+            if b == b'_' {
+                let prev_ok = i > 0 && bytes[i - 1].is_ascii_digit();
+                let next_ok = bytes.get(i + 1).is_some_and(u8::is_ascii_digit);
+                if !prev_ok || !next_ok {
+                    return Err(LexError::MalformedNumber { offset: start as u32 });
+                }
+            }
+        }
         Ok(self.spanned(Token::Number(text), start, self.pos))
     }
 

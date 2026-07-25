@@ -588,6 +588,23 @@ $ glyph build src --out dist --json
 Read `code` + `help`, add the missing arm, rebuild. That is the loop the design
 is built for.
 
+## Recipes by task (copy, adapt)
+
+- **read a file:** `import std/fs` then `match fs.read_text(path) { Ok(t) => ..., Err(e) => ... }`
+- **parse untrusted JSON to a type:** `let v = json.parse(body)?` then `T.parse(v)` (validates structure and leaf values)
+- **HTTP GET + decode:** `let r = await http.get(url).map_err(fn(e) { e.message })?` then `T.parse(r.body)`
+- **serve HTTP:** `import std/http { serve, text, Request, Response }`; handler returns `Result<Response, string>` via `Ok(text(200, "..."))`
+- **branch:** `match x { A => ..., B => ..., }` (no `if`; every case, trailing comma)
+- **fail:** return `Result<T, E>`; propagate with `?`, recover with `match`
+- **share state:** module-level `const s = store.create(init)`; `mut s.update(fn(v) { ... })`
+- **run concurrently:** `await task.all([fn() { a() }, fn() { b() }])`
+- **regex:** `regex.matches(pat, text)`, `regex.find_all(pat, text)`
+- **hash / uuid:** `crypto.sha256(s)`, `crypto.random_uuid()`
+- **paths:** `path.join(["a", "b"])`, `path.extname(p)`
+- **cleanup:** `defer handle.close()` (runs on every exit path)
+- **generic bound:** `interface Named { fn name() -> string }` then `fn f<T: Named>(x: T)`
+- **hide a helper:** omit `pub` (module-private by default); `pub` to export
+
 ## Where to go deeper
 
 - Five-minute tour: `docs/guide/tour.md`

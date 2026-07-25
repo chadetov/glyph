@@ -29,6 +29,28 @@ in the right-hand column.
 
 The rest of this page expands each.
 
+## Concept map (your word → our word)
+
+A quick lookup when you know what you want in TypeScript and need the Glyph name:
+
+| You want (TypeScript) | Glyph |
+|---|---|
+| `interface`/`type` for data | `type` record (`type User = { name: string }`) |
+| `interface` as a constraint | `interface` used as a bound (`<T: Bound>`) |
+| `enum` | tagged union, or a string-literal union (`"a" \| "b"`) |
+| `number` for an integer | `int` (validated whole number at the boundary) |
+| `T \| null` / `T \| undefined` | `Option<T>` (`Some`/`None`) |
+| `throw` / `try`/`catch` | `Result<T, E>` + `match` / `?` |
+| `if`/`else`/`switch` | `match` |
+| `x.map(f)` (method) | `array.map(x, f)` (module function) |
+| `class` with methods | a `type` for data + `fn`s for behavior |
+| `readonly` / `const` everywhere | `let` is the default; `mut` to reassign |
+| `try`/`finally` | `defer expr` |
+| `Promise.all` | `task.all([...])` |
+| `z.infer<typeof s>` | `typeof` (`type U = z.infer<typeof s>`) |
+| `export` | `pub` (module-private is the default) |
+| a raw TS type you can't spell | `extern_ts("...")` (rare escape hatch) |
+
 ## Files start with `module`
 
 ```glyph

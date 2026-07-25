@@ -46,3 +46,10 @@ then [tutorial](tutorial.md).
 | [`../error-codes.md`](../error-codes.md) | You hit a diagnostic and want the fix |
 
 Every code sample in this guide compiles with the current compiler.
+
+## Improving these docs
+
+Found something wrong or unclear? Every page has an **Edit** button on GitHub
+(top-right of the file view), or open a pull request against
+[`docs/guide/`](https://github.com/chadetov/glyph/tree/main/docs/guide). Small
+fixes, a clearer sentence, a missing recipe, are welcome and reviewed quickly.

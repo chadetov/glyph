@@ -227,8 +227,22 @@ fn build_report(
     if let Some(help) = help {
         builder = builder.with_help(help);
     }
-    if let Some(note) = note {
-        builder = builder.with_note(note);
+    // Link the diagnostic to its documentation. A Glyph `E`-code has a section in
+    // the error-codes reference (anchored by the lowercased code) and a
+    // `glyph --explain` entry; append that as a note so the fix is one click or
+    // one command away. tsc-passthrough codes (`TS…`) have no Glyph doc section.
+    let doc_note = code.starts_with('E').then(|| {
+        format!(
+            "docs: https://github.com/chadetov/glyph/blob/main/docs/error-codes.md#{} \
+             (or run `glyph --explain {code}`)",
+            code.to_lowercase(),
+        )
+    });
+    match (note, doc_note.as_deref()) {
+        (Some(n), Some(d)) => builder = builder.with_note(format!("{n}\n{d}")),
+        (Some(n), None) => builder = builder.with_note(n),
+        (None, Some(d)) => builder = builder.with_note(d),
+        (None, None) => {}
     }
     let report = builder.finish();
 

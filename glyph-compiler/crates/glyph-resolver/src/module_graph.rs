@@ -148,6 +148,28 @@ impl StdlibStubs {
             "std/crypto",
             &["sha256", "sha512", "hmac_sha256", "random_uuid", "random_hex"],
         );
+        // Numeric helpers over JavaScript's `Math`.
+        s.add(
+            "std/math",
+            &[
+                "PI", "E", "abs", "min", "max", "floor", "ceil", "round", "trunc", "sqrt", "pow",
+                "clamp", "sign",
+            ],
+        );
+        // A seeded, reproducible PRNG (not cryptographic; use std/crypto for that).
+        s.add("std/random", &["Rng", "seeded"]);
+        // base64 / base64url / hex text encodings.
+        s.add(
+            "std/encoding",
+            &[
+                "base64_encode", "base64_decode", "base64url_encode", "base64url_decode",
+                "hex_encode", "hex_decode",
+            ],
+        );
+        // Structured (JSON-line) logging for observability pipelines.
+        s.add("std/log", &["Level", "debug", "info", "warn", "error", "with_fields"]);
+        // Ordered collections beyond Array/Record: a double-ended queue.
+        s.add("std/collections", &["Deque", "deque"]);
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
         // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(

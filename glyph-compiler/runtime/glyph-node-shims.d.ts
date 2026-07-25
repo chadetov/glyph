@@ -114,3 +114,10 @@ declare const process: {
   cwd(): string;
   platform: string;
 };
+
+interface GlyphBuffer {
+  toString(encoding: string): string;
+}
+declare const Buffer: {
+  from(input: string, encoding: string): GlyphBuffer;
+};

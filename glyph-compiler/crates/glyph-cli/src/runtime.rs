@@ -108,6 +108,26 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/crypto.ts"),
     ),
     (
+        ".glyph-runtime/std/math.ts",
+        include_str!("../../../runtime/std/math.ts"),
+    ),
+    (
+        ".glyph-runtime/std/random.ts",
+        include_str!("../../../runtime/std/random.ts"),
+    ),
+    (
+        ".glyph-runtime/std/encoding.ts",
+        include_str!("../../../runtime/std/encoding.ts"),
+    ),
+    (
+        ".glyph-runtime/std/log.ts",
+        include_str!("../../../runtime/std/log.ts"),
+    ),
+    (
+        ".glyph-runtime/std/collections.ts",
+        include_str!("../../../runtime/std/collections.ts"),
+    ),
+    (
         ".glyph-runtime/glyph-bootstrap.ts",
         include_str!("../../../runtime/glyph-bootstrap.ts"),
     ),

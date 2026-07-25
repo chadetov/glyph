@@ -260,6 +260,67 @@ random_uuid() -> string                           // a v4 UUID
 random_hex(count: number) -> string               // count random bytes, hex (length count * 2)
 ```
 
+## std/math
+
+Numeric helpers over JavaScript's `Math`.
+
+```
+math.PI, math.E                                  // constants
+math.abs / floor / ceil / round / trunc / sqrt / sign (x: number) -> number
+math.min / max / pow (a: number, b: number) -> number
+math.clamp(x: number, lo: number, hi: number) -> number
+```
+
+## std/random
+
+A seeded, reproducible PRNG (mulberry32). Not cryptographic, use `std/crypto`
+for security-sensitive randomness.
+
+```
+type Rng
+seeded(seed: number) -> Rng                       // a generator fixed by the seed
+rng.next() -> number                              // method: next float in [0, 1)
+rng.int(lo: number, hi: number) -> number         // method: whole number in [lo, hi)
+rng.bool(probability: number) -> bool             // method: true with this probability
+rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
+```
+
+## std/encoding
+
+base64, base64url, and hex text encodings.
+
+```
+base64_encode / base64_decode (s: string) -> string
+base64url_encode / base64url_decode (s: string) -> string   // URL-safe, no padding
+hex_encode / hex_decode (s: string) -> string
+```
+
+## std/log
+
+Structured (JSON-line) logging. Each call emits one JSON object with `level`,
+`msg`, and a timestamp to stdout (info/debug) or stderr (warn/error).
+
+```
+type Level                                        // "debug" | "info" | "warn" | "error"
+log.debug / info / warn / error (message: string) -> void
+log.with_fields(level: Level, message: string, fields: Record<string, unknown>) -> void
+```
+
+## std/collections
+
+Ordered collections beyond `Array`/`Record`. A `Deque<T>` is a double-ended
+queue; ends that may be empty return `Option<T>`.
+
+```
+type Deque<T>
+deque<T>(initial?: Array<T>) -> Deque<T>
+dq.push_back / push_front (value: T) -> void      // method
+dq.pop_back / pop_front () -> Option<T>            // method
+dq.peek_front / peek_back () -> Option<T>          // method
+dq.len() -> number                                 // method
+dq.values() -> Array<T>                            // method
+```
+
 ## std/stream
 
 Deterministic generators for property testing (sampled by index, no RNG).

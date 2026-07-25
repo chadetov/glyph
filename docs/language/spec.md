@@ -1,6 +1,6 @@
-# Glyph syntactic spec — D1 through D32
+# Glyph syntactic spec — D1 through D35
 
-Condensed view of the numbered decisions that drive the grammar (D1–D27 from the original brainstorm; D28–D32 added post-1.0-brainstorm as the interop/type-feature work shipped: `infer_output`, `extern_ts`, string-literal unions, `int`, and `typeof` value-derived types). Each rule below cites the pillar it serves; the original rationale lives in `archive/SPEC_DECISIONS.md`. The hand-written Rust parser is the normative implementation; if it disagrees with this file, the parser wins, but flag the divergence as a bug.
+Condensed view of the numbered decisions that drive the grammar (D1–D27 from the original brainstorm; D28–D32 added post-1.0-brainstorm as the interop/type-feature work shipped: `infer_output`, `extern_ts`, string-literal unions, `int`, and `typeof` value-derived types; D33–D35 the 0.1.16 language-completeness features: module visibility, structural interfaces, and `defer`). Each rule below cites the pillar it serves; the original rationale lives in `archive/SPEC_DECISIONS.md`. The hand-written Rust parser is the normative implementation; if it disagrees with this file, the parser wins, but flag the divergence as a bug.
 
 Principle: **prefer the choice an established language has already validated, unless a Glyph pillar overrides it.** Novelty for its own sake is rejected.
 
@@ -76,6 +76,34 @@ Principle: **prefer the choice an established language has already validated, un
 
 - **D32. `typeof value` type query, for first-class value-derived types.** In type position, `typeof <path>` is the type of a value binding (`user_schema`, or a dotted `a.b.c`). It emits as TypeScript `typeof <path>`, and its operand is resolved as a real value reference (a `typeof` over an undefined name is E0103), so it is greppable and tied to a value that must exist. Combined with an ordinary member-namespaced generic type (`z.infer<...>`, which already parses), it makes the canonical value-derived type first-class: `type User = z.infer<typeof user_schema>` needs no string escape. Glyph's own checker treats a `typeof` type as opaque (`unknown`, no descriptor); `tsc` reduces it (a `z.infer<typeof s>` becomes the schema's inferred type and is enforced at every use), exactly like an imported `.d.ts` type. Validation of a value of this type comes from the library's own parser (`user_schema.parse(...)`), which is how a schema library already works; `typeof` gives you the *type* without the `extern_ts` string. *[abstraction — the common value-derived idiom is first-class and greppable, not a raw-TS string; verifiability — the operand is a checked value reference]*
 
+- **D33. Module visibility: private by default, `pub` to export.** A top-level declaration (`fn`, `type`, `const`, `component`, `interface`) is visible only inside its own module unless marked `pub`, which places it between the annotations and the declaration keyword (`pub fn`, `pub async fn`, `pub type`, `pub resource type`, `pub interface`). A private name is absent from the module's export surface, so importing it from another module is E0105 at the import site (not a downstream `tsc` error). `pub` emits `export`; a private decl emits without it, and a private record's runtime descriptor and a tagged union's constructors inherit the type's visibility. **`fn main` is always exported** regardless of `pub` — it is the entrypoint the generated runner imports — so single-file programs need no `pub`. An `import` never takes `pub` (it re-binds another module's name; D15 forbids re-export). *[greppability — the public API is `grep '^pub'`; verifiability — safe-by-default, a helper is not exposed unless you say so]*
+
+- **D34. Structural interfaces, usable as generic bounds.** `interface Name<T> { fn method(p: P) -> R  field: T }` declares a named set of member signatures: a `fn` member is a method signature, a `name: T` (or `name?: T`) member is a property. It is **structural**, like Glyph's records and a TypeScript `interface`: any value with the members satisfies it, with no explicit `impl`/conformance declaration (the nominal `trait`+`impl` alternative was rejected — it would bolt a second, nominal type-identity model onto a structural language). An interface is usable as an ordinary type and, chiefly, as a **generic bound** (`fn label<T: Named>(x: T) -> string`), which lowers to a TypeScript `extends` clause `tsc` enforces. It emits an `export interface`/`interface` and has **no runtime descriptor** (it is a compile-time contract, like an imported `.d.ts` type). *[abstraction — a generic can require capability of its parameter; greppability — the required surface is named at the bound]*
+
+- **D35. `defer <expr>` for deterministic scope-exit cleanup.** `defer <expr>` runs its expression on exit of the enclosing block, on **every** path (normal completion, `return`, or a thrown error), lowered to a `try { <the statements after it> } finally { <expr>; }`. The tail expression stays inside the `try`, so the block's value is unchanged and the cleanup runs after it; multiple defers in one block **nest for last-in-first-out order**. It composes with `owned`/`resource` handles for release without a `Symbol.dispose` protocol (`defer file.close()`), and it works with any cleanup expression, not only disposables (the reason `defer` was chosen over a TS `using` binding). *[greppability — `grep defer` finds every cleanup; verifiability — release happens on every exit path, not just the happy one]*
+
+## Semantics inherited from the JavaScript runtime (declared, not built)
+
+Glyph transpiles to TypeScript and runs on a JavaScript engine, so several
+language-level properties are true by inheritance rather than by Glyph
+machinery. They are stated here so they are guarantees a reader can rely on, the
+same way the verifiability pillar owns the `tsc` dependency, rather than
+accidents to rediscover.
+
+- **Evaluation order is JavaScript's:** left-to-right, arguments before the call.
+- **Value vs reference:** primitives (`number`, `string`, `bool`) copy on
+  assignment and pass by value; objects, arrays, and records are references
+  (assignment and passing alias the same value).
+- **Equality:** `==` is JavaScript strict equality (`===`) — identity for
+  objects, value for primitives. There is no operator overloading, so `==` never
+  runs user code.
+- **Concurrency and memory:** a single-threaded event loop, so there are no
+  shared-memory data races; scheduling is `async`/`await` over promises (see
+  `std/task` for structured joins). Memory is reclaimed by the engine's garbage
+  collector, which Glyph does not tune. Manual memory, a non-GC model, and a
+  documented memory-visibility model are consequences of this target and are out
+  of scope by design, not gaps.
+
 ## Evaluation semantics and the prelude (not grammar decisions)
 
 These are normative behaviors that no single D-decision captures. They are facts
@@ -100,9 +128,9 @@ an agent needs and previously had to discover by reading the compiler.
 
 | Pillar | Decisions |
 |---|---|
-| Verifiability | D5, D16, D23, D24, D25, D26, D28 |
-| Greppability | D1, D4, D10, D14, D19, D20, D21 |
+| Verifiability | D5, D16, D23, D24, D25, D26, D28, D31 |
+| Greppability | D1, D4, D10, D14, D19, D20, D21, D33, D35 |
 | Diff stability | D2, D8, D15, D17 |
-| Abstraction | D3, D6, D9, D12, D22, D27 |
+| Abstraction | D3, D6, D9, D12, D22, D27, D30, D32, D34 |
 | TS compatibility (no pillar override) | D7, D11 |
 | Baseline / locked | D13, D18 |

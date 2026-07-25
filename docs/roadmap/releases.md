@@ -624,72 +624,62 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
     parser, emit, and formatter tests. Phase 3 is complete for v1: prop spread, the
     escape hatch, and first-class value-derived types.
 
-### Language-design completeness (before 0.2.0)
+### 0.1.16 — Shipped · Language-design completeness
 
-**Status: committed for the 0.1.x line, ahead of the 0.2.0 milestone.** A pass
-over the language against what a general-purpose statically typed language is
-expected to carry surfaced a small set of gaps that are *closeable within the
-current "looks almost like TypeScript" stance* (as opposed to the ones that are
-consequences of running on the JS runtime, listed as "declared, not built"
-below). These land across several 0.1.x releases; none is an interop item, and
-none reopens the abandoned annotation-rich direction.
+**Status: shipped.** A pass over the language against what a general-purpose
+statically typed language is expected to carry surfaced a set of gaps closeable
+within the current "looks almost like TypeScript" stance (as opposed to the ones
+that are consequences of running on the JS runtime, now *declared* rather than
+built). All five landed together over a shared keyword table, with the two
+design forks resolved on manifesto grounds; none reopened the abandoned
+annotation-rich direction. Spec decisions D33–D35.
 
-- **Constrainable generics via interfaces/traits** (L, **design-first**). Today a
-  bound (`<T: Bound>`, 0.1.7) can only name an existing type; there is no way to
-  say "any `T` that has these methods" the way a TS `interface` or a Rust trait
-  bound does, so a generic can't require capability of its parameter. The fork to
-  decide before building: (a) a TS-style structural `interface` used as a bound,
-  which fits the family and needs no nominal-conformance ceremony, versus (b) a
-  nominal `trait` + explicit `impl`, which is greppable (you can find every
-  implementer) but heavier and further from TS. This is pillar-3 abstraction, so
-  it must earn its keep against simplicity; report the tradeoff, don't pick it
-  here. *Done:* a generic can be bounded by a capability, and violating it is a
-  Glyph-level error mapped to the call site, not a `tsc` error.
-- **Visibility modifiers (`pub`/module-private)** (M, **design-first**). Emission
-  is export-by-default with a `@public` annotation; there is no enforced
-  module-private that hides a helper from importers. Decide the default (private
-  with explicit `pub`, the safer and more conventional choice, versus keeping
-  public-default and adding `priv`) and pick one keyword, then enforce it in the
-  resolver so an import of a non-exported name is E-coded, not silently allowed.
-  *Done:* a module can hide an internal binding and importing it is a diagnostic.
-- **Digit separators in numeric literals** (S). `1_000_000` and `0.000_1` don't
-  lex today. A lexer change to allow `_` between digits (never leading, trailing,
-  or doubled), emitted stripped. Pure ergonomics, forward-compatible with the
-  deferred hex/octal/binary literal work. *Done:* separated literals lex, format
-  round-trips, and emit the plain number.
-- **Deterministic resource cleanup (`using`/`defer`)** (M, **design-first**).
-  `owned` (D25) tracks single-consumption of a resource handle but there is no
-  scope-exit cleanup construct, so releasing a file/socket/lock is manual. Add a
-  block-scoped cleanup that lowers to `try`/`finally` in the emitted TS (a `using`
-  binding whose disposer runs on scope exit, or a `defer` statement). Decide which
-  surface, and how it composes with `owned` so a cleaned-up handle is also
-  consumed. *Done:* a resource acquired in a block is released on every exit path,
-  emitted as `try`/`finally`, with a test over the throwing path.
-- **Structured-concurrency helpers** (M/L, **design-first**). Glyph inherits
-  JS `async`/`await` and nothing more; there is no scoped way to run tasks
-  concurrently and have them all cancelled/awaited together. Add a small
-  `std/task` surface (scoped spawn + join, with all-or-nothing failure) over the
-  Promise model, so concurrent work has one lifetime rather than leaking
-  detached promises. This is a stdlib-and-emit design, not new grammar; the fork
-  is how much cancellation to model given the JS runtime can't truly cancel a
-  running task. *Done:* a scope can run N tasks, await them together, and a
-  failure cancels the siblings it can.
+- **Structural interfaces + generic bounds** (L) — ✅ **done (D34).** `interface
+  Name { fn m(p: P) -> R  field: T }` declares a structural interface, usable as
+  an ordinary type and, chiefly, as a generic bound (`fn label<T: Named>(x: T)`),
+  which lowers to a TS `extends` clause `tsc` enforces. **Fork resolved:**
+  structural `interface` (not a nominal `trait`+`impl`), because Glyph's records
+  are already structural and a second nominal identity model would fight the
+  family; it emits an `export interface` and carries no runtime descriptor, like
+  an imported `.d.ts` type.
+- **Module visibility** (M) — ✅ **done (D33).** Declarations are module-private
+  by default and export only when marked `pub`. A private name is absent from the
+  export surface, so importing it from another module is E0105 at the import
+  site. `fn main` is always exported (the runner imports it), so single-file
+  programs are unchanged. **Fork resolved:** private-by-default + `pub` (over
+  public-default + `priv`), the pre-1.0 window to fix the default before it
+  freezes: safe-by-default and the public API is `grep '^pub'`. A private
+  record's descriptor and a union's constructors inherit the type's visibility.
+- **Digit separators in numeric literals** (S) — ✅ **done.** A valid `1_000_000`
+  / `0.000_1` already lexed and emitted; the gap was that `1_`, `1__0`, `1_.5`
+  leaked a raw `tsc` TS6188/6189. The lexer now enforces the D13 rule (every `_`
+  between two digits) with a Glyph-level MalformedNumber (E0001).
+- **Deterministic cleanup: `defer`** (M) — ✅ **done (D35).** `defer <expr>` runs
+  on every exit path, lowered to `try { rest } finally { expr }` around the
+  statements that follow it (the tail return stays inside the `try`); multiple
+  defers nest last-in-first-out. **Fork resolved:** `defer` (over a TS `using`
+  binding), because it works with the existing stdlib and any cleanup expression
+  with no `Symbol.dispose` retrofit or `lib` change, and is greppable. Composes
+  with `owned` handles.
+- **Structured-concurrency helpers: `std/task`** (M/L) — ✅ **done.** `import
+  std/task` gives `all` (concurrent join, fail-fast), `race`, and `all_settled`
+  (one outcome per task) over the promise model, plus a `Settled<T>` type. Honest
+  scope: JS can't force-cancel a running task, so a failure in `all` abandons its
+  siblings' results rather than halting them; the module documents threading an
+  AbortSignal for cooperative cancellation.
+- **Declared, not built (honesty)** (S) — ✅ **done.** The spec now owns the
+  language-level properties that are true by inheritance from the JS runtime
+  rather than by Glyph machinery: evaluation order, value-vs-reference, equality
+  (`==` is `===`, no overload), and the single-threaded/GC concurrency-memory
+  model. Manual memory, a non-JS GC, and function-color elimination are named as
+  consequences of the transpile-to-TS target, out of scope by design, not gaps.
+  Backward-compat guarantees and a formal editions mechanism land with the 1.0
+  stability commitment.
 
-**Declared, not built (honesty items, S each).** Several language-design
-properties are true today only because Glyph runs on the JS runtime, and are
-currently undocumented as guarantees. State them explicitly in the spec/guide so
-they are *deliberately met by declaration* rather than silently inherited:
-evaluation order (JS's specified left-to-right), value-vs-reference semantics
-(primitives copy, objects alias), equality (`==` is JS `===`, no overload), and
-the concurrency/GC model (single-threaded event loop, so no data races; V8 GC,
-not tuned by Glyph). No code; a spec section that owns the inherited semantics,
-the same move the verifiability pillar already made for the `tsc` dependency.
-
-*Explicitly left for after 1.0 or declined:* manual-memory ownership, a
-non-JS-GC model, function-coloring elimination, and a documented memory-visibility
-model are all consequences of the transpile-to-TS design and are not gaps to
-close; they are the model. Backward-compatibility guarantees and a formal
-editions/evolution mechanism land with the 1.0 stability commitment, not here.
+**Follow-up (polish):** the E0105 diagnostic for a private import says "not
+exported by M"; distinguishing "private (mark it `pub`)" from "no such name"
+needs the export surface to carry both the public and full name sets. Tracked in
+the rolling polish lane.
 
 ### 0.2.x — Prove it (the evidence gate)
 
@@ -772,6 +762,13 @@ concrete follow-ups, in priority order:
 The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
+
+- **Private-vs-missing import diagnostic** (S, from 0.1.16 visibility). Importing a
+  non-`pub` name reports E0105 "`N` is not exported by `M`", the same message as a
+  genuinely missing name. Distinguishing "exists but private (mark it `pub`)" from
+  "no such name" needs the module export surface to carry both the public set and
+  the full name set so the verifier can tell which case it is. Correct today, just
+  less precise than it could be.
 
 - **Cross-module generic-descriptor `.parse<T>()` call** (M, correctness). Calling
   a generic type's descriptor parse with an explicit type argument works

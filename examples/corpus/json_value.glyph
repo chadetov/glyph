@@ -1,0 +1,166 @@
+// Pure-Glyph JSON value model and serializer. `Json` is a recursive tagged
+// union covering the six JSON forms; `stringify` renders it compact and
+// `stringify_pretty` renders it indented. String escaping walks each character
+// and emits the JSON short escapes. The only platform leaf is string.len and
+// string.from (number-to-text); every branch, every recursion, and every
+// character of output is Glyph.
+module json_value
+
+import std/string
+import std/array
+
+// The six JSON value forms as a recursive tagged union.
+pub type Json =
+  | JNull
+  | JBool({ value: bool })
+  | JNum({ value: number })
+  | JStr({ value: string })
+  | JArr({ items: Array<Json> })
+  | JObj({ entries: Array<Entry> })
+
+// One object member: a key and its value. Kept as a named record so `JObj`
+// carries an ordered, duplicate-tolerant list rather than a map.
+pub type Entry = {
+  key: string,
+  value: Json,
+}
+
+// Escape one character into its JSON representation. The five structural
+// escapes plus backspace and form feed are named; everything else passes
+// through verbatim.
+fn escape_char(c: string) -> string {
+  return match c == "\"" {
+    true => "\\\"",
+    false => match c == "\\" {
+      true => "\\\\",
+      false => match c == "\n" {
+        true => "\\n",
+        false => match c == "\t" {
+          true => "\\t",
+          false => match c == "\r" {
+            true => "\\r",
+            false => c,
+          },
+        },
+      },
+    },
+  }
+}
+
+// Escape every character of `s`, threaded by index.
+fn escape_from(s: string, i: number) -> string {
+  return match i >= string.len(s) {
+    true => "",
+    false => escape_char(s[i]) + escape_from(s, i + 1),
+  }
+}
+
+// A JSON string literal: the escaped body wrapped in double quotes.
+pub fn escape_string(s: string) -> string {
+  return "\"" + escape_from(s, 0) + "\""
+}
+
+// Compact rendering with no whitespace between tokens.
+pub fn stringify(j: Json) -> string {
+  return match j {
+    JNull => "null",
+    JBool({ value }) => match value {
+      true => "true",
+      false => "false",
+    },
+    JNum({ value }) => string.from(value),
+    JStr({ value }) => escape_string(value),
+    JArr({ items }) => "[" + join_items(items, 0) + "]",
+    JObj({ entries }) => "{" + join_entries(entries, 0) + "}",
+  }
+}
+
+// Comma-join the compact rendering of array items from index `i`.
+fn join_items(items: Array<Json>, i: number) -> string {
+  return match i >= array.len(items) {
+    true => "",
+    false => {
+      let head = stringify(items[i])
+      let sep = match i + 1 >= array.len(items) {
+        true => "",
+        false => ",",
+      }
+      return head + sep + join_items(items, i + 1)
+    },
+  }
+}
+
+// Comma-join the compact rendering of object entries from index `i`.
+fn join_entries(entries: Array<Entry>, i: number) -> string {
+  return match i >= array.len(entries) {
+    true => "",
+    false => {
+      let e = entries[i]
+      let pair = escape_string(e.key) + ":" + stringify(e.value)
+      let sep = match i + 1 >= array.len(entries) {
+        true => "",
+        false => ",",
+      }
+      return pair + sep + join_entries(entries, i + 1)
+    },
+  }
+}
+
+// `n` copies of two spaces, one indent level per depth unit.
+fn indent(depth: number) -> string {
+  return match depth <= 0 {
+    true => "",
+    false => "  " + indent(depth - 1),
+  }
+}
+
+// Indented rendering: arrays and objects break across lines, scalars stay
+// inline. `depth` is the nesting level of `j` itself.
+pub fn stringify_pretty(j: Json, depth: number) -> string {
+  return match j {
+    JArr({ items }) => match array.len(items) == 0 {
+      true => "[]",
+      false => "[\n" + pretty_items(items, depth + 1, 0) + "\n" + indent(depth) + "]",
+    },
+    JObj({ entries }) => match array.len(entries) == 0 {
+      true => "{}",
+      false => "{\n" + pretty_entries(entries, depth + 1, 0) + "\n" + indent(depth) + "}",
+    },
+    JNull => "null",
+    JBool({ value }) => match value {
+      true => "true",
+      false => "false",
+    },
+    JNum({ value }) => string.from(value),
+    JStr({ value }) => escape_string(value),
+  }
+}
+
+fn pretty_items(items: Array<Json>, depth: number, i: number) -> string {
+  return match i >= array.len(items) {
+    true => "",
+    false => {
+      let line = indent(depth) + stringify_pretty(items[i], depth)
+      let sep = match i + 1 >= array.len(items) {
+        true => "",
+        false => ",\n",
+      }
+      return line + sep + pretty_items(items, depth, i + 1)
+    },
+  }
+}
+
+fn pretty_entries(entries: Array<Entry>, depth: number, i: number) -> string {
+  return match i >= array.len(entries) {
+    true => "",
+    false => {
+      let e = entries[i]
+      let line = indent(depth) + escape_string(e.key) + ": " + stringify_pretty(e.value, depth)
+      let sep = match i + 1 >= array.len(entries) {
+        true => "",
+        false => ",\n",
+      }
+      return line + sep + pretty_entries(entries, depth, i + 1)
+    },
+  }
+}

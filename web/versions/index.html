@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.14</span>
+            <span class="rel-ver">0.1.15</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Materialize the types real SDKs actually ship</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>glyph gen dts</code> now materializes the shapes real packages ship: a <code>declare namespace</code> tree, types split across files and re-exported from an <code>index</code> barrel, and generics kept first-class (<code>interface Page&lt;T&gt;</code> becomes <code>type Page&lt;T&gt;</code> with a descriptor that validates each item as its type argument).</li>
+              <li><span class="tag added">Added</span> Leaf-value validation. A string enum materializes as a string-literal union (<code>"free" | "pro"</code>), so <code>parse</code> checks membership and a <code>match</code> over it is exhaustive without an <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire <code>3.5</code> fails <code>parse</code> where a plain number would pass.</li>
+              <li><span class="tag added">Added</span> Generated wire types carry <code>@open</code>, so a forward-compatible API that adds a field does not break <code>parse</code>, while every declared field is still validated. Records stay strict by default in the language.</li>
+              <li><span class="tag added">Added</span> Node builtins (<code>fs</code>, <code>path</code>, <code>http</code>, and the rest) type-check out of the box, with <code>@types/node</code> loaded automatically when installed.</li>
+              <li><span class="tag changed">Changed</span> <code>gen dts</code> flags a reference it can't resolve or a type name that collides across files with a note, instead of emitting a wrong-typed validator silently.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.14</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

@@ -1,0 +1,101 @@
+// Pure-Glyph set algebra over arrays: membership, de-duplication, and the
+// classic set operations (union, intersection, difference, symmetric
+// difference, subset/superset, set equality). No platform leaves at all: every
+// function is branching and recursion over `Array<T>` with `==` element
+// equality, the same logic `std/set` reaches for `globalThis.Set` to get.
+module set_algebra
+
+// Is `x` an element of `xs`? A linear scan by value equality.
+pub fn member<T>(xs: Array<T>, x: T) -> bool {
+  return match xs {
+    [] => false,
+    [head, ...rest] => match head == x {
+      true => true,
+      false => member(rest, x),
+    },
+  }
+}
+
+// `xs` with later duplicates dropped, keeping the first occurrence of each
+// value in order. This is the canonical form of a set as an array.
+pub fn dedup<T>(xs: Array<T>) -> Array<T> {
+  return match xs {
+    [] => [],
+    [head, ...rest] => {
+      let tail = dedup(rest)
+      return match member(tail, head) {
+        true => tail,
+        false => [head, ...tail],
+      }
+    },
+  }
+}
+
+// Every distinct value in either set, first occurrences in `a` then `b`.
+pub fn union<T>(a: Array<T>, b: Array<T>) -> Array<T> {
+  return dedup([...a, ...b])
+}
+
+// The distinct values present in both sets, in `a`'s order.
+pub fn intersection<T>(a: Array<T>, b: Array<T>) -> Array<T> {
+  return match dedup(a) {
+    [] => [],
+    [head, ...rest] => match member(b, head) {
+      true => [head, ...intersection(rest, b)],
+      false => intersection(rest, b),
+    },
+  }
+}
+
+// The distinct values in `a` that are not in `b`, in `a`'s order.
+pub fn difference<T>(a: Array<T>, b: Array<T>) -> Array<T> {
+  return match dedup(a) {
+    [] => [],
+    [head, ...rest] => match member(b, head) {
+      true => difference(rest, b),
+      false => [head, ...difference(rest, b)],
+    },
+  }
+}
+
+// Values in exactly one of the two sets: `(a \ b) ∪ (b \ a)`.
+pub fn symmetric_difference<T>(a: Array<T>, b: Array<T>) -> Array<T> {
+  return union(difference(a, b), difference(b, a))
+}
+
+// Is every element of `a` also in `b`?
+pub fn is_subset<T>(a: Array<T>, b: Array<T>) -> bool {
+  return match a {
+    [] => true,
+    [head, ...rest] => match member(b, head) {
+      true => is_subset(rest, b),
+      false => false,
+    },
+  }
+}
+
+// Is every element of `b` also in `a`?
+pub fn is_superset<T>(a: Array<T>, b: Array<T>) -> bool {
+  return is_subset(b, a)
+}
+
+// Do the two arrays denote the same set (same members, order and repeats
+// ignored)?
+pub fn equal_as_sets<T>(a: Array<T>, b: Array<T>) -> bool {
+  return match is_subset(a, b) {
+    true => is_subset(b, a),
+    false => false,
+  }
+}
+
+// How many distinct values the set holds.
+pub fn cardinality<T>(xs: Array<T>) -> number {
+  return len_of(dedup(xs))
+}
+
+fn len_of<T>(xs: Array<T>) -> number {
+  return match xs {
+    [] => 0,
+    [_, ...rest] => 1 + len_of(rest),
+  }
+}

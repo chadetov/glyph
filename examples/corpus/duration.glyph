@@ -1,0 +1,130 @@
+// Pure-Glyph human-readable duration formatting: decompose a millisecond span
+// into days/hours/minutes/seconds, render it compactly ("1h 30m 20s"), pick the
+// single largest unit ("2 days"), and phrase a signed delta as relative time
+// ("in 3 days", "5 minutes ago", "just now"). The only platform leaves are
+// math.floor and math.abs for integer division and magnitude; the rest is
+// branching, recursion, records, and `+` string building expressed in Glyph.
+module duration
+
+import std/math
+
+// A duration split into whole calendar-independent units. `millis` is the
+// sub-second remainder; every field is non-negative.
+pub type Parts = {
+  days: number,
+  hours: number,
+  minutes: number,
+  seconds: number,
+  millis: number,
+}
+
+// Break a non-negative millisecond count into ordered units, largest first.
+pub fn breakdown(ms: number) -> Parts {
+  let total = math.floor(math.abs(ms))
+  let millis = total % 1000
+  let secs = math.floor(total / 1000)
+  let seconds = secs % 60
+  let mins = math.floor(secs / 60)
+  let minutes = mins % 60
+  let hrs = math.floor(mins / 60)
+  let hours = hrs % 24
+  let days = math.floor(hrs / 24)
+  return {
+    days: days,
+    hours: hours,
+    minutes: minutes,
+    seconds: seconds,
+    millis: millis,
+  }
+}
+
+// English pluralization: "1 day", "2 days", "0 seconds".
+fn unit(n: number, name: string) -> string {
+  return match n == 1 {
+    true => "1 " + name,
+    false => number_str(n) + " " + name + "s",
+  }
+}
+
+// Non-negative integer to its decimal digits, most significant first.
+fn number_str(n: number) -> string {
+  let d = n % 10
+  let rest = math.floor(n / 10)
+  return match rest == 0 {
+    true => digit(d),
+    false => number_str(rest) + digit(d),
+  }
+}
+
+fn digit(i: number) -> string {
+  let table = "0123456789"
+  return table[i]
+}
+
+// One compact token like "1h" for a unit, or "" when the count is zero.
+fn token(n: number, suffix: string) -> string {
+  return match n == 0 {
+    true => "",
+    false => number_str(n) + suffix,
+  }
+}
+
+// Join two space-separated tokens, dropping empties so no stray spaces appear.
+fn joined(a: string, b: string) -> string {
+  return match a == "" {
+    true => b,
+    false => match b == "" {
+      true => a,
+      false => a + " " + b,
+    },
+  }
+}
+
+// Compact form largest-first, skipping zero units: 3_930_000 -> "1h 5m 30s".
+// Milliseconds show only when the whole span is under one second.
+pub fn compact(ms: number) -> string {
+  let p = breakdown(ms)
+  let d = token(p.days, "d")
+  let h = token(p.hours, "h")
+  let m = token(p.minutes, "m")
+  let s = token(p.seconds, "s")
+  let body = joined(joined(joined(d, h), m), s)
+  return match body == "" {
+    true => match p.millis == 0 {
+      true => "0s",
+      false => number_str(p.millis) + "ms",
+    },
+    false => body,
+  }
+}
+
+// The single most-significant unit, pluralized: 90_000 -> "1 minute".
+pub fn humanize(ms: number) -> string {
+  let p = breakdown(ms)
+  return match p.days > 0 {
+    true => unit(p.days, "day"),
+    false => match p.hours > 0 {
+      true => unit(p.hours, "hour"),
+      false => match p.minutes > 0 {
+        true => unit(p.minutes, "minute"),
+        false => match p.seconds > 0 {
+          true => unit(p.seconds, "second"),
+          false => unit(p.millis, "millisecond"),
+        },
+      },
+    },
+  }
+}
+
+// Phrase a signed delta (future positive, past negative) as relative time.
+// Spans under one second read as "just now".
+pub fn relative(delta_ms: number) -> string {
+  let magnitude = math.floor(math.abs(delta_ms))
+  return match magnitude < 1000 {
+    true => "just now",
+    false => match delta_ms < 0 {
+      true => humanize(magnitude) + " ago",
+      false => "in " + humanize(magnitude),
+    },
+  }
+}

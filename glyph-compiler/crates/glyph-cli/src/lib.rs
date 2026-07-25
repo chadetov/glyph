@@ -10,6 +10,7 @@ pub mod build;
 pub mod config;
 pub mod diagnostic;
 pub mod examples;
+pub mod fix;
 pub mod init;
 pub mod explain;
 pub mod fmt;

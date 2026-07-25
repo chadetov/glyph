@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use glyph_cli::build::build_project_inner;
-use glyph_cli::init::scaffold;
+use glyph_cli::init::{scaffold, scaffold_template, Template};
 
 fn unique_tmp() -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -43,6 +43,28 @@ fn scaffold_writes_a_runnable_starter() {
         "scaffolded main.glyph did not compile: {:?}",
         build.diagnostics
     );
+}
+
+#[test]
+fn each_template_scaffolds_and_compiles() {
+    for (tmpl, entry, runnable) in [
+        (Template::Cli, "src/main.glyph", true),
+        (Template::Web, "src/main.glyph", true),
+        (Template::Lib, "src/lib.glyph", false),
+    ] {
+        let dir = unique_tmp();
+        let report = scaffold_template(&dir, tmpl).expect("scaffold");
+        assert!(dir.join(entry).exists(), "{tmpl:?}: missing entry {entry}");
+        assert_eq!(report.runnable, runnable, "{tmpl:?}: runnable flag");
+        // Every template must compile through the real pipeline.
+        let out = unique_tmp();
+        let build = build_project_inner(&dir.join("src"), &out, false).expect("build");
+        assert!(
+            !build.has_errors(),
+            "{tmpl:?} template did not compile: {:?}",
+            build.diagnostics
+        );
+    }
 }
 
 #[test]

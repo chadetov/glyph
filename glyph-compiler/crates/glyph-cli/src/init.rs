@@ -12,6 +12,32 @@ pub struct InitReport {
     pub root: PathBuf,
     pub created: Vec<PathBuf>,
     pub skipped: Vec<PathBuf>,
+    /// The entry file to run or build (`src/main.glyph`, or `src/lib.glyph` for a
+    /// library), plus whether it is runnable (has a `main`).
+    pub entry: PathBuf,
+    pub runnable: bool,
+}
+
+/// The starter shape `glyph init --template <T>` scaffolds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Template {
+    /// A command-line program (`fn main` returning an exit code). The default.
+    Cli,
+    /// An HTTP server over `std/http`.
+    Web,
+    /// A library of `pub` functions with an `@example`, no `main`.
+    Lib,
+}
+
+impl Template {
+    pub fn parse(s: &str) -> Option<Template> {
+        match s {
+            "cli" => Some(Template::Cli),
+            "web" => Some(Template::Web),
+            "lib" => Some(Template::Lib),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -43,6 +69,34 @@ fn main(argv: Array<string>) -> number {\n\
 \x20 return 0\n\
 }\n";
 
+const WEB_GLYPH: &str = "module main\n\
+\n\
+import std/http { serve, text, Request, Response }\n\
+import std/result { Result, Ok, Err }\n\
+import std/io\n\
+\n\
+async fn main(argv: Array<string>) -> number {\n\
+\x20 io.println(\"listening on http://localhost:8080\")\n\
+\x20 let result = await serve(8080, fn(req: Request) -> Result<Response, string> {\n\
+\x20\x20\x20 Ok(text(200, \"hello from glyph\"))\n\
+\x20 })\n\
+\x20 return match result {\n\
+\x20\x20\x20 Ok(ok) => 0,\n\
+\x20\x20\x20 Err(e) => 1,\n\
+\x20 }\n\
+}\n";
+
+const LIB_GLYPH: &str = "module lib\n\
+\n\
+// A library module: `pub` functions are importable by other modules. There is\n\
+// no `main`, so this package is built (`glyph build`), not run. The `@example`\n\
+// is checked at build time.\n\
+\n\
+@example greet(\"world\") == \"hello, world\"\n\
+pub fn greet(name: string) -> string {\n\
+\x20 return \"hello, ${name}\"\n\
+}\n";
+
 const TYPES_README: &str = "# Ambient type declarations\n\
 \n\
 Put `*.d.ts` files here to give the type-checker types for the npm packages and\n\
@@ -54,10 +108,27 @@ const GITIGNORE: &str = "dist/\n\
 node_modules/\n";
 
 /// Scaffold a starter project into `dir` (created if absent). The npm package
-/// name is derived from the directory name.
+/// name is derived from the directory name. `Template::Cli` is the default shape.
 pub fn scaffold(dir: &Path) -> Result<InitReport, InitError> {
+    scaffold_template(dir, Template::Cli)
+}
+
+/// Scaffold the given starter `template` into `dir`.
+pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, InitError> {
     std::fs::create_dir_all(dir.join("src").join(".types"))
         .map_err(|e| InitError::Io(format!("cannot create {}: {e}", dir.display())))?;
+
+    // The entry file, its content, and whether the package is run or built.
+    let (entry_name, entry_content, runnable) = match template {
+        Template::Cli => ("main.glyph", MAIN_GLYPH, true),
+        Template::Web => ("main.glyph", WEB_GLYPH, true),
+        Template::Lib => ("lib.glyph", LIB_GLYPH, false),
+    };
+    let start_script = if runnable {
+        format!("glyph run src/{entry_name}")
+    } else {
+        "glyph build src --out dist".to_string()
+    };
 
     let name = project_name(dir);
     let package_json = format!(
@@ -66,7 +137,7 @@ pub fn scaffold(dir: &Path) -> Result<InitReport, InitError> {
 \x20 \"version\": \"0.1.0\",\n\
 \x20 \"private\": true,\n\
 \x20 \"scripts\": {{\n\
-\x20\x20\x20 \"start\": \"glyph run src/main.glyph\",\n\
+\x20\x20\x20 \"start\": \"{start_script}\",\n\
 \x20\x20\x20 \"build\": \"glyph build src --out dist\"\n\
 \x20 }},\n\
 \x20 \"glyph\": {{\n\
@@ -79,8 +150,9 @@ pub fn scaffold(dir: &Path) -> Result<InitReport, InitError> {
 }}\n"
     );
 
+    let entry = dir.join("src").join(entry_name);
     let files: [(PathBuf, &str); 4] = [
-        (dir.join("src").join("main.glyph"), MAIN_GLYPH),
+        (entry.clone(), entry_content),
         (dir.join("src").join(".types").join("README.md"), TYPES_README),
         (dir.join("package.json"), package_json.as_str()),
         (dir.join(".gitignore"), GITIGNORE),
@@ -98,7 +170,7 @@ pub fn scaffold(dir: &Path) -> Result<InitReport, InitError> {
         created.push(path);
     }
 
-    Ok(InitReport { root: dir.to_path_buf(), created, skipped })
+    Ok(InitReport { root: dir.to_path_buf(), created, skipped, entry, runnable })
 }
 
 /// A filesystem-safe npm package name derived from the directory name.

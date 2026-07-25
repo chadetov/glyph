@@ -75,11 +75,21 @@ enum Command {
         #[arg(value_name = "PATH")]
         path: Option<std::path::PathBuf>,
     },
+    /// Apply safe autofixes in place (today: remove imports whose every name is
+    /// unused). Scans a directory or a single file (default: the current dir).
+    Fix {
+        #[arg(value_name = "PATH")]
+        path: Option<std::path::PathBuf>,
+    },
     /// Scaffold a runnable starter project (src/main.glyph, .types/, package.json,
     /// .gitignore) in DIR (default: the current directory).
     Init {
         #[arg(value_name = "DIR")]
         dir: Option<std::path::PathBuf>,
+        /// Starter shape: `cli` (default), `web` (an http server), or `lib`
+        /// (a library of `pub` functions, no `main`).
+        #[arg(long, default_value = "cli")]
+        template: String,
     },
     /// Run the language server over stdio (spawned by an editor extension).
     Lsp,
@@ -399,6 +409,26 @@ fn main() {
                 }
             }
         }
+        Some(Command::Fix { path }) => {
+            let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::fix::fix_project(&target) {
+                Ok(report) => {
+                    for file in &report.changed {
+                        eprintln!("fixed {}", file.display());
+                    }
+                    eprintln!(
+                        "glyph fix: removed {} unused import(s) across {} file(s).",
+                        report.removed_imports,
+                        report.changed.len(),
+                    );
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("glyph fix: {e}");
+                    std::process::exit(2);
+                }
+            }
+        }
         Some(Command::Lsp) => {
             // Hands control to the language server; runs until the editor closes
             // the stdio connection.
@@ -423,9 +453,15 @@ fn main() {
         Some(Command::Doctor { json }) => {
             std::process::exit(glyph_cli::doctor::run(json));
         }
-        Some(Command::Init { dir }) => {
+        Some(Command::Init { dir, template }) => {
             let dir = dir.unwrap_or_else(|| std::path::PathBuf::from("."));
-            match glyph_cli::init::scaffold(&dir) {
+            let Some(tmpl) = glyph_cli::init::Template::parse(&template) else {
+                eprintln!(
+                    "glyph init: unknown template `{template}` (expected `cli`, `web`, or `lib`)"
+                );
+                std::process::exit(2);
+            };
+            match glyph_cli::init::scaffold_template(&dir, tmpl) {
                 Ok(report) => {
                     for path in &report.created {
                         eprintln!("created {}", path.display());
@@ -433,12 +469,15 @@ fn main() {
                     for path in &report.skipped {
                         eprintln!("skipped {} (already exists)", path.display());
                     }
+                    let next = if report.runnable {
+                        format!("Run it with `glyph run {}`.", report.entry.display())
+                    } else {
+                        format!("Build it with `glyph build {} --out dist`.", report.root.join("src").display())
+                    };
                     eprintln!(
-                        "glyph init: {} file(s) created, {} skipped. Run it with \
-                         `glyph run {}`.",
+                        "glyph init: {} file(s) created, {} skipped. {next}",
                         report.created.len(),
                         report.skipped.len(),
-                        report.root.join("src").join("main.glyph").display()
                     );
                     std::process::exit(0);
                 }

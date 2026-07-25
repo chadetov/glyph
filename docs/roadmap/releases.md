@@ -746,6 +746,23 @@ base64), and two compiler gaps the dogfooding surfaced and fixed:
   parses, the natural companion to the positive-literal arms, lowering to a
   `case -1:` and counting as one pattern for exhaustiveness.
 
+### 0.1.20 — Shipped · improve-glyph loop batch 2 + bitwise operators
+
+**Status: shipped.** Batch 2 of the dogfood loop (nine more pure-Glyph corpus
+modules: a JSON parser and serializer, a pairing heap, SemVer precedence, CSV and
+hex codecs, a shell-glob matcher, a duration formatter, a reproducible PRNG),
+plus the resolution of the one architecture fork it surfaced:
+
+- **Bitwise operators `& | ^ ~`** (D36) — the loop found it could not write a
+  mulberry32 PRNG in pure Glyph because Glyph had no bitwise arithmetic. The
+  non-shift operators now emit verbatim to TypeScript, number-typed, at JS
+  precedence. The shift operators (`<< >> >>>`) are deferred (they collide with a
+  generic-close angle bracket; parked with the disambiguation design), so
+  `std/random` stays a TS native kernel and `math.imul` is exposed.
+
+That an autonomous agent stopped at a genuine language-design fork and escalated
+it, rather than inventing a shift syntax, is the loop working as designed.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

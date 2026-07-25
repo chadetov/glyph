@@ -248,11 +248,20 @@ match Customer.parse(webhook_body) {
 optional fields all the way down), so a structurally-malformed payload is an `Err`
 you handle, not a lie the type system waved through. It does not yet check leaf
 *values*: an `integer` field is validated as a number (so `3.5` passes), and a
-string enum as a `string`. The generated file records its own `glyph gen dts
-api-types --out src/types` command, so `glyph regen` refreshes it when you bump
-the dependency. This is the opt-in step: you run it for the types you actually
-cross the boundary with, and the result is committed and greppable, not generated
-invisibly on every build.
+string enum as a `string`.
+
+Generated wire types carry `@open`, so `Customer.parse` tolerates a field the API
+adds later (a forward-compatible change) while still validating every field it
+declares. Records are strict by default in Glyph; codegen opts these into
+tolerance with the same greppable `@open` marker a hand-written record would use,
+because a `.d.ts` and JSON Schema allow extra properties by default. A source
+schema that closes the world (`additionalProperties: false`) stays strict, with no
+`@open`.
+
+The generated file records its own `glyph gen dts api-types --out src/types`
+command, so `glyph regen` refreshes it when you bump the dependency. This is the
+opt-in step: you run it for the types you actually cross the boundary with, and
+the result is committed and greppable, not generated invisibly on every build.
 
 **What materializes today:** `gen dts` reads the `interface` and `type`
 declarations a package exports, including those inside a `declare namespace` tree

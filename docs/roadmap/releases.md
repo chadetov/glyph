@@ -518,10 +518,21 @@ edits; each is real engineering, not a doc tweak):
   optional leaf checks (integer, string enum values, common formats) so "validates
   deeply" is true at the leaves, not only the structure. *Done:* a generated
   descriptor rejects a wrong-typed leaf, not just a wrong shape.
-- **`@open` policy for materialized wire records** (S, decision). Generated records
-  are strict-by-default (reject undeclared keys), so a materialized DTO rejects a
-  forward-compatible API response that adds a field. Decide whether `gen dts`/`gen
-  openapi` should emit `@open` for wire types, and test against an evolving API.
+- **`@open` policy for materialized wire records** (S, decision). ✅ **Done.**
+  Decided: keep records strict-by-default across the language (safe by default,
+  the verifiability pillar), and have codegen emit the existing `@open` (D27)
+  marker on generated wire types, since a `.d.ts` and JSON Schema tolerate extra
+  properties by default and a forward-compatible API response that adds a field
+  must not fail `T.parse`. `gen dts`/`gen openapi`/`gen zod` now emit `@open` above
+  a generated record unless the source schema closes the world
+  (`additionalProperties: false`), which stays strict. The marker is at the
+  declaration site and greppable, identical to a hand-written record's, so there
+  is no provenance-dependent split in what a record means. Verified end to end: a
+  materialized type tolerates an added field but still rejects a wrong-typed
+  declared field; unit-tested for both the open default and the closed case. (The
+  rejected alternative was flipping the global default to open with an `exact`
+  marker, which would have retroactively weakened every existing record and the
+  stdlib.)
 - **Node-shim / `@types/node` consistency** (S). A build green against the bundled
   shim can flip red (or vice versa) when `@types/node` is later installed, because
   the surfaces differ. Minor, but worth a note in the docs and a thought about

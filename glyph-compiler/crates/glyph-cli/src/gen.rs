@@ -975,7 +975,7 @@ impl Generator {
         // allOf of objects → one merged record.
         if let Some(all) = schema.get("allOf").and_then(|v| v.as_array()) {
             if let Some(fields) = self.merge_all_of(name, all) {
-                return self.render_record(name, &fields);
+                return self.render_record(name, &fields, !schema_is_closed(schema));
             }
             self.note(format!(
                 "{name}: `allOf` mixes non-object members; emitted as `unknown`."
@@ -1005,7 +1005,7 @@ impl Generator {
         // Object with properties → record.
         if is_object(schema) {
             let fields = self.object_fields(name, schema);
-            return self.render_record(name, &fields);
+            return self.render_record(name, &fields, !schema_is_closed(schema));
         }
 
         // Everything else at the top level: emit an alias to the mapped type.
@@ -1061,16 +1061,29 @@ impl Generator {
 
     /// Render a record `type`, or a `Record<K,V>` alias when the object was
     /// free-form (single synthetic `__record__` field).
-    fn render_record(&self, name: &str, fields: &[(String, String, bool)]) -> String {
+    ///
+    /// `open` prepends `@open` (D27) so the generated descriptor tolerates extra
+    /// keys. Generated types model external/wire data, which in JSON Schema and a
+    /// `.d.ts` allows extra properties by default, so a forward-compatible API
+    /// response that adds a field must not fail `T.parse`. A schema that
+    /// explicitly closes the world (`additionalProperties: false`) keeps the
+    /// strict-by-default descriptor (no `@open`). The record keeps strict
+    /// semantics everywhere else in the language; only generated wire types opt
+    /// into tolerance, and they do it with the same greppable declaration-site
+    /// marker a hand-written record would use.
+    fn render_record(&self, name: &str, fields: &[(String, String, bool)], open: bool) -> String {
         if let [(k, ty, _)] = fields {
             if k == "__record__" {
+                // A free-form `Record<K,V>` alias, not a strict record: `@open`
+                // is meaningless here (it already accepts arbitrary keys).
                 return format!("type {name} = {ty}\n");
             }
         }
+        let prefix = if open { "@open\n" } else { "" };
         if fields.is_empty() {
-            return format!("type {name} = {{}}\n");
+            return format!("{prefix}type {name} = {{}}\n");
         }
-        let mut out = format!("type {name} = {{\n");
+        let mut out = format!("{prefix}type {name} = {{\n");
         for (fname, ty, optional) in fields {
             let q = if *optional { "?" } else { "" };
             out.push_str(&format!("  {fname}{q}: {ty},\n"));
@@ -1180,6 +1193,13 @@ fn is_object(schema: &Value) -> bool {
     type_of(schema) == Some("object")
         || (schema.get("properties").is_some() && schema.get("type").is_none())
         || (schema.get("additionalProperties").is_some() && schema.get("type").is_none())
+}
+
+/// Whether a schema explicitly closes the world to extra properties
+/// (`additionalProperties: false`). Absent, `true`, or a sub-schema all leave it
+/// open, which is the default in both JSON Schema and a `.d.ts` interface.
+fn schema_is_closed(schema: &Value) -> bool {
+    matches!(schema.get("additionalProperties"), Some(Value::Bool(false)))
 }
 
 /// The final path segment of a `$ref` (`#/components/schemas/Pet` → `Pet`).
@@ -1788,6 +1808,24 @@ mod tests {
         // `nullable` maps to an optional field of the base type (not Option<T>),
         // so the descriptor matches the wire value rather than a tagged Option.
         assert!(out.contains("owner?: string"), "got:\n{out}");
+    }
+
+    #[test]
+    fn generated_records_are_open_unless_the_schema_closes_them() {
+        // Wire data tolerates additive fields by default, so a generated record
+        // is `@open`; a schema that closes the world (`additionalProperties:
+        // false`) keeps the strict-by-default descriptor.
+        let (out, _) = gen_from(
+            r##"{"components":{"schemas":{
+               "Open":{"type":"object","required":["id"],"properties":{"id":{"type":"string"}}},
+               "Closed":{"type":"object","additionalProperties":false,
+                 "required":["id"],"properties":{"id":{"type":"string"}}}}}}"##,
+        );
+        // The open record carries `@open` immediately above its `type`.
+        assert!(out.contains("@open\ntype Open"), "open record needs @open; got:\n{out}");
+        // The closed record does not.
+        assert!(out.contains("type Closed"), "got:\n{out}");
+        assert!(!out.contains("@open\ntype Closed"), "closed record must stay strict; got:\n{out}");
     }
 
     #[test]

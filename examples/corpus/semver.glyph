@@ -1,0 +1,324 @@
+// Pure-Glyph semantic-version parsing and precedence comparison, following the
+// SemVer 2.0.0 rules: a `major.minor.patch` core with an optional dot-separated
+// prerelease and ignored build metadata, numeric identifiers ordered below
+// alphanumeric ones, and a release outranking any prerelease of the same core.
+// The only platform leaves are std/string and std/array; every parse and
+// comparison rule is branching and recursion expressed in Glyph.
+module semver
+
+import std/string
+import std/array
+import std/option { Option, Some, None }
+
+pub type Version = {
+  major: number,
+  minor: number,
+  patch: number,
+  prerelease: Array<string>,
+}
+
+// The index of the single char `c` within "0123456789", which is also its
+// numeric value, or None when `c` is not a digit.
+fn digit_value(c: string) -> Option<number> {
+  let digits = "0123456789"
+  return index_of_char(
+    digits,
+    c,
+    0,
+  )
+}
+
+fn index_of_char(
+  hay: string,
+  needle: string,
+  i: number,
+) -> Option<number> {
+  return match i >= string.len(hay) {
+    true => None,
+    false => match hay[i] == needle {
+      true => Some(i),
+      false => index_of_char(
+        hay,
+        needle,
+        i + 1,
+      ),
+    },
+  }
+}
+
+// Fold the digits of `s` into a non-negative integer, or None if `s` is empty
+// or holds a non-digit. Leading zeros are accepted here; the core parser
+// rejects them separately.
+fn parse_digits_go(
+  s: string,
+  i: number,
+  acc: number,
+) -> Option<number> {
+  return match i >= string.len(s) {
+    true => Some(acc),
+    false => match digit_value(s[i]) {
+      None => None,
+      Some(d) => parse_digits_go(
+        s,
+        i + 1,
+        acc * 10 + d,
+      ),
+    },
+  }
+}
+
+pub fn parse_digits(s: string) -> Option<number> {
+  return match string.len(s) == 0 {
+    true => None,
+    false => parse_digits_go(
+      s,
+      0,
+      0,
+    ),
+  }
+}
+
+// A numeric core identifier: all digits, and no leading zero unless it is the
+// single character "0".
+fn parse_core_int(s: string) -> Option<number> {
+  let leading_zero = string.len(s) > 1 && s[0] == "0"
+  return match leading_zero {
+    true => None,
+    false => parse_digits(s),
+  }
+}
+
+// Every char of `s` is [0-9A-Za-z-]; the empty identifier is invalid.
+fn is_alnum_ident(s: string) -> bool {
+  return match string.len(s) == 0 {
+    true => false,
+    false => all_ident_chars(s, 0),
+  }
+}
+
+fn all_ident_chars(s: string, i: number) -> bool {
+  return match i >= string.len(s) {
+    true => true,
+    false => match is_ident_char(s[i]) {
+      false => false,
+      true => all_ident_chars(s, i + 1),
+    },
+  }
+}
+
+fn is_ident_char(c: string) -> bool {
+  let ok = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-"
+  return match index_of_char(
+    ok,
+    c,
+    0,
+  ) {
+    Some(_) => true,
+    None => false,
+  }
+}
+
+fn valid_prerelease(ids: Array<string>, i: number) -> bool {
+  return match i >= array.len(ids) {
+    true => true,
+    false => match is_alnum_ident(ids[i]) {
+      false => false,
+      true => valid_prerelease(ids, i + 1),
+    },
+  }
+}
+
+// Parse a version string, or None if it is not a well-formed SemVer.
+pub fn parse(input: string) -> Option<Version> {
+  let no_build = string.split(input, "+")[0]
+  let dash = string.split(no_build, "-")
+  let core = dash[0]
+  let pre = match array.len(dash) > 1 {
+    true => string.split(string.join(array.slice(dash, 1), "-"), "."),
+    false => empty_ids(),
+  }
+  let nums = string.split(core, ".")
+  return match array.len(nums) == 3 {
+    false => None,
+    true => finish_parse(nums, pre),
+  }
+}
+
+fn empty_ids() -> Array<string> {
+  return []
+}
+
+fn finish_parse(nums: Array<string>, pre: Array<string>) -> Option<Version> {
+  return match parse_core_int(nums[0]) {
+    None => None,
+    Some(maj) => match parse_core_int(nums[1]) {
+      None => None,
+      Some(min) => match parse_core_int(nums[2]) {
+        None => None,
+        Some(pat) => match valid_prerelease(pre, 0) {
+          false => None,
+          true => Some({
+            major: maj,
+            minor: min,
+            patch: pat,
+            prerelease: pre,
+          }),
+        },
+      },
+    },
+  }
+}
+
+// -1, 0, or 1 by numeric order.
+fn cmp_num(a: number, b: number) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// ASCII lexical order over two strings, char by char.
+fn cmp_str(a: string, b: string) -> number {
+  return cmp_str_go(
+    a,
+    b,
+    0,
+  )
+}
+
+fn cmp_str_go(
+  a: string,
+  b: string,
+  i: number,
+) -> number {
+  let la = string.len(a)
+  let lb = string.len(b)
+  return match i >= la {
+    true => match i >= lb {
+      true => 0,
+      false => -1,
+    },
+    false => match i >= lb {
+      true => 1,
+      false => {
+        let c = cmp_char(a[i], b[i])
+        return match c == 0 {
+          true => cmp_str_go(
+            a,
+            b,
+            i + 1,
+          ),
+          false => c,
+        }
+      },
+    },
+  }
+}
+
+fn cmp_char(a: string, b: string) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// Compare two prerelease identifiers: both numeric compare numerically, a
+// numeric identifier ranks below an alphanumeric one, and two alphanumeric
+// identifiers compare lexically.
+fn cmp_ident(x: string, y: string) -> number {
+  return match parse_digits(x) {
+    Some(nx) => match parse_digits(y) {
+      Some(ny) => cmp_num(nx, ny),
+      None => -1,
+    },
+    None => match parse_digits(y) {
+      Some(_) => 1,
+      None => cmp_str(x, y),
+    },
+  }
+}
+
+fn cmp_pre_go(
+  a: Array<string>,
+  b: Array<string>,
+  i: number,
+) -> number {
+  let la = array.len(a)
+  let lb = array.len(b)
+  return match i >= la {
+    true => match i >= lb {
+      true => 0,
+      false => -1,
+    },
+    false => match i >= lb {
+      true => 1,
+      false => {
+        let c = cmp_ident(a[i], b[i])
+        return match c == 0 {
+          true => cmp_pre_go(
+            a,
+            b,
+            i + 1,
+          ),
+          false => c,
+        }
+      },
+    },
+  }
+}
+
+// A release (empty prerelease) outranks any prerelease of the same core.
+fn cmp_prerelease(a: Array<string>, b: Array<string>) -> number {
+  let ea = array.len(a) == 0
+  let eb = array.len(b) == 0
+  return match ea {
+    true => match eb {
+      true => 0,
+      false => 1,
+    },
+    false => match eb {
+      true => -1,
+      false => cmp_pre_go(
+        a,
+        b,
+        0,
+      ),
+    },
+  }
+}
+
+// Full precedence comparison: -1 if `a < b`, 0 if equal precedence, 1 if `a > b`.
+pub fn compare(a: Version, b: Version) -> number {
+  let cmaj = cmp_num(a.major, b.major)
+  return match cmaj == 0 {
+    false => cmaj,
+    true => {
+      let cmin = cmp_num(a.minor, b.minor)
+      return match cmin == 0 {
+        false => cmin,
+        true => {
+          let cpat = cmp_num(a.patch, b.patch)
+          return match cpat == 0 {
+            false => cpat,
+            true => cmp_prerelease(a.prerelease, b.prerelease),
+          }
+        },
+      }
+    },
+  }
+}
+
+// Render a version back to its canonical string.
+pub fn to_string(v: Version) -> string {
+  let core = string.from(v.major) + "." + string.from(v.minor) + "." + string.from(v.patch)
+  return match array.len(v.prerelease) == 0 {
+    true => core,
+    false => core + "-" + string.join(v.prerelease, "."),
+  }
+}

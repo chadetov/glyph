@@ -190,6 +190,65 @@ task, so a failure in `all` abandons its siblings' results rather than halting
 their work; thread an AbortSignal into your task bodies for cooperative
 cancellation.
 
+## std/regex
+
+Regular expressions over the JS engine. Patterns are strings; every call is
+stateless (a fresh `RegExp`), so there is no shared-`lastIndex` surprise.
+
+```
+matches(pattern: string, text: string) -> bool           // does it match anywhere
+find_all(pattern: string, text: string) -> Array<string> // every match (global)
+find_first(pattern: string, text: string) -> string      // first match, or ""
+captures(pattern: string, text: string) -> Array<string> // capture groups of the first match
+replace_all(pattern: string, text: string, replacement: string) -> string
+split(pattern: string, text: string) -> Array<string>
+```
+
+## std/set
+
+A hash set with value semantics for primitives; maps use the built-in
+`Record<K, V>`. Like `std/store`, state lives in a closure and every mutation is
+a greppable method call.
+
+```
+type Set<T>
+create<T>(initial?: Array<T>) -> Set<T>          // an empty or seeded set
+set.add(value: T) -> void                         // method: insert
+set.has(value: T) -> bool                         // method: membership
+set.remove(value: T) -> bool                      // method: delete (was it present)
+set.size() -> number                              // method: cardinality
+set.values() -> Array<T>                          // method: members as an array
+unique<T>(values: Array<T>) -> Array<T>           // de-duplicate, order-preserving
+```
+
+## std/path
+
+Cross-platform filesystem paths over node's `path`; the host separator is
+respected, so the same code runs on Unix and Windows.
+
+```
+join(parts: Array<string>) -> string             // join segments
+dirname(p: string) -> string
+basename(p: string) -> string
+extname(p: string) -> string
+is_absolute(p: string) -> bool
+normalize(p: string) -> string
+relative(from: string, to: string) -> string
+```
+
+## std/crypto
+
+Hashing, HMAC, and randomness over node's `crypto`, returning hex strings.
+Security primitives belong in the standard library, not an unvetted dependency.
+
+```
+sha256(input: string) -> string
+sha512(input: string) -> string
+hmac_sha256(key: string, input: string) -> string
+random_uuid() -> string                           // a v4 UUID
+random_hex(count: number) -> string               // count random bytes, hex (length count * 2)
+```
+
 ## std/stream
 
 Deterministic generators for property testing (sampled by index, no RNG).

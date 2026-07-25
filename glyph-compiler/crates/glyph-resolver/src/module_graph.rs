@@ -125,6 +125,23 @@ impl StdlibStubs {
         // Structured-concurrency helpers over Promises: `all` (fail-fast join),
         // `race` (first to settle), `all_settled` (one outcome per task).
         s.add("std/task", &["all", "race", "all_settled", "Settled"]);
+        // Regular expressions (stateless, one `RegExp` per call).
+        s.add(
+            "std/regex",
+            &["matches", "find_all", "find_first", "captures", "replace_all", "split"],
+        );
+        // A hash set with value semantics for primitives; maps use `Record<K, V>`.
+        s.add("std/set", &["Set", "create", "unique"]);
+        // Cross-platform filesystem paths over node's `path`.
+        s.add(
+            "std/path",
+            &["join", "dirname", "basename", "extname", "is_absolute", "normalize", "relative"],
+        );
+        // Hashing, HMAC, and randomness over node's `crypto`.
+        s.add(
+            "std/crypto",
+            &["sha256", "sha512", "hmac_sha256", "random_uuid", "random_hex"],
+        );
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
         // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(

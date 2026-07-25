@@ -89,6 +89,11 @@ declare module "crypto" {
     digest(encoding: string): string;
   }
   export function createHash(algorithm: string): Hash;
+  export interface Hmac {
+    update(data: string): Hmac;
+    digest(encoding: string): string;
+  }
+  export function createHmac(algorithm: string, key: string): Hmac;
 }
 declare module "node:crypto" {
   export * from "crypto";

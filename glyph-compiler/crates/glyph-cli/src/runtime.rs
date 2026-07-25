@@ -92,6 +92,22 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/task.ts"),
     ),
     (
+        ".glyph-runtime/std/regex.ts",
+        include_str!("../../../runtime/std/regex.ts"),
+    ),
+    (
+        ".glyph-runtime/std/set.ts",
+        include_str!("../../../runtime/std/set.ts"),
+    ),
+    (
+        ".glyph-runtime/std/path.ts",
+        include_str!("../../../runtime/std/path.ts"),
+    ),
+    (
+        ".glyph-runtime/std/crypto.ts",
+        include_str!("../../../runtime/std/crypto.ts"),
+    ),
+    (
         ".glyph-runtime/glyph-bootstrap.ts",
         include_str!("../../../runtime/glyph-bootstrap.ts"),
     ),

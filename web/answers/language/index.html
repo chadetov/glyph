@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Is this a real language, or a toy with gaps? · Glyph</title>
+    <meta name="description" content="Glyph has module visibility, structural interfaces for generic bounds, defer for cleanup, and structured-concurrency helpers, and it names the semantics it inherits from JavaScript instead of hiding them." />
+    <link rel="canonical" href="https://glyphlang.io/answers/language/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/" class="active"><span class="n">15</span> The language</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">15 &middot; Language completeness</p>
+      <h1 class="q-title">Is this a real language, or a toy with gaps?</h1>
+
+      <p class="short-answer">
+        It has the things you reach for in a real codebase: <strong>module
+        visibility</strong>, <strong>interfaces</strong> to constrain generics,
+        <strong>defer</strong> for cleanup, and <strong>concurrency</strong>
+        helpers. Where it leans on JavaScript, it says so instead of pretending
+        otherwise.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          A language you can write one file in but not structure a project in
+          isn't one you'll bet a codebase on. The gaps that matter aren't exotic:
+          can I hide a helper, can a generic require a capability, can I release a
+          file handle on every exit path, can I run two things at once and wait
+          for both. Glyph answers those four, and it does it without reopening
+          the annotation-heavy direction it deliberately dropped.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          Declarations are private to their module until you mark them
+          <code>pub</code>, so the public surface is one search
+          (<code>grep '^pub'</code>) and a helper never leaks by accident:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">visibility: private by default</span>
+<pre><span class="add">pub fn</span> charge(cents: int) -&gt; Result&lt;Receipt, string&gt; { validate(cents)? ... }
+
+<span class="dim">fn</span> validate(cents: int) -&gt; Result&lt;int, string&gt; { ... }  <span class="cm"># module-private; importing it elsewhere is an error</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          An <code>interface</code> is structural, like a TypeScript one: it's a
+          set of member signatures a generic can require. No <code>implements</code>,
+          no nominal ceremony. Any value with the members qualifies, and
+          <code>tsc</code> enforces it.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">interfaces constrain generics</span>
+<pre><span class="add">interface</span> Named {
+  fn name() -&gt; string
+}
+
+pub fn label&lt;T: <span class="add">Named</span>&gt;(x: T) -&gt; string {
+  x.name()
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>defer</code> runs cleanup when the block exits, on every path,
+          including an early return or a thrown error. Multiple defers run
+          last-in-first-out, and it composes with <code>owned</code> handles. And
+          <code>std/task</code> joins concurrent work with one lifetime instead
+          of leaving detached promises.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">defer + structured concurrency</span>
+<pre><span class="add">defer</span> file.close()          <span class="cm"># runs on the way out, however you leave</span>
+
+let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { fetch_b() }])</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The honest part: Glyph compiles to TypeScript and runs on a JavaScript
+          engine, so evaluation order, value-versus-reference, equality
+          (<code>==</code> is <code>===</code>, no overloading), and the
+          single-threaded garbage-collected model are inherited, not invented.
+          The spec now states them as guarantees rather than leaving you to find
+          out. Manual memory and a non-GC model aren't on a roadmap; they're
+          outside what a transpile-to-TypeScript language is.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), digit separators, and a spec section owning the JS-inherited semantics.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">The honest edge</p>
+          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/debugging/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">When it breaks in production, what does on-call see?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

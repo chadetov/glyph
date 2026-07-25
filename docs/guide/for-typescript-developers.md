@@ -21,7 +21,10 @@ in the right-hand column.
 | `enum` / union of string literals | tagged unions (`\| Variant({...})`) | Exhaustive matching with payloads |
 | barrel files (`index.ts` re-exports) | full-path imports only | `grep` finds the real definition, not a re-export |
 | `any` | (does not exist) | What the type claims is true at runtime |
-| `interface` / `class` | `type` records + tagged unions | One shape syntax; behavior lives in functions |
+| `class` / data `interface` | `type` records + tagged unions | One shape syntax; behavior lives in functions |
+| `interface` as a constraint | `interface` (structural, for `<T: Bound>`) | A generic can require capability of its parameter |
+| `export` by default | private by default, `pub` to export | The public API is `grep '^pub'`; a helper stays internal |
+| `try`/`finally` cleanup | `defer expr` | Cleanup runs on every exit path, greppable |
 | backtick templates | `"${expr}"` in normal strings | One string syntax |
 
 The rest of this page expands each.
@@ -208,6 +211,59 @@ import std/array
 fn evens(xs: Array<number>) -> Array<number> {
   return array.filter(xs, fn(n) { n % 2 == 0 })
 }
+```
+
+## Visibility: private by default, `pub` to export
+
+A top-level declaration is visible only inside its module unless you mark it
+`pub`. `pub` sits just before the keyword (`pub fn`, `pub type`, `pub interface`,
+`pub const`). Importing a name another module did not make `pub` is an error at
+the import site, so the public surface is exactly `grep '^pub'`. `fn main` is
+always exported, so a single-file program needs no `pub`.
+
+```glyph
+pub fn public_api() -> int { helper() }
+
+fn helper() -> int { 42 }   // module-private; importing it elsewhere is an error
+```
+
+## Interfaces are structural, and mainly for bounds
+
+Glyph's `interface` is not a class contract you `implements`; it is a structural
+set of member signatures, like a TypeScript `interface`, whose main job is to
+constrain a generic. Any value with the members satisfies it, no declaration
+needed.
+
+```glyph
+interface Named {
+  fn name() -> string
+}
+
+pub fn label<T: Named>(x: T) -> string {
+  return x.name()
+}
+```
+
+## `defer` for cleanup instead of `try`/`finally`
+
+`defer expr` runs its expression when the enclosing block exits, on every path
+(normal, `return`, or a thrown error). It composes with `owned` handles, and
+multiple defers run last-in-first-out.
+
+```glyph
+fn read_config() -> string {
+  defer file.close()
+  return file.read_all()   // close() runs after this, on the way out
+}
+```
+
+## Concurrency joins with `std/task`
+
+`import std/task` gives `all` (run task thunks concurrently, join in order),
+`race`, and `all_settled`, over the same `async`/`await` you know.
+
+```glyph
+let results = await task.all([fn() { fetch_a() }, fn() { fetch_b() }])
 ```
 
 ## Async is the same, with one nicety

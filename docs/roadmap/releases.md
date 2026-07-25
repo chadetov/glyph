@@ -624,6 +624,73 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
     parser, emit, and formatter tests. Phase 3 is complete for v1: prop spread, the
     escape hatch, and first-class value-derived types.
 
+### Language-design completeness (before 0.2.0)
+
+**Status: committed for the 0.1.x line, ahead of the 0.2.0 milestone.** A pass
+over the language against what a general-purpose statically typed language is
+expected to carry surfaced a small set of gaps that are *closeable within the
+current "looks almost like TypeScript" stance* (as opposed to the ones that are
+consequences of running on the JS runtime, listed as "declared, not built"
+below). These land across several 0.1.x releases; none is an interop item, and
+none reopens the abandoned annotation-rich direction.
+
+- **Constrainable generics via interfaces/traits** (L, **design-first**). Today a
+  bound (`<T: Bound>`, 0.1.7) can only name an existing type; there is no way to
+  say "any `T` that has these methods" the way a TS `interface` or a Rust trait
+  bound does, so a generic can't require capability of its parameter. The fork to
+  decide before building: (a) a TS-style structural `interface` used as a bound,
+  which fits the family and needs no nominal-conformance ceremony, versus (b) a
+  nominal `trait` + explicit `impl`, which is greppable (you can find every
+  implementer) but heavier and further from TS. This is pillar-3 abstraction, so
+  it must earn its keep against simplicity; report the tradeoff, don't pick it
+  here. *Done:* a generic can be bounded by a capability, and violating it is a
+  Glyph-level error mapped to the call site, not a `tsc` error.
+- **Visibility modifiers (`pub`/module-private)** (M, **design-first**). Emission
+  is export-by-default with a `@public` annotation; there is no enforced
+  module-private that hides a helper from importers. Decide the default (private
+  with explicit `pub`, the safer and more conventional choice, versus keeping
+  public-default and adding `priv`) and pick one keyword, then enforce it in the
+  resolver so an import of a non-exported name is E-coded, not silently allowed.
+  *Done:* a module can hide an internal binding and importing it is a diagnostic.
+- **Digit separators in numeric literals** (S). `1_000_000` and `0.000_1` don't
+  lex today. A lexer change to allow `_` between digits (never leading, trailing,
+  or doubled), emitted stripped. Pure ergonomics, forward-compatible with the
+  deferred hex/octal/binary literal work. *Done:* separated literals lex, format
+  round-trips, and emit the plain number.
+- **Deterministic resource cleanup (`using`/`defer`)** (M, **design-first**).
+  `owned` (D25) tracks single-consumption of a resource handle but there is no
+  scope-exit cleanup construct, so releasing a file/socket/lock is manual. Add a
+  block-scoped cleanup that lowers to `try`/`finally` in the emitted TS (a `using`
+  binding whose disposer runs on scope exit, or a `defer` statement). Decide which
+  surface, and how it composes with `owned` so a cleaned-up handle is also
+  consumed. *Done:* a resource acquired in a block is released on every exit path,
+  emitted as `try`/`finally`, with a test over the throwing path.
+- **Structured-concurrency helpers** (M/L, **design-first**). Glyph inherits
+  JS `async`/`await` and nothing more; there is no scoped way to run tasks
+  concurrently and have them all cancelled/awaited together. Add a small
+  `std/task` surface (scoped spawn + join, with all-or-nothing failure) over the
+  Promise model, so concurrent work has one lifetime rather than leaking
+  detached promises. This is a stdlib-and-emit design, not new grammar; the fork
+  is how much cancellation to model given the JS runtime can't truly cancel a
+  running task. *Done:* a scope can run N tasks, await them together, and a
+  failure cancels the siblings it can.
+
+**Declared, not built (honesty items, S each).** Several language-design
+properties are true today only because Glyph runs on the JS runtime, and are
+currently undocumented as guarantees. State them explicitly in the spec/guide so
+they are *deliberately met by declaration* rather than silently inherited:
+evaluation order (JS's specified left-to-right), value-vs-reference semantics
+(primitives copy, objects alias), equality (`==` is JS `===`, no overload), and
+the concurrency/GC model (single-threaded event loop, so no data races; V8 GC,
+not tuned by Glyph). No code; a spec section that owns the inherited semantics,
+the same move the verifiability pillar already made for the `tsc` dependency.
+
+*Explicitly left for after 1.0 or declined:* manual-memory ownership, a
+non-JS-GC model, function-coloring elimination, and a documented memory-visibility
+model are all consequences of the transpile-to-TS design and are not gaps to
+close; they are the model. Backward-compatibility guarantees and a formal
+editions/evolution mechanism land with the 1.0 stability commitment, not here.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

@@ -293,6 +293,7 @@ function unionToSchema(types, ctx) {
 
 const collected = []; // { node, qualified, scope }
 const declaredNames = new Set();
+const warnings = []; // surfaced to the user as `glyph gen` notes
 
 function collect(statements, scope) {
   for (const stmt of statements) {
@@ -304,6 +305,13 @@ function collect(statements, scope) {
         // file.
         declaredNames.add(qualified);
         collected.push({ node: stmt, qualified, scope });
+      } else {
+        // A same-named type in more than one reachable file: the first is kept,
+        // so a reference could bind to the wrong shape. Warn rather than silently
+        // materialize a mis-typed descriptor.
+        warnings.push(
+          `type \`${qualified}\` is declared in more than one reachable file; the first is kept and the rest are dropped, so a reference may bind to the wrong shape. Rename the collision or materialize the intended file directly.`,
+        );
       }
     } else if (
       stmt.kind === K.ModuleDeclaration &&
@@ -396,4 +404,4 @@ for (const { node, qualified, scope } of collected) {
   definitions[qualified] = schema;
 }
 
-process.stdout.write(JSON.stringify({ definitions }));
+process.stdout.write(JSON.stringify({ definitions, warnings }));

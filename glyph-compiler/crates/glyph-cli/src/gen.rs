@@ -253,7 +253,8 @@ fn dts_from_file(
         path: dts_path.to_path_buf(),
     })?;
 
-    render_and_write(
+    let warnings = helper_warnings(&doc);
+    let mut report = render_and_write(
         Generator::default(),
         schemas,
         module_name,
@@ -262,7 +263,20 @@ fn dts_from_file(
         String::new(),
         String::new(),
         out_dir,
-    )
+    )?;
+    // Surface the reader's warnings (e.g. a same-named type in two files, which
+    // first-wins would silently bind to the wrong shape) as gen notes.
+    report.notes.splice(0..0, warnings);
+    Ok(report)
+}
+
+/// The reader's `warnings` (name collisions across reachable files, etc.),
+/// surfaced to the user as `glyph gen` notes.
+fn helper_warnings(doc: &Value) -> Vec<String> {
+    doc.get("warnings")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().filter_map(|w| w.as_str().map(String::from)).collect())
+        .unwrap_or_default()
 }
 
 /// The module name a package materializes into: the last path segment, so
@@ -605,6 +619,24 @@ impl Generator {
         self.notes.push(msg.into());
     }
 
+    /// Note every `$ref` whose target is not a materialized type. This catches
+    /// the reference shapes the `.d.ts` reader cannot follow (aliased or
+    /// `export * as` re-exports), which would otherwise emit a Glyph file that
+    /// only fails later at `glyph build` with an unresolved name.
+    fn check_ref_integrity(&mut self, schemas: &[(String, Value)]) {
+        let known: std::collections::HashSet<String> =
+            schemas.iter().map(|(n, _)| sanitize_type(n)).collect();
+        let mut dangling: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for (_, schema) in schemas {
+            collect_ref_targets(schema, &known, &mut dangling);
+        }
+        for name in dangling {
+            self.note(format!(
+                "reference to `{name}` could not be resolved to a materialized type (likely an aliased or `export * as` re-export the .d.ts reader does not follow); `glyph build` will report it as an unresolved name."
+            ));
+        }
+    }
+
     fn emit_module(
         &mut self,
         module_name: &str,
@@ -614,6 +646,12 @@ impl Generator {
         imports: &str,
         trailer: &str,
     ) -> String {
+        // Integrity check: a `$ref` whose target is not among the materialized
+        // types is a dangling reference (an aliased or `export * as` re-export
+        // the `.d.ts` reader does not follow), which would emit an unresolved
+        // name. Note it at gen time rather than let it surface only at build.
+        self.check_ref_integrity(&schemas);
+
         // Emit the types into a buffer first: a discriminated union may request
         // extra imports (`discriminant`/`Option`/`Result`) that must appear in
         // the header, which is only known after the types are emitted.
@@ -1207,6 +1245,35 @@ fn is_object(schema: &Value) -> bool {
 /// open, which is the default in both JSON Schema and a `.d.ts` interface.
 fn schema_is_closed(schema: &Value) -> bool {
     matches!(schema.get("additionalProperties"), Some(Value::Bool(false)))
+}
+
+/// Recursively collect the sanitized names of every `$ref` target in `schema`
+/// that is not in `known`, so a dangling reference can be reported. A
+/// type-parameter marker (`x-type-param`) is not a `$ref` and is skipped.
+fn collect_ref_targets(
+    schema: &Value,
+    known: &std::collections::HashSet<String>,
+    out: &mut std::collections::BTreeSet<String>,
+) {
+    match schema {
+        Value::Object(map) => {
+            if let Some(r) = map.get("$ref").and_then(|v| v.as_str()) {
+                let name = sanitize_type(&ref_name(r));
+                if !known.contains(&name) {
+                    out.insert(name);
+                }
+            }
+            for v in map.values() {
+                collect_ref_targets(v, known, out);
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr {
+                collect_ref_targets(v, known, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// Render a `type: string` schema with an `enum` as a Glyph string-literal union
@@ -1877,6 +1944,21 @@ mod tests {
         assert!(
             !notes.iter().any(|n| n.contains("narrowed")),
             "no narrowing note now: {notes:?}"
+        );
+    }
+
+    #[test]
+    fn dangling_ref_is_noted() {
+        // A `$ref` to a type that was not materialized (an aliased or
+        // `export * as` re-export the reader can't follow) is reported at gen
+        // time, not left to surface only as an unresolved name at build.
+        let (_out, notes) = gen_from(
+            r##"{"definitions":{"Panel":{"type":"object","required":["main"],
+               "properties":{"main":{"$ref":"#/definitions/Ghost"}}}}}"##,
+        );
+        assert!(
+            notes.iter().any(|n| n.contains("Ghost") && n.contains("could not be resolved")),
+            "notes: {notes:?}"
         );
     }
 

@@ -142,8 +142,11 @@ impl ResolveError {
                         }
                         "String" => "Glyph's string type is `string` (lowercase).",
                         "Number" => "Glyph's number type is `number` (lowercase).",
-                        "int" | "Int" | "integer" | "float" | "Float" | "double" => {
-                            "Glyph has one numeric type, `number` (like TypeScript); there is no separate `int`/`float`."
+                        "Int" | "integer" | "Integer" => {
+                            "Glyph's whole-number type is `int` (lowercase); it emits as TypeScript `number` and adds a runtime `Number.isInteger` boundary check. Use `number` for any real number."
+                        }
+                        "float" | "Float" | "double" | "Double" => {
+                            "Glyph's real-number type is `number` (like TypeScript); there is no separate `float`/`double`. Use `int` for a whole number validated at the boundary."
                         }
                         "any" | "Any" => {
                             "Glyph has no `any`; use `unknown` and narrow it with a descriptor's `.parse` or a `match`."
@@ -220,8 +223,10 @@ mod tests {
 
     #[test]
     fn ts_primitive_and_generic_mistakes_get_targeted_hints() {
-        assert!(unresolved("int").help().unwrap().contains("`number`"));
-        assert!(unresolved("Int").help().unwrap().contains("`number`"));
+        // `int` is a real prelude type now (D31), so it resolves; a mis-cased
+        // `Int`/`integer` points at it, and `float`/`double` point at `number`.
+        assert!(unresolved("Int").help().unwrap().contains("`int`"));
+        assert!(unresolved("integer").help().unwrap().contains("`int`"));
         assert!(unresolved("float").help().unwrap().contains("`number`"));
         assert!(unresolved("any").help().unwrap().contains("`unknown`"));
         assert!(unresolved("Promise").help().unwrap().contains("async fn"));

@@ -260,7 +260,12 @@ declares. Records are strict by default in Glyph; codegen opts these into
 tolerance with the same greppable `@open` marker a hand-written record would use,
 because a `.d.ts` and JSON Schema allow extra properties by default. A source
 schema that closes the world (`additionalProperties: false`) stays strict, with no
-`@open`.
+`@open`. One consequence to know: an `@open` parse *retains* extra keys on the
+returned object rather than stripping them, so if you re-serialize a parsed wire
+value, any extra keys the sender included ride along. That is the deliberate trade
+for tolerating additive API changes; if you need the strict, extra-keys-rejected
+behavior for a specific type, remove its `@open` (or generate from a schema that
+sets `additionalProperties: false`).
 
 The generated file records its own `glyph gen dts api-types --out src/types`
 command, so `glyph regen` refreshes it when you bump the dependency. This is the
@@ -277,8 +282,17 @@ generic is kept first-class: `interface Page<T> { items: T[] }` materializes as
 `type Page<T> = { items: Array<T> }`, and a `Page<User>` keeps its argument, so
 the type gets a real descriptor that validates each item as a `User`, not just for
 presence. A bare specifier (`from "react"`) is not followed, since it points at
-another package. For anything the materializer can't reach, hand-write the shapes
-you cross the boundary with, or reach for the `extern_ts` escape hatch.
+another package.
+
+Two reference shapes the reader does not follow, each of which `glyph gen` now
+**flags with a note** rather than emit silently: an aliased re-export
+(`import { Widget as W }` then a field typed `W`) and a namespace re-export
+(`export * as ns from "./ns"` then `ns.Type`) leave a reference the materializer
+cannot resolve, so `glyph build` would report an unresolved name; and a type
+declared under the same name in more than one reachable file is kept first-wins,
+which could bind a reference to the wrong shape. For anything the materializer
+can't reach, hand-write the shapes you cross the boundary with, or reach for the
+`extern_ts` escape hatch.
 
 `glyph gen zod` takes a package name too, for a package that *exports zod
 schemas* (a shared-schema package). It resolves the package's runtime entry,

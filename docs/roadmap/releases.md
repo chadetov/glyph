@@ -504,6 +504,17 @@ edits; each is real engineering, not a doc tweak):
   following is best-effort on the TypeScript 7 native path. *Done:* a real
   multi-file, namespaced, generic SDK materializes usable descriptor-bearing
   types.
+- **`gen dts` output integrity** (S, from Linus review 05). ✅ **Done.** Review 05
+  found the materializer could emit a dangling `$ref` (an aliased re-export
+  `import { X as Y }`, or an `export * as ns`) or, worse, silently bind a
+  reference to the wrong shape when a type name collides across two reachable
+  files, all with a clean exit. `gen` now **flags both at gen time**: a `$ref`
+  whose target was not materialized is a note (naming the unresolved type), and a
+  cross-file name collision is a note from the reader (first-wins, may bind the
+  wrong shape). So the tool no longer produces a wrong-typed validator silently.
+  The reader itself still does not *follow* aliased/`export * as` re-exports
+  (tracked; it needs import-binding tracking); the note makes that visible instead
+  of leaving it to surface only at `glyph build`.
 - **Subpath-`exports` resolution** (M). ✅ **Verified working, no fix needed.**
   Review 04 *inferred* (did not run) that the Phase 1 `"*"` wildcard would bypass a
   package's `exports` map and fail to resolve a subpath like `@scope/pkg/sub`.

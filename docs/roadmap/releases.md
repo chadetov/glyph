@@ -514,19 +514,18 @@ edits; each is real engineering, not a doc tweak):
   (`pkg/sub`) and the root `exports` (`.`) resolve. The incorrect honesty caveat
   added for this has been removed from the site. A cautionary tale for trusting an
   unverified review claim.
-- **Leaf-value validation in generated descriptors** (M). 🟨 **String enums done;
-  integers/formats remain.** String enums now materialize as **string-literal
-  union types** (D30): `gen dts`/`openapi`/`zod` emit `type Tier = "free" | "pro"`,
-  `tsc` enforces the narrowed type, and the descriptor checks **membership** at
-  the boundary (`"enterprise"` is rejected, not just any non-string). Still open:
-  a JSON-Schema `integer` and `number` both lower to Glyph `number`, so `3.5`
-  passes an integer field (needs an `int`/refinement, a parked language feature),
-  and string formats (uuid, email, date-time) are unvalidated. Also a follow-up:
-  Glyph-native exhaustiveness over a literal union (a `match` covering every
-  literal without an `else`, cf. E0218) — today the literal-union type lowers to
-  `string` in Glyph's own checker, so `tsc` and the descriptor enforce it but the
-  Glyph checker does not narrow. *Done:* a generated descriptor rejects a
-  wrong-*valued* string-enum leaf, not just a wrong-typed one.
+- **Leaf-value validation in generated descriptors** (M). ✅ **Done (string enums
+  and integers); string formats remain.** String enums materialize as
+  **string-literal union types** (D30): `gen dts`/`openapi`/`zod` emit `type Tier
+  = "free" | "pro"`, `tsc` enforces the narrowed type, the descriptor checks
+  **membership** at the boundary (`"enterprise"` is rejected), and a `match` over
+  the union is **exhaustive without an `else`** (a missing literal is E0200).
+  Integers materialize as **`int`** (D31): a JSON-Schema `integer` field emits as
+  TS `number` with a runtime `Number.isInteger` check, so a wire `3.5` fails an
+  `int` field's `.parse` where a `number` field would accept it. Still open (lower
+  value): string formats (uuid, email, date-time) are unvalidated. *Done:* a
+  generated descriptor rejects a wrong-*valued* string-enum or non-integer leaf,
+  not just a wrong-typed one.
 - **`@open` policy for materialized wire records** (S, decision). ✅ **Done.**
   Decided: keep records strict-by-default across the language (safe by default,
   the verifiability pillar), and have codegen emit the existing `@open` (D27)

@@ -2383,6 +2383,10 @@ impl<'a> Emitter<'a> {
     /// - anything else (an imported type, a bare generic parameter) conservatively
     ///   by "not undefined", the remaining shallow cases.
     fn field_value_check(&self, ty: &TypeExpr, access: &str) -> String {
+        // `int` is a whole `number`: the leaf check that `number` cannot express.
+        if is_named_type(ty, "int") {
+            return format!("(typeof {access} === \"number\" && Number.isInteger({access}))");
+        }
         if let Some(jt) = js_typeof(ty) {
             return format!("typeof {access} === \"{jt}\"");
         }
@@ -3343,9 +3347,13 @@ impl<'a> Emitter<'a> {
                     .map(|s| s.as_ref())
                     .collect::<Vec<_>>()
                     .join(".");
-                // Glyph `bool` is TS `boolean`; the rest map by name.
+                // Glyph `bool` is TS `boolean`; `int` is TS `number` (TypeScript
+                // has no integer type; the integer check is in the descriptor);
+                // the rest map by name.
                 if joined == "bool" {
                     "boolean".to_string()
+                } else if joined == "int" {
+                    "number".to_string()
                 } else {
                     joined
                 }
@@ -4972,6 +4980,15 @@ mod tests {
             "module x\nfn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n",
         );
         assert!(ts.contains("return (Date.now());"), "{ts}");
+    }
+
+    #[test]
+    fn int_emits_ts_number_with_an_isinteger_check() {
+        let ts = emit("module x\ntype Item = { qty: int }\n");
+        // `int` is TS `number` (TypeScript has no integer type).
+        assert!(ts.contains("qty: number"), "{ts}");
+        // The descriptor adds the whole-number check a bare `number` can't.
+        assert!(ts.contains("Number.isInteger("), "{ts}");
     }
 
     #[test]

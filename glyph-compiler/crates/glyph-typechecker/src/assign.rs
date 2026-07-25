@@ -1207,6 +1207,14 @@ impl Assigner<'_> {
             self.check_bool_exhaustiveness(arms, match_span);
             return;
         }
+        // A string-literal union (`"free" | "pro"`, D30) is a *bounded* string
+        // domain, so a `match` covering every literal is exhaustive without a
+        // catch-all (unlike an unbounded `string` below). Resolves a named alias
+        // (`type Tier = "free" | "pro"`) to its literal set.
+        if let Some(values) = self.string_literal_union_values(scrutinee_ty) {
+            self.check_string_literal_union_exhaustiveness(&values, arms, match_span);
+            return;
+        }
         // A `number`/`string` match: those domains are unbounded, so literal arms
         // can never be exhaustive without a catch-all. Detect by the scrutinee's
         // static type, or — when it types as `Unknown` — recover from a literal
@@ -1254,6 +1262,55 @@ impl Assigner<'_> {
         if !has_catch_all {
             self.errors.push(TypeError::NonExhaustiveValueMatch {
                 type_name: type_name.to_string(),
+                span: match_span,
+            });
+        }
+    }
+
+    /// A `match` over a string-literal union (`"free" | "pro"`) is exhaustive if
+    /// it either has a catch-all or covers every literal in the set. A missing
+    /// literal is a compile error listing the gaps, so adding a value to the
+    /// union type forces every match to handle it (the enum-exhaustiveness
+    /// guarantee that a bare `string` match cannot give).
+    fn check_string_literal_union_exhaustiveness(
+        &mut self,
+        values: &[String],
+        arms: &[MatchArm],
+        match_span: glyph_ast::Span,
+    ) {
+        let has_catch_all = arms.iter().any(|a| {
+            matches!(
+                a.pattern,
+                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. }
+            )
+        });
+        if has_catch_all {
+            return;
+        }
+        let covered: std::collections::HashSet<&str> = arms
+            .iter()
+            .filter_map(|a| match &a.pattern {
+                Pattern::Literal {
+                    value: LiteralPattern::String(s),
+                    ..
+                } => Some(s.as_str()),
+                _ => None,
+            })
+            .collect();
+        let missing: Vec<String> = values
+            .iter()
+            .filter(|v| !covered.contains(v.as_str()))
+            .map(|v| format!("\"{v}\""))
+            .collect();
+        if !missing.is_empty() {
+            let type_name = values
+                .iter()
+                .map(|v| format!("\"{v}\""))
+                .collect::<Vec<_>>()
+                .join(" | ");
+            self.errors.push(TypeError::NonExhaustiveMatch {
+                type_name,
+                missing: missing.join(", "),
                 span: match_span,
             });
         }
@@ -1654,6 +1711,26 @@ impl Assigner<'_> {
             return None;
         };
         matches!(&td.body, TypeExpr::Union { .. }).then_some(td)
+    }
+
+    /// The literal set of a string-literal-union type, resolving a named alias
+    /// (`type Tier = "free" | "pro"`) to its declaration body. Returns `None` for
+    /// any other type, so a `match` scrutinee that is not a literal union falls
+    /// through to the ordinary (unbounded) string/value handling.
+    fn string_literal_union_values(&self, ty: &Ty) -> Option<Vec<String>> {
+        if let Ty::StringLiteralUnion(values) = ty {
+            return Some(values.clone());
+        }
+        let Ty::Named { symbol, .. } = ty else { return None };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        let SymbolKind::Type { decl_idx } = sym.kind else { return None };
+        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        match &td.body {
+            TypeExpr::StringLiteralUnion { values, .. } => Some(values.clone()),
+            _ => None,
+        }
     }
 
     /// The field set of `ty` when it is decidably a record: a structural
@@ -2063,6 +2140,45 @@ mod tests {
             _ => panic!("first stmt is not a Let"),
         };
         l.value.span()
+    }
+
+    fn errors_of(src: &str) -> Vec<TypeError> {
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
+        ty_errs
+    }
+
+    #[test]
+    fn string_literal_union_match_is_exhaustive_without_else() {
+        // Covering every literal of a string-literal union needs no `else` (it is
+        // a bounded domain), unlike a bare `string` match.
+        let errs = errors_of(
+            "module x\ntype Tier = \"free\" | \"pro\"\n\
+             fn label(t: Tier) -> string {\n  return match t {\n    \"free\" => \"F\",\n    \"pro\" => \"P\",\n  }\n}\n",
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(
+                e,
+                TypeError::NonExhaustiveMatch { .. } | TypeError::NonExhaustiveValueMatch { .. }
+            )),
+            "a fully-covered literal union match should be exhaustive: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn string_literal_union_match_missing_a_literal_errors() {
+        let errs = errors_of(
+            "module x\ntype Tier = \"free\" | \"pro\" | \"team\"\n\
+             fn label(t: Tier) -> string {\n  return match t {\n    \"free\" => \"F\",\n    \"pro\" => \"P\",\n  }\n}\n",
+        );
+        let missing = errs.iter().find_map(|e| match e {
+            TypeError::NonExhaustiveMatch { missing, .. } => Some(missing.clone()),
+            _ => None,
+        });
+        assert_eq!(missing.as_deref(), Some("\"team\""), "errs: {errs:?}");
     }
 
     #[test]

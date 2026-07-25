@@ -68,6 +68,14 @@ pub enum Ty {
 
     /// Tagged union (D8): `Ok(T) | Err(E)`. Variants carry an optional payload.
     Union { variants: Vec<UnionVariant> },
+
+    /// A string-literal union type (`"free" | "pro"`, D30). Behaves like
+    /// `Prim(String)` for assignability (Glyph does not track string-literal
+    /// expression types, so any `string` is assignable and vice versa; `tsc`
+    /// enforces the narrowed type on the emitted TS). The literal set is carried
+    /// only so a `match` over this type can be exhaustive without an `else` when
+    /// every literal is covered.
+    StringLiteralUnion(Vec<String>),
 }
 
 /// Stable handle for a named type or value. Mirrors `glyph_resolver::SymbolId`

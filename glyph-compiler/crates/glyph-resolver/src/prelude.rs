@@ -47,6 +47,7 @@ pub fn build_prelude() -> Prelude {
         // Primitive types
         ("string", PreludeKind::String),
         ("number", PreludeKind::Number),
+        ("int", PreludeKind::Int),
         ("bool", PreludeKind::Bool),
         ("void", PreludeKind::Void),
         ("unknown", PreludeKind::UnknownTop),

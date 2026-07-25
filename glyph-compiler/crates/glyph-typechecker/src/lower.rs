@@ -114,12 +114,14 @@ impl<'a> Lowerer<'a> {
             // real emitted TypeScript, but Glyph neither reduces it nor gives it
             // a runtime descriptor.
             TypeExpr::Extern { .. } => Ty::Unknown,
-            // A string-literal union lowers to `string` in Glyph's own checker
-            // (permissive here); `tsc` enforces the narrowed literal type against
-            // the emitted TS, and a record field of this type gets a runtime
-            // membership check in its descriptor. Glyph-native exhaustiveness over
-            // the literal set is a follow-up.
-            TypeExpr::StringLiteralUnion { .. } => Ty::Prim(Primitive::String),
+            // A string-literal union carries its literal set so a `match` over it
+            // can be exhaustive without an `else`. It behaves like `string` for
+            // assignability; `tsc` enforces the narrowed literal type on the
+            // emitted TS, and a record field of this type gets a runtime
+            // membership check in its descriptor.
+            TypeExpr::StringLiteralUnion { values, .. } => {
+                Ty::StringLiteralUnion(values.clone())
+            }
         }
     }
 
@@ -197,6 +199,9 @@ impl<'a> Lowerer<'a> {
         match kind {
             PreludeKind::String => Ty::Prim(Primitive::String),
             PreludeKind::Number => Ty::Prim(Primitive::Number),
+            // `int` is a `number` to Glyph's checker; its integer-ness is a
+            // runtime descriptor check, not a static type (TS has no `int`).
+            PreludeKind::Int => Ty::Prim(Primitive::Number),
             PreludeKind::Bool => Ty::Prim(Primitive::Bool),
             PreludeKind::Void => Ty::Prim(Primitive::Void),
             PreludeKind::UnknownTop => Ty::UnknownTop,

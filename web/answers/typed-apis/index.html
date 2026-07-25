@@ -222,9 +222,12 @@ match Customer.parse(webhook_body) {
           Regeneration is idempotent, so a spec change is a clean, reviewable diff. Generation is
           <strong>wire-faithful</strong>: a string enum materializes as a string-literal union
           (<code>"free" | "pro"</code>), so <code>parse</code> checks membership, not just that the
-          value is a string. Where a construct genuinely has no exact Glyph form (an undiscriminated
-          union), it narrows and <em>prints a note</em> rather than emit a validator that would
-          reject real data. Generated records also carry
+          value is a string, and a <code>match</code> over it is exhaustive without an
+          <code>else</code>. An <code>integer</code> field becomes <code>int</code>, so a wire
+          <code>3.5</code> fails <code>parse</code> where a plain number would pass. Where a
+          construct genuinely has no exact Glyph form (an undiscriminated union), it narrows and
+          <em>prints a note</em> rather than emit a validator that would reject real data. Generated
+          records also carry
           <code>@open</code>, so <code>parse</code> tolerates a field the API adds later while still
           validating every field it declares; a schema that sets
           <code>additionalProperties: false</code> stays strict. Records are strict by default in

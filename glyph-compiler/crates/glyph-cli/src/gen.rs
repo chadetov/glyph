@@ -1141,7 +1141,10 @@ impl Generator {
 
         match type_of(schema) {
             Some("string") => "string".to_string(),
-            Some("integer") | Some("number") => "number".to_string(),
+            // `integer` materializes as Glyph `int` (a runtime `Number.isInteger`
+            // check at the boundary); a plain `number` stays `number`.
+            Some("integer") => "int".to_string(),
+            Some("number") => "number".to_string(),
             Some("boolean") => "bool".to_string(),
             Some("array") => {
                 let item = schema.get("items");
@@ -1750,11 +1753,11 @@ mod tests {
         assert!(out.contains("import std/http { get, post, del, Response, HttpError }"), "got:\n{out}");
         // Named operation with a typed body.
         assert!(out.contains("async fn createTask(base: string, body: NewTask) -> Result<Response, HttpError>"), "got:\n{out}");
-        // Typed path param and interpolated URL.
-        assert!(out.contains("async fn getTask(base: string, id: number)"), "got:\n{out}");
+        // Typed path param (an `integer` schema → `int`) and interpolated URL.
+        assert!(out.contains("async fn getTask(base: string, id: int)"), "got:\n{out}");
         assert!(out.contains("return await get(\"${base}/tasks/${id}\")"), "got:\n{out}");
         // Synthesized name for the op with no operationId.
-        assert!(out.contains("async fn delete_tasks_id(base: string, id: number)"), "got:\n{out}");
+        assert!(out.contains("async fn delete_tasks_id(base: string, id: int)"), "got:\n{out}");
         assert!(out.contains("return await del(\"${base}/tasks/${id}\")"), "got:\n{out}");
     }
 
@@ -1823,7 +1826,8 @@ mod tests {
                              "done":{"type":"boolean"}}}}}}"#,
         );
         assert!(out.contains("type Task = {"), "got:\n{out}");
-        assert!(out.contains("id: number,"), "got:\n{out}");
+        // `integer` materializes as `int` (a boundary Number.isInteger check).
+        assert!(out.contains("id: int,"), "got:\n{out}");
         assert!(out.contains("title: string,"), "got:\n{out}");
         assert!(out.contains("done?: bool,"), "optional non-required; got:\n{out}");
     }
@@ -1874,6 +1878,17 @@ mod tests {
             !notes.iter().any(|n| n.contains("narrowed")),
             "no narrowing note now: {notes:?}"
         );
+    }
+
+    #[test]
+    fn integer_schema_becomes_int() {
+        let (out, _) = gen_from(
+            r#"{"definitions":{"Item":{"type":"object","required":["qty"],
+               "properties":{"qty":{"type":"integer"},"price":{"type":"number"}}}}}"#,
+        );
+        // `integer` → `int` (boundary isInteger check); `number` stays `number`.
+        assert!(out.contains("qty: int"), "got:\n{out}");
+        assert!(out.contains("price?: number"), "got:\n{out}");
     }
 
     #[test]

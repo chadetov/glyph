@@ -94,6 +94,11 @@ pub fn display_ty(ty: &Ty) -> String {
             })
             .collect::<Vec<_>>()
             .join(" | "),
+        Ty::StringLiteralUnion(values) => values
+            .iter()
+            .map(|v| format!("\"{v}\""))
+            .collect::<Vec<_>>()
+            .join(" | "),
     }
 }
 

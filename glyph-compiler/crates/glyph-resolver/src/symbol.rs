@@ -87,6 +87,12 @@ pub enum PreludeKind {
     // Primitive types
     String,
     Number,
+    /// `int` — a whole `number`. TypeScript has no integer type, so it emits as
+    /// `number` and is a `number` in Glyph's own checker; its only enforcement is
+    /// a runtime `Number.isInteger` check in a descriptor (so a wire `3.5` fails
+    /// an `int` field's `.parse`). Lets `gen` materialize a JSON-Schema `integer`
+    /// with real boundary validation instead of collapsing it to `number`.
+    Int,
     Bool,
     Void,
     /// TypeScript's `unknown` keyword. A top type.

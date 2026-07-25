@@ -50,7 +50,7 @@ led by `_` (the conventional "intentionally unused" marker).
 
 | Code | Meaning |
 |------|---------|
-| `E0200` | Non-exhaustive `match` on a tagged union |
+| `E0200` | Non-exhaustive `match` on a tagged union, or a string-literal union (`"free" \| "pro"`, D30) missing a literal |
 | `E0201` | `?` used outside a `Result`-returning function |
 | `E0202` | `?` applied to a non-`Result` operand |
 | `E0203` | `?` error type does not match the function's `E` (no `From` in v1) |
@@ -68,7 +68,7 @@ led by `_` (the conventional "intentionally unused" marker).
 | `E0215` | Aliasing an `owned` handle (D25) |
 | `E0216` | Unreachable `match` arm after a total pattern (D9) |
 | `E0217` | Discarded `Result` &mdash; **warning**, not an error (its `Err` is silently ignored) |
-| `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest) |
+| `E0218` | Non-exhaustive `match` on `number`/`string` (no catch-all for the unbounded rest; a bounded string-literal union is E0200 instead) |
 | `E0219` | `@redact` names a field the type does not have (D24) |
 | `E0221` | Unknown `@annotation` (D27); the recognized set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
 

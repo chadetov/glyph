@@ -1,10 +1,15 @@
 # Step 7 — LSP
 
-Status: **v1 complete.** All eight v1 deliverables shipped (diagnostics, hover,
-go-to-definition, completion, format-on-save, document + workspace symbols, the
-Q32 canonical agent view, and the Q29 gated structured edit); rename,
-find-references, and the Q32/Q29 research tails are explicit v1.1 increments.
-Full discussion in `archive/glyph-lsp-discussion.md`.
+Status: **Shipped, with the editor/agent surface widened past v1.** The v1
+deliverables (diagnostics, hover, go-to-definition, completion, format-on-save,
+document + workspace symbols, the Q32 canonical agent view, and the Q29 gated
+structured edit) all shipped, and so did the increments once tagged v1.1:
+**workspace-wide rename and find-references** (identity by def-site for a local
+binding, by `(module path, name)` for a module-level symbol, over an on-demand
+cross-file index) and a **first-party MCP server** (`glyph mcp`) exposing the same
+pure `analysis` queries. Follow-ups: caching/incrementality of the workspace index
+and a rename *tool* on the MCP side. Full discussion in
+`archive/glyph-lsp-discussion.md`.
 
 ## Increment 1 (shipped): diagnostics + formatting
 

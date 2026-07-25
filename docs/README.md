@@ -8,10 +8,11 @@ Glyph is a TypeScript-family language designed so AI agents can read, write, and
 - `reference/stdlib.md` — the full standard-library surface: every module and its exact signatures (drift-guarded against the runtime).
 - `../AGENTS.md` (repo root, mirrored to `llms.txt`) — the one-fetch bootstrap for an AI agent: zero to correct, runnable Glyph in a single file.
 - `manifesto.md` — the four pillars and the bet (post-brainstorm: includes one narrow carve-out for `owned` resource discipline)
-- `implementation-plan.md` — **the canonical 40-week sequence from current state to v1.0 launch, with day-by-day status sections appended as work ships.** Read this for the live record of what's done, what's next, and which tests pass.
-- `language/spec.md` — the 27 numbered grammar decisions (D1–D27)
+- `roadmap/releases.md` — **the live release roadmap and the single source of truth for current status.** The release carrying the **Next** marker is the committed target; everything shipped is marked done with its real scope, on the 0.1.x → 1.0 feature line (compiler shipped; now shipping to npm as `@glyphlang/glyph`). Read this first for "what's done, what's next."
+- `roadmap/overview.md` — the 12-step build-roadmap status table (higher-level, older framing than `releases.md`).
+- `implementation-plan.md` — the original sequence with a frozen day-by-day record of how the compiler was built. History, not live status.
+- `language/spec.md` — the numbered grammar decisions (D1–D32)
 - `language/grammar-status.md` — production Rust parser status + the role of the archived tree-sitter grammar as a reference spec
-- `roadmap/overview.md` — the 12-step plan with the current state of each step (higher-level than `implementation-plan.md`'s daily granularity)
 - `open-questions.md` — historical record of brainstorm resolutions (sessions 1, 2, 3) plus the original question framings
 - `autonomous-loop.md` — the unattended build-cycle brief: how to drive the implement/review/fix/commit/push routine on a schedule (cloud Routines), with the current stop-condition milestone
 

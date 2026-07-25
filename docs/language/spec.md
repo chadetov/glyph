@@ -1,6 +1,6 @@
-# Glyph syntactic spec — D1 through D20
+# Glyph syntactic spec — D1 through D32
 
-Condensed view of the 20 numbered decisions that drive the grammar. Each rule below cites the pillar it serves; the full rationale lives in `archive/SPEC_DECISIONS.md` and the implementation lives in `archive/grammar.js`. The grammar is normative — if it disagrees with this file, the grammar wins, but flag the divergence as a bug.
+Condensed view of the numbered decisions that drive the grammar (D1–D27 from the original brainstorm; D28–D32 added post-1.0-brainstorm as the interop/type-feature work shipped: `infer_output`, `extern_ts`, string-literal unions, `int`, and `typeof` value-derived types). Each rule below cites the pillar it serves; the original rationale lives in `archive/SPEC_DECISIONS.md`. The hand-written Rust parser is the normative implementation; if it disagrees with this file, the parser wins, but flag the divergence as a bug.
 
 Principle: **prefer the choice an established language has already validated, unless a Glyph pillar overrides it.** Novelty for its own sake is rejected.
 

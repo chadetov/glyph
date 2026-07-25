@@ -111,7 +111,7 @@ impl StdlibStubs {
         );
         s.add(
             "std/io",
-            &["println", "eprintln", "read_line", "read_to_string"],
+            &["println", "eprintln", "read_line", "read_to_string", "inspect", "render"],
         );
         s.add("std/json", &["parse", "stringify", "discriminant"]);
         s.add(

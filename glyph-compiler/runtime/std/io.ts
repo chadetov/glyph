@@ -45,3 +45,15 @@ export function read_to_string(): string {
     return "";
   }
 }
+
+// Pretty-print any value for debugging: a readable, indented, multi-line
+// rendering to stderr (so it never mixes into a program's stdout output).
+// `render` returns the same string instead of printing, for tests and logs.
+export function inspect(value: unknown): void {
+  console.error(render(value));
+}
+
+export function render(value: unknown): string {
+  return JSON.stringify(value, (_k, v) => (typeof v === "function" ? "[function]" : v), 2) ??
+    String(value);
+}

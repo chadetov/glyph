@@ -92,6 +92,8 @@ io.println(message: string) -> void             // stdout, with newline
 io.eprintln(message: string) -> void            // stderr, with newline
 io.read_line() -> Option<string>                // one line from stdin (None at EOF)
 io.read_to_string() -> string                   // all of stdin
+io.inspect(value: unknown) -> void              // pretty-print any value to stderr (debugging)
+io.render(value: unknown) -> string             // the same rendering as a string
 ```
 
 ## std/json

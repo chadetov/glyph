@@ -786,6 +786,16 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **MCP write tier: `glyph_fix` + `glyph_rename`** (M). The MCP server today is five
+  read-only query tools; the write-capable tier is these two, done together. Both
+  **return edits** (a list of `{range, newText}`), never mutating files, so the
+  agent stays in control, matching the rename follow-up's original design note.
+  `glyph_fix` reuses `fix.rs` (unused-all imports → line-removal edits), returning
+  the edits instead of applying them; `glyph_rename` returns the workspace-wide
+  rename edits the LSP already computes. Not required for capability (an agent
+  already sees E0106 via `glyph_diagnostics` and can edit itself); this is the
+  convenience/parity tier. When it lands: tool count 5 → 6 (or 7), and the website
+  MCP/answers page plus `glyph mcp` help need the update.
 - **Private-vs-missing import diagnostic** (S, from 0.1.16 visibility). Importing a
   non-`pub` name reports E0105 "`N` is not exported by `M`", the same message as a
   genuinely missing name. Distinguishing "exists but private (mark it `pub`)" from

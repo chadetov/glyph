@@ -1,0 +1,180 @@
+// Pure-Glyph list algorithms: no platform leaves, just branching, recursion,
+// array patterns, Option handling, records, and generics. The kind of logic
+// std/array wraps natively, written in the language itself.
+module list_algorithms
+
+import std/option { Option, Some, None }
+import std/array
+import std/math
+
+// A run in a run-length encoding: a value and how many times it repeats.
+pub type Run<T> = { value: T, count: number }
+
+// First element matching the predicate, or None. A hand-written loop returning
+// the prelude Option instead of a sentinel.
+pub fn find<T>(xs: Array<T>, pred: fn(T) -> bool) -> Option<T> {
+  for x in xs {
+    match pred(x) {
+      true => {
+        return Some(x)
+      },
+      false => {},
+    }
+  }
+  return None
+}
+
+// Index of the first element matching the predicate, or None.
+pub fn position<T>(xs: Array<T>, pred: fn(T) -> bool) -> Option<number> {
+  let i = 0
+  for x in xs {
+    match pred(x) {
+      true => {
+        return Some(i)
+      },
+      false => {},
+    }
+    mut i = i + 1
+  }
+  return None
+}
+
+// Left fold. The accumulator is a `mut` local threaded through a `for`.
+pub fn fold<T, A>(
+  xs: Array<T>,
+  init: A,
+  f: fn(A, T) -> A,
+) -> A {
+  let acc = init
+  for x in xs {
+    mut acc = f(acc, x)
+  }
+  return acc
+}
+
+// Sum of a number array, expressed as a fold.
+pub fn sum(xs: Array<number>) -> number {
+  return fold(
+    xs,
+    0,
+    fn(a: number, x: number) -> number { a + x },
+  )
+}
+
+// The first `n` elements, via array-pattern recursion.
+pub fn take<T>(xs: Array<T>, n: number) -> Array<T> {
+  return match n <= 0 {
+    true => [],
+    false => match xs {
+      [] => [],
+      [head, ...rest] => [head, ...take(rest, n - 1)],
+    },
+  }
+}
+
+// All but the first `n` elements.
+pub fn drop<T>(xs: Array<T>, n: number) -> Array<T> {
+  return match n <= 0 {
+    true => xs,
+    false => match xs {
+      [] => [],
+      [head, ...rest] => drop(rest, n - 1),
+    },
+  }
+}
+
+// Split into fixed-size chunks; the last chunk may be short.
+pub fn chunk<T>(xs: Array<T>, size: number) -> Array<Array<T>> {
+  return match xs {
+    [] => [],
+    [head, ...rest] => match size <= 0 {
+      true => [],
+      false => [take(xs, size), ...chunk(drop(xs, size), size)],
+    },
+  }
+}
+
+// Collapse adjacent equal numbers into runs (run-length encode).
+pub fn run_length(xs: Array<number>) -> Array<Run<number>> {
+  return match xs {
+    [] => [],
+    [head, ...rest] => {
+      let tail = run_length(rest)
+      return match tail {
+        [] => [{ value: head, count: 1 }],
+        [first, ...more] => match first.value == head {
+          true => [{ value: head, count: first.count + 1 }, ...more],
+          false => [{ value: head, count: 1 }, ...tail],
+        },
+      }
+    },
+  }
+}
+
+// Merge two sorted number arrays into one sorted array.
+fn merge(a: Array<number>, b: Array<number>) -> Array<number> {
+  return match a {
+    [] => b,
+    [ah, ...arest] => match b {
+      [] => a,
+      [bh, ...brest] => match ah <= bh {
+        true => [ah, ...merge(arest, b)],
+        false => [bh, ...merge(a, brest)],
+      },
+    },
+  }
+}
+
+// Stable merge sort over numbers.
+pub fn merge_sort(xs: Array<number>) -> Array<number> {
+  let n = array.len(xs)
+  return match n <= 1 {
+    true => xs,
+    false => {
+      let mid = math.floor(n / 2)
+      return merge(merge_sort(take(xs, mid)), merge_sort(drop(xs, mid)))
+    },
+  }
+}
+
+// Binary search over a sorted number array; returns the index or None.
+fn bsearch(
+  xs: Array<number>,
+  target: number,
+  lo: number,
+  hi: number,
+) -> Option<number> {
+  return match lo >= hi {
+    true => None,
+    false => {
+      let mid = math.floor((lo + hi) / 2)
+      let v = xs[mid]
+      return match v == target {
+        true => Some(mid),
+        false => match v < target {
+          true => bsearch(
+            xs,
+            target,
+            mid + 1,
+            hi,
+          ),
+          false => bsearch(
+            xs,
+            target,
+            lo,
+            mid,
+          ),
+        },
+      }
+    },
+  }
+}
+
+pub fn binary_search(xs: Array<number>, target: number) -> Option<number> {
+  return bsearch(
+    xs,
+    target,
+    0,
+    array.len(xs),
+  )
+}

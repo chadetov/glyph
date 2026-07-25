@@ -839,6 +839,21 @@ land here until they're assigned a release.
 
 ## Parked (v2 / later)
 
+- **GitHub Linguist submission (a real "Glyph" language on GitHub).** Get `.glyph`
+  recognized on github.com with its own name, color, and syntax highlighting: a PR
+  to `github-linguist/linguist` (a `languages.yml` entry, a TextMate grammar for
+  highlighting, distinct from the archived tree-sitter grammar, which powers code
+  navigation, and sample files). **Adoption-gated:** Linguist's policy is that a
+  language be in use across *hundreds* of repositories, so this is downstream of
+  real Glyph adoption, not shippable before it. Until then the interim is a
+  per-repo `.gitattributes` that maps `*.glyph` to TypeScript (Glyph's family) for
+  a colored/highlighted bar; deliberately **not** baked into `glyph init`, because
+  the hard `linguist-language` override would keep winning after Glyph joins
+  Linguist and force every scaffolded repo to keep reporting TypeScript until a
+  human removes it. The safe, forward-compatible rules (mark emitted `dist`/`.ts.map`
+  as generated and `.glyph-runtime` as vendored) are fine to document, but the
+  alias stays opt-in with a "remove once Glyph is in Linguist" caveat.
+
 - **D27 unknown-annotation rejection.** The spec says an unknown `@<name>`
   annotation is a hard error, but the typechecker doesn't enforce it yet (a
   `@bogus` is silently ignored). Add a recognized-annotation dispatch table.

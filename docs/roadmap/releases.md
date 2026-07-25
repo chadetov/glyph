@@ -726,6 +726,26 @@ none of which needed new language surface.
   code-action quick-fix that removes a fully-unused import (the `glyph fix` edit),
   and shows inlay type hints on untyped `let` bindings.
 
+### 0.1.19 — Shipped · Dogfood the stdlib in Glyph (improve-glyph loop, batch 1)
+
+**Status: shipped.** The first batch of the improve-glyph loop: write the
+standard library's logic in real Glyph, and fix the compiler the moment it can't
+express something (Linus's rule, use it on real code and fix what breaks). Ten
+green, test-gated commits: eight pure-Glyph `examples/corpus/` modules proving
+the language expresses real logic (set algebra, POSIX paths, list and string
+algorithms, an immutable deque, Option/Result combinators, number formatting,
+base64), and two compiler gaps the dogfooding surfaced and fixed:
+
+- **Reject TS reserved words as identifiers** (E0109) — using `class`, `switch`,
+  `new`, `typeof`, `this`, `var` (etc.) as a declaration, parameter, or binding
+  name emitted broken TypeScript. A new resolver `reserved` module rejects them
+  in binding position only (object keys, record fields, and member access stay
+  valid), the resolver-level fix the emitter's known-gap note called for. With
+  `--explain E0109`, the catalogue row, and 6 tests.
+- **Negative-number literals as match patterns** — `match n { -1 => ... }` now
+  parses, the natural companion to the positive-literal arms, lowering to a
+  `case -1:` and counting as one pattern for exhaustiveness.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

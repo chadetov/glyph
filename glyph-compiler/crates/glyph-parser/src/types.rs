@@ -163,6 +163,15 @@ fn parse_path_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
         return parse_extern_ts_type(p, start.start);
     }
 
+    // `typeof value` — a type query over a value binding. Recognized only when
+    // `typeof` is followed by an identifier (the operand), so a type literally
+    // named `typeof` used another way is unaffected.
+    if matches!(p.peek(), Token::Identifier(n) if n.as_ref() == "typeof")
+        && matches!(p.peek_at(1), Some(Token::Identifier(_)))
+    {
+        return parse_typeof_type(p, start.start);
+    }
+
     let mut segments = Vec::new();
     let mut end = start.end;
 
@@ -217,6 +226,27 @@ fn parse_extern_ts_type(p: &mut Cursor, start: u32) -> Result<TypeExpr, ParseErr
     Ok(TypeExpr::Extern {
         raw,
         span: Span::new(start, close.end),
+    })
+}
+
+/// Parse `typeof value.path` in type position: the keyword `typeof` followed by
+/// a (possibly dotted) value reference. The operand is a value binding, resolved
+/// later as a name reference.
+fn parse_typeof_type(p: &mut Cursor, start: u32) -> Result<TypeExpr, ParseError> {
+    p.advance(); // `typeof`
+    let mut path = Vec::new();
+    let (first, first_span) = p.expect_ident("a value reference after `typeof`")?;
+    path.push(first);
+    let mut end = first_span.end;
+    while matches!(p.peek(), Token::Dot) {
+        p.advance();
+        let (seg, seg_span) = p.expect_ident("a member name after `.` in `typeof`")?;
+        path.push(seg);
+        end = seg_span.end;
+    }
+    Ok(TypeExpr::TypeOf {
+        path,
+        span: Span::new(start, end),
     })
 }
 

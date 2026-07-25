@@ -512,9 +512,14 @@ edits; each is real engineering, not a doc tweak):
   whose target was not materialized is a note (naming the unresolved type), and a
   cross-file name collision is a note from the reader (first-wins, may bind the
   wrong shape). So the tool no longer produces a wrong-typed validator silently.
-  The reader itself still does not *follow* aliased/`export * as` re-exports
-  (tracked; it needs import-binding tracking); the note makes that visible instead
-  of leaving it to surface only at `glyph build`.
+- **Import-binding tracking in the `.d.ts` reader** (M). ✅ **Done.** The reader
+  now *follows* the re-export shapes it used to only flag: a per-file binding map
+  resolves an aliased import (`import { Widget as W }` → `W` is `Widget`), a
+  re-export rename (`export { X as Y } from`), and a namespace alias
+  (`import * as ns` / `export * as ns` → `ns.Type` is `Type`), so those references
+  materialize instead of dangling. Verified end to end on all three shapes. The
+  one case it still cannot make safe (a genuine same-name collision across files)
+  keeps its note.
 - **Subpath-`exports` resolution** (M). ✅ **Verified working, no fix needed.**
   Review 04 *inferred* (did not run) that the Phase 1 `"*"` wildcard would bypass a
   package's `exports` map and fail to resolve a subpath like `@scope/pkg/sub`.
@@ -605,10 +610,19 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
     checks the raw TS) and recognized only in the `extern_ts("...")` shape, so a
     plain identifier `extern_ts` is unaffected. Proven end to end (emits
     `(Date.now())`, typechecks, runs, narrows through a `match`), with parser,
-    emit, and formatter tests. Phase 3 is complete for v1: prop spread plus a
-    type- and expression-level escape hatch. A **native** inline value-derived
-    primitive is deliberately not built (the escape hatch covers it); revisit only
-    if the string form proves too awkward in practice.
+    emit, and formatter tests.
+  - **First-class value-derived types** (M). ✅ **Done (D32, from Linus review 05,
+    the #1 remaining 1.0-interop gate).** A `typeof value` type query makes the
+    canonical idiom first-class: `type User = z.infer<typeof user_schema>` needs no
+    `extern_ts` string. `typeof <path>` is the type of a value binding, its operand
+    resolved as a real value reference (a typo is E0103), and `z.infer<...>` is an
+    ordinary member-generic type that already parsed. It emits verbatim, `tsc`
+    reduces it (`u.name` is a `string`), and the type is opaque to Glyph (no
+    descriptor, like an imported `.d.ts`); validation comes from the schema's own
+    `parse`, which is how zod works. Proven end to end with real zod (builds, passes
+    `tsc --strict`, runs, and a bogus operand is an unresolved-name error), with
+    parser, emit, and formatter tests. Phase 3 is complete for v1: prop spread, the
+    escape hatch, and first-class value-derived types.
 
 ### 0.2.x — Prove it (the evidence gate)
 

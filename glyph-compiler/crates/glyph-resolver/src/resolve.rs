@@ -694,6 +694,15 @@ impl Resolver<'_> {
             TypeExpr::Extern { .. } => {}
             // String literals carry no names to resolve.
             TypeExpr::StringLiteralUnion { .. } => {}
+            // `typeof value` references a real value binding: resolve its head so
+            // a `typeof` over an undefined name is an error, and the type is tied
+            // to a greppable value (subsequent `.member` segments are member
+            // access, checked downstream, like a value member path).
+            TypeExpr::TypeOf { path, span } => {
+                if let Some(first) = path.first() {
+                    self.resolve_name_ref(first, *span);
+                }
+            }
         }
     }
 }

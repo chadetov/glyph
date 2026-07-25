@@ -607,6 +607,17 @@ pub enum TypeExpr {
         values: Vec<String>,
         span: Span,
     },
+    /// A `typeof value` type query: the type of a value binding, referenced by a
+    /// (possibly dotted) path. It emits as TypeScript `typeof <path>` and its
+    /// operand is resolved as a real value reference, so it is the first-class,
+    /// greppable way to write a value-derived type such as
+    /// `type User = z.infer<typeof user_schema>` (a `z.infer<...>` generic over a
+    /// `typeof`). Opaque to Glyph's own checker (`tsc` reduces it), like an
+    /// imported `.d.ts` type.
+    TypeOf {
+        path: Vec<Ident>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -753,7 +764,8 @@ impl TypeExpr {
             | TypeExpr::Record { span, .. }
             | TypeExpr::Union { span, .. }
             | TypeExpr::Extern { span, .. }
-            | TypeExpr::StringLiteralUnion { span, .. } => *span,
+            | TypeExpr::StringLiteralUnion { span, .. }
+            | TypeExpr::TypeOf { span, .. } => *span,
         }
     }
 }

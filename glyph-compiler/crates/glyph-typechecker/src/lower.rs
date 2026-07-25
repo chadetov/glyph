@@ -122,6 +122,9 @@ impl<'a> Lowerer<'a> {
             TypeExpr::StringLiteralUnion { values, .. } => {
                 Ty::StringLiteralUnion(values.clone())
             }
+            // `typeof value` is opaque to Glyph's checker (`tsc` reduces it, e.g.
+            // `z.infer<typeof s>`), like an imported `.d.ts` type: no descriptor.
+            TypeExpr::TypeOf { .. } => Ty::Unknown,
         }
     }
 

@@ -214,10 +214,23 @@ let n = z.string().nonexistent_method()
    ╭─[main:7:3]
 ```
 
-One current limit: a value-derived type like `type User = z.infer<typeof
-user_schema>` is not expressible yet (that is the value-derived-type work still
-ahead). The parse result is fully typed, so `user.name` is a `string` here
-without it; you just cannot name the derived type with `z.infer` today.
+You can name the schema's inferred type directly with `typeof`:
+
+```glyph
+type User = z.infer<typeof user_schema>
+
+fn greet(u: User) -> string {
+  return u.name
+}
+```
+
+`typeof user_schema` is the type of the value `user_schema`, resolved as a real
+reference (a typo is an unresolved-name error), and `z.infer<...>` is an ordinary
+member-generic type, so the whole thing is first-class Glyph, no string escape.
+It emits as `type User = z.infer<typeof user_schema>`; `tsc` reduces it, so
+`u.name` is a `string`. The type is opaque to Glyph itself (no `.parse`
+descriptor, like any imported type); validation comes from `user_schema.parse(...)`,
+the schema's own parser, which is how zod already works.
 
 ## Validating a package's types at the boundary
 
@@ -284,14 +297,15 @@ the type gets a real descriptor that validates each item as a `User`, not just f
 presence. A bare specifier (`from "react"`) is not followed, since it points at
 another package.
 
-Two reference shapes the reader does not follow, each of which `glyph gen` now
-**flags with a note** rather than emit silently: an aliased re-export
-(`import { Widget as W }` then a field typed `W`) and a namespace re-export
-(`export * as ns from "./ns"` then `ns.Type`) leave a reference the materializer
-cannot resolve, so `glyph build` would report an unresolved name; and a type
-declared under the same name in more than one reachable file is kept first-wins,
-which could bind a reference to the wrong shape. For anything the materializer
-can't reach, hand-write the shapes you cross the boundary with, or reach for the
+References through an aliased import (`import { Widget as W }` then a field typed
+`W`), a re-export rename (`export { X as Y } from`), and a namespace alias
+(`import * as ns` / `export * as ns from "./ns"` then `ns.Type`) all resolve: a
+per-file binding map translates the written name back to its declaration. One
+case the reader still cannot make safe, so `glyph gen` **flags it with a note**:
+a type declared under the same name in more than one reachable file is kept
+first-wins, which could bind a reference to the wrong shape (rename the collision
+or materialize the intended file directly). For anything the materializer can't
+reach, hand-write the shapes you cross the boundary with, or reach for the
 `extern_ts` escape hatch.
 
 `glyph gen zod` takes a package name too, for a package that *exports zod

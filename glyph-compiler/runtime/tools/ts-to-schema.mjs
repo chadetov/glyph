@@ -19,8 +19,11 @@
 // relative `import`/`export … from` specifier are walked, so a package that
 // splits its types across files (re-exported from an index barrel) materializes
 // fully; a bare specifier (`"react"`) points at another package and is not
-// followed. Cross-file following is best-effort on the TypeScript 7 native path
-// (see `loadToolkit`).
+// followed. A per-file binding map resolves references through an aliased import
+// (`import { Widget as W }` → `W` is `Widget`), a re-export rename
+// (`export { X as Y } from`), and a namespace alias (`import * as ns` /
+// `export * as ns` → `ns.Type` is `Type`). Cross-file following is best-effort on
+// the TypeScript 7 native path (see `loadToolkit`).
 //
 // Works with either TypeScript compiler:
 //   - the classic API (typescript 5/6): `createSourceFile` in-process;
@@ -224,10 +227,11 @@ function typeToSchema(node, ctx) {
       if (ctx.typeParams.has(name.split(".")[0])) {
         return { "x-type-param": name };
       }
-      // Resolve a (possibly bare) name against the namespace scope so a
-      // reference inside `namespace Ns` finds `Ns.Type`. A generic instantiation
-      // (`Page<User>`) carries its arguments so the mapper emits `Page<User>`.
-      const out = { $ref: "#/definitions/" + resolveRef(name, ctx.scope) };
+      // Resolve a (possibly bare) name against the file's bindings and namespace
+      // scope so an aliased import (`Widget as W`), an `export * as ns` prefix, or
+      // a reference inside `namespace Ns` finds its declaration. A generic
+      // instantiation (`Page<User>`) carries its arguments.
+      const out = { $ref: "#/definitions/" + resolveRef(name, ctx.scope, ctx.bindings) };
       if (node.typeArguments?.length) {
         out["x-type-args"] = node.typeArguments.map((a) => typeToSchema(a, ctx));
       }
@@ -295,7 +299,40 @@ const collected = []; // { node, qualified, scope }
 const declaredNames = new Set();
 const warnings = []; // surfaced to the user as `glyph gen` notes
 
-function collect(statements, scope) {
+/** Per-file binding context: the renames (`import { X as Y }`, `export { X as Y
+ *  } from`) and namespace aliases (`import * as ns`, `export * as ns`) that let a
+ *  written reference in this file resolve to a declared type. */
+function fileBindings(sf) {
+  const rename = new Map(); // local name -> the original declared name
+  const nsAlias = new Set(); // `ns` prefixes to strip from a `ns.Type` reference
+  const addSpecifiers = (elements) => {
+    for (const el of elements || []) {
+      const local = nameText(el.name);
+      const orig = el.propertyName ? nameText(el.propertyName) : local;
+      if (orig && orig !== local) rename.set(local, orig);
+    }
+  };
+  for (const stmt of sf.statements) {
+    if (stmt.kind === K.ImportDeclaration && stmt.importClause) {
+      const nb = stmt.importClause.namedBindings;
+      if (nb && nb.kind === K.NamespaceImport && nb.name) {
+        nsAlias.add(nameText(nb.name)); // import * as ns
+      } else if (nb && nb.elements) {
+        addSpecifiers(nb.elements); // import { X as Y }
+      }
+    } else if (stmt.kind === K.ExportDeclaration && stmt.exportClause) {
+      const ec = stmt.exportClause;
+      if (ec.kind === K.NamespaceExport && ec.name) {
+        nsAlias.add(nameText(ec.name)); // export * as ns from "..."
+      } else if (ec.elements) {
+        addSpecifiers(ec.elements); // export { X as Y } from "..."
+      }
+    }
+  }
+  return { rename, nsAlias };
+}
+
+function collect(statements, scope, bindings) {
   for (const stmt of statements) {
     if (stmt.kind === K.InterfaceDeclaration || stmt.kind === K.TypeAliasDeclaration) {
       const qualified = [...scope, nameText(stmt.name)].join(".");
@@ -304,7 +341,7 @@ function collect(statements, scope) {
         // its own types take precedence over a same-named type in a re-exported
         // file.
         declaredNames.add(qualified);
-        collected.push({ node: stmt, qualified, scope });
+        collected.push({ node: stmt, qualified, scope, bindings });
       } else {
         // A same-named type in more than one reachable file: the first is kept,
         // so a reference could bind to the wrong shape. Warn rather than silently
@@ -328,7 +365,7 @@ function collect(statements, scope) {
           : stmt.body.kind === K.ModuleDeclaration
             ? [stmt.body]
             : null;
-      if (inner) collect(inner, [...scope, nameText(stmt.name)]);
+      if (inner) collect(inner, [...scope, nameText(stmt.name)], bindings);
     }
   }
 }
@@ -366,7 +403,7 @@ function walkFile(absPath, sourceFile) {
   visitedFiles.add(real);
   const sfi = sourceFile || parseFile(real);
   if (!sfi) return;
-  collect(sfi.statements, []);
+  collect(sfi.statements, [], fileBindings(sfi));
   for (const stmt of sfi.statements) {
     if (
       (stmt.kind === K.ImportDeclaration || stmt.kind === K.ExportDeclaration) &&
@@ -379,20 +416,32 @@ function walkFile(absPath, sourceFile) {
 }
 walkFile(file, sf);
 
-/** Resolve a written type name against the namespace scope, innermost first;
- *  fall back to the name as written (may dangle, as before namespaces). */
-function resolveRef(name, scope) {
+/** Resolve a written type name to a declared type. Applies the file's bindings
+ *  first (strip a `ns.` namespace-alias prefix, then translate an aliased import
+ *  name to the original), then the namespace scope, innermost first. Falls back
+ *  to the name as written (which the Rust side flags as a dangling reference). */
+function resolveRef(name, scope, bindings) {
+  let n = name;
+  if (bindings) {
+    const dot = n.indexOf(".");
+    if (dot > 0 && bindings.nsAlias.has(n.slice(0, dot))) {
+      n = n.slice(dot + 1); // `ns.Foo` (import/export * as ns) -> `Foo`
+    }
+    if (bindings.rename.has(n)) {
+      n = bindings.rename.get(n); // `W` (import { Widget as W }) -> `Widget`
+    }
+  }
   for (let i = scope.length; i >= 0; i--) {
-    const cand = [...scope.slice(0, i), name].join(".");
+    const cand = [...scope.slice(0, i), n].join(".");
     if (declaredNames.has(cand)) return cand;
   }
-  return name;
+  return n;
 }
 
 const definitions = {};
-for (const { node, qualified, scope } of collected) {
+for (const { node, qualified, scope, bindings } of collected) {
   const params = (node.typeParameters || []).map((tp) => nameText(tp.name));
-  const ctx = { scope, typeParams: new Set(params) };
+  const ctx = { scope, typeParams: new Set(params), bindings };
   const schema =
     node.kind === K.InterfaceDeclaration
       ? objectToSchema(node.members, ctx)

@@ -899,6 +899,10 @@ impl Printer {
                     self.push("\"");
                 }
             }
+            TypeExpr::TypeOf { path, .. } => {
+                self.push("typeof ");
+                self.push(&join(path, "."));
+            }
         }
     }
 

@@ -212,11 +212,11 @@ match Customer.parse(webhook_body) {
           <code>.d.ts</code> plus every relatively-imported <code>.d.ts</code> is walked). A generic
           is kept first-class: <code>interface Page&lt;T&gt;</code> materializes as
           <code>type Page&lt;T&gt;</code> and gets a descriptor that validates each item as its type
-          argument, not just for presence. What it does not follow, and now <em>flags with a note</em>
-          rather than emit silently: aliased and <code>export * as</code> re-exports, and a type
-          name that collides across two reachable files. For anything the materializer can't reach,
-          hand-write the shapes you cross the boundary with, or use the <code>extern_ts</code> escape
-          hatch.
+          argument, not just for presence. Aliased and <code>export * as</code> re-exports resolve
+          through a per-file binding map. The one case it can't make safe, a type name that collides
+          across two reachable files, it <em>flags with a note</em> rather than bind the wrong shape
+          silently. For anything the materializer can't reach, hand-write the shapes you cross the
+          boundary with, or use the <code>extern_ts</code> escape hatch.
         </p>
       </div>
 

@@ -528,6 +528,39 @@ type FeedError =
     }
 
     #[test]
+    fn type_decl_typeof_query() {
+        let m = parse_or_panic("module x\nconst s = 5\ntype T = typeof s\n");
+        match &m.items[1] {
+            glyph_ast::Decl::Type(t) => match &t.body {
+                glyph_ast::TypeExpr::TypeOf { path, .. } => {
+                    assert_eq!(path.len(), 1);
+                    assert_eq!(path[0].as_ref(), "s");
+                }
+                other => panic!("expected TypeOf, got {other:?}"),
+            },
+            other => panic!("expected Type decl, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn value_derived_type_z_infer_typeof() {
+        // `z.infer<typeof schema>` parses as a generic over a `typeof` query.
+        let m = parse_or_panic(
+            "module x\nimport zod { z }\nconst s = z\ntype User = z.infer<typeof s>\n",
+        );
+        let t = match &m.items[2] {
+            glyph_ast::Decl::Type(t) => t,
+            other => panic!("expected Type decl, got {other:?}"),
+        };
+        match &t.body {
+            glyph_ast::TypeExpr::Generic { args, .. } => {
+                assert!(matches!(args[0], glyph_ast::TypeExpr::TypeOf { .. }));
+            }
+            other => panic!("expected Generic, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn type_decl_string_literal_union() {
         let m = parse_or_panic("module x\ntype Tier = \"free\" | \"pro\" | \"team\"\n");
         match &m.items[0] {

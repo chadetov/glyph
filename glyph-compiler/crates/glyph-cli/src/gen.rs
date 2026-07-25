@@ -632,7 +632,7 @@ impl Generator {
         }
         for name in dangling {
             self.note(format!(
-                "reference to `{name}` could not be resolved to a materialized type (likely an aliased or `export * as` re-export the .d.ts reader does not follow); `glyph build` will report it as an unresolved name."
+                "reference to `{name}` could not be resolved to a materialized type (its declaration was not among the reachable files, or it is a `.d.ts` shape the reader does not model); `glyph build` will report it as an unresolved name."
             ));
         }
     }

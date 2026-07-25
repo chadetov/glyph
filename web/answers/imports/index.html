@@ -135,19 +135,17 @@ print(user.name)</pre>
           <a href="/answers/typed-apis/">do I have to hand-write a validator for every API?</a>
         </p>
         <p>
-          For the idioms Glyph's grammar does not spell, most often a value-derived type
-          (<code>z.infer&lt;typeof s&gt;</code>), there is a scoped escape hatch:
-          <code>extern_ts("...")</code> emits raw TypeScript in type or expression position.
-          <code>tsc</code> still checks it, so it is not an <em>unchecked</em> hole, but be precise
-          about what it is: a visible, greppable trust boundary, not a runtime-validated one. An
-          <code>extern_ts</code> type is opaque to Glyph (no <code>.parse</code> descriptor, like an
-          imported <code>.d.ts</code>), and a value comes back <code>unknown</code> to be narrowed.
-          For schemas you own, prefer materializing them with <code>glyph gen zod</code> (real Glyph
-          types with descriptors); reach for <code>extern_ts</code> when the type genuinely lives in
-          TypeScript. JSX prop spread (<code>&lt;input {...register()} /&gt;</code>) already works as
-          a first-class form. So a library never forces a separate adapter <em>file</em>, but a
-          value-derived type is still hand-written TypeScript inline until the first-class primitive
-          lands; that is the honest state today.
+          Value-derived types are first-class. <code>type User = z.infer&lt;typeof user_schema&gt;</code>
+          works directly: <code>typeof user_schema</code> is a type query over a real value
+          reference (a typo is an unresolved-name error), and <code>z.infer&lt;...&gt;</code> is an
+          ordinary member-generic type. It emits verbatim and <code>tsc</code> reduces it, so
+          <code>u.name</code> is a <code>string</code>; validation comes from the schema's own
+          <code>parse</code>, which is how zod already works. JSX prop spread
+          (<code>&lt;input {...register()} /&gt;</code>) is first-class too. For the rare TypeScript
+          idiom Glyph still can't spell, <code>extern_ts("...")</code> is the scoped, greppable escape
+          hatch: <code>tsc</code> checks it, but be precise, it is a trust boundary, not a
+          runtime-validated one (opaque to Glyph, a value comes back <code>unknown</code> to narrow).
+          So a library never forces a hand-written adapter file.
         </p>
       </div>
 
@@ -159,7 +157,7 @@ print(user.name)</pre>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>A first-class inline primitive for value-derived types (<code>z.infer</code>), which the <code>extern_ts</code> escape hatch already covers today. Materialization now handles the shapes real SDKs ship (namespaces, cross-file re-exports, subpath <code>exports</code>, and first-class generics), so the main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.</p>
+          <p>Materialization now handles the shapes real SDKs ship (namespaces, cross-file and aliased/namespace re-exports, subpath <code>exports</code>, and first-class generics), and value-derived types (<code>z.infer&lt;typeof s&gt;</code>) are first-class. The main gap left is that an un-materialized package's outputs are type-checked against its <code>.d.ts</code> but not runtime-validated unless you materialize them.</p>
         </div>
       </div>
 

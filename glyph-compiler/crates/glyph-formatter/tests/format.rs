@@ -118,6 +118,14 @@ fn string_literal_union_round_trips() {
 }
 
 #[test]
+fn value_derived_typeof_round_trips() {
+    let src = "module x\nimport zod { z }\ntype User = z.infer<typeof user_schema>\n";
+    let out = fmt(src);
+    assert!(out.contains("z.infer<typeof user_schema>"), "typeof query preserved:\n{out}");
+    assert_eq!(fmt(&out), out, "typeof format is not stable");
+}
+
+#[test]
 fn extern_ts_type_round_trips() {
     let src = "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n";
     let out = fmt(src);

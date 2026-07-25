@@ -3464,6 +3464,12 @@ impl<'a> Emitter<'a> {
                 .map(|v| escape_double_quoted(v))
                 .collect::<Vec<_>>()
                 .join(" | "),
+            // `typeof value` emits as the TS type query; `tsc` reduces it (a
+            // `z.infer<typeof s>` becomes the schema's inferred type).
+            TypeExpr::TypeOf { path, .. } => {
+                let joined = path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".");
+                format!("typeof {joined}")
+            }
         })
     }
 }
@@ -3498,6 +3504,7 @@ fn type_mentions(te: &TypeExpr, name: &str) -> bool {
         TypeExpr::Extern { .. } => false,
         // String literals mention no type parameter.
         TypeExpr::StringLiteralUnion { .. } => false,
+        TypeExpr::TypeOf { .. } => false,
     }
 }
 
@@ -4029,6 +4036,7 @@ fn type_mentions_infer_output(te: &TypeExpr) -> bool {
         TypeExpr::Union { .. } => false,
         TypeExpr::Extern { .. } => false,
         TypeExpr::StringLiteralUnion { .. } => false,
+        TypeExpr::TypeOf { .. } => false,
     }
 }
 
@@ -5068,6 +5076,14 @@ mod tests {
             ts.contains(r#".tier === "free" || (value as Record<string, unknown>).tier === "pro""#),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn value_derived_type_emits_typeof_query() {
+        let ts = emit(
+            "module x\nimport zod { z }\ntype User = z.infer<typeof user_schema>\n",
+        );
+        assert!(ts.contains("export type User = z.infer<typeof user_schema>;"), "{ts}");
     }
 
     #[test]

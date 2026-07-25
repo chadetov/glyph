@@ -1195,8 +1195,9 @@ fn collect_type_expr_spans(te: &TypeExpr, out: &mut HashSet<(u32, u32)>) {
                 }
             }
         }
-        // Raw TypeScript and string literals carry no Glyph name spans.
-        TypeExpr::Extern { .. } | TypeExpr::StringLiteralUnion { .. } => {}
+        // Raw TypeScript and string literals carry no Glyph name spans; a
+        // `typeof` operand's span is the whole query, not a per-name span.
+        TypeExpr::Extern { .. } | TypeExpr::StringLiteralUnion { .. } | TypeExpr::TypeOf { .. } => {}
     }
 }
 

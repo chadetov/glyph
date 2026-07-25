@@ -704,6 +704,28 @@ none of which needed new language surface.
   path, a stated time-to-productivity, a your-word-to-our-word concept map, an
   edit-this-page path, and a task-tagged recipe list in the agent bootstrap.
 
+### 0.1.18 — Shipped · Governance, distribution, and editor tooling
+
+**Status: shipped.** Breadth across the non-language axes a serious project needs.
+
+- **Project governance and community health** — ✅ the standard OSS surface the
+  repo was missing: a Code of Conduct, a security policy with a private reporting
+  path, a `GOVERNANCE.md` (the model, decision process, conflict resolution, and a
+  real succession plan), a `MAINTAINERS.md` that states the one-maintainer bus
+  factor honestly, an RFC process and template, a good-first-issue on-ramp and a
+  DCO in CONTRIBUTING, and a release-cadence plus deprecation policy in the
+  stability doc.
+- **Distribution and deployment guides** — ✅ documents the npm-backed supply
+  chain (canonical registry, scopes, semver, audit, provenance, private/mirrored
+  registries, immutable versions) and where a Glyph program runs (node,
+  containers, serverless, edge), with tree-shaking and reproducible builds.
+- **`glyph bench`** — ✅ times every `pub fn bench_*()` in the project and reports
+  ns/op, on the JavaScript runtime the program actually runs on.
+- **Editor tooling** — ✅ the language server now surfaces the warning-tier lints
+  (E0106/E0107/E0108) it previously computed only at build time, adds a
+  code-action quick-fix that removes a fully-unused import (the `glyph fix` edit),
+  and shows inlay type hints on untyped `let` bindings.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

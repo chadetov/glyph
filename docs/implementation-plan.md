@@ -1,5 +1,7 @@
 # Glyph v1.0 — Implementation Plan
 
+> **Historical record, not live status.** This is the original build sequence with a frozen day-by-day account of how the compiler was built, written from the post-brainstorm state onward. It is kept unedited as history. For where the project actually stands now (what's done, what's next), read [`roadmap/releases.md`](roadmap/releases.md) — the live release roadmap — and [`roadmap/overview.md`](roadmap/overview.md) — the step table. Do not treat the estimates, "what's next," or test counts below as current.
+
 A concrete sequence of work from the current state (post-brainstorm, 2026-05-26) to v1.0 launch. **Tasks and deliverables, not goals.** Estimates assume one focused engineer; doubles if context-switching with other projects.
 
 ## What this is

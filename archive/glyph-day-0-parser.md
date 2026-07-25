@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # Glyph — Day 0 Parser & Roadmap Notes
 
 A working document capturing decisions and open questions from the day-0 discussion. Two parts: feedback on roadmap items 8–9 (formatter, package story, installer, playground), then the parser conversation that's the real day-0 work.

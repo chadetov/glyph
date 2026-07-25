@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # Glyph — Session 2: Step 6 Scoping (Dogfooding)
 
 **Context:** Continuing from Session 1 (syntax lock via examples). Roadmap step 6 is "self-host your tooling" — write a real dogfooding project in Glyph to surface design mistakes that examples didn't.

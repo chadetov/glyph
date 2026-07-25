@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # Glyph — Step 3: Tree-Sitter Grammar & Spec
 
 > **Step 3 of the Glyph delivery plan.** Tree-sitter first, not a hand-written

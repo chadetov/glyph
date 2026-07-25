@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # tree-sitter-glyph
 
 Tree-sitter grammar for the Glyph language. The grammar file is the syntactic

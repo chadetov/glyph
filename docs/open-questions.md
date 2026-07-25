@@ -1,6 +1,8 @@
 # Open questions
 
-The live unresolved decisions, organized by what they block. This is the input list for the upcoming brainstorm.
+> **Mostly historical.** The brainstorm-era questions below (Q1–Q42) are all resolved; this file is kept as the resolution record and the original framings that Q-number references elsewhere point back to. It is *not* a live to-do list. For current status and what's next, see [`roadmap/releases.md`](roadmap/releases.md). This remains the register for genuinely new open questions if any arise, but do not read the entries below as unresolved.
+
+The (now-resolved) unresolved decisions, organized by what they blocked. This was the input list for the brainstorm sessions.
 
 A question lives here when:
 - It has been deferred from a prior session/proposal and is now load-bearing for a future step, **or**

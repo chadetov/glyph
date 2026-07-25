@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # Glyph annotation sketch — part 2 (abandoned direction)
 
 > Pasted from conversation, 2026-05-26. Continuation of `glyph-annotation-sketch.md` — examples numbered 6–10, demonstrating capability effects, structured concurrency, totality, first-class migrations, and errors-as-runbooks. Same annotation-rich syntactic family. Same abandoned direction (the current locked stance is TS-family looks-like-TypeScript).

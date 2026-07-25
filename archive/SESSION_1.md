@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # Glyph — Session 1: Syntax Lock via Examples
 
 **Goal:** Step 2 of the Glyph roadmap — "lock the syntax with examples, not a grammar." Write small Glyph programs by hand; let real code force every syntactic decision.

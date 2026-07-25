@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # Glyph annotation sketch — part 4 (abandoned direction)
 
 > Pasted from conversation, 2026-05-26. Examples 16–20 in the same series as `glyph-annotation-sketch.md` (1–5), `pt2.md` (6–10), `pt3.md` (11–15). Same annotation-rich syntactic family. Same abandoned direction (current locked stance is TS-family).

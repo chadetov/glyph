@@ -1,3 +1,5 @@
+> **Archived: historical, obsolete.** Kept as a verbatim record of an earlier design exploration or working session. It does **not** reflect Glyph's current design; for that, read the working docs in [`../docs/`](../docs/). Do not treat anything below as current.
+
 # Glyph annotation sketch (abandoned direction)
 
 > Pasted from conversation, 2026-05-26. An earlier — or parallel — exploration of Glyph that prioritized annotation-rich, signature-heavy, agent-readable contracts. Same family as `glyph-session.md`, different syntax. Both directions were superseded by the current TS-family stance.

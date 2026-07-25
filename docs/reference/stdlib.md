@@ -150,7 +150,16 @@ type Duration                                   // Duration.ms(n) constructs one
 time.now() -> number                            // epoch milliseconds
 time.sleep(duration: Duration) -> void          // async; await it
 time.debounce<A>(delay: Duration, f: fn(A) -> void) -> fn(A) -> void
+time.format_iso(epoch_ms: number) -> string     // ISO-8601 UTC string
+time.parse_iso(iso: string) -> Option<number>   // epoch ms, or None if invalid
+time.add_days(epoch_ms: number, days: number) -> number
+time.add_hours(epoch_ms: number, hours: number) -> number
+time.year(epoch_ms: number) -> number           // UTC calendar accessors
+time.month(epoch_ms: number) -> number          // 1-12 (not JS's 0-11)
+time.day(epoch_ms: number) -> number
 ```
+
+All calendar work is in UTC, so results don't shift with the host timezone.
 
 ## std/store
 

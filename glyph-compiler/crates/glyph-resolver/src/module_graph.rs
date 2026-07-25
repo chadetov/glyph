@@ -118,7 +118,13 @@ impl StdlibStubs {
             "std/fs",
             &["read_text", "write_text", "exists", "remove", "ErrorKind"],
         );
-        s.add("std/time", &["debounce", "Duration", "now", "sleep"]);
+        s.add(
+            "std/time",
+            &[
+                "debounce", "Duration", "now", "sleep", "format_iso", "parse_iso", "add_days",
+                "add_hours", "year", "month", "day",
+            ],
+        );
         // A shared-state primitive: `create(initial)` returns a `Store<T>` whose
         // `get`/`set`/`update` methods read and mutate a value held in a closure.
         s.add("std/store", &["Store", "create"]);

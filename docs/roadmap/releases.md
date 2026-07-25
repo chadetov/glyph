@@ -681,6 +681,29 @@ exported by M"; distinguishing "private (mark it `pub`)" from "no such name"
 needs the export surface to carry both the public and full name sets. Tracked in
 the rolling polish lane.
 
+### 0.1.17 — Shipped · Stdlib breadth, tooling, and docs
+
+**Status: shipped.** A breadth pass closing the gaps a real program hits early,
+none of which needed new language surface.
+
+- **Four new stdlib modules** — ✅ `std/regex` (stateless regular expressions),
+  `std/set` (a value-semantics hash set; maps stay `Record<K, V>`), `std/path`
+  (cross-platform paths over node's `path`), and `std/crypto` (sha256/512, HMAC,
+  UUID, random hex over node's `crypto`).
+- **std/time and std/io deepened** — ✅ `time.format_iso`/`parse_iso`,
+  `add_days`/`add_hours`, and UTC `year`/`month`/`day`; `io.inspect`/`render` for
+  structured value inspection while debugging.
+- **`glyph fix`** — ✅ the safe autofixes in place; today it removes an import
+  whose every bound name is unused (a partially used named import is left alone).
+- **`glyph init --template <cli|web|lib>`** — ✅ scaffold a CLI, an http server,
+  or a library; each template compiles through the real pipeline.
+- **Diagnostics link to docs** — ✅ every Glyph `E`-code note points at its
+  error-codes reference section and the `glyph --explain` command.
+- **Guide expansion** — ✅ how-to-think, cookbook, troubleshooting, anti-patterns,
+  performance, idioms, and a TypeScript-project migration guide, plus a learning
+  path, a stated time-to-productivity, a your-word-to-our-word concept map, an
+  edit-this-page path, and a task-tagged recipe list in the agent bootstrap.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

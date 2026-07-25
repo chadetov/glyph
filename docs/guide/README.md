@@ -38,6 +38,8 @@ then [tutorial](tutorial.md).
 | [`performance.md`](performance.md) | You want to know what is cheap and where the runtime cost is |
 | [`troubleshooting.md`](troubleshooting.md) | A build or run failed and you want the fix |
 | [`migration.md`](migration.md) | You want to adopt Glyph in an existing TypeScript project |
+| [`distribution.md`](distribution.md) | You want to publish a package and understand the npm-backed supply chain |
+| [`deployment.md`](deployment.md) | You want to know where a Glyph program runs (node, serverless, edge, containers) |
 | [`typed-apis.md`](typed-apis.md) | You are building an API and want validated request/response DTOs without a separate `zod` schema |
 | [`editor-setup.md`](editor-setup.md) | You want VS Code (or another editor) set up with diagnostics, hover, and format-on-save |
 | [`external-imports.md`](external-imports.md) | You want to import an npm package or Node builtin (and how `.types/` works) |

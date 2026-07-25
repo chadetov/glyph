@@ -81,6 +81,12 @@ enum Command {
         #[arg(value_name = "PATH")]
         path: Option<std::path::PathBuf>,
     },
+    /// Run micro-benchmarks: time every `pub fn bench_*()` in the project and
+    /// report ns/op. Needs `tsx` on `PATH`. (Default path: the current dir.)
+    Bench {
+        #[arg(value_name = "PATH")]
+        path: Option<std::path::PathBuf>,
+    },
     /// Scaffold a runnable starter project (src/main.glyph, .types/, package.json,
     /// .gitignore) in DIR (default: the current directory).
     Init {
@@ -425,6 +431,41 @@ fn main() {
                 }
                 Err(e) => {
                     eprintln!("glyph fix: {e}");
+                    std::process::exit(2);
+                }
+            }
+        }
+        Some(Command::Bench { path }) => {
+            let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::bench::run_benchmarks(&target) {
+                Ok(report) => {
+                    if let Some(diags) = &report.build_failed {
+                        for d in diags {
+                            eprint!("{d}");
+                        }
+                        eprintln!("glyph bench: the project did not compile; nothing was run.");
+                        std::process::exit(1);
+                    }
+                    if report.none_found {
+                        eprintln!(
+                            "glyph bench: no benchmarks found. Define `pub fn bench_<name>()` \
+                             functions (no parameters) to measure."
+                        );
+                        std::process::exit(0);
+                    }
+                    if !report.ran {
+                        eprintln!("glyph bench: `tsx` was not found on PATH; cannot run benchmarks.");
+                        std::process::exit(2);
+                    }
+                    for (name, iters, nsop) in &report.results {
+                        let per_sec = if *nsop > 0.0 { 1e9 / nsop } else { 0.0 };
+                        println!("{name}: {nsop:.1} ns/op  ({per_sec:.0} ops/sec, {iters} iters)");
+                    }
+                    eprintln!("glyph bench: {} benchmark(s).", report.results.len());
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("glyph bench: {e}");
                     std::process::exit(2);
                 }
             }

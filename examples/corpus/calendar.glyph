@@ -1,0 +1,141 @@
+// Pure-Glyph proleptic Gregorian calendar arithmetic: leap years, month
+// lengths, the day-of-year ordinal, days since the Unix epoch (Howard
+// Hinnant's days_from_civil), and the weekday. The only platform leaves are
+// math.floor for floored integer division and math.sign; the rest is
+// branching, recursion, records, and a negative-literal match arm.
+module calendar
+
+import std/math
+import std/option { Option, Some, None }
+
+// A calendar date. Month is 1..12, day is 1..31.
+pub type Date = {
+  year: number,
+  month: number,
+  day: number,
+}
+
+// Proleptic Gregorian leap-year rule.
+pub fn is_leap_year(y: number) -> bool {
+  return match y % 4 == 0 {
+    true => match y % 100 == 0 {
+      true => y % 400 == 0,
+      false => true,
+    },
+    false => false,
+  }
+}
+
+// Days in a given 1..12 month of year `y`.
+pub fn days_in_month(y: number, m: number) -> number {
+  return match m == 2 {
+    true => match is_leap_year(y) {
+      true => 29,
+      false => 28,
+    },
+    false => {
+      let table = [
+        31,
+        28,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+      ]
+      return table[m - 1]
+    },
+  }
+}
+
+// Sum of days in months [cur, target) of year `y`, threaded through recursion.
+fn before_month(
+  y: number,
+  target: number,
+  cur: number,
+  acc: number,
+) -> number {
+  return match cur >= target {
+    true => acc,
+    false => before_month(
+      y,
+      target,
+      cur + 1,
+      acc + days_in_month(y, cur),
+    ),
+  }
+}
+
+// Ordinal day within the year, 1 = Jan 1.
+pub fn day_of_year(d: Date) -> number {
+  return d.day + before_month(
+    d.year,
+    d.month,
+    1,
+    0,
+  )
+}
+
+// Days elapsed since 1970-01-01 (may be negative), by Howard Hinnant's
+// days_from_civil. Every division is floored via math.floor, so it stays
+// correct for negative years.
+pub fn days_from_epoch(d: Date) -> number {
+  let y = match d.month <= 2 {
+    true => d.year - 1,
+    false => d.year,
+  }
+  let era = math.floor(y / 400)
+  let yoe = y - era * 400
+  let mp = match d.month > 2 {
+    true => d.month - 3,
+    false => d.month + 9,
+  }
+  let doy = math.floor((153 * mp + 2) / 5) + d.day - 1
+  let doe = yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy
+  return era * 146097 + doe - 719468
+}
+
+// Day of week: 0 = Sunday .. 6 = Saturday. The epoch (a Thursday) lands on 4.
+pub fn weekday(d: Date) -> number {
+  let r = (days_from_epoch(d) + 4) % 7
+  return match r < 0 {
+    true => r + 7,
+    false => r,
+  }
+}
+
+// The English name of a weekday index, or None when out of range.
+pub fn weekday_name(i: number) -> Option<string> {
+  let names = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ]
+  return match i < 0 {
+    true => None,
+    false => match i >= 7 {
+      true => None,
+      false => Some(names[i]),
+    },
+  }
+}
+
+// Where `d` sits relative to the Unix epoch. The negative-literal arm (`-1`)
+// matches directly on math.sign's result.
+pub fn epoch_direction(d: Date) -> string {
+  return match math.sign(days_from_epoch(d)) {
+    -1 => "before",
+    0 => "on",
+    1 => "after",
+    else => "unknown",
+  }
+}

@@ -659,6 +659,45 @@ fn main() {
     }
 
     #[test]
+    fn match_expr_with_negative_number_pattern() {
+        // A negative-integer literal is a valid literal pattern; the sign folds
+        // into the pattern's raw text so it reads as a single `Number` pattern.
+        let src = r#"module x
+fn main() {
+  let _x = match n {
+    -1 => "neg",
+    0 => "zero",
+    else => "other",
+  }
+}
+"#;
+        let m = parse_or_panic(src);
+        let f = match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => f,
+            _ => panic!(),
+        };
+        let let_stmt = match &f.body.stmts[0] {
+            glyph_ast::Stmt::Let(l) => l,
+            _ => panic!(),
+        };
+        match &let_stmt.value {
+            glyph_ast::Expr::Match { arms, .. } => {
+                assert_eq!(arms.len(), 3);
+                match &arms[0].pattern {
+                    glyph_ast::Pattern::Literal {
+                        value: glyph_ast::LiteralPattern::Number(raw),
+                        ..
+                    } => assert_eq!(raw, "-1"),
+                    other => panic!("expected negative Number literal, got {other:?}"),
+                }
+                assert!(matches!(arms[1].pattern, glyph_ast::Pattern::Literal { .. }));
+                assert!(matches!(arms[2].pattern, glyph_ast::Pattern::Else { .. }));
+            }
+            other => panic!("expected Match, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn match_expr_with_constructor_pattern() {
         let src = r#"module x
 fn main() {

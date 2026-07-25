@@ -818,6 +818,13 @@ land here until they're assigned a release.
   already sees E0106 via `glyph_diagnostics` and can edit itself); this is the
   convenience/parity tier. When it lands: tool count 5 → 6 (or 7), and the website
   MCP/answers page plus `glyph mcp` help need the update.
+- **Negative-number literal patterns** (S) — ✅ **done.** A `match` arm may now be
+  a negative integer literal (`-1 => ...`), the natural companion to the existing
+  positive-literal arms. The parser folds the sign into the literal's raw text, so
+  emit lowers it to `case -1:` and value-match exhaustiveness treats it as one
+  `Number` pattern; `-x`/`-(...)` stay non-patterns. Surfaced dogfooding a
+  calendar module (`examples/corpus/calendar.glyph`, matching on `math.sign`);
+  parser unit test added.
 - **Private-vs-missing import diagnostic** (S, from 0.1.16 visibility). Importing a
   non-`pub` name reports E0105 "`N` is not exported by `M`", the same message as a
   genuinely missing name. Distinguishing "exists but private (mark it `pub`)" from

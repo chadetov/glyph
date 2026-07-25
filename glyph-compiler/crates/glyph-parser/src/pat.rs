@@ -74,6 +74,23 @@ fn parse_pattern_atom(p: &mut Cursor) -> Result<Pattern, ParseError> {
                 span: start_span,
             })
         }
+        // A negative-number literal pattern (`-1 => ...`). Only a bare numeric
+        // literal may follow the sign; `-x` and `-(...)` are not patterns. The
+        // sign folds into the literal's raw text so emit and exhaustiveness see
+        // a single `Number` pattern, exactly like its positive counterpart.
+        Token::Minus if matches!(p.peek_at(1), Some(Token::Number(_))) => {
+            p.advance(); // `-`
+            let num_span = p.peek_span();
+            let raw = match p.peek().clone() {
+                Token::Number(raw) => raw,
+                _ => unreachable!("guarded by peek_at(1)"),
+            };
+            p.advance(); // the numeric literal
+            Ok(Pattern::Literal {
+                value: LiteralPattern::Number(format!("-{raw}")),
+                span: Span::new(start_span.start, num_span.end),
+            })
+        }
         Token::String(value) => {
             p.advance();
             Ok(Pattern::Literal {

@@ -1,0 +1,183 @@
+// Pure-Glyph CSV codec (RFC 4180): parse text into rows of string fields and
+// serialize rows back to text. A quoted field carries embedded commas, quotes
+// (doubled ""), and line breaks; the parser threads a character index by value
+// and reports a malformed quote as a `Result` `Err`. Serialization quotes only
+// the fields that need it and doubles every embedded quote. The only platform
+// leaf is string.len; every character comes from `s[i]` indexing and every
+// field is built with `+`.
+module csv
+
+import std/string
+import std/result { Result, Ok, Err }
+
+// A decoded field body and the index just past it.
+type FieldParsed = { text: string, pos: number }
+
+// A decoded row and the index just past its line terminator (or field end).
+type RowParsed = { fields: Array<string>, pos: number }
+
+// Constructors, so match arms never return a bare record literal (which reads
+// as a block in arm position).
+fn field_at(text: string, pos: number) -> FieldParsed {
+  return { text: text, pos: pos }
+}
+
+fn row_at(fields: Array<string>, pos: number) -> RowParsed {
+  return { fields: fields, pos: pos }
+}
+
+fn at_end(s: string, i: number) -> bool {
+  return i >= string.len(s)
+}
+
+// A character that ends an unquoted field: a comma or either newline byte.
+fn is_delim(c: string) -> bool {
+  return c == "," || c == "\n" || c == "\r"
+}
+
+// The body of a quoted field, `i` pointing just past the opening quote. A `""`
+// pair decodes to one quote; a lone quote closes the field. Running off the end
+// before the closing quote is a malformed record.
+fn quoted_field(s: string, i: number, acc: string) -> Result<FieldParsed, string> {
+  return match at_end(s, i) {
+    true => Err("unterminated quoted field"),
+    false => match s[i] == "\"" {
+      true => match at_end(s, i + 1) {
+        true => Ok(field_at(acc, i + 1)),
+        false => match s[i + 1] == "\"" {
+          true => quoted_field(s, i + 2, acc + "\""),
+          false => Ok(field_at(acc, i + 1)),
+        },
+      },
+      false => quoted_field(s, i + 1, acc + s[i]),
+    },
+  }
+}
+
+// The body of an unquoted field: everything up to the next delimiter or EOF.
+fn plain_field(s: string, i: number, acc: string) -> FieldParsed {
+  return match at_end(s, i) {
+    true => field_at(acc, i),
+    false => match is_delim(s[i]) {
+      true => field_at(acc, i),
+      false => plain_field(s, i + 1, acc + s[i]),
+    },
+  }
+}
+
+// One field starting at `i`: quoted when it opens with `"`, otherwise plain.
+fn parse_field(s: string, i: number) -> Result<FieldParsed, string> {
+  return match at_end(s, i) {
+    true => Ok(field_at("", i)),
+    false => match s[i] == "\"" {
+      true => quoted_field(s, i + 1, ""),
+      false => Ok(plain_field(s, i, "")),
+    },
+  }
+}
+
+// Index just past the line terminator at `i` (`\r`, `\n`, or `\r\n`).
+fn line_end(s: string, i: number) -> number {
+  return match s[i] == "\r" {
+    true => match at_end(s, i + 1) {
+      true => i + 1,
+      false => match s[i + 1] == "\n" {
+        true => i + 2,
+        false => i + 1,
+      },
+    },
+    false => i + 1,
+  }
+}
+
+// A row from `i`: fields separated by commas, ending at a line break or EOF.
+// The resume `pos` is past the terminator so `parse_rows` starts the next line
+// cleanly and never yields a spurious trailing empty row.
+fn parse_row_from(s: string, i: number) -> Result<RowParsed, string> {
+  return match parse_field(s, i) {
+    Err(e) => Err(e),
+    Ok(f) => match at_end(s, f.pos) {
+      true => Ok(row_at([f.text], f.pos)),
+      false => match s[f.pos] == "," {
+        true => match parse_row_from(s, f.pos + 1) {
+          Err(e) => Err(e),
+          Ok(rest) => Ok(row_at([f.text, ...rest.fields], rest.pos)),
+        },
+        false => Ok(row_at([f.text], line_end(s, f.pos))),
+      },
+    },
+  }
+}
+
+fn parse_rows(s: string, i: number) -> Result<Array<Array<string>>, string> {
+  return match at_end(s, i) {
+    true => Ok([]),
+    false => match parse_row_from(s, i) {
+      Err(e) => Err(e),
+      Ok(row) => match parse_rows(s, row.pos) {
+        Err(e) => Err(e),
+        Ok(rest) => Ok([row.fields, ...rest]),
+      },
+    },
+  }
+}
+
+// Parse CSV text into rows of fields. Empty input is zero rows; a malformed
+// quoted field is an `Err`.
+pub fn parse(s: string) -> Result<Array<Array<string>>, string> {
+  return parse_rows(s, 0)
+}
+
+// A field needs quoting when it holds a comma, a quote, or a line break.
+fn is_special(c: string) -> bool {
+  return c == "," || c == "\"" || c == "\n" || c == "\r"
+}
+
+fn needs_quote(field: string, i: number) -> bool {
+  return match i >= string.len(field) {
+    true => false,
+    false => match is_special(field[i]) {
+      true => true,
+      false => needs_quote(field, i + 1),
+    },
+  }
+}
+
+fn escape_quotes(field: string, i: number, acc: string) -> string {
+  return match i >= string.len(field) {
+    true => acc,
+    false => match field[i] == "\"" {
+      true => escape_quotes(field, i + 1, acc + "\"\""),
+      false => escape_quotes(field, i + 1, acc + field[i]),
+    },
+  }
+}
+
+fn encode_field(field: string) -> string {
+  return match needs_quote(field, 0) {
+    true => "\"" + escape_quotes(field, 0, "") + "\"",
+    false => field,
+  }
+}
+
+fn encode_row(fields: Array<string>) -> string {
+  return match fields {
+    [] => "",
+    [head, ...rest] => match rest {
+      [] => encode_field(head),
+      [_, ..._] => encode_field(head) + "," + encode_row(rest),
+    },
+  }
+}
+
+// Serialize rows to CSV text, one line per row (LF-separated), quoting only the
+// fields that need it. This round-trips with `parse` for well-formed data.
+pub fn serialize(rows: Array<Array<string>>) -> string {
+  return match rows {
+    [] => "",
+    [head, ...rest] => match rest {
+      [] => encode_row(head),
+      [_, ..._] => encode_row(head) + "\n" + serialize(rest),
+    },
+  }
+}

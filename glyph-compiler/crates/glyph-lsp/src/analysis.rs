@@ -8,8 +8,8 @@
 
 use glyph_ast::{Decl, ImportKind, Module, TypeExpr};
 use glyph_resolver::{
-    build_prelude, collect_module_symbols, resolve_module, verify_imports, ResolvedModule,
-    ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
+    build_prelude, collect_module_symbols, module_lints, resolve_module, verify_imports,
+    ResolvedModule, ResolvedRef, StdlibStubs, SymbolId, SymbolKind,
 };
 use glyph_typechecker::{assign_types, display_ty, TypeMap};
 
@@ -76,6 +76,16 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
             message: with_help(format!("{e}"), e.help()),
             code: e.code().to_string(),
         });
+    }
+
+    // The warning-tier lints (unused import E0106, unused let E0107, unreachable
+    // E0108) — the same ones `glyph build` surfaces — so the editor shows them
+    // too, and the unused-import quick-fix has something to act on. They run only
+    // on an otherwise error-free module, so they never mask a real error.
+    if out.is_empty() {
+        for e in module_lints(&module, &resolved) {
+            out.push(resolve_diag(&e));
+        }
     }
 
     out

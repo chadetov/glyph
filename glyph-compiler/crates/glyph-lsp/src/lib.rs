@@ -122,6 +122,7 @@ impl LanguageServer for Backend {
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 references_provider: Some(OneOf::Left(true)),
                 rename_provider: Some(OneOf::Left(true)),
+                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 ..Default::default()
             },
         })
@@ -228,6 +229,52 @@ impl LanguageServer for Backend {
             }
         };
         Ok(location.map(GotoDefinitionResponse::Scalar))
+    }
+
+    async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
+        let uri = params.text_document.uri;
+        let Some(text) = self.doc_text(&uri) else {
+            return Ok(None);
+        };
+        let index = LineIndex::new(&text);
+        let req_start = index.offset(&text, params.range.start.line, params.range.start.character);
+        let req_end = index.offset(&text, params.range.end.line, params.range.end.character);
+
+        let mut actions = Vec::new();
+        for d in analyze(&text) {
+            // Quick-fix: remove a fully-unused import (E0106). Deletes the whole
+            // import line, the same safe edit `glyph fix` applies at the CLI.
+            if d.code != "E0106" {
+                continue;
+            }
+            if (d.start as usize) > req_end || (d.end as usize) < req_start {
+                continue;
+            }
+            let (ls, le) = line_span(&text, d.start as usize);
+            let (sl, sc) = index.position(&text, ls);
+            let (el, ec) = index.position(&text, le);
+            let range = Range {
+                start: Position { line: sl, character: sc },
+                end: Position { line: el, character: ec },
+            };
+            let mut changes = HashMap::new();
+            changes.insert(uri.clone(), vec![TextEdit { range, new_text: String::new() }]);
+            actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                title: "Remove unused import".to_string(),
+                kind: Some(CodeActionKind::QUICKFIX),
+                diagnostics: None,
+                edit: Some(WorkspaceEdit {
+                    changes: Some(changes),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }));
+        }
+        if actions.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(actions))
+        }
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
@@ -775,6 +822,21 @@ fn apply_text_edits(text: &str, edits: &[TextEdit]) -> std::result::Result<Strin
 }
 
 /// A `Location` for byte range `[start, end)` in `text` at `uri`.
+/// The byte range of the whole line containing `offset`, including its trailing
+/// newline, so deleting it removes the line entirely. Used by the unused-import
+/// quick-fix.
+fn line_span(text: &str, offset: usize) -> (usize, usize) {
+    let start = text[..offset.min(text.len())]
+        .rfind('\n')
+        .map(|i| i + 1)
+        .unwrap_or(0);
+    let end = text[offset.min(text.len())..]
+        .find('\n')
+        .map(|i| offset + i + 1)
+        .unwrap_or(text.len());
+    (start, end)
+}
+
 fn location_in(uri: &Url, text: &str, start: u32, end: u32) -> Location {
     let index = LineIndex::new(text);
     let (sl, sc) = index.position(text, start as usize);
@@ -888,5 +950,19 @@ mod tests {
         )
         .unwrap();
         assert!(!analyze(&candidate).is_empty());
+    }
+
+    #[test]
+    fn unused_import_drives_a_line_deletion_quick_fix() {
+        // The unused-import diagnostic (E0106) plus line_span is what the code
+        // action turns into a "delete this line" edit.
+        let text = "module m\nimport std/io\nimport std/string\nfn main() -> void {\n  io.println(\"x\")\n}\n";
+        let diags = analyze(text);
+        let unused: Vec<_> = diags.iter().filter(|d| d.code == "E0106").collect();
+        assert!(!unused.is_empty(), "expected an E0106 unused-import diagnostic");
+        // The unused one is `std/string`; deleting its line drops exactly it.
+        let d = unused.iter().find(|d| text[d.start as usize..d.end as usize].contains("string")).expect("string import diag");
+        let (ls, le) = line_span(text, d.start as usize);
+        assert_eq!(&text[ls..le], "import std/string\n", "got {:?} (span {}..{})", &text[ls..le], d.start, d.end);
     }
 }

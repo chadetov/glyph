@@ -2294,6 +2294,50 @@ impl<'a> Emitter<'a> {
         })
     }
 
+    /// Resolve a module-local *non-record* type alias to its leaf body, so a
+    /// field typed by the alias validates like the inline type. Follows a chain
+    /// of alias hops (`type A = B; type B = "x" | "y"`), stopping at a type that
+    /// is not itself a followable local alias (a record — which resolves via its
+    /// descriptor — a prelude type, a literal union, etc.). Returns `None` for a
+    /// name that is not a local alias, and guards against a cycle. The returned
+    /// leaf is never a followable alias, so `field_value_check` on it terminates.
+    fn resolve_alias_leaf(&self, name: &str) -> Option<TypeExpr> {
+        let alias_body = |n: &str| -> Option<TypeExpr> {
+            self.module.items.iter().find_map(|d| match d {
+                Decl::Type(t) if t.name.as_ref() == n && t.generics.is_empty() => {
+                    Some(t.body.clone())
+                }
+                _ => None,
+            })
+        };
+        let mut current = name.to_string();
+        let mut seen = std::collections::HashSet::new();
+        let mut body = alias_body(&current)?;
+        loop {
+            if !seen.insert(current.clone()) {
+                return None; // cyclic alias
+            }
+            // Follow only a single-segment reference to another local alias that
+            // has no descriptor of its own (a record short-circuits to `.is`).
+            let next = match &body {
+                TypeExpr::Path { segments, .. } if segments.len() == 1 => {
+                    let n = segments[0].as_ref();
+                    (!self.has_local_descriptor(n) && n != current)
+                        .then(|| n.to_string())
+                        .filter(|n| alias_body(n).is_some())
+                }
+                _ => None,
+            };
+            match next {
+                Some(n) => {
+                    current = n.clone();
+                    body = alias_body(&n)?;
+                }
+                None => return Some(body),
+            }
+        }
+    }
+
     /// True if `name` is a module-local *generic* record type, which now emits a
     /// descriptor whose `is`/`parse` take one runtime checker per type parameter
     /// (`__is_T`). Distinct from `has_local_descriptor` (non-generic only): a
@@ -2400,6 +2444,12 @@ impl<'a> Emitter<'a> {
                     format!("{guard}({access})")
                 } else if self.has_local_descriptor(name) {
                     format!("{name}.is({access})")
+                } else if let Some(leaf) = self.resolve_alias_leaf(name) {
+                    // A non-record type alias (`type Tier = "free" | "pro"`,
+                    // `type Count = int`): resolve to its leaf so a field typed by
+                    // the alias gets the same runtime check as the inline type
+                    // (membership, isInteger, …), not a bare presence check.
+                    self.field_value_check(&leaf, access)
                 } else {
                     format!("{access} !== undefined")
                 }
@@ -4980,6 +5030,21 @@ mod tests {
             "module x\nfn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n",
         );
         assert!(ts.contains("return (Date.now());"), "{ts}");
+    }
+
+    #[test]
+    fn aliased_literal_union_and_int_fields_are_validated_through_the_alias() {
+        // A field typed by a named alias to a string-literal union or `int` gets
+        // the same leaf check as the inline type, not a bare presence check.
+        let ts = emit(
+            "module x\ntype Tier = \"free\" | \"pro\"\ntype Count = int\n\
+             type Item = { tier: Tier, qty: Count }\n",
+        );
+        assert!(
+            ts.contains(r#".tier === "free" || (value as Record<string, unknown>).tier === "pro""#),
+            "aliased literal-union membership: {ts}"
+        );
+        assert!(ts.contains("Number.isInteger("), "aliased int check: {ts}");
     }
 
     #[test]

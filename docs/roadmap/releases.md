@@ -536,7 +536,11 @@ edits; each is real engineering, not a doc tweak):
   `int` field's `.parse` where a `number` field would accept it. Still open (lower
   value): string formats (uuid, email, date-time) are unvalidated. *Done:* a
   generated descriptor rejects a wrong-*valued* string-enum or non-integer leaf,
-  not just a wrong-typed one.
+  not just a wrong-typed one. *Follow-up (post-0.1.15 smoke test):* a field typed
+  by a *named alias* to a literal union or `int` (`type Tier = "free" | "pro"; { t:
+  Tier }`) used to fall back to a presence check; the descriptor now resolves a
+  non-record alias to its leaf, so the aliased field validates identically to the
+  inline form. On `main` for the next release.
 - **`@open` policy for materialized wire records** (S, decision). ✅ **Done.**
   Decided: keep records strict-by-default across the language (safe by default,
   the verifiability pillar), and have codegen emit the existing `@open` (D27)

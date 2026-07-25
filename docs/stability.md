@@ -36,9 +36,37 @@ freezing it early.
   states what was added, fixed, and — when relevant — what breaks and how to
   adapt.
 
+## Release cadence
+
+Releases are cut when meaningful work lands, not on a fixed calendar, and the
+0.1.x line moves quickly (expect several 0.1.x releases between the named
+milestones on the [roadmap](roadmap/releases.md)). A minor bump (0.2.0, 0.3.0)
+marks a milestone actually reached, not a date. Every release is a `v*` git tag
+that triggers the publish workflow, so the npm version and the tagged source
+always match (CI hard-fails otherwise). If you need a predictable base, pin a
+version; the published versions are immutable and never yanked out from under a
+build.
+
+## Deprecation policy
+
+When a construct or standard-library name is going away:
+
+1. It is **marked deprecated** in a release, with a diagnostic (a warning, not an
+   error) that names the replacement, and a note in the release notes.
+2. It **keeps working for at least one subsequent 0.1.x release** after the
+   deprecation warning first appears, so an upgrade never breaks and forces a fix
+   in the same step.
+3. Where the migration is mechanical, `glyph fmt` or a codemod does the rewrite,
+   so acting on the warning is one command.
+
+After 1.0, deprecation windows lengthen and are tied to the semantic-versioning
+commitment below.
+
 ## Toward 1.0
 
 The pre-1.0 line is: change what needs changing, in the open, with an escape
 hatch always available. As the language settles we will tighten this into a
-firmer semantic-versioning commitment. Until then, pin a version if you need
-reproducibility, and read the release notes before upgrading.
+firmer semantic-versioning commitment: after 1.0, a breaking language change
+requires a major version, and stable features carry a compatibility guarantee
+within a major line. Until then, pin a version if you need reproducibility, and
+read the release notes before upgrading.

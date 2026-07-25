@@ -5,6 +5,20 @@ TypeScript, built so AI agents can read, write, and modify code safely. It's
 moving fast and pre-1.0, so this guide is short and honest about what's useful
 right now.
 
+## Where to start
+
+New here? The [`good first
+issue`](https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+label marks small, well-scoped tasks with enough context to pick up without
+deep knowledge of the compiler. [`help
+wanted`](https://github.com/chadetov/glyph/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+is the next step up. If nothing fits, a bug report or a docs fix is always
+welcome. Ask questions in
+[Discussions](https://github.com/chadetov/glyph/discussions), no question is too
+basic.
+
+By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## What helps most today
 
 - **Bug reports.** A `.glyph` program that miscompiles, crashes, or produces
@@ -75,6 +89,24 @@ npm/              the published npm launcher + per-platform binary packages
   what the change deliberately does *not* do.
 - Keep each commit a coherent unit; group by theme, not by file.
 - Run `cargo test --workspace` before pushing.
+
+## Sign your commits (DCO)
+
+Contributions are accepted under a [Developer Certificate of
+Origin](https://developercertificate.org/): a simple statement that you wrote the
+patch (or have the right to submit it) and agree it may ship under the project's
+licenses. Certify it by adding a `Signed-off-by` line to each commit, which `git`
+adds for you with `-s`:
+
+```sh
+git commit -s -m "Fix nested match lowering"
+```
+
+This produces a trailer like `Signed-off-by: Your Name <you@example.com>`. It
+keeps the project's IP provenance clean without a separate CLA to sign. By
+contributing, you agree your contribution is licensed under both the
+[MIT](../LICENSE-MIT) and [Apache-2.0](../LICENSE-APACHE) licenses, the same dual
+license as the project.
 
 ## Stability and scope
 

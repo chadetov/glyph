@@ -2471,6 +2471,19 @@ impl<'a> Emitter<'a> {
                 }
                 format!("({})", checks.join(" && "))
             }
+            // A string-literal union field validates by membership: the value
+            // must be one of the declared literals, not merely a string. This is
+            // the leaf-value check that a bare `string` cannot express.
+            TypeExpr::StringLiteralUnion { values, .. } => {
+                if values.is_empty() {
+                    return format!("typeof {access} === \"string\"");
+                }
+                let arms: Vec<String> = values
+                    .iter()
+                    .map(|v| format!("{access} === {}", escape_double_quoted(v)))
+                    .collect();
+                format!("({})", arms.join(" || "))
+            }
             _ => format!("{access} !== undefined"),
         }
     }
@@ -3386,6 +3399,13 @@ impl<'a> Emitter<'a> {
             }
             // The escape hatch emits its raw TypeScript verbatim; `tsc` checks it.
             TypeExpr::Extern { raw, .. } => raw.clone(),
+            // A string-literal union emits as the TS literal union, so `tsc`
+            // enforces the narrowed type at every use.
+            TypeExpr::StringLiteralUnion { values, .. } => values
+                .iter()
+                .map(|v| escape_double_quoted(v))
+                .collect::<Vec<_>>()
+                .join(" | "),
         })
     }
 }
@@ -3418,6 +3438,8 @@ fn type_mentions(te: &TypeExpr, name: &str) -> bool {
         // A generic parameter mentioned only inside raw TS is not tracked; the
         // escape hatch is opaque, so treat it as not mentioning the parameter.
         TypeExpr::Extern { .. } => false,
+        // String literals mention no type parameter.
+        TypeExpr::StringLiteralUnion { .. } => false,
     }
 }
 
@@ -3948,6 +3970,7 @@ fn type_mentions_infer_output(te: &TypeExpr) -> bool {
         }
         TypeExpr::Union { .. } => false,
         TypeExpr::Extern { .. } => false,
+        TypeExpr::StringLiteralUnion { .. } => false,
     }
 }
 
@@ -4949,6 +4972,20 @@ mod tests {
             "module x\nfn f() -> unknown {\n  return extern_ts(\"Date.now()\")\n}\n",
         );
         assert!(ts.contains("return (Date.now());"), "{ts}");
+    }
+
+    #[test]
+    fn string_literal_union_emits_ts_union_and_membership_check() {
+        let ts = emit(
+            "module x\ntype Account = { id: string, tier: \"free\" | \"pro\" }\n",
+        );
+        // The TS type is the literal union, so tsc enforces the narrowed type.
+        assert!(ts.contains(r#"tier: "free" | "pro""#), "{ts}");
+        // The descriptor checks membership on the field, not just `typeof`.
+        assert!(
+            ts.contains(r#".tier === "free" || (value as Record<string, unknown>).tier === "pro""#),
+            "{ts}"
+        );
     }
 
     #[test]

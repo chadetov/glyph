@@ -692,6 +692,8 @@ impl Resolver<'_> {
             // The escape hatch carries raw TypeScript; there are no Glyph names
             // inside it to resolve.
             TypeExpr::Extern { .. } => {}
+            // String literals carry no names to resolve.
+            TypeExpr::StringLiteralUnion { .. } => {}
         }
     }
 }

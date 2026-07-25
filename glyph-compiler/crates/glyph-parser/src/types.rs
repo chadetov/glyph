@@ -16,6 +16,16 @@ use crate::error::ParseError;
 pub(crate) fn parse_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     let first = parse_atom_type(p)?;
 
+    // Single-line string-literal union: `"free" | "pro"`. When the first atom is
+    // a string literal, the whole union is a literal set (mixing literals with
+    // named types is not supported in v1).
+    if matches!(first, TypeExpr::StringLiteralUnion { .. }) {
+        if matches!(p.peek(), Token::Pipe) {
+            return parse_string_literal_union(p, first);
+        }
+        return Ok(first);
+    }
+
     // Single-line tagged union: `A | B | C`. The first atom must be a
     // path-shape that can act as a variant name with optional payload.
     if matches!(p.peek(), Token::Pipe) {
@@ -35,6 +45,39 @@ pub(crate) fn parse_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     Ok(first)
 }
 
+/// Continue a single-line string-literal union after the first literal
+/// (`"free" | "pro" | ...`). Every `|`-separated member must be a string
+/// literal; a named type mixed in is a parse error (v1 supports pure literal
+/// unions only).
+fn parse_string_literal_union(p: &mut Cursor, first: TypeExpr) -> Result<TypeExpr, ParseError> {
+    let TypeExpr::StringLiteralUnion { mut values, span } = first else {
+        unreachable!("parse_string_literal_union called with a non-literal first atom");
+    };
+    let start = span.start;
+    let mut end = span.end;
+    while matches!(p.peek(), Token::Pipe) {
+        p.advance();
+        match p.peek().clone() {
+            Token::String(s) => {
+                end = p.peek_span().end;
+                p.advance();
+                values.push(glyph_lexer::resolve_escaped_dollars(&s).into_owned());
+            }
+            other => {
+                return Err(ParseError::Expected {
+                    expected: "a string literal (a string-literal union mixes only `\"...\"` members)",
+                    found: format!("{other:?}"),
+                    span: p.peek_span(),
+                })
+            }
+        }
+    }
+    Ok(TypeExpr::StringLiteralUnion {
+        values,
+        span: Span::new(start, end),
+    })
+}
+
 /// Parse the right-hand side of a `type X = ...` declaration. Recognizes the
 /// multi-line tagged union form (`type Y =\n  | A\n  | B`) per D8 in addition
 /// to whatever `parse_type` accepts.
@@ -44,6 +87,13 @@ pub(crate) fn parse_type_decl_body(p: &mut Cursor) -> Result<TypeExpr, ParseErro
         return parse_union_multiline(p);
     }
     let first = parse_atom_type(p)?;
+    // A string-literal union as a `type` body: `type Tier = "free" | "pro"`.
+    if matches!(first, TypeExpr::StringLiteralUnion { .. }) {
+        if matches!(p.peek(), Token::Pipe) {
+            return parse_string_literal_union(p, first);
+        }
+        return Ok(first);
+    }
     // A leading union variant that carries a payload has no `|` before it, so
     // `parse_type` would stop at the `(` and leave it unconsumed — the
     // `type X = Wrap({ inner: Inner }) | Empty` (or lone `type X = Wrap(P)`)
@@ -82,6 +132,17 @@ fn parse_atom_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
         Token::LBrace => parse_record_type(p),
         Token::Fn => parse_fn_type(p),
         Token::Identifier(_) | Token::Void => parse_path_type(p),
+        // A bare string literal in type position is a one-element string-literal
+        // union (`type X = "free"`); `parse_type` merges further `| "..."`.
+        Token::String(_) => {
+            let span = p.peek_span();
+            let Token::String(s) = p.peek().clone() else { unreachable!() };
+            p.advance();
+            Ok(TypeExpr::StringLiteralUnion {
+                values: vec![glyph_lexer::resolve_escaped_dollars(&s).into_owned()],
+                span,
+            })
+        }
         other => Err(ParseError::Expected {
             expected: "type expression",
             found: format!("{other:?}"),

@@ -110,6 +110,14 @@ fn extern_ts_expression_round_trips() {
 }
 
 #[test]
+fn string_literal_union_round_trips() {
+    let src = "module x\ntype Tier = \"free\" | \"pro\"\n";
+    let out = fmt(src);
+    assert!(out.contains("\"free\" | \"pro\""), "literal union preserved:\n{out}");
+    assert_eq!(fmt(&out), out, "string-literal-union format is not stable");
+}
+
+#[test]
 fn extern_ts_type_round_trips() {
     let src = "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n";
     let out = fmt(src);

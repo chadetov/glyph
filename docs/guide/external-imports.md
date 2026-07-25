@@ -246,9 +246,11 @@ match Customer.parse(webhook_body) {
 
 `Customer.parse` checks the value's structure deeply (nested records, arrays, and
 optional fields all the way down), so a structurally-malformed payload is an `Err`
-you handle, not a lie the type system waved through. It does not yet check leaf
-*values*: an `integer` field is validated as a number (so `3.5` passes), and a
-string enum as a `string`.
+you handle, not a lie the type system waved through. A string enum materializes as
+a string-literal union (`tier: "free" | "pro"`), so the descriptor checks
+*membership*: a `tier` of `"enterprise"` is rejected, not just any non-string. One
+leaf gap remains: a JSON-Schema `integer` field is validated as a number, so `3.5`
+passes (Glyph has one `number` type, no integer refinement).
 
 Generated wire types carry `@open`, so `Customer.parse` tolerates a field the API
 adds later (a forward-compatible change) while still validating every field it

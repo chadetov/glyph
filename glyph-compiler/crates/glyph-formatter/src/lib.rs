@@ -889,6 +889,16 @@ impl Printer {
                 self.push(&escape_string(raw));
                 self.push("\")");
             }
+            TypeExpr::StringLiteralUnion { values, .. } => {
+                for (i, v) in values.iter().enumerate() {
+                    if i > 0 {
+                        self.push(" | ");
+                    }
+                    self.push("\"");
+                    self.push(&escape_string(v));
+                    self.push("\"");
+                }
+            }
         }
     }
 

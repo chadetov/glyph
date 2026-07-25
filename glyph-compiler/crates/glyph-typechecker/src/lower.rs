@@ -114,6 +114,12 @@ impl<'a> Lowerer<'a> {
             // real emitted TypeScript, but Glyph neither reduces it nor gives it
             // a runtime descriptor.
             TypeExpr::Extern { .. } => Ty::Unknown,
+            // A string-literal union lowers to `string` in Glyph's own checker
+            // (permissive here); `tsc` enforces the narrowed literal type against
+            // the emitted TS, and a record field of this type gets a runtime
+            // membership check in its descriptor. Glyph-native exhaustiveness over
+            // the literal set is a follow-up.
+            TypeExpr::StringLiteralUnion { .. } => Ty::Prim(Primitive::String),
         }
     }
 

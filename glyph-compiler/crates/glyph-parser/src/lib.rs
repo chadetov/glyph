@@ -528,6 +528,27 @@ type FeedError =
     }
 
     #[test]
+    fn type_decl_string_literal_union() {
+        let m = parse_or_panic("module x\ntype Tier = \"free\" | \"pro\" | \"team\"\n");
+        match &m.items[0] {
+            glyph_ast::Decl::Type(t) => match &t.body {
+                glyph_ast::TypeExpr::StringLiteralUnion { values, .. } => {
+                    assert_eq!(values, &["free", "pro", "team"]);
+                }
+                other => panic!("expected StringLiteralUnion, got {other:?}"),
+            },
+            other => panic!("expected Type decl, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn string_literal_union_rejects_a_mixed_member() {
+        // A named type mixed into a string-literal union is a parse error (v1
+        // supports pure literal unions).
+        assert!(parse("module x\ntype Bad = \"a\" | SomeType\n").is_err());
+    }
+
+    #[test]
     fn type_decl_extern_ts_escape_hatch() {
         let m = parse_or_panic(
             "module x\ntype User = extern_ts(\"z.infer<typeof user_schema>\")\n",

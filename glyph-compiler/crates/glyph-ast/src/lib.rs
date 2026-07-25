@@ -598,6 +598,15 @@ pub enum TypeExpr {
         raw: String,
         span: Span,
     },
+    /// A union of string literals as a type (`"free" | "pro"`). A single literal
+    /// (`"free"`) is a one-element union. Emitted as the TypeScript literal union
+    /// (`tsc` enforces the narrowed type), and a record field of this type gets a
+    /// runtime membership check in its descriptor. Distinct from a D8 tagged
+    /// union, whose members are named constructors.
+    StringLiteralUnion {
+        values: Vec<String>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -743,7 +752,8 @@ impl TypeExpr {
             | TypeExpr::Fn { span, .. }
             | TypeExpr::Record { span, .. }
             | TypeExpr::Union { span, .. }
-            | TypeExpr::Extern { span, .. } => *span,
+            | TypeExpr::Extern { span, .. }
+            | TypeExpr::StringLiteralUnion { span, .. } => *span,
         }
     }
 }

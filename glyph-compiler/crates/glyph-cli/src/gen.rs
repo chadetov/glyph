@@ -16,13 +16,13 @@
 //! `field?: T`, `additionalProperties` → `Record<string, T>`, and object
 //! `allOf` merged into one record.
 //!
-//! Deliberately *narrowed* (with a reported note, never silently): a `string`
-//! `enum` becomes `string` — Glyph has no string-literal-union type, and mapping
-//! it to a tagged union would tag by constructor name (`{tag:"Red"}`) and reject
-//! the real wire value (`"red"`). `oneOf`/`anyOf` without a discriminator, and
-//! any construct we cannot represent faithfully, become `unknown` with a note.
-//! We would rather emit an honest `unknown` you can grep for than a validator
-//! that lies about the wire.
+//! A `string` `enum` materializes faithfully as a Glyph string-literal union
+//! (`"free" | "pro"`, D30), so the descriptor checks membership and `tsc`
+//! enforces the narrowed type. Deliberately *narrowed* (with a reported note,
+//! never silently): `oneOf`/`anyOf` without a discriminator, and any construct we
+//! cannot represent faithfully, become `unknown` with a note. We would rather
+//! emit an honest `unknown` you can grep for than a validator that lies about the
+//! wire.
 //!
 //! Output is assembled as Glyph source, then parsed and run through the
 //! canonical formatter — so the file is always `glyph fmt`-clean, regeneration
@@ -983,23 +983,11 @@ impl Generator {
             return format!("type {name} = unknown\n");
         }
 
-        // A string enum has no faithful Glyph representation; narrow to string.
-        if schema.get("enum").is_some() && type_of(schema) == Some("string") {
-            let vals = schema
-                .get("enum")
-                .and_then(|e| e.as_array())
-                .map(|a| {
-                    a.iter()
-                        .filter_map(|v| v.as_str())
-                        .map(|s| format!("\"{s}\""))
-                        .collect::<Vec<_>>()
-                        .join(" | ")
-                })
-                .unwrap_or_default();
-            self.note(format!(
-                "{name}: string enum narrowed to `string` (Glyph has no string-literal union); allowed values: {vals}."
-            ));
-            return format!("// enum: {vals}\ntype {name} = string\n");
+        // A string enum materializes as a Glyph string-literal union, so the
+        // descriptor checks membership (not just `string`) and `tsc` enforces
+        // the narrowed type.
+        if let Some(union) = string_enum_union(schema) {
+            return format!("type {name}{} = {union}\n", type_param_suffix(schema));
         }
 
         // Object with properties → record. A generic declaration keeps its
@@ -1145,10 +1133,10 @@ impl Generator {
     }
 
     fn type_ref_inner(&mut self, ctx: &str, schema: &Value) -> String {
-        // Inline enum in field position: narrow to the base primitive.
-        if schema.get("enum").is_some() && type_of(schema) == Some("string") {
-            self.note(format!("{ctx}: inline string enum narrowed to `string`."));
-            return "string".to_string();
+        // Inline string enum in field position → a string-literal union, so the
+        // field's descriptor checks membership rather than just `string`.
+        if let Some(union) = string_enum_union(schema) {
+            return union;
         }
 
         match type_of(schema) {
@@ -1216,6 +1204,22 @@ fn is_object(schema: &Value) -> bool {
 /// open, which is the default in both JSON Schema and a `.d.ts` interface.
 fn schema_is_closed(schema: &Value) -> bool {
     matches!(schema.get("additionalProperties"), Some(Value::Bool(false)))
+}
+
+/// Render a `type: string` schema with an `enum` as a Glyph string-literal union
+/// (`"free" | "pro"`), or `None` when it is not a string enum. Values are
+/// escaped so a literal containing a quote or backslash stays valid Glyph source.
+fn string_enum_union(schema: &Value) -> Option<String> {
+    if type_of(schema) != Some("string") {
+        return None;
+    }
+    let arr = schema.get("enum")?.as_array()?;
+    let parts: Vec<String> = arr
+        .iter()
+        .filter_map(|v| v.as_str())
+        .map(|s| format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"")))
+        .collect();
+    (!parts.is_empty()).then(|| parts.join(" | "))
 }
 
 /// The Glyph generic-parameter suffix for a declaration that carries
@@ -1859,12 +1863,26 @@ mod tests {
     }
 
     #[test]
-    fn string_enum_narrows_to_string_with_note() {
+    fn string_enum_becomes_a_string_literal_union() {
+        // A string enum materializes faithfully as a string-literal union (no
+        // longer narrowed to `string`), so the descriptor checks membership.
         let (out, notes) = gen_from(
             r#"{"definitions":{"Color":{"type":"string","enum":["red","green"]}}}"#,
         );
-        assert!(out.contains("type Color = string"), "got:\n{out}");
-        assert!(notes.iter().any(|n| n.contains("narrowed to `string`")), "notes: {notes:?}");
+        assert!(out.contains(r#"type Color = "red" | "green""#), "got:\n{out}");
+        assert!(
+            !notes.iter().any(|n| n.contains("narrowed")),
+            "no narrowing note now: {notes:?}"
+        );
+    }
+
+    #[test]
+    fn inline_string_enum_field_becomes_a_literal_union() {
+        let (out, _) = gen_from(
+            r#"{"definitions":{"Acct":{"type":"object","required":["tier"],
+               "properties":{"tier":{"type":"string","enum":["free","pro"]}}}}}"#,
+        );
+        assert!(out.contains(r#"tier: "free" | "pro""#), "got:\n{out}");
     }
 
     #[test]
@@ -1978,7 +1996,10 @@ mod tests {
                 assert!(text.contains("id: number,"), "got:\n{text}");
                 assert!(text.contains("nickname?: string,"), "got:\n{text}");
                 assert!(text.contains("tags: Array<string>,"), "got:\n{text}");
-                assert!(text.contains("kind: string,"), "enum narrowed; got:\n{text}");
+                assert!(
+                    text.contains("kind: \"free\" | \"paid\","),
+                    "string-literal union; got:\n{text}"
+                );
                 assert!(glyph_parser::parse(&text).is_ok());
             }
             Err(GenError::NodeMissing)

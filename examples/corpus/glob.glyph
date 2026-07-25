@@ -1,0 +1,247 @@
+// Pure-Glyph shell-glob matcher: `?` (one character), `*` (any run), `[...]`
+// character classes with ranges and `!` negation, and `\` escapes. Matching is
+// recursive with backtracking on `*`; character-class scanning is recursive
+// too. The only platform leaf is string.len; every character comes from `s[i]`
+// indexing and every branch is a `match`.
+module glob
+
+import std/string
+
+// Is `c` a member of the class body `pattern[i, end)` (the chars between `[` and
+// its closing `]`)? A `lo-hi` triple is an inclusive range; any other char is a
+// literal. Scans the body recursively.
+fn class_body_has(
+  pattern: string,
+  i: number,
+  end: number,
+  c: string,
+) -> bool {
+  return match i >= end {
+    true => false,
+    false => match i + 2 < end {
+      true => match pattern[i + 1] == "-" {
+        true => match lo_hi(
+          pattern[i],
+          pattern[i + 2],
+          c,
+        ) {
+          true => true,
+          false => class_body_has(
+            pattern,
+            i + 3,
+            end,
+            c,
+          ),
+        },
+        false => match pattern[i] == c {
+          true => true,
+          false => class_body_has(
+            pattern,
+            i + 1,
+            end,
+            c,
+          ),
+        },
+      },
+      false => match pattern[i] == c {
+        true => true,
+        false => class_body_has(
+          pattern,
+          i + 1,
+          end,
+          c,
+        ),
+      },
+    },
+  }
+}
+
+fn lo_hi(
+  lo: string,
+  hi: string,
+  c: string,
+) -> bool {
+  return match lo <= c {
+    true => c <= hi,
+    false => false,
+  }
+}
+
+// Index of the `]` closing a class that opened at `open` (the `[`), or -1 if the
+// class is never closed. A `]` in the first body position is a literal member,
+// so scanning starts one past it.
+fn class_end(pattern: string, open: number) -> number {
+  let first = match pattern[open + 1] == "!" {
+    true => open + 2,
+    false => open + 1,
+  }
+  return scan_close(pattern, match pattern[first] == "]" {
+    true => first + 1,
+    false => first,
+  })
+}
+
+fn scan_close(pattern: string, i: number) -> number {
+  return match i >= string.len(pattern) {
+    true => 0 - 1,
+    false => match pattern[i] == "]" {
+      true => i,
+      false => scan_close(pattern, i + 1),
+    },
+  }
+}
+
+// Does the class opening at `open` accept `c`? Handles a leading `!` negation.
+fn class_accepts(
+  pattern: string,
+  open: number,
+  end: number,
+  c: string,
+) -> bool {
+  return match pattern[open + 1] == "!" {
+    true => match class_body_has(
+      pattern,
+      open + 2,
+      end,
+      c,
+    ) {
+      true => false,
+      false => true,
+    },
+    false => class_body_has(
+      pattern,
+      open + 1,
+      end,
+      c,
+    ),
+  }
+}
+
+// Core matcher: does `pattern[pi..]` match `text[ti..]`?
+fn match_here(
+  pattern: string,
+  text: string,
+  pi: number,
+  ti: number,
+) -> bool {
+  let pn = string.len(pattern)
+  let tn = string.len(text)
+  return match pi >= pn {
+    true => ti >= tn,
+    false => match pattern[pi] {
+      "*" => match match_here(
+        pattern,
+        text,
+        pi + 1,
+        ti,
+      ) {
+        true => true,
+        false => match ti < tn {
+          true => match_here(
+            pattern,
+            text,
+            pi,
+            ti + 1,
+          ),
+          false => false,
+        },
+      },
+      "?" => match ti < tn {
+        true => match_here(
+          pattern,
+          text,
+          pi + 1,
+          ti + 1,
+        ),
+        false => false,
+      },
+      "[" => match_class(
+        pattern,
+        text,
+        pi,
+        ti,
+        pn,
+        tn,
+      ),
+      "\\" => match pi + 1 < pn {
+        true => match ti < tn {
+          true => match text[ti] == pattern[pi + 1] {
+            true => match_here(
+              pattern,
+              text,
+              pi + 2,
+              ti + 1,
+            ),
+            false => false,
+          },
+          false => false,
+        },
+        false => false,
+      },
+      else => match ti < tn {
+        true => match text[ti] == pattern[pi] {
+          true => match_here(
+            pattern,
+            text,
+            pi + 1,
+            ti + 1,
+          ),
+          false => false,
+        },
+        false => false,
+      },
+    },
+  }
+}
+
+fn match_class(
+  pattern: string,
+  text: string,
+  pi: number,
+  ti: number,
+  pn: number,
+  tn: number,
+) -> bool {
+  let end = class_end(pattern, pi)
+  return match end < 0 {
+    true => match ti < tn {
+      true => match text[ti] == "[" {
+        true => match_here(
+          pattern,
+          text,
+          pi + 1,
+          ti + 1,
+        ),
+        false => false,
+      },
+      false => false,
+    },
+    false => match ti < tn {
+      true => match class_accepts(
+        pattern,
+        pi,
+        end,
+        text[ti],
+      ) {
+        true => match_here(
+          pattern,
+          text,
+          end + 1,
+          ti + 1,
+        ),
+        false => false,
+      },
+      false => false,
+    },
+  }
+}
+
+// Does `text` match the glob `pattern` in full?
+pub fn matches(pattern: string, text: string) -> bool {
+  return match_here(
+    pattern,
+    text,
+    0,
+    0,
+  )
+}

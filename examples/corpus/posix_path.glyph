@@ -1,0 +1,181 @@
+// Pure-Glyph POSIX path logic: splitting, normalization that resolves `.` and
+// `..` over a segment stack, joining, and the dir/base/ext split. std/path
+// delegates every one of these to node; here the algorithm itself is Glyph,
+// with only std/string's split/len/join as leaves.
+module posix_path
+
+import std/string
+import std/option { Option, Some, None }
+
+// True when `p` is rooted at `/`.
+pub fn is_absolute(p: string) -> bool {
+  return string.starts_with(p, "/")
+}
+
+// Non-empty segments of `p`, dropping the empties that runs of `/` produce.
+pub fn segments(p: string) -> Array<string> {
+  let raw = string.split(p, "/")
+  let out = []
+  for s in raw {
+    match string.len(s) == 0 {
+      true => {},
+      false => {
+        mut out.push(s)
+      },
+    }
+  }
+  return out
+}
+
+// Fold one segment into a reversed accumulator (head = most recent segment),
+// resolving `.` and `..`. `absolute` decides whether a leading `..` survives.
+fn step(
+  acc: Array<string>,
+  seg: string,
+  absolute: bool,
+) -> Array<string> {
+  return match seg == "." {
+    true => acc,
+    false => match seg == ".." {
+      true => match acc {
+        [] => match absolute {
+          true => [],
+          false => [".."],
+        },
+        [top, ...rest] => match top == ".." {
+          true => [seg, ...acc],
+          false => rest,
+        },
+      },
+      false => [seg, ...acc],
+    },
+  }
+}
+
+// Reduce the segment list to its resolved reversed stack.
+fn resolve(
+  segs: Array<string>,
+  acc: Array<string>,
+  absolute: bool,
+) -> Array<string> {
+  return match segs {
+    [] => acc,
+    [head, ...rest] => resolve(
+      rest,
+      step(
+        acc,
+        head,
+        absolute,
+      ),
+      absolute,
+    ),
+  }
+}
+
+// Reverse a list, threading an accumulator.
+fn rev(xs: Array<string>, acc: Array<string>) -> Array<string> {
+  return match xs {
+    [] => acc,
+    [head, ...tail] => rev(tail, [head, ...acc]),
+  }
+}
+
+// Normalize `p`: collapse `.`, resolve `..`, and squeeze repeated separators,
+// preserving whether the path is absolute. Works on segments, so a trailing
+// separator is dropped (node's `path.posix.normalize` keeps it); every other
+// resolution matches node.
+pub fn normalize(p: string) -> string {
+  let absolute = is_absolute(p)
+  let stack = rev(resolve(
+    segments(p),
+    [],
+    absolute,
+  ), [])
+  let body = string.join(stack, "/")
+  return match absolute {
+    true => "/" + body,
+    false => match string.len(body) == 0 {
+      true => ".",
+      false => body,
+    },
+  }
+}
+
+// Join path parts with `/` and normalize the result.
+pub fn join(parts: Array<string>) -> string {
+  return normalize(string.join(parts, "/"))
+}
+
+// The last segment of `p`, or "" when there is none.
+pub fn basename(p: string) -> string {
+  let segs = segments(p)
+  let last = rev(segs, [])
+  return match last {
+    [] => "",
+    [head, ...rest] => head,
+  }
+}
+
+// Everything above the last segment. Absolute paths keep their root.
+pub fn dirname(p: string) -> string {
+  let segs = segments(p)
+  let reversed = rev(segs, [])
+  let parents = match reversed {
+    [] => [],
+    [head, ...rest] => rev(rest, []),
+  }
+  let body = string.join(parents, "/")
+  return match is_absolute(p) {
+    true => "/" + body,
+    false => match string.len(body) == 0 {
+      true => ".",
+      false => body,
+    },
+  }
+}
+
+// The last `.`-delimited suffix of `basename(p)`, including the dot, or "".
+// A leading-dot name (".gitignore") has no extension, matching node.
+fn last_dot(
+  s: string,
+  i: number,
+  best: Option<number>,
+) -> Option<number> {
+  return match i >= string.len(s) {
+    true => best,
+    false => match s[i] == "." {
+      true => last_dot(
+        s,
+        i + 1,
+        Some(i),
+      ),
+      false => last_dot(
+        s,
+        i + 1,
+        best,
+      ),
+    },
+  }
+}
+
+fn from_index(s: string, i: number) -> string {
+  return match i >= string.len(s) {
+    true => "",
+    false => s[i] + from_index(s, i + 1),
+  }
+}
+
+pub fn extname(p: string) -> string {
+  let base = basename(p)
+  return match last_dot(
+    base,
+    0,
+    None,
+  ) {
+    None => "",
+    Some(k) => match k == 0 {
+      true => "",
+      false => from_index(base, k),
+    },
+  }
+}

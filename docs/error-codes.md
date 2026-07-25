@@ -41,10 +41,17 @@ below.
 | `E0106` | Unused import (warning) |
 | `E0107` | Unused variable binding (warning) |
 | `E0108` | Unreachable code after `return`/`break`/`continue` (warning) |
+| `E0109` | A TypeScript reserved word (`class`, `new`, `switch`, `eval`, ...) used as a declaration, parameter, or binding name |
 
 `E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
 build output but never fail the build or block emission. `E0107` exempts names
 led by `_` (the conventional "intentionally unused" marker).
+
+`E0109` is an error: Glyph permits these words as identifiers (they are not
+Glyph keywords), but they cannot name a binding in the emitted TypeScript, so
+Glyph rejects them at the source instead of letting `tsc` fail on generated
+code. Only binding positions are checked; object keys, record fields, and
+member access (`{ default: v }`, `x.new`) are unaffected.
 
 ### Typechecker — `E02xx`
 

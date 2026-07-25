@@ -192,6 +192,14 @@ impl CollectCtx<'_> {
     /// their `pub` status; imported bindings are never public (they re-bind
     /// another module's name and are not re-exported, D15).
     fn intern_vis(&mut self, name: Ident, span: Span, kind: SymbolKind, is_public: bool) {
+        // Glyph permits TS reserved words as identifiers, but they emit an
+        // illegal TS binding name. Reject them here (D: stricter than TS).
+        if crate::reserved::is_reserved_ts_word(name.as_ref()) {
+            self.errors.push(ResolveError::ReservedWordName {
+                name: name.to_string(),
+                span,
+            });
+        }
         let id = self.table.intern(Symbol {
             name: name.clone(),
             kind,
@@ -322,6 +330,43 @@ fn add(a: number, b: number) -> number { return a + b }
             collect_module_symbols(&m).is_ok(),
             "an empty module must not be flagged as a barrel file"
         );
+    }
+
+    #[test]
+    fn reserved_word_fn_name_is_rejected() {
+        // `switch` is a TS reserved word Glyph's lexer permits as an identifier;
+        // emitting `function switch()` would fail `tsc`, so reject it here.
+        let m = parse("module x\nfn switch() {}\n").unwrap();
+        let errs = collect_module_symbols(&m).expect_err("expected a reserved-word error");
+        assert!(
+            errs.iter().any(
+                |e| matches!(e, ResolveError::ReservedWordName { name, .. } if name == "switch")
+            ),
+            "errors were: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn reserved_word_type_and_variant_names_are_rejected() {
+        let src = "module x\ntype new = | delete | Ok({ v: number })\n";
+        let m = parse(src).unwrap();
+        let errs = collect_module_symbols(&m).expect_err("expected reserved-word errors");
+        // The type name `new` and the variant name `delete` are both reserved.
+        for bad in ["new", "delete"] {
+            assert!(
+                errs.iter().any(
+                    |e| matches!(e, ResolveError::ReservedWordName { name, .. } if name == bad)
+                ),
+                "missing reserved-word error for `{bad}`; errors were: {errs:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn ordinary_names_are_not_flagged_as_reserved() {
+        let s = collect("module x\nfn evaluate() {}\nfn klass() {}\n");
+        assert!(s.lookup("evaluate").is_some());
+        assert!(s.lookup("klass").is_some());
     }
 
     #[test]

@@ -27,6 +27,7 @@ mod error;
 mod lints;
 mod module_graph;
 mod prelude;
+mod reserved;
 mod resolve;
 mod symbol;
 

@@ -87,17 +87,19 @@
 //! non-constructor patterns inside a constructor or array arm, and `is` checks
 //! on union/generic/imported types.
 //!
-//! ## Known gap: reserved-word identifiers
+//! ## Reserved-word identifiers (handled upstream)
 //!
-//! Glyph's lexer permits TS reserved words (`class`, `default`, `new`, ...) as
-//! soft-keyword identifiers, and this emitter copies a binding/parameter/import
-//! name (a tagged-union variant's constructor name, and a record type's
-//! descriptor `const` name) verbatim, so such a name produces TS that `tsc`
-//! rejects. (Object keys, record fields, and member access are safe — only
-//! binding positions break.)
-//! The right fix is a resolver-level "stricter-than-TS" rule that rejects TS
-//! reserved words as identifier names, not emit-time mangling (which would
-//! break import name matching). Tracked for a later day; no example trips it.
+//! Glyph's lexer permits TS reserved words (`class`, `default`, `new`, `eval`,
+//! ...) as soft-keyword identifiers, and this emitter copies a binding /
+//! parameter / import name (a tagged-union variant's constructor name, and a
+//! record type's descriptor `const` name) verbatim, so such a name would reach
+//! `tsc` in a binding position where it is illegal. (Object keys, record
+//! fields, and member access are safe — only binding positions break.)
+//! The resolver now rejects these at the source with `E0109`
+//! (`glyph-resolver`'s `reserved` module, checked in `collect`'s `intern_vis`
+//! and `resolve`'s `bind_local`), so no reserved word reaches emit — the
+//! "stricter-than-TS" fix, not emit-time mangling (which would break
+//! import-name matching across modules).
 //!
 //! One more gap in the same family, fixed once type context is threaded into
 //! the emitter (or by a resolver rule):

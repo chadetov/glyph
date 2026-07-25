@@ -165,6 +165,7 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::UnusedImport { .. } => "lint",
         ResolveError::UnusedBinding { .. } => "lint",
         ResolveError::UnreachableCode { .. } => "lint",
+        ResolveError::ReservedWordName { .. } => "collect",
     }
 }
 

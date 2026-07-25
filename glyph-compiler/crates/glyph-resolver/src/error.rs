@@ -59,6 +59,14 @@ pub enum ResolveError {
     /// `continue` earlier in the same block always leaves it first.
     #[error("unreachable code")]
     UnreachableCode { span: Span },
+
+    /// A declaration, parameter, or binding named with a TypeScript reserved
+    /// word that Glyph's lexer does not itself reserve (e.g. `class`, `new`,
+    /// `switch`, `eval`). Such a name would emit a TS binding identifier that
+    /// `tsc` rejects, so Glyph forbids it at the source. `span` points at the
+    /// name.
+    #[error("`{name}` is a reserved word and cannot be used as a name")]
+    ReservedWordName { name: String, span: Span },
 }
 
 /// A diagnostic's severity. Mirrors the typechecker's `Severity`; the resolver
@@ -82,6 +90,7 @@ impl ResolveError {
             ResolveError::UnusedImport { span, .. } => *span,
             ResolveError::UnusedBinding { span, .. } => *span,
             ResolveError::UnreachableCode { span } => *span,
+            ResolveError::ReservedWordName { span, .. } => *span,
         }
     }
 
@@ -108,6 +117,7 @@ impl ResolveError {
             ResolveError::UnusedImport { .. } => "E0106",
             ResolveError::UnusedBinding { .. } => "E0107",
             ResolveError::UnreachableCode { .. } => "E0108",
+            ResolveError::ReservedWordName { .. } => "E0109",
         }
     }
 
@@ -175,6 +185,9 @@ impl ResolveError {
             }
             ResolveError::UnreachableCode { .. } => {
                 "Remove it, or move the earlier `return`/`break`/`continue` so this can run."
+            }
+            ResolveError::ReservedWordName { .. } => {
+                "Rename it. Glyph permits this word as an identifier but TypeScript reserves it, so it cannot name a declaration, parameter, or binding (e.g. `class` -> `klass`, `new` -> `create`)."
             }
         })
     }

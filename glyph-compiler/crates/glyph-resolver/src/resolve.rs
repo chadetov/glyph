@@ -250,6 +250,16 @@ impl Resolver<'_> {
     }
 
     fn bind_local(&mut self, name: Ident, def_span: Span) {
+        // A local binding (param, generic, `let`, `for`/match binding, lambda
+        // param) also emits a TS binding identifier, so a TS reserved word is
+        // illegal here too (D: stricter than TS). Report but still bind, so
+        // downstream references resolve and don't pile on unresolved-name noise.
+        if crate::reserved::is_reserved_ts_word(name.as_ref()) {
+            self.errors.push(ResolveError::ReservedWordName {
+                name: name.to_string(),
+                span: def_span,
+            });
+        }
         if let Some(top) = self.scopes.last_mut() {
             top.insert(name, def_span.start);
         }
@@ -743,6 +753,40 @@ mod tests {
         let syms = collect_module_symbols(&m).expect("collect failed");
         let prelude = build_prelude();
         resolve_module(&m, syms, &prelude)
+    }
+
+    #[test]
+    fn reserved_word_param_is_rejected() {
+        // The fn name is fine; the parameter `new` is a TS reserved word that
+        // would emit an illegal binding, so `bind_local` rejects it.
+        let (_, errs) = resolve("module x\nfn f(new: number) -> number { return new }\n");
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, ResolveError::ReservedWordName { name, .. } if name == "new")),
+            "errors were: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn reserved_word_let_binding_is_rejected() {
+        let (_, errs) = resolve("module x\nfn f() -> number {\n  let class = 1\n  return class\n}\n");
+        assert!(
+            errs.iter().any(
+                |e| matches!(e, ResolveError::ReservedWordName { name, .. } if name == "class")
+            ),
+            "errors were: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn ordinary_local_bindings_are_not_flagged() {
+        let (_, errs) = resolve("module x\nfn f(value: number) -> number {\n  let total = value\n  return total\n}\n");
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, ResolveError::ReservedWordName { .. })),
+            "errors were: {errs:?}"
+        );
     }
 
     #[test]

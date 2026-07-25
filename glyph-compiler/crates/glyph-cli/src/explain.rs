@@ -89,6 +89,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             leaves it first, so the statements after it cannot run.\n\n\
             Remove the dead statements, or move the terminator so they can run. \
             This is a warning — it does not fail the build.",
+        "E0109" => "E0109: reserved word used as a name\n\n\
+            Glyph's keyword set is smaller than TypeScript's, so a word like \
+            `class`, `new`, `switch`, `default`, `typeof`, `static`, `eval`, or \
+            `arguments` lexes as an ordinary identifier. Glyph compiles to \
+            TypeScript, and these words cannot name a `function`, `const`, \
+            parameter, or local binding in the emitted code, so Glyph rejects \
+            them at the source rather than let `tsc` fail on generated code.\n\n\
+            This only affects names in a binding position. Object keys, record \
+            fields, and member access are unaffected (`{ default: v }` and \
+            `x.new` are fine).\n\n\
+            Rename the declaration or binding, e.g. `class` -> `klass`, \
+            `new` -> `create`, `switch` -> `select`.",
 
         // ----- typechecker (E02xx) -----
         "E0200" => "E0200: non-exhaustive match\n\n\
@@ -221,7 +233,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
 /// Every code that `explain` documents, for the catalogue test and tooling.
 pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0100", "E0101", "E0102", "E0103", "E0104",
-    "E0105", "E0106", "E0107", "E0108", "E0200", "E0201", "E0202", "E0203", "E0204", "E0205",
+    "E0105", "E0106", "E0107", "E0108", "E0109", "E0200", "E0201", "E0202", "E0203", "E0204",
+    "E0205",
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0218", "E0219", "E0300", "E0310",
 ];

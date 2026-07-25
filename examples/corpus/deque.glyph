@@ -1,0 +1,121 @@
+// Pure-Glyph immutable double-ended queue, the value-oriented cousin of the
+// mutable `std/collections` Deque. No platform leaves: just generics, records,
+// Option, array-pattern recursion, and nested match. A deque is two lists whose
+// logical sequence is `front` followed by the reverse of `back`, so a push or
+// peek at either end touches only one list's head.
+module deque
+
+import std/option { Option, Some, None }
+
+// The two-list representation. `front` runs head-first; `back` runs tail-first
+// (its head is the deque's last element). Either list may be empty.
+pub type Deque<T> = { front: Array<T>, back: Array<T> }
+
+// The outcome of removing an end: the removed value and the smaller deque.
+pub type Pop<T> = { value: T, rest: Deque<T> }
+
+// An empty deque.
+pub fn empty<T>() -> Deque<T> {
+  return { front: [], back: [] }
+}
+
+// Reverse a list by threading a fold over an accumulator.
+fn rev<T>(xs: Array<T>, acc: Array<T>) -> Array<T> {
+  return match xs {
+    [] => acc,
+    [head, ...tail] => rev(tail, [head, ...acc]),
+  }
+}
+
+pub fn reverse<T>(xs: Array<T>) -> Array<T> {
+  return rev(xs, [])
+}
+
+// Build a deque from a list, head-first.
+pub fn from_array<T>(xs: Array<T>) -> Deque<T> {
+  return { front: xs, back: [] }
+}
+
+// The logical sequence, head to tail.
+pub fn to_array<T>(dq: Deque<T>) -> Array<T> {
+  return concat(dq.front, reverse(dq.back))
+}
+
+// Append two lists (used to flatten the two-list view).
+fn concat<T>(a: Array<T>, b: Array<T>) -> Array<T> {
+  return match a {
+    [] => b,
+    [head, ...tail] => [head, ...concat(tail, b)],
+  }
+}
+
+// Number of elements.
+pub fn len<T>(dq: Deque<T>) -> number {
+  return count(dq.front) + count(dq.back)
+}
+
+fn count<T>(xs: Array<T>) -> number {
+  return match xs {
+    [] => 0,
+    [_first, ...tail] => 1 + count(tail),
+  }
+}
+
+pub fn is_empty<T>(dq: Deque<T>) -> bool {
+  return match dq.front {
+    [_h, ..._t] => false,
+    [] => match dq.back {
+      [_h, ..._t] => false,
+      [] => true,
+    },
+  }
+}
+
+// Add to the head end.
+pub fn push_front<T>(dq: Deque<T>, value: T) -> Deque<T> {
+  return { front: [value, ...dq.front], back: dq.back }
+}
+
+// Add to the tail end.
+pub fn push_back<T>(dq: Deque<T>, value: T) -> Deque<T> {
+  return { front: dq.front, back: [value, ...dq.back] }
+}
+
+// Remove from the head end. When `front` is empty the deque is rebalanced by
+// reversing `back` into a fresh `front`.
+pub fn pop_front<T>(dq: Deque<T>) -> Option<Pop<T>> {
+  return match dq.front {
+    [head, ...tail] => Some({ value: head, rest: { front: tail, back: dq.back } }),
+    [] => match reverse(dq.back) {
+      [] => None,
+      [head, ...tail] => Some({ value: head, rest: { front: tail, back: [] } }),
+    },
+  }
+}
+
+// Remove from the tail end, the mirror of `pop_front`.
+pub fn pop_back<T>(dq: Deque<T>) -> Option<Pop<T>> {
+  return match dq.back {
+    [head, ...tail] => Some({ value: head, rest: { front: dq.front, back: tail } }),
+    [] => match reverse(dq.front) {
+      [] => None,
+      [head, ...tail] => Some({ value: head, rest: { front: [], back: tail } }),
+    },
+  }
+}
+
+// The head element without removing it.
+pub fn peek_front<T>(dq: Deque<T>) -> Option<T> {
+  return match pop_front(dq) {
+    Some(p) => Some(p.value),
+    None => None,
+  }
+}
+
+// The tail element without removing it.
+pub fn peek_back<T>(dq: Deque<T>) -> Option<T> {
+  return match pop_back(dq) {
+    Some(p) => Some(p.value),
+    None => None,
+  }
+}

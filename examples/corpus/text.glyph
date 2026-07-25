@@ -1,0 +1,272 @@
+// Pure-Glyph string algorithms: substring search, slicing, replace-all,
+// splitting and joining, occurrence counting, and Levenshtein edit distance.
+// The only platform leaf is string.len; every character comes from `s[i]`
+// indexing and every result is built with `+` and recursion in Glyph.
+module text
+
+import std/string
+import std/array
+import std/math
+import std/option { Option, Some, None }
+
+// The character at index `i`, or None when out of range.
+pub fn char_at(s: string, i: number) -> Option<string> {
+  return match i < 0 {
+    true => None,
+    false => match i >= string.len(s) {
+      true => None,
+      false => Some(s[i]),
+    },
+  }
+}
+
+// The substring `s[start, end)`, threaded character by character. Out-of-range
+// endpoints are clamped to the string.
+pub fn slice(
+  s: string,
+  start: number,
+  end: number,
+) -> string {
+  let lo = math.max(start, 0)
+  let hi = math.min(end, string.len(s))
+  return match lo >= hi {
+    true => "",
+    false => s[lo] + slice(
+      s,
+      lo + 1,
+      hi,
+    ),
+  }
+}
+
+// Character-by-character comparison of `needle[j..]` against `hay[pos + j..]`.
+fn matches_from(
+  hay: string,
+  needle: string,
+  pos: number,
+  j: number,
+) -> bool {
+  return match j >= string.len(needle) {
+    true => true,
+    false => match pos + j >= string.len(hay) {
+      true => false,
+      false => match hay[pos + j] == needle[j] {
+        true => matches_from(
+          hay,
+          needle,
+          pos,
+          j + 1,
+        ),
+        false => false,
+      },
+    },
+  }
+}
+
+// First index at or after `start` where `needle` occurs, or None. An empty
+// needle matches at `start`.
+pub fn find_from(
+  hay: string,
+  needle: string,
+  start: number,
+) -> Option<number> {
+  return match string.len(needle) == 0 {
+    true => Some(start),
+    false => match start + string.len(needle) > string.len(hay) {
+      true => None,
+      false => match matches_from(
+        hay,
+        needle,
+        start,
+        0,
+      ) {
+        true => Some(start),
+        false => find_from(
+          hay,
+          needle,
+          start + 1,
+        ),
+      },
+    },
+  }
+}
+
+// First index of `needle` in `hay`, or None.
+pub fn find(hay: string, needle: string) -> Option<number> {
+  return find_from(
+    hay,
+    needle,
+    0,
+  )
+}
+
+// Is `needle` anywhere in `hay`?
+pub fn contains(hay: string, needle: string) -> bool {
+  return match find(hay, needle) {
+    Some(_) => true,
+    None => false,
+  }
+}
+
+// Count of non-overlapping occurrences of `needle` in `hay`.
+pub fn count(hay: string, needle: string) -> number {
+  return match string.len(needle) == 0 {
+    true => 0,
+    false => count_from(
+      hay,
+      needle,
+      0,
+    ),
+  }
+}
+
+fn count_from(
+  hay: string,
+  needle: string,
+  start: number,
+) -> number {
+  return match find_from(
+    hay,
+    needle,
+    start,
+  ) {
+    None => 0,
+    Some(k) => {
+      let next = k + string.len(needle)
+      return 1 + count_from(
+        hay,
+        needle,
+        next,
+      )
+    },
+  }
+}
+
+// Replace every non-overlapping occurrence of `needle` with `repl`. An empty
+// needle is returned unchanged (no infinite splitting).
+pub fn replace_all(
+  hay: string,
+  needle: string,
+  repl: string,
+) -> string {
+  return match string.len(needle) == 0 {
+    true => hay,
+    false => match find(hay, needle) {
+      None => hay,
+      Some(k) => {
+        let head = slice(
+          hay,
+          0,
+          k,
+        )
+        let tail = slice(
+          hay,
+          k + string.len(needle),
+          string.len(hay),
+        )
+        return head + repl + replace_all(
+          tail,
+          needle,
+          repl,
+        )
+      },
+    },
+  }
+}
+
+// Split `s` on every occurrence of `sep` into an array of pieces. A non-empty
+// separator yields `count(s, sep) + 1` pieces (some may be empty).
+pub fn split_on(s: string, sep: string) -> Array<string> {
+  return match string.len(sep) == 0 {
+    true => [s],
+    false => match find(s, sep) {
+      None => [s],
+      Some(k) => {
+        let head = slice(
+          s,
+          0,
+          k,
+        )
+        let tail = slice(
+          s,
+          k + string.len(sep),
+          string.len(s),
+        )
+        return [head, ...split_on(tail, sep)]
+      },
+    },
+  }
+}
+
+// Join `parts` with `sep` between each, folding the pieces in order.
+pub fn join(parts: Array<string>, sep: string) -> string {
+  return match parts {
+    [] => "",
+    [head, ...rest] => match rest {
+      [] => head,
+      [_, ..._] => head + sep + join(rest, sep),
+    },
+  }
+}
+
+// The words of `s`: split on single spaces, then drop the empty pieces that
+// runs of spaces produce.
+pub fn words(s: string) -> Array<string> {
+  let pieces = split_on(s, " ")
+  return array.filter(pieces, fn(w: string) -> bool { string.len(w) > 0 })
+}
+
+// Levenshtein edit distance between `a` and `b`: the minimum single-character
+// insertions, deletions, and substitutions to turn one into the other. The
+// classic recurrence, expressed over the string tails by index.
+pub fn levenshtein(a: string, b: string) -> number {
+  return lev(
+    a,
+    b,
+    0,
+    0,
+  )
+}
+
+fn lev(
+  a: string,
+  b: string,
+  i: number,
+  j: number,
+) -> number {
+  return match i >= string.len(a) {
+    true => string.len(b) - j,
+    false => match j >= string.len(b) {
+      true => string.len(a) - i,
+      false => match a[i] == b[j] {
+        true => lev(
+          a,
+          b,
+          i + 1,
+          j + 1,
+        ),
+        false => {
+          let del = lev(
+            a,
+            b,
+            i + 1,
+            j,
+          )
+          let ins = lev(
+            a,
+            b,
+            i,
+            j + 1,
+          )
+          let sub = lev(
+            a,
+            b,
+            i + 1,
+            j + 1,
+          )
+          return 1 + math.min(math.min(del, ins), sub)
+        },
+      },
+    },
+  }
+}

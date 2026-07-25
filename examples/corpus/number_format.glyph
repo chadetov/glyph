@@ -1,0 +1,168 @@
+// Pure-Glyph number/string formatting: integer-to-base conversion, padding,
+// thousands grouping, and fixed-point decimals. The only platform leaves are
+// math.abs/floor/round and string.len; everything else is branching,
+// recursion, and `+` string building expressed in Glyph.
+module number_format
+
+import std/math
+import std/string
+import std/option { Option, Some, None }
+
+// One base digit (0..35). `table[i]` indexes the digit string.
+fn digit(i: number) -> string {
+  let table = "0123456789abcdefghijklmnopqrstuvwxyz"
+  return table[i]
+}
+
+// Unsigned integer `n` (>= 0) in `base` (2..36), most significant digit first.
+fn to_base_unsigned(n: number, base: number) -> string {
+  let d = math.floor(n % base)
+  let rest = math.floor(n / base)
+  return match rest == 0 {
+    true => digit(d),
+    false => to_base_unsigned(rest, base) + digit(d),
+  }
+}
+
+// Signed integer to a base-`base` string, with a leading `-` for negatives.
+pub fn to_base(n: number, base: number) -> string {
+  let m = math.floor(math.abs(n))
+  return match n < 0 {
+    true => "-" + to_base_unsigned(m, base),
+    false => to_base_unsigned(m, base),
+  }
+}
+
+// Left-pad `s` with the single char `fill` until at least `width` wide.
+pub fn pad_left(
+  s: string,
+  width: number,
+  fill: string,
+) -> string {
+  return match string.len(s) >= width {
+    true => s,
+    false => pad_left(
+      fill + s,
+      width,
+      fill,
+    ),
+  }
+}
+
+// Characters of `s` from index `i` to the end, threaded so no slice is needed.
+fn from_index(s: string, i: number) -> string {
+  return match i >= string.len(s) {
+    true => "",
+    false => s[i] + from_index(s, i + 1),
+  }
+}
+
+// Characters of `s` in `[0, end)`.
+fn upto(s: string, end: number) -> string {
+  return match end <= 0 {
+    true => "",
+    false => upto(s, end - 1) + s[end - 1],
+  }
+}
+
+// First index of the single char `needle` in `hay`, or None.
+fn index_of(
+  hay: string,
+  needle: string,
+  i: number,
+) -> Option<number> {
+  return match i >= string.len(hay) {
+    true => None,
+    false => match hay[i] == needle {
+      true => Some(i),
+      false => index_of(
+        hay,
+        needle,
+        i + 1,
+      ),
+    },
+  }
+}
+
+// Group `rev` (a reversed digit string) with a comma every three digits.
+fn group_reversed(rev: string, i: number) -> string {
+  return match i >= string.len(rev) {
+    true => "",
+    false => {
+      let sep = match i > 0 {
+        true => match i % 3 == 0 {
+          true => ",",
+          false => "",
+        },
+        false => "",
+      }
+      return sep + rev[i] + group_reversed(rev, i + 1)
+    },
+  }
+}
+
+// Reverse a string character by character.
+fn reverse_str(s: string) -> string {
+  let n = string.len(s)
+  return match n == 0 {
+    true => "",
+    false => s[n - 1] + reverse_str(upto(s, n - 1)),
+  }
+}
+
+// Add thousands separators to the integer part of a decimal string, preserving
+// a leading sign and any `.fraction` tail.
+pub fn group_thousands(s: string) -> string {
+  let neg = string.starts_with(s, "-")
+  let body = match neg {
+    true => from_index(s, 1),
+    false => s,
+  }
+  let dot = index_of(
+    body,
+    ".",
+    0,
+  )
+  let int_part = match dot {
+    Some(k) => upto(body, k),
+    None => body,
+  }
+  let frac_part = match dot {
+    Some(k) => from_index(body, k),
+    None => "",
+  }
+  let grouped = reverse_str(group_reversed(reverse_str(int_part), 0))
+  let sign = match neg {
+    true => "-",
+    false => "",
+  }
+  return sign + grouped + frac_part
+}
+
+// 10 ^ n for n >= 0.
+fn pow10(n: number) -> number {
+  return match n <= 0 {
+    true => 1,
+    false => 10 * pow10(n - 1),
+  }
+}
+
+// Fixed-point decimal: round `x` to `decimals` places and render with a dot.
+pub fn fixed(x: number, decimals: number) -> string {
+  let scale = pow10(decimals)
+  let scaled = math.round(math.abs(x) * scale)
+  let whole = math.floor(scaled / scale)
+  let frac = math.floor(scaled % scale)
+  let sign = match x < 0 {
+    true => "-",
+    false => "",
+  }
+  return match decimals <= 0 {
+    true => sign + to_base(whole, 10),
+    false => sign + to_base(whole, 10) + "." + pad_left(
+      to_base(frac, 10),
+      decimals,
+      "0",
+    ),
+  }
+}

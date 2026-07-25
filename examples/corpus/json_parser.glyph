@@ -1,0 +1,535 @@
+// Pure-Glyph recursive-descent JSON parser: the reading half of the JSON story
+// (`json_value` is the writing half). It turns source text into the same `Json`
+// tagged union `json_value` serializes, threading a character index by value
+// and reporting the first error as a `Result` `Err`. Numbers are built digit by
+// digit (integer, fraction, and exponent), strings decode the short escapes,
+// and arrays and objects recurse. The only platform leaves are string.len and
+// string.from (number-to-text for error offsets); character dispatch,
+// tokenizing, and every branch are Glyph. `\uXXXX` and the `\b`/`\f` escapes are
+// out of scope: they need a codepoint-to-string leaf this file deliberately
+// avoids.
+module json_parser
+
+import std/string
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+
+// The six JSON value forms as a recursive tagged union, matching `json_value`.
+pub type Json =
+  | JNull
+  | JBool({ value: bool })
+  | JNum({ value: number })
+  | JStr({ value: string })
+  | JArr({ items: Array<Json> })
+  | JObj({ entries: Array<Entry> })
+
+// One object member: an ordered, duplicate-tolerant key/value pair.
+pub type Entry = { key: string, value: Json }
+
+// A parsed value and the index just past it. Every parser returns its result
+// paired with the position to resume from, so the caller threads no mutable
+// cursor.
+type VParsed = { value: Json, pos: number }
+
+// A decoded string body and the index just past the closing quote.
+type SParsed = { text: string, pos: number }
+
+// A parsed numeric value and the resume index.
+type NumPart = { value: number, pos: number }
+
+// A run of digits read as an integer, how many there were (for fraction
+// scaling), and the resume index.
+type DigitsRead = {
+  value: number,
+  count: number,
+  pos: number,
+}
+
+// The four JSON whitespace characters.
+fn is_ws(c: string) -> bool {
+  return match c {
+    " " => true,
+    "\n" => true,
+    "\r" => true,
+    "\t" => true,
+    else => false,
+  }
+}
+
+// Advance past any run of whitespace starting at `i`.
+fn skip_ws(s: string, i: number) -> number {
+  return match i >= string.len(s) {
+    true => i,
+    false => match is_ws(s[i]) {
+      true => skip_ws(s, i + 1),
+      false => i,
+    },
+  }
+}
+
+fn is_digit(c: string) -> bool {
+  return match c {
+    "0" => true,
+    "1" => true,
+    "2" => true,
+    "3" => true,
+    "4" => true,
+    "5" => true,
+    "6" => true,
+    "7" => true,
+    "8" => true,
+    "9" => true,
+    else => false,
+  }
+}
+
+// The numeric value of a single decimal digit character.
+fn digit_val(c: string) -> number {
+  return match c {
+    "0" => 0,
+    "1" => 1,
+    "2" => 2,
+    "3" => 3,
+    "4" => 4,
+    "5" => 5,
+    "6" => 6,
+    "7" => 7,
+    "8" => 8,
+    "9" => 9,
+    else => 0,
+  }
+}
+
+// Ten raised to a non-negative integer power, by recursion.
+fn pow10(n: number) -> number {
+  return match n <= 0 {
+    true => 1,
+    false => 10 * pow10(n - 1),
+  }
+}
+
+// Read a maximal run of digits from `i`, folding them into `acc` most
+// significant first and counting how many were consumed.
+fn read_digits(
+  s: string,
+  i: number,
+  acc: number,
+  count: number,
+) -> DigitsRead {
+  return match i >= string.len(s) {
+    true => {
+      value: acc,
+      count: count,
+      pos: i,
+    },
+    false => match is_digit(s[i]) {
+      true => read_digits(
+        s,
+        i + 1,
+        acc * 10 + digit_val(s[i]),
+        count + 1,
+      ),
+      false => {
+        value: acc,
+        count: count,
+        pos: i,
+      },
+    },
+  }
+}
+
+// Does the literal `word` appear at position `i` of `s`? A character walk.
+fn matches_at(
+  s: string,
+  i: number,
+  word: string,
+  k: number,
+) -> bool {
+  return match k >= string.len(word) {
+    true => true,
+    false => match i + k >= string.len(s) {
+      true => false,
+      false => match s[i + k] == word[k] {
+        true => matches_at(
+          s,
+          i,
+          word,
+          k + 1,
+        ),
+        false => false,
+      },
+    },
+  }
+}
+
+// Match one of the three keyword literals (`true`, `false`, `null`) and yield
+// the corresponding `Json`, or an error if the spelling does not line up.
+fn parse_keyword(
+  s: string,
+  i: number,
+  word: string,
+  value: Json,
+) -> Result<VParsed, string> {
+  return match matches_at(
+    s,
+    i,
+    word,
+    0,
+  ) {
+    true => Ok({ value: value, pos: i + string.len(word) }),
+    false => Err("invalid literal at " + string.from(i)),
+  }
+}
+
+// Decode a single escape character following a backslash. The six short
+// escapes are named; anything else (including `\u`) is rejected.
+fn unescape(e: string) -> Option<string> {
+  return match e {
+    "\"" => Some("\""),
+    "\\" => Some("\\"),
+    "/" => Some("/"),
+    "n" => Some("\n"),
+    "t" => Some("\t"),
+    "r" => Some("\r"),
+    else => None,
+  }
+}
+
+// Handle the character after a backslash inside a string, then resume scanning.
+fn parse_escape(
+  s: string,
+  i: number,
+  acc: string,
+) -> Result<SParsed, string> {
+  return match i >= string.len(s) {
+    true => Err("dangling escape"),
+    false => match unescape(s[i]) {
+      Some(ch) => scan_string(
+        s,
+        i + 1,
+        acc + ch,
+      ),
+      None => Err("unsupported escape at " + string.from(i)),
+    },
+  }
+}
+
+// Scan the body of a string from `i`, accumulating decoded characters until the
+// closing quote. `i` points at the first body character (past the open quote).
+fn scan_string(
+  s: string,
+  i: number,
+  acc: string,
+) -> Result<SParsed, string> {
+  return match i >= string.len(s) {
+    true => Err("unterminated string"),
+    false => match s[i] == "\"" {
+      true => Ok({ text: acc, pos: i + 1 }),
+      false => match s[i] == "\\" {
+        true => parse_escape(
+          s,
+          i + 1,
+          acc,
+        ),
+        false => scan_string(
+          s,
+          i + 1,
+          acc + s[i],
+        ),
+      },
+    },
+  }
+}
+
+// Parse a quoted string whose opening quote is at `i`, returning its decoded
+// body.
+fn parse_string_raw(s: string, i: number) -> Result<SParsed, string> {
+  return scan_string(
+    s,
+    i + 1,
+    "",
+  )
+}
+
+// The string case of a JSON value.
+fn parse_string_value(s: string, i: number) -> Result<VParsed, string> {
+  return match parse_string_raw(s, i) {
+    Ok(sp) => Ok({ value: JStr({ value: sp.text }), pos: sp.pos }),
+    Err(e) => Err(e),
+  }
+}
+
+// If a `.` follows the integer part, read the fractional digits and fold them in
+// by dividing by the appropriate power of ten.
+fn build_fraction(
+  s: string,
+  i: number,
+  whole: number,
+) -> NumPart {
+  return match i >= string.len(s) {
+    true => { value: whole, pos: i },
+    false => match s[i] == "." {
+      false => { value: whole, pos: i },
+      true => {
+        let frac = read_digits(
+          s,
+          i + 1,
+          0,
+          0,
+        )
+        return { value: whole + frac.value / pow10(frac.count), pos: frac.pos }
+      },
+    },
+  }
+}
+
+fn is_exp_marker(c: string) -> bool {
+  return match c {
+    "e" => true,
+    "E" => true,
+    else => false,
+  }
+}
+
+// If an `e`/`E` exponent follows, read its optional sign and digits and scale
+// the value by that power of ten.
+fn apply_exponent(
+  s: string,
+  i: number,
+  value: number,
+) -> NumPart {
+  return match i >= string.len(s) {
+    true => { value: value, pos: i },
+    false => match is_exp_marker(s[i]) {
+      false => { value: value, pos: i },
+      true => {
+        let neg = match i + 1 < string.len(s) {
+          true => s[i + 1] == "-",
+          false => false,
+        }
+        let signed = match i + 1 < string.len(s) {
+          true => match s[i + 1] == "-" {
+            true => true,
+            false => s[i + 1] == "+",
+          },
+          false => false,
+        }
+        let start = match signed {
+          true => i + 2,
+          false => i + 1,
+        }
+        let ed = read_digits(
+          s,
+          start,
+          0,
+          0,
+        )
+        let factor = pow10(ed.value)
+        let scaled = match neg {
+          true => value / factor,
+          false => value * factor,
+        }
+        return { value: scaled, pos: ed.pos }
+      },
+    },
+  }
+}
+
+// Parse a number: an optional minus, a mandatory integer part, then optional
+// fraction and exponent. Rejects input that does not begin with a digit.
+fn parse_number(s: string, i: number) -> Result<VParsed, string> {
+  let neg = match i < string.len(s) {
+    true => s[i] == "-",
+    false => false,
+  }
+  let j = match neg {
+    true => i + 1,
+    false => i,
+  }
+  return match j >= string.len(s) {
+    true => Err("expected number at " + string.from(i)),
+    false => match is_digit(s[j]) {
+      false => Err("expected digit at " + string.from(j)),
+      true => {
+        let intp = read_digits(
+          s,
+          j,
+          0,
+          0,
+        )
+        let fracp = build_fraction(
+          s,
+          intp.pos,
+          intp.value,
+        )
+        let expp = apply_exponent(
+          s,
+          fracp.pos,
+          fracp.value,
+        )
+        let signed = match neg {
+          true => 0 - expp.value,
+          false => expp.value,
+        }
+        return Ok({ value: JNum({ value: signed }), pos: expp.pos })
+      },
+    },
+  }
+}
+
+// Parse the comma-separated tail of an array, having already consumed `[` and
+// any leading value separator, accumulating items until `]`.
+fn parse_array_items(
+  s: string,
+  i: number,
+  acc: Array<Json>,
+) -> Result<VParsed, string> {
+  return match parse_value(s, i) {
+    Err(e) => Err(e),
+    Ok(p) => {
+      let items = [...acc, p.value]
+      let next = skip_ws(s, p.pos)
+      return match next >= string.len(s) {
+        true => Err("unterminated array"),
+        false => match s[next] {
+          "]" => Ok({ value: JArr({ items: items }), pos: next + 1 }),
+          "," => parse_array_items(
+            s,
+            next + 1,
+            items,
+          ),
+          else => Err("expected , or ] at " + string.from(next)),
+        },
+      }
+    },
+  }
+}
+
+// Parse an array whose `[` is at `i`, short-circuiting the empty case.
+fn parse_array(s: string, i: number) -> Result<VParsed, string> {
+  let j = skip_ws(s, i + 1)
+  return match j >= string.len(s) {
+    true => Err("unterminated array"),
+    false => match s[j] == "]" {
+      true => Ok({ value: JArr({ items: [] }), pos: j + 1 }),
+      false => parse_array_items(
+        s,
+        j,
+        [],
+      ),
+    },
+  }
+}
+
+// Parse the members of an object one `"key": value` pair at a time, accumulating
+// entries until `}`.
+fn parse_object_members(
+  s: string,
+  i: number,
+  acc: Array<Entry>,
+) -> Result<VParsed, string> {
+  let j = skip_ws(s, i)
+  return match j >= string.len(s) {
+    true => Err("unterminated object"),
+    false => match s[j] == "\"" {
+      false => Err("expected string key at " + string.from(j)),
+      true => match parse_string_raw(s, j) {
+        Err(e) => Err(e),
+        Ok(k) => {
+          let colon = skip_ws(s, k.pos)
+          return match colon >= string.len(s) {
+            true => Err("expected colon after key"),
+            false => match s[colon] == ":" {
+              false => Err("expected colon at " + string.from(colon)),
+              true => match parse_value(s, colon + 1) {
+                Err(e) => Err(e),
+                Ok(v) => {
+                  let entries = [...acc, { key: k.text, value: v.value }]
+                  let next = skip_ws(s, v.pos)
+                  return match next >= string.len(s) {
+                    true => Err("unterminated object"),
+                    false => match s[next] {
+                      "}" => Ok({ value: JObj({ entries: entries }), pos: next + 1 }),
+                      "," => parse_object_members(
+                        s,
+                        next + 1,
+                        entries,
+                      ),
+                      else => Err("expected , or } at " + string.from(next)),
+                    },
+                  }
+                },
+              },
+            },
+          }
+        },
+      },
+    },
+  }
+}
+
+// Parse an object whose `{` is at `i`, short-circuiting the empty case.
+fn parse_object(s: string, i: number) -> Result<VParsed, string> {
+  let j = skip_ws(s, i + 1)
+  return match j >= string.len(s) {
+    true => Err("unterminated object"),
+    false => match s[j] == "}" {
+      true => Ok({ value: JObj({ entries: [] }), pos: j + 1 }),
+      false => parse_object_members(
+        s,
+        j,
+        [],
+      ),
+    },
+  }
+}
+
+// Parse any single JSON value: skip leading whitespace, then dispatch on the
+// first significant character.
+fn parse_value(s: string, i: number) -> Result<VParsed, string> {
+  let j = skip_ws(s, i)
+  return match j >= string.len(s) {
+    true => Err("unexpected end of input"),
+    false => match s[j] {
+      "{" => parse_object(s, j),
+      "[" => parse_array(s, j),
+      "\"" => parse_string_value(s, j),
+      "t" => parse_keyword(
+        s,
+        j,
+        "true",
+        JBool({ value: true }),
+      ),
+      "f" => parse_keyword(
+        s,
+        j,
+        "false",
+        JBool({ value: false }),
+      ),
+      "n" => parse_keyword(
+        s,
+        j,
+        "null",
+        JNull,
+      ),
+      else => parse_number(s, j),
+    },
+  }
+}
+
+// Parse a whole JSON document: one value with only whitespace allowed after it.
+// Trailing non-whitespace is an error, so `"1 2"` is rejected rather than
+// silently truncated.
+pub fn parse(s: string) -> Result<Json, string> {
+  let start = skip_ws(s, 0)
+  return match parse_value(s, start) {
+    Err(e) => Err(e),
+    Ok(p) => {
+      let end = skip_ws(s, p.pos)
+      return match end >= string.len(s) {
+        true => Ok(p.value),
+        false => Err("unexpected trailing input at " + string.from(end)),
+      }
+    },
+  }
+}

@@ -1,0 +1,133 @@
+// Pure-Glyph Option and Result combinators: the logic std/option and
+// std/result would wrap, written in the language itself. No platform leaves at
+// all, only tagged-union matching, generics, and higher-order functions.
+module option_result
+
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+
+// --- Option combinators -------------------------------------------------
+
+pub fn is_some<T>(o: Option<T>) -> bool {
+  return match o {
+    Some(_) => true,
+    None => false,
+  }
+}
+
+pub fn is_none<T>(o: Option<T>) -> bool {
+  return match o {
+    Some(_) => false,
+    None => true,
+  }
+}
+
+// Present value or a default. The eliminator every Option consumer wants.
+pub fn unwrap_or<T>(o: Option<T>, fallback: T) -> T {
+  return match o {
+    Some(v) => v,
+    None => fallback,
+  }
+}
+
+pub fn map_opt<T, U>(o: Option<T>, f: fn(T) -> U) -> Option<U> {
+  return match o {
+    Some(v) => Some(f(v)),
+    None => None,
+  }
+}
+
+// Monadic bind: chain a fallible step without nesting a match.
+pub fn and_then<T, U>(o: Option<T>, f: fn(T) -> Option<U>) -> Option<U> {
+  return match o {
+    Some(v) => f(v),
+    None => None,
+  }
+}
+
+// Keep the value only if it passes the predicate.
+pub fn filter_opt<T>(o: Option<T>, pred: fn(T) -> bool) -> Option<T> {
+  return match o {
+    Some(v) => match pred(v) {
+      true => Some(v),
+      false => None,
+    },
+    None => None,
+  }
+}
+
+// Collapse one layer of nesting.
+pub fn flatten<T>(o: Option<Option<T>>) -> Option<T> {
+  return match o {
+    Some(inner) => inner,
+    None => None,
+  }
+}
+
+// Pair two Options; None if either is absent.
+pub fn zip<A, B>(a: Option<A>, b: Option<B>) -> Option<{ first: A, second: B }> {
+  return match a {
+    Some(x) => match b {
+      Some(y) => Some({ first: x, second: y }),
+      None => None,
+    },
+    None => None,
+  }
+}
+
+// Bridge to Result: an absent value becomes the supplied error.
+pub fn ok_or<T, E>(o: Option<T>, error: E) -> Result<T, E> {
+  return match o {
+    Some(v) => Ok(v),
+    None => Err(error),
+  }
+}
+
+// --- Result combinators -------------------------------------------------
+
+pub fn is_ok<T, E>(r: Result<T, E>) -> bool {
+  return match r {
+    Ok(_) => true,
+    Err(_) => false,
+  }
+}
+
+pub fn unwrap_or_res<T, E>(r: Result<T, E>, fallback: T) -> T {
+  return match r {
+    Ok(v) => v,
+    Err(_) => fallback,
+  }
+}
+
+// Discard the error, keeping the success as an Option.
+pub fn to_option<T, E>(r: Result<T, E>) -> Option<T> {
+  return match r {
+    Ok(v) => Some(v),
+    Err(_) => None,
+  }
+}
+
+pub fn and_then_res<T, U, E>(
+  r: Result<T, E>,
+  f: fn(T) -> Result<U, E>,
+) -> Result<U, E> {
+  return match r {
+    Ok(v) => f(v),
+    Err(e) => Err(e),
+  }
+}
+
+// Turn an array of Results into a Result of an array: the first Err wins,
+// otherwise every Ok value in order. Recursion over an array pattern.
+pub fn collect<T, E>(rs: Array<Result<T, E>>) -> Result<Array<T>, E> {
+  return match rs {
+    [] => Ok([]),
+    [head, ...rest] => match head {
+      Err(e) => Err(e),
+      Ok(v) => match collect(rest) {
+        Err(e) => Err(e),
+        Ok(vs) => Ok([v, ...vs]),
+      },
+    },
+  }
+}

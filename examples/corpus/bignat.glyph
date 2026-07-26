@@ -1,0 +1,348 @@
+// Pure-Glyph arbitrary-precision natural numbers: a nonnegative integer with no
+// fixed width, stored as its decimal digits little-endian (least significant
+// first) with no high-order zeros, so zero is the empty digit list. Parsing,
+// comparison, addition, subtraction (partial: it stays in the naturals),
+// schoolbook multiplication, and decimal rendering are all Glyph; the only
+// platform leaf is math.floor, standing in for the integer division Glyph's
+// number type does not have on its own.
+module bignat
+
+import std/math
+import std/array
+import std/string
+import std/option { Option, Some, None }
+
+// A natural number as decimal digits, least significant first, each in 0..9,
+// with no trailing (high-order) zero. The empty list is zero. The reducing
+// constructors below are the only way to build one, so the invariant holds
+// everywhere downstream.
+pub type BigNat = { digits: Array<number> }
+
+// Drop high-order zeros so the representation is canonical: [3, 0, 0] and
+// [3] both mean three, and this keeps only [3]. Recurses from the most
+// significant end (the tail of the little-endian list).
+fn trim(digits: Array<number>) -> Array<number> {
+  return match digits {
+    [] => [],
+    [head, ...rest] => match trim(rest) {
+      [] => match head == 0 {
+        true => [],
+        false => [head],
+      },
+      [rh, ...rt] => [
+        head,
+        rh,
+        ...rt,
+      ],
+    },
+  }
+}
+
+// Wrap a raw little-endian digit list into a canonical BigNat.
+fn make(digits: Array<number>) -> BigNat {
+  return { digits: trim(digits) }
+}
+
+// Zero.
+pub fn zero() -> BigNat {
+  return { digits: [] }
+}
+
+// Is this the natural number zero?
+pub fn is_zero(n: BigNat) -> bool {
+  return match n.digits {
+    [] => true,
+    [_h, ..._t] => false,
+  }
+}
+
+// The decimal value of a single character, or None when it is not a digit.
+fn digit_value(c: string) -> Option<number> {
+  return match c {
+    "0" => Some(0),
+    "1" => Some(1),
+    "2" => Some(2),
+    "3" => Some(3),
+    "4" => Some(4),
+    "5" => Some(5),
+    "6" => Some(6),
+    "7" => Some(7),
+    "8" => Some(8),
+    "9" => Some(9),
+    else => None,
+  }
+}
+
+// Read the decimal string `s` from index `i` to its end, prepending each digit
+// to `acc` (which is being built least significant first, so a left-to-right
+// scan naturally lands the last character in the ones place). None if any
+// character is not a digit.
+fn parse_from(
+  s: string,
+  i: number,
+  acc: Array<number>,
+) -> Option<Array<number>> {
+  return match i >= string.len(s) {
+    true => Some(acc),
+    false => match digit_value(s[i]) {
+      None => None,
+      Some(d) => parse_from(
+        s,
+        i + 1,
+        [d, ...acc],
+      ),
+    },
+  }
+}
+
+// Parse a decimal string into a BigNat. Rejects an empty string and any string
+// with a non-digit; a leading "0" is fine and trims away.
+pub fn parse(s: string) -> Option<BigNat> {
+  return match string.len(s) == 0 {
+    true => None,
+    false => match parse_from(
+      s,
+      0,
+      [],
+    ) {
+      None => None,
+      Some(digits) => Some(make(digits)),
+    },
+  }
+}
+
+// Render digits (little-endian) most significant first, with no leading zero.
+fn render(digits: Array<number>) -> string {
+  return match trim(digits) {
+    [] => "0",
+    [head, ...rest] => render_rest(rest) + digit_char(head),
+  }
+}
+
+// Render the more-significant tail; empty contributes nothing.
+fn render_rest(digits: Array<number>) -> string {
+  return match digits {
+    [] => "",
+    [head, ...rest] => render_rest(rest) + digit_char(head),
+  }
+}
+
+fn digit_char(d: number) -> string {
+  let table = "0123456789"
+  return table[d]
+}
+
+// The decimal string for `n`, e.g. "0", "42", "1000".
+pub fn to_string(n: BigNat) -> string {
+  return render(n.digits)
+}
+
+// Pick the tie-break: return `rest` when it already decided the order, else
+// order the two current digits. Used so compare needs no local binding.
+fn resolve(
+  rest: number,
+  a: number,
+  b: number,
+) -> number {
+  return match rest == 0 {
+    true => match a < b {
+      true => -1,
+      false => match a > b {
+        true => 1,
+        false => 0,
+      },
+    },
+    false => rest,
+  }
+}
+
+// Compare two equal-length little-endian digit lists. The deeper recursion sees
+// the more significant digits, so a difference high up dominates one low down.
+fn cmp_same_len(a: Array<number>, b: Array<number>) -> number {
+  return match a {
+    [] => 0,
+    [ha, ...ta] => match b {
+      [] => 0,
+      [hb, ...tb] => resolve(
+        cmp_same_len(ta, tb),
+        ha,
+        hb,
+      ),
+    },
+  }
+}
+
+// -1, 0, or 1 by the order of `x` against `y`. A longer canonical list is the
+// larger number; equal lengths fall back to a digit-by-digit compare.
+pub fn compare(x: BigNat, y: BigNat) -> number {
+  let lx = array.len(x.digits)
+  let ly = array.len(y.digits)
+  return match lx == ly {
+    false => match lx < ly {
+      true => -1,
+      false => 1,
+    },
+    true => cmp_same_len(x.digits, y.digits),
+  }
+}
+
+pub fn equals(x: BigNat, y: BigNat) -> bool {
+  return compare(x, y) == 0
+}
+
+// Add two little-endian digit lists with an incoming carry, most significant
+// last. Runs until both lists and the carry are exhausted.
+fn add_rec(
+  a: Array<number>,
+  b: Array<number>,
+  carry: number,
+) -> Array<number> {
+  return match a {
+    [] => match b {
+      [] => match carry == 0 {
+        true => [],
+        false => [carry],
+      },
+      [hb, ...tb] => [(hb + carry) % 10, ...add_rec(
+        [],
+        tb,
+        math.floor((hb + carry) / 10),
+      )],
+    },
+    [ha, ...ta] => match b {
+      [] => [(ha + carry) % 10, ...add_rec(
+        ta,
+        [],
+        math.floor((ha + carry) / 10),
+      )],
+      [hb, ...tb] => [(ha + hb + carry) % 10, ...add_rec(
+        ta,
+        tb,
+        math.floor((ha + hb + carry) / 10),
+      )],
+    },
+  }
+}
+
+pub fn add(x: BigNat, y: BigNat) -> BigNat {
+  return make(add_rec(
+    x.digits,
+    y.digits,
+    0,
+  ))
+}
+
+// Subtract two little-endian digit lists with an incoming borrow. `a` is
+// assumed to be at least `b` (the caller checks order), so no result digit ever
+// goes negative once trimmed. The `+ 10` keeps the modulo nonnegative before
+// the borrow is carried up.
+fn sub_rec(
+  a: Array<number>,
+  b: Array<number>,
+  borrow: number,
+) -> Array<number> {
+  return match a {
+    [] => [],
+    [ha, ...ta] => match b {
+      [] => [(ha - borrow + 10) % 10, ...sub_rec(
+        ta,
+        [],
+        next_borrow(ha - borrow),
+      )],
+      [hb, ...tb] => [(ha - hb - borrow + 10) % 10, ...sub_rec(
+        ta,
+        tb,
+        next_borrow(ha - hb - borrow),
+      )],
+    },
+  }
+}
+
+// A borrow of 1 propagates when the raw column value went below zero.
+fn next_borrow(raw: number) -> number {
+  return match raw < 0 {
+    true => 1,
+    false => 0,
+  }
+}
+
+// `x - y`, or None when `y > x` (the naturals have no negatives). The trim in
+// `make` drops the high-order zeros a subtraction leaves behind.
+pub fn sub(x: BigNat, y: BigNat) -> Option<BigNat> {
+  return match compare(x, y) < 0 {
+    true => None,
+    false => Some(make(sub_rec(
+      x.digits,
+      y.digits,
+      0,
+    ))),
+  }
+}
+
+// Multiply a little-endian digit list by one digit `d`, threading a carry.
+fn mul_digit(
+  a: Array<number>,
+  d: number,
+  carry: number,
+) -> Array<number> {
+  return match a {
+    [] => match carry == 0 {
+      true => [],
+      false => digits_of(carry),
+    },
+    [ha, ...ta] => [(ha * d + carry) % 10, ...mul_digit(
+      ta,
+      d,
+      math.floor((ha * d + carry) / 10),
+    )],
+  }
+}
+
+// Spread a (possibly multi-digit) carry into little-endian digits.
+fn digits_of(n: number) -> Array<number> {
+  return match n == 0 {
+    true => [],
+    false => [n % 10, ...digits_of(math.floor(n / 10))],
+  }
+}
+
+// Prepend `k` zeros, i.e. multiply a digit list by ten to the k.
+fn shift_left(digits: Array<number>, k: number) -> Array<number> {
+  return match k <= 0 {
+    true => digits,
+    false => [0, ...shift_left(digits, k - 1)],
+  }
+}
+
+// Schoolbook multiply: for each digit of `b` at position `shift`, multiply the
+// whole of `a` by it, shift into place, and sum the partial products.
+fn mul_rec(
+  a: Array<number>,
+  b: Array<number>,
+  shift: number,
+) -> Array<number> {
+  return match b {
+    [] => [],
+    [hb, ...tb] => add_rec(
+      shift_left(mul_digit(
+        a,
+        hb,
+        0,
+      ), shift),
+      mul_rec(
+        a,
+        tb,
+        shift + 1,
+      ),
+      0,
+    ),
+  }
+}
+
+pub fn mul(x: BigNat, y: BigNat) -> BigNat {
+  return make(mul_rec(
+    x.digits,
+    y.digits,
+    0,
+  ))
+}

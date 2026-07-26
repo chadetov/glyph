@@ -1,0 +1,194 @@
+// Pure-Glyph directed-graph algorithms: adjacency lists, breadth- and
+// depth-first traversal, Kahn topological sort with cycle detection, and
+// reachability. No platform leaves, just recursion, `loop`/`for`, array-pattern
+// recursion, Option/Result, and records.
+module graph
+
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/array
+
+// A directed edge from one vertex index to another.
+pub type Edge = { from: number, to: number }
+
+// A directed graph over vertices `0 .. n - 1`, stored as adjacency lists:
+// `adj[v]` is the list of vertices `v` points at.
+pub type Graph = { n: number, adj: Array<Array<number>> }
+
+// The out-neighbors of `v` collected from the edge list.
+fn neighbors_of(v: number, edges: Array<Edge>) -> Array<number> {
+  let out: Array<number> = []
+  for e in edges {
+    match e.from == v {
+      true => {
+        mut out.push(e.to)
+      },
+      false => {},
+    }
+  }
+  return out
+}
+
+// Adjacency rows for vertices `i .. n - 1`, built by recursion.
+fn build_adj(n: number, i: number, edges: Array<Edge>) -> Array<Array<number>> {
+  return match i >= n {
+    true => [],
+    false => [neighbors_of(i, edges), ...build_adj(n, i + 1, edges)],
+  }
+}
+
+// Build a graph on `n` vertices from an edge list.
+pub fn from_edges(n: number, edges: Array<Edge>) -> Graph {
+  return { n: n, adj: build_adj(n, 0, edges) }
+}
+
+// The out-neighbors of `v`.
+pub fn neighbors(g: Graph, v: number) -> Array<number> {
+  return g.adj[v]
+}
+
+// Breadth-first visitation order starting at `start`. A queue held as an array
+// with a moving head cursor stands in for a ring buffer; `seen` is a membership
+// list, which is all the algorithm needs.
+pub fn bfs(g: Graph, start: number) -> Array<number> {
+  let seen: Array<number> = [start]
+  let queue: Array<number> = [start]
+  let head = 0
+  let order: Array<number> = []
+  loop {
+    match head >= array.len(queue) {
+      true => {
+        break
+      },
+      false => {},
+    }
+    let v = queue[head]
+    mut head = head + 1
+    mut order.push(v)
+    for w in g.adj[v] {
+      match array.contains(seen, w) {
+        true => {},
+        false => {
+          mut seen.push(w)
+          mut queue.push(w)
+        },
+      }
+    }
+  }
+  return order
+}
+
+// The running state of a depth-first walk: the visitation order so far and the
+// set of already-seen vertices, threaded through the recursion.
+type Walk = { order: Array<number>, seen: Array<number> }
+
+fn dfs_neighbors(g: Graph, ws: Array<number>, acc: Walk) -> Walk {
+  return match ws {
+    [] => acc,
+    [w, ...rest] => dfs_neighbors(g, rest, dfs_visit(g, w, acc)),
+  }
+}
+
+fn dfs_visit(g: Graph, v: number, acc: Walk) -> Walk {
+  return match array.contains(acc.seen, v) {
+    true => acc,
+    false => {
+      let stepped = {
+        order: array.push(acc.order, v),
+        seen: array.push(acc.seen, v),
+      }
+      return dfs_neighbors(g, g.adj[v], stepped)
+    },
+  }
+}
+
+// Depth-first visitation order starting at `start`.
+pub fn dfs(g: Graph, start: number) -> Array<number> {
+  let done = dfs_visit(g, start, { order: [], seen: [] })
+  return done.order
+}
+
+// `[0, 1, ..., n - 1]`.
+fn iota(n: number) -> Array<number> {
+  return match n <= 0 {
+    true => [],
+    false => array.push(iota(n - 1), n - 1),
+  }
+}
+
+// `xs` without the first occurrence of `v` (here every value is distinct).
+fn remove_value(xs: Array<number>, v: number) -> Array<number> {
+  let out: Array<number> = []
+  for x in xs {
+    match x == v {
+      true => {},
+      false => {
+        mut out.push(x)
+      },
+    }
+  }
+  return out
+}
+
+// Does any still-present vertex point at `v`?
+fn has_incoming(g: Graph, remaining: Array<number>, v: number) -> bool {
+  for u in remaining {
+    match array.contains(g.adj[u], v) {
+      true => {
+        return true
+      },
+      false => {},
+    }
+  }
+  return false
+}
+
+// The smallest remaining vertex with no incoming edge from the remaining set,
+// or None when every remaining vertex has one (a cycle).
+fn first_ready(g: Graph, remaining: Array<number>) -> Option<number> {
+  for v in remaining {
+    match has_incoming(g, remaining, v) {
+      false => {
+        return Some(v)
+      },
+      true => {},
+    }
+  }
+  return None
+}
+
+fn kahn(
+  g: Graph,
+  remaining: Array<number>,
+  out: Array<number>,
+) -> Result<Array<number>, string> {
+  return match array.len(remaining) == 0 {
+    true => Ok(out),
+    false => {
+      let ready = first_ready(g, remaining)
+      return match ready {
+        None => Err("cycle detected"),
+        Some(v) => kahn(g, remove_value(remaining, v), array.push(out, v)),
+      }
+    },
+  }
+}
+
+// A topological ordering (Kahn's algorithm), or an error naming the cycle. Ties
+// break toward the smaller vertex index, so the ordering is deterministic.
+pub fn topo_sort(g: Graph) -> Result<Array<number>, string> {
+  return kahn(g, iota(g.n), [])
+}
+
+// Whether the graph has a directed cycle.
+pub fn has_cycle(g: Graph) -> bool {
+  return match topo_sort(g) {
+    Ok(_) => false,
+    Err(_) => true,
+  }
+}
+
+// Whether `to` is reachable from `from` following directed edges.
+pub fn is_reachable(g: Graph, from: number, to: number) -> bool {
+  return array.contains(bfs(g, from), to)
+}

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can I trust it with money and untrusted input? · Glyph</title>
+    <meta name="description" content="Yes. Money is exact (base-10 decimals and integers past 2^53), invariants like non-negative are types the boundary enforces, and untrusted input can't reach a SQL or shell sink without being sanitized. Each is a compile-or-parse error if you get it wrong." />
+    <link rel="canonical" href="https://glyphlang.io/answers/finance/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/" class="active"><span class="n">16</span> Money &amp; safety</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">16 &middot; Money &amp; safety</p>
+      <h1 class="q-title">Can I trust it with money, and with input I don't control?</h1>
+
+      <p class="short-answer">
+        Yes. Money is <strong>exact</strong>, an invariant like non-negative is a
+        <strong>type the boundary enforces</strong>, and untrusted input
+        <strong>cannot reach a SQL or shell sink</strong> without being sanitized.
+        Each of these is a compile-or-parse error if you get it wrong, not a
+        convention someone has to remember three functions away.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Money is not a float</p>
+        <p>
+          A financial system on IEEE-754 <code>number</code> is a bug waiting to
+          be reported: <code>0.1 + 0.2</code> is not <code>0.3</code>, and value
+          past 2<sup>53</sup> silently loses precision. <code>std/decimal</code> is
+          exact base-10 fixed-point over BigInt. Add, subtract, and multiply are
+          exact; division takes an explicit scale and rounds half away from zero;
+          a malformed amount parses to an <code>Err</code>, never a silent
+          <code>NaN</code>.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()      <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2)   <span class="cm"># "0.67", half away from zero</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">the bug it removes</span>
+<pre>// JS number, the default everywhere:
+0.1 + 0.2            // 0.30000000000000004
+1_000_000_000_000.10 * 1.07   // rounding drift
+9007199254740993     // === 9007199254740992
+
+// None of these are your money anymore.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Ids and counters stay exact past 2<sup>53</sup></p>
+        <p>
+          An account id or a ledger counter that overflows the float range and
+          rounds is a different kind of catastrophe. <code>bigint</code> is an
+          exact arbitrary-precision integer with <code>123n</code> literals, and a
+          record field typed <code>bigint</code> validates
+          <code>typeof === "bigint"</code> at the boundary, so an id arriving as a
+          JSON <code>number</code> is rejected rather than quietly truncated.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">An invariant is a type, not a comment</p>
+        <p>
+          "The amount is non-negative" and "the rating is 1 to 5" are the checks
+          that get written once and forgotten later. A <code>where</code>
+          refinement puts the invariant in the type, and the descriptor enforces
+          it at the boundary. A value that fails the predicate never becomes an
+          <code>Amount</code> in the first place.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">refinements.glyph</span>
+<pre>type Amount = int where value &gt;= 0
+type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+
+Amount.parse(-1)   <span class="cm"># Err  (not just "is a number")</span>
+Rating.parse(6)    <span class="cm"># Err</span>
+Amount.parse(3.5)  <span class="cm"># Err  (int check too)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Injection is a compile error</p>
+        <p>
+          The classic remote-code path is untrusted input reaching a SQL query, a
+          shell command, or an HTML template. <code>std/taint</code> makes that a
+          type error. A value from outside is <code>Tainted</code>; a sink you
+          want to protect takes <code>Trusted</code>. The two are structurally
+          distinct, so the only way from one to the other is an explicit
+          <code>sanitize</code>. Hand a sink the tainted value directly and
+          <code>tsc</code> refuses to compile it.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">the safe path compiles</span>
+<pre>fn run_query(sql: Trusted&lt;string&gt;) -&gt; void { ... }
+
+let input: Tainted&lt;string&gt; = taint(req.body)
+run_query(sanitize(input, escape))   <span class="cm"># ok</span></pre>
+        </div>
+        <div class="code">
+          <span class="cap">the injection path does not</span>
+<pre>let input: Tainted&lt;string&gt; = taint(req.body)
+run_query(input)
+
+// TS2345: 'Tainted&lt;string&gt;' is not
+// assignable to 'Trusted&lt;string&gt;'.</pre>
+        </div>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>std/decimal</code> for exact money, <code>bigint</code> for exact large integers, <code>where</code> refinements so an invariant is validated at the boundary, and <code>std/taint</code> so untrusted input can't reach a protected sink without an explicit <code>sanitize</code>. Each is checked: a bad amount or id fails <code>parse</code>, a bad invariant fails <code>parse</code>, and an unsanitized value fails <code>tsc</code>.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">The honest edge</p>
+          <p>A <code>where</code> refinement covers primitive base types today; record and cross-field invariants (<code>where value.paid &lt;= value.total</code>) are a planned extension. Taint is discipline you opt into by typing a sink <code>Trusted</code>, not automatic flow analysis: the compiler enforces the boundary you declare, it does not infer taint across the whole program for you.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/language/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Is this a real language, or a toy with gaps?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/finance/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

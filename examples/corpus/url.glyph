@@ -1,0 +1,264 @@
+// Pure-Glyph URL parsing: path/query split, segment routing, query-string
+// decoding, and case-insensitive header lookup. std/http delegates these to the
+// platform (`URLSearchParams`, `.toLowerCase()`); here the algorithm itself is
+// Glyph, with only std/string's len/split/lower and `s[i]` indexing as leaves.
+module url
+
+import std/string
+import std/record
+import std/option { Option, Some, None }
+
+pub type Param = { key: string, value: string }
+
+type Escape = { ch: string, next: number }
+
+// The printable ASCII range (codes 32..126); `PRINTABLE[v - 32]` is the
+// character for byte `v`. A percent escape whose byte falls outside this range
+// (a control byte, or one leg of a multi-byte UTF-8 sequence) is left verbatim,
+// since turning an arbitrary code point into a character needs a platform leaf.
+const PRINTABLE = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+
+const HEX = "0123456789abcdef"
+
+// The first index of single character `ch` in `s` at or after `from`, or -1.
+fn index_of(
+  s: string,
+  ch: string,
+  from: number,
+) -> number {
+  return match from >= string.len(s) {
+    true => -1,
+    false => match s[from] == ch {
+      true => from,
+      false => index_of(
+        s,
+        ch,
+        from + 1,
+      ),
+    },
+  }
+}
+
+// The substring `s[start, end)`, threaded character by character.
+fn slice(
+  s: string,
+  start: number,
+  end: number,
+) -> string {
+  return match start >= end {
+    true => "",
+    false => match start >= string.len(s) {
+      true => "",
+      false => s[start] + slice(
+        s,
+        start + 1,
+        end,
+      ),
+    },
+  }
+}
+
+// The path portion of `u`, everything before the first `?`.
+pub fn path(u: string) -> string {
+  let q = index_of(
+    u,
+    "?",
+    0,
+  )
+  return match q < 0 {
+    true => u,
+    false => slice(
+      u,
+      0,
+      q,
+    ),
+  }
+}
+
+// The raw query string of `u`, everything after the first `?` (no `?`), or "".
+pub fn query_string(u: string) -> string {
+  let q = index_of(
+    u,
+    "?",
+    0,
+  )
+  return match q < 0 {
+    true => "",
+    false => slice(
+      u,
+      q + 1,
+      string.len(u),
+    ),
+  }
+}
+
+// The path split into its non-empty segments: `/tasks/5` -> `["tasks", "5"]`.
+// Designed for array-pattern routing, mirroring `http.segments`.
+pub fn segments(u: string) -> Array<string> {
+  let out = []
+  for seg in string.split(path(u), "/") {
+    match string.len(seg) == 0 {
+      true => {},
+      false => {
+        mut out.push(seg)
+      },
+    }
+  }
+  return out
+}
+
+// The value of hex digit `c` (0-15), case-insensitive, or None.
+fn hex_val(c: string) -> Option<number> {
+  let idx = index_of(
+    HEX,
+    string.lower(c),
+    0,
+  )
+  return match idx < 0 {
+    true => None,
+    false => Some(idx),
+  }
+}
+
+// Byte value `v` as a one-character string, or None when it is not printable.
+fn byte_to_char(v: number, next: number) -> Option<Escape> {
+  return match v < 32 {
+    true => None,
+    false => match v > 126 {
+      true => None,
+      false => Some({ ch: PRINTABLE[v - 32], next: next }),
+    },
+  }
+}
+
+// Decode the `%XX` escape starting at `i`, yielding the character and the index
+// just past it. None when `i` is not a well-formed printable escape.
+fn decode_escape(s: string, i: number) -> Option<Escape> {
+  return match i + 2 >= string.len(s) {
+    true => None,
+    false => match hex_val(s[i + 1]) {
+      None => None,
+      Some(hi) => match hex_val(s[i + 2]) {
+        None => None,
+        Some(lo) => byte_to_char(hi * 16 + lo, i + 3),
+      },
+    },
+  }
+}
+
+// Percent-decode from index `i`, leaving malformed escapes verbatim.
+fn percent_from(s: string, i: number) -> string {
+  return match i >= string.len(s) {
+    true => "",
+    false => match s[i] == "%" {
+      false => s[i] + percent_from(s, i + 1),
+      true => match decode_escape(s, i) {
+        Some(e) => e.ch + percent_from(s, e.next),
+        None => s[i] + percent_from(s, i + 1),
+      },
+    },
+  }
+}
+
+// Replace `+` with a space from index `i`, the query-string convention.
+fn plus_from(s: string, i: number) -> string {
+  return match i >= string.len(s) {
+    true => "",
+    false => match s[i] == "+" {
+      true => " " + plus_from(s, i + 1),
+      false => s[i] + plus_from(s, i + 1),
+    },
+  }
+}
+
+// Decode one query component: `+` to space first, then `%XX` escapes, so a
+// literal `%2B` survives as `+` rather than becoming a space.
+pub fn decode(s: string) -> string {
+  return percent_from(plus_from(s, 0), 0)
+}
+
+// Every decoded key/value pair of `u`'s query string, in order. A component
+// with no `=` becomes a key with an empty value; empty components are dropped.
+pub fn params(u: string) -> Array<Param> {
+  let out = []
+  let qs = query_string(u)
+  match string.len(qs) == 0 {
+    true => {},
+    false => {
+      for part in string.split(qs, "&") {
+        match string.len(part) == 0 {
+          true => {},
+          false => {
+            let eq = index_of(
+              part,
+              "=",
+              0,
+            )
+            match eq < 0 {
+              true => {
+                mut out.push({ key: decode(part), value: "" })
+              },
+              false => {
+                let key = decode(slice(
+                  part,
+                  0,
+                  eq,
+                ))
+                let value = decode(slice(
+                  part,
+                  eq + 1,
+                  string.len(part),
+                ))
+                mut out.push({ key: key, value: value })
+              },
+            }
+          },
+        }
+      }
+    },
+  }
+  return out
+}
+
+// The first decoded value for query parameter `name`, or None.
+pub fn query_param(u: string, name: string) -> Option<string> {
+  return find_param(params(u), name)
+}
+
+fn find_param(ps: Array<Param>, name: string) -> Option<string> {
+  return match ps {
+    [] => None,
+    [head, ...rest] => match head.key == name {
+      true => Some(head.value),
+      false => find_param(rest, name),
+    },
+  }
+}
+
+// A header by name, matched case-insensitively (per RFC 7230), or None, the
+// pure-Glyph mirror of `http.header`.
+pub fn header(headers: Record<string, string>, name: string) -> Option<string> {
+  return find_header(
+    record.keys(headers),
+    headers,
+    string.lower(name),
+  )
+}
+
+fn find_header(
+  keys: Array<string>,
+  headers: Record<string, string>,
+  target: string,
+) -> Option<string> {
+  return match keys {
+    [] => None,
+    [k, ...rest] => match string.lower(k) == target {
+      true => record.get(headers, k),
+      false => find_header(
+        rest,
+        headers,
+        target,
+      ),
+    },
+  }
+}

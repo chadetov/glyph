@@ -1,0 +1,158 @@
+// Pure-Glyph frequency table (a multiset, Python's collections.Counter): how
+// many times each string key has been seen, kept in a `Record<string, number>`
+// with the invariant that every stored count is >= 1 and an absent key reads as
+// zero. The interesting corner is `Record` itself: building one with
+// `mut out[key] = ...`, walking it with `for key, count in bag`, and reading it
+// through std/record's absence-aware `get`. Counts are value-oriented (`add`
+// returns a new bag), the same shape std/record's `set`/`remove` give. The only
+// non-recursive helpers are std/array `sort`/`slice`/`len` and std/record; every
+// branch is Glyph.
+module frequency
+
+import std/array
+import std/record
+import std/option { Option, Some, None }
+
+// A frequency table. A key present in the record has been seen its count of
+// times; a key absent from it has been seen zero times.
+pub type Bag = Record<string, number>
+
+// One (key, count) pair, the shape `entries` and `most_common` return.
+pub type Entry = { key: string, count: number }
+
+// How many times `key` has been seen, or 0 when it is absent. `record.get`
+// yields None for a missing key; a multiset reads that as zero.
+pub fn count_of(bag: Bag, key: string) -> number {
+  return match record.get(bag, key) {
+    Some(n) => n,
+    None => 0,
+  }
+}
+
+// Has `key` been seen at least once?
+pub fn contains(bag: Bag, key: string) -> bool {
+  return count_of(bag, key) > 0
+}
+
+// `bag` with `key`'s count changed by `n` (negative to remove). A count that
+// reaches 0 or below drops the key, preserving the "absent means zero"
+// invariant. Value-oriented: a new bag is returned and the input is untouched.
+pub fn add_n(
+  bag: Bag,
+  key: string,
+  n: number,
+) -> Bag {
+  let next = count_of(bag, key) + n
+  return match next > 0 {
+    true => record.set(
+      bag,
+      key,
+      next,
+    ),
+    false => record.remove(bag, key),
+  }
+}
+
+// `bag` with one more of `key`.
+pub fn add(bag: Bag, key: string) -> Bag {
+  return add_n(
+    bag,
+    key,
+    1,
+  )
+}
+
+// Count every string in `keys`, growing a bag from empty. `mut out[key] = ...`
+// mutates the local record in place; the binding stays a `let`.
+pub fn tally(keys: Array<string>) -> Bag {
+  let out: Bag = {}
+  for key in keys {
+    mut out[key] = count_of(out, key) + 1
+  }
+  return out
+}
+
+// Does entry `a` outrank `b`? A higher count wins; equal counts prefer the key
+// that sorts earlier, so the ordering is total and stable.
+fn better(a: Entry, b: Entry) -> bool {
+  return match a.count == b.count {
+    true => a.key < b.key,
+    false => a.count > b.count,
+  }
+}
+
+// The single highest-ranked (key, count), or None for an empty bag. One pass
+// with `for key, count in bag`, folding the best entry into an Option.
+pub fn mode(bag: Bag) -> Option<Entry> {
+  let best: Option<Entry> = None
+  for key, count in bag {
+    let here = { key: key, count: count }
+    mut best = match best {
+      None => Some(here),
+      Some(cur) => match better(here, cur) {
+        true => Some(here),
+        false => Some(cur),
+      },
+    }
+  }
+  return best
+}
+
+// A comparator over entries in `better` order, for `array.sort`.
+fn cmp_entry(a: Entry, b: Entry) -> number {
+  return match better(a, b) {
+    true => -1,
+    false => match better(b, a) {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// Every (key, count) pair, highest count first (ties by key). Materializes the
+// record into an array and sorts it.
+pub fn entries(bag: Bag) -> Array<Entry> {
+  let out: Array<Entry> = []
+  for key, count in bag {
+    mut out.push({ key: key, count: count })
+  }
+  return array.sort(out, cmp_entry)
+}
+
+// The `n` highest-ranked entries.
+pub fn most_common(bag: Bag, n: number) -> Array<Entry> {
+  return array.slice(
+    entries(bag),
+    0,
+    n,
+  )
+}
+
+// How many distinct keys the bag holds.
+pub fn distinct(bag: Bag) -> number {
+  return array.len(record.keys(bag))
+}
+
+// The sum of every count: the size of the multiset with multiplicity. Walks the
+// record with `for key, count in bag`.
+pub fn total(bag: Bag) -> number {
+  let sum = 0
+  for key, count in bag {
+    mut sum = sum + count
+  }
+  return sum
+}
+
+// The multiset sum of two bags: each key's counts added. Folds `b`'s entries
+// into a copy of `a`.
+pub fn merge(a: Bag, b: Bag) -> Bag {
+  let out: Bag = a
+  for key, count in b {
+    mut out = add_n(
+      out,
+      key,
+      count,
+    )
+  }
+  return out
+}

@@ -1,0 +1,188 @@
+// Pure-Glyph interval-set algebra over inclusive integer ranges. An `Interval`
+// is `[lo, hi]` with `lo <= hi`; a set is a sorted, disjoint, non-adjacent list
+// of intervals (its canonical form). `normalize` sorts and coalesces; union,
+// intersection, and difference are sweeps over two canonical sets. The only
+// platform leaves are std/array's sort/concat/len and std/math's min/max; every
+// merge decision and every recursion is Glyph.
+module interval
+
+import std/option { Option, Some, None }
+import std/array
+import std/math
+
+// A closed integer range `lo..=hi`.
+pub type Interval = { lo: number, hi: number }
+
+// Validated constructor: `None` when the range is empty (`hi < lo`).
+pub fn make(lo: number, hi: number) -> Option<Interval> {
+  return match hi < lo {
+    true => None,
+    false => Some({ lo: lo, hi: hi }),
+  }
+}
+
+// Does the single interval cover point `x`?
+pub fn contains(iv: Interval, x: number) -> bool {
+  return iv.lo <= x && x <= iv.hi
+}
+
+// Order intervals by their low endpoint, ties by high endpoint.
+fn cmp_lo(a: Interval, b: Interval) -> number {
+  return match a.lo == b.lo {
+    true => a.hi - b.hi,
+    false => a.lo - b.lo,
+  }
+}
+
+// Reverse a list, threading an accumulator (the canonical reverse helper the
+// pure-Glyph corpus uses for prepend-built results).
+fn rev(xs: Array<Interval>, acc: Array<Interval>) -> Array<Interval> {
+  return match xs {
+    [] => acc,
+    [head, ...tail] => rev(tail, [head, ...acc]),
+  }
+}
+
+// Fold a low-sorted list into a reversed accumulator, coalescing any interval
+// that overlaps or merely abuts the accumulator head. For inclusive integer
+// ranges `[1,3]` and `[4,6]` abut (`4 <= 3 + 1`) and coalesce into `[1,6]`.
+fn coalesce(sorted: Array<Interval>, i: number, acc: Array<Interval>) -> Array<Interval> {
+  return match i >= array.len(sorted) {
+    true => acc,
+    false => {
+      let iv = sorted[i]
+      let next = match acc {
+        [] => [iv],
+        [head, ...rest] => match iv.lo <= head.hi + 1 {
+          true => [{ lo: head.lo, hi: math.max(head.hi, iv.hi) }, ...rest],
+          false => [iv, ...acc],
+        },
+      }
+      return coalesce(sorted, i + 1, next)
+    },
+  }
+}
+
+// The canonical form of an arbitrary interval list: sorted, with overlapping
+// and adjacent ranges merged.
+pub fn normalize(ivs: Array<Interval>) -> Array<Interval> {
+  let sorted = array.sort(ivs, cmp_lo)
+  return rev(coalesce(sorted, 0, []), [])
+}
+
+// Add one interval to a set and re-canonicalize.
+pub fn insert(set: Array<Interval>, iv: Interval) -> Array<Interval> {
+  return normalize(array.concat(set, [iv]))
+}
+
+// The union of two sets: everything either covers.
+pub fn union(a: Array<Interval>, b: Array<Interval>) -> Array<Interval> {
+  return normalize(array.concat(a, b))
+}
+
+// Total number of integers covered by a set.
+pub fn measure(set: Array<Interval>) -> number {
+  let total = 0
+  for iv in set {
+    mut total = total + (iv.hi - iv.lo + 1)
+  }
+  return total
+}
+
+// Is point `x` covered by any interval in the set?
+pub fn contains_point(set: Array<Interval>, x: number) -> bool {
+  for iv in set {
+    match contains(iv, x) {
+      true => {
+        return true
+      },
+      false => {},
+    }
+  }
+  return false
+}
+
+// Two-pointer sweep of the overlap between two canonical sets. `acc` is built
+// by prepending, so the caller reverses.
+fn intersect_go(
+  a: Array<Interval>,
+  b: Array<Interval>,
+  i: number,
+  j: number,
+  acc: Array<Interval>,
+) -> Array<Interval> {
+  return match i >= array.len(a) {
+    true => acc,
+    false => match j >= array.len(b) {
+      true => acc,
+      false => {
+        let x = a[i]
+        let y = b[j]
+        let lo = math.max(x.lo, y.lo)
+        let hi = math.min(x.hi, y.hi)
+        let acc2 = match lo <= hi {
+          true => [{ lo: lo, hi: hi }, ...acc],
+          false => acc,
+        }
+        return match x.hi < y.hi {
+          true => intersect_go(a, b, i + 1, j, acc2),
+          false => intersect_go(a, b, i, j + 1, acc2),
+        }
+      },
+    },
+  }
+}
+
+// The intersection of two sets: the integers both cover.
+pub fn intersection(a: Array<Interval>, b: Array<Interval>) -> Array<Interval> {
+  let na = normalize(a)
+  let nb = normalize(b)
+  return rev(intersect_go(na, nb, 0, 0, []), [])
+}
+
+// Carve the cutters `b` (canonical) out of the single range `lo..=hi`, emitting
+// the surviving pieces into `acc` (prepended, so the caller reverses).
+fn subtract_iv(
+  lo: number,
+  hi: number,
+  b: Array<Interval>,
+  j: number,
+  acc: Array<Interval>,
+) -> Array<Interval> {
+  return match lo > hi {
+    true => acc,
+    false => match j >= array.len(b) {
+      true => [{ lo: lo, hi: hi }, ...acc],
+      false => {
+        let cut = b[j]
+        return match cut.hi < lo {
+          true => subtract_iv(lo, hi, b, j + 1, acc),
+          false => match cut.lo > hi {
+            true => [{ lo: lo, hi: hi }, ...acc],
+            false => {
+              let acc2 = match cut.lo > lo {
+                true => [{ lo: lo, hi: cut.lo - 1 }, ...acc],
+                false => acc,
+              }
+              return subtract_iv(cut.hi + 1, hi, b, j + 1, acc2)
+            },
+          },
+        }
+      },
+    },
+  }
+}
+
+// The difference `a \ b`: the integers `a` covers that `b` does not.
+pub fn difference(a: Array<Interval>, b: Array<Interval>) -> Array<Interval> {
+  let na = normalize(a)
+  let nb = normalize(b)
+  let out: Array<Interval> = []
+  for iv in na {
+    let pieces = rev(subtract_iv(iv.lo, iv.hi, nb, 0, []), [])
+    for p in pieces {
+      mut out.push(p)
+    }
+  }
+  return normalize(out)
+}

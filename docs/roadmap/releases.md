@@ -781,6 +781,25 @@ bitwise operators from 0.1.20), plus the correctness bug the dogfooding surfaced
   is bound. This is a real miscompile of valid cross-module code, not just an
   ergonomic gap.
 
+### 0.1.22 — Shipped · improve-glyph loop batch 4 + interfaces as types
+
+**Status: shipped.** Batch 4 of the dogfood loop (ten more pure-Glyph corpus
+modules: union-find, an LRU cache, a stack VM, a trie, an ordered-map BST,
+interval-set algebra, checksums, descriptive statistics), plus the compiler work
+it surfaced:
+
+- **Structural interfaces as ordinary types** (D34 completion) — an `interface`
+  worked as a generic bound but not as a plain type (member access and
+  assignability were unchecked). The typechecker now expands an interface to its
+  record-field set and reuses the structural record comparison at argument and
+  return sites, and resolves interface members for member access. Three tests.
+- **G21 leading-bracket statement glue — resolved won't-fix.** The loop escalated
+  that a tail expression starting a line with `[`/`(` glues onto the previous
+  statement. Decision: this is JavaScript's ASI behavior (`foo()\n[1,2]` is
+  `foo()[1,2]` in JS too), expected not buggy; the fix would diverge from JS and
+  break multi-line chains. Documented in the D1 spec note with the `return`
+  workaround.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

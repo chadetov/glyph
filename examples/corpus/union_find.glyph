@@ -1,0 +1,147 @@
+// Pure-Glyph disjoint-set forest (union-find) with the two classic
+// optimizations: `find` compresses the path it walks by pointing every visited
+// node straight at the root, and `union` attaches the shorter tree under the
+// taller one (union by rank). Together they keep the amortized cost of `find`
+// and `union` effectively constant. The set count is maintained incrementally,
+// so `count` is O(1); `component_size` and `components` scan once. The only
+// platform leaves are std/array (len), std/string (from, to key a root),
+// std/record (the root-keyed grouping map), and std/option; every parent
+// pointer walk, the path compression, the rank comparison, and the grouping
+// fold are Glyph. It exercises recursive in-place array-element mutation
+// (`mut uf.parent[x] = root` inside `find`) and a Record used as a scratch
+// multimap, which the array-and-heap corpus did not yet cover.
+module union_find
+
+import std/option { Some, None }
+import std/array
+import std/string
+import std/record
+
+// A disjoint-set forest over the integers `0 .. n-1`. `parent[i]` is `i`'s
+// parent (a root points at itself), `rank[i]` bounds the height of `i`'s
+// subtree, and `count` is the number of distinct sets.
+pub type UnionFind = { parent: Array<number>, rank: Array<number>, count: number }
+
+// A forest of `n` singletons: every element is its own root with rank 0.
+pub fn create(n: number) -> UnionFind {
+  let parent: Array<number> = []
+  let rank: Array<number> = []
+  let i = 0
+  loop {
+    match i >= n {
+      true => {
+        break
+      },
+      false => {},
+    }
+    mut parent.push(i)
+    mut rank.push(0)
+    mut i = i + 1
+  }
+  return { parent: parent, rank: rank, count: n }
+}
+
+// The representative root of `x`'s set. Walks parent pointers to the root, then
+// compresses the path: every node visited on the way up is repointed directly
+// at the root, so later queries are flat.
+pub fn find(uf: UnionFind, x: number) -> number {
+  return match uf.parent[x] == x {
+    true => x,
+    false => {
+      let root = find(uf, uf.parent[x])
+      mut uf.parent[x] = root
+      return root
+    },
+  }
+}
+
+// Merge the sets containing `a` and `b`. Returns true when a merge happened and
+// false when they were already in the same set. The shorter tree is hung under
+// the taller one; equal ranks pick one arbitrarily and bump its rank.
+pub fn union(uf: UnionFind, a: number, b: number) -> bool {
+  let ra = find(uf, a)
+  let rb = find(uf, b)
+  return match ra == rb {
+    true => false,
+    false => {
+      match uf.rank[ra] < uf.rank[rb] {
+        true => {
+          mut uf.parent[ra] = rb
+        },
+        false => match uf.rank[ra] > uf.rank[rb] {
+          true => {
+            mut uf.parent[rb] = ra
+          },
+          false => {
+            mut uf.parent[rb] = ra
+            mut uf.rank[ra] = uf.rank[ra] + 1
+          },
+        },
+      }
+      mut uf.count = uf.count - 1
+      return true
+    },
+  }
+}
+
+// Whether `a` and `b` are in the same set.
+pub fn connected(uf: UnionFind, a: number, b: number) -> bool {
+  return find(uf, a) == find(uf, b)
+}
+
+// The number of distinct sets, maintained incrementally by `union`.
+pub fn count(uf: UnionFind) -> number {
+  return uf.count
+}
+
+// How many elements share `x`'s set, counted by a single pass over the forest.
+pub fn component_size(uf: UnionFind, x: number) -> number {
+  let root = find(uf, x)
+  let n = array.len(uf.parent)
+  let total = 0
+  let i = 0
+  loop {
+    match i >= n {
+      true => {
+        break
+      },
+      false => {},
+    }
+    match find(uf, i) == root {
+      true => {
+        mut total = total + 1
+      },
+      false => {},
+    }
+    mut i = i + 1
+  }
+  return total
+}
+
+// Every set as its own list of members. Elements are bucketed by their root in
+// a Record used as a scratch multimap, then the buckets are returned; the first
+// element of each set to be seen creates its bucket and the rest push into it.
+pub fn components(uf: UnionFind) -> Array<Array<number>> {
+  let n = array.len(uf.parent)
+  let groups: Record<string, Array<number>> = {}
+  let i = 0
+  loop {
+    match i >= n {
+      true => {
+        break
+      },
+      false => {},
+    }
+    let key = string.from(find(uf, i))
+    match record.get(groups, key) {
+      Some(list) => {
+        mut list.push(i)
+      },
+      None => {
+        mut groups[key] = [i]
+      },
+    }
+    mut i = i + 1
+  }
+  return record.values(groups)
+}

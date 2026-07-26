@@ -989,6 +989,57 @@ fn main() -> void {
 }
 
 #[test]
+fn types_companion_package_resolves_over_the_typeless_js() {
+    // A JS-only package (no bundled types) with a separate `@types/<pkg>`
+    // companion must resolve to the `@types` declarations, not to the typeless
+    // `.js` (which tsc reports as an implicit any, TS7016). Regression for the
+    // tsconfig `paths` order: `@types/<pkg>` is tried before the bare package,
+    // so the whole "ships JS, types live in `@types/*`" ecosystem (pg, react,
+    // express, lodash) type-checks. Requires tsc.
+    if !tsc_available() {
+        eprintln!("skipping @types-companion tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("typescompanion");
+    // A project boundary, so the node_modules walk stops here.
+    write_file(&root, "package.json", "{\n  \"name\": \"proj\",\n  \"version\": \"1.0.0\"\n}\n");
+    // A typeless JS package: has a JS entry, ships no declarations.
+    write_file(
+        &root,
+        "node_modules/coolpkg/package.json",
+        "{\n  \"name\": \"coolpkg\",\n  \"version\": \"1.0.0\",\n  \"main\": \"index.js\"\n}\n",
+    );
+    write_file(
+        &root,
+        "node_modules/coolpkg/index.js",
+        "module.exports.greet = (n) => \"hi \" + n;\n",
+    );
+    // Its `@types` companion carries the declarations.
+    write_file(
+        &root,
+        "node_modules/@types/coolpkg/index.d.ts",
+        "declare module \"coolpkg\" {\n  export function greet(name: string): string;\n}\n",
+    );
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport coolpkg { greet }\nimport std/io { println }\nfn main() -> void {\n  println(greet(\"world\"))\n}\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("@types companion did not resolve over the typeless js:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn infer_output_guarantee_bites_on_shape_mismatch() {
     // D28: `object_schema<Shape> -> Schema<infer_output<Shape>>` derives the
     // output type from the shape. Annotating the result `Schema<Point>` when the

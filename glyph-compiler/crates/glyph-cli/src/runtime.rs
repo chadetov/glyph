@@ -200,7 +200,17 @@ fn tsconfig_json(node_modules: Option<&Path>, has_types_node: bool) -> String {
     let node_modules_paths = match node_modules {
         Some(nm) => {
             let nm = nm.to_string_lossy().replace('\\', "\\\\");
-            format!(",\n      \"*\": [\"{nm}/*\", \"{nm}/@types/*\"]")
+            // `@types/*` is tried BEFORE the bare package. A `paths` entry
+            // short-circuits on the first candidate that *resolves to a module*,
+            // even one with no type declarations, so listing the package first
+            // makes a typeless JS package (`pg`, `react`, `express`, `lodash`,
+            // and the rest of the "ships JS, types live in `@types/*`"
+            // ecosystem) resolve to its untyped `.js` and report an implicit
+            // `any` (TS7016) instead of falling through to its `@types`
+            // companion. Trying `@types/<pkg>` first fixes that; a package that
+            // ships its own types has no `@types` entry to match, so it falls
+            // through to the bare path and uses its bundled declarations.
+            format!(",\n      \"*\": [\"{nm}/@types/*\", \"{nm}/*\"]")
         }
         None => String::new(),
     };
@@ -383,10 +393,11 @@ mod tests {
         assert!(ts.contains(r#""typeRoots": ["/proj/node_modules/@types"]"#), "got: {ts}");
     }
 
-    /// With a project `node_modules`, a `"*"` entry points bare imports at both
-    /// the package root and its `@types` companion, so an installed package that
-    /// ships types (or has an `@types/*`) resolves without a hand-written stub.
-    /// The `std/*` mapping stays, and it is more specific so `std/...` still
+    /// With a project `node_modules`, a `"*"` entry points bare imports at the
+    /// package's `@types` companion first and its package root second, so an
+    /// installed package resolves without a hand-written stub whether its types
+    /// ship in `@types/*` (tried first) or in the package itself (fallen through
+    /// to). The `std/*` mapping stays, and it is more specific so `std/...` still
     /// resolves to the runtime rather than the wildcard.
     #[test]
     fn tsconfig_with_node_modules_wires_the_wildcard() {
@@ -394,7 +405,7 @@ mod tests {
         let ts = tsconfig_json(Some(nm), false);
         assert!(ts.contains(r#""std/*": ["./.glyph-runtime/std/*"]"#));
         assert!(ts.contains(
-            r#""*": ["/proj/node_modules/*", "/proj/node_modules/@types/*"]"#
+            r#""*": ["/proj/node_modules/@types/*", "/proj/node_modules/*"]"#
         ));
     }
 

@@ -172,6 +172,8 @@ impl StdlibStubs {
         s.add("std/collections", &["Deque", "deque"]);
         // A persisted SQL database over node's built-in synchronous SQLite.
         s.add("std/sqlite", &["Db", "Row", "open"]);
+        // Exact base-10 fixed-point arithmetic (money) over BigInt, no floats.
+        s.add("std/decimal", &["Decimal", "decimal", "from_int", "zero"]);
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
         // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(

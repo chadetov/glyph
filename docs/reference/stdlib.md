@@ -340,6 +340,35 @@ db.query_one(sql: string, params: Array<unknown>) -> Option<Row>  // method: fir
 db.close() -> void                                 // method
 ```
 
+## std/decimal
+
+Exact base-10 fixed-point arithmetic for money. A `Decimal` is an
+arbitrary-precision integer scaled by a number of fractional digits (BigInt
+under the hood), so there is no floating-point error (`0.1 + 0.2` is exactly
+`0.3`) and no precision loss past 2^53. Operations are methods (Glyph has no
+operator overloading). Construction validates and returns a `Result`.
+
+```
+type Decimal
+decimal(text: string) -> Result<Decimal, string>   // parse "10.50"; Err on malformed
+from_int(units: int, scale: int) -> Decimal          // from_int(1050, 2) is 10.50
+zero: Decimal
+d.add(other: Decimal) -> Decimal                     // method; exact
+d.sub(other: Decimal) -> Decimal                     // method; exact
+d.mul(other: Decimal) -> Decimal                     // method; exact
+d.div(other: Decimal, scale: int) -> Decimal         // method; rounds half away from zero to `scale` digits
+d.round(scale: int) -> Decimal                       // method
+d.neg() -> Decimal                                   // method
+d.abs() -> Decimal                                   // method
+d.cmp(other: Decimal) -> int                         // method; -1 | 0 | 1
+d.eq(other: Decimal) -> bool                         // method
+d.is_zero() -> bool                                  // method
+d.is_negative() -> bool                              // method
+d.scale() -> int                                     // method
+d.to_string() -> string                              // method; canonical "10.50"
+d.to_number() -> number                              // method; lossy, for display only
+```
+
 ## std/stream
 
 Deterministic generators for property testing (sampled by index, no RNG).

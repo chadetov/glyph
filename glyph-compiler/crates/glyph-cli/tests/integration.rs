@@ -1040,6 +1040,66 @@ fn types_companion_package_resolves_over_the_typeless_js() {
 }
 
 #[test]
+fn std_decimal_arithmetic_is_exact() {
+    // Money correctness: std/decimal must be exact where IEEE-754 `number` is
+    // not. The program returns its count of wrong results as the exit code, so a
+    // clean run (Ran(0)) is proof every case matched. Needs node/tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping std/decimal run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("decimal");
+    write_file(
+        &root,
+        "main.glyph",
+        r#"module main
+
+import std/decimal { Decimal, decimal, from_int }
+import std/result { Ok, Err }
+
+fn d(s: string) -> Decimal {
+  return match decimal(s) {
+    Ok(v) => v,
+    Err(e) => from_int(0, 0),
+  }
+}
+
+fn check(got: string, want: string) -> number {
+  return match got == want {
+    true => 0,
+    false => 1,
+  }
+}
+
+fn main() -> number {
+  let fails = 0
+  mut fails = fails + check(d("0.1").add(d("0.2")).to_string(), "0.3")
+  mut fails = fails + check(d("10.50").add(d("2.25")).to_string(), "12.75")
+  mut fails = fails + check(d("10.00").sub(d("0.01")).to_string(), "9.99")
+  mut fails = fails + check(d("1.10").mul(d("1.10")).to_string(), "1.2100")
+  mut fails = fails + check(d("2").div(d("3"), 2).to_string(), "0.67")
+  mut fails = fails + check(d("0.125").round(2).to_string(), "0.13")
+  mut fails = fails + check(d("-5.00").add(d("2.50")).to_string(), "-2.50")
+  mut fails = fails + check(d("-3.14").abs().to_string(), "3.14")
+  mut fails = fails + check(from_int(1050, 2).to_string(), "10.50")
+  mut fails = fails + check(d("9007199254740993").add(d("2")).to_string(), "9007199254740995")
+  return fails
+}
+"#,
+    );
+    let file = root.join("main.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "std/decimal produced {code} wrong result(s)");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping: toolchain not found at run time");
+        }
+        other => panic!("std/decimal program did not run: {other:?}"),
+    }
+}
+
+#[test]
 fn infer_output_guarantee_bites_on_shape_mismatch() {
     // D28: `object_schema<Shape> -> Schema<infer_output<Shape>>` derives the
     // output type from the shape. Annotating the result `Schema<Point>` when the

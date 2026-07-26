@@ -145,6 +145,31 @@ pub fn build_project_inner(
     let project_modules: std::collections::BTreeSet<String> =
         entries.iter().map(|(p, _)| p.clone()).collect();
 
+    // Cross-module union shapes: `(module path, variant name)` for every variant
+    // with a record payload, across all project modules. The emitter needs this
+    // to bind a `Variant(v)` pattern correctly when the union is *imported* — a
+    // record payload binds the whole `{tag, ...fields}` object, a single-value
+    // payload binds `.value`, and an imported-union scrutinee otherwise carries
+    // no concrete type for the emitter to inspect.
+    let mut record_payload_variants: std::collections::BTreeSet<(String, String)> =
+        Default::default();
+    for (module_path, sf) in &entries {
+        let parsed = parse_module(&db, *sf);
+        let Some(ast) = parsed.module() else { continue };
+        for item in &ast.items {
+            if let glyph_ast::Decl::Type(td) = item {
+                if let glyph_ast::TypeExpr::Union { variants, .. } = &td.body {
+                    for v in variants {
+                        if matches!(v.payload, Some(glyph_ast::TypeExpr::Record { .. })) {
+                            record_payload_variants
+                                .insert((module_path.clone(), v.name.to_string()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Run the pipeline for each file. Collect diagnostics in the same
     // order as the file walk so the report is reproducible. Each
     // diagnostic is ariadne-rendered against the file's source so the
@@ -273,6 +298,7 @@ pub fn build_project_inner(
         let ctx = glyph_emit::EmitContext {
             module_path: module_path.as_str(),
             project_modules: &project_modules,
+            record_payload_variants: &record_payload_variants,
         };
         match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(output) => {

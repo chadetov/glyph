@@ -1630,3 +1630,37 @@ fn run_reports_build_failure_for_a_broken_target() {
         }
     }
 }
+
+#[test]
+fn cross_module_record_payload_union_match_binds_whole_object() {
+    // Regression (improve-glyph loop batch 3): a `Variant(v)` bind on an
+    // *imported* record-payload union emitted `v.value` (TS2339) instead of
+    // binding the whole `{tag, ...fields}` object. The cross-module registry
+    // now resolves the imported variant's shape.
+    let root = unique_tmp("xunion");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "err.glyph",
+        "module err\npub type E =\n  | BadLeadByte({ at: number })\n  | Empty\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import err { E, BadLeadByte, Empty }\n\
+         import std/string { from }\n\
+         pub fn describe(e: E) -> string {\n\
+         \x20 return match e {\n\
+         \x20\x20\x20 BadLeadByte(v) => from(v.at),\n\
+         \x20\x20\x20 Empty => \"empty\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    // The whole object is bound, not `.value`.
+    assert!(ts.contains("const v = __") && !ts.contains("const v = __m0.value"), "{ts}");
+}

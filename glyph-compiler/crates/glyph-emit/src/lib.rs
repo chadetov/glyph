@@ -337,6 +337,11 @@ pub struct EmitContext<'a> {
     /// Every project module path, so a project import is told apart from a
     /// `std/*` or external one.
     pub project_modules: &'a std::collections::BTreeSet<String>,
+    /// `(module path, variant name)` for every record-payload variant across the
+    /// project, so a `Variant(v)` bind on an *imported* union knows whether to
+    /// bind the whole object (record payload) or `.value` (single-value payload).
+    /// Empty for a single-module build (no imported project unions).
+    pub record_payload_variants: &'a std::collections::BTreeSet<(String, String)>,
 }
 
 impl<'a> EmitContext<'a> {
@@ -346,9 +351,13 @@ impl<'a> EmitContext<'a> {
         EmitContext {
             module_path: "",
             project_modules: &EMPTY_MODULES,
+            record_payload_variants: &EMPTY_VARIANTS,
         }
     }
 }
+
+static EMPTY_VARIANTS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
+    std::sync::LazyLock::new(std::collections::BTreeSet::new);
 
 static EMPTY_MODULES: std::sync::LazyLock<std::collections::BTreeSet<String>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
@@ -1691,6 +1700,13 @@ impl<'a> Emitter<'a> {
     /// single-value, so this returns false for them and for any type whose
     /// union declaration cannot be resolved (mirroring `union_variant_names`).
     fn variant_payload_is_record(&self, ty: &Ty, variant: &str) -> bool {
+        // Cross-module fallback: a scrutinee typed by an *imported* union carries
+        // no concrete `Ty` here, so the local (ty-based) lookup below can't see
+        // its variant shapes. Resolve the variant to its source module via its
+        // own `ImportNamed` symbol and consult the project registry.
+        if self.imported_variant_is_record(variant) {
+            return true;
+        }
         let ty = match ty {
             Ty::App { base, .. } => base.as_ref(),
             other => other,
@@ -1717,6 +1733,31 @@ impl<'a> Emitter<'a> {
             .iter()
             .find(|v| v.name.as_ref() == variant)
             .is_some_and(|v| matches!(v.payload, Some(TypeExpr::Record { .. })))
+    }
+
+    /// Whether `variant` is an imported record-payload variant, resolved via its
+    /// own module's `ImportNamed` symbol and the project record-variant registry.
+    /// A same-module variant name shadows an import in `by_name`, so this only
+    /// fires for a genuinely imported one.
+    fn imported_variant_is_record(&self, variant: &str) -> bool {
+        let Some(&sym_id) = self.resolved.symbols.by_name.get(variant) else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(sym_id) else {
+            return false;
+        };
+        let SymbolKind::ImportNamed { path, original } = &sym.kind else {
+            return false;
+        };
+        let module_path: String = path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        self.ctx
+            .record_payload_variants
+            .contains(&(module_path, original.to_string()))
     }
 
     /// The type of an outer variant's payload, for a scrutinee whose payload is
@@ -4286,6 +4327,7 @@ mod tests {
         let ctx = EmitContext {
             module_path: "sub/a",
             project_modules: &modules,
+            record_payload_variants: &EMPTY_VARIANTS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -4621,6 +4663,7 @@ mod tests {
         let ctx = EmitContext {
             module_path: "a",
             project_modules: &project,
+            record_payload_variants: &EMPTY_VARIANTS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");

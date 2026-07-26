@@ -1,0 +1,109 @@
+// Pure-Glyph bit manipulation over the D36 bitwise operators. Flag sets are
+// combined and queried with `|`, `&`, `~`, and `^`; population count and the
+// power-of-two test use Kernighan's `n & (n - 1)` trick, which clears the
+// lowest set bit without a shift (Glyph defers `<<`/`>>`). Every value is a
+// non-negative number in the 32-bit range, matching JavaScript's bitwise
+// semantics; there are no platform leaves.
+module bits
+
+// Unix-style permission bits. Kept as plain constants (no shifts needed to
+// spell 1/2/4), combined into a set with `union`.
+const READ: number = 4
+
+const WRITE: number = 2
+
+const EXEC: number = 1
+
+// The union of two flag sets: every bit set in either operand.
+pub fn union(a: number, b: number) -> number {
+  return a | b
+}
+
+// The intersection of two flag sets: the bits set in both operands.
+pub fn intersect(a: number, b: number) -> number {
+  return a & b
+}
+
+// Is every bit of `flag` present in `set`? `&` binds looser than `==` (the
+// JavaScript precedence D36 mirrors), so the mask is parenthesized.
+pub fn has(set: number, flag: number) -> bool {
+  return (set & flag) == flag
+}
+
+// Add `flag` to `set`.
+pub fn add(set: number, flag: number) -> number {
+  return set | flag
+}
+
+// Remove `flag` from `set` with AND-NOT: `~flag` clears exactly `flag`'s bits.
+pub fn remove(set: number, flag: number) -> number {
+  return set & ~flag
+}
+
+// Flip every bit of `flag` in `set`.
+pub fn toggle(set: number, flag: number) -> number {
+  return set ^ flag
+}
+
+// The classic "rwx" rendering of a three-bit permission set: a dash where the
+// bit is clear.
+pub fn render(set: number) -> string {
+  let r = match has(set, READ) {
+    true => "r",
+    false => "-",
+  }
+  let w = match has(set, WRITE) {
+    true => "w",
+    false => "-",
+  }
+  let x = match has(set, EXEC) {
+    true => "x",
+    false => "-",
+  }
+  return r + w + x
+}
+
+// Parse an "rwx" string back into a flag set, dash-tolerant per position.
+pub fn parse_mode(mode: string) -> number {
+  let acc = 0
+  mut acc = match mode[0] == "r" {
+    true => acc | READ,
+    false => acc,
+  }
+  mut acc = match mode[1] == "w" {
+    true => acc | WRITE,
+    false => acc,
+  }
+  mut acc = match mode[2] == "x" {
+    true => acc | EXEC,
+    false => acc,
+  }
+  return acc
+}
+
+// Population count via Kernighan's algorithm: `n & (n - 1)` clears the lowest
+// set bit, so the recursion runs exactly once per set bit.
+pub fn popcount(n: number) -> number {
+  return match n == 0 {
+    true => 0,
+    false => 1 + popcount(n & n - 1),
+  }
+}
+
+// A positive power of two has exactly one set bit, so clearing it lands on zero.
+pub fn is_power_of_two(n: number) -> bool {
+  return match n <= 0 {
+    true => false,
+    false => (n & n - 1) == 0,
+  }
+}
+
+// XOR checksum: fold a byte array with `^`. Order-independent, and applying the
+// same byte twice cancels, so it doubles as a simple parity check.
+pub fn xor_checksum(bytes: Array<number>) -> number {
+  let acc = 0
+  for b in bytes {
+    mut acc = acc ^ b
+  }
+  return acc
+}

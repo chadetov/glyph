@@ -1002,11 +1002,107 @@ impl Generator {
         Some(format!("type {name} =\n{union_arms}\n{parse_fn}"))
     }
 
+    /// A bare `oneOf`/`anyOf` of inline object variants that share a
+    /// single-string-literal tag property — a *TypeScript* discriminated union,
+    /// which carries no OpenAPI `discriminator` keyword and no `$ref`s. Detect the
+    /// tag (a property present in every variant whose type is a distinct
+    /// one-element string enum), then generate a record per variant plus the same
+    /// tagged-union + `parse_<Name>` dispatcher the explicit-discriminator path
+    /// produces. Returns `None` when no such tag exists, so the caller falls back
+    /// to `unknown`.
+    fn try_inline_discriminated_union(&mut self, name: &str, schema: &Value) -> Option<String> {
+        if schema.get("discriminator").is_some() {
+            return None; // the explicit-discriminator path handles this
+        }
+        let members = schema
+            .get("oneOf")
+            .or_else(|| schema.get("anyOf"))
+            .and_then(|v| v.as_array())?;
+        if members.len() < 2 {
+            return None;
+        }
+        // Every variant must be an inline object with properties (a `$ref` member
+        // means the explicit-discriminator path, handled above).
+        let objs: Vec<&serde_json::Map<String, Value>> = members
+            .iter()
+            .map(|m| m.get("properties").and_then(|p| p.as_object()))
+            .collect::<Option<Vec<_>>>()?;
+
+        // Find the discriminant: a property present in every variant whose schema
+        // is a single string literal, with a value distinct across variants.
+        let mut prop_and_values: Option<(String, Vec<String>)> = None;
+        for key in objs[0].keys() {
+            let values: Option<Vec<String>> = objs
+                .iter()
+                .map(|props| props.get(key).and_then(single_string_literal))
+                .collect();
+            let Some(values) = values else { continue };
+            let mut distinct = values.clone();
+            distinct.sort();
+            distinct.dedup();
+            if distinct.len() == values.len() {
+                prop_and_values = Some((key.clone(), values));
+                break;
+            }
+        }
+        let (prop, values) = prop_and_values?;
+
+        // Variant names must be legal Glyph identifiers, or we cannot generate a
+        // record for them; fall back to `unknown` in that case.
+        let variant_names: Vec<String> = values.iter().map(|v| pascal_case(v)).collect();
+        if variant_names.iter().any(|n| !is_ident(n)) {
+            return None;
+        }
+
+        self.needs_discriminated_imports = true;
+
+        let mut records = String::new();
+        let mut union_arms = String::new();
+        let mut arms = String::new();
+        let mut seen_ctor: Vec<String> = Vec::new();
+        for ((member, value), rn) in members.iter().zip(values.iter()).zip(variant_names.iter()) {
+            let ctor = format!("{name}{rn}");
+            if seen_ctor.contains(&ctor) {
+                continue;
+            }
+            seen_ctor.push(ctor.clone());
+            let fields = self.object_fields(rn, member);
+            records.push_str(&self.render_record(rn, &fields, !schema_is_closed(member)));
+            records.push('\n');
+            union_arms.push_str(&format!("  | {ctor}({rn})\n"));
+            arms.push_str(&format!(
+                "      \"{value}\" => match {rn}.parse(v) {{\n        Ok(x) => Ok({ctor}(x)),\n        Err(_) => Err(\"invalid {name}\"),\n      }},\n"
+            ));
+        }
+
+        let parse_fn = format!(
+            "fn parse_{name}(v: unknown) -> Result<{name}, string> {{\n  \
+               return match discriminant(v, \"{prop}\") {{\n    \
+                 Some(kind) => match kind {{\n{arms}      \
+                   else => Err(\"unknown {name} discriminator\"),\n    \
+                 }},\n    \
+                 None => Err(\"missing {name} discriminator\"),\n  \
+               }}\n}}\n"
+        );
+
+        self.note(format!(
+            "{name}: TypeScript discriminated union on `{prop}` — generated variant records and a `parse_{name}` dispatcher."
+        ));
+        Some(format!("{records}type {name} =\n{union_arms}\n{parse_fn}"))
+    }
+
     /// Emit one top-level `type Name = ...` declaration.
     fn emit_type(&mut self, name: &str, schema: &Value) -> String {
         // A discriminated `oneOf`/`anyOf` → a tagged union of the variants plus
         // a `parse_*` dispatcher on the discriminator property.
         if let Some(decl) = self.try_discriminated_union(name, schema) {
+            return decl;
+        }
+
+        // A TypeScript discriminated union (a bare `oneOf` of inline object
+        // variants sharing a string-literal tag) → the same tagged union +
+        // dispatcher, with variant records generated from the inline shapes.
+        if let Some(decl) = self.try_inline_discriminated_union(name, schema) {
             return decl;
         }
 
@@ -1290,6 +1386,38 @@ fn string_enum_union(schema: &Value) -> Option<String> {
         .map(|s| format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"")))
         .collect();
     (!parts.is_empty()).then(|| parts.join(" | "))
+}
+
+/// The single string value of a one-element string enum (`{type:"string",
+/// enum:["cat"]}`) or a `const` (`{const:"cat"}`), else `None`. This is the
+/// shape a TypeScript literal-typed property (`petType: "cat"`) takes in the
+/// generated JSON Schema; it is what marks a discriminant.
+fn single_string_literal(schema: &Value) -> Option<String> {
+    if let Some(c) = schema.get("const").and_then(|v| v.as_str()) {
+        return Some(c.to_string());
+    }
+    let arr = schema.get("enum").and_then(|e| e.as_array())?;
+    match arr.as_slice() {
+        [only] => only.as_str().map(|s| s.to_string()),
+        _ => None,
+    }
+}
+
+/// PascalCase a discriminant value into a variant type name: split on any
+/// non-alphanumeric boundary and capitalize each part (`"in-progress"` →
+/// `"InProgress"`, `"cat"` → `"Cat"`). The caller checks the result is a legal
+/// identifier before using it.
+fn pascal_case(s: &str) -> String {
+    s.split(|c: char| !c.is_alphanumeric())
+        .filter(|p| !p.is_empty())
+        .map(|p| {
+            let mut ch = p.chars();
+            match ch.next() {
+                Some(f) => f.to_uppercase().collect::<String>() + ch.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect()
 }
 
 /// The Glyph generic-parameter suffix for a declaration that carries
@@ -1993,11 +2121,40 @@ mod tests {
 
     #[test]
     fn oneof_without_discriminator_is_unknown_with_note() {
+        // A oneOf of PRIMITIVES (no shared object tag) stays unknown: the inline
+        // discriminated-union detector needs object variants with a literal tag.
         let (out, notes) = gen_from(
             r#"{"definitions":{"Weird":{"oneOf":[{"type":"string"},{"type":"integer"}]}}}"#,
         );
         assert!(out.contains("type Weird = unknown"), "got:\n{out}");
         assert!(notes.iter().any(|n| n.contains("oneOf")), "notes: {notes:?}");
+    }
+
+    #[test]
+    fn inline_ts_discriminated_union_generates_a_dispatcher() {
+        // A TypeScript discriminated union: a bare `oneOf` of inline object
+        // variants sharing a one-element string-enum tag, with no OpenAPI
+        // `discriminator`. It should generate a record per variant plus the tagged
+        // union and a `parse_<Name>` dispatcher on the detected tag.
+        let (out, notes) = gen_from(
+            r#"{"definitions":{"Pet":{"oneOf":[
+               {"type":"object","required":["petType","meow"],"properties":{"petType":{"type":"string","enum":["cat"]},"meow":{"type":"string"}}},
+               {"type":"object","required":["petType","bark"],"properties":{"petType":{"type":"string","enum":["dog"]},"bark":{"type":"string"}}}
+            ]}}}"#,
+        );
+        assert!(out.contains("type Cat = {"), "variant record Cat:\n{out}");
+        assert!(out.contains("type Dog = {"), "variant record Dog:\n{out}");
+        assert!(
+            out.contains("| PetCat(Cat)") && out.contains("| PetDog(Dog)"),
+            "union arms:\n{out}"
+        );
+        assert!(out.contains("fn parse_Pet(v: unknown)"), "dispatcher:\n{out}");
+        assert!(out.contains(r#"discriminant(v, "petType")"#), "reads the tag:\n{out}");
+        assert!(out.contains(r#""cat" => match Cat.parse(v)"#), "cat arm:\n{out}");
+        assert!(
+            notes.iter().any(|n| n.contains("discriminated union on `petType`")),
+            "note: {notes:?}"
+        );
     }
 
     #[test]

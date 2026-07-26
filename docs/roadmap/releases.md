@@ -800,6 +800,39 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### 0.1.27 — Shipped · Real database interop, and two bugs it surfaced
+
+**Status: shipped.** Writing the databases guide (proving Postgres and MongoDB
+work end to end, not just claiming it) surfaced two real interop bugs, both fixed
+here. The guide only claims what now type-checks.
+
+- **`std/sqlite` was not tsc-clean under `@types/node`.** The wrapper passed its
+  bound params (`ReadonlyArray<unknown>`) straight into `node:sqlite`, which under
+  the real `@types/node` types expects `SQLInputValue`. It only passed before
+  because a project without `@types/node` fell back to the looser bundled shim.
+  Any project that also installed `@types/node` (most of them) saw the emitted
+  `std/sqlite.ts` fail `tsc`. Fixed by asserting the params at that one platform
+  seam, so the wrapper checks the same against the real types or the shim.
+- **`@types/<pkg>` companions did not resolve.** The generated tsconfig's `"*"`
+  path listed the bare package before its `@types` companion, and a `paths` entry
+  short-circuits on the first candidate that resolves to *a module* even when it
+  has no types. So a typeless JS package (`pg`, `react`, `express`, `lodash`, the
+  whole "ships JS, types live in `@types/*`" ecosystem) resolved to its untyped
+  `.js` and reported an implicit `any` (TS7016). Now `@types/<pkg>` is tried
+  first; a package that ships its own types has no `@types` entry and falls
+  through to its bundled declarations. `pg` with `@types/pg` now type-checks.
+- **The databases guide** (`docs/guide/databases.md`): SQLite (built in),
+  Postgres (`new Pool`, validate rows), MongoDB (`new MongoClient`, validate
+  documents), and the Redis/MySQL factory clients. Every full program in it was
+  compiled against the real installed client types before it was written down.
+- **Documented limitation surfaced:** Glyph's `await` binds to the innermost call
+  of a chain (the common case, where that call is the async one). A fluent API
+  that puts a synchronous call before the async one, like mongodb's
+  `find(...).toArray()`, needs the async call on its own line
+  (`let cursor = coll.find({})` then `await cursor.toArray()`). Noted in the guide
+  and parked below; the fix is a smarter await-spine that awaits the outermost
+  Promise-typed call, not the innermost call.
+
 ### 0.1.26 — Shipped · `new` for class-based npm clients (D37)
 
 **Status: shipped.** A language feature that closes the last real gap in the npm
@@ -1015,6 +1048,14 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **Await-spine for fluent sync-then-async chains** (M). `await` binds to the
+  innermost call of a chain, which is right when that call is the async one
+  (`await load(p).map_err(f)`) but wrong for a fluent API whose synchronous call
+  precedes the async one (mongodb's `find(...).toArray()` awaits `find`, not
+  `toArray`). Today the workaround is to bind the cursor and await `toArray` on
+  its own line (documented in `docs/guide/databases.md`). The fix is to await the
+  outermost Promise-typed call in the spine rather than the innermost call, which
+  needs the spine walk to consult the checker's type of each call.
 - **MCP write tier: `glyph_fix` + `glyph_rename`** (M). The MCP server today is five
   read-only query tools; the write-capable tier is these two, done together. Both
   **return edits** (a list of `{range, newText}`), never mutating files, so the

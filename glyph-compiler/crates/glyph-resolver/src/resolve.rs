@@ -483,6 +483,12 @@ impl Resolver<'_> {
                 type_args,
                 args,
                 ..
+            }
+            | Expr::New {
+                callee,
+                type_args,
+                args,
+                ..
             } => {
                 self.walk_expr(callee);
                 for t in type_args {
@@ -757,12 +763,13 @@ mod tests {
 
     #[test]
     fn reserved_word_param_is_rejected() {
-        // The fn name is fine; the parameter `new` is a TS reserved word that
-        // would emit an illegal binding, so `bind_local` rejects it.
-        let (_, errs) = resolve("module x\nfn f(new: number) -> number { return new }\n");
+        // The fn name is fine; the parameter `class` is a TS reserved word that
+        // would emit an illegal binding, so `bind_local` rejects it. (`new` is
+        // now a Glyph keyword in its own right, rejected earlier at parse time.)
+        let (_, errs) = resolve("module x\nfn f(class: number) -> number { return class }\n");
         assert!(
             errs.iter()
-                .any(|e| matches!(e, ResolveError::ReservedWordName { name, .. } if name == "new")),
+                .any(|e| matches!(e, ResolveError::ReservedWordName { name, .. } if name == "class")),
             "errors were: {errs:?}"
         );
     }

@@ -643,6 +643,26 @@ impl Printer {
                 }
                 self.delimited(args, "(", ")", "()", "(", ")", |p, a| p.expr(a));
             }
+            Expr::New {
+                callee,
+                type_args,
+                args,
+                ..
+            } => {
+                self.push("new ");
+                self.atom(callee);
+                if !type_args.is_empty() {
+                    self.push("<");
+                    for (i, t) in type_args.iter().enumerate() {
+                        if i > 0 {
+                            self.push(", ");
+                        }
+                        self.type_expr(t);
+                    }
+                    self.push(">");
+                }
+                self.delimited(args, "(", ")", "()", "(", ")", |p, a| p.expr(a));
+            }
             Expr::Member {
                 object,
                 field,
@@ -1120,6 +1140,9 @@ fn is_atom(e: &Expr) -> bool {
             | Expr::Void { .. }
             | Expr::Ident { .. }
             | Expr::Call { .. }
+            // `new Foo()` always carries its own `()`, so `new Foo().bar`
+            // reparses as `(new Foo()).bar` — no wrapping parens needed.
+            | Expr::New { .. }
             | Expr::Member { .. }
             | Expr::Index { .. }
             | Expr::Await { .. }

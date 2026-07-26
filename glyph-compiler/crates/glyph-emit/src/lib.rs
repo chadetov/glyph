@@ -3155,6 +3155,20 @@ impl<'a> Emitter<'a> {
                     format!("{}{}", self.expr(callee)?, self.call_suffix(type_args, args)?)
                 }
             }
+            // Interop constructor (D37): emits verbatim as a TS `new`. `tsc`
+            // checks it against the imported constructor's signature.
+            Expr::New {
+                callee,
+                type_args,
+                args,
+                ..
+            } => {
+                format!(
+                    "new {}{}",
+                    self.expr(callee)?,
+                    self.call_suffix(type_args, args)?
+                )
+            }
             Expr::Member {
                 object,
                 field,
@@ -6052,6 +6066,27 @@ mod tests {
         let ts = emit("module x\ninterface Show {\n  fn show() -> string\n}\n");
         assert!(ts.contains("interface Show {"), "{ts}");
         assert!(!ts.contains("export interface Show"), "private interface: {ts}");
+    }
+
+    #[test]
+    fn new_expression_emits_a_typescript_constructor() {
+        // Interop constructor (D37): `new` emits a verbatim TS `new`, callee and
+        // args passed through, and a method chains after it because `new Foo()`
+        // carries its own parentheses.
+        let ts = emit(
+            "module x\npub fn go(url: string) -> void {\n  let c = new Client(url)\n  c.ping()\n}\n",
+        );
+        assert!(ts.contains("new Client(url)"), "verbatim new: {ts}");
+        assert!(ts.contains("c.ping();"), "method chains after new: {ts}");
+        // A member callee (`pkg.Kafka`) with an object argument, then a chained
+        // method on the fresh instance.
+        let ts2 = emit(
+            "module x\npub fn go2() -> void {\n  let _ = new pkg.Kafka({ id: \"a\", }).producer()\n}\n",
+        );
+        assert!(
+            ts2.contains("new pkg.Kafka({ id: \"a\" }).producer()"),
+            "member callee + chain: {ts2}"
+        );
     }
 
     #[test]

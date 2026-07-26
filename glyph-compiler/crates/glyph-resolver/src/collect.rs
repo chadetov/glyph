@@ -348,11 +348,13 @@ fn add(a: number, b: number) -> number { return a + b }
 
     #[test]
     fn reserved_word_type_and_variant_names_are_rejected() {
-        let src = "module x\ntype new = | delete | Ok({ v: number })\n";
+        let src = "module x\ntype class = | delete | Ok({ v: number })\n";
         let m = parse(src).unwrap();
         let errs = collect_module_symbols(&m).expect_err("expected reserved-word errors");
-        // The type name `new` and the variant name `delete` are both reserved.
-        for bad in ["new", "delete"] {
+        // The type name `class` and the variant name `delete` are both reserved
+        // TS words Glyph lexes as identifiers. (`new` is now a Glyph keyword,
+        // rejected at parse time, so it no longer round-trips through here.)
+        for bad in ["class", "delete"] {
             assert!(
                 errs.iter().any(
                     |e| matches!(e, ResolveError::ReservedWordName { name, .. } if name == bad)

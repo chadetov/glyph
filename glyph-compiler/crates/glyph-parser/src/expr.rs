@@ -347,10 +347,69 @@ fn parse_postfix(p: &mut Cursor) -> Result<Expr, ParseError> {
     Ok(expr)
 }
 
+// The constructor reference in a `new` expression: a primary followed by member
+// (`a.b.C`) and index (`a[k]`) accesses only. A call is NOT consumed here — the
+// `(` starts the constructor's own argument list, which `new` owns. So
+// `new a.b.C(args)` constructs `a.b.C`, and a later `.foo()` chains on the
+// instance in `parse_postfix`, giving `(new a.b.C(args)).foo()`.
+fn parse_new_callee(p: &mut Cursor) -> Result<Expr, ParseError> {
+    let mut expr = parse_primary(p)?;
+    loop {
+        match p.peek() {
+            Token::Dot => {
+                p.advance();
+                let (name, name_span) = p.expect_ident("identifier after `.`")?;
+                let start = expr.span().start;
+                expr = Expr::Member {
+                    object: Box::new(expr),
+                    field: name,
+                    optional: false,
+                    span: Span::new(start, name_span.end),
+                };
+            }
+            Token::LBracket => {
+                p.advance();
+                let index = parse_expr(p)?;
+                let close = p.expect(&Token::RBracket, "`]`")?;
+                let start = expr.span().start;
+                expr = Expr::Index {
+                    object: Box::new(expr),
+                    index: Box::new(index),
+                    span: Span::new(start, close.end),
+                };
+            }
+            _ => break,
+        }
+    }
+    Ok(expr)
+}
+
 // Primary atoms.
 fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
     let span = p.peek_span();
     match p.peek().clone() {
+        // Interop constructor (D37): `new Kafka(args)` / `new pkg.Client<T>(args)`.
+        // Glyph has no class *definitions*; `new` only instantiates an imported
+        // or external type. The callee is parsed without swallowing a call, then
+        // optional generic type args, then the required constructor arguments.
+        Token::New => {
+            p.advance();
+            let callee = parse_new_callee(p)?;
+            let type_args = if matches!(p.peek(), Token::LAngle) && looks_like_generic_call(p) {
+                parse_generic_call_type_args(p)?
+            } else {
+                Vec::new()
+            };
+            p.expect(&Token::LParen, "`(` for constructor arguments after `new`")?;
+            let args = p.parse_comma_separated(&Token::RParen, true, parse_expr)?;
+            let close = p.expect(&Token::RParen, "`)`")?;
+            Ok(Expr::New {
+                callee: Box::new(callee),
+                type_args,
+                args,
+                span: Span::new(span.start, close.end),
+            })
+        }
         Token::Number(raw) => {
             p.advance();
             Ok(Expr::Number { raw, span })

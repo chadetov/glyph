@@ -509,6 +509,21 @@ impl Assigner<'_> {
                 self.walk_expr(right);
                 self.tm.insert(*span, Ty::Unknown);
             }
+            // A `new` interop constructor. Glyph has no class definitions, so
+            // the callee is always an imported/external value the checker sees
+            // as opaque; the instance type is therefore `Unknown` on the Glyph
+            // side and `tsc` checks the construction against the real
+            // constructor. We still walk the callee and args so their names
+            // resolve and their subexpressions get typed.
+            Expr::New {
+                callee, args, span, ..
+            } => {
+                self.walk_expr(callee);
+                for a in args {
+                    self.walk_expr(a);
+                }
+                self.tm.insert(*span, Ty::Unknown);
+            }
             Expr::Call {
                 callee, args, span, ..
             } => {

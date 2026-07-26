@@ -435,6 +435,19 @@ pub enum Expr {
         expr: Box<Expr>,
         span: Span,
     },
+    /// Constructor call for an imported/external class: `new Kafka(args)`.
+    /// Interop-only. Glyph has no class *definitions*; `new` exists solely to
+    /// instantiate a type that comes from an npm package, a `.types` ambient
+    /// declaration, or `extern_ts`. It emits `new <callee><type_args>(<args>)`
+    /// and is type-checked by `tsc` against the imported constructor, exactly
+    /// like an imported function call, so it is a checked seam, not an escape
+    /// hatch.
+    New {
+        callee: Box<Expr>,
+        type_args: Vec<TypeExpr>,
+        args: Vec<Expr>,
+        span: Span,
+    },
     Array {
         elements: Vec<ArrayElem>,
         span: Span,
@@ -824,6 +837,7 @@ impl Expr {
             | Expr::Member { span, .. }
             | Expr::Index { span, .. }
             | Expr::Await { span, .. }
+            | Expr::New { span, .. }
             | Expr::Array { span, .. }
             | Expr::Object { span, .. }
             | Expr::Match { span, .. }

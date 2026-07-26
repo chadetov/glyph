@@ -944,6 +944,51 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn new_constructs_an_external_class_and_type_checks() {
+    // D37 interop constructor: `new` on a class declared in a `.types` ambient
+    // file type-checks against that constructor under `tsc --strict`, and a
+    // method chains on the fresh instance. This is the class-based-npm-client
+    // path (kafkajs, mongodb, ioredis, pg) reduced to a local ambient decl so
+    // the test needs no network install.
+    if !tsc_available() {
+        eprintln!("skipping new-interop tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("newinterop");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src.join(".types"),
+        "widgets.d.ts",
+        "declare module \"widgets\" {\n  export class Widget {\n    constructor(name: string);\n    render(): string;\n  }\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import widgets { Widget }
+import std/io { println }
+
+fn main() -> void {
+  let w = new Widget("gauge")
+  println(w.render())
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("new-interop program failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn infer_output_guarantee_bites_on_shape_mismatch() {
     // D28: `object_schema<Shape> -> Schema<infer_output<Shape>>` derives the
     // output type from the shape. Annotating the result `Schema<Point>` when the

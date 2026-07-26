@@ -148,7 +148,7 @@ impl LintWalk<'_> {
                 self.expr(right);
             }
             Expr::Unary { operand, .. } | Expr::Postfix { operand, .. } => self.expr(operand),
-            Expr::Call { callee, args, .. } => {
+            Expr::Call { callee, args, .. } | Expr::New { callee, args, .. } => {
                 self.expr(callee);
                 for a in args {
                     self.expr(a);

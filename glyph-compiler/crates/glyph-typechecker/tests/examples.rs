@@ -112,7 +112,7 @@ fn walk_expr_spans(e: &Expr, out: &mut Vec<Span>) {
         Expr::Unary { operand, .. } | Expr::Postfix { operand, .. } => {
             walk_expr_spans(operand, out);
         }
-        Expr::Call { callee, args, .. } => {
+        Expr::Call { callee, args, .. } | Expr::New { callee, args, .. } => {
             walk_expr_spans(callee, out);
             for a in args {
                 walk_expr_spans(a, out);

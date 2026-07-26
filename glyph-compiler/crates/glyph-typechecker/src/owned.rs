@@ -258,6 +258,16 @@ impl OwnedChecker<'_> {
                 }
                 Flow::Fall
             }
+            // A `new` interop constructor: walk callee and args like a plain
+            // call. Imported constructors take no `owned` Glyph params, so there
+            // is no consume-at-callsite handling to do.
+            Expr::New { callee, args, .. } => {
+                self.walk_expr(callee, state);
+                for arg in args {
+                    self.walk_expr(arg, state);
+                }
+                Flow::Fall
+            }
             Expr::Call { callee, args, .. } => {
                 self.walk_expr(callee, state);
                 let owned_positions = self.owned_param_positions(callee);

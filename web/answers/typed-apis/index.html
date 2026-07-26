@@ -257,11 +257,72 @@ match Customer.parse(webhook_body) {
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">The database is a boundary too</p>
+        <p>
+          A row read out of a database is untrusted in exactly the way a request body is: the
+          database schema and your code's idea of the row can disagree, and a cast
+          (<code>row as Task</code>) papers over it. <code>std/sqlite</code>, the DB module over
+          Node's built-in SQLite, leans into that. A query returns
+          <code>Array&lt;Record&lt;string, unknown&gt;&gt;</code>, so there is no way to treat a row as a
+          <code>Task</code> without validating it first. The same <code>.parse</code> you use on a
+          request body validates a row.
+        </p>
+        <p>
+          This catches a bug people ship constantly. SQLite has no boolean type, so a
+          <code>done</code> column comes back as the integer <code>0</code> or <code>1</code>. Cast
+          the row to a record with a <code>bool</code> field and <code>task.done === true</code> is
+          quietly never true. In Glyph the storage shape and the domain shape are separate types, and
+          the mapping between them is one line you actually see:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">tasks.glyph</span>
+<pre>type Task    = { id: int, title: string, done: bool }
+type TaskRow = { id: int, title: string, done: int }
+
+fn row_to_task(r: TaskRow) -&gt; Task {
+  return { id: r.id, title: r.title,
+           done: r.done != 0 }
+}
+
+// A row is validated, then mapped. No cast.
+match TaskRow.parse(row) {
+  Ok(r)  =&gt; Ok(row_to_task(r)),
+  Err(_) =&gt; Err("row failed validation"),
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">the bug this removes</span>
+<pre>// TS, better-sqlite3 / node:sqlite:
+const row = stmt.get(id) as Task;
+// `row.done` is really 0 or 1, a number.
+// Nothing complains. Then:
+if (row.done === true) { ... }   // never runs
+
+// The row was `unknown`; the cast invented
+// a type. Glyph makes you validate the row
+// into TaskRow, and the int-to-bool step is
+// a line of code, not a silent lie.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The whole thing is a working example: <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks.glyph"><code>examples/apps/tasks.glyph</code></a>
+          is a persisted task API, <code>std/sqlite</code> for storage and <code>std/http</code> for
+          routes, with data that survives a restart and validation on both the wire and the database
+          side. No hand-written validators anywhere in it.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; and <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name.</p>
+          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

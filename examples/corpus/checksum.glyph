@@ -1,0 +1,193 @@
+// Pure-Glyph checksum and check-digit algorithms: the Luhn mod-10 test used by
+// credit-card and IMEI numbers, Adler-32 and Fletcher-16 running sums, and
+// ISBN-10/13 validation. std/crypto delegates hashing to node; these are the
+// shift-free family that is plain arithmetic, so they are Glyph all the way
+// down. The 16-bit halves of Adler-32 and Fletcher-16 are recombined with `*`
+// (multiply by a power of two) rather than a left shift, which D36 defers; the
+// only platform leaf is std/array's `len`. Every digit-doubling branch, every
+// modular running sum, and every weighted position is recursion and `match`.
+module checksum
+
+import std/array
+import std/string
+import std/option { Option, Some, None }
+
+// One decimal digit's value, or None for a non-digit character. A lookup by
+// linear scan keeps this a pure Glyph leaf rather than a `parseInt` call.
+pub fn digit_value(ch: string) -> Option<number> {
+  let table = "0123456789"
+  return scan_digit(table, ch, 0)
+}
+
+fn scan_digit(table: string, ch: string, i: number) -> Option<number> {
+  return match i >= 10 {
+    true => None,
+    false => match table[i] == ch {
+      true => Some(i),
+      false => scan_digit(table, ch, i + 1),
+    },
+  }
+}
+
+// Parse a string of decimal digits into their values, dropping any character
+// that is not 0-9 (so "4992-7398-716" reads as its ten digits). Built by
+// recursion over the character index, bounded by std/string's `len`.
+pub fn parse_digits(s: string) -> Array<number> {
+  return collect_digits(s, 0, string.len(s))
+}
+
+fn collect_digits(s: string, i: number, n: number) -> Array<number> {
+  return match i >= n {
+    true => [],
+    false => match digit_value(s[i]) {
+      Some(d) => prepend(d, collect_digits(s, i + 1, n)),
+      None => collect_digits(s, i + 1, n),
+    },
+  }
+}
+
+fn prepend(x: number, xs: Array<number>) -> Array<number> {
+  return array.concat([x], xs)
+}
+
+// The Luhn mod-10 checksum sum over `digits`, read left to right with the digit
+// positions counted from the right: every second digit from the right is
+// doubled, and a product above 9 has 9 subtracted (equivalently, its digits are
+// summed). Valid numbers make the total a multiple of 10.
+pub fn luhn_sum(digits: Array<number>) -> number {
+  return luhn_at(digits, 0, array.len(digits))
+}
+
+fn luhn_at(digits: Array<number>, i: number, n: number) -> number {
+  return match i >= n {
+    true => 0,
+    false => {
+      let from_right = n - 1 - i
+      let contrib = match from_right % 2 == 1 {
+        true => doubled(digits[i]),
+        false => digits[i],
+      }
+      contrib + luhn_at(digits, i + 1, n)
+    },
+  }
+}
+
+// A doubled Luhn digit, folded back below 10.
+fn doubled(d: number) -> number {
+  let x = d * 2
+  return match x > 9 {
+    true => x - 9,
+    false => x,
+  }
+}
+
+// Does the digit sequence satisfy the Luhn check?
+pub fn luhn_valid(digits: Array<number>) -> bool {
+  return luhn_sum(digits) % 10 == 0
+}
+
+// The check digit to append to `payload` so the full sequence passes Luhn.
+// The payload sits one place to the left of where the check digit will land, so
+// its rightmost digit is a doubled position.
+pub fn luhn_check_digit(payload: Array<number>) -> number {
+  let s = luhn_shifted_sum(payload, 0, array.len(payload))
+  return (10 - s % 10) % 10
+}
+
+fn luhn_shifted_sum(digits: Array<number>, i: number, n: number) -> number {
+  return match i >= n {
+    true => 0,
+    false => {
+      let from_right = n - 1 - i
+      let contrib = match from_right % 2 == 0 {
+        true => doubled(digits[i]),
+        false => digits[i],
+      }
+      contrib + luhn_shifted_sum(digits, i + 1, n)
+    },
+  }
+}
+
+// Adler-32: two running sums mod 65521 (the largest prime below 2^16), combined
+// as `high * 65536 + low`. `a` starts at 1, `b` at 0.
+pub fn adler32(bytes: Array<number>) -> number {
+  return adler_at(bytes, 0, array.len(bytes), 1, 0)
+}
+
+fn adler_at(
+  bytes: Array<number>,
+  i: number,
+  n: number,
+  a: number,
+  b: number,
+) -> number {
+  return match i >= n {
+    true => b * 65536 + a,
+    false => {
+      let na = (a + bytes[i]) % 65521
+      let nb = (b + na) % 65521
+      adler_at(bytes, i + 1, n, na, nb)
+    },
+  }
+}
+
+// Fletcher-16: two running sums mod 255, combined as `high * 256 + low`.
+pub fn fletcher16(bytes: Array<number>) -> number {
+  return fletcher_at(bytes, 0, array.len(bytes), 0, 0)
+}
+
+fn fletcher_at(
+  bytes: Array<number>,
+  i: number,
+  n: number,
+  s1: number,
+  s2: number,
+) -> number {
+  return match i >= n {
+    true => s2 * 256 + s1,
+    false => {
+      let n1 = (s1 + bytes[i]) % 255
+      let n2 = (s2 + n1) % 255
+      fletcher_at(bytes, i + 1, n, n1, n2)
+    },
+  }
+}
+
+// ISBN-10 validity: the ten digits weighted 10,9,...,1 must sum to a multiple of
+// 11. The final position may be 10, conventionally written "X"; callers pass it
+// as the number 10. Any other digit above 9 is rejected.
+pub fn isbn10_valid(digits: Array<number>) -> bool {
+  return match array.len(digits) == 10 {
+    true => isbn10_sum(digits, 0) % 11 == 0,
+    false => false,
+  }
+}
+
+fn isbn10_sum(digits: Array<number>, i: number) -> number {
+  return match i >= 10 {
+    true => 0,
+    false => digits[i] * (10 - i) + isbn10_sum(digits, i + 1),
+  }
+}
+
+// ISBN-13 validity: thirteen digits weighted 1,3,1,3,... must sum to a multiple
+// of 10. This is the EAN-13 rule that also covers modern barcodes.
+pub fn isbn13_valid(digits: Array<number>) -> bool {
+  return match array.len(digits) == 13 {
+    true => isbn13_sum(digits, 0) % 10 == 0,
+    false => false,
+  }
+}
+
+fn isbn13_sum(digits: Array<number>, i: number) -> number {
+  return match i >= 13 {
+    true => 0,
+    false => {
+      let weight = match i % 2 == 0 {
+        true => 1,
+        false => 3,
+      }
+      digits[i] * weight + isbn13_sum(digits, i + 1)
+    },
+  }
+}

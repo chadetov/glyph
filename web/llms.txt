@@ -472,6 +472,23 @@ negative value, not just a non-number. v1 refines primitive base types only
 (`int`/`number`/`string`/`bool`/`bigint`); a `where` on a record or union is a
 compile error, not a silent drop.
 
+### std/taint (untrusted-input discipline as types)
+
+```
+type Tainted<T>    type Trusted<T>
+taint(value) -> Tainted<T>                                  // wrap untrusted input
+sanitize(t: Tainted<T>, clean: fn(T) -> T) -> Trusted<T>    // escape/validate, then trust
+trust_unchecked(value) -> Trusted<T>                        // escape hatch (literals); greppable
+expose(t: Trusted<T>) -> T                                  // unwrap at the sink
+reveal_tainted(t: Tainted<T>) -> T                          // read raw, only to inspect/sanitize
+```
+
+Type a sink's parameter `Trusted<string>` (a SQL runner, a shell command, an HTML
+renderer) and a `Tainted<string>` cannot reach it without going through
+`sanitize` first: `tsc` rejects the call. This is discipline enforced by types
+(you opt in per sink), not automatic flow analysis. SQL injection becomes a
+compile error.
+
 ## Importing external code (npm packages and Node builtins)
 
 A Glyph import path is emitted **verbatim** as the TypeScript module specifier:

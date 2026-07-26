@@ -1,0 +1,191 @@
+// Pure-Glyph descriptive statistics over a number array: totals, central
+// tendency (mean, median, mode), spread (variance, standard deviation, range),
+// and interpolated quantiles. Empty (or too-small) inputs return None rather
+// than a NaN, so every result carries its own definedness. The only platform
+// leaves are std/math (sqrt/floor/min/max/clamp) and std/array (sort/len);
+// every fold, every branch, and the quantile interpolation are Glyph.
+module statistics
+
+import std/math
+import std/array
+import std/option { Option, Some, None }
+
+// Total of every element, as a fold threaded through a `for`.
+pub fn sum(xs: Array<number>) -> number {
+  let acc = 0
+  for x in xs {
+    mut acc = acc + x
+  }
+  return acc
+}
+
+// Arithmetic mean, or None for an empty array.
+pub fn mean(xs: Array<number>) -> Option<number> {
+  let n = array.len(xs)
+  return match n == 0 {
+    true => None,
+    false => Some(sum(xs) / n),
+  }
+}
+
+// Smallest element, or None for an empty array.
+pub fn minimum(xs: Array<number>) -> Option<number> {
+  return match xs {
+    [] => None,
+    [head, ...rest] => {
+      let m = head
+      for x in rest {
+        mut m = math.min(m, x)
+      }
+      return Some(m)
+    },
+  }
+}
+
+// Largest element, or None for an empty array.
+pub fn maximum(xs: Array<number>) -> Option<number> {
+  return match xs {
+    [] => None,
+    [head, ...rest] => {
+      let m = head
+      for x in rest {
+        mut m = math.max(m, x)
+      }
+      return Some(m)
+    },
+  }
+}
+
+// Distance from the smallest to the largest element, or None if empty.
+pub fn range(xs: Array<number>) -> Option<number> {
+  return match minimum(xs) {
+    None => None,
+    Some(lo) => match maximum(xs) {
+      None => None,
+      Some(hi) => Some(hi - lo),
+    },
+  }
+}
+
+// Population variance (dividing by n), or None for an empty array.
+pub fn variance(xs: Array<number>) -> Option<number> {
+  return match mean(xs) {
+    None => None,
+    Some(mu) => {
+      let n = array.len(xs)
+      let acc = 0
+      for x in xs {
+        let d = x - mu
+        mut acc = acc + d * d
+      }
+      return Some(acc / n)
+    },
+  }
+}
+
+// Sample variance (dividing by n - 1); None until there are two elements.
+pub fn sample_variance(xs: Array<number>) -> Option<number> {
+  let n = array.len(xs)
+  return match n < 2 {
+    true => None,
+    false => match mean(xs) {
+      None => None,
+      Some(mu) => {
+        let acc = 0
+        for x in xs {
+          let d = x - mu
+          mut acc = acc + d * d
+        }
+        return Some(acc / (n - 1))
+      },
+    },
+  }
+}
+
+// Population standard deviation: the square root of the variance.
+pub fn stddev(xs: Array<number>) -> Option<number> {
+  return match variance(xs) {
+    None => None,
+    Some(v) => Some(math.sqrt(v)),
+  }
+}
+
+// A copy of `xs` sorted ascending, the shared preparation for the
+// order-statistic queries below.
+fn sorted(xs: Array<number>) -> Array<number> {
+  return array.sort(xs, fn(a: number, b: number) -> number { a - b })
+}
+
+// The middle value; the mean of the two middle values for an even count.
+pub fn median(xs: Array<number>) -> Option<number> {
+  let n = array.len(xs)
+  return match n == 0 {
+    true => None,
+    false => {
+      let s = sorted(xs)
+      let mid = math.floor(n / 2)
+      return match n % 2 == 1 {
+        true => Some(s[mid]),
+        false => Some((s[mid - 1] + s[mid]) / 2),
+      }
+    },
+  }
+}
+
+// The `q`-quantile (q in [0, 1]) with linear interpolation between the two
+// nearest ranks: q = 0 is the minimum, 0.5 the median, 1 the maximum. This is
+// the "type 7" definition NumPy and R use by default. None for an empty array.
+pub fn quantile(xs: Array<number>, q: number) -> Option<number> {
+  let n = array.len(xs)
+  return match n == 0 {
+    true => None,
+    false => match n == 1 {
+      true => Some(xs[0]),
+      false => {
+        let s = sorted(xs)
+        let qc = math.clamp(
+          q,
+          0,
+          1,
+        )
+        let pos = qc * (n - 1)
+        let lo = math.floor(pos)
+        let hi = math.min(lo + 1, n - 1)
+        let frac = pos - lo
+        return Some(s[lo] + (s[hi] - s[lo]) * frac)
+      },
+    },
+  }
+}
+
+// The most frequent value, computed by counting adjacent runs in the sorted
+// copy. Ties go to the smallest such value. None for an empty array.
+pub fn mode(xs: Array<number>) -> Option<number> {
+  let n = array.len(xs)
+  return match n == 0 {
+    true => None,
+    false => {
+      let s = sorted(xs)
+      let best = s[0]
+      let best_count = 0
+      let cur = s[0]
+      let cur_count = 0
+      for x in s {
+        let same = x == cur
+        mut cur_count = match same {
+          true => cur_count + 1,
+          false => 1,
+        }
+        mut cur = x
+        match cur_count > best_count {
+          true => {
+            mut best = cur
+            mut best_count = cur_count
+          },
+          false => {},
+        }
+      }
+      return Some(best)
+    },
+  }
+}

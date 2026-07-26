@@ -1241,6 +1241,58 @@ fn main(argv: Array<string>) -> number {
     );
 }
 
+/// A binary codec crosses the string/byte boundary through `Buffer`: it reads
+/// the UTF-8 bytes of a string (`Array.from(Buffer.from(s, "utf8"))`) and
+/// rebuilds a string from a byte array (`Buffer.from(bytes)`). The bundled node
+/// shim must type-check both directions without `@types/node`, so `GlyphBuffer`
+/// is iterable/index-addressable and `Buffer.from` accepts a byte array.
+#[test]
+fn buffer_byte_boundary_typechecks_with_the_shim() {
+    if !tsc_available() {
+        eprintln!("skipping buffer-boundary check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("buffer_bytes");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "m.glyph",
+        r#"module m
+
+fn to_bytes(s: string) -> Array<number> {
+  return extern_ts("Array.from(Buffer.from(s, 'utf8')) as number[]")
+}
+
+fn first_byte(bytes: Array<number>) -> number {
+  return extern_ts("(Buffer.from(bytes)[0] ?? 0) as number")
+}
+
+fn from_bytes(bytes: Array<number>) -> string {
+  return extern_ts("Buffer.from(bytes).toString('utf8')")
+}
+
+fn main(argv: Array<string>) -> number {
+  let bytes = to_bytes("hi")
+  print(from_bytes(bytes))
+  return first_byte(bytes)
+}
+"#,
+    );
+
+    let out = root.join("dist");
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => {
+            panic!("Buffer byte boundary did not type-check with the bundled shim:\n{msg}")
+        }
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
 /// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
 /// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
 /// run fail for environmental reasons, not a real defect.

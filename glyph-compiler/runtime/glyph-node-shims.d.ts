@@ -115,9 +115,16 @@ declare const process: {
   platform: string;
 };
 
-interface GlyphBuffer {
-  toString(encoding: string): string;
+// A node `Buffer` is a `Uint8Array`: iterable and index-addressable, so
+// `Array.from(buf)` and `buf[i]` yield the raw bytes. `toString(encoding)`
+// renders it back to text. This is the subset a binary codec needs to cross
+// the byte boundary; `@types/node` supersedes it for the full surface.
+interface GlyphBuffer extends Iterable<number> {
+  readonly length: number;
+  [index: number]: number;
+  toString(encoding?: string): string;
 }
 declare const Buffer: {
   from(input: string, encoding: string): GlyphBuffer;
+  from(bytes: ArrayLike<number> | Iterable<number>): GlyphBuffer;
 };

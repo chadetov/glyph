@@ -1214,9 +1214,16 @@ land here until they're assigned a release.
   rather than a type: a value-method head (`coll.find(...)`) is fluent, so the
   whole chain is awaited; a bare or namespaced function head (`load(...)`,
   `http.get(...)`) is the Result idiom, so the head call is awaited. The
-  split-cursor workaround in `docs/guide/databases.md` is removed. Remaining edge
-  (documented, not regressed): a fluent terminal that returns a `Result` *and* is
-  used with `?` keeps the old innermost-await on the `?` path only.
+  split-cursor workaround in `docs/guide/databases.md` is removed. The rule is a
+  genuine either/or under colorless async (you cannot tell which call is async
+  without a type), so it has two documented edges, both with the split workaround:
+  (1) a *value method* that is itself async and returns a `Result` chained into a
+  synchronous combinator (`await store.load(k).map_err(f)`) now awaits the whole
+  chain and would need `(await store.load(k)).map_err(f)` written out; and (2) a
+  fluent terminal that returns a `Result` used with `?`. Both are uncommon in
+  practice: the documented Result idiom heads with a function (`load(...)`), not a
+  value method, and fluent terminals rarely return `Result`. The common cases
+  (fluent cursors/builders on a value, function-headed Result chains) are correct.
 - **MCP write tier: `glyph_fix` + `glyph_rename`** (M). The MCP server today is five
   read-only query tools; the write-capable tier is these two, done together. Both
   **return edits** (a list of `{range, newText}`), never mutating files, so the

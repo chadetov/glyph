@@ -369,6 +369,26 @@ d.to_string() -> string                              // method; canonical "10.50
 d.to_number() -> number                              // method; lossy, for display only
 ```
 
+## std/taint
+
+Untrusted-input discipline as types. `Tainted<T>` marks a value from outside the
+program (a request body, a query param, user input); `Trusted<T>` marks one that
+has been sanitized. They are structurally distinct, so a sink whose parameter is
+`Trusted<string>` (a SQL runner, a shell command, an HTML renderer) **cannot**
+receive a `Tainted<string>` without going through `sanitize` first: `tsc` rejects
+it. This is discipline enforced by types, not automatic flow analysis; you opt in
+by typing a sink's parameter `Trusted<...>`.
+
+```
+type Tainted<T>                                      // untrusted, from outside
+type Trusted<T>                                      // sanitized
+taint(value: T) -> Tainted<T>                        // wrap untrusted input
+sanitize(t: Tainted<T>, clean: fn(T) -> T) -> Trusted<T>   // escape/validate, then trust
+trust_unchecked(value: T) -> Trusted<T>              // escape hatch (literals/constants); greppable
+expose(t: Trusted<T>) -> T                           // unwrap at the sink
+reveal_tainted(t: Tainted<T>) -> T                   // read raw, only to inspect/sanitize
+```
+
 ## std/stream
 
 Deterministic generators for property testing (sampled by index, no RNG).

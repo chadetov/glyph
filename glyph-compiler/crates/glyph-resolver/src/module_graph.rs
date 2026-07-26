@@ -174,6 +174,19 @@ impl StdlibStubs {
         s.add("std/sqlite", &["Db", "Row", "open"]);
         // Exact base-10 fixed-point arithmetic (money) over BigInt, no floats.
         s.add("std/decimal", &["Decimal", "decimal", "from_int", "zero"]);
+        // Untrusted-input discipline as types: Tainted/Trusted with sanitize.
+        s.add(
+            "std/taint",
+            &[
+                "Tainted",
+                "Trusted",
+                "taint",
+                "sanitize",
+                "trust_unchecked",
+                "expose",
+                "reveal_tainted",
+            ],
+        );
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
         // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(

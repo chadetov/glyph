@@ -1040,6 +1040,88 @@ fn types_companion_package_resolves_over_the_typeless_js() {
 }
 
 #[test]
+fn taint_discipline_blocks_untrusted_input_at_a_sink() {
+    // std/taint: a `Trusted<string>` sink accepts a sanitized value but tsc
+    // rejects a `Tainted<string>` handed to it directly (SQL injection as a
+    // compile error). Glyph's own checker is permissive (opaque imported types),
+    // so the guarantee is a tsc check; both directions are asserted. Needs tsc.
+    if !tsc_available() {
+        eprintln!("skipping taint tsc check: tsc not available");
+        return;
+    }
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+
+    // POSITIVE: a sanitized value (and a trust_unchecked literal) reach the sink.
+    let root = unique_tmp("taintok");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/taint { Tainted, Trusted, taint, sanitize, expose, trust_unchecked }
+import std/io { println }
+
+fn run_query(sql: Trusted<string>) -> void {
+  println(expose(sql))
+}
+
+fn strip(raw: string) -> string {
+  return raw
+}
+
+fn main() -> void {
+  let user_input: Tainted<string> = taint("SELECT 1")
+  run_query(sanitize(user_input, strip))
+  run_query(trust_unchecked("SELECT 2"))
+}
+"#,
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "sanitized taint program: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("sanitized path should pass tsc:\n{msg}"),
+        TscOutcome::NotFound => {
+            eprintln!("skipping: tsc not found at check time");
+            return;
+        }
+    }
+
+    // NEGATIVE: a tainted value handed to the Trusted sink is a tsc error.
+    let root2 = unique_tmp("taintbad");
+    let src2 = root2.join("src");
+    let out2 = root2.join("dist");
+    write_file(
+        &src2,
+        "main.glyph",
+        r#"module main
+
+import std/taint { Tainted, Trusted, taint, expose }
+import std/io { println }
+
+fn run_query(sql: Trusted<string>) -> void {
+  println(expose(sql))
+}
+
+fn main() -> void {
+  let user_input: Tainted<string> = taint("DROP TABLE users")
+  run_query(user_input)
+}
+"#,
+    );
+    // Glyph's own checker is permissive here (opaque imported types), so this
+    // emits; tsc is where the discipline bites.
+    let _ = build_project_inner(&src2, &out2, false).expect("build emits");
+    match check_with_tsc(&out2).expect("run tsc") {
+        TscOutcome::Failed(_) => {}
+        TscOutcome::Passed => panic!("a tainted value reached a Trusted sink without sanitize"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn where_refinement_rejects_out_of_range_at_the_boundary() {
     // D39: a `where` predicate is enforced by the type's descriptor, so
     // `Amount.parse(-1)` and `Rating.parse(6)` fail while valid values pass. The

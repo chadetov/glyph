@@ -1,0 +1,246 @@
+// Pure-Glyph arithmetic expression evaluator using precedence climbing. Where
+// `json_parser` is a flat recursive descent, this one carries real operator
+// precedence and associativity: `+ -` bind looser than `* / %`, which bind
+// looser than right-associative `^`, and unary `-`/`+` bind tightest. The
+// character index is threaded by value (no mutable cursor), and every failure
+// (an unexpected character, an unbalanced paren, trailing input, division by
+// zero) is reported as a `Result` `Err` carrying the offending offset. The only
+// platform leaf is math.pow for `^`; tokenizing, precedence, and every branch
+// are Glyph.
+module calc
+
+import std/math
+import std/string
+import std/result { Result, Ok, Err }
+
+// A parsed sub-expression's value paired with the index just past it, so a
+// caller resumes without threading a mutable position.
+type Parsed = { value: number, pos: number }
+
+// A run of digits read as a number, and the index just past it.
+type NumParsed = { value: number, pos: number }
+
+fn is_digit(c: string) -> bool {
+  return match c {
+    "0" => true,
+    "1" => true,
+    "2" => true,
+    "3" => true,
+    "4" => true,
+    "5" => true,
+    "6" => true,
+    "7" => true,
+    "8" => true,
+    "9" => true,
+    else => false,
+  }
+}
+
+fn digit_val(c: string) -> number {
+  return match c {
+    "0" => 0,
+    "1" => 1,
+    "2" => 2,
+    "3" => 3,
+    "4" => 4,
+    "5" => 5,
+    "6" => 6,
+    "7" => 7,
+    "8" => 8,
+    "9" => 9,
+    else => 0,
+  }
+}
+
+// Advance past any run of spaces starting at `i`.
+fn skip_ws(s: string, i: number) -> number {
+  return match i >= string.len(s) {
+    true => i,
+    false => match s[i] == " " {
+      true => skip_ws(s, i + 1),
+      false => i,
+    },
+  }
+}
+
+// Accumulate the integer part digit by digit, most significant first.
+fn read_int(s: string, i: number, acc: number) -> NumParsed {
+  return match i >= string.len(s) {
+    true => { value: acc, pos: i },
+    false => match is_digit(s[i]) {
+      true => read_int(s, i + 1, acc * 10 + digit_val(s[i])),
+      false => { value: acc, pos: i },
+    },
+  }
+}
+
+// Accumulate a fractional tail, each digit scaled by a shrinking place value.
+fn read_frac(s: string, i: number, value: number, scale: number) -> NumParsed {
+  return match i >= string.len(s) {
+    true => { value: value, pos: i },
+    false => match is_digit(s[i]) {
+      true => read_frac(s, i + 1, value + digit_val(s[i]) * scale, scale / 10),
+      false => { value: value, pos: i },
+    },
+  }
+}
+
+// A decimal number: integer digits, then an optional `.fraction`.
+fn parse_number(s: string, i: number) -> NumParsed {
+  let whole = read_int(s, i, 0)
+  return match whole.pos < string.len(s) {
+    true => match s[whole.pos] == "." {
+      true => read_frac(s, whole.pos + 1, whole.value, 0.1),
+      false => whole,
+    },
+    false => whole,
+  }
+}
+
+// The binding power of a binary operator; higher binds tighter. A character
+// that is not an operator returns 0, which ends the operator loop.
+fn precedence(op: string) -> number {
+  return match op {
+    "+" => 1,
+    "-" => 1,
+    "*" => 2,
+    "/" => 2,
+    "%" => 2,
+    "^" => 3,
+    else => 0,
+  }
+}
+
+// Only `^` is right-associative; the rest fold left.
+fn is_right_assoc(op: string) -> bool {
+  return op == "^"
+}
+
+// Apply a binary operator, reporting division or modulo by zero as an `Err`.
+fn apply(op: string, a: number, b: number, at: number) -> Result<number, string> {
+  return match op {
+    "+" => Ok(a + b),
+    "-" => Ok(a - b),
+    "*" => Ok(a * b),
+    "/" => match b == 0 {
+      true => Err("division by zero at " + number.to_string(at)),
+      false => Ok(a / b),
+    },
+    "%" => match b == 0 {
+      true => Err("modulo by zero at " + number.to_string(at)),
+      false => Ok(a % b),
+    },
+    "^" => Ok(math.pow(a, b)),
+    else => Err("unknown operator '" + op + "' at " + number.to_string(at)),
+  }
+}
+
+// An atom: a parenthesized expression, a unary `-`/`+`, or a number literal.
+// Unary operators bind tighter than any binary one, so they recurse into
+// `parse_atom` rather than `parse_expr`.
+fn parse_atom(s: string, i: number) -> Result<Parsed, string> {
+  let j = skip_ws(s, i)
+  return match j >= string.len(s) {
+    true => Err("unexpected end of input at " + number.to_string(j)),
+    false => match s[j] {
+      "(" => parse_paren(s, j + 1),
+      "-" => negate(s, j + 1),
+      "+" => parse_atom(s, j + 1),
+      else => match is_digit(s[j]) {
+        true => {
+          let n = parse_number(s, j)
+          Ok({ value: n.value, pos: n.pos })
+        },
+        false => Err(
+          "unexpected character '" + s[j] + "' at " + number.to_string(j),
+        ),
+      },
+    },
+  }
+}
+
+// A parenthesized expression: parse from the lowest precedence, then require a
+// closing `)`.
+fn parse_paren(s: string, i: number) -> Result<Parsed, string> {
+  return match parse_expr(s, i, 1) {
+    Err(e) => Err(e),
+    Ok(inner) => {
+      let k = skip_ws(s, inner.pos)
+      match k >= string.len(s) {
+        true => Err("expected ')' at " + number.to_string(k)),
+        false => match s[k] == ")" {
+          true => Ok({ value: inner.value, pos: k + 1 }),
+          false => Err("expected ')' at " + number.to_string(k)),
+        },
+      }
+    },
+  }
+}
+
+// Unary minus: negate the atom that follows.
+fn negate(s: string, i: number) -> Result<Parsed, string> {
+  return match parse_atom(s, i) {
+    Err(e) => Err(e),
+    Ok(p) => Ok({ value: -p.value, pos: p.pos }),
+  }
+}
+
+// Precedence climbing: parse an atom, then fold every following operator whose
+// binding power is at least `min_prec` into the left-hand value. Left-
+// associative operators recurse the right side at `prec + 1`; the single right-
+// associative operator (`^`) recurses at `prec`.
+fn parse_expr(s: string, i: number, min_prec: number) -> Result<Parsed, string> {
+  return match parse_atom(s, i) {
+    Err(e) => Err(e),
+    Ok(lhs) => climb(s, lhs, min_prec),
+  }
+}
+
+fn climb(s: string, lhs: Parsed, min_prec: number) -> Result<Parsed, string> {
+  let j = skip_ws(s, lhs.pos)
+  return match j >= string.len(s) {
+    true => Ok(lhs),
+    false => {
+      let op = s[j]
+      let prec = precedence(op)
+      match prec < min_prec {
+        true => Ok(lhs),
+        false => {
+          let next_min = match is_right_assoc(op) {
+            true => prec,
+            false => prec + 1,
+          }
+          match parse_expr(s, j + 1, next_min) {
+            Err(e) => Err(e),
+            Ok(rhs) => match apply(op, lhs.value, rhs.value, j) {
+              Err(e) => Err(e),
+              Ok(v) => climb(s, { value: v, pos: rhs.pos }, min_prec),
+            },
+          }
+        },
+      }
+    },
+  }
+}
+
+// Evaluate a full expression, requiring that nothing but whitespace follows.
+pub fn evaluate(source: string) -> Result<number, string> {
+  return match parse_expr(source, 0, 1) {
+    Err(e) => Err(e),
+    Ok(result) => {
+      let end = skip_ws(source, result.pos)
+      match end >= string.len(source) {
+        true => Ok(result.value),
+        false => Err("trailing input at " + number.to_string(end)),
+      }
+    },
+  }
+}
+
+// The value or a fallback, for callers that would rather not match.
+pub fn eval_or(source: string, fallback: number) -> number {
+  return match evaluate(source) {
+    Ok(v) => v,
+    Err(_) => fallback,
+  }
+}

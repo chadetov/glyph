@@ -361,7 +361,7 @@ if (amount &lt; 0) throw new Error(...);
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Wider generation coverage (discriminated unions, richer enums). Typed client and server code from a spec already ships. See <a href="/answers/codegen/">client &amp; server</a>.</p>
+          <p>Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage. Typed client and server code from a spec already ships. See <a href="/answers/codegen/">client &amp; server</a>.</p>
         </div>
       </div>
 

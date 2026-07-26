@@ -62,6 +62,12 @@ fn main(argv: Array<string>) -> number {
   process exit code.
 - `main` **may be `async`**: `async fn main(argv: Array<string>) -> number`. The
   runtime `await`s it.
+- **`await` on a method chain.** A fluent chain of value methods awaits the whole
+  chain: `await cursor.find({}).to_array()` awaits `to_array` (the async
+  terminal), as in JavaScript. The Result idiom awaits the head call: `await
+  load(p).map_err(f)` runs `map_err` on the awaited `Result`. A bare or namespaced
+  function head (`load(...)`, `http.get(...)`) is the Result idiom; a value-method
+  head (`x.method(...)`) is fluent. You write the natural thing either way.
 - Imports are either **named** (`import std/result { Ok, Err }` brings names into
   scope) or **namespaced** (`import std/array` then `array.map(...)`).
 
@@ -319,7 +325,10 @@ The compiler synthesizes the per-parameter checker at the call site, so the type
 argument must be given explicitly. A generic descriptor omits the `.schema`
 member. Scope today: descriptors cover non-generic and generic record types;
 tagged unions and imported/`.d.ts` types don't get one (materialize an imported
-type with `glyph gen dts` to give it one).
+type with `glyph gen dts` to give it one). A `.d.ts` (or OpenAPI) discriminated
+union (`{ kind: "a"; ... } | { kind: "b"; ... }`) materializes as a tagged union
+of generated variant records plus a `parse_<Name>(v)` dispatcher that reads the
+tag and validates into the right variant.
 
 To build a validator *combinator* (a `zod`-style `object_schema`) whose output
 type follows the shape you pass, use the `infer_output<Shape>` type operator so

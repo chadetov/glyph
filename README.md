@@ -42,6 +42,7 @@ Verifiability and greppability are the wedge. Abstraction and diff stability are
 | Install Glyph and run your first program | [`docs/guide/getting-started.md`](docs/guide/getting-started.md) |
 | Map your TypeScript knowledge onto Glyph | [`docs/guide/for-typescript-developers.md`](docs/guide/for-typescript-developers.md) |
 | Build something real (a todo CLI) | [`docs/guide/tutorial.md`](docs/guide/tutorial.md) |
+| Talk to a real database (SQLite, Postgres, Mongo, Redis, MySQL) | [`docs/guide/databases.md`](docs/guide/databases.md) |
 | Understand the project's thesis | [`docs/manifesto.md`](docs/manifesto.md) |
 | See concrete Glyph programs | [`examples/`](examples/) |
 | Read the language specification | [`docs/language/spec.md`](docs/language/spec.md) |

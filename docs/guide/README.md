@@ -19,7 +19,8 @@ that hour is smoother.
 then [tutorial](tutorial.md).
 **Building something:** [cookbook](cookbook.md) for recipes,
 [idioms](idioms.md) for conventions, [typed-apis](typed-apis.md) and
-[external-imports](external-imports.md) for real dependencies.
+[external-imports](external-imports.md) for real dependencies,
+[databases](databases.md) to persist data.
 **When you're stuck:** [troubleshooting](troubleshooting.md),
 [anti-patterns](anti-patterns.md), [error codes](../error-codes.md).
 
@@ -41,6 +42,7 @@ then [tutorial](tutorial.md).
 | [`distribution.md`](distribution.md) | You want to publish a package and understand the npm-backed supply chain |
 | [`deployment.md`](deployment.md) | You want to know where a Glyph program runs (node, serverless, edge, containers) |
 | [`typed-apis.md`](typed-apis.md) | You are building an API and want validated request/response DTOs without a separate `zod` schema |
+| [`databases.md`](databases.md) | You want to talk to a real database (SQLite, Postgres, MongoDB, Redis, MySQL) with validated rows |
 | [`editor-setup.md`](editor-setup.md) | You want VS Code (or another editor) set up with diagnostics, hover, and format-on-save |
 | [`external-imports.md`](external-imports.md) | You want to import an npm package or Node builtin (and how `.types/` works) |
 | [`../reference/stdlib.md`](../reference/stdlib.md) | You want every std module and its exact signatures |

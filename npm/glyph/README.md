@@ -52,6 +52,7 @@ That compiles to clean, readable TypeScript you can commit, run anywhere TS runs
 - **Greppable.** One name, one declaration form. `grep "fn parseUser"` finds the definition — always. No overloads, decorators, or barrel files.
 - **Stable diffs.** One canonical format, one element per line, trailing commas, no reflow. A one-line change is a one-line diff — so agent edits stay reviewable.
 - **Generate, don't hand-write.** `glyph gen openapi spec.yaml --client` emits a typed HTTP client and server stubs; `glyph gen zod` / `gen dts` turn existing schemas into checked Glyph types.
+- **Talks to real databases.** Import any npm client by name. Class-based clients (`new Pool`, `new MongoClient`) construct with `new`, and SQLite is built in via `std/sqlite`. A row comes back untrusted, so you `Row.parse` it into a typed record, and the schema-versus-code mismatch a cast would hide is caught at the boundary. See the [databases guide](https://github.com/chadetov/glyph/blob/main/docs/guide/databases.md).
 
 ## Quickstart
 

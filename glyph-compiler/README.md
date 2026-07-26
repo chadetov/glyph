@@ -26,7 +26,7 @@ cd glyph-compiler
 cargo test --workspace
 ```
 
-679 tests pass. `glyph build src/ --out dist/` walks a directory of `.glyph` files, emits TypeScript into `--out`, and (unless `--no-check`) type-checks it with `tsc`. The toolchain-dependent paths (`glyph run`, `glyph build --test`, `gen`) need `node`/`tsx`/`tsc` on `PATH`.
+682 tests pass. `glyph build src/ --out dist/` walks a directory of `.glyph` files, emits TypeScript into `--out`, and (unless `--no-check`) type-checks it with `tsc`. The toolchain-dependent paths (`glyph run`, `glyph build --test`, `gen`) need `node`/`tsx`/`tsc` on `PATH`.
 
 ## Library versions (P5)
 

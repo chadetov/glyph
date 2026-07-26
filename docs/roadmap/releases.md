@@ -800,6 +800,32 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### 0.1.29 — Shipped · Exact large integers (bigint, D38)
+
+**Status: shipped.** The paired half of the finance-correctness numeric work:
+exact whole numbers past the float range. Completes "safe integers" alongside
+0.1.28's `std/decimal`.
+
+- **`bigint` prelude type (D38).** An exact arbitrary-precision integer, emitted
+  verbatim as TypeScript `bigint` and kept distinct from `number` by `tsc` (no
+  mixed arithmetic). Literals are `123n` (the lexer accepts the `n` suffix on an
+  integer literal only, never on a fractional or exponent form, matching JS). Its
+  runtime descriptor checks `typeof x === "bigint"`, so an account id sent as a
+  JSON `number` fails `.parse` rather than being silently truncated past 2^53.
+  Unlike `int` (a `number` with an integer *check*), `bigint` is a genuinely
+  separate runtime type that holds large values exactly.
+- **CI-locked exactness:** an integration test runs a self-checking program
+  (`9007199254740993n + 2n`, `1e18n * 1e18n`) and asserts a clean exit; plus a
+  lexer test for the `123n`/`1_000n` suffix (and that `1.5n` does *not* absorb the
+  `n`) and an emit test for the type and its `typeof "bigint"` descriptor. 682
+  tests green.
+- **Docs:** spec D38, the "is this a real language" answer page gains a `bigint`
+  paragraph beside the money section, and AGENTS.md and its llms.txt mirrors note
+  it next to `std/decimal`.
+- **Tier 1 (decimal + safe integers) is now complete.** Next: refinement types
+  (`where`), then taint tracking, then the 1.0 stability enablers. The dedicated
+  "finance in Glyph" answer page goes up once refinements and taint land.
+
 ### 0.1.28 — Shipped · Exact money math (std/decimal)
 
 **Status: shipped.** The first of the bank-readiness "finance correctness" items:

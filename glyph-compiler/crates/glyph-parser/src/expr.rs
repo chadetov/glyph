@@ -6,6 +6,7 @@
 //!   3  prefix              !  -                  right-assoc
 //!   4  multiplicative      *  /  %               left-assoc
 //!   5  additive            +  -                  left-assoc
+//!  5.5 shift               <<  >>  >>>           left-assoc
 //!   6  comparison          <  <=  >  >=          left-assoc
 //!   7  equality            ==  !=                left-assoc
 //!   8  logical and         &&                    left-assoc
@@ -132,7 +133,7 @@ fn parse_eq(p: &mut Cursor) -> Result<Expr, ParseError> {
 fn parse_cmp(p: &mut Cursor) -> Result<Expr, ParseError> {
     left_assoc(
         p,
-        parse_add,
+        parse_shift,
         &[
             (Token::LAngle, BinOp::Lt),
             (Token::RAngle, BinOp::Gt),
@@ -140,6 +141,62 @@ fn parse_cmp(p: &mut Cursor) -> Result<Expr, ParseError> {
             (Token::GtEq, BinOp::GtEq),
         ],
     )
+}
+
+// Level 5.5 — shift `<<`, `>>`, `>>>` (left-assoc). The lexer keeps `<` and `>`
+// as single angle tokens so nested generics like `Array<Array<T>>` close
+// cleanly; a shift is therefore two or three *adjacent* angle tokens recognized
+// here. Generic type arguments are consumed on the postfix/type paths before
+// the binary chain runs, so an angle run reaching this level is unambiguously a
+// shift. Shifts bind tighter than comparison and looser than additive (JS).
+fn parse_shift(p: &mut Cursor) -> Result<Expr, ParseError> {
+    let mut left = parse_add(p)?;
+    while let Some(op) = peek_shift_op(p) {
+        let count = match op {
+            BinOp::UShr => 3,
+            _ => 2,
+        };
+        for _ in 0..count {
+            p.advance();
+        }
+        let right = parse_add(p)?;
+        let span = Span::new(left.span().start, right.span().end);
+        left = Expr::Binary {
+            op,
+            left: Box::new(left),
+            right: Box::new(right),
+            span,
+        };
+    }
+    Ok(left)
+}
+
+// Recognize an adjacent `<<`, `>>>`, or `>>` shift operator at the cursor.
+// Adjacency (each angle token abutting the next, no intervening whitespace) is
+// required, so `Foo<T> > x` never reads as a shift and `a > > b` is not
+// silently accepted. `>>>` is checked before `>>` so the three-token form wins.
+fn peek_shift_op(p: &Cursor) -> Option<BinOp> {
+    let adjacent = |a: usize, b: usize| match (p.peek_span_at(a), p.peek_span_at(b)) {
+        (Some(sa), Some(sb)) => sa.end == sb.start,
+        _ => false,
+    };
+    match p.peek() {
+        Token::LAngle if matches!(p.peek_at(1), Some(Token::LAngle)) && adjacent(0, 1) => {
+            Some(BinOp::Shl)
+        }
+        Token::RAngle
+            if matches!(p.peek_at(1), Some(Token::RAngle))
+                && matches!(p.peek_at(2), Some(Token::RAngle))
+                && adjacent(0, 1)
+                && adjacent(1, 2) =>
+        {
+            Some(BinOp::UShr)
+        }
+        Token::RAngle if matches!(p.peek_at(1), Some(Token::RAngle)) && adjacent(0, 1) => {
+            Some(BinOp::Shr)
+        }
+        _ => None,
+    }
 }
 
 // Level 5 — `+`, `-`

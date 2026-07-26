@@ -1143,8 +1143,9 @@ fn bin_prec(op: BinOp) -> u8 {
         BitAnd => 6,
         Eq | NotEq => 7,
         Lt | Gt | LtEq | GtEq => 8,
-        Add | Sub => 9,
-        Mul | Div | Rem => 10,
+        Shl | Shr | UShr => 9,
+        Add | Sub => 10,
+        Mul | Div | Rem => 11,
     }
 }
 
@@ -1163,6 +1164,9 @@ fn bin_sym(op: BinOp) -> &'static str {
         Gt => ">",
         LtEq => "<=",
         GtEq => ">=",
+        Shl => "<<",
+        Shr => ">>",
+        UShr => ">>>",
         Add => "+",
         Sub => "-",
         Mul => "*",

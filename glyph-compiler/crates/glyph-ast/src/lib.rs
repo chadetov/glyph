@@ -606,6 +606,13 @@ pub enum BinOp {
     Gt, // >
     LtEq,
     GtEq,
+    // Between comparison and additive (JS precedence): shifts bind tighter than
+    // `< > <= >=` and looser than `+ -`. The lexer keeps `<`/`>` as single angle
+    // tokens (so nested generics close cleanly), so these are recognized in the
+    // parser from adjacent angle-token runs.
+    Shl,  // <<
+    Shr,  // >>
+    UShr, // >>>
     // Level 5
     Add,
     Sub,

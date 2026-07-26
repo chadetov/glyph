@@ -3740,6 +3740,9 @@ fn bin_op(op: BinOp) -> &'static str {
         BinOp::Gt => ">",
         BinOp::LtEq => "<=",
         BinOp::GtEq => ">=",
+        BinOp::Shl => "<<",
+        BinOp::Shr => ">>",
+        BinOp::UShr => ">>>",
         BinOp::Add => "+",
         BinOp::Sub => "-",
         BinOp::Mul => "*",
@@ -5979,6 +5982,30 @@ mod tests {
         assert!(ts.contains("(a ^ (~b))"), "{ts}");
         // | is the loosest bitwise, so it wraps the & and ^ subtrees.
         assert!(ts.contains("((a & b) | (a ^ (~b)))"), "{ts}");
+    }
+
+    #[test]
+    fn shift_operators_emit_and_precede_correctly() {
+        // `<< >> >>>` emit verbatim. The lexer keeps `<`/`>` single, so these
+        // are recognized from adjacent angle tokens in the parser (D36).
+        let ts = emit(
+            "module x\npub fn f(a: number, b: number, c: number) -> number { return (a << b) + (a >> c) + (a >>> b) }\n",
+        );
+        assert!(ts.contains("(a << b)"), "{ts}");
+        assert!(ts.contains("(a >> c)"), "{ts}");
+        assert!(ts.contains("(a >>> b)"), "{ts}");
+
+        // Shift binds tighter than comparison and looser than additive (JS):
+        // `a + b << c` is `(a + b) << c`, and `a << b < c` is `(a << b) < c`.
+        let prec = emit(
+            "module x\npub fn g(a: number, b: number, c: number) -> bool { return a + b << c < a << b }\n",
+        );
+        assert!(prec.contains("((a + b) << c)"), "additive tighter: {prec}");
+        assert!(prec.contains("(a << b)"), "{prec}");
+        assert!(
+            prec.contains("(((a + b) << c) < (a << b))"),
+            "comparison loosest: {prec}"
+        );
     }
 
     // ----- 0.1.16 language features -----

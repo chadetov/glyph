@@ -755,10 +755,10 @@ plus the resolution of the one architecture fork it surfaced:
 
 - **Bitwise operators `& | ^ ~`** (D36) — the loop found it could not write a
   mulberry32 PRNG in pure Glyph because Glyph had no bitwise arithmetic. The
-  non-shift operators now emit verbatim to TypeScript, number-typed, at JS
-  precedence. The shift operators (`<< >> >>>`) are deferred (they collide with a
-  generic-close angle bracket; parked with the disambiguation design), so
-  `std/random` stays a TS native kernel and `math.imul` is exposed.
+  non-shift operators emit verbatim to TypeScript, number-typed, at JS
+  precedence. The shift operators (`<< >> >>>`) were parked here with their
+  disambiguation design and landed in a later loop iteration (see below);
+  `math.imul` remains exposed for 32-bit multiply.
 
 That an autonomous agent stopped at a genuine language-design fork and escalated
 it, rather than inventing a shift syntax, is the loop working as designed.
@@ -837,6 +837,16 @@ modules, plus the compiler correctness work each one surfaces:
   checker vs. keep it single-module and render unions in-module). Options and
   tradeoffs in `docs/dogfooding-gaps.md` G22. Current shipped stance: a module
   renders its own error union (option 3), which is what `ipv4.glyph` does.
+- **Bitwise shift operators `<< >> >>>`** (D36) — dogfooding posix path logic and
+  a pure-Glyph mulberry32 PRNG surfaced the last parked bit of the D36 operator
+  family. The angle-bracket ambiguity turned out not to need lexer changes:
+  generic type arguments are consumed on the postfix/type paths before the binary
+  chain runs, so an *adjacent* `<<`/`>>`/`>>>` reaching the shift level (between
+  comparison and additive) is unambiguously a shift. The parser recognizes it
+  from the single angle tokens the lexer already emits, with a span-adjacency
+  check so `Foo<T> > x` never misreads. Emit is verbatim, number-typed via `tsc`;
+  the formatter round-trips and reprecedences. A pure-Glyph PRNG now matches
+  `std/random`'s output exactly. One emit test.
 
 ### 0.1.23 — Shipped · improve-glyph loop batch 5 + imported-union match fixes
 
@@ -1012,13 +1022,6 @@ land here until they're assigned a release.
 - **Automatic `@redact` boundary masking.** Today redaction is via the explicit
   `T.redact(value)` descriptor method; masking every serialize/log call
   automatically needs a runtime type tag on values.
-- **Bitwise shift operators (`<< >> >>>`).** The non-shift bitwise ops (`& | ^ ~`)
-  shipped in 0.1.20 (D36); shifts are deferred because `>>` collides with a
-  generic-close angle bracket (`Array<Array<T>>` lexes `>>` as two closes). Doing
-  them right needs the contextual disambiguation TypeScript does (split `>>` in
-  type position, combine adjacent `>`/`<` into a shift in expression position),
-  which builds on the existing single-angle-token lexing. Until then a
-  shift-dependent numeric kernel (mulberry32 in `std/random`) stays TS.
 - `@ffi target:` syntax (v2).
 - General TS mapped-/conditional-type surface (`{ [K in keyof T]: ... }`,
   `X extends Y ? A : B`, user-written `infer`). Deliberately *not* shipped: the

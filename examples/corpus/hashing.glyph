@@ -1,0 +1,97 @@
+// Pure-Glyph non-cryptographic byte-array hashes: FNV-1a, FNV-1, and djb2, the
+// mixers a hash table or a Bloom filter reaches for. std/crypto delegates SHA
+// and HMAC to node; those need the deferred shift operators and belong on the
+// platform, but this family is pure multiply-and-xor, so it is Glyph all the
+// way down. The 32-bit wrap on every multiply is math.imul (C-like overflow);
+// xor is `^` and the djb2 re-wrap is `| 0`, both D36 bitwise operators. The one
+// subtlety JavaScript forces is signedness: `^`, `|`, and imul all yield a
+// signed 32-bit result, so the final value is folded back into the unsigned
+// 0..2^32-1 range before it is returned or rendered as hex. The only platform
+// leaf is math.imul; every byte step is recursion and `match`.
+module hashing
+
+import std/math
+import std/array
+
+// FNV-1a and FNV-1 32-bit parameters (the classic 2166136261 / 16777619 pair).
+const FNV_OFFSET: number = 2166136261
+const FNV_PRIME: number = 16777619
+
+// Fold a signed 32-bit result (what `^`, `|`, and imul produce) back into the
+// unsigned 0..2^32-1 range. This is the `>>> 0` idiom, spelled without the
+// unsigned shift Glyph defers: a negative pattern is its value plus 2^32.
+fn to_u32(x: number) -> number {
+  return match x < 0 {
+    true => x + 4294967296,
+    false => x,
+  }
+}
+
+// FNV-1a: xor the byte in first, then multiply by the prime. imul does the
+// multiply modulo 2^32 with C-like overflow, so the running hash stays a
+// 32-bit value without any explicit masking.
+fn fnv1a_from(bytes: Array<number>, i: number, h: number) -> number {
+  return match i >= array.len(bytes) {
+    true => h,
+    false => fnv1a_from(bytes, i + 1, math.imul(h ^ bytes[i], FNV_PRIME)),
+  }
+}
+
+// FNV-1a hash of a byte array, as an unsigned 32-bit number.
+pub fn fnv1a(bytes: Array<number>) -> number {
+  return to_u32(fnv1a_from(bytes, 0, FNV_OFFSET))
+}
+
+// FNV-1: multiply by the prime first, then xor the byte. Same constants as
+// FNV-1a, the two operations swapped; it mixes low bits slightly worse, which
+// is exactly why FNV-1a superseded it.
+fn fnv1_from(bytes: Array<number>, i: number, h: number) -> number {
+  return match i >= array.len(bytes) {
+    true => h,
+    false => fnv1_from(bytes, i + 1, math.imul(h, FNV_PRIME) ^ bytes[i]),
+  }
+}
+
+pub fn fnv1(bytes: Array<number>) -> number {
+  return to_u32(fnv1_from(bytes, 0, FNV_OFFSET))
+}
+
+// djb2: h * 33 + byte, wrapped to 32 bits each step. `h * 33` is
+// imul(h, 33) so the multiply overflows the C way; adding the byte can push
+// the sum one bit past 32, so `| 0` re-narrows it to a signed 32-bit value
+// before the next round.
+fn djb2_from(bytes: Array<number>, i: number, h: number) -> number {
+  return match i >= array.len(bytes) {
+    true => h,
+    false => djb2_from(bytes, i + 1, (math.imul(h, 33) + bytes[i]) | 0),
+  }
+}
+
+// djb2 hash of a byte array, as an unsigned 32-bit number. The seed 5381 is
+// Bernstein's magic constant.
+pub fn djb2(bytes: Array<number>) -> number {
+  return to_u32(djb2_from(bytes, 0, 5381))
+}
+
+// One nibble (0..15) as its lowercase hex character.
+fn nibble(v: number) -> string {
+  let table = "0123456789abcdef"
+  return table[v]
+}
+
+// Render an unsigned 32-bit hash as exactly eight lowercase hex digits, most
+// significant first. `place` is the divisor for the current digit, starting at
+// 16^7 and shrinking by a factor of 16 each step; the leading digits stay even
+// when they are zero, so the width is always eight.
+fn hex_from(n: number, place: number, out: string) -> string {
+  return match place == 0 {
+    true => out,
+    false => hex_from(n, math.floor(place / 16), out + nibble(math.floor(n / place) % 16)),
+  }
+}
+
+// The eight-hex-digit rendering of a 32-bit hash, e.g. "811c9dc5" for the
+// empty input under FNV-1a.
+pub fn to_hex8(n: number) -> string {
+  return hex_from(n, 268435456, "")
+}

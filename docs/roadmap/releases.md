@@ -763,6 +763,24 @@ plus the resolution of the one architecture fork it surfaced:
 That an autonomous agent stopped at a genuine language-design fork and escalated
 it, rather than inventing a shift syntax, is the loop working as designed.
 
+### 0.1.21 — Shipped · improve-glyph loop batch 3 + cross-module union fix
+
+**Status: shipped.** Batch 3 of the dogfood loop (ten more pure-Glyph corpus
+modules: a URL parser, a bignum and rational arithmetic, a UTF-8 codec, graph
+algorithms, edit distance, a precedence-climbing calculator, binary heaps,
+bit-manipulation and a frequency multiset, several of which exercise the new
+bitwise operators from 0.1.20), plus the correctness bug the dogfooding surfaced:
+
+- **Imported record-payload union match** — a `Variant(v)` pattern that binds the
+  whole payload emitted `v.value` (a tsc TS2339) when the union was *imported*
+  from another module, because an imported-union scrutinee carries no concrete
+  type for the emitter and it defaulted to the single-value shape. The build now
+  collects a project-wide registry of record-payload variants keyed by
+  `(module, variant)`, and the emitter resolves an imported variant to its source
+  module through its `ImportNamed` symbol, so the whole `{tag, ...fields}` object
+  is bound. This is a real miscompile of valid cross-module code, not just an
+  ergonomic gap.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

@@ -1,0 +1,137 @@
+// Pure-Glyph stack machine: a tiny bytecode interpreter over numbers. A program
+// is an `Array<Instr>`; `run` threads an operand stack and a program counter
+// through a `loop`, dispatching each instruction with an exhaustive `match` and
+// reporting every fault (stack underflow, a counter off the ends of the
+// program, a runaway step count) as a `Result` `Err`. The stack is a top-first
+// list reshaped by array-destructuring patterns, so a binary op is one
+// `[b, a, ...rest]` match and the Forth-style `over`/`rot`/`swap` shuffles fall
+// straight out of two- and three-head patterns. No platform leaves: every
+// branch, every stack move, and the whole fetch/execute cycle is Glyph.
+module stack_vm
+
+import std/array
+import std/result { Result, Ok, Err }
+
+// The instruction set. Nullary opcodes act on the operand stack; `Push` carries
+// a literal and the two jumps carry a target program-counter index.
+pub type Instr =
+  | Push({ value: number })
+  | Pop
+  | Add
+  | Sub
+  | Mul
+  | Neg
+  | Dup
+  | Swap
+  | Over
+  | Rot
+  | Jump({ target: number })
+  | JumpIfZero({ target: number })
+  | Halt
+
+// The result of one step: either the machine moved to a new stack and program
+// counter, or it halted with a final value, or it faulted.
+type Step =
+  | Next({ stack: Array<number>, pc: number })
+  | Done({ value: number })
+  | Fault({ message: string })
+
+// A binary arithmetic step: pop `b` (top) and `a` (below), push `combine(a, b)`,
+// and advance one instruction. Underflow when fewer than two operands remain.
+fn binary(stack: Array<number>, pc: number, combine: fn(a: number, b: number) -> number) -> Step {
+  return match stack {
+    [b, a, ...rest] => Next({ stack: [combine(a, b), ...rest], pc: pc + 1 }),
+    else => Fault({ message: "stack underflow: binary op needs two operands" }),
+  }
+}
+
+// Execute a single instruction against the current stack, returning the next
+// machine state. Pure: it reads `stack` and returns a fresh one.
+fn step(instr: Instr, stack: Array<number>, pc: number) -> Step {
+  return match instr {
+    Push(p) => Next({ stack: [p.value, ...stack], pc: pc + 1 }),
+    Pop => match stack {
+      [_top, ...rest] => Next({ stack: rest, pc: pc + 1 }),
+      else => Fault({ message: "stack underflow: Pop on empty stack" }),
+    },
+    Add => binary(stack, pc, fn(a, b) { a + b }),
+    Sub => binary(stack, pc, fn(a, b) { a - b }),
+    Mul => binary(stack, pc, fn(a, b) { a * b }),
+    Neg => match stack {
+      [top, ...rest] => Next({ stack: [-top, ...rest], pc: pc + 1 }),
+      else => Fault({ message: "stack underflow: Neg on empty stack" }),
+    },
+    Dup => match stack {
+      [top, ...rest] => Next({ stack: [top, top, ...rest], pc: pc + 1 }),
+      else => Fault({ message: "stack underflow: Dup on empty stack" }),
+    },
+    Swap => match stack {
+      [b, a, ...rest] => Next({ stack: [a, b, ...rest], pc: pc + 1 }),
+      else => Fault({ message: "stack underflow: Swap needs two operands" }),
+    },
+    Over => match stack {
+      [x0, x1, ...rest] => Next({ stack: [x1, x0, x1, ...rest], pc: pc + 1 }),
+      else => Fault({ message: "stack underflow: Over needs two operands" }),
+    },
+    Rot => match stack {
+      [x0, x1, x2, ...rest] => Next({ stack: [x2, x0, x1, ...rest], pc: pc + 1 }),
+      else => Fault({ message: "stack underflow: Rot needs three operands" }),
+    },
+    Jump(j) => Next({ stack: stack, pc: j.target }),
+    JumpIfZero(j) => match stack {
+      [top, ...rest] => match top == 0 {
+        true => Next({ stack: rest, pc: j.target }),
+        false => Next({ stack: rest, pc: pc + 1 }),
+      },
+      else => Fault({ message: "stack underflow: JumpIfZero on empty stack" }),
+    },
+    Halt => match stack {
+      [top, ..._rest] => Done({ value: top }),
+      else => Fault({ message: "empty stack at Halt" }),
+    },
+  }
+}
+
+// Run `program` from the top, returning the value on top of the stack when a
+// `Halt` executes, or an `Err` describing the first fault. `max_steps` bounds
+// execution so a mis-assembled backward `Jump` reports a step-limit fault
+// instead of spinning forever.
+pub fn run(program: Array<Instr>, max_steps: number) -> Result<number, string> {
+  let stack: Array<number> = []
+  let pc = 0
+  let steps = 0
+  loop {
+    match steps >= max_steps {
+      true => {
+        return Err("step limit exceeded")
+      },
+      false => {},
+    }
+    match pc < 0 {
+      true => {
+        return Err("program counter went below zero")
+      },
+      false => {},
+    }
+    match pc >= array.len(program) {
+      true => {
+        return Err("program counter ran off the end")
+      },
+      false => {},
+    }
+    mut steps = steps + 1
+    let outcome = step(program[pc], stack, pc)
+    match outcome {
+      Next(n) => {
+        mut stack = n.stack
+        mut pc = n.pc
+      },
+      Done(d) => {
+        return Ok(d.value)
+      },
+      Fault(f) => {
+        return Err(f.message)
+      },
+    }
+  }
+}

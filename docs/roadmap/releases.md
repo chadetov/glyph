@@ -800,7 +800,34 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
-### 0.1.24 — Shipped · batch 5 completion, shifts, and imported-union resolution
+### 0.1.25 — Shipped · A persisted database, and a real app on it
+
+**Status: shipped.** A database story and the first end-to-end backend app built on
+it. The point was evidence for the 1.0 gate: build a real, persisted, validated
+HTTP service in Glyph and see what the language does and doesn't do well. It went
+green with the boundary catching a genuine bug on the first try.
+
+- **`std/sqlite`** — a persisted SQL database over Node's built-in synchronous
+  SQLite (`node:sqlite`, Node 26+), no native install and no flag. `open(path)`
+  returns a `Db` with `exec` / `run` / `query` / `query_one` / `last_insert_id` /
+  `close`. Queries return rows as `Record<string, unknown>`, so a row is a
+  validated boundary exactly like a request body: you `RowType.parse(row)` before
+  trusting it, never a cast. Wired into the bundled runtime, the resolver stub, and
+  the stdlib reference; a `node:sqlite` shim was added for projects without
+  `@types/node`. Drift tests hold the stub, the runtime, and the docs in sync.
+- **`examples/apps/tasks.glyph`** — a persisted task API: `std/sqlite` for storage,
+  `std/http` for routes (`GET /tasks`, `POST /tasks`, `POST /toggle`), wire bodies
+  validated with `.parse`, all errors-as-values, and data that survives a restart.
+  Built end to end, curled on every route, and restarted to prove persistence. It
+  demonstrates the storage/domain type split the database boundary forces: SQLite
+  has no boolean type, so a `done` column comes back as an integer `0`/`1`, and a
+  separate `TaskRow { done: int }` maps to the domain `Task { done: bool }` in one
+  visible line rather than a silent `row as Task` cast that would leave
+  `task.done === true` never true.
+- **The typed-APIs answer page** now covers the database as a boundary, with the
+  int-vs-bool bug it removes and a link to the working app.
+
+
 
 **Status: shipped.** The batch-5 completion run plus the headline compiler work of
 this cycle: the **imported-union type-resolution pass** (the proper fix for the

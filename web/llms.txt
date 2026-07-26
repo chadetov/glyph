@@ -458,6 +458,12 @@ Use this for money, never `number`: JS `number` is a float (`0.1 + 0.2 != 0.3`)
 and loses precision past 2^53. Glyph has no operator overloading, so operations
 are methods (`price.add(tax)`). Construction validates and returns a `Result`.
 
+For exact large *whole* numbers (account ids, counters, 64-bit values) use the
+`bigint` prelude type, not `number`: write literals as `123n`, and a record field
+typed `bigint` validates `typeof === "bigint"` at the boundary (a JSON number is
+rejected, not silently truncated). `number` loses precision past 2^53; `bigint`
+does not. `tsc` keeps `bigint` and `number` apart (no mixed arithmetic).
+
 ## Importing external code (npm packages and Node builtins)
 
 A Glyph import path is emitted **verbatim** as the TypeScript module specifier:

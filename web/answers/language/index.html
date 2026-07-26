@@ -158,11 +158,22 @@ decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", hal
 decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
       </div>
 
+      <div class="detail">
+        <p>
+          For exact large <em>whole</em> numbers, account ids and counters, there
+          is the <code>bigint</code> type: literals are <code>123n</code>, it emits
+          to a real TypeScript <code>bigint</code>, and a record field typed
+          <code>bigint</code> validates <code>typeof === "bigint"</code> at the
+          boundary, so an id sent as a JSON <code>number</code> is rejected rather
+          than silently rounded past 2<sup>53</sup>.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>std/decimal</code> for exact money math, digit separators, and a spec section owning the JS-inherited semantics.</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, and a spec section owning the JS-inherited semantics.</p>
         </div>
         <div class="status-card next">
           <p class="h">The honest edge</p>

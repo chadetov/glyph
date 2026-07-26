@@ -291,3 +291,65 @@ verification of each claim) found and confirmed several defects, all now fixed:
   the doc is corrected (the named-import `parse<T>` form is documented as not
   rewritten — use the `json.parse` namespace form).*
 - **`glyph fmt` lost blanks between consecutive comments.** *Fixed.*
+
+## Round 4 — re-dogfooding stdlib logic in real Glyph
+
+Reimplementing stdlib logic in Glyph to exercise the compiler. Option/Result
+combinators (`opt_map`, `opt_unwrap_or`, `opt_and_then`, `opt_filter`,
+`opt_flatten`, `ok_or`, `res_unwrap_or`, `res_and_then`, `res_ok`) — pure
+tagged-union match logic — wrote, built under `tsc --strict`, and ran with
+correct output with no friction beyond the already-known G20. Extending to a
+recursive tagged-union tree formatter (a `Json` value plus a `render`, mirroring
+`json.stringify` logic) surfaced one new gap.
+
+- **G21. [OPEN — language-design fork] A bare tail expression that starts a line
+  with `[` or `(` glues onto the previous statement.** Inside a block there are
+  no newline tokens (D1: newlines are significant only at bracket depth zero, and
+  a block's `{` raises the depth), so statement boundaries are found by greedy
+  parsing. A statement whose next line begins with `[` or `(` is therefore parsed
+  as a postfix index/call on the previous expression, not as a new statement.
+  Concretely, this idiomatic recursive tail
+
+  ```glyph
+  fn go<T>(xs: Array<T>) -> Array<string> {
+    return match xs {
+      [] => [],
+      [head, ...rest] => {
+        let pair = render(head)
+        [pair, ...go(rest)]   // parsed as `render(head)[pair, ...go(rest)]`
+      },
+    }
+  }
+  ```
+
+  fails to parse (`expected ]`, found `Comma`), and the single-element form
+  `let x = y` / `[x]` silently parses as `let x = y[x]` (an unresolved-name error,
+  not a "wrong statement" error). `(`-led lines glue the same way
+  (`let x = y` / `(g(x))` → `y(g(x))`). The clean workaround is an explicit
+  `return` (or any keyword) before the array/paren, which breaks the postfix
+  chain: `return [pair, ...go(rest)]` parses correctly. This is not the G20
+  template limitation; it is statement-boundary detection.
+
+  *Not fixed here — it is a D1 semantics decision, so it is reported for the
+  orchestrator to decide, not implemented.* The options and their tradeoffs:
+
+  1. **Document the current behavior and keep D1 as-is.** A leading-`[`/`(` tail
+     needs an explicit `return`. Zero compiler change; costs a footgun in a style
+     (implicit tail return of a recursively-built array) the language otherwise
+     encourages. Pillar: preserves D1's greppability rationale, cedes a little
+     verifiability (a silent wrong-parse in the `let x = y` / `[x]` case).
+  2. **Emit newlines inside block `{}` but keep suppressing them inside record
+     literals, `()`, and `[]`.** Makes newlines significant statement terminators
+     inside blocks, matching most authors' mental model and breaking the postfix
+     glue. The cost is real: the lexer's flat `bracket_depth` cannot distinguish a
+     block `{` from a record-literal `{`, so this needs the parser to drive
+     newline significance (or a lexer brace-kind heuristic), and it revises D1's
+     stated rule ("newline terminates only at bracket depth zero, no ASI") and
+     touches every block/record/match parse path plus their snapshots.
+  3. **Narrowly refuse to extend a postfix chain with `[`/`(` at a statement
+     boundary.** Requires the same newline signal inside blocks as option 2, so it
+     collapses into it; there is no parser-only fix, because with no newline token
+     the parser cannot tell continuation from a new statement.
+
+  Recommendation deferred to the orchestrator. Option 1 is a one-line doc note;
+  option 2 is the principled fix but a genuine D1 revision.

@@ -302,8 +302,18 @@ correct output with no friction beyond the already-known G20. Extending to a
 recursive tagged-union tree formatter (a `Json` value plus a `render`, mirroring
 `json.stringify` logic) surfaced one new gap.
 
-- **G21. [OPEN — language-design fork] A bare tail expression that starts a line
-  with `[` or `(` glues onto the previous statement.** Inside a block there are
+- **G21. [RESOLVED — accepted, won't fix] A bare tail expression that starts a line
+  with `[` or `(` glues onto the previous statement.** **Decision:** this is
+  consistent with JavaScript's ASI (in JS, `foo()\n[1,2]` is `foo()[1,2]`, and a
+  leading `;`/`return` is the standard fix), so it is expected behavior, not a
+  bug. Matching it keeps the "looks like TypeScript" stance; the alternative
+  (significant newlines inside blocks) would both diverge from JS and break
+  multi-line method chains and split expressions, which the current newline model
+  deliberately enables. Workaround is idiomatic Glyph anyway: put `return` (or any
+  keyword) before the array/paren, which breaks the postfix chain. Documented in
+  the D1 spec note. The original analysis follows.
+
+  Inside a block there are
   no newline tokens (D1: newlines are significant only at bracket depth zero, and
   a block's `{` raises the depth), so statement boundaries are found by greedy
   parsing. A statement whose next line begins with `[` or `(` is therefore parsed

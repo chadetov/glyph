@@ -800,6 +800,38 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### 0.1.26 — Shipped · `new` for class-based npm clients (D37)
+
+**Status: shipped.** A language feature that closes the last real gap in the npm
+interop story: instantiating class-based clients. Surfaced by asking whether every
+database and message broker needs a bundled stdlib wrapper the way `std/sqlite`
+did. The answer is no: the general npm path already handles them, except Glyph had
+no `new`, so class-based clients (`pg`/`new Pool`, `mongodb`/`new MongoClient`,
+`ioredis`/`new Redis`, `kafkajs`/`new Kafka`) could only be reached through the
+`unknown`-typed `extern_ts` escape hatch. Factory-style clients (`node-redis`
+`createClient()`, `mysql2` `createConnection()`) already worked directly.
+
+- **D37 `new` interop constructor.** `new <callee>(<args>)` (with optional
+  `new <callee><T, ...>(<args>)`) emits a verbatim TypeScript `new` and is
+  type-checked by `tsc` against the real constructor: a wrong argument is a real
+  error mapped to the Glyph source (TS2345), an undefined callee is E0103. The
+  callee parses as a member/index chain that does not swallow a call, so
+  `new a.b.C(x).m()` is `(new a.b.C(x)).m()`. The instance is opaque to Glyph's
+  own checker (no `.parse` descriptor, like any imported `.d.ts` type), with `tsc`
+  supplying the type. Greppable by `new`.
+- **Deliberately interop-only.** Glyph has no `class` declarations and gains none.
+  `new` exists solely to construct a type that comes from an npm package, a
+  `.types` ambient declaration, or `extern_ts`. This keeps the function-oriented
+  stance while making class-based libraries first-class instead of escape-hatch
+  material.
+- **Verified end to end** against real `kafkajs` types (`new Kafka({...})`,
+  `.producer()`, `await ...connect()` all type-check), plus a `.types`-ambient
+  class integration test that runs under `tsc --strict` in CI, an emit unit test,
+  and negative tests (bad arg to `tsc`, undefined callee to E0103). 677 tests green.
+- **Docs:** spec D37, the external-imports guide gains a class-based-clients
+  section, AGENTS.md and its llms.txt mirrors gain a `new` interop note, and the
+  imports answer page now covers class-based vs factory clients.
+
 ### 0.1.25 — Shipped · A persisted database, and a real app on it
 
 **Status: shipped.** A database story and the first end-to-end backend app built on

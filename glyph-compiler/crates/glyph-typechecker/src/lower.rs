@@ -205,6 +205,10 @@ impl<'a> Lowerer<'a> {
             // `int` is a `number` to Glyph's checker; its integer-ness is a
             // runtime descriptor check, not a static type (TS has no `int`).
             PreludeKind::Int => Ty::Prim(Primitive::Number),
+            // `bigint` is permissive in Glyph's own checker (like `int`); `tsc`
+            // enforces the real bigint/number separation and rejects `123n`
+            // misuse, and the descriptor checks `typeof === "bigint"`.
+            PreludeKind::BigInt => Ty::Prim(Primitive::Number),
             PreludeKind::Bool => Ty::Prim(Primitive::Bool),
             PreludeKind::Void => Ty::Prim(Primitive::Void),
             PreludeKind::UnknownTop => Ty::UnknownTop,

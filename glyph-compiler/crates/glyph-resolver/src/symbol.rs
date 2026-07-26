@@ -97,6 +97,12 @@ pub enum PreludeKind {
     /// an `int` field's `.parse`). Lets `gen` materialize a JSON-Schema `integer`
     /// with real boundary validation instead of collapsing it to `number`.
     Int,
+    /// `bigint` — an exact arbitrary-precision integer. Emits as TypeScript
+    /// `bigint`, distinct from `number` (`tsc` keeps them apart: no mixed
+    /// arithmetic, `123n` literals only). Its descriptor checks
+    /// `typeof x === "bigint"`. For exact large whole numbers (account IDs,
+    /// counters) that a float `number` would silently round past 2^53.
+    BigInt,
     Bool,
     Void,
     /// TypeScript's `unknown` keyword. A top type.

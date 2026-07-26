@@ -225,8 +225,13 @@ impl<'a> Lexer<'a> {
             }
         }
 
+        // Track whether this is an integer: a `123n` bigint suffix is only legal
+        // on an integer (JS rejects `1.5n` and `1e5n`).
+        let mut is_integer = true;
+
         // Optional fractional part.
         if self.peek() == Some(b'.') && self.peek_at(1).is_some_and(|c| c.is_ascii_digit()) {
+            is_integer = false;
             self.advance(); // .
             while let Some(c) = self.peek() {
                 if c.is_ascii_digit() || c == b'_' {
@@ -239,6 +244,7 @@ impl<'a> Lexer<'a> {
 
         // Optional exponent.
         if matches!(self.peek(), Some(b'e') | Some(b'E')) {
+            is_integer = false;
             self.advance();
             if matches!(self.peek(), Some(b'+') | Some(b'-')) {
                 self.advance();
@@ -254,6 +260,13 @@ impl<'a> Lexer<'a> {
             if self.pos == exp_start {
                 return Err(LexError::MalformedNumber { offset: start as u32 });
             }
+        }
+
+        // Optional `n` bigint suffix (`123n`, `1_000n`). Emitted verbatim as a
+        // TypeScript BigInt literal; the value is typed `bigint` by `tsc`. Only
+        // an integer may carry it.
+        if is_integer && self.peek() == Some(b'n') {
+            self.advance();
         }
 
         let text = self.source[start..self.pos].to_string();

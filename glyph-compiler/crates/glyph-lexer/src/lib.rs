@@ -181,6 +181,24 @@ mod tests {
     }
 
     #[test]
+    fn bigint_suffix_lexes_on_an_integer() {
+        // `123n` and `1_000n` carry the BigInt suffix; it emits verbatim as a TS
+        // bigint literal. The suffix is part of the number token's text.
+        for (src, want) in [("123n", "123n"), ("1_000n", "1_000n"), ("0n", "0n")] {
+            let tokens = tokenize(src).unwrap();
+            match &tokens[0].token {
+                Token::Number(s) => assert_eq!(s, want, "for `{src}`"),
+                other => panic!("expected Number for `{src}`, got {other:?}"),
+            }
+        }
+        // A fractional literal does NOT absorb a following `n` (JS has no
+        // `1.5n`): the `n` lexes as a separate identifier.
+        let tokens = tokenize("1.5n").unwrap();
+        assert!(matches!(&tokens[0].token, Token::Number(s) if s == "1.5"), "1.5 stays a plain number: {:?}", tokens[0].token);
+        assert!(matches!(&tokens[1].token, Token::Identifier(s) if s.as_ref() == "n"), "the `n` is a separate ident: {:?}", tokens[1].token);
+    }
+
+    #[test]
     fn decimal_literal() {
         let tokens = tokenize("3.14").unwrap();
         match &tokens[0].token {

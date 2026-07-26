@@ -1040,6 +1040,51 @@ fn types_companion_package_resolves_over_the_typeless_js() {
 }
 
 #[test]
+fn bigint_arithmetic_is_exact_past_2_53() {
+    // `bigint` holds exact arbitrary-precision integers where a float `number`
+    // silently rounds past 2^53. The program returns its count of wrong results
+    // as the exit code, so Ran(0) proves every case is exact. Needs node/tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping bigint run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("bigint");
+    write_file(
+        &root,
+        "main.glyph",
+        r#"module main
+
+fn check(got: string, want: string) -> number {
+  return match got == want {
+    true => 0,
+    false => 1,
+  }
+}
+
+fn main() -> number {
+  let fails = 0
+  let a: bigint = 9007199254740993n
+  let sum = a + 2n
+  mut fails = fails + check("${sum}", "9007199254740995")
+  let big = 1000000000000000000n * 1000000000000000000n
+  mut fails = fails + check("${big}", "1000000000000000000000000000000000000")
+  return fails
+}
+"#,
+    );
+    let file = root.join("main.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "bigint produced {code} wrong result(s)");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping: toolchain not found at run time");
+        }
+        other => panic!("bigint program did not run: {other:?}"),
+    }
+}
+
+#[test]
 fn std_decimal_arithmetic_is_exact() {
     // Money correctness: std/decimal must be exact where IEEE-754 `number` is
     // not. The program returns its count of wrong results as the exit code, so a

@@ -3721,6 +3721,7 @@ fn js_typeof(te: &TypeExpr) -> Option<&'static str> {
         [seg] => match seg.as_ref() {
             "string" => Some("string"),
             "number" => Some("number"),
+            "bigint" => Some("bigint"),
             "bool" => Some("boolean"),
             "void" => Some("undefined"),
             _ => None,
@@ -6066,6 +6067,17 @@ mod tests {
         let ts = emit("module x\ninterface Show {\n  fn show() -> string\n}\n");
         assert!(ts.contains("interface Show {"), "{ts}");
         assert!(!ts.contains("export interface Show"), "private interface: {ts}");
+    }
+
+    #[test]
+    fn bigint_type_emits_and_validates_distinctly_from_number() {
+        let ts = emit("module x\npub type Account = {\n  id: bigint,\n  balance: int,\n}\n");
+        assert!(ts.contains("id: bigint;"), "bigint type emits verbatim: {ts}");
+        assert!(ts.contains("=== \"bigint\""), "descriptor checks typeof bigint: {ts}");
+        // A `123n` literal and a `bigint` return type both emit verbatim.
+        let lit = emit("module x\npub fn f() -> bigint {\n  return 123n\n}\n");
+        assert!(lit.contains("return 123n;"), "bigint literal verbatim: {lit}");
+        assert!(lit.contains("): bigint {"), "bigint return type: {lit}");
     }
 
     #[test]

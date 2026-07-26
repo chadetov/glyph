@@ -1,0 +1,183 @@
+// Pure-Glyph line diff: the classic longest-common-subsequence algorithm that
+// tools like `diff` and `git` build on. `build_table` fills an (n+1) x (m+1)
+// dynamic-programming grid of LCS lengths bottom-up, then `diff` walks the grid
+// from the top-left, emitting a `Keep`/`Add`/`Del` op at each step, and
+// `render` prints the ops in the familiar leading-marker form. The whole thing
+// is Glyph: a mutable 2-D `Array<Array<number>>` grid, nested `grid[i][j]`
+// indexing and `mut grid[i][j] = ...` assignment, `loop`/`for`, tagged-union
+// pattern matching, and recursion. The only platform leaf is std/math.max for
+// the two-way maximum in the recurrence; std/string.from renders the counts.
+module diff
+
+import std/string
+import std/array
+import std/math
+
+// One step of a line diff: a line kept in both sides, added on the right side,
+// or deleted from the left side.
+pub type Op =
+  | Keep({ line: string })
+  | Add({ line: string })
+  | Del({ line: string })
+
+// A row of `cols` zeros.
+fn zero_row(cols: number) -> Array<number> {
+  let row: Array<number> = []
+  let j = 0
+  loop {
+    match j >= cols {
+      true => {
+        break
+      },
+      false => {},
+    }
+    mut row.push(0)
+    mut j = j + 1
+  }
+  return row
+}
+
+// A fresh `rows` x `cols` grid of zeros.
+fn zeros(rows: number, cols: number) -> Array<Array<number>> {
+  let grid: Array<Array<number>> = []
+  let i = 0
+  loop {
+    match i >= rows {
+      true => {
+        break
+      },
+      false => {},
+    }
+    mut grid.push(zero_row(cols))
+    mut i = i + 1
+  }
+  return grid
+}
+
+// The LCS-length grid: `table[i][j]` is the length of the longest common
+// subsequence of `a[i..]` and `b[j..]`. Filled from the bottom-right corner so
+// that when cell `(i, j)` is computed its three neighbors already hold their
+// final values. `table[0][0]` ends up holding the LCS length of the whole pair.
+pub fn build_table(a: Array<string>, b: Array<string>) -> Array<Array<number>> {
+  let n = array.len(a)
+  let m = array.len(b)
+  let table = zeros(n + 1, m + 1)
+  let i = n - 1
+  loop {
+    match i < 0 {
+      true => {
+        break
+      },
+      false => {},
+    }
+    let j = m - 1
+    loop {
+      match j < 0 {
+        true => {
+          break
+        },
+        false => {},
+      }
+      match a[i] == b[j] {
+        true => {
+          mut table[i][j] = table[i + 1][j + 1] + 1
+        },
+        false => {
+          mut table[i][j] = math.max(table[i + 1][j], table[i][j + 1])
+        },
+      }
+      mut j = j - 1
+    }
+    mut i = i - 1
+  }
+  return table
+}
+
+// The diff of `a` into `b` as a list of ops. Walks the LCS grid from the
+// top-left: a matching pair is a `Keep` that steps diagonally, otherwise the
+// grid says whether keeping `a`'s line (a `Del`, step down) or `b`'s line (an
+// `Add`, step right) preserves the longer common subsequence. Ties delete
+// first, which keeps deletions grouped ahead of the additions that replace them.
+pub fn diff(a: Array<string>, b: Array<string>) -> Array<Op> {
+  let table = build_table(a, b)
+  let n = array.len(a)
+  let m = array.len(b)
+  let ops: Array<Op> = []
+  let i = 0
+  let j = 0
+  loop {
+    match i >= n && j >= m {
+      true => {
+        break
+      },
+      false => {},
+    }
+    match i < n && j < m && a[i] == b[j] {
+      true => {
+        mut ops.push(Keep({ line: a[i] }))
+        mut i = i + 1
+        mut j = j + 1
+      },
+      false => match i >= n {
+        true => {
+          mut ops.push(Add({ line: b[j] }))
+          mut j = j + 1
+        },
+        false => match j >= m {
+          true => {
+            mut ops.push(Del({ line: a[i] }))
+            mut i = i + 1
+          },
+          false => match table[i + 1][j] >= table[i][j + 1] {
+            true => {
+              mut ops.push(Del({ line: a[i] }))
+              mut i = i + 1
+            },
+            false => {
+              mut ops.push(Add({ line: b[j] }))
+              mut j = j + 1
+            },
+          },
+        },
+      },
+    }
+  }
+  return ops
+}
+
+// The leading marker for a diff line: two spaces for a kept line, "+ " for an
+// addition, "- " for a deletion.
+fn marker(op: Op) -> string {
+  return match op {
+    Keep({ line }) => "  " + line,
+    Add({ line }) => "+ " + line,
+    Del({ line }) => "- " + line,
+  }
+}
+
+// Render a diff as text, one op per line in the familiar marker form.
+pub fn render(ops: Array<Op>) -> string {
+  let out: Array<string> = []
+  for op in ops {
+    mut out.push(marker(op))
+  }
+  return string.join(out, "\n")
+}
+
+// How many lines the diff adds and deletes, as a one-line summary.
+pub fn summary(ops: Array<Op>) -> string {
+  let added = 0
+  let deleted = 0
+  for op in ops {
+    match op {
+      Keep({ line }) => {},
+      Add({ line }) => {
+        mut added = added + 1
+      },
+      Del({ line }) => {
+        mut deleted = deleted + 1
+      },
+    }
+  }
+  return "+" + string.from(added) + " -" + string.from(deleted)
+}

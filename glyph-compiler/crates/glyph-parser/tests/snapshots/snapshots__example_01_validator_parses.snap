@@ -125,6 +125,7 @@ Module {
                         end: 832,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 779,
                     end: 832,
@@ -260,6 +261,7 @@ Module {
                         end: 921,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 834,
                     end: 921,
@@ -2594,6 +2596,7 @@ Module {
                         end: 4824,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 4783,
                     end: 4824,

@@ -155,6 +155,12 @@ pub struct TypeDecl {
     /// `type X = ...` leaves this `false`.
     pub is_resource: bool,
     pub body: TypeExpr,
+    /// D39: a `where <predicate>` refinement. `type Amount = int where value >= 0`
+    /// carries the boolean predicate as an expression over a bound `value`. The
+    /// refinement is enforced at the boundary: the type's runtime descriptor
+    /// (`is`/`parse`) runs the base leaf-check *and* this predicate, so a value
+    /// that fails it is rejected by `.parse`. `None` for an ordinary type.
+    pub refinement: Option<Box<Expr>>,
     pub span: Span,
 }
 

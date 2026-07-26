@@ -349,6 +349,15 @@ impl Resolver<'_> {
                     self.bind_local(g.name.clone(), g.span);
                 }
                 self.walk_type_expr(&t.body);
+                // D39: a `where` refinement predicate is resolved with `value`
+                // bound (the subject being validated); other names in it resolve
+                // against module scope as usual.
+                if let Some(pred) = &t.refinement {
+                    self.push_scope();
+                    self.bind_local(glyph_ast::Ident::from("value"), t.span);
+                    self.walk_expr(pred);
+                    self.pop_scope();
+                }
                 self.pop_scope();
             }
             Decl::Const(c) => {

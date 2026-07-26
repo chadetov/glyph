@@ -1040,6 +1040,61 @@ fn types_companion_package_resolves_over_the_typeless_js() {
 }
 
 #[test]
+fn where_refinement_rejects_out_of_range_at_the_boundary() {
+    // D39: a `where` predicate is enforced by the type's descriptor, so
+    // `Amount.parse(-1)` and `Rating.parse(6)` fail while valid values pass. The
+    // program returns its count of wrong outcomes as the exit code. Needs node/tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping where-refinement run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("refine");
+    write_file(
+        &root,
+        "main.glyph",
+        r#"module main
+
+import std/result { Ok, Err }
+
+pub type Amount = int where value >= 0
+pub type Rating = int where value >= 1 && value <= 5
+
+fn amt_ok(v: number) -> bool {
+  return match Amount.parse(v) { Ok(a) => true, Err(e) => false, }
+}
+fn rat_ok(v: number) -> bool {
+  return match Rating.parse(v) { Ok(a) => true, Err(e) => false, }
+}
+fn expect(got: bool, want: bool) -> number {
+  return match got == want { true => 0, false => 1, }
+}
+
+fn main() -> number {
+  let f = 0
+  mut f = f + expect(amt_ok(5), true)
+  mut f = f + expect(amt_ok(0), true)
+  mut f = f + expect(amt_ok(-1), false)
+  mut f = f + expect(amt_ok(3.5), false)
+  mut f = f + expect(rat_ok(3), true)
+  mut f = f + expect(rat_ok(6), false)
+  mut f = f + expect(rat_ok(0), false)
+  return f
+}
+"#,
+    );
+    let file = root.join("main.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "where-refinement had {code} wrong boundary outcome(s)");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping: toolchain not found at run time");
+        }
+        other => panic!("refinement program did not run: {other:?}"),
+    }
+}
+
+#[test]
 fn bigint_arithmetic_is_exact_past_2_53() {
     // `bigint` holds exact arbitrary-precision integers where a float `number`
     // silently rounds past 2^53. The program returns its count of wrong results

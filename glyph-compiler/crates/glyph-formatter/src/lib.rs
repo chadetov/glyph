@@ -419,6 +419,12 @@ impl Printer {
         }
         self.push(" = ");
         self.type_expr(&t.body);
+        // D39: a `where <predicate>` refinement follows the base type on the same
+        // line.
+        if let Some(pred) = &t.refinement {
+            self.push(" where ");
+            self.expr(pred);
+        }
         self.push("\n");
     }
 

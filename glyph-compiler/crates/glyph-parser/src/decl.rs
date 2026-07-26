@@ -322,7 +322,18 @@ fn parse_type_decl(
     };
     p.expect(&Token::Equals, "`=` after type name")?;
     let body = types::parse_type_decl_body(p)?;
-    let end = body.span().end;
+    let mut end = body.span().end;
+    // D39: an optional `where <predicate>` refinement. The predicate is a boolean
+    // expression over a bound `value`; it is woven into the type's runtime
+    // descriptor so `.parse` rejects a value that fails it.
+    let refinement = if matches!(p.peek(), Token::Where) {
+        p.advance();
+        let pred = expr::parse_expr(p)?;
+        end = pred.span().end;
+        Some(Box::new(pred))
+    } else {
+        None
+    };
     if matches!(p.peek(), Token::Newline) {
         p.advance();
     }
@@ -333,6 +344,7 @@ fn parse_type_decl(
         generics,
         is_resource,
         body,
+        refinement,
         span: Span::new(start, end),
     })
 }

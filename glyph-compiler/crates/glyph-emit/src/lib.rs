@@ -727,6 +727,12 @@ impl<'a> Emitter<'a> {
             Decl::Interface(i) => self.emit_interface(i),
             Decl::Type(t) => {
                 if let TypeExpr::Union { variants, .. } = &t.body {
+                    if t.refinement.is_some() {
+                        return Err(EmitError::Unsupported {
+                            construct: "a `where` refinement on a union type (v1 supports refinements on primitive base types)",
+                            span: t.span,
+                        });
+                    }
                     return self.emit_union(&t.name, &t.generics, variants);
                 }
                 let generics = self.generics(&t.generics)?;
@@ -737,9 +743,20 @@ impl<'a> Emitter<'a> {
                 // erasure). A generic record emits a checker-threaded descriptor
                 // (its `is`/`parse` take one checker per type parameter).
                 if let TypeExpr::Record { fields, .. } = &t.body {
+                    if t.refinement.is_some() {
+                        return Err(EmitError::Unsupported {
+                            construct: "a `where` refinement on a record type (v1 supports refinements on primitive base types)",
+                            span: t.span,
+                        });
+                    }
                     let redact = glyph_ast::redact_fields(&t.annotations).unwrap_or_default();
                     let open = glyph_ast::is_open_record(&t.annotations);
                     self.emit_record_descriptor(&t.name, &t.generics, fields, &redact, open)?;
+                } else if let Some(pred) = &t.refinement {
+                    // D39: a refined primitive type gets a runtime descriptor whose
+                    // `is`/`parse` run the base leaf-check AND the predicate, so a
+                    // value that fails the predicate is rejected at the boundary.
+                    self.emit_refinement_descriptor(&t.name, &t.body, pred)?;
                 }
                 Ok(())
             }
@@ -816,6 +833,48 @@ impl<'a> Emitter<'a> {
     /// imported (`.d.ts`) type are only checked for presence (`!== undefined`),
     /// so their `value is X` narrowing is stronger than the runtime proof. An
     /// imported type gets a real descriptor once materialized with `glyph gen dts`.
+    /// D39: emit the runtime descriptor for a refined primitive type
+    /// (`type Amount = int where value >= 0`). The `is` guard runs the base
+    /// leaf-check and the predicate; the base check narrows `value` first, so
+    /// the predicate (which refers to the bound `value`) sees the base type. A
+    /// value that fails the predicate is rejected by `.parse` at the boundary.
+    fn emit_refinement_descriptor(
+        &mut self,
+        name: &Ident,
+        base: &TypeExpr,
+        predicate: &Expr,
+    ) -> Result<(), EmitError> {
+        let base_check = self.field_value_check(base, "value");
+        let pred = self.expr(predicate)?;
+        self.line(&format!("{}const {name} = {{", self.emit_export));
+        self.indent += 1;
+        self.line(&format!("is(value: unknown): value is {name} {{"));
+        self.indent += 1;
+        self.line(&format!("return {base_check} && {pred};"));
+        self.indent -= 1;
+        self.line("},");
+        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
+        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
+        self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
+        self.indent += 1;
+        self.line("return this.is(value)");
+        self.indent += 1;
+        self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
+        self.line(&format!(
+            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: \"expected {name}\" }};"
+        ));
+        self.indent -= 1;
+        self.indent -= 1;
+        self.line("},");
+        self.used_schema.set(true);
+        self.line(&format!(
+            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
+        ));
+        self.indent -= 1;
+        self.line("};");
+        Ok(())
+    }
+
     fn emit_record_descriptor(
         &mut self,
         name: &Ident,
@@ -6067,6 +6126,27 @@ mod tests {
         let ts = emit("module x\ninterface Show {\n  fn show() -> string\n}\n");
         assert!(ts.contains("interface Show {"), "{ts}");
         assert!(!ts.contains("export interface Show"), "private interface: {ts}");
+    }
+
+    #[test]
+    fn where_refinement_weaves_the_predicate_into_the_descriptor() {
+        // D39: `type Amount = int where value >= 0` emits the base alias plus a
+        // descriptor whose `is` runs the leaf-check AND the predicate, so a
+        // negative value is rejected at the boundary. The base check narrows
+        // `value` first, so the predicate sees the base type (tsc-clean).
+        let ts = emit("module x\npub type Amount = int where value >= 0\n");
+        assert!(ts.contains("export type Amount = number;"), "alias: {ts}");
+        assert!(ts.contains("const Amount = {"), "descriptor: {ts}");
+        assert!(
+            ts.contains(
+                "return (typeof value === \"number\" && Number.isInteger(value)) && (value >= 0);"
+            ),
+            "leaf-check AND predicate: {ts}"
+        );
+        assert!(ts.contains("parse(value: unknown)"), "has parse: {ts}");
+        // A refinement on a record type is a clear error in v1, not a silent drop.
+        let err = emit_err("module x\npub type Bad = {\n  x: int,\n} where value.x > 0\n");
+        assert!(matches!(err, EmitError::Unsupported { .. }), "record refinement errors: {err:?}");
     }
 
     #[test]

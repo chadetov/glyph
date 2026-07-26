@@ -127,6 +127,7 @@ Module {
                         end: 502,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 457,
                     end: 502,
@@ -199,6 +200,7 @@ Module {
                         end: 571,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 504,
                     end: 571,
@@ -271,6 +273,7 @@ Module {
                         end: 640,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 573,
                     end: 640,
@@ -343,6 +346,7 @@ Module {
                         end: 711,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 642,
                     end: 711,
@@ -415,6 +419,7 @@ Module {
                         end: 776,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 713,
                     end: 776,
@@ -589,6 +594,7 @@ Module {
                         end: 1019,
                     },
                 },
+                refinement: None,
                 span: Span {
                     start: 858,
                     end: 1019,

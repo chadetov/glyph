@@ -92,6 +92,19 @@ fn examples_format_is_stable_and_semantics_preserving() {
 }
 
 #[test]
+fn where_refinement_round_trips() {
+    // D39: the `where <predicate>` refinement must survive formatting (it was
+    // silently dropped in a first cut). Preserved on the same line, idempotent.
+    let src = "module x\npub type Amount = int where value >= 0\n";
+    let out = fmt(src);
+    assert!(
+        out.contains("type Amount = int where value >= 0"),
+        "where clause preserved:\n{out}"
+    );
+    assert_eq!(fmt(&out), out, "where format is not stable");
+}
+
+#[test]
 fn jsx_fragment_round_trips() {
     let src = "module x\ncomponent P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{name}</p>\n  </>\n}\n";
     let out = fmt(src);

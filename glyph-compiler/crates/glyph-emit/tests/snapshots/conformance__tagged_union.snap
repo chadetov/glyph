@@ -1,0 +1,47 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { schema as __glyph_schema } from "std/schema";
+
+export type Shape =
+  | { tag: "Circle"; radius: number }
+  | { tag: "Square"; side: number };
+
+export function Circle(fields: { radius: number }): Shape { return { ...fields, tag: "Circle" }; }
+export function Square(fields: { side: number }): Shape { return { ...fields, tag: "Square" }; }
+export const Shape = {
+  is(value: unknown): value is Shape {
+    if (typeof value !== "object" || value === null) {
+      return false;
+    }
+    switch ((value as { tag?: unknown }).tag) {
+      case "Circle": return typeof (value as Record<string, unknown>).radius === "number";
+      case "Square": return typeof (value as Record<string, unknown>).side === "number";
+      default: return false;
+    }
+  },
+  parse(value: unknown): { tag: "Ok"; value: Shape } | { tag: "Err"; value: string } {
+    return this.is(value)
+      ? { tag: "Ok", value: value }
+      : { tag: "Err", value: "expected Shape" };
+  },
+  schema: __glyph_schema<Shape>("Shape", (v): v is Shape => Shape.is(v)),
+};
+
+export function area(s: Shape): number {
+  const __m0 = s;
+  switch (__m0.tag) {
+    case "Circle": {
+      const c = __m0;
+      return c.radius;
+    }
+    case "Square": {
+      const sq = __m0;
+      return sq.side;
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+}

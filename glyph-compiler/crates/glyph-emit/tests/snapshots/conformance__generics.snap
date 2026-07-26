@@ -1,0 +1,13 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+export function identity<T>(v: T): T {
+  return v;
+}
+
+export function first<T>(xs: Array<T>): T {
+  return xs[0];
+}

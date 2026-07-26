@@ -1,0 +1,12 @@
+// D31 int (number with an isInteger descriptor check); D38 bigint (a distinct
+// runtime type, `123n` literals, typeof "bigint" descriptor check).
+module x
+
+pub type Account = {
+  id: bigint,
+  balance: int,
+}
+
+pub fn next_id(cur: bigint) -> bigint {
+  return cur + 1n
+}

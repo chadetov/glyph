@@ -1,0 +1,10 @@
+// D37 `new` interop constructor: emits a verbatim TS `new`, chains on the
+// instance.
+module x
+
+import kafkajs { Kafka }
+
+pub fn make() -> void {
+  let k = new Kafka({ clientId: "app", })
+  let _ = k.producer()
+}

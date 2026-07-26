@@ -1,0 +1,12 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { Kafka } from "kafkajs";
+
+export function make(): void {
+  let k = new Kafka({ clientId: "app" });
+  let _ = k.producer();
+}

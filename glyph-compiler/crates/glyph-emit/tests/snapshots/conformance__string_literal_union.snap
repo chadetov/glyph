@@ -1,0 +1,37 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { schema as __glyph_schema } from "std/schema";
+
+export type Tier = "free" | "pro";
+
+export type Plan = { tier: Tier };
+export const Plan = {
+  is(value: unknown): value is Plan {
+    return typeof value === "object" && value !== null
+      && ((value as Record<string, unknown>).tier === "free" || (value as Record<string, unknown>).tier === "pro")
+      && Object.keys(value as object).every((__k: string) => __k === "tier");
+  },
+  parse(value: unknown): { tag: "Ok"; value: Plan } | { tag: "Err"; value: string } {
+    return this.is(value)
+      ? { tag: "Ok", value: value }
+      : { tag: "Err", value: "expected Plan" };
+  },
+  schema: __glyph_schema<Plan>("Plan", (v): v is Plan => Plan.is(v)),
+};
+
+export function label(t: Tier): string {
+  const __m0 = t;
+  switch (__m0) {
+    case "free": {
+      return "Free";
+    }
+    case "pro": {
+      return "Pro";
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+}

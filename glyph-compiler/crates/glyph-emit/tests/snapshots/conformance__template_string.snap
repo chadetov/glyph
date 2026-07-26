@@ -1,0 +1,9 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+export function greet(name: string, n: number): string {
+  return `hi ${name}, count is ${n}`;
+}

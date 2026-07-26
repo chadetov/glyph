@@ -1,0 +1,10 @@
+// Generic functions and explicit call-site type arguments.
+module x
+
+pub fn identity<T>(v: T) -> T {
+  return v
+}
+
+pub fn first<T>(xs: Array<T>) -> T {
+  return xs[0]
+}

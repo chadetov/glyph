@@ -1,0 +1,8 @@
+// Q8 a record type emits a runtime descriptor (is/parse/schema); strict-by-default
+// key check.
+module x
+
+pub type User = {
+  id: number,
+  name: string,
+}

@@ -17,3 +17,5 @@ thiserror.workspace = true
 [dev-dependencies]
 insta.workspace = true
 glyph-parser.workspace = true
+glyph-resolver.workspace = true
+glyph-typechecker.workspace = true

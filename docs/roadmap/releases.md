@@ -358,6 +358,16 @@ honest and pointed at 1.0 rather than wandering. Do it at each milestone and
 whenever a release makes a claim worth stress-testing. The first three passes are
 recorded in this file's history; keep calling it.
 
+**Stability enforcement (the code half of the 1.0 stability enablers) — in
+place.** A spec conformance corpus (`glyph-emit/tests/conformance/`, one program
+per feature keyed to its D-decision) pins the exact emitted TypeScript as a
+committed snapshot, so a change to what a feature *means* fails the build and a
+human signs off on the diff. This is the mechanism behind the "no silent behavior
+changes" promise in `docs/stability.md`. The other half, `glyph fmt --migrate`,
+is deliberately deferred: there is no breaking syntax change to migrate yet, and
+a migration engine is best built with the first real migration rather than as
+untested scaffolding.
+
 ### 0.1.13 — Shipped · Close the boundary (honesty and hygiene)
 
 The cheap, concrete must-haves that stop the verifiability wedge from leaking

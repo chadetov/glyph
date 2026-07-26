@@ -1,0 +1,10 @@
+// D36 bitwise operators and shifts, emitted verbatim, number-typed.
+module x
+
+pub fn mask(a: number, b: number) -> number {
+  return (a & b) | (a ^ b)
+}
+
+pub fn shifts(n: number) -> number {
+  return (n << 2) + (n >> 1) + (n >>> 3)
+}

@@ -1,0 +1,17 @@
+// D3 match is the only conditional; D9 `else` catch-all arm.
+module x
+
+pub fn sign(n: number) -> string {
+  return match n > 0 {
+    true => "pos",
+    false => "nonpos",
+  }
+}
+
+pub fn grade(n: number) -> string {
+  return match n {
+    100 => "perfect",
+    0 => "zero",
+    else => "other",
+  }
+}

@@ -1,0 +1,6 @@
+// D39 where refinement: a predicate over `value` woven into the descriptor.
+module x
+
+pub type Amount = int where value >= 0
+pub type Rating = int where value >= 1 && value <= 5
+pub type NonEmpty = string where value.length > 0

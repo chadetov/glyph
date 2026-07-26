@@ -23,7 +23,12 @@ freezing it early.
   permanent, dependency-free escape hatch — not a lock-in.
 - **No silent behavior changes.** A change that alters what your program *does*
   (rather than rejecting it at compile time) is called out in the
-  [release notes](https://glyphlang.io/versions/) for that version.
+  [release notes](https://glyphlang.io/versions/) for that version. This is
+  enforced, not just promised: a **spec conformance corpus** (one program per
+  language feature, keyed to its D-decision) pins the exact TypeScript the
+  compiler emits, so a change to what a feature *means* fails the build and a
+  human has to sign off on the diff before it ships. The emit is byte-for-byte
+  what it was, or the change is deliberate and reviewed.
 - **Diagnostics are addressable.** Every error and warning carries a stable code
   (`E0xxx`) and a one-line fix; `glyph --explain <code>` gives the long form.
 

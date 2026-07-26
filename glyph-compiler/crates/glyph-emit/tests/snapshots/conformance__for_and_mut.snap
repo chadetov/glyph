@@ -1,0 +1,13 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+export function sum(xs: Array<number>): number {
+  let total = 0;
+  for (const n of xs) {
+    total = (total + n);
+  }
+  return total;
+}

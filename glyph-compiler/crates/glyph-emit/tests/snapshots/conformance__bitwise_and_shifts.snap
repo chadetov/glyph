@@ -1,0 +1,13 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+export function mask(a: number, b: number): number {
+  return ((a & b) | (a ^ b));
+}
+
+export function shifts(n: number): number {
+  return (((n << 2) + (n >> 1)) + (n >>> 3));
+}

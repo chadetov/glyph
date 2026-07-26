@@ -1,0 +1,14 @@
+// D8 tagged union: named constructors, exhaustive constructor-pattern match,
+// and the union's runtime descriptor.
+module x
+
+pub type Shape =
+  | Circle({ radius: number })
+  | Square({ side: number })
+
+pub fn area(s: Shape) -> number {
+  return match s {
+    Circle(c) => c.radius,
+    Square(sq) => sq.side,
+  }
+}

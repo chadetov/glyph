@@ -1,0 +1,23 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { schema as __glyph_schema } from "std/schema";
+
+export type User = { id: number; name: string };
+export const User = {
+  is(value: unknown): value is User {
+    return typeof value === "object" && value !== null
+      && typeof (value as Record<string, unknown>).id === "number"
+      && typeof (value as Record<string, unknown>).name === "string"
+      && Object.keys(value as object).every((__k: string) => __k === "id" || __k === "name");
+  },
+  parse(value: unknown): { tag: "Ok"; value: User } | { tag: "Err"; value: string } {
+    return this.is(value)
+      ? { tag: "Ok", value: value }
+      : { tag: "Err", value: "expected User" };
+  },
+  schema: __glyph_schema<User>("User", (v): v is User => User.is(v)),
+};

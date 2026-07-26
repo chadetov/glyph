@@ -1,0 +1,13 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+export function public_fn(): number {
+  return helper();
+}
+
+function helper(): number {
+  return 1;
+}

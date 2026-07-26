@@ -1,0 +1,10 @@
+// D33 module visibility: `pub` emits `export`, a private decl does not.
+module x
+
+pub fn public_fn() -> number {
+  return helper()
+}
+
+fn helper() -> number {
+  return 1
+}

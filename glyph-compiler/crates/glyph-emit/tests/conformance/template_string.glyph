@@ -1,0 +1,6 @@
+// D22 template literals.
+module x
+
+pub fn greet(name: string, n: number) -> string {
+  return "hi ${name}, count is ${n}"
+}

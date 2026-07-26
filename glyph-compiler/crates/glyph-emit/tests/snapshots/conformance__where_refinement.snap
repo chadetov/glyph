@@ -1,0 +1,46 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { schema as __glyph_schema } from "std/schema";
+
+export type Amount = number;
+export const Amount = {
+  is(value: unknown): value is Amount {
+    return (typeof value === "number" && Number.isInteger(value)) && (value >= 0);
+  },
+  parse(value: unknown): { tag: "Ok"; value: Amount } | { tag: "Err"; value: string } {
+    return this.is(value)
+      ? { tag: "Ok", value: value }
+      : { tag: "Err", value: "expected Amount" };
+  },
+  schema: __glyph_schema<Amount>("Amount", (v): v is Amount => Amount.is(v)),
+};
+
+export type Rating = number;
+export const Rating = {
+  is(value: unknown): value is Rating {
+    return (typeof value === "number" && Number.isInteger(value)) && ((value >= 1) && (value <= 5));
+  },
+  parse(value: unknown): { tag: "Ok"; value: Rating } | { tag: "Err"; value: string } {
+    return this.is(value)
+      ? { tag: "Ok", value: value }
+      : { tag: "Err", value: "expected Rating" };
+  },
+  schema: __glyph_schema<Rating>("Rating", (v): v is Rating => Rating.is(v)),
+};
+
+export type NonEmpty = string;
+export const NonEmpty = {
+  is(value: unknown): value is NonEmpty {
+    return typeof value === "string" && (value.length > 0);
+  },
+  parse(value: unknown): { tag: "Ok"; value: NonEmpty } | { tag: "Err"; value: string } {
+    return this.is(value)
+      ? { tag: "Ok", value: value }
+      : { tag: "Err", value: "expected NonEmpty" };
+  },
+  schema: __glyph_schema<NonEmpty>("NonEmpty", (v): v is NonEmpty => NonEmpty.is(v)),
+};

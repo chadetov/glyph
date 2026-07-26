@@ -1,0 +1,33 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+export function sign(n: number): string {
+  const __m0 = (n > 0);
+  switch (__m0) {
+    case true: {
+      return "pos";
+    }
+    case false: {
+      return "nonpos";
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+}
+
+export function grade(n: number): string {
+  const __m1 = n;
+  switch (__m1) {
+    case 100: {
+      return "perfect";
+    }
+    case 0: {
+      return "zero";
+    }
+    default: {
+      return "other";
+    }
+  }
+}

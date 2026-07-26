@@ -1,0 +1,16 @@
+// D30 string-literal-union type: emits the TS literal union, membership check in
+// the descriptor, exhaustive match without `else`.
+module x
+
+pub type Tier = "free" | "pro"
+
+pub type Plan = {
+  tier: Tier,
+}
+
+pub fn label(t: Tier) -> string {
+  return match t {
+    "free" => "Free",
+    "pro" => "Pro",
+  }
+}

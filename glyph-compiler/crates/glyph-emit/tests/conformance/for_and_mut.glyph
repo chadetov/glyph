@@ -1,0 +1,10 @@
+// D21 `for x in iter`; D5 `mut` reassignment.
+module x
+
+pub fn sum(xs: Array<number>) -> number {
+  let total = 0
+  for n in xs {
+    mut total = total + n
+  }
+  return total
+}

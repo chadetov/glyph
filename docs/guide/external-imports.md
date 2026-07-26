@@ -319,6 +319,48 @@ glyph gen zod @acme/schemas --out src/gen
 (`glyph gen openapi` stays file-based: an OpenAPI document is a file in your repo,
 not something `node_modules` points at.)
 
+## Class-based clients: `new`
+
+Many database and messaging clients are class-based: you construct a client with
+`new`. Glyph has `new` for exactly this, and nothing else:
+
+```glyph
+import kafkajs { Kafka }
+
+async fn main() -> void {
+  let kafka = new Kafka({ clientId: "app", brokers: ["localhost:9092"], })
+  let producer = kafka.producer()
+  await producer.connect()
+}
+```
+
+`new <callee>(<args>)` emits a verbatim TypeScript `new` and is type-checked by
+`tsc` against the package's real constructor: a wrong argument is a real error
+mapped back to your Glyph source, and an undefined callee is `E0103` at resolve
+time. It is greppable (`grep new` finds every construction site). The instance
+carries no Glyph `.parse` descriptor (it is an external type, like anything from
+a `.d.ts`); `tsc` supplies its type, so `kafka.producer()` and the chain that
+follows are all checked.
+
+This is interop-only. Glyph has **no `class` declarations** and gains none;
+`new` only constructs a type that comes from an npm package, a `.types` ambient
+declaration, or `extern_ts`. The same pattern covers `new MongoClient(url)`
+(`mongodb`), `new Redis()` (`ioredis`), and `new Pool(cfg)` (`pg`).
+
+A factory-style client needs no `new` at all. `node-redis`'s `createClient()`,
+`mysql2`'s `createConnection()`, and any SDK you call as a function import and
+work directly:
+
+```glyph
+import redis { createClient }
+
+async fn main() -> void {
+  let client = createClient()
+  await client.connect()
+  await client.set("k", "v")
+}
+```
+
 ## The escape hatch: `extern_ts` for types Glyph can't spell
 
 Some TypeScript idioms have no Glyph form, most often a value-derived type like

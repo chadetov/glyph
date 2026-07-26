@@ -459,6 +459,16 @@ declaration file under `<src>/.types/`. Anything matching
 `<src>/.types/**/*.d.ts` is auto-discovered and type-checked with your build.
 (Full guide with a worked example: `docs/guide/external-imports.md`.)
 
+A class-based client is instantiated with `new`, which Glyph has for exactly
+this interop and nothing else: `import kafkajs { Kafka }` then
+`let k = new Kafka({ clientId: "app", brokers: [b], })`. `new <callee>(<args>)`
+emits a verbatim TypeScript `new` and is type-checked by `tsc` against the real
+constructor (a wrong argument is a real error; an undefined callee is E0103).
+Glyph has no `class` declarations of its own; `new` only constructs a type that
+comes from an npm package, a `.types` ambient declaration, or `extern_ts`. A
+factory-style client (`createClient()`, `createConnection()`) needs no `new` at
+all: call it directly.
+
 Worked example:
 
 ```
@@ -558,7 +568,7 @@ machine-readably. The full catalogue:
 | E0106 | Unused import (warning) | Remove it |
 | E0107 | Unused variable (warning) | Remove it, or prefix the name with `_` |
 | E0108 | Unreachable code after return/break/continue (warning) | Remove the dead code |
-| E0109 | Reserved word (class, new, switch, eval, ...) used as a name | Rename the declaration or binding |
+| E0109 | Reserved word (class, switch, eval, ...) used as a name | Rename the declaration or binding |
 | E0200 | Non-exhaustive match on a tagged union | Handle every variant, or add an `else` |
 | E0201 | `?` outside a Result-returning fn | Return `Result`, or handle with `match` |
 | E0202 | `?` on a non-Result operand | Drop the `?`, or return a `Result` |

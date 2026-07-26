@@ -800,6 +800,24 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### Next · improve-glyph loop batch 5
+
+**Status: in progress.** Continuing the dogfood loop with pure-Glyph corpus
+modules, plus the compiler correctness work each one surfaces:
+
+- **`examples/corpus/casing.glyph`** — identifier case conversion (snake, kebab,
+  camel, pascal, constant, title). The word splitter breaks on separators and the
+  camelCase lowercase-to-uppercase boundary, and the target style is a D30
+  string-literal-union type whose `render` match is exhaustive without an `else`.
+  Classifies characters with no char-code table (a letter is uppercase when
+  `upper(c) == c && lower(c) != c`).
+- **Empty-block match arm fall-through fix** (emit) — a void-typed `match` whose
+  arm is an empty block (`true => {}`) lowered to a `switch` case with no
+  terminating statement, so control fell through and ran the next arm's body (in
+  the surfacing case, unbounded recursion). The empty-block arm now emits a
+  `break` inside a `switch` case regardless of return/statement position. One
+  emit test.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

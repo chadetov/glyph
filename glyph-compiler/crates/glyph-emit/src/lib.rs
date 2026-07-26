@@ -2744,8 +2744,14 @@ impl<'a> Emitter<'a> {
             return Ok(());
         }
         let Some((last, init)) = stmts.split_last() else {
-            // An empty block yields nothing; only a `switch` case needs a break.
-            if matches!(term, ArmTerm::Break) && break_on_fall {
+            // An empty block yields nothing, so it emits no terminating statement
+            // of its own. Inside a `switch` case (`break_on_fall`) that means the
+            // case would fall through into the next one, so it needs an explicit
+            // `break` regardless of position: in statement position it exits the
+            // switch after running for effect, and in return position the void
+            // arm has no value to `return`, so it breaks out of the switch and
+            // the function falls off its end, yielding `void`.
+            if break_on_fall {
                 self.line("break;");
             }
             return Ok(());
@@ -4919,6 +4925,24 @@ mod tests {
             ts.contains("default: throw new Error(\"non-exhaustive match\");"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn empty_block_arm_in_a_return_switch_breaks_instead_of_falling_through() {
+        // A void-typed `match` whose arm is an empty block `{}` must emit a
+        // `break` in its `switch` case; otherwise the case falls through and
+        // runs the next arm's body (here: unbounded recursion via `f`).
+        let ts = emit(
+            "module x\npub fn f(n: number) -> void {\n  return match n >= 3 {\n    true => {},\n    false => f(n + 1),\n  }\n}\n",
+        );
+        assert!(ts.contains("case true: {"), "{ts}");
+        // The empty-block arm breaks out of the switch rather than emitting
+        // nothing and falling into `case false`.
+        assert!(
+            ts.contains("case true: {\n      break;\n    }"),
+            "empty-block arm should break, not fall through: {ts}"
+        );
+        assert!(ts.contains("return f((n + 1));"), "{ts}");
     }
 
     #[test]

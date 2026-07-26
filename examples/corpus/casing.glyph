@@ -1,0 +1,123 @@
+// Pure-Glyph identifier case conversion. `words` splits any identifier into
+// lowercase words, breaking on separators (`_`, `-`, space) and on the
+// lowercase-to-uppercase boundary inside camelCase, then `render` reassembles
+// them in a target `Case`. The style is a D30 string-literal-union type, so the
+// `render` match is exhaustive without an `else`: adding a case to `Case` forces
+// a new arm. The only platform leaves are std/string's `upper`/`lower`/`join`
+// and `len`; every word boundary, capitalization, and join is branching and
+// recursion expressed in Glyph. Single characters are classified with no
+// char-code table: a letter is uppercase when `upper(c) == c && lower(c) != c`.
+module casing
+
+import std/string
+
+// The naming styles `render` can produce. A string-literal union (D30): a
+// `match` over it must cover every case, so a new style cannot be forgotten.
+pub type Case = "snake" | "kebab" | "camel" | "pascal" | "constant" | "title"
+
+// A word separator in the source identifier.
+fn is_sep(c: string) -> bool {
+  return c == "_" || c == "-" || c == " "
+}
+
+// A character that has a distinct uppercase and lowercase form and equals its
+// own uppercase (letters only; digits and symbols are neither).
+fn is_upper(c: string) -> bool {
+  return string.upper(c) == c && string.lower(c) != c
+}
+
+fn is_lower(c: string) -> bool {
+  return string.lower(c) == c && string.upper(c) != c
+}
+
+// A camelCase boundary: a lowercase run followed by an uppercase letter starts
+// a new word (`parseURL` -> `parse`, `url`). An empty `prev` is never lower, so
+// the first character never opens a spurious break.
+fn is_boundary(prev: string, c: string) -> bool {
+  return is_lower(prev) && is_upper(c)
+}
+
+// Append the current word to the accumulator unless it is empty.
+fn flush(cur: string, acc: Array<string>) -> Array<string> {
+  return match cur == "" {
+    true => acc,
+    false => [...acc, cur],
+  }
+}
+
+// Decide what a single character does: end the word at a separator, open a new
+// word at a camelCase boundary, or extend the current word (lowercased).
+fn classify(s: string, i: number, c: string, prev: string, cur: string, acc: Array<string>) -> Array<string> {
+  return match is_sep(c) {
+    true => step(s, i + 1, "", "", flush(cur, acc)),
+    false => match is_boundary(prev, c) {
+      true => step(s, i + 1, c, string.lower(c), flush(cur, acc)),
+      false => step(s, i + 1, c, cur + string.lower(c), acc),
+    },
+  }
+}
+
+// Walk the identifier one character at a time, threading the previous
+// character, the word under construction, and the finished words.
+fn step(s: string, i: number, prev: string, cur: string, acc: Array<string>) -> Array<string> {
+  return match i >= string.len(s) {
+    true => flush(cur, acc),
+    false => classify(s, i, s[i], prev, cur, acc),
+  }
+}
+
+// The lowercase words of an identifier, in order.
+pub fn words(s: string) -> Array<string> {
+  return step(s, 0, "", "", [])
+}
+
+// Uppercase the first character of a word and keep the rest, threading an
+// accumulator so no substring primitive is needed.
+fn cap_from(w: string, i: number, acc: string) -> string {
+  return match i >= string.len(w) {
+    true => acc,
+    false => match i == 0 {
+      true => cap_from(w, 1, acc + string.upper(w[0])),
+      false => cap_from(w, i + 1, acc + w[i]),
+    },
+  }
+}
+
+// A lowercase word rendered Titlecase.
+fn capitalize(w: string) -> string {
+  return cap_from(w, 0, "")
+}
+
+// Capitalize every word in a list.
+fn cap_all(words: Array<string>) -> Array<string> {
+  return match words {
+    [] => [],
+    [head, ...tail] => [capitalize(head), ...cap_all(tail)],
+  }
+}
+
+// camelCase: the first word stays lowercase, the rest are capitalized.
+fn camel(words: Array<string>) -> string {
+  return match words {
+    [] => "",
+    [head, ...tail] => head + string.join(cap_all(tail), ""),
+  }
+}
+
+// Render a list of lowercase words in the requested style. Exhaustive over
+// `Case` (D30): every literal has an arm and no `else` is needed.
+pub fn render(words: Array<string>, style: Case) -> string {
+  return match style {
+    "snake" => string.join(words, "_"),
+    "kebab" => string.join(words, "-"),
+    "constant" => string.upper(string.join(words, "_")),
+    "camel" => camel(words),
+    "pascal" => string.join(cap_all(words), ""),
+    "title" => string.join(cap_all(words), " "),
+  }
+}
+
+// Convert any identifier from any of the recognized styles into `style`.
+pub fn convert(s: string, style: Case) -> string {
+  return render(words(s), style)
+}

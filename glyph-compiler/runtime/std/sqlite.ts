@@ -27,20 +27,27 @@ export type Db = {
 export function open(path: string): Db {
   const db = new DatabaseSync(path);
   let last = 0;
+  // The bound params cross from Glyph's `unknown` into node:sqlite's stricter
+  // `SQLInputValue`. We assert them at this one platform seam (`as any`) so the
+  // wrapper type-checks the same whether the project pulls in the real
+  // `@types/node` sqlite types or the bundled shim. A caller still passes values
+  // they intend as SQL parameters; node validates them at run time.
   return {
     exec: (sql: string) => {
       db.exec(sql);
     },
     run: (sql: string, params: ReadonlyArray<unknown>) => {
-      const info = db.prepare(sql).run(...params);
+      const info = db.prepare(sql).run(...(params as readonly any[]));
       last = Number(info.lastInsertRowid);
       return Number(info.changes);
     },
     last_insert_id: () => last,
     query: (sql: string, params: ReadonlyArray<unknown>) =>
-      db.prepare(sql).all(...params) as Array<Row>,
+      db.prepare(sql).all(...(params as readonly any[])) as Array<Row>,
     query_one: (sql: string, params: ReadonlyArray<unknown>) => {
-      const row = db.prepare(sql).get(...params) as Row | undefined;
+      const row = db.prepare(sql).get(...(params as readonly any[])) as
+        | Row
+        | undefined;
       return row === undefined ? None : Some(row);
     },
     close: () => {

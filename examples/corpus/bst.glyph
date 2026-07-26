@@ -1,0 +1,221 @@
+// Pure-Glyph immutable ordered map, backed by an unbalanced binary search
+// tree keyed by number. The corpus has two priority queues (binary_heap,
+// pairing_heap) but no keyed lookup structure; this is the ordered-map cousin
+// of std/collections, the thing `Record` cannot do (ordered traversal, a
+// numeric key range). Every node keeps a key/value and two subtrees; lookups
+// and inserts follow the BST invariant (all left keys < node key < all right
+// keys), and delete replaces a two-child node with its in-order successor. No
+// platform leaves: generics, a recursive tagged union, nested match, Option,
+// and std/array `concat` are the whole toolbox.
+module bst
+
+import std/array
+import std/option { Option, Some, None }
+
+// The tree: an empty `Leaf`, or a `Node` carrying a key, its value, and the
+// left and right subtrees. Generic in the value type `V`; the key is a number
+// so ordering uses the built-in `<`/`==`.
+pub type Tree<V> =
+  | Leaf
+  | Node({
+    key: number,
+    value: V,
+    left: Tree<V>,
+    right: Tree<V>,
+  })
+
+// A key/value pair, the shape `min`/`max` and the inorder walk return.
+pub type Pair<V> = { key: number, value: V }
+
+// The empty map.
+pub fn empty<V>() -> Tree<V> {
+  return Leaf
+}
+
+// Insert or overwrite `key`. Walks to the correct leaf position rebuilding the
+// spine; an existing key has its value replaced, so a map holds no duplicates.
+pub fn insert<V>(
+  t: Tree<V>,
+  key: number,
+  value: V,
+) -> Tree<V> {
+  return match t {
+    Leaf => Node({
+      key: key,
+      value: value,
+      left: Leaf,
+      right: Leaf,
+    }),
+    Node(n) => match key == n.key {
+      true => Node({
+        key: key,
+        value: value,
+        left: n.left,
+        right: n.right,
+      }),
+      false => match key < n.key {
+        true => Node({
+          key: n.key,
+          value: n.value,
+          left: insert(
+            n.left,
+            key,
+            value,
+          ),
+          right: n.right,
+        }),
+        false => Node({
+          key: n.key,
+          value: n.value,
+          left: n.left,
+          right: insert(
+            n.right,
+            key,
+            value,
+          ),
+        }),
+      },
+    },
+  }
+}
+
+// Look up `target`, returning its value or None. A single root-to-leaf walk.
+pub fn get<V>(t: Tree<V>, target: number) -> Option<V> {
+  return match t {
+    Leaf => None,
+    Node(n) => match target == n.key {
+      true => Some(n.value),
+      false => match target < n.key {
+        true => get(n.left, target),
+        false => get(n.right, target),
+      },
+    },
+  }
+}
+
+// Is `target` a key of the map?
+pub fn contains<V>(t: Tree<V>, target: number) -> bool {
+  return match get(t, target) {
+    Some(_v) => true,
+    None => false,
+  }
+}
+
+// The smallest-keyed pair, or None when the map is empty. The minimum is the
+// leftmost node, so follow `left` until it is a `Leaf`.
+pub fn min<V>(t: Tree<V>) -> Option<Pair<V>> {
+  return match t {
+    Leaf => None,
+    Node(n) => match n.left {
+      Leaf => Some({ key: n.key, value: n.value }),
+      Node(_l) => min(n.left),
+    },
+  }
+}
+
+// The largest-keyed pair, the mirror of `min`.
+pub fn max<V>(t: Tree<V>) -> Option<Pair<V>> {
+  return match t {
+    Leaf => None,
+    Node(n) => match n.right {
+      Leaf => Some({ key: n.key, value: n.value }),
+      Node(_r) => max(n.right),
+    },
+  }
+}
+
+// Join two subtrees where every key in `left` is below every key in `right`,
+// used to fill the hole left by deleting a node. The join point is `right`'s
+// minimum, lifted to the root with its own slot then removed from `right`.
+fn join<V>(left: Tree<V>, right: Tree<V>) -> Tree<V> {
+  return match right {
+    Leaf => left,
+    Node(_r) => match min(right) {
+      None => left,
+      Some(p) => Node({
+        key: p.key,
+        value: p.value,
+        left: left,
+        right: remove(right, p.key),
+      }),
+    },
+  }
+}
+
+// Remove `target` if present, returning the map unchanged when it is absent. A
+// leaf or one-child node collapses to its (possibly empty) child; a two-child
+// node is filled by `join`, which promotes the in-order successor.
+pub fn remove<V>(t: Tree<V>, target: number) -> Tree<V> {
+  return match t {
+    Leaf => Leaf,
+    Node(n) => match target == n.key {
+      true => join(n.left, n.right),
+      false => match target < n.key {
+        true => Node({
+          key: n.key,
+          value: n.value,
+          left: remove(n.left, target),
+          right: n.right,
+        }),
+        false => Node({
+          key: n.key,
+          value: n.value,
+          left: n.left,
+          right: remove(n.right, target),
+        }),
+      },
+    },
+  }
+}
+
+// The number of entries.
+pub fn size<V>(t: Tree<V>) -> number {
+  return match t {
+    Leaf => 0,
+    Node(n) => 1 + size(n.left) + size(n.right),
+  }
+}
+
+// The height of the tree: 0 for empty, else one past the taller subtree.
+pub fn height<V>(t: Tree<V>) -> number {
+  return match t {
+    Leaf => 0,
+    Node(n) => {
+      let lh = height(n.left)
+      let rh = height(n.right)
+      let taller = match lh < rh {
+        true => rh,
+        false => lh,
+      }
+      return 1 + taller
+    },
+  }
+}
+
+// Every pair in ascending key order: the classic in-order walk (left, self,
+// right), which yields a sorted sequence because of the BST invariant.
+pub fn to_pairs<V>(t: Tree<V>) -> Array<Pair<V>> {
+  return match t {
+    Leaf => [],
+    Node(n) => array.concat(to_pairs(n.left), array.concat([{ key: n.key, value: n.value }], to_pairs(n.right))),
+  }
+}
+
+// The keys in ascending order.
+pub fn keys<V>(t: Tree<V>) -> Array<number> {
+  return array.map(to_pairs(t), fn(p: Pair<V>) -> number { return p.key })
+}
+
+// Build a map from a list of pairs, folding `insert` left to right so a later
+// pair overwrites an earlier one with the same key.
+pub fn from_pairs<V>(pairs: Array<Pair<V>>) -> Tree<V> {
+  let acc = empty<V>()
+  for p in pairs {
+    mut acc = insert(
+      acc,
+      p.key,
+      p.value,
+    )
+  }
+  return acc
+}

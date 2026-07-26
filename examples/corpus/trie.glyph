@@ -1,0 +1,235 @@
+// Pure-Glyph immutable prefix map (trie) keyed by string. Where the corpus's
+// `bst` is an ordered map over a numeric key, a trie is the string-keyed map
+// that answers the query `Record` and a BST cannot: every key sharing a given
+// prefix, in sorted order. Each node carries an optional value (Some when a key
+// ends exactly here) and its outgoing edges kept sorted by their one-character
+// label, so a depth-first walk visits keys in lexicographic order for free.
+//
+// Insert and remove rebuild only the spine along one key; lookups and prefix
+// queries are a single character-by-character descent. The one platform leaf is
+// std/array `concat`/`slice`/`len`; every edge decision, the sorted-insert, and
+// the key reconstruction during traversal are Glyph, driven by `key[i]` char
+// indexing and string `<` for the edge order.
+module trie
+
+import std/array
+import std/string
+import std/option { Option, Some, None }
+
+// A node: `value` is Some when some key terminates here, and `edges` are the
+// outgoing character transitions, held sorted ascending by `ch`. Generic in the
+// stored value type `V`. The recursion is through `Edge<V>`, which owns a child
+// `Trie<V>`.
+pub type Trie<V> = {
+  value: Option<V>,
+  edges: Array<Edge<V>>,
+}
+
+// One labelled transition: the single character `ch` and the subtree reached by
+// consuming it.
+pub type Edge<V> = { ch: string, child: Trie<V> }
+
+// A key/value pair, the shape the traversal walks yield.
+pub type Entry<V> = { key: string, value: V }
+
+// The empty trie: no terminal value, no edges.
+pub fn empty<V>() -> Trie<V> {
+  return { value: None, edges: [] }
+}
+
+// Find the child reached by character `ch`, or None. A linear scan of the edge
+// list; the list is small (bounded by the alphabet) and kept sorted, so this
+// could stop early, but a full scan keeps the walk simple.
+fn child_for<V>(edges: Array<Edge<V>>, ch: string) -> Option<Trie<V>> {
+  return match edges {
+    [] => None,
+    [head, ...rest] => match head.ch == ch {
+      true => Some(head.child),
+      false => child_for(rest, ch),
+    },
+  }
+}
+
+// Return `edges` with the edge for `ch` set to `child`, preserving ascending
+// order by `ch`. If an edge for `ch` exists its subtree is replaced; otherwise a
+// new edge is spliced in at the first position whose label is greater, so the
+// list stays sorted without a re-sort.
+fn set_edge<V>(
+  edges: Array<Edge<V>>,
+  ch: string,
+  child: Trie<V>,
+) -> Array<Edge<V>> {
+  return match edges {
+    [] => [{ ch: ch, child: child }],
+    [head, ...rest] => match head.ch == ch {
+      true => [{ ch: ch, child: child }, ...rest],
+      false => match ch < head.ch {
+        true => [{ ch: ch, child: child }, head, ...rest],
+        false => [head, ...set_edge(rest, ch, child)],
+      },
+    },
+  }
+}
+
+// Insert or overwrite `key` with `value`, descending from character `i`. At the
+// end of the key the node's terminal value is set; otherwise the edge for the
+// current character is followed (or created empty) and rebuilt with the result.
+fn insert_at<V>(
+  t: Trie<V>,
+  key: string,
+  i: number,
+  value: V,
+) -> Trie<V> {
+  return match i == string.len(key) {
+    true => { value: Some(value), edges: t.edges },
+    false => {
+      let ch = key[i]
+      let next = match child_for(t.edges, ch) {
+        Some(c) => c,
+        None => empty<V>(),
+      }
+      let rebuilt = insert_at(next, key, i + 1, value)
+      return { value: t.value, edges: set_edge(t.edges, ch, rebuilt) }
+    },
+  }
+}
+
+// Insert or overwrite `key`.
+pub fn insert<V>(t: Trie<V>, key: string, value: V) -> Trie<V> {
+  return insert_at(t, key, 0, value)
+}
+
+// Descend to the node named by `key` from character `i`, or None if the path
+// runs out of edges before the key ends.
+fn node_at<V>(t: Trie<V>, key: string, i: number) -> Option<Trie<V>> {
+  return match i == string.len(key) {
+    true => Some(t),
+    false => match child_for(t.edges, key[i]) {
+      None => None,
+      Some(c) => node_at(c, key, i + 1),
+    },
+  }
+}
+
+// Look up `key`, returning its stored value or None.
+pub fn get<V>(t: Trie<V>, key: string) -> Option<V> {
+  return match node_at(t, key, 0) {
+    None => None,
+    Some(n) => n.value,
+  }
+}
+
+// Is `key` present as a terminal value?
+pub fn contains<V>(t: Trie<V>, key: string) -> bool {
+  return match get(t, key) {
+    Some(_v) => true,
+    None => false,
+  }
+}
+
+// Collect every entry under `node`, prefixing each reconstructed key with
+// `prefix`. Because `edges` is sorted, concatenating the children left to right
+// yields keys in ascending order; the node's own value, if any, sorts before
+// all of them (the empty suffix is the least).
+fn collect<V>(node: Trie<V>, prefix: string, acc: Array<Entry<V>>) -> Array<Entry<V>> {
+  let here = match node.value {
+    None => acc,
+    Some(v) => array.concat(acc, [{ key: prefix, value: v }]),
+  }
+  return fold_edges(node.edges, prefix, here)
+}
+
+// Fold `collect` across a node's edges in order, threading the accumulator.
+fn fold_edges<V>(edges: Array<Edge<V>>, prefix: string, acc: Array<Entry<V>>) -> Array<Entry<V>> {
+  return match edges {
+    [] => acc,
+    [head, ...rest] => {
+      let extended = collect(head.child, prefix + head.ch, acc)
+      return fold_edges(rest, prefix, extended)
+    },
+  }
+}
+
+// Every entry, in ascending key order.
+pub fn entries<V>(t: Trie<V>) -> Array<Entry<V>> {
+  return collect(t, "", [])
+}
+
+// Every key, in ascending order.
+pub fn keys<V>(t: Trie<V>) -> Array<string> {
+  return array.map(entries(t), fn(e: Entry<V>) -> string { return e.key })
+}
+
+// Every entry whose key begins with `prefix`, in ascending key order. Navigate
+// to the prefix node, then collect the subtree with the prefix restored so the
+// reported keys are whole keys, not suffixes.
+pub fn with_prefix<V>(t: Trie<V>, prefix: string) -> Array<Entry<V>> {
+  return match node_at(t, prefix, 0) {
+    None => [],
+    Some(n) => collect(n, prefix, []),
+  }
+}
+
+// The number of stored keys.
+pub fn size<V>(t: Trie<V>) -> number {
+  return array.len(entries(t))
+}
+
+// Remove `key` if present, descending from character `i`. On the way back up,
+// a node that has lost its terminal value and has no edges is a dead end; the
+// parent drops the edge that reached it, so the trie holds no empty branches.
+fn remove_at<V>(t: Trie<V>, key: string, i: number) -> Trie<V> {
+  return match i == string.len(key) {
+    true => { value: None, edges: t.edges },
+    false => {
+      let ch = key[i]
+      return match child_for(t.edges, ch) {
+        None => t,
+        Some(c) => {
+          let pruned = remove_at(c, key, i + 1)
+          return match is_dead(pruned) {
+            true => { value: t.value, edges: drop_edge(t.edges, ch) },
+            false => { value: t.value, edges: set_edge(t.edges, ch, pruned) },
+          }
+        },
+      }
+    },
+  }
+}
+
+// A node is a removable dead end when it terminates no key and has no edges.
+fn is_dead<V>(t: Trie<V>) -> bool {
+  return match t.value {
+    Some(_v) => false,
+    None => match t.edges {
+      [] => true,
+      [_head, ..._rest] => false,
+    },
+  }
+}
+
+// Return `edges` without the edge labelled `ch`, order preserved.
+fn drop_edge<V>(edges: Array<Edge<V>>, ch: string) -> Array<Edge<V>> {
+  return match edges {
+    [] => [],
+    [head, ...rest] => match head.ch == ch {
+      true => rest,
+      false => [head, ...drop_edge(rest, ch)],
+    },
+  }
+}
+
+// Remove `key`, returning the trie unchanged when it is absent.
+pub fn remove<V>(t: Trie<V>, key: string) -> Trie<V> {
+  return remove_at(t, key, 0)
+}
+
+// Build a trie from a list of entries, folding `insert` left to right so a
+// later entry overwrites an earlier one with the same key.
+pub fn from_entries<V>(items: Array<Entry<V>>) -> Trie<V> {
+  let acc = empty<V>()
+  for e in items {
+    mut acc = insert(acc, e.key, e.value)
+  }
+  return acc
+}

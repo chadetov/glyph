@@ -1,0 +1,162 @@
+// Pure-Glyph civil-calendar decomposition and ISO-8601 formatting: the inverse
+// of calendar.glyph's days_from_civil. Turn an epoch-millisecond instant into a
+// broken-down UTC DateTime (Howard Hinnant's civil_from_days for the date, plain
+// floored arithmetic for the time of day) and render it as an ISO-8601 string,
+// all without touching the host `Date`. This is exactly the work std/time hides
+// behind `new Date(...).toISOString()` and the getUTC* accessors. The only
+// platform leaves are math.floor for floored integer division and std/string's
+// len for the zero-padding width; everything else is branching, recursion,
+// records, and `+` string building expressed in Glyph.
+module civil_time
+
+import std/math
+import std/string
+import std/option { Option, Some, None }
+
+// A UTC instant split into calendar fields. Month is 1..12, day is 1..31,
+// hour 0..23, minute/second 0..59, millis 0..999.
+pub type DateTime = {
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  millis: number,
+}
+
+// Floored integer division, correct for a negative numerator (unlike a bare
+// truncating `/`). math.floor is the one arithmetic leaf.
+fn fdiv(a: number, b: number) -> number {
+  return math.floor(a / b)
+}
+
+// Days since 1970-01-01 to a civil year/month/day, Howard Hinnant's
+// civil_from_days. Correct for negative day counts (dates before the epoch).
+// The time fields are left zero; from_epoch_ms fills them in.
+pub fn civil_from_days(z0: number) -> DateTime {
+  let z = z0 + 719468
+  let era = match z >= 0 {
+    true => fdiv(z, 146097),
+    false => fdiv(z - 146096, 146097),
+  }
+  let doe = z - era * 146097
+  let yoe = fdiv(doe - fdiv(doe, 1460) + fdiv(doe, 36524) - fdiv(doe, 146096), 365)
+  let y = yoe + era * 400
+  let doy = doe - (365 * yoe + fdiv(yoe, 4) - fdiv(yoe, 100))
+  let mp = fdiv(5 * doy + 2, 153)
+  let d = doy - fdiv(153 * mp + 2, 5) + 1
+  let m = match mp < 10 {
+    true => mp + 3,
+    false => mp - 9,
+  }
+  let year = match m <= 2 {
+    true => y + 1,
+    false => y,
+  }
+  return {
+    year: year,
+    month: m,
+    day: d,
+    hour: 0,
+    minute: 0,
+    second: 0,
+    millis: 0,
+  }
+}
+
+// Break an epoch-millisecond instant into UTC calendar fields. The day count is
+// floored so a pre-epoch instant lands on the right civil day, and the
+// remainder is always in [0, 86_400_000), so the time-of-day fields stay
+// non-negative regardless of sign.
+pub fn from_epoch_ms(ms: number) -> DateTime {
+  let day_ms = 86400000
+  let days = fdiv(ms, day_ms)
+  let rem = ms - days * day_ms
+  let date = civil_from_days(days)
+  let millis = rem % 1000
+  let total_secs = fdiv(rem, 1000)
+  let second = total_secs % 60
+  let total_mins = fdiv(total_secs, 60)
+  let minute = total_mins % 60
+  let hour = fdiv(total_mins, 60)
+  return {
+    year: date.year,
+    month: date.month,
+    day: date.day,
+    hour: hour,
+    minute: minute,
+    second: second,
+    millis: millis,
+  }
+}
+
+// One decimal digit as its character.
+fn digit(i: number) -> string {
+  let table = "0123456789"
+  return table[i]
+}
+
+// A non-negative integer to its decimal digits, most significant first.
+fn number_str(n: number) -> string {
+  let d = n % 10
+  let rest = math.floor(n / 10)
+  return match rest == 0 {
+    true => digit(d),
+    false => number_str(rest) + digit(d),
+  }
+}
+
+// Left-pad with '0' until the string is at least `width` characters.
+fn pad(s: string, width: number) -> string {
+  return match string.len(s) >= width {
+    true => s,
+    false => pad("0" + s, width),
+  }
+}
+
+// A field rendered as its zero-padded decimal string.
+fn field(n: number, width: number) -> string {
+  return pad(number_str(n), width)
+}
+
+// Render an epoch-millisecond instant as an ISO-8601 UTC string, e.g.
+// "2026-07-26T18:33:08.000Z". Matches Date.toISOString() over the common
+// four-digit-year range (0001..9999); years outside it use ISO's expanded
+// signed form, which this deliberately does not emit.
+pub fn format_iso(ms: number) -> string {
+  let dt = from_epoch_ms(ms)
+  return field(dt.year, 4) + "-" + field(dt.month, 2) + "-" + field(dt.day, 2) + "T" + field(dt.hour, 2) + ":" + field(dt.minute, 2) + ":" + field(dt.second, 2) + "." + field(dt.millis, 3) + "Z"
+}
+
+// The UTC weekday of an instant: 0 = Sunday .. 6 = Saturday. The epoch, a
+// Thursday, lands on 4. Kept alongside the accessors as the one piece of
+// derived calendar data ISO formatting itself does not need.
+pub fn weekday(ms: number) -> number {
+  let days = fdiv(ms, 86400000)
+  let r = (days + 4) % 7
+  return match r < 0 {
+    true => r + 7,
+    false => r,
+  }
+}
+
+// The English weekday name, or None when the index is out of 0..6.
+pub fn weekday_name(i: number) -> Option<string> {
+  let names = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ]
+  return match i < 0 {
+    true => None,
+    false => match i >= 7 {
+      true => None,
+      false => Some(names[i]),
+    },
+  }
+}

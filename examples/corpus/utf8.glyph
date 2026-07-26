@@ -1,0 +1,164 @@
+// Pure-Glyph UTF-8 codec over code-point and byte arrays. std/encoding wraps
+// the platform `Buffer` for this; here the whole transform is Glyph. Encoding
+// splits a code point into a lead byte and continuation bytes by range, with
+// the six-bit groups peeled off using `/`, `%`, and `&` (Glyph defers the
+// shift operators, so a group is `math.floor(cp / 64) % 64` rather than
+// `(cp >> 6) & 0x3F`). Decoding walks the byte array, reads the sequence width
+// from the lead byte, validates every continuation byte, and returns a Result
+// so truncated or malformed input is a value, not an exception. Bytes are
+// non-negative 0..255 octets; the only platform leaf is math.floor.
+module utf8
+
+import std/math
+import std/array
+import std/result { Result, Ok, Err }
+
+// Why a decoder rejected a byte sequence, with the offending byte's index.
+pub type Utf8Error =
+  | BadLeadByte({ at: number })
+  | BadContinuation({ at: number })
+  | Truncated({ at: number })
+
+// One decoded code point and how many bytes it consumed.
+type Decoded = { cp: number, width: number }
+
+// The masks written as decimals, since Glyph defers hex literals:
+//   ONE_MORE  0x80 = 128   the continuation-byte marker
+//   TWO_MIN   0xC0 = 192   smallest two-byte lead (also the continuation mask)
+//   THREE_MIN 0xE0 = 224   smallest three-byte lead
+//   FOUR_MIN  0xF0 = 240   smallest four-byte lead
+//   FIVE_MIN  0xF8 = 248   first invalid lead
+//   LOW6      63          the low six bits of a continuation byte
+const CONT_MARK: number = 128
+
+const CONT_MASK: number = 192
+
+const LOW6: number = 63
+
+// ---------------------------------------------------------------------------
+// Encoding
+// ---------------------------------------------------------------------------
+
+// Encode one code point to its 1..4 UTF-8 bytes. The lead byte carries the
+// high bits ORed with a length marker; each continuation byte is a six-bit
+// group ORed with 128. Peeling a group is `math.floor(cp / p) % 64` for the
+// place value `p`.
+pub fn encode_point(cp: number) -> Array<number> {
+  return match cp < 128 {
+    true => [cp],
+    false => match cp < 2048 {
+      true => [
+        192 | math.floor(cp / 64),
+        CONT_MARK | (cp % 64),
+      ],
+      false => match cp < 65536 {
+        true => [
+          224 | math.floor(cp / 4096),
+          CONT_MARK | (math.floor(cp / 64) % 64),
+          CONT_MARK | (cp % 64),
+        ],
+        false => [
+          240 | math.floor(cp / 262144),
+          CONT_MARK | (math.floor(cp / 4096) % 64),
+          CONT_MARK | (math.floor(cp / 64) % 64),
+          CONT_MARK | (cp % 64),
+        ],
+      },
+    },
+  }
+}
+
+// Encode a code-point array to a flat UTF-8 byte array.
+pub fn encode(points: Array<number>) -> Array<number> {
+  return match points {
+    [] => [],
+    [head, ...rest] => array.concat(encode_point(head), encode(rest)),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Decoding
+// ---------------------------------------------------------------------------
+
+// Is `b` a continuation byte (0x80..0xBF)? Its top two bits are exactly `10`,
+// which `(b & 192) == 128` tests. `&` binds looser than `==`, so the mask is
+// parenthesized.
+fn is_cont(b: number) -> bool {
+  return (b & CONT_MASK) == CONT_MARK
+}
+
+// Read the continuation byte at `i`, returning its low six bits. A missing
+// byte is Truncated; a byte that is not a continuation is BadContinuation.
+fn cont_at(bytes: Array<number>, i: number, n: number) -> Result<number, Utf8Error> {
+  return match i >= n {
+    true => Err(Truncated({ at: i })),
+    false => match is_cont(bytes[i]) {
+      true => Ok(bytes[i] & LOW6),
+      false => Err(BadContinuation({ at: i })),
+    },
+  }
+}
+
+// Decode the one sequence that starts at `i`. The lead byte's range fixes the
+// width; each subsequent byte is validated through `cont_at` and the `?`
+// operator propagates the first failure.
+fn decode_one(bytes: Array<number>, i: number, n: number) -> Result<Decoded, Utf8Error> {
+  let b0 = bytes[i]
+  match b0 < 128 {
+    true => {
+      return Ok({ cp: b0, width: 1 })
+    },
+    false => {},
+  }
+  match b0 < 192 {
+    true => {
+      return Err(BadLeadByte({ at: i }))
+    },
+    false => {},
+  }
+  match b0 < 224 {
+    true => {
+      let c1 = cont_at(bytes, i + 1, n)?
+      return Ok({ cp: (b0 & 31) * 64 + c1, width: 2 })
+    },
+    false => {},
+  }
+  match b0 < 240 {
+    true => {
+      let c1 = cont_at(bytes, i + 1, n)?
+      let c2 = cont_at(bytes, i + 2, n)?
+      return Ok({ cp: (b0 & 15) * 4096 + c1 * 64 + c2, width: 3 })
+    },
+    false => {},
+  }
+  match b0 < 248 {
+    true => {
+      let c1 = cont_at(bytes, i + 1, n)?
+      let c2 = cont_at(bytes, i + 2, n)?
+      let c3 = cont_at(bytes, i + 3, n)?
+      return Ok({ cp: (b0 & 7) * 262144 + c1 * 4096 + c2 * 64 + c3, width: 4 })
+    },
+    false => {},
+  }
+  return Err(BadLeadByte({ at: i }))
+}
+
+// Walk the byte array from `i`, decoding one sequence at a time. The `?`
+// operator threads a decode failure straight out; on success the code point is
+// prepended to the recursively-decoded tail.
+fn decode_from(bytes: Array<number>, i: number, n: number) -> Result<Array<number>, Utf8Error> {
+  match i >= n {
+    true => {
+      return Ok([])
+    },
+    false => {},
+  }
+  let step = decode_one(bytes, i, n)?
+  let rest = decode_from(bytes, i + step.width, n)?
+  return Ok(array.concat([step.cp], rest))
+}
+
+// Decode a UTF-8 byte array to its code points, or the first error found.
+pub fn decode(bytes: Array<number>) -> Result<Array<number>, Utf8Error> {
+  return decode_from(bytes, 0, array.len(bytes))
+}

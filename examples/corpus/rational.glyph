@@ -1,0 +1,147 @@
+// Pure-Glyph exact rational (fraction) arithmetic: reduce to lowest terms with
+// a normalized positive denominator via Euclid's GCD, add/subtract/multiply/
+// divide two fractions exactly, compare their order without floating point, and
+// render "n/d" (or a bare integer when the denominator is 1). The only platform
+// leaves are math.floor and math.abs for integer division and magnitude; the
+// GCD recursion, sign normalization, and every arithmetic rule are Glyph.
+module rational
+
+import std/math
+import std/option { Option, Some, None }
+
+// A fraction kept in lowest terms with `den > 0`. The reducing constructors are
+// the only way to build one, so this invariant holds everywhere downstream.
+pub type Rational = {
+  num: number,
+  den: number,
+}
+
+// Euclid's algorithm on two non-negative integers. gcd(0, 0) is 0.
+fn gcd(a: number, b: number) -> number {
+  return match b == 0 {
+    true => a,
+    false => gcd(b, a % b),
+  }
+}
+
+// Reduce `num / den` (with `den != 0`) to lowest terms, moving any sign onto the
+// numerator so the denominator stays positive.
+fn reduce(num: number, den: number) -> Rational {
+  let flip = match den < 0 {
+    true => -1,
+    false => 1,
+  }
+  let n = num * flip
+  let d = den * flip
+  let g = gcd(math.abs(n), d)
+  let divisor = match g == 0 {
+    true => 1,
+    false => g,
+  }
+  return {
+    num: math.floor(n / divisor),
+    den: math.floor(d / divisor),
+  }
+}
+
+// The checked constructor: None when the denominator is zero.
+pub fn rational(num: number, den: number) -> Option<Rational> {
+  return match den == 0 {
+    true => None,
+    false => Some(reduce(num, den)),
+  }
+}
+
+// A whole number as a fraction over 1.
+pub fn from_int(n: number) -> Rational {
+  return {
+    num: math.floor(n),
+    den: 1,
+  }
+}
+
+pub fn add(x: Rational, y: Rational) -> Rational {
+  return reduce(x.num * y.den + y.num * x.den, x.den * y.den)
+}
+
+pub fn sub(x: Rational, y: Rational) -> Rational {
+  return reduce(x.num * y.den - y.num * x.den, x.den * y.den)
+}
+
+pub fn mul(x: Rational, y: Rational) -> Rational {
+  return reduce(x.num * y.num, x.den * y.den)
+}
+
+// Division is partial: dividing by zero (a fraction whose numerator is 0) is
+// None, mirroring the checked constructor.
+pub fn div(x: Rational, y: Rational) -> Option<Rational> {
+  return match y.num == 0 {
+    true => None,
+    false => Some(reduce(x.num * y.den, x.den * y.num)),
+  }
+}
+
+pub fn neg(x: Rational) -> Rational {
+  return {
+    num: -x.num,
+    den: x.den,
+  }
+}
+
+pub fn is_zero(x: Rational) -> bool {
+  return x.num == 0
+}
+
+// -1, 0, or 1 by the order of `x` against `y`. Both denominators are positive,
+// so cross-multiplication preserves the comparison without any float division.
+pub fn compare(x: Rational, y: Rational) -> number {
+  let left = x.num * y.den
+  let right = y.num * x.den
+  return match left < right {
+    true => -1,
+    false => match left > right {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+pub fn equals(x: Rational, y: Rational) -> bool {
+  return x.num == y.num && x.den == y.den
+}
+
+// Non-negative integer to its decimal digits, most significant first.
+fn digits(n: number) -> string {
+  let d = n % 10
+  let rest = math.floor(n / 10)
+  return match rest == 0 {
+    true => digit(d),
+    false => digits(rest) + digit(d),
+  }
+}
+
+fn digit(i: number) -> string {
+  let table = "0123456789"
+  return table[i]
+}
+
+// Signed integer to a decimal string.
+fn int_str(n: number) -> string {
+  return match n < 0 {
+    true => "-" + digits(math.abs(n)),
+    false => digits(n),
+  }
+}
+
+// "3/4", "-1/2", or a bare "5" when the denominator reduced to 1.
+pub fn to_string(x: Rational) -> string {
+  return match x.den == 1 {
+    true => int_str(x.num),
+    false => int_str(x.num) + "/" + int_str(x.den),
+  }
+}
+
+// The floating-point value, for interop with float-based math.
+pub fn to_number(x: Rational) -> number {
+  return x.num / x.den
+}

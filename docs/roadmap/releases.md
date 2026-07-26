@@ -838,6 +838,26 @@ modules, plus the compiler correctness work each one surfaces:
   tradeoffs in `docs/dogfooding-gaps.md` G22. Current shipped stance: a module
   renders its own error union (option 3), which is what `ipv4.glyph` does.
 
+### 0.1.23 — Shipped · improve-glyph loop batch 5 + imported-union match fixes
+
+**Status: shipped.** Batch 5 (seven pure-Glyph corpus modules: an LCS line diff,
+number theory, FNV/djb2 hashes, ISO-8601 formatting, IPv4/CIDR, structured
+logging, and case conversion; the batch hit subagent rate-limits so three
+iterations did not land) plus two emit/typecheck fixes:
+
+- **Empty-block match arm fall-through** — an empty block arm in a return-position
+  switch fell through instead of emitting `break;`. Now it breaks in any switch
+  context.
+- **Imported-union nullary-variant match** — matching an imported tagged union's
+  no-payload variants drew a false E0216 and then E0300, because an imported
+  union's type is `Unknown` in a consuming module (empty variant set), so both the
+  reachability check and the emitter read a bare PascalCase arm as a binding
+  catch-all. Both now treat a PascalCase bare ident as a variant reference (the
+  resolver's rule), so imported nullary variants lower to a `case` on `.tag`. This
+  is the third cross-module-`Unknown` symptom the loop has mined out (after the
+  record-payload bind in 0.1.21); the recurring root cause is a candidate for a
+  proper imported-union type-resolution pass.
+
 ### 0.2.x — Prove it (the evidence gate)
 
 One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project

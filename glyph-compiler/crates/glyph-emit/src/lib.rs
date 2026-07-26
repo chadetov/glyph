@@ -3093,6 +3093,25 @@ impl<'a> Emitter<'a> {
             .unwrap_or(0)
     }
 
+    /// The local binding names of every namespace/aliased import
+    /// (`import std/http` -> `http`, `import x as h` -> `h`). Used to tell a
+    /// namespaced function call (`http.get(...)`) from a value method call
+    /// (`cursor.to_array(...)`) when placing an `await`.
+    fn namespace_bindings(&self) -> Vec<&str> {
+        self.module
+            .items
+            .iter()
+            .filter_map(|d| {
+                let Decl::Import(im) = d else { return None };
+                match &im.kind {
+                    ImportKind::Namespace => im.path.segments.last().map(|s| s.as_ref()),
+                    ImportKind::Aliased(alias) => Some(alias.as_ref()),
+                    ImportKind::Named(_) => None,
+                }
+            })
+            .collect()
+    }
+
     /// Whether `name` is the local binding of a `std/json` namespace import
     /// (`import std/json` -> `json`, or `import std/json as j` -> `j`), so a
     /// `<name>.parse<T>` call is the stdlib JSON parse and not a user method.
@@ -3247,11 +3266,18 @@ impl<'a> Emitter<'a> {
             // of the receiver spine, not the chain as a whole — otherwise the
             // chained method is called on a `Promise`. See `emit_await_spine`.
             Expr::Await { expr, .. } => {
-                let (chain, awaited) = self.emit_await_spine(expr)?;
-                if awaited {
-                    chain
+                // A fluent chain (`cursor.find({}).to_array()`) awaits the whole
+                // chain (JS semantics); the Result idiom (`load(p).map_err(f)`)
+                // awaits the innermost call. See `await_wraps_whole_chain`.
+                if await_wraps_whole_chain(expr, &self.namespace_bindings()) {
+                    format!("(await {})", self.expr(expr)?)
                 } else {
-                    format!("(await {chain})")
+                    let (chain, awaited) = self.emit_await_spine(expr)?;
+                    if awaited {
+                        chain
+                    } else {
+                        format!("(await {chain})")
+                    }
                 }
             }
             Expr::Array { elements, .. } => {
@@ -3940,6 +3966,52 @@ fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
         &arm.pattern,
         Pattern::Constructor { args, .. } if matches!(args.as_slice(), [a] if is_nested_variant_arg(a))
     )
+}
+
+/// Whether an `await` over `e` should apply to the *whole chain* (JavaScript
+/// semantics) rather than to the innermost call of its receiver spine.
+///
+/// The default (await the innermost call) is right for the Result idiom, where
+/// the async call heads the chain and the rest are synchronous combinators:
+/// `await load(p).map_err(f)` means `(await load(p)).map_err(f)`. It is wrong for
+/// a *fluent* API, where a synchronous call precedes the async terminal:
+/// `await cursor.find({}).to_array()` must await `to_array()`, not `find()`.
+///
+/// The distinguishing signal, with no type information (colorless async erases
+/// which call is async): the innermost call is a **value method**
+/// (`recv.method(...)` where `recv` is a plain value, not a namespace and not a
+/// bare function). A bare function call (`load(...)`) or a namespaced function
+/// call (`http.get(...)`) keeps the innermost-await behavior; only a value-method
+/// head switches to awaiting the whole chain.
+fn await_wraps_whole_chain(e: &Expr, namespaces: &[&str]) -> bool {
+    // Descend the receiver spine to the innermost call.
+    let mut cur = e;
+    let innermost = loop {
+        match cur {
+            Expr::Call { callee, .. } => {
+                if spine_has_call(callee) {
+                    cur = callee;
+                } else {
+                    break cur;
+                }
+            }
+            Expr::Member { object, .. } | Expr::Index { object, .. } => cur = object,
+            _ => return false,
+        }
+    };
+    let Expr::Call { callee, .. } = innermost else {
+        return false;
+    };
+    match callee.as_ref() {
+        // A method call: fluent unless the receiver is a namespace (`http.get`).
+        Expr::Member { object, .. } => match object.as_ref() {
+            Expr::Ident { name, .. } => !namespaces.iter().any(|n| *n == name.as_ref()),
+            // A deeper receiver chain (`a.b.c(...)`) is a value method.
+            _ => true,
+        },
+        // A bare function call (`load(...)`): the Result-idiom head.
+        _ => false,
+    }
 }
 
 /// Whether the receiver spine of `e` (a call's callee, a member/index's
@@ -4848,6 +4920,33 @@ mod tests {
             "module x\npub async fn f() -> number { return 1 }\npub async fn run() -> number {\n  return await f()\n}\n",
         );
         assert!(ts.contains("return (await f());"), "{ts}");
+    }
+
+    #[test]
+    fn await_on_a_fluent_value_chain_awaits_the_whole_chain() {
+        // The inverse of the Result idiom: a fluent API whose synchronous call
+        // (`find`) precedes the async terminal (`to_array`). `cursor` is a value,
+        // not a namespace, so the whole chain is awaited (JS semantics), not the
+        // inner `find`. Awaiting `find` would leave a `Promise` for `to_array`.
+        let ts = emit(
+            "module x\npub async fn run(cursor: unknown) -> void {\n  let docs = await cursor.find(0).to_array()\n  return void\n}\n",
+        );
+        assert!(
+            ts.contains("(await cursor.find(0).to_array())"),
+            "fluent chain awaits the whole chain: {ts}"
+        );
+        assert!(!ts.contains("(await cursor.find(0)).to_array"), "{ts}");
+    }
+
+    #[test]
+    fn await_on_a_namespaced_call_chain_still_awaits_the_head() {
+        // A namespaced function call (`http.get(...)`) is the async head, like a
+        // bare function call, so a trailing sync combinator still runs on the
+        // awaited value: awaits `http.get`, not the whole chain.
+        let ts = emit(
+            "module x\nimport std/http\npub fn id(e: string) -> string { return e }\npub async fn run() -> void {\n  let r = await http.get(\"u\").map_err(id)\n  return void\n}\n",
+        );
+        assert!(ts.contains("(await http.get(\"u\")).map_err(id)"), "{ts}");
     }
 
     #[test]

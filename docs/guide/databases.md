@@ -114,12 +114,10 @@ async fn main() -> void {
   await client.connect()
   let coll = client.db("app").collection("tasks")
 
-  // Split the cursor from the await: `find` is synchronous and returns a
-  // cursor, and `toArray` is the async call. Glyph awaits the innermost call in
-  // a chain, so `await coll.find({}).toArray()` would await `find`, not
-  // `toArray`. Bind the cursor first, then await its `toArray` on its own line.
-  let cursor = coll.find({})
-  let docs = await cursor.toArray()
+  // `find` is synchronous (it returns a cursor) and `toArray` is the async
+  // terminal. `await` on a fluent chain applies to the whole chain, so this
+  // awaits `toArray`, as you'd expect.
+  let docs = await coll.find({}).toArray()
 
   let valid = 0
   for doc in docs {
@@ -133,10 +131,12 @@ async fn main() -> void {
 }
 ```
 
-The cursor-splitting note is a real constraint, not style. Glyph's `await` binds
-to the innermost call of a chain (the common case, where that call is the async
-one). Fluent APIs that put a synchronous call before the async one, like
-mongodb's `find(...).toArray()`, need the async call to stand alone.
+A note on how `await` binds: on a fluent chain of *value methods*
+(`coll.find({}).toArray()`), it awaits the whole chain, which is what a builder
+API wants. On the Result idiom, where an async function heads the chain and
+synchronous combinators follow (`await load(p).map_err(f)`), it awaits the head
+call so `map_err` runs on the awaited `Result`. Both are handled; you write the
+natural thing.
 
 ## Redis and MySQL: factory clients
 

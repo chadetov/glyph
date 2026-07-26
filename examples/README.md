@@ -16,6 +16,16 @@ The four hard-case example programs locked in step 2 (see `archive/SESSION_1.md`
 
 The other three files are faithful transfers, with template literals (D22) used in places where the original used `+` concatenation. The semantics are unchanged.
 
+## `apps/` — end-to-end dogfood applications
+
+Small but complete programs, each built by writing real Glyph against the
+stdlib and fixing whatever the language lacked along the way.
+
+| File | Stresses | Pillars |
+|---|---|---|
+| `fridge.glyph` | Shopping-list CLI: JSON-on-disk persistence, optional fields, list mutations, and a persistence boundary that must `parse` back into a real `Fridge` | Verifiability + greppability |
+| `tasks.glyph` | Persisted task API: `std/sqlite` (Node's built-in SQLite) for durable storage, a storage/domain type split at the DB boundary (SQLite has no `bool`), `std/http` routes, wire-body validation, all errors-as-values. Data survives restarts | Verifiability + greppability |
+
 ## `corpus/` — self-contained regression programs
 
 `corpus/` holds small programs that depend on no stdlib or external modules (no `Result`/`Option` imports, no `react`, no `std/*`). Each exercises one emitter feature in isolation, and — because nothing is left untyped — its emitted TypeScript passes `tsc --strict --noEmit` end to end. The four hard-case examples above instead import external/stdlib modules, so their emitted code is type-correct only once those modules' types exist; the corpus is what proves the emitter itself produces fully `tsc`-clean output today.

@@ -48,6 +48,11 @@ Desktop.ini
 TODO.local.md
 NOTES.local.md
 
+# Runtime databases written by example apps (e.g. examples/apps/tasks.glyph)
+tasks.db
+*.sqlite
+*.sqlite3
+
 # Transient files produced by running the example CLI
 **/.todos.json
 

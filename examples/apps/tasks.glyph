@@ -1,0 +1,146 @@
+// tasks — a persisted task API over a real SQLite database.
+//
+// A backend dogfood app: `std/sqlite` (Node's built-in synchronous SQLite) for
+// durable storage, boundary validation on the way out of the database *and* off
+// the wire, errors as values, and an `std/http` server. Data survives restarts.
+//
+// Run it:  glyph run examples/apps/tasks.glyph
+// Then:
+//   curl -X POST localhost:8137/tasks  -d '{"title":"buy milk"}'
+//   curl        localhost:8137/tasks
+//   curl -X POST localhost:8137/toggle -d '{"id":1,"done":true}'
+
+module main
+
+import std/sqlite { Db, open }
+import std/http { Request, Response, serve, json, path }
+import std/result { Result, Ok, Err }
+import std/option { Some, None }
+import std/io { println }
+
+// ---------------------------------------------------------------------------
+// Domain and storage shapes
+// ---------------------------------------------------------------------------
+
+// The domain record: `done` is a real boolean here.
+type Task = {
+  id: int,
+  title: string,
+  done: bool,
+}
+
+// The storage shape. SQLite has no boolean type, so `done` comes back as an
+// integer 0/1 on the wire out of the database. That is the untrusted boundary:
+// a row is validated into `TaskRow`, then mapped to the domain `Task`. Glyph
+// won't let the two be confused, so a `0`-where-a-bool-belongs bug is impossible.
+type TaskRow = {
+  id: int,
+  title: string,
+  done: int,
+}
+
+fn row_to_task(r: TaskRow) -> Task {
+  return {
+    id: r.id,
+    title: r.title,
+    done: r.done != 0,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Data layer
+// ---------------------------------------------------------------------------
+
+fn connect(path: string) -> Db {
+  let db = open(path)
+  db.exec("CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0)")
+  return db
+}
+
+fn get_task(db: Db, id: int) -> Result<Task, string> {
+  return match db.query_one("SELECT id, title, done FROM tasks WHERE id = ?", [id]) {
+    Some(row) => match TaskRow.parse(row) {
+      Ok(r) => Ok(row_to_task(r)),
+      Err(issues) => Err("row failed validation"),
+    },
+    None => Err("no task with that id"),
+  }
+}
+
+fn add_task(db: Db, title: string) -> Result<Task, string> {
+  db.run("INSERT INTO tasks (title, done) VALUES (?, 0)", [title])
+  return get_task(db, db.last_insert_id())
+}
+
+fn set_done(db: Db, id: int, done: bool) -> Result<Task, string> {
+  let flag = match done {
+    true => 1,
+    false => 0,
+  }
+  db.run("UPDATE tasks SET done = ? WHERE id = ?", [flag, id])
+  return get_task(db, id)
+}
+
+fn list_tasks(db: Db) -> Array<Task> {
+  let rows = db.query("SELECT id, title, done FROM tasks ORDER BY id", [])
+  let out: Array<Task> = []
+  for row in rows {
+    match TaskRow.parse(row) {
+      Ok(r) => mut out.push(row_to_task(r)),
+      Err(issues) => {},
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Wire DTOs
+// ---------------------------------------------------------------------------
+
+type NewTask = {
+  title: string,
+}
+
+type Toggle = {
+  id: int,
+  done: bool,
+}
+
+// ---------------------------------------------------------------------------
+// HTTP
+// ---------------------------------------------------------------------------
+
+async fn main(argv: Array<string>) -> number {
+  let db = connect("tasks.db")
+
+  let handler = fn(req: Request) -> Result<Response, string> {
+    return match path(req) {
+      "/tasks" => match req.method {
+        "GET" => Ok(json(200, { tasks: list_tasks(db) })),
+        "POST" => match NewTask.parse(req.body) {
+          Ok(input) => match add_task(db, input.title) {
+            Ok(task) => Ok(json(201, { task: task })),
+            Err(e) => Ok(json(500, { error: e })),
+          },
+          Err(issues) => Ok(json(400, { error: "invalid task" })),
+        },
+        else => Ok(json(405, { error: "method not allowed" })),
+      },
+      "/toggle" => match req.method {
+        "POST" => match Toggle.parse(req.body) {
+          Ok(input) => match set_done(db, input.id, input.done) {
+            Ok(task) => Ok(json(200, { task: task })),
+            Err(e) => Ok(json(404, { error: e })),
+          },
+          Err(issues) => Ok(json(400, { error: "invalid toggle" })),
+        },
+        else => Ok(json(405, { error: "method not allowed" })),
+      },
+      else => Ok(json(404, { error: "not found" })),
+    }
+  }
+
+  println("listening on http://localhost:8137")
+  await serve(8137, handler)
+  return 0
+}

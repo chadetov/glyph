@@ -800,6 +800,38 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### 0.1.30 — Shipped · Refinement types (`where`, D39)
+
+**Status: shipped.** The verifiability half of the finance-correctness work: an
+invariant like non-negative or in-range becomes a validated *type*, not a check a
+caller has to remember.
+
+- **`where` refinement types (D39).** `type Amount = int where value >= 0`,
+  `type Rating = int where value >= 1 && value <= 5`,
+  `type NonEmpty = string where value.length > 0`. The boolean predicate (over a
+  bound `value`) is woven into the type's runtime descriptor, so `Amount.parse(x)`
+  and `Amount.is(x)` run the base leaf-check *and* the predicate. The base check
+  narrows `value` first, so the predicate sees the base type and stays tsc-clean.
+  A value that fails the predicate is rejected at the boundary where untrusted
+  data enters.
+- **Nominal-newtype semantics** (the form the open questions reserved): Glyph's
+  own checker treats the refined name as its base type for assignability, like
+  `int`, and defers to the descriptor at `.parse`/`.is`. New `where` keyword; the
+  predicate parses after the type body and the formatter preserves it (it was
+  dropped in a first cut, now covered by a round-trip test).
+- **v1 scope is honest:** the base must be a primitive with a leaf check
+  (`int`/`number`/`string`/`bool`/`bigint`). A `where` on a record or union type
+  is a compile error (E0300), not a silent drop; record and cross-field invariants
+  (`where value.paid <= value.total`) are a planned extension.
+- **CI-locked:** a run-based test asserts `Amount.parse(-1)`, `Rating.parse(6)`,
+  and `Amount.parse(3.5)` are rejected while valid values pass; plus emit and
+  formatter round-trip tests. AST snapshots regenerated for the new refinement
+  field. 685 tests green.
+- **Docs:** spec D39, the typed-APIs answer page gains an "invariants, not just
+  shape" section, and AGENTS.md and its llms.txt mirrors note it.
+- **Next:** taint tracking, then the 1.0 stability enablers, then the dedicated
+  "finance in Glyph" answer page tying decimal + bigint + `where` + taint together.
+
 ### 0.1.29 — Shipped · Exact large integers (bigint, D38)
 
 **Status: shipped.** The paired half of the finance-correctness numeric work:

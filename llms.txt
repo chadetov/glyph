@@ -464,6 +464,14 @@ typed `bigint` validates `typeof === "bigint"` at the boundary (a JSON number is
 rejected, not silently truncated). `number` loses precision past 2^53; `bigint`
 does not. `tsc` keeps `bigint` and `number` apart (no mixed arithmetic).
 
+A `where` refinement types an *invariant* that a boundary must validate:
+`type Amount = int where value >= 0`, `type Rating = int where value >= 1 && value <= 5`,
+`type NonEmpty = string where value.length > 0`. The predicate (over a bound
+`value`) is woven into the type's descriptor, so `Amount.parse(x)` rejects a
+negative value, not just a non-number. v1 refines primitive base types only
+(`int`/`number`/`string`/`bool`/`bigint`); a `where` on a record or union is a
+compile error, not a silent drop.
+
 ## Importing external code (npm packages and Node builtins)
 
 A Glyph import path is emitted **verbatim** as the TypeScript module specifier:

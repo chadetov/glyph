@@ -318,11 +318,45 @@ if (row.done === true) { ... }   // never runs
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">A type can validate its invariants, not just its shape</p>
+        <p>
+          A shape check tells you a field is a number. It does not tell you the
+          amount is non-negative or the rating is between 1 and 5. A
+          <code>where</code> refinement puts that invariant in the type, and the
+          descriptor enforces it at the boundary:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">refinements.glyph</span>
+<pre>type Amount   = int where value &gt;= 0
+type Rating   = int where value &gt;= 1 &amp;&amp; value &lt;= 5
+type NonEmpty = string where value.length &gt; 0
+
+// Amount.parse(-1)  -&gt; Err   (not just "is a number")
+// Rating.parse(6)   -&gt; Err
+// Amount.parse(3.5) -&gt; Err   (int check too)</pre>
+        </div>
+        <div class="code">
+          <span class="cap">what you're not writing</span>
+<pre>// The check that usually lives three
+// functions away from the boundary,
+// if someone remembers it:
+if (amount &lt; 0) throw new Error(...);
+
+// In Glyph it's the type. A value that
+// fails the predicate never becomes an
+// Amount in the first place.</pre>
+        </div>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other.</p>
+          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); a <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape; <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

@@ -1953,6 +1953,12 @@ impl<'a> Emitter<'a> {
         let variants = self.union_variant_names(&scrutinee_ty);
         let is_variant = |name: &str| {
             is_prelude_variant(name)
+                // A PascalCase bare ident is a variant reference (the resolver's
+                // rule), so an *imported* union's nullary variant lowers to a
+                // `case "V":` on `.tag` rather than being misread as a binding
+                // catch-all. Its type is `Unknown` here, so the variant set below
+                // is empty; the switch on `.tag` works regardless of provenance.
+                || name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
                 || variants
                     .as_ref()
                     .is_some_and(|vs| vs.iter().any(|v| v == name))

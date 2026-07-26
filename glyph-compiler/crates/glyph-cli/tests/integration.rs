@@ -1664,3 +1664,40 @@ fn cross_module_record_payload_union_match_binds_whole_object() {
     // The whole object is bound, not `.value`.
     assert!(ts.contains("const v = __") && !ts.contains("const v = __m0.value"), "{ts}");
 }
+
+#[test]
+fn imported_union_nullary_variants_match_without_false_unreachable() {
+    // Regression (improve-glyph loop batch 5): matching an imported union's
+    // no-payload variants drew a false E0216 (the imported type lowers to
+    // Unknown, so the reachability check read each bare PascalCase arm as a
+    // binding catch-all) and then E0300 in the emitter. Both now treat a
+    // PascalCase bare ident as a variant reference.
+    let root = unique_tmp("nullary");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "net.glyph",
+        "module net\npub type ParseError =\n  | WrongOctetCount({ got: number })\n  | EmptyOctet\n  | NotANumber\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import net { ParseError, WrongOctetCount, EmptyOctet, NotANumber }\n\
+         import std/string { from }\n\
+         pub fn describe(e: ParseError) -> string {\n\
+         \x20 return match e {\n\
+         \x20\x20\x20 WrongOctetCount(w) => from(w.got),\n\
+         \x20\x20\x20 EmptyOctet => \"empty\",\n\
+         \x20\x20\x20 NotANumber => \"nan\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    // The nullary variants lower to `case`s on `.tag`, not a `default` binding.
+    assert!(ts.contains("case \"EmptyOctet\":"), "{ts}");
+    assert!(ts.contains("case \"NotANumber\":"), "{ts}");
+}

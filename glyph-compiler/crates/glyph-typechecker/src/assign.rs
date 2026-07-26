@@ -1358,11 +1358,22 @@ impl Assigner<'_> {
         // (`is_prelude_variant`), so gating on the same set keeps the two in
         // step — no arm the emitter would lower to a `case` is called a binding.
         const PRELUDE_VARIANTS: [&str; 4] = ["Ok", "Err", "Some", "None"];
+        // A PascalCase bare ident is a variant *reference* (refutable), not a
+        // fresh binding — the same rule the resolver uses to tell a constructor
+        // pattern from a binding. This matters for an *imported* union, whose
+        // variant set is empty here (its type lowers to `Unknown` in a consuming
+        // module), so a nullary variant like `EmptyOctet` would otherwise be
+        // misread as an irrefutable catch-all and draw a false E0216 on every
+        // later arm. The emitter classifies the same way, so the two stay in step.
+        let is_constructor_shaped = |name: &Ident| {
+            name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+        };
         let is_irrefutable = |p: &Pattern| match p {
             Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
             Pattern::Ident { name, .. } => {
                 !variants.iter().any(|v| v == name)
                     && !PRELUDE_VARIANTS.contains(&name.as_ref())
+                    && !is_constructor_shaped(name)
             }
             _ => false,
         };

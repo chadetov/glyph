@@ -800,6 +800,36 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### 0.1.28 — Shipped · Exact money math (std/decimal)
+
+**Status: shipped.** The first of the bank-readiness "finance correctness" items:
+money that isn't a floating-point bug waiting to happen. This is the one purely
+technical gap that is genuinely disqualifying for finance and entirely within our
+control (the others being users, support, and track record, which no commit
+closes).
+
+- **`std/decimal`** — exact base-10 fixed-point arithmetic over BigInt. JS
+  `number` is IEEE-754 binary float (`0.1 + 0.2 !== 0.3`) and loses precision past
+  2^53; neither is acceptable for money. A `Decimal` is an arbitrary-precision
+  integer scaled by a number of fractional digits, so add/sub/mul are exact and
+  `div` takes an explicit result scale and rounds half away from zero.
+  Construction (`decimal("10.50")`) validates and returns a `Result`, never a
+  silent `NaN`. Operations are methods (`price.add(tax)`) since Glyph has no
+  operator overloading. Also `from_int(units, scale)`, `round`, `neg`, `abs`,
+  `cmp`, `eq`, `is_zero`, `is_negative`, `scale`, `to_string`, and a lossy
+  `to_number` for display.
+- **Correctness is CI-locked**, not just claimed: an integration test runs a
+  self-checking decimal program (it returns its count of wrong results as the
+  exit code) and asserts a clean run, covering the float bug, half-up rounding,
+  negatives, and exactness past 2^53. 679 tests green.
+- **Docs:** stdlib reference, the "is this a real language" answer page gains a
+  money section, and AGENTS.md and its llms.txt mirrors gain a std/decimal note.
+- **Next in this trip:** a paired `bigint`/safe-integer type for exact large
+  whole numbers (account IDs), then refinement types (`where`) so `type Amount =
+  decimal where value >= 0` is a boundary-validated type, then taint tracking.
+  These land as their own releases; a dedicated "finance in Glyph" answer page
+  goes up once the trio is complete rather than one thin page per feature.
+
 ### 0.1.27 — Shipped · Real database interop, and two bugs it surfaced
 
 **Status: shipped.** Writing the databases guide (proving Postgres and MongoDB

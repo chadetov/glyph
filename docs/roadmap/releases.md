@@ -800,6 +800,36 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### 0.1.31 — Shipped · Taint tracking (std/taint)
+
+**Status: shipped.** The security item of the correctness trip: untrusted input
+can't reach a dangerous sink without being sanitized, and it's a compile error if
+it tries.
+
+- **`std/taint`** — `Tainted<T>` and `Trusted<T>` are structurally distinct
+  branded types. A sink whose parameter is `Trusted<string>` (a SQL runner, a
+  shell command, an HTML renderer) cannot receive a `Tainted<string>` without
+  going through `sanitize(t, clean)` first; `tsc` rejects the call
+  (`TS2345: 'Tainted<string>' is not assignable to 'Trusted<string>'`). So a SQL
+  injection path is a compile error. The vocabulary: `taint` (wrap untrusted
+  input), `sanitize` (escape/validate, then trust), `trust_unchecked` (the
+  greppable escape hatch for literals/constants), `expose` (unwrap at the sink),
+  `reveal_tainted` (read raw only to inspect). The brand is phantom, so a
+  `Tainted`/`Trusted` is just `{ value }` at run time.
+- **Discipline, not flow analysis** (the Q33 v1 form): you opt in by typing a
+  sink's parameter `Trusted<...>`; the compiler does not infer taint across the
+  program. That is honest about what it does and does not do, and it is enforced
+  where it matters, the call into the sink.
+- **CI-locked both directions:** an integration test asserts the sanitized path
+  passes `tsc` and a tainted value handed to the sink fails it. 686 tests green.
+- **Docs:** stdlib reference, AGENTS.md and its llms.txt mirrors gain a std/taint
+  section, and the typed-APIs answer page notes it.
+- **The correctness trip is now feature-complete** (decimal, bigint, `where`,
+  taint). Remaining: the 1.0 stability enablers (conformance corpus + `glyph fmt`
+  migration), then a dedicated "finance & correctness in Glyph" answer page tying
+  the four together (a new page, so the answer sub-nav renumbers with it, done as
+  its own focused change rather than rushed here).
+
 ### 0.1.30 — Shipped · Refinement types (`where`, D39)
 
 **Status: shipped.** The verifiability half of the finance-correctness work: an

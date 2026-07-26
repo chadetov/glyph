@@ -1,0 +1,117 @@
+// Pure-Glyph generic LRU (least-recently-used) cache. A fixed-capacity map from
+// string keys to values of any type `V`: reads and writes mark a key as most
+// recently used, and inserting past the capacity evicts the key that has gone
+// untouched the longest. The recency order lives in a plain `Array<string>`
+// (least-recently-used at the front, most-recently-used at the back) alongside a
+// `Record<string, V>` holding the values, and every operation rebuilds those two
+// in place. No platform leaves: string equality, array filtering with a closure,
+// the value-oriented `record.set`/`record.remove`, Option, and field mutation
+// carry the whole cache.
+module lru
+
+import std/option { Option, Some, None }
+import std/record
+import std/array
+
+// A cache holding at most `capacity` entries. `order` lists the live keys from
+// least- to most-recently-used; `store` maps each of those keys to its value.
+// The two always agree on which keys are present.
+pub type Lru<V> = {
+  capacity: number,
+  order: Array<string>,
+  store: Record<string, V>,
+}
+
+// A fresh empty cache. A capacity of zero or less can never hold an entry.
+pub fn create<V>(capacity: number) -> Lru<V> {
+  let store: Record<string, V> = {}
+  return {
+    capacity: capacity,
+    order: [],
+    store: store,
+  }
+}
+
+// The number of live entries.
+pub fn len<V>(c: Lru<V>) -> number {
+  return array.len(c.order)
+}
+
+// Whether `key` currently has a value, without changing its recency.
+pub fn has<V>(c: Lru<V>, key: string) -> bool {
+  return record.has(c.store, key)
+}
+
+// `order` with every occurrence of `key` dropped. Used to pull a key out of the
+// recency list before re-appending it at the most-recently-used end.
+fn without(order: Array<string>, key: string) -> Array<string> {
+  return array.filter(order, fn(k) { k != key })
+}
+
+// Mark `key` as the most recently used: remove it from wherever it sits in the
+// recency order and push it onto the back. Mutates the cache in place.
+fn touch<V>(c: Lru<V>, key: string) -> void {
+  mut c.order = without(c.order, key)
+  mut c.order.push(key)
+}
+
+// Look up `key`, counting the read as a use. Returns the value and moves the key
+// to most-recently-used, or None when the key is absent (recency unchanged).
+pub fn get<V>(c: Lru<V>, key: string) -> Option<V> {
+  return match record.get(c.store, key) {
+    None => None,
+    Some(value) => {
+      touch(c, key)
+      return Some(value)
+    },
+  }
+}
+
+// Look up `key` without counting it as a use, so the recency order is left
+// alone. The read-only companion to `get`.
+pub fn peek<V>(c: Lru<V>, key: string) -> Option<V> {
+  return record.get(c.store, key)
+}
+
+// Drop the single least-recently-used entry if the cache is over capacity.
+// Reads the front of the recency order, removes it from both the order and the
+// store, and mutates the cache in place. A cache at or under capacity is left
+// untouched.
+fn evict<V>(c: Lru<V>) -> void {
+  match array.len(c.order) > c.capacity {
+    true => match c.order {
+      [] => {},
+      [victim, ...rest] => {
+        mut c.order = rest
+        mut c.store = record.remove(c.store, victim)
+      },
+    },
+    false => {},
+  }
+}
+
+// Insert or overwrite `key` with `value`, marking it most-recently-used. When
+// the insert pushes the cache past its capacity, the least-recently-used entry
+// is evicted. Mutates the cache in place.
+pub fn put<V>(
+  c: Lru<V>,
+  key: string,
+  value: V,
+) -> void {
+  mut c.store = record.set(
+    c.store,
+    key,
+    value,
+  )
+  touch(c, key)
+  evict(c)
+}
+
+// The live keys from least- to most-recently-used, as a fresh array.
+pub fn keys<V>(c: Lru<V>) -> Array<string> {
+  let out: Array<string> = []
+  for k in c.order {
+    mut out.push(k)
+  }
+  return out
+}

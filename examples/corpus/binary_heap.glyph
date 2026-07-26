@@ -1,0 +1,193 @@
+// Pure-Glyph array-backed binary min-heap: the imperative counterpart to the
+// functional `pairing_heap`. The heap lives in a single array in level order,
+// so a node at index `i` has children at `2 * i + 1` and `2 * i + 2` and parent
+// at `floor((i - 1) / 2)`. Insertion appends and sifts up; delete-min swaps the
+// root with the last element and sifts the new root down. The only platform
+// leaf is `math.floor`, standing in for the integer division Glyph's `number`
+// (a float) does not do on its own; everything else is `loop`/`break`, in-place
+// array-element assignment (`mut xs[i] = ...`), index arithmetic, and Option.
+// It exercises numeric-index element mutation and descending `loop` counters,
+// which the recursion-first corpus did not yet cover.
+module binary_heap
+
+import std/option { Option, Some, None }
+import std/math
+import std/array
+
+// A binary min-heap over numbers, backed by an array in level order. The
+// smallest element is always at index 0.
+pub type Heap = { items: Array<number> }
+
+// An empty heap.
+pub fn empty() -> Heap {
+  return { items: [] }
+}
+
+// The number of elements in the heap.
+pub fn len(h: Heap) -> number {
+  return array.len(h.items)
+}
+
+// Whether the heap holds no elements.
+pub fn is_empty(h: Heap) -> bool {
+  return array.len(h.items) == 0
+}
+
+// The current minimum without removing it, or None when the heap is empty.
+pub fn peek(h: Heap) -> Option<number> {
+  return match array.len(h.items) == 0 {
+    true => None,
+    false => Some(h.items[0]),
+  }
+}
+
+// Swap two elements of `xs` in place.
+fn swap(xs: Array<number>, i: number, j: number) -> void {
+  let tmp = xs[i]
+  mut xs[i] = xs[j]
+  mut xs[j] = tmp
+}
+
+// Restore the heap order upward from `start`: while the element is smaller than
+// its parent, swap the two and continue from the parent's slot.
+fn sift_up(xs: Array<number>, start: number) -> void {
+  let i = start
+  loop {
+    match i == 0 {
+      true => {
+        break
+      },
+      false => {},
+    }
+    let parent = math.floor((i - 1) / 2)
+    match xs[i] < xs[parent] {
+      true => {
+        swap(xs, i, parent)
+        mut i = parent
+      },
+      false => {
+        break
+      },
+    }
+  }
+}
+
+// The index of the smaller child of `i` within the first `n` elements, or `i`
+// itself when `i` has no children inside the bound.
+fn smaller_child(xs: Array<number>, i: number, n: number) -> number {
+  let left = 2 * i + 1
+  let right = 2 * i + 2
+  return match left >= n {
+    true => i,
+    false => match right >= n {
+      true => left,
+      false => match xs[right] < xs[left] {
+        true => right,
+        false => left,
+      },
+    },
+  }
+}
+
+// Restore the heap order downward from `start` over the first `n` elements:
+// while a child is smaller than the current node, swap with the smaller child
+// and continue from there.
+fn sift_down(xs: Array<number>, start: number, n: number) -> void {
+  let i = start
+  loop {
+    let child = smaller_child(xs, i, n)
+    match child == i {
+      true => {
+        break
+      },
+      false => {},
+    }
+    match xs[child] < xs[i] {
+      true => {
+        swap(xs, i, child)
+        mut i = child
+      },
+      false => {
+        break
+      },
+    }
+  }
+}
+
+// Insert a value, keeping the heap ordered. Mutates `h` in place.
+pub fn push(h: Heap, value: number) -> void {
+  mut h.items.push(value)
+  sift_up(h.items, array.len(h.items) - 1)
+}
+
+// Remove and return the minimum, or None when the heap is empty. The root is
+// swapped with the last element, the last element is dropped, and the new root
+// sifts down over the shrunk array. Dropping uses the `mut xs.pop()` statement
+// form rather than the value of `pop`, which is `number | undefined`, not an
+// `Option`.
+pub fn pop_min(h: Heap) -> Option<number> {
+  let n = array.len(h.items)
+  return match n == 0 {
+    true => None,
+    false => {
+      let top = h.items[0]
+      return match n == 1 {
+        true => {
+          mut h.items.pop()
+          return Some(top)
+        },
+        false => {
+          swap(h.items, 0, n - 1)
+          mut h.items.pop()
+          sift_down(h.items, 0, array.len(h.items))
+          return Some(top)
+        },
+      }
+    },
+  }
+}
+
+// Build a heap from an arbitrary array in linear time: copy the values, then
+// sift down every internal node from the last parent back to the root. The
+// counter walks *downward*, which a `loop` with a manual index expresses.
+pub fn from_array(values: Array<number>) -> Heap {
+  let items: Array<number> = []
+  for v in values {
+    mut items.push(v)
+  }
+  let n = array.len(items)
+  let i = math.floor(n / 2) - 1
+  loop {
+    match i < 0 {
+      true => {
+        break
+      },
+      false => {},
+    }
+    sift_down(items, i, n)
+    mut i = i - 1
+  }
+  return { items: items }
+}
+
+// Return the heap's elements in ascending order without disturbing `h`: copy the
+// items into a fresh heap and pop the minimum until it is empty (heapsort).
+pub fn sorted(h: Heap) -> Array<number> {
+  let copy: Array<number> = []
+  for v in h.items {
+    mut copy.push(v)
+  }
+  let work: Heap = { items: copy }
+  let out: Array<number> = []
+  loop {
+    match pop_min(work) {
+      None => {
+        break
+      },
+      Some(v) => {
+        mut out.push(v)
+      },
+    }
+  }
+  return out
+}

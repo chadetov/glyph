@@ -1,0 +1,110 @@
+// Pure-Glyph Levenshtein edit distance and a nearest-match helper. The dynamic
+// program is built one row at a time by recursion: each cell is the min of the
+// delete, insert, and substitute costs. The only platform leaves are math.min
+// and string.len; every character comes from `s[i]` indexing, every row is an
+// Array grown with spread, and the search threads two `mut` locals through a
+// `for`. This is the kind of text-distance logic std/text would wrap natively,
+// written in the language itself.
+module edit_distance
+
+import std/math
+import std/string
+import std/option { Option, Some, None }
+
+// Minimum of three numbers.
+fn min3(a: number, b: number, c: number) -> number {
+  return math.min(a, math.min(b, c))
+}
+
+// The ascending row [start, start+1, ..., n], grown by spread.
+fn iota(n: number, i: number, acc: Array<number>) -> Array<number> {
+  return match i > n {
+    true => acc,
+    false => iota(n, i + 1, [...acc, i]),
+  }
+}
+
+// Build column `j` onward of the current DP row. `cur` is the row so far, so
+// `cur[j - 1]` is the left neighbor; `prev` is the row above. `sc` is the
+// current source character being aligned against every character of `t`.
+fn build_row(
+  sc: string,
+  t: string,
+  prev: Array<number>,
+  j: number,
+  cur: Array<number>,
+) -> Array<number> {
+  let n = string.len(t)
+  return match j > n {
+    true => cur,
+    false => {
+      let left = cur[j - 1]
+      let up = prev[j]
+      let diag = prev[j - 1]
+      let cost = match sc == t[j - 1] {
+        true => 0,
+        false => 1,
+      }
+      let v = min3(diag + cost, up + 1, left + 1)
+      return build_row(sc, t, prev, j + 1, [...cur, v])
+    },
+  }
+}
+
+// Fold the DP down the rows of `s`, returning the final row.
+fn build_rows(
+  s: string,
+  t: string,
+  i: number,
+  prev: Array<number>,
+) -> Array<number> {
+  let m = string.len(s)
+  return match i > m {
+    true => prev,
+    false => {
+      let cur = build_row(s[i - 1], t, prev, 1, [i])
+      return build_rows(s, t, i + 1, cur)
+    },
+  }
+}
+
+// Levenshtein edit distance between `s` and `t`: the fewest single-character
+// insertions, deletions, or substitutions that turn one into the other.
+pub fn distance(s: string, t: string) -> number {
+  let n = string.len(t)
+  let first = iota(n, 0, [])
+  let last = build_rows(s, t, 1, first)
+  return last[n]
+}
+
+// A similarity ratio in [0, 1]: 1 for equal strings, 0 for a distance equal to
+// the longer length.
+pub fn similarity(s: string, t: string) -> number {
+  let longest = math.max(string.len(s), string.len(t))
+  return match longest == 0 {
+    true => 1,
+    false => 1 - distance(s, t) / longest,
+  }
+}
+
+// The candidate nearest to `q` by edit distance, or None if the list is empty.
+// Threads the best candidate and its distance through the loop by hand.
+pub fn closest(q: string, candidates: Array<string>) -> Option<string> {
+  let best: Option<string> = None
+  let best_d = 0
+  for c in candidates {
+    let d = distance(q, c)
+    let take = match best {
+      None => true,
+      Some(_) => d < best_d,
+    }
+    match take {
+      true => {
+        mut best = Some(c)
+        mut best_d = d
+      },
+      false => {},
+    }
+  }
+  return best
+}

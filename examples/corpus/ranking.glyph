@@ -1,0 +1,110 @@
+// Pure-Glyph ordering utilities driven by a structural interface. `Ranked` is a
+// compile-time contract (D34): any value carrying a `rank()` method satisfies
+// it, with no `impl` declaration. The generic functions take `<T: Ranked>` as a
+// bound, so `x.rank()` is a checked method call on the type parameter; `worst`
+// and `spread` take the interface as an ordinary parameter type. No platform
+// leaves: just interfaces, generic bounds, records, recursion, and Option.
+module ranking
+
+import std/option { Option, Some, None }
+
+// The structural contract. A value is `Ranked` when it can report a number.
+pub interface Ranked {
+  fn rank() -> number
+}
+
+// The larger of two elements by rank, ties going to the first.
+fn higher<T: Ranked>(a: T, b: T) -> T {
+  return match b.rank() > a.rank() {
+    true => b,
+    false => a,
+  }
+}
+
+// The smaller of two elements by rank, ties going to the first.
+fn lower<T: Ranked>(a: T, b: T) -> T {
+  return match b.rank() < a.rank() {
+    true => b,
+    false => a,
+  }
+}
+
+// The highest-ranked element, or None for an empty list. The bound lets the
+// recursion call `rank()` on each element without knowing its concrete type.
+pub fn max_by<T: Ranked>(xs: Array<T>) -> Option<T> {
+  return match xs {
+    [] => None,
+    [head, ...rest] => Some(fold_max(rest, head)),
+  }
+}
+
+fn fold_max<T: Ranked>(xs: Array<T>, best: T) -> T {
+  return match xs {
+    [] => best,
+    [head, ...rest] => fold_max(rest, higher(best, head)),
+  }
+}
+
+// The lowest-ranked element, or None for an empty list.
+pub fn min_by<T: Ranked>(xs: Array<T>) -> Option<T> {
+  return match xs {
+    [] => None,
+    [head, ...rest] => Some(fold_min(rest, head)),
+  }
+}
+
+fn fold_min<T: Ranked>(xs: Array<T>, best: T) -> T {
+  return match xs {
+    [] => best,
+    [head, ...rest] => fold_min(rest, lower(best, head)),
+  }
+}
+
+// The sum of every element's rank.
+pub fn total<T: Ranked>(xs: Array<T>) -> number {
+  return match xs {
+    [] => 0,
+    [head, ...rest] => head.rank() + total(rest),
+  }
+}
+
+// How many elements outrank the given threshold.
+pub fn count_above<T: Ranked>(xs: Array<T>, threshold: number) -> number {
+  return match xs {
+    [] => 0,
+    [head, ...rest] => match head.rank() > threshold {
+      true => 1 + count_above(rest, threshold),
+      false => count_above(rest, threshold),
+    },
+  }
+}
+
+// Are the elements in non-decreasing rank order?
+pub fn is_sorted<T: Ranked>(xs: Array<T>) -> bool {
+  return match xs {
+    [] => true,
+    [_only] => true,
+    [a, b, ...rest] => match a.rank() > b.rank() {
+      true => false,
+      false => is_sorted([b, ...rest]),
+    },
+  }
+}
+
+// The rank of a single value, taking the interface as an ordinary parameter
+// type rather than as a bound. Any `Ranked` value is accepted structurally.
+pub fn worst(a: Ranked, b: Ranked) -> number {
+  return match a.rank() < b.rank() {
+    true => a.rank(),
+    false => b.rank(),
+  }
+}
+
+// The gap between the two elements' ranks, again over the plain interface type.
+pub fn spread(a: Ranked, b: Ranked) -> number {
+  let d = a.rank() - b.rank()
+  return match d < 0 {
+    true => 0 - d,
+    false => d,
+  }
+}

@@ -17,9 +17,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use glyph_ast::{
-    ArrayElem, Block, Decl, Expr, Ident, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm,
-    MatchArmBody, Module, ObjectField, ObjectPatternField, Param, Pattern, PostfixOp, Span, Stmt,
-    TemplatePart, TypeExpr,
+    ArrayElem, Block, Decl, Expr, Ident, InterfaceMember, JsxAttr, JsxChild, JsxElement,
+    LiteralPattern, MatchArm, MatchArmBody, Module, ObjectField, ObjectPatternField, Param, Pattern,
+    PostfixOp, Span, Stmt, TemplatePart, TypeExpr,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
@@ -536,7 +536,7 @@ impl Assigner<'_> {
                     for (p, a) in params.iter().zip(args.iter()) {
                         let expected = substitute_type_params(&p.ty, &subst);
                         let found = self.tm.get(a.span()).clone();
-                        if definitely_incompatible(&found, &expected) {
+                        if self.assign_incompatible(&found, &expected) {
                             self.errors.push(TypeError::ArgumentTypeMismatch {
                                 expected: ty_display(&expected),
                                 found: ty_display(&found),
@@ -1138,7 +1138,7 @@ impl Assigner<'_> {
             return;
         };
         let found = self.tm.get(value.span()).clone();
-        if definitely_incompatible(&found, &expected) {
+        if self.assign_incompatible(&found, &expected) {
             self.errors.push(TypeError::TypeMismatch {
                 expected: ty_display(&expected),
                 found: ty_display(&found),
@@ -1747,7 +1747,11 @@ impl Assigner<'_> {
     fn record_fields_of(&self, ty: &Ty) -> Option<Vec<RecordField>> {
         match ty {
             Ty::Record { fields } => Some(fields.clone()),
-            Ty::Named { .. } => self.named_record_fields(ty, &[]),
+            // A `Ty::Named` is a `type` record alias or a structural interface;
+            // both expose a member/field set for access and assignability.
+            Ty::Named { .. } => self
+                .named_record_fields(ty, &[])
+                .or_else(|| self.interface_member_fields(ty)),
             Ty::App { base, args } => self.named_record_fields(base, args),
             _ => None,
         }
@@ -1797,6 +1801,110 @@ impl Assigner<'_> {
                 })
                 .collect(),
         )
+    }
+
+    /// The member set of a `Ty::Named` pointing at a **structural interface**
+    /// (D34), rendered as `RecordField`s: a `fn m(p: P) -> R` method member
+    /// becomes a field `m: fn(p: P) -> R`, and a `name: T` / `name?: T`
+    /// property member becomes a field of the same type and optionality.
+    /// Returns `None` for any type that is not a decidable interface, so
+    /// callers stay permissive on everything else.
+    ///
+    /// An interface is structural: a value satisfies it when it carries every
+    /// member, with no nominal identity (no `impl`). Assignability against an
+    /// interface used as an ordinary type therefore compares these member
+    /// fields, not the interface's name.
+    fn interface_member_fields(&self, ty: &Ty) -> Option<Vec<RecordField>> {
+        let Ty::Named { symbol, path } = ty else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        // Same prelude/module symbol-id collision guard `named_record_fields`
+        // uses: the resolved symbol's name must match the type's lexical path.
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return None;
+        }
+        let SymbolKind::Type { decl_idx } = sym.kind else {
+            return None;
+        };
+        let Decl::Interface(iface) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        Some(
+            iface
+                .members
+                .iter()
+                .map(|m| match m {
+                    InterfaceMember::Method {
+                        name,
+                        params,
+                        return_ty,
+                        ..
+                    } => RecordField {
+                        name: name.clone(),
+                        ty: Ty::Fn {
+                            params: params
+                                .iter()
+                                .map(|p| FnParam {
+                                    name: Some(p.name.clone()),
+                                    owned: false,
+                                    ty: self.lowerer.lower(&p.ty),
+                                })
+                                .collect(),
+                            return_ty: Arc::new(
+                                return_ty
+                                    .as_ref()
+                                    .map(|rt| self.lowerer.lower(rt))
+                                    .unwrap_or(Ty::Prim(Primitive::Void)),
+                            ),
+                            is_async: false,
+                        },
+                        optional: false,
+                    },
+                    InterfaceMember::Field(f) => RecordField {
+                        name: f.name.clone(),
+                        ty: self.lowerer.lower(&f.ty),
+                        optional: f.optional,
+                    },
+                })
+                .collect(),
+        )
+    }
+
+    /// True when `found` is provably not assignable to `expected`, with
+    /// structural handling of an interface on the expected side. An interface
+    /// used as an ordinary parameter or return type is satisfied by any value
+    /// carrying its members, so it is matched by member shape rather than by
+    /// the nominal `Named`-vs-`Named` name check `definitely_incompatible`
+    /// applies to `type` aliases (Q15). Non-interface expectations delegate to
+    /// `definitely_incompatible` unchanged; the recursion also reaches an
+    /// interface nested one level inside a generic application (`Array<Iface>`).
+    fn assign_incompatible(&self, found: &Ty, expected: &Ty) -> bool {
+        if let Some(members) = self.interface_member_fields(expected) {
+            return match self.record_fields_of(found) {
+                // A value carries its members structurally: the same
+                // required-member / shared-field-type logic the record branch
+                // of `definitely_incompatible` already implements.
+                Some(found_fields) => definitely_incompatible(
+                    &Ty::Record {
+                        fields: found_fields,
+                    },
+                    &Ty::Record { fields: members },
+                ),
+                // `found` is undecidable (an open generic, an unresolved value):
+                // stay permissive, exactly as the nominal path does.
+                None => false,
+            };
+        }
+        if let (Ty::App { base: fb, args: fa }, Ty::App { base: eb, args: ea }) = (found, expected) {
+            return fa.len() != ea.len()
+                || self.assign_incompatible(fb, eb)
+                || fa
+                    .iter()
+                    .zip(ea.iter())
+                    .any(|(f, e)| self.assign_incompatible(f, e));
+        }
+        definitely_incompatible(found, expected)
     }
 
     /// If `ty` is a module-local tagged union, return the type's name and
@@ -3936,6 +4044,80 @@ fn label(u: User) -> string {
 "#;
         let errs = ty_errors_of(src);
         assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    // ----- structural interfaces as ordinary types (D34) -----
+
+    #[test]
+    fn record_satisfying_an_interface_type_is_accepted() {
+        // `Widget` carries `key: number` and a `label` method, so it satisfies
+        // the structural interface `Labeled` used as an ordinary parameter type.
+        // The nominal `Named`-vs-`Named` name check must not fire here.
+        let src = r#"module x
+interface Labeled {
+  key: number
+  fn label() -> string
+}
+type Widget = { key: number, label: fn() -> string }
+fn describe(x: Labeled) -> number {
+  return x.key
+}
+fn use(w: Widget) -> number {
+  return describe(w)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn record_missing_an_interface_member_is_rejected() {
+        // `Bare` lacks the `label` method the interface requires, so passing it
+        // where a `Labeled` is expected is a provable argument mismatch.
+        let src = r#"module x
+interface Labeled {
+  key: number
+  fn label() -> string
+}
+type Bare = { key: number }
+fn describe(x: Labeled) -> number {
+  return x.key
+}
+fn use(b: Bare) -> number {
+  return describe(b)
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::ArgumentTypeMismatch { expected, found, .. }
+                    if expected == "Labeled" && found == "Bare"
+            )),
+            "a record missing an interface member should mismatch: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn member_access_on_an_interface_typed_value_is_checked() {
+        // Accessing a member the interface does not declare is an UnknownField
+        // error: an interface exposes exactly its declared members.
+        let src = r#"module x
+interface Labeled {
+  fn label() -> string
+}
+fn f(x: Labeled) -> string {
+  return x.missing()
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::UnknownField { field, .. } if field == "missing"
+            )),
+            "an undeclared interface member access should be flagged: {errs:?}"
+        );
     }
 
     #[test]

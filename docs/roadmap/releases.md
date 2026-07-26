@@ -880,6 +880,19 @@ land here until they're assigned a release.
   `Number` pattern; `-x`/`-(...)` stay non-patterns. Surfaced dogfooding a
   calendar module (`examples/corpus/calendar.glyph`, matching on `math.sign`);
   parser unit test added.
+- **Structural interface as an ordinary type** (S, from 0.1.16 D34) — ✅ **done.**
+  D34 says a structural `interface` is "usable as an ordinary type," but the
+  typechecker only honored that for a generic bound (`<T: Iface>`, enforced by
+  the emitted `tsc` `extends`). Used directly as a parameter or return type, an
+  interface was compared **nominally**: a record that carried every member was
+  falsely rejected (E0211), and member access on an interface-typed value went
+  unchecked (typed `Unknown`). Assignability now expands an interface on the
+  expected side to its member set and checks structural satisfaction (a method
+  member `fn m() -> R` matches a field `m: fn() -> R`; extra members are fine by
+  width subtyping; a missing member still mismatches), and `record_fields_of`
+  resolves interface members so member access is verified. Surfaced dogfooding a
+  ranking module (`examples/corpus/ranking.glyph`, `Ranked` used both as a bound
+  and as a plain parameter type); three typechecker unit tests added.
 - **Private-vs-missing import diagnostic** (S, from 0.1.16 visibility). Importing a
   non-`pub` name reports E0105 "`N` is not exported by `M`", the same message as a
   genuinely missing name. Distinguishing "exists but private (mark it `pub`)" from

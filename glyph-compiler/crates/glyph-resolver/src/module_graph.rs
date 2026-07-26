@@ -170,6 +170,8 @@ impl StdlibStubs {
         s.add("std/log", &["Level", "debug", "info", "warn", "error", "with_fields"]);
         // Ordered collections beyond Array/Record: a double-ended queue.
         s.add("std/collections", &["Deque", "deque"]);
+        // A persisted SQL database over node's built-in synchronous SQLite.
+        s.add("std/sqlite", &["Db", "Row", "open"]);
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
         // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
         s.add(

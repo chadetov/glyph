@@ -419,6 +419,27 @@ A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
 server and suspends `main`, which keeps the process alive (see the execution
 model below).
 
+### std/sqlite (persisted SQL over node:sqlite)
+
+```
+type Row = Record<string, unknown>            // a queried row: the untrusted boundary
+type Db                                        // an open database handle
+
+open(path) -> Db                               // ":memory:" or a file path (persists)
+db.exec(sql) -> void                           // DDL / statements with no params or result
+db.run(sql, params) -> number                  // INSERT/UPDATE/DELETE; returns rows affected
+db.last_insert_id() -> number                  // last AUTOINCREMENT rowid on this connection
+db.query(sql, params) -> Array<Row>            // rows come back as Record<string, unknown>
+db.query_one(sql, params) -> Option<Row>       // first row, or None
+db.close() -> void
+```
+
+A query returns rows as `Record<string, unknown>`, so a row is a validated
+boundary like a request body: reach for `RowType.parse(row)` before trusting it,
+never a cast. SQLite has no boolean type (a flag column is an integer `0`/`1`),
+so model the storage shape and the domain shape as separate types and map
+between them. A full example is `examples/apps/tasks.glyph`.
+
 ## Importing external code (npm packages and Node builtins)
 
 A Glyph import path is emitted **verbatim** as the TypeScript module specifier:

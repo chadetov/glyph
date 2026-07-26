@@ -321,6 +321,25 @@ dq.len() -> number                                 // method
 dq.values() -> Array<T>                            // method
 ```
 
+## std/sqlite
+
+A persisted SQL database over Node's built-in synchronous SQLite
+(`node:sqlite`). `open` returns a `Db` handle; rows come back as
+`Record<string, unknown>` (the untrusted boundary), so validate each with a
+type's `.parse` before trusting it.
+
+```
+type Row                                          // Record<string, unknown>
+type Db
+open(path: string) -> Db
+db.exec(sql: string) -> void                       // method: DDL, no params/result
+db.run(sql: string, params: Array<unknown>) -> number     // method: INSERT/UPDATE/DELETE, rows affected
+db.last_insert_id() -> number                      // method: last auto-increment rowid
+db.query(sql: string, params: Array<unknown>) -> Array<Row>       // method
+db.query_one(sql: string, params: Array<unknown>) -> Option<Row>  // method: first row or None
+db.close() -> void                                 // method
+```
+
 ## std/stream
 
 Deterministic generators for property testing (sampled by index, no RNG).

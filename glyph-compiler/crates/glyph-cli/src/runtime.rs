@@ -128,6 +128,10 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/collections.ts"),
     ),
     (
+        ".glyph-runtime/std/sqlite.ts",
+        include_str!("../../../runtime/std/sqlite.ts"),
+    ),
+    (
         ".glyph-runtime/glyph-bootstrap.ts",
         include_str!("../../../runtime/glyph-bootstrap.ts"),
     ),

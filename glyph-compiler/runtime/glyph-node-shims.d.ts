@@ -128,3 +128,17 @@ declare const Buffer: {
   from(input: string, encoding: string): GlyphBuffer;
   from(bytes: ArrayLike<number> | Iterable<number>): GlyphBuffer;
 };
+
+declare module "node:sqlite" {
+  export interface StatementSync {
+    run(...params: unknown[]): { changes: number; lastInsertRowid: number };
+    all(...params: unknown[]): unknown[];
+    get(...params: unknown[]): unknown;
+  }
+  export class DatabaseSync {
+    constructor(path: string);
+    exec(sql: string): void;
+    prepare(sql: string): StatementSync;
+    close(): void;
+  }
+}

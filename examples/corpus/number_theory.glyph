@@ -1,0 +1,211 @@
+// Pure-Glyph elementary number theory: the Euclidean gcd and its extended
+// (Bezout) form, lcm, modular exponentiation and inverse, primality by trial
+// division, prime enumeration, integer factorization, divisors, and Euler's
+// totient. Glyph's `number` is a float with no integer division of its own, so
+// the one platform leaf is std/math's `floor` standing in for `div` (and
+// `sqrt` is avoided entirely: the `d * d > n` bound keeps trial division in
+// plain multiplication). Every branch is a `match`, every accumulation is
+// recursion over a spread-built Array, and `prime_sum_upto` threads a `mut`
+// total through a `for`. This is the arithmetic std/math wraps at the platform
+// edge, written in the language the whole way down.
+module number_theory
+
+import std/math
+import std/option { Option, Some, None }
+
+// The greatest common divisor of two nonnegative integers, by the Euclidean
+// algorithm: gcd(a, 0) is a, else gcd(b, a mod b). Bounded by the strictly
+// shrinking second argument.
+pub fn gcd(a: number, b: number) -> number {
+  return match b == 0 {
+    true => a,
+    false => gcd(b, a % b),
+  }
+}
+
+// The least common multiple. Zero absorbs (lcm with zero is zero); otherwise
+// a / gcd(a, b) * b, dividing before multiplying to keep the product small.
+pub fn lcm(a: number, b: number) -> number {
+  return match a == 0 {
+    true => 0,
+    false => match b == 0 {
+      true => 0,
+      false => math.floor(a / gcd(a, b)) * b,
+    },
+  }
+}
+
+// A solution to Bezout's identity: g = gcd(a, b) with a*x + b*y = g.
+pub type Bezout = { g: number, x: number, y: number }
+
+// The extended Euclidean algorithm. At b == 0 the identity is a*1 + 0*0 = a;
+// otherwise recurse on (b, a mod b) and back-substitute the quotient
+// q = floor(a / b) into the returned coefficients.
+pub fn ext_gcd(a: number, b: number) -> Bezout {
+  return match b == 0 {
+    true => { g: a, x: 1, y: 0 },
+    false => {
+      let sub = ext_gcd(b, a % b)
+      let q = math.floor(a / b)
+      { g: sub.g, x: sub.y, y: sub.x - q * sub.y }
+    },
+  }
+}
+
+// The modular inverse of `a` mod `m`, or None when gcd(a, m) is not 1 (no
+// inverse exists). The Bezout coefficient x is folded back into [0, m).
+pub fn mod_inv(a: number, m: number) -> Option<number> {
+  let e = ext_gcd(a % m, m)
+  return match e.g == 1 {
+    true => Some(((e.x % m) + m) % m),
+    false => None,
+  }
+}
+
+// Modular exponentiation: base^exp mod m, by binary (square-and-multiply)
+// exponentiation so the exponent is halved each step rather than counted down.
+pub fn mod_pow(base: number, exp: number, m: number) -> number {
+  return match m == 1 {
+    true => 0,
+    false => mod_pow_go(base % m, exp, m, 1),
+  }
+}
+
+fn mod_pow_go(base: number, exp: number, m: number, acc: number) -> number {
+  return match exp == 0 {
+    true => acc,
+    false => {
+      let next_acc = match exp % 2 == 1 {
+        true => (acc * base) % m,
+        false => acc,
+      }
+      mod_pow_go((base * base) % m, math.floor(exp / 2), m, next_acc)
+    },
+  }
+}
+
+// Primality by trial division. Numbers below 2 are not prime; 2 is the only
+// even prime; otherwise no odd d with d*d <= n may divide n.
+pub fn is_prime(n: number) -> bool {
+  return match n < 2 {
+    true => false,
+    false => match n % 2 == 0 {
+      true => n == 2,
+      false => no_odd_factor(n, 3),
+    },
+  }
+}
+
+fn no_odd_factor(n: number, d: number) -> bool {
+  return match d * d > n {
+    true => true,
+    false => match n % d == 0 {
+      true => false,
+      false => no_odd_factor(n, d + 2),
+    },
+  }
+}
+
+// Every prime in [2, n], ascending, grown by spread as the scan finds each one.
+pub fn primes_upto(n: number) -> Array<number> {
+  return collect_primes(2, n, [])
+}
+
+fn collect_primes(i: number, n: number, acc: Array<number>) -> Array<number> {
+  return match i > n {
+    true => acc,
+    false => match is_prime(i) {
+      true => collect_primes(i + 1, n, [...acc, i]),
+      false => collect_primes(i + 1, n, acc),
+    },
+  }
+}
+
+// The prime factorization of `n >= 2` as an ascending list with multiplicity
+// (12 factors as [2, 2, 3]). The smallest divisor d is pulled repeatedly before
+// d advances; once d*d exceeds the remainder that remainder is itself prime.
+pub fn factorize(n: number) -> Array<number> {
+  return match n < 2 {
+    true => [],
+    false => factor_from(n, 2),
+  }
+}
+
+fn factor_from(n: number, d: number) -> Array<number> {
+  return match n < 2 {
+    true => [],
+    false => match d * d > n {
+      true => [n],
+      false => match n % d == 0 {
+        true => [d, ...factor_from(math.floor(n / d), d)],
+        false => factor_from(n, d + 1),
+      },
+    },
+  }
+}
+
+// The distinct prime factors of `n`, ascending (12 gives [2, 3]).
+pub fn prime_factors(n: number) -> Array<number> {
+  return dedup(factorize(n))
+}
+
+// Drop runs of equal neighbors from an already-ascending list.
+fn dedup(xs: Array<number>) -> Array<number> {
+  return match xs {
+    [] => [],
+    [x] => [x],
+    [a, b, ...rest] => match a == b {
+      true => dedup([b, ...rest]),
+      false => [a, ...dedup([b, ...rest])],
+    },
+  }
+}
+
+// Every divisor of `n >= 1`, ascending, from 1 to n inclusive.
+pub fn divisors(n: number) -> Array<number> {
+  return match n < 1 {
+    true => [],
+    false => collect_divisors(1, n, []),
+  }
+}
+
+fn collect_divisors(i: number, n: number, acc: Array<number>) -> Array<number> {
+  return match i > n {
+    true => acc,
+    false => match n % i == 0 {
+      true => collect_divisors(i + 1, n, [...acc, i]),
+      false => collect_divisors(i + 1, n, acc),
+    },
+  }
+}
+
+// Euler's totient: the count of integers in [1, n] coprime to n, computed from
+// the distinct prime factors as n * product((p - 1) / p). One and below are
+// handled directly.
+pub fn totient(n: number) -> number {
+  return match n < 1 {
+    true => 0,
+    false => match n == 1 {
+      true => 1,
+      false => totient_from(prime_factors(n), n),
+    },
+  }
+}
+
+fn totient_from(primes: Array<number>, acc: number) -> number {
+  return match primes {
+    [] => acc,
+    [p, ...rest] => totient_from(rest, math.floor(acc / p) * (p - 1)),
+  }
+}
+
+// The sum of every prime in [2, n], threading a running total through a `for`
+// with a single `mut` reassignment. The imperative form of the same fold the
+// recursive helpers use, kept here to exercise the loop path.
+pub fn prime_sum_upto(n: number) -> number {
+  let total = 0
+  for p in primes_upto(n) {
+    mut total = total + p
+  }
+  return total
+}

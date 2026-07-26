@@ -440,6 +440,24 @@ never a cast. SQLite has no boolean type (a flag column is an integer `0`/`1`),
 so model the storage shape and the domain shape as separate types and map
 between them. A full example is `examples/apps/tasks.glyph`.
 
+### std/decimal (exact money math, no floats)
+
+```
+type Decimal
+decimal(text) -> Result<Decimal, string>   // parse "10.50"; Err on malformed, never NaN
+from_int(units, scale) -> Decimal            // from_int(1050, 2) is 10.50
+zero: Decimal
+d.add(o) / d.sub(o) / d.mul(o) -> Decimal    // methods; exact
+d.div(o, scale) -> Decimal                   // method; rounds half away from zero to `scale` digits
+d.round(scale) / d.neg() / d.abs() -> Decimal
+d.cmp(o) -> int    d.eq(o) -> bool    d.is_zero() -> bool    d.is_negative() -> bool
+d.to_string() -> string    d.to_number() -> number   // to_number is lossy, display only
+```
+
+Use this for money, never `number`: JS `number` is a float (`0.1 + 0.2 != 0.3`)
+and loses precision past 2^53. Glyph has no operator overloading, so operations
+are methods (`price.add(tax)`). Construction validates and returns a `Result`.
+
 ## Importing external code (npm packages and Node builtins)
 
 A Glyph import path is emitted **verbatim** as the TypeScript module specifier:

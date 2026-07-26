@@ -134,11 +134,35 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Money doesn't run on floats</p>
+        <p>
+          The gap that would end a fintech evaluation on the spot is doing money
+          on IEEE-754 <code>number</code>, where <code>0.1 + 0.2</code> is not
+          <code>0.3</code> and values past 2<sup>53</sup> quietly lose precision.
+          <code>std/decimal</code> is exact base-10 fixed-point over BigInt: an
+          arbitrary-precision integer with a fixed number of fractional digits, so
+          addition, subtraction, and multiplication are exact and division takes an
+          explicit scale and rounding. A malformed amount parses to an
+          <code>Err</code>, never a silent <code>NaN</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">std/decimal</span>
+<pre>let price = decimal("10.50")?
+let tax   = decimal("0.84")?
+price.add(tax).to_string()        <span class="cm"># "11.34", exact</span>
+
+decimal("2")?.div(decimal("3")?, 2).to_string()   <span class="cm"># "0.67", half away from zero</span>
+decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 2^53</span></pre>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), digit separators, and a spec section owning the JS-inherited semantics.</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>std/decimal</code> for exact money math, digit separators, and a spec section owning the JS-inherited semantics.</p>
         </div>
         <div class="status-card next">
           <p class="h">The honest edge</p>

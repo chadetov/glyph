@@ -1,0 +1,206 @@
+// Pure-Glyph fixed-point decimal arithmetic. A `Decimal` is an integer
+// `mantissa` scaled by a nonnegative power of ten (`value = mantissa / 10^scale`),
+// so 12.34 is `{ mantissa: 1234, scale: 2 }`. Addition and subtraction bring
+// both operands to a common scale; multiplication adds the scales; comparison
+// cross-multiplies to the wider scale. Parsing walks the text one character at a
+// time and returns a `Result`, and `to_string` reconstructs the decimal point
+// with integer division and modulo. The only platform leaves are std/math's
+// `floor`/`abs` (Glyph's `number` has no integer division of its own) and
+// std/string's `split`/`len`/`from` at the text boundary; every branch, digit,
+// and carry is Glyph.
+module decimal
+
+import std/math
+import std/string
+import std/result { Result, Ok, Err }
+
+// value = mantissa / 10^scale, with scale >= 0.
+pub type Decimal = {
+  mantissa: number,
+  scale: number,
+}
+
+// Ten raised to a nonnegative integer power, by recursion.
+fn pow10(n: number) -> number {
+  return match n <= 0 {
+    true => 1,
+    false => 10 * pow10(n - 1),
+  }
+}
+
+// A whole number as a scale-0 decimal.
+pub fn from_int(n: number) -> Decimal {
+  return { mantissa: n, scale: 0 }
+}
+
+// The same value re-expressed at a larger scale (target >= d.scale), padding the
+// mantissa with trailing zeros. Widening never loses precision.
+fn widen(d: Decimal, target: number) -> Decimal {
+  return { mantissa: d.mantissa * pow10(target - d.scale), scale: target }
+}
+
+// The wider of two scales, the common ground for an aligned operation.
+fn common(a: Decimal, b: Decimal) -> number {
+  return match a.scale >= b.scale {
+    true => a.scale,
+    false => b.scale,
+  }
+}
+
+pub fn add(a: Decimal, b: Decimal) -> Decimal {
+  let s = common(a, b)
+  return { mantissa: widen(a, s).mantissa + widen(b, s).mantissa, scale: s }
+}
+
+pub fn neg(a: Decimal) -> Decimal {
+  return { mantissa: 0 - a.mantissa, scale: a.scale }
+}
+
+pub fn sub(a: Decimal, b: Decimal) -> Decimal {
+  return add(a, neg(b))
+}
+
+// Multiplication adds the scales: (m_a/10^s_a)(m_b/10^s_b) = m_a m_b / 10^(s_a+s_b).
+pub fn mul(a: Decimal, b: Decimal) -> Decimal {
+  return { mantissa: a.mantissa * b.mantissa, scale: a.scale + b.scale }
+}
+
+// -1, 0, or 1 by value, comparing at the common scale.
+pub fn compare(a: Decimal, b: Decimal) -> number {
+  let s = common(a, b)
+  let am = widen(a, s).mantissa
+  let bm = widen(b, s).mantissa
+  return match am == bm {
+    true => 0,
+    false => match am < bm {
+      true => 0 - 1,
+      false => 1,
+    },
+  }
+}
+
+pub fn equals(a: Decimal, b: Decimal) -> bool {
+  return compare(a, b) == 0
+}
+
+// Drop trailing zero fraction digits: while the mantissa is a multiple of ten
+// and the scale is positive, divide the mantissa by ten and lower the scale.
+// `1.20` normalizes to `1.2`, `5.00` to `5`.
+pub fn normalize(d: Decimal) -> Decimal {
+  return match d.scale <= 0 {
+    true => d,
+    false => match d.mantissa % 10 == 0 {
+      true => normalize({ mantissa: math.floor(d.mantissa / 10), scale: d.scale - 1 }),
+      false => d,
+    },
+  }
+}
+
+// Left-pad `s` with zeros until it is at least `width` characters wide.
+fn pad_left(s: string, width: number) -> string {
+  return match string.len(s) >= width {
+    true => s,
+    false => pad_left("0" + s, width),
+  }
+}
+
+// Render the decimal with an explicit point. The integer part is the truncated
+// quotient of the absolute mantissa by 10^scale; the fraction is the remainder,
+// zero-padded to `scale` digits. Scale 0 renders as a bare integer.
+pub fn to_string(d: Decimal) -> string {
+  let sign = match d.mantissa < 0 {
+    true => "-",
+    false => "",
+  }
+  let m = math.abs(d.mantissa)
+  return match d.scale <= 0 {
+    true => sign + string.from(m),
+    false => {
+      let divisor = pow10(d.scale)
+      let int_part = math.floor(m / divisor)
+      let frac_part = m % divisor
+      let frac_text = pad_left(string.from(frac_part), d.scale)
+      sign + string.from(int_part) + "." + frac_text
+    },
+  }
+}
+
+// The value 0..9 of a single decimal-digit character, or None-as-Err otherwise.
+fn digit_value(c: string) -> Result<number, string> {
+  return match c {
+    "0" => Ok(0),
+    "1" => Ok(1),
+    "2" => Ok(2),
+    "3" => Ok(3),
+    "4" => Ok(4),
+    "5" => Ok(5),
+    "6" => Ok(6),
+    "7" => Ok(7),
+    "8" => Ok(8),
+    "9" => Ok(9),
+    else => Err("not a digit: '" + c + "'"),
+  }
+}
+
+// Fold the digit characters of `s` into a single integer, most significant
+// first. An empty string is rejected; any non-digit fails the whole parse. The
+// `?` propagates the first bad character out to the caller.
+fn digits_to_int(s: string, i: number, acc: number) -> Result<number, string> {
+  return match i >= string.len(s) {
+    true => Ok(acc),
+    false => {
+      let d = digit_value(s[i])?
+      return digits_to_int(s, i + 1, acc * 10 + d)
+    },
+  }
+}
+
+fn parse_unsigned(body: string) -> Result<Decimal, string> {
+  return match string.len(body) == 0 {
+    true => Err("empty number"),
+    false => {
+      let parts = string.split(body, ".")
+      return match parts {
+        [whole] => {
+          let m = digits_to_int(whole, 0, 0)?
+          return Ok({ mantissa: m, scale: 0 })
+        },
+        [whole, frac] => match string.len(frac) == 0 {
+          true => Err("trailing decimal point"),
+          false => {
+            let wi = digits_to_int(whole, 0, 0)?
+            let fi = digits_to_int(frac, 0, 0)?
+            let scale = string.len(frac)
+            return Ok({ mantissa: wi * pow10(scale) + fi, scale: scale })
+          },
+        },
+        else => Err("more than one decimal point"),
+      }
+    },
+  }
+}
+
+// Parse a decimal from text: an optional leading `-`, decimal digits, and at
+// most one `.` with a nonempty fraction. Returns the reconstructed `Decimal` or
+// a human-readable error describing the first problem.
+pub fn parse(text: string) -> Result<Decimal, string> {
+  return match string.len(text) == 0 {
+    true => Err("empty input"),
+    false => match text[0] == "-" {
+      true => {
+        let d = parse_unsigned(text_after(text, 1))?
+        return Ok(neg(d))
+      },
+      false => parse_unsigned(text),
+    },
+  }
+}
+
+// The suffix of `s` starting at index `start`, built character by character so
+// the module leans on no string-slice platform call.
+fn text_after(s: string, start: number) -> string {
+  return match start >= string.len(s) {
+    true => "",
+    false => s[start] + text_after(s, start + 1),
+  }
+}

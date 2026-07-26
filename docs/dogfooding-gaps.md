@@ -376,7 +376,7 @@ under `tsc --strict`, and ran with correct output across the full 0..2^32-1 rang
 Writing a *driver in another module* that matched the module's error union
 directly surfaced one new gap.
 
-- **G22. [ARCHITECTURE FORK — reported, not implemented] Matching an imported
+- **G22. [RESOLVED] Matching an imported
   tagged union's no-payload (nullary) variants is rejected.** A second module
   that does `match e { WrongOctetCount(w) => .., EmptyOctet => .., .. }` on an
   `e: ParseError` imported from another module is rejected: every arm after the

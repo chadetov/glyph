@@ -800,10 +800,15 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
-### Next · improve-glyph loop batch 5
+### 0.1.24 — Shipped · batch 5 completion, shifts, and imported-union resolution
 
-**Status: in progress.** Continuing the dogfood loop with pure-Glyph corpus
-modules, plus the compiler correctness work each one surfaces:
+**Status: shipped.** The batch-5 completion run plus the headline compiler work of
+this cycle: the **imported-union type-resolution pass** (the proper fix for the
+recurring cross-module-`Unknown` root cause, described in the G22 item below) and
+the **shift operators** completing the D36 family. Also widened the bundled node
+`Buffer` shim to the byte boundary (`Iterable<number>`, a length and index
+signature, a byte-array `from` overload) so a pure-Glyph base64 codec type-checks,
+and added corpus modules. Every change test-gated; 675 tests green.
 
 - **`examples/corpus/casing.glyph`** — identifier case conversion (snake, kebab,
   camel, pascal, constant, title). The word splitter breaks on separators and the
@@ -824,19 +829,20 @@ modules, plus the compiler correctness work each one surfaces:
   `2^(32-prefix)` instead), broadcast/host-count, and containment. Builds under
   `tsc --strict` and runs correctly across the full 0..2^32-1 range. The module
   owns its `Result` error type and renders it with an in-module `explain`.
-- **Cross-module nullary-variant match — reported as an architecture fork (G22),
-  not implemented.** Writing a driver that matched `ipv4`'s imported error union
-  directly surfaced a real block: an imported type annotation lowers to
-  `Ty::Unknown` in the consuming module (its declaration lives in another
-  `Module`), so the reachability check reads every bare no-payload variant arm
-  (`EmptyOctet =>`) as an irrefutable binding and draws a false E0216 on every arm
-  below it; the emitter is blind the same way. The 0.1.21 record-payload fix gave
-  the *emitter* a cross-module variant registry via `EmitContext`, but the
-  typechecker is a pure single-`Module` query with no project context, so the fix
-  is a genuine architecture decision (thread a project variant registry into the
-  checker vs. keep it single-module and render unions in-module). Options and
-  tradeoffs in `docs/dogfooding-gaps.md` G22. Current shipped stance: a module
-  renders its own error union (option 3), which is what `ipv4.glyph` does.
+- **Cross-module nullary-variant match — FIXED (the imported-union type-resolution
+  pass).** Matching `ipv4`'s imported error union directly surfaced the recurring
+  root cause: an imported type annotation lowers to `Ty::Unknown` in the consuming
+  module, so the reachability check read every bare no-payload variant arm
+  (`EmptyOctet =>`) as an irrefutable binding (false E0216) and the emitter was
+  blind the same way. Resolved on two levels: a PascalCase bare ident is now
+  treated as a variant reference in both the reachability check and the emitter
+  (0.1.23), and — the proper fix — the `DeclTyResolver` gained
+  `imported_union_of_variant`, whose salsa implementation follows a variant's
+  `ImportNamed` symbol to its source module and returns the owning union's variant
+  set, so an imported-union `match` is now held to full exhaustiveness (a missing
+  variant is a real E0200 naming the union). This retires the whole class the loop
+  kept mining (record-payload bind, nullary match). G22 in
+  `docs/dogfooding-gaps.md` is resolved.
 - **Bitwise shift operators `<< >> >>>`** (D36) — dogfooding posix path logic and
   a pure-Glyph mulberry32 PRNG surfaced the last parked bit of the D36 operator
   family. The angle-bracket ambiguity turned out not to need lexer changes:

@@ -1,0 +1,122 @@
+// Pure-Glyph structured logging, the logic behind std/log. Levels are ordered
+// by severity so a threshold can filter records and route warn/error to stderr;
+// an entry serializes to one JSON line with the level, message, timestamp, and
+// any typed fields, escaping each string by hand. The `Level` style is a D30
+// string-literal union, so `severity`'s match is exhaustive without an `else`:
+// adding a level forces a new arm. The only platform leaf is std/string's
+// `len`/`from` and std/array's `len`; every severity comparison, every branch,
+// and every character of serialized output is Glyph.
+module log_line
+
+import std/string
+import std/array
+
+// The four log levels, ordered by increasing severity. A string-literal union
+// (D30): a `match` over it must cover every case, so a new level cannot be
+// forgotten.
+pub type Level = "debug" | "info" | "warn" | "error"
+
+// A structured field value: the scalar JSON forms a log field can carry.
+pub type FieldValue =
+  | VStr({ value: string })
+  | VNum({ value: number })
+  | VBool({ value: bool })
+
+// One structured field: a key and its typed value.
+pub type Field = { key: string, value: FieldValue }
+
+// A log record before serialization: level, message, timestamp, and any extra
+// structured fields.
+pub type Entry = {
+  level: Level,
+  message: string,
+  time: string,
+  fields: Array<Field>,
+}
+
+// Numeric severity for ordering. Exhaustive over `Level` (D30): adding a level
+// forces a new arm here.
+pub fn severity(level: Level) -> number {
+  return match level {
+    "debug" => 0,
+    "info" => 1,
+    "warn" => 2,
+    "error" => 3,
+  }
+}
+
+// A record at or above `threshold` should be emitted.
+pub fn should_log(threshold: Level, level: Level) -> bool {
+  return severity(level) >= severity(threshold)
+}
+
+// warn and error go to stderr; debug and info to stdout.
+pub fn to_stderr(level: Level) -> bool {
+  return severity(level) >= severity("warn")
+}
+
+// Escape one character into its JSON representation. The five structural
+// escapes are named; everything else passes through verbatim.
+fn escape_char(c: string) -> string {
+  return match c == "\"" {
+    true => "\\\"",
+    false => match c == "\\" {
+      true => "\\\\",
+      false => match c == "\n" {
+        true => "\\n",
+        false => match c == "\t" {
+          true => "\\t",
+          false => match c == "\r" {
+            true => "\\r",
+            false => c,
+          },
+        },
+      },
+    },
+  }
+}
+
+// Escape every character of `s`, threaded by index.
+fn escape_from(s: string, i: number) -> string {
+  return match i >= string.len(s) {
+    true => "",
+    false => escape_char(s[i]) + escape_from(s, i + 1),
+  }
+}
+
+// A JSON string literal: the escaped body wrapped in double quotes.
+pub fn quote(s: string) -> string {
+  return "\"" + escape_from(s, 0) + "\""
+}
+
+// Render one field value as its JSON token.
+fn render_value(v: FieldValue) -> string {
+  return match v {
+    VStr({ value }) => quote(value),
+    VNum({ value }) => string.from(value),
+    VBool({ value }) => match value {
+      true => "true",
+      false => "false",
+    },
+  }
+}
+
+// Serialize the extra fields, each prefixed with a comma so they append after
+// the fixed head. Recurses over the list by index.
+fn render_fields(fields: Array<Field>, i: number) -> string {
+  return match i >= array.len(fields) {
+    true => "",
+    false => {
+      let f = fields[i]
+      let pair = "," + quote(f.key) + ":" + render_value(f.value)
+      return pair + render_fields(fields, i + 1)
+    },
+  }
+}
+
+// One JSON log line: the fixed level/msg/time head plus any structured fields,
+// e.g. `{"level":"info","msg":"ok","time":"...","status":200}`.
+pub fn format_line(e: Entry) -> string {
+  let head = "{" + quote("level") + ":" + quote(e.level) + "," + quote("msg") + ":" + quote(e.message) + "," + quote("time") + ":" + quote(e.time)
+  return head + render_fields(e.fields, 0) + "}"
+}

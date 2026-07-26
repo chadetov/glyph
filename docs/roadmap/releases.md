@@ -41,16 +41,19 @@ recorded (discriminated unions, full TS7-native `gen dts`).
   array patterns over a new `http.segments(req)` (`/tasks/{id}` → `["tasks", id]`,
   binding the param). Verified routing live. Combines with `--client` (handler
   stubs are `handle_`-prefixed to stay unique).
-- **Discriminated unions in generation** (M → **L, blocked on runtime rep**).
-  *Finding while building the mapper:* a Glyph tagged union tags by a `tag` field
-  carrying the **constructor name** (`{tag:"Cat"}`), whereas an OpenAPI
-  `discriminator` selects a variant by an **arbitrary property** (`petType`)
-  carrying a **string value** (`"cat"`). So a generated tagged union's descriptor
-  would reject the real wire object — the same class of wire-mismatch that makes
-  string enums narrow to `string`. A faithful mapping needs either a
-  discriminator-aware union runtime representation or a new descriptor that reads
-  a named property. Treat as its own runtime-representation task, not a mapper
-  tweak; may slip past 0.1.5.
+- **Discriminated unions in generation** — ✅ **done (OpenAPI in 0.1.5-era;
+  TypeScript `.d.ts` in 0.1.32).** *Original finding while building the mapper:* a
+  Glyph tagged union tags by a `tag` field carrying the **constructor name**
+  (`{tag:"Cat"}`), whereas a discriminator selects a variant by an **arbitrary
+  property** (`petType`) carrying a **string value** (`"cat"`). The resolution
+  was not a new union runtime representation but a generated `parse_<Name>`
+  dispatcher: it reads the named discriminator property and validates into the
+  right variant record, bridging the wire object to the tagged union. OpenAPI
+  `discriminator` schemas used this first; 0.1.32 extends it to a bare TypeScript
+  `.d.ts` union by *detecting* the tag (a property present in every variant whose
+  type is a distinct one-element string enum) and generating a record per inline
+  variant. Verified end to end (accepts valid variants, rejects wrong shapes and
+  unknown discriminators).
 - **`gen dts` on TypeScript 7** (M/L) — 🟨 **partially done; full support
   deferred.** `gen dts` now resolves TypeScript from the *target file's own
   project* first, so a project that pins `typescript@6` (the norm) just works
@@ -810,6 +813,33 @@ it surfaced:
   break multi-line chains. Documented in the D1 spec note with the `return`
   workaround.
 
+### 0.1.32 — Shipped · Fluent-await fix and TypeScript discriminated unions in `gen dts`
+
+**Status: shipped.** Two deferred correctness items, addressed together.
+
+- **Fluent sync-then-async `await`.** `await` now applies to the *whole chain*
+  when the innermost call is a value method (`await coll.find({}).to_array()`
+  awaits `to_array`, the async terminal), while the Result idiom still awaits the
+  head call (`await load(p).map_err(f)` stays `(await load(p)).map_err(f)`). The
+  two are told apart with no type information (colorless async erases which call
+  is async) by a structural signal: a value-method head is fluent, a bare or
+  namespaced function head is the Result idiom. The mongodb cursor pattern no
+  longer needs the split-cursor workaround; the databases guide is updated.
+- **TypeScript discriminated unions in `gen dts`.** A `.d.ts` union of object
+  variants sharing a string-literal tag (`{ petType: "cat"; ... } | { petType:
+  "dog"; ... }`) now materializes as a Glyph tagged union of generated variant
+  records plus a `parse_<Name>` dispatcher that reads the tag and validates into
+  the right variant. Previously this emitted `type X = unknown` with a note. The
+  discriminator-dispatch machinery already existed for OpenAPI; the new work is
+  detecting the tag in a bare `oneOf` (a property present in every variant whose
+  type is a distinct one-element string enum) and generating a record per inline
+  variant. Verified end to end: the generated `parse_Pet` accepts a valid `cat`
+  and `dog`, rejects a `cat` with the wrong shape, and rejects an unknown
+  discriminator, and the whole module type-checks under `tsc --strict`.
+- **Test-gated:** emit tests for the fluent/namespaced/Result await cases, a gen
+  unit test for the inline union (plus the primitive-`oneOf`-stays-`unknown`
+  regression), and a run-verified dispatcher. 690 tests green.
+
 ### 0.1.31 — Shipped · Taint tracking (std/taint)
 
 **Status: shipped.** The security item of the correctness trip: untrusted input
@@ -1176,14 +1206,17 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
-- **Await-spine for fluent sync-then-async chains** (M). `await` binds to the
-  innermost call of a chain, which is right when that call is the async one
+- **Await-spine for fluent sync-then-async chains** — ✅ **done (0.1.32).** `await`
+  used to bind to the innermost call of a chain, right for the Result idiom
   (`await load(p).map_err(f)`) but wrong for a fluent API whose synchronous call
-  precedes the async one (mongodb's `find(...).toArray()` awaits `find`, not
-  `toArray`). Today the workaround is to bind the cursor and await `toArray` on
-  its own line (documented in `docs/guide/databases.md`). The fix is to await the
-  outermost Promise-typed call in the spine rather than the innermost call, which
-  needs the spine walk to consult the checker's type of each call.
+  precedes the async one (mongodb's `find(...).toArray()` awaited `find`). Because
+  colorless async erases which call is async, the fix uses a structural signal
+  rather than a type: a value-method head (`coll.find(...)`) is fluent, so the
+  whole chain is awaited; a bare or namespaced function head (`load(...)`,
+  `http.get(...)`) is the Result idiom, so the head call is awaited. The
+  split-cursor workaround in `docs/guide/databases.md` is removed. Remaining edge
+  (documented, not regressed): a fluent terminal that returns a `Result` *and* is
+  used with `?` keeps the old innermost-await on the `?` path only.
 - **MCP write tier: `glyph_fix` + `glyph_rename`** (M). The MCP server today is five
   read-only query tools; the write-capable tier is these two, done together. Both
   **return edits** (a list of `{range, newText}`), never mutating files, so the

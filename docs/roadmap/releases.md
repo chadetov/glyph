@@ -817,6 +817,26 @@ modules, plus the compiler correctness work each one surfaces:
   the surfacing case, unbounded recursion). The empty-block arm now emits a
   `break` inside a `switch` case regardless of return/statement position. One
   emit test.
+- **`examples/corpus/ipv4.glyph`** — IPv4/CIDR address arithmetic: dotted-quad
+  parse with canonical-form validation, 32-bit address values, subnet masking done
+  with integer arithmetic (JS bitwise `&` coerces through a signed int32 and turns
+  any value past 2^31 negative, so the mask is computed from the block size
+  `2^(32-prefix)` instead), broadcast/host-count, and containment. Builds under
+  `tsc --strict` and runs correctly across the full 0..2^32-1 range. The module
+  owns its `Result` error type and renders it with an in-module `explain`.
+- **Cross-module nullary-variant match — reported as an architecture fork (G22),
+  not implemented.** Writing a driver that matched `ipv4`'s imported error union
+  directly surfaced a real block: an imported type annotation lowers to
+  `Ty::Unknown` in the consuming module (its declaration lives in another
+  `Module`), so the reachability check reads every bare no-payload variant arm
+  (`EmptyOctet =>`) as an irrefutable binding and draws a false E0216 on every arm
+  below it; the emitter is blind the same way. The 0.1.21 record-payload fix gave
+  the *emitter* a cross-module variant registry via `EmitContext`, but the
+  typechecker is a pure single-`Module` query with no project context, so the fix
+  is a genuine architecture decision (thread a project variant registry into the
+  checker vs. keep it single-module and render unions in-module). Options and
+  tradeoffs in `docs/dogfooding-gaps.md` G22. Current shipped stance: a module
+  renders its own error union (option 3), which is what `ipv4.glyph` does.
 
 ### 0.2.x — Prove it (the evidence gate)
 

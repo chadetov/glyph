@@ -1,0 +1,259 @@
+// Pure-Glyph IPv4 address and CIDR arithmetic. An address is its 32-bit value
+// held as a plain number (0..4294967295, which a double represents exactly);
+// std/net would lean on the platform, but here parsing, validation, masking,
+// and formatting are all Glyph. Masks are computed with `/`, `%`, and `*`
+// rather than the bitwise operators, because a 32-bit AND in JavaScript coerces
+// through a signed int32 and turns any value past 2^31 negative; integer
+// arithmetic on the block size (`2^(32-prefix)`) stays correct across the whole
+// range. Every parse failure is a `Result` `Err` carrying enough to explain it.
+module ipv4
+
+import std/math
+import std/string
+import std/array
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+
+// A 32-bit IPv4 address as a single unsigned integer.
+pub type Ipv4 = { value: number }
+
+// A CIDR block: a network address paired with a prefix length in 0..32.
+pub type Cidr = { network: Ipv4, prefix: number }
+
+// Why a string failed to parse as an address or block.
+pub type ParseError =
+  | WrongOctetCount({ found: number })
+  | EmptyOctet
+  | LeadingZero({ text: string })
+  | NonDigit({ text: string })
+  | OctetTooLarge({ value: number })
+  | MissingPrefix
+  | PrefixOutOfRange({ value: number })
+  | HostBitsSet
+
+// The place values of the four octets, most significant first.
+const OCTET_A: number = 16777216
+
+const OCTET_B: number = 65536
+
+const OCTET_C: number = 256
+
+// The value of decimal digit `c` (0..9), or None when `c` is not a digit.
+fn digit_value(c: string) -> Option<number> {
+  let digits = "0123456789"
+  return find_char(
+    digits,
+    c,
+    0,
+  )
+}
+
+// The index of single char `needle` in `hay` at or after `from`, or None.
+fn find_char(
+  hay: string,
+  needle: string,
+  from: number,
+) -> Option<number> {
+  return match from >= string.len(hay) {
+    true => None,
+    false => match hay[from] == needle {
+      true => Some(from),
+      false => find_char(
+        hay,
+        needle,
+        from + 1,
+      ),
+    },
+  }
+}
+
+// Fold the digits of `s` from index `i` into `acc`, failing on any non-digit.
+fn fold_digits(
+  s: string,
+  i: number,
+  acc: number,
+) -> Result<number, ParseError> {
+  return match i >= string.len(s) {
+    true => Ok(acc),
+    false => match digit_value(s[i]) {
+      None => Err(NonDigit({ text: s })),
+      Some(d) => fold_digits(
+        s,
+        i + 1,
+        acc * 10 + d,
+      ),
+    },
+  }
+}
+
+// Parse one dotted-quad octet: non-empty, all digits, canonical (no leading
+// zero past a lone "0"), and in range 0..255.
+fn parse_octet(s: string) -> Result<number, ParseError> {
+  let n = string.len(s)
+  match n == 0 {
+    true => {
+      return Err(EmptyOctet)
+    },
+    false => {},
+  }
+  match n > 1 && s[0] == "0" {
+    true => {
+      return Err(LeadingZero({ text: s }))
+    },
+    false => {},
+  }
+  let value = fold_digits(
+    s,
+    0,
+    0,
+  )?
+  return match value > 255 {
+    true => Err(OctetTooLarge({ value: value })),
+    false => Ok(value),
+  }
+}
+
+// Parse a dotted-quad string ("a.b.c.d") into an address.
+pub fn parse(text: string) -> Result<Ipv4, ParseError> {
+  let parts = string.split(text, ".")
+  let count = array.len(parts)
+  match count == 4 {
+    true => {},
+    false => {
+      return Err(WrongOctetCount({ found: count }))
+    },
+  }
+  let a = parse_octet(parts[0])?
+  let b = parse_octet(parts[1])?
+  let c = parse_octet(parts[2])?
+  let d = parse_octet(parts[3])?
+  return Ok({ value: a * OCTET_A + b * OCTET_B + c * OCTET_C + d })
+}
+
+// Render an address back to its dotted-quad string.
+pub fn to_string(ip: Ipv4) -> string {
+  let a = math.floor(ip.value / OCTET_A) % 256
+  let b = math.floor(ip.value / OCTET_B) % 256
+  let c = math.floor(ip.value / OCTET_C) % 256
+  let d = ip.value % 256
+  return number.to_string(a) + "." + number.to_string(b) + "." + number.to_string(c) + "." + number.to_string(d)
+}
+
+// The number of addresses in a block of the given prefix: 2^(32 - prefix).
+fn block_size(prefix: number) -> number {
+  return power_of_two(32 - prefix)
+}
+
+// 2^e for a non-negative exponent, by repeated doubling.
+fn power_of_two(e: number) -> number {
+  return match e <= 0 {
+    true => 1,
+    false => 2 * power_of_two(e - 1),
+  }
+}
+
+// Parse "a.b.c.d/prefix" into a CIDR block. The prefix must be 0..32, and the
+// address must have no bits set below the prefix (a canonical network address).
+pub fn parse_cidr(text: string) -> Result<Cidr, ParseError> {
+  let slash = find_char(
+    text,
+    "/",
+    0,
+  )
+  match slash {
+    None => {
+      return Err(MissingPrefix)
+    },
+    Some(at) => {
+      let addr_text = substring(
+        text,
+        0,
+        at,
+      )
+      let prefix_text = substring(
+        text,
+        at + 1,
+        string.len(text),
+      )
+      let ip = parse(addr_text)?
+      let prefix = fold_digits(
+        prefix_text,
+        0,
+        0,
+      )?
+      match prefix > 32 {
+        true => {
+          return Err(PrefixOutOfRange({ value: prefix }))
+        },
+        false => {},
+      }
+      let size = block_size(prefix)
+      let host = ip.value % size
+      return match host == 0 {
+        true => Ok({ network: ip, prefix: prefix }),
+        false => Err(HostBitsSet),
+      }
+    },
+  }
+}
+
+// The substring `s[start, end)`, threaded character by character (Glyph has no
+// slice syntax; std/string leaves it to the platform).
+fn substring(
+  s: string,
+  start: number,
+  end: number,
+) -> string {
+  return match start >= end || start >= string.len(s) {
+    true => "",
+    false => s[start] + substring(
+      s,
+      start + 1,
+      end,
+    ),
+  }
+}
+
+// The broadcast address of a block: the highest address it contains.
+pub fn broadcast(block: Cidr) -> Ipv4 {
+  let size = block_size(block.prefix)
+  return { value: block.network.value + size - 1 }
+}
+
+// The number of usable host addresses in a block. A /31 and /32 have no room
+// for the network/broadcast pair, so their usable count is reported as 0.
+pub fn host_count(block: Cidr) -> number {
+  let size = block_size(block.prefix)
+  return match size <= 2 {
+    true => 0,
+    false => size - 2,
+  }
+}
+
+// Is `ip` inside `block`? True when it falls in `[network, broadcast]`.
+pub fn contains(block: Cidr, ip: Ipv4) -> bool {
+  let low = block.network.value
+  let high = low + block_size(block.prefix) - 1
+  return low <= ip.value && ip.value <= high
+}
+
+// Render a block as "network/prefix".
+pub fn cidr_to_string(block: Cidr) -> string {
+  return to_string(block.network) + "/" + number.to_string(block.prefix)
+}
+
+// A human-readable reason for a parse failure. The module renders its own error
+// union so a caller in another module can report a failure without matching the
+// union's variants across the module boundary.
+pub fn explain(e: ParseError) -> string {
+  return match e {
+    WrongOctetCount(w) => "expected 4 octets, found " + number.to_string(w.found),
+    EmptyOctet => "an octet was empty",
+    LeadingZero(l) => "octet '" + l.text + "' has a leading zero",
+    NonDigit(n) => "octet '" + n.text + "' has a non-digit",
+    OctetTooLarge(o) => "octet " + number.to_string(o.value) + " exceeds 255",
+    MissingPrefix => "missing '/prefix' suffix",
+    PrefixOutOfRange(p) => "prefix " + number.to_string(p.value) + " exceeds 32",
+    HostBitsSet => "address has host bits set below the prefix",
+  }
+}

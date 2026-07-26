@@ -363,3 +363,76 @@ recursive tagged-union tree formatter (a `Json` value plus a `render`, mirroring
 
   Recommendation deferred to the orchestrator. Option 1 is a one-line doc note;
   option 2 is the principled fix but a genuine D1 revision.
+
+## Round 5 — re-dogfooding stdlib logic in real Glyph
+
+Continuing the stdlib-in-Glyph loop. A pure-Glyph IPv4/CIDR module
+(`examples/corpus/ipv4.glyph`: dotted-quad parse with canonical-form validation,
+32-bit address arithmetic, subnet masking via integer arithmetic rather than the
+sign-lossy JS bitwise ops, broadcast/host-count, and containment) wrote, built
+under `tsc --strict`, and ran with correct output across the full 0..2^32-1 range
+(255.255.255.255 → 4294967295, /8 → 16777214 hosts). The module owns its error
+`Result` type and renders it with an in-module `explain(e: ParseError) -> string`.
+Writing a *driver in another module* that matched the module's error union
+directly surfaced one new gap.
+
+- **G22. [ARCHITECTURE FORK — reported, not implemented] Matching an imported
+  tagged union's no-payload (nullary) variants is rejected.** A second module
+  that does `match e { WrongOctetCount(w) => .., EmptyOctet => .., .. }` on an
+  `e: ParseError` imported from another module is rejected: every arm after the
+  first bare nullary variant (`EmptyOctet`) draws a false E0216 "unreachable match
+  arm." Root cause: an imported type annotation lowers to `Ty::Unknown` in the
+  consuming module (its declaration lives in a different `Module`, which the
+  single-module typechecker cannot reach), so the reachability check has no
+  variant set and reads every bare-identifier nullary-variant arm as an
+  irrefutable binding catch-all — making the arms below it look dead. Constructor
+  arms with a payload (`OctetTooLarge(o) =>`) are unaffected, since a `Constructor`
+  pattern is inherently refutable; only bare nullary variants trip it. The emitter
+  has the same blindness (its `is_variant` also reads `Ty::Unknown` → None and
+  would lower each nullary arm to a `default:`, then reject the multiple
+  catch-alls). Importing the variant constructors into the consuming module does
+  not help: the block is the reachability/exhaustiveness classification, not name
+  resolution. `recover_union_from_arms` cannot rescue it either — it resolves only
+  *module-local* `Variant` symbols, and an imported variant is an `ImportNamed`
+  whose decl is in another module.
+
+  The 0.1.21 fix solved the sibling problem for *record-payload* variants by
+  building a project-wide `record_payload_variants` registry keyed by
+  `(module, variant)` and resolving an imported variant through its `ImportNamed`
+  symbol — but only on the *emitter* side, which receives that registry through
+  `EmitContext`. The typechecker is a pure single-`Module` salsa query with no
+  project context, so the reachability/exhaustiveness checks cannot see any
+  cross-module variant data today.
+
+  *Not fixed here — it is an architecture decision, so it is reported for the
+  orchestrator to decide, not implemented.* The options and their tradeoffs:
+
+  1. **Give the typechecker a cross-module variant registry, mirroring
+     `EmitContext`.** Build a project-wide set of union variant names (at least the
+     nullary ones) in `build.rs`, thread it into the `type_map` salsa query and the
+     `Checker` constructor, and consult it in `check_arm_reachability` and
+     `check_match_exhaustiveness`; extend the emitter's `is_variant` to consult the
+     same set so the two stay in step. This is the principled fix and follows the
+     0.1.21 pattern, but it is a genuine architecture change: it decides that the
+     per-module checker gets cross-module *type* knowledge (today it gets none),
+     which widens the salsa dependency graph and the checker's inputs. Pillar:
+     serves verifiability (exhaustiveness is currently *silently skipped* on any
+     imported union, a real hole) and greppability (cross-module matches read
+     naturally), at the cost of the checker's single-module simplicity.
+  2. **Make the reachability check conservative without cross-module data.**
+     Suppress E0216 for a bare-identifier arm whenever the match also contains a
+     `Constructor` arm (a variant-style match), since a bare ident there is far more
+     likely a nullary variant than a binding. Local and mechanical, and it removes
+     the false rejection — but it does *not* fix the emitter (which would still
+     mis-lower the imported nullary arms), so on its own it converts a checker error
+     into an emit error or a miscompile. Only viable paired with an emitter fix, and
+     it forfeits a real dead-arm lint on unusual same-module code. Not a complete
+     fix by itself.
+  3. **Document that a module should render its own union** (an in-module
+     `explain`/`to_string` over the error type) and keep cross-module nullary-variant
+     matching unsupported for now. Zero compiler change; this is exactly what
+     `ipv4.glyph` does. Costs the ability to `match` a library's error union in the
+     caller, which is a natural Result-handling idiom.
+
+  Recommendation deferred to the orchestrator. Option 1 is the principled fix and
+  closes the parallel exhaustiveness hole; option 3 is the current shipped stance.

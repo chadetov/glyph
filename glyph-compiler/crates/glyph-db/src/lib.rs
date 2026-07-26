@@ -1072,6 +1072,38 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
     fn decl_ty(&self, decl_idx: u32) -> Ty {
         decl_ty(self.db, self.file, decl_idx).ty().clone()
     }
+
+    fn imported_union_of_variant(
+        &self,
+        module_path: &str,
+        variant_name: &str,
+    ) -> Option<(String, Vec<glyph_ast::Ident>)> {
+        // Find the project sibling module at `module_path`, parse it, and return
+        // the tagged union that declares `variant_name`. Salsa memoizes both the
+        // project file list and each module's parse, so this is a cheap lookup on
+        // a warm build.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let parsed = parse_module(self.db, file);
+        let module = parsed.module()?;
+        for item in &module.items {
+            if let glyph_ast::Decl::Type(td) = item {
+                if let glyph_ast::TypeExpr::Union { variants, .. } = &td.body {
+                    if variants.iter().any(|v| v.name.as_ref() == variant_name) {
+                        return Some((
+                            td.name.to_string(),
+                            variants.iter().map(|v| v.name.clone()).collect(),
+                        ));
+                    }
+                }
+            }
+        }
+        None
+    }
 }
 
 /// Extract the `decl_idx`-th top-level declaration from the parsed

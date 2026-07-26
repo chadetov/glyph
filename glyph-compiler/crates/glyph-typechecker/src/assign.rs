@@ -78,6 +78,23 @@ struct EnclosingReturn {
 /// one of them.
 pub trait DeclTyResolver {
     fn decl_ty(&self, decl_idx: u32) -> Ty;
+
+    /// Cross-module union resolution: for the project module at `module_path`,
+    /// find the tagged union that declares `variant_name` and return its
+    /// `(type name, variant names)`. `None` with no cross-module context (db-less
+    /// callers) or when the module is not a project sibling / has no such union.
+    ///
+    /// This is what lets a `match` on an *imported* union be checked for
+    /// exhaustiveness: an imported union's type lowers to `Ty::Unknown` in a
+    /// consuming module (its decl lives elsewhere), so the local variant-set
+    /// resolution finds nothing; this reaches across to the source module.
+    fn imported_union_of_variant(
+        &self,
+        _module_path: &str,
+        _variant_name: &str,
+    ) -> Option<(String, Vec<Ident>)> {
+        None
+    }
 }
 
 /// Default `DeclTyResolver` for callers that don't have a salsa `Db`. Owns
@@ -1244,8 +1261,113 @@ impl Assigner<'_> {
             self.check_value_exhaustiveness(kind, arms, match_span);
             return;
         }
+        // Imported union: the scrutinee's type is `Unknown` here (its union decl
+        // lives in another module), so every local resolution above found
+        // nothing. If an arm names an imported variant, resolve the union's full
+        // variant set cross-module and hold the match to the same exhaustiveness
+        // bar as a module-local one. (Reachability, above, already treats a
+        // PascalCase bare ident as a refutable variant rather than a catch-all.)
+        if matches!(scrutinee_ty, Ty::Unknown) {
+            if let Some((type_name, required)) = self.imported_union_variants_from_arms(arms) {
+                self.check_imported_union_coverage(&type_name, &required, arms, match_span);
+                return;
+            }
+        }
+
         let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
         self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+    }
+
+    /// Resolve an imported union's `(type name, variant set)` from the match
+    /// arms: find the first arm naming an imported variant, follow its
+    /// `ImportNamed` symbol to the source module, and ask the resolver for the
+    /// union that owns it. `None` when no arm names a resolvable imported variant.
+    fn imported_union_variants_from_arms(
+        &self,
+        arms: &[MatchArm],
+    ) -> Option<(String, Vec<Ident>)> {
+        for arm in arms {
+            let variant = match &arm.pattern {
+                Pattern::Constructor { path, .. } => path.last(),
+                Pattern::Ident { name, .. }
+                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) =>
+                {
+                    Some(name)
+                }
+                _ => None,
+            };
+            let Some(variant) = variant else { continue };
+            let Some(&sym_id) = self.resolved.symbols.by_name.get(variant) else {
+                continue;
+            };
+            let Some(sym) = self.resolved.symbols.table.get(sym_id) else {
+                continue;
+            };
+            let SymbolKind::ImportNamed { path, original } = &sym.kind else {
+                continue;
+            };
+            let module_path: String = path
+                .segments
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<_>>()
+                .join("/");
+            if let Some(found) = self
+                .decl_ty_resolver
+                .imported_union_of_variant(&module_path, original)
+            {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    /// Coverage check for a `match` on an imported union: every required variant
+    /// must be covered by an arm, or a catch-all must absorb the rest. Whole-
+    /// variant coverage only (nested-pattern exhaustiveness of an imported union
+    /// is not tracked cross-module in v1). Emits `NonExhaustiveMatch`.
+    fn check_imported_union_coverage(
+        &mut self,
+        type_name: &str,
+        required: &[Ident],
+        arms: &[MatchArm],
+        match_span: glyph_ast::Span,
+    ) {
+        let mut covered: std::collections::HashSet<&str> = std::collections::HashSet::new();
+        let mut has_catch_all = false;
+        for arm in arms {
+            match &arm.pattern {
+                Pattern::Wildcard { .. } | Pattern::Else { .. } => has_catch_all = true,
+                Pattern::Ident { name, .. } => {
+                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+                        covered.insert(name.as_ref());
+                    } else {
+                        has_catch_all = true;
+                    }
+                }
+                Pattern::Constructor { path, .. } => {
+                    if let Some(v) = path.last() {
+                        covered.insert(v.as_ref());
+                    }
+                }
+                _ => {}
+            }
+        }
+        if has_catch_all {
+            return;
+        }
+        let missing: Vec<&str> = required
+            .iter()
+            .map(|v| v.as_ref())
+            .filter(|v| !covered.contains(v))
+            .collect();
+        if !missing.is_empty() {
+            self.errors.push(TypeError::NonExhaustiveMatch {
+                type_name: type_name.to_string(),
+                missing: missing.join(", "),
+                span: match_span,
+            });
+        }
     }
 
     /// A `match` over a `number`/`string` is exhaustive only if it has a

@@ -1701,3 +1701,38 @@ fn imported_union_nullary_variants_match_without_false_unreachable() {
     assert!(ts.contains("case \"EmptyOctet\":"), "{ts}");
     assert!(ts.contains("case \"NotANumber\":"), "{ts}");
 }
+
+#[test]
+fn non_exhaustive_imported_union_match_is_caught() {
+    // The imported-union type-resolution pass: a match on an imported union that
+    // omits a variant is now E0200, resolved cross-module by the union's real
+    // name. Previously the imported type was Unknown, so exhaustiveness was
+    // skipped and the gap leaked past the verifiability pillar at the boundary.
+    let root = unique_tmp("impexhaust");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "net.glyph",
+        "module net\npub type ParseError =\n  | WrongOctetCount({ got: number })\n  | EmptyOctet\n  | NotANumber\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import net { ParseError, WrongOctetCount, EmptyOctet }\n\
+         import std/string { from }\n\
+         pub fn describe(e: ParseError) -> string {\n\
+         \x20 return match e {\n\
+         \x20\x20\x20 WrongOctetCount(w) => from(w.got),\n\
+         \x20\x20\x20 EmptyOctet => \"empty\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(report.has_errors(), "a missing variant must be caught");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200") && d.contains("NotANumber")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}

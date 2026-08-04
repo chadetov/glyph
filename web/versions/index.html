@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.34</span>
+            <span class="rel-ver">0.1.35</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Drop to TypeScript when you need to, and bound your concurrency</h3>
+            <p>The last four of the sixteen gaps the webhook app surfaced. Interop is now first-class in both directions, and "at most N at a time" is a one-liner.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>import extern/&lt;name&gt;</code> reaches hand-written TypeScript under <code>&lt;src&gt;/extern/</code>: for a node-stream loop, a <code>new Promise</code>, anything Glyph can't spell. The build stages it, <code>tsc</code> type-checks it with your Glyph code (a wrong argument is a real error), and a rebuild never deletes it. Relative imports stay illegal in Glyph source; this is the one reserved, greppable path to a local <code>.ts</code>.</li>
+              <li><span class="tag added">Added</span> <code>task.pool(limit, tasks)</code> runs task thunks with at most <code>limit</code> in flight and joins the results in order. A fast task starts the next immediately, so "dispatch to N destinations, K at a time" no longer needs a hand-rolled batch loop.</li>
+              <li><span class="tag changed">Changed</span> The bundled node shim covers the common http-server surface (<code>req.on("error")</code>, <code>server.listen(port, callback)</code>, optional <code>writeHead</code>/<code>end</code> args), so a hand-written extern server type-checks with nothing installed; <code>@types/node</code> still supplies the full surface when present.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.34</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -155,7 +155,7 @@ time.now() -> number                            // epoch milliseconds
 time.sleep(duration: Duration) -> void          // async; await it
 time.debounce<A>(delay: Duration, f: fn(A) -> void) -> fn(A) -> void
 time.format_iso(epoch_ms: number) -> string     // ISO-8601 UTC string
-time.parse_iso(iso: string) -> Option<number>   // epoch ms, or None if invalid
+time.parse_iso(iso: string) -> Option<number>   // epoch ms; strict ISO-8601 only
 time.add_days(epoch_ms: number, days: number) -> number
 time.add_hours(epoch_ms: number, hours: number) -> number
 time.year(epoch_ms: number) -> number           // UTC calendar accessors
@@ -164,6 +164,15 @@ time.day(epoch_ms: number) -> number
 ```
 
 All calendar work is in UTC, so results don't shift with the host timezone.
+
+`parse_iso` accepts two shapes and returns `None` for everything else: a bare
+date `YYYY-MM-DD`, read as UTC midnight, or `YYYY-MM-DDTHH:MM(:SS)?(.sss)?`
+followed by `Z`, `+HH:MM`, or `-HH:MM`. The surprising rejection is a datetime
+with no offset: `"2026-01-03T10:00"` is `None`, because ECMAScript reads that
+form in the host's local time and the day it lands on would then depend on where
+the process runs. `"2026-1-3"` and `"January 5 2026"` are `None` for the same
+reason. An impossible day is `None` as well: `"2026-02-31"` does not become
+March 3, and February 29 is only accepted in a leap year.
 
 ## std/store
 

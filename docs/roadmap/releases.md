@@ -511,9 +511,9 @@ point was to find what an ordinary developer hits writing ordinary code, and wha
 they hit is a formatter that quietly rewrites their source, a stdlib missing the
 three string functions any grid renderer needs, and an array index that lies.
 
-The app ships in the tree as the evidence. This trip carries the Next marker;
-the first finding is released as 0.1.38, the rest are listed below with their
-effort and the two decisions they wait on.
+The app ships in the tree as the evidence. Its first finding is released as
+0.1.38; the rest are listed below with their effort and the two decisions they
+wait on. The Next marker has moved on to the expense-CLI trip below.
 
 ### 0.1.38 — Shipped · The formatter keeps a comment where you wrote it
 
@@ -629,6 +629,84 @@ set the policy this hole sits outside of. The options:
 
 Pre-1.0 with few users is the cheapest this will ever be, so it should not be
 parked; it should be scheduled as a designed release once the fork is resolved.
+
+## expense-CLI dogfood trip — a ledger, a parser, and money
+
+The loop pointed at another ordinary program: an expense-report CLI
+(`examples/apps/expenses.glyph`) that reads a CSV ledger, validates every row,
+and prints a per-category report with exact `Decimal` money. Fourteen findings
+came out of it. Thirteen are "Glyph made me type more". One is a different
+category: the standard library returned a value where its own reference docs
+promised a rejection. This trip carries the Next marker.
+
+### 0.1.39 — Landed on main · `time.parse_iso` parses ISO-8601, and nothing else
+
+`parse_iso` was a bare `Date.parse`, which meant it accepted whatever the host
+engine's date heuristics accepted. `"January 5 2026"` parsed. `"2026-1-3"`
+parsed, in the *host's local timezone*, so on a machine west of UTC the
+`time.year`/`month`/`day` accessors (documented UTC in the same file) reported
+the previous day, and near a month boundary the previous month. `"2026-02-31"`
+returned `Some` for March 3, because ECMAScript reports calendar rollover as
+success and no `NaN` check can see it. `docs/reference/stdlib.md` documented all
+three as `None`.
+
+The fix is three stages, each catching what the others miss. An anchored ISO-8601
+regex runs before `Date.parse` ever sees the string, accepting exactly two
+shapes: a bare `YYYY-MM-DD`, and `YYYY-MM-DDTHH:MM(:SS)?(.sss)?` followed by an
+explicit `Z`, `+HH:MM`, or `-HH:MM`. Then the existing `Date.parse` + `NaN`
+check, which is still what rejects `"2026-13-01"`. Then an arithmetic check of
+the year/month/day triple from the capture groups, with real month lengths and
+leap years.
+
+The asymmetry in the accepted set is deliberate. A bare date is UTC midnight per
+the ECMAScript grammar, so it is safe. An offset-less datetime
+(`"2026-01-03T10:00"`) is *local* time per the same grammar, so it is rejected
+rather than silently reinterpreted: accepting it would mean the same string names
+a different calendar day depending on where the process runs, which is exactly
+the guarantee the file header makes and that the calendar accessors depend on.
+The calendar validation is arithmetic rather than a `format_iso` round-trip
+because an offset-bearing input can legitimately land on a different UTC date
+than the one written (`"2026-02-31T00:00-05:00"`), so a round-trip would need a
+special case while the arithmetic check is uniform.
+
+Verifiability, pillar one: a boundary validator that fails open while its docs
+promise it fails closed is worse than no validator, because an agent that reads
+the docs and trusts them writes a broken program. The app had already noticed and
+hand-rolled the guard at the call site (a regex shape check plus a `format_iso`
+round-trip); when an app writes a correctness guard around a stdlib primitive,
+the guard belongs in the primitive.
+
+No lenient variant sits beside it. Leaving `parse_iso` loose and adding
+`parse_iso_strict` would ship the wrong default under the more discoverable name.
+Adding a `parse_loose` later stays forward-compatible; tightening later would
+not. This is a behavior change and it is a correctness fix, not a breaking one:
+the accepted-but-now-rejected inputs contradicted both the function's name and
+its documentation.
+
+Shipped with it, two documentation corrections that were wrong in the strict
+direction (the kind that makes people write worse code): the two-binding
+`for i, x in xs` form is fully implemented and appeared in no file a user or an
+agent reads, so D21, the agent bootstrap, and the cookbook now document it (an
+array binds a numeric index, a record binds a string key); and D22 claimed
+interpolation interiors were restricted to literals, identifier reads, member
+access, `?`, and parens, when the parser has always handed the interior to the
+full expression grammar. Calls in `${...}` work. The one real restriction is a
+nested string literal, which is a lexer artifact rather than a rule.
+
+### Still open from this trip
+
+- **`std/string`: `slice`; `std/array`: `fold`** (S). The `fold` gap costs a
+  pillar, not just keystrokes: with no fold, every accumulation is a `mut` in a
+  loop, which dilutes what `grep -n "^\s*mut "` is supposed to find (D5). Pairs
+  with the `repeat`/`pad_start`/`pad_end` item from the minesweeper trip.
+- **No mut-teaching diagnostic for a bare `x = e`** (S). E0006 exists to teach
+  the `if` ban; D5 is the second-most-broken rule for a newcomer and gets a parse
+  error that names a token instead of the rule.
+- **The clap binding has no `allow_hyphen_values`** (S). A negative number as an
+  option value (`--amount -12.50`) cannot be expressed.
+- **`glyph check <file>`, a counted range for `for`, and decimal literals** are
+  the same three forks the minesweeper trip left open; they are recorded above
+  and are not re-litigated here.
 
 ## Road to 1.0
 

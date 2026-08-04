@@ -148,6 +148,27 @@ fn print_all(items: Array<string>) -> void {
 }
 ```
 
+## Loop with the index (or the key)
+
+A second binding gives you the position without a hand-rolled counter. Over an
+array it is the numeric index; over a `Record` it is the string key.
+
+```glyph
+import std/io
+
+fn numbered(items: Array<string>) -> void {
+  for i, item in items {
+    io.println("${i + 1}. ${item}")
+  }
+}
+
+fn print_scores(scores: Record<string, number>) -> void {
+  for name, score in scores {
+    io.println("${name}: ${score}")
+  }
+}
+```
+
 ## Use a generic bound
 
 ```glyph

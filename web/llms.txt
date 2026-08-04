@@ -119,6 +119,32 @@ let kind = match argv {                 // string-literal + array-destructuring 
 }
 ```
 
+### Loops (`for` / `loop`)
+
+There is no `while`. `for` iterates a bounded collection; `loop` is the
+unbounded form and needs a `break`.
+
+```glyph
+for item in items {                  // one binding: the element
+  io.println(item.name)
+}
+
+for i, item in items {               // two bindings: index (0-based number), element
+  io.println("${i}: ${item.name}")
+}
+
+for key, value in scores {           // over a Record: key (string), value
+  io.println("${key} = ${value}")
+}
+
+loop {                               // unbounded; `break`/`continue` are legal
+  match done() {
+    true => break,
+    false => step(),
+  }
+}
+```
+
 ### Closures
 
 ```glyph
@@ -197,8 +223,10 @@ component Greeting(name: string) {
 
 ### Template strings
 
-`"Hello, ${user.email}"` interpolates expressions. (v1 limitation: a literal
-`${` cannot be escaped; concatenate strings if you need one.)
+`"Hello, ${user.email}"` interpolates expressions, calls included:
+`"total: ${format_money(sum)}"`. Write `\${` for a literal dollar-brace. The one
+thing the interior cannot hold is another string literal (`"${f("x")}"`) — bind
+it to a `let` first.
 
 ## The standard library (full surface)
 
@@ -395,11 +423,17 @@ time.now() -> number                          // epoch milliseconds
 time.sleep(duration) -> void                  // async; await it
 time.debounce(delay, f) -> fn                  // returns a debounced function
 time.format_iso(epoch_ms) -> string           // ISO-8601 UTC string (no need for a Date via extern_ts)
-time.parse_iso(iso) -> Option<number>          // epoch ms, or None if invalid
+time.parse_iso(iso) -> Option<number>          // epoch ms; strict ISO-8601 only (see below)
 time.add_days(epoch_ms, days) -> number
 time.add_hours(epoch_ms, hours) -> number
 time.year(epoch_ms) / month(epoch_ms) / day(epoch_ms) -> number   // UTC; month is 1-12
 ```
+
+`parse_iso` takes a bare `YYYY-MM-DD` (UTC midnight) or a datetime with an
+explicit `Z`/`+HH:MM`/`-HH:MM` offset, and returns `None` for anything else. An
+offset-less datetime (`"2026-01-03T10:00"`) is rejected: ECMAScript reads it in
+local time, which would move the day the UTC accessors report. `"2026-1-3"`,
+`"January 5 2026"`, and an impossible day like `"2026-02-31"` are `None` too.
 
 ### std/stream and std/test (property testing)
 

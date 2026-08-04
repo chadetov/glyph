@@ -517,3 +517,62 @@ on a decision in `docs/roadmap/releases.md`.
   `undefined` where the compiler claimed `Cell`. Both are architecture forks with
   their options and costs written out in `docs/roadmap/releases.md`; neither is
   decided here.
+
+## Round 7 — an expense report CLI (a ledger, a parser, and money)
+
+The loop pointed at a plain command-line tool: `examples/apps/expenses.glyph`
+reads a CSV ledger, validates every row, and prints a per-category report with
+exact money. Fourteen findings came out of it. Thirteen are "Glyph made me type
+more" (a missing `string.repeat`/`pad_start`, no `array.fold`, no
+`allow_hyphen_values` on the clap binding). One is different in kind, and it is
+the only one fixed here: the stdlib returned a value where its own reference
+docs promised a rejection.
+
+- **G31. [FIXED] `time.parse_iso` accepted non-ISO text, read it in local time,
+  and rolled impossible dates over.** It was a bare `Date.parse`, so
+  `"January 5 2026"` parsed, `"2026-1-3"` parsed *in the host's local timezone*
+  (which then disagrees with the UTC calendar accessors documented in the same
+  file, shifting the day and, near a month boundary, the month), and
+  `"2026-02-31"` returned `Some` for March 3. `docs/reference/stdlib.md`
+  documented the opposite: "None if invalid". A boundary validator failing open
+  while its docs promise it fails closed is the verifiability pillar inverted,
+  and an agent that reads the docs and trusts them writes a broken validator.
+  The app noticed and hand-rolled the guard at the call site (a regex shape check
+  plus a `format_iso` round-trip); when an app writes a correctness guard around
+  a stdlib primitive, the guard belongs in the primitive. *Fixed: `parse_iso`
+  now gates on an anchored ISO-8601 shape before `Date.parse` sees the string,
+  accepting only a bare `YYYY-MM-DD` (UTC midnight per the ECMAScript grammar) or
+  `YYYY-MM-DDTHH:MM(:SS)?(.sss)?` with an explicit `Z`/`+HH:MM`/`-HH:MM`; keeps
+  the `NaN` check, which is what still rejects `"2026-13-01"`; and then validates
+  the year/month/day triple arithmetically, with real month lengths and leap
+  years, because `Date.parse` reports rollover as success and no `NaN` check can
+  catch it. An offset-less datetime (`"2026-01-03T10:00"`) is rejected rather
+  than silently read as local time, which is the deliberate asymmetry that makes
+  the file header's UTC guarantee true. Tightened in place, with no lenient
+  variant beside it: the name says ISO and the docs promised strict.*
+- **G32. [FIXED] The two-binding `for i, x in xs` form was documented nowhere.**
+  It parses, it lowers (an array iterand emits `xs.entries()` with a numeric
+  index, a record emits `Object.entries`), and two example programs use it, but
+  it appeared in no file a user or an agent reads: not D21 in the spec, not
+  `AGENTS.md`, not the cookbook. An implemented feature documented nowhere is,
+  practically, not implemented, and its absence cost the app its only
+  off-by-one-prone code. *Fixed: documented in D21, the agent bootstrap, and the
+  cookbook.*
+- **G33. [FIXED] D22 overstated the interpolation restriction.** The spec said
+  `${...}` interiors were limited to literals, identifier reads, member access,
+  `?`, and parens. The parser hands the interior to the full expression grammar,
+  so a call inside `${...}` has always worked. The one real restriction is a
+  nested string literal, and that is a lexer artifact rather than a rule. A spec
+  that forbids more than the compiler does makes people write worse code, so this
+  is the same class of bug as G31 pointing the other way. *Fixed: D22 now
+  describes what the parser accepts.*
+- **G34. `std/string` has no `slice`, and `std/array` has no `fold`.** The
+  `fold` gap is the one that costs a pillar: with no fold, every accumulation is
+  a `mut` in a loop, which dilutes `grep mut` (the whole point of D5) with
+  arithmetic that mutates nothing the reader cares about. Scheduled with G26's
+  `repeat`/`pad_start`/`pad_end`.
+- **G35. A bare `x = e` gets no mut-teaching diagnostic.** E0006 exists to teach
+  the `if` ban; D5 is the second-most-broken rule for a newcomer and there is
+  nothing parallel. The parse error names a token, not the rule.
+- **G36. The clap binding has no `allow_hyphen_values`.** A negative amount as a
+  CLI argument (`--amount -12.50`) cannot be expressed.

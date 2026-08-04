@@ -16,11 +16,16 @@ use glyph_cli::{build_project, build::build_project_inner};
 /// monotonic per-process counter — using wall-clock nanoseconds would
 /// invite collisions when two tests happen to fire inside the same
 /// nanosecond, sharing a temp dir and stomping each other's fixtures.
+/// The pair is unique within a run but repeats across runs (the OS reuses
+/// pids and the counter restarts), and nothing cleans these up, so the
+/// directory is removed before it is created: an appending test that
+/// inherited a previous run's file saw doubled content and failed.
 fn unique_tmp(prefix: &str) -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     let name = format!("glyph_cli_test_{prefix}_{}_{}", std::process::id(), n);
     let dir = std::env::temp_dir().join(name);
+    let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("create temp dir");
     dir
 }
@@ -1715,6 +1720,85 @@ fn main() -> number {
             eprintln!("skipping: toolchain not found at run time");
         }
         other => panic!("bigint program did not run: {other:?}"),
+    }
+}
+
+#[test]
+fn time_parse_iso_rejects_everything_that_is_not_iso() {
+    // `time.parse_iso` is a boundary validator: it accepts a bare `YYYY-MM-DD`
+    // or a datetime carrying an explicit `Z`/offset, and returns `None` for
+    // everything else. The rejected forms below are all ones bare `Date.parse`
+    // accepts: an offset-less datetime and a non-padded date are read in local
+    // time (which would move the day the UTC accessors report), and an
+    // impossible day is silently rolled over. The program returns its count of
+    // wrong outcomes as the exit code. Needs node/tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping parse_iso run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("parseiso");
+    write_file(
+        &root,
+        "main.glyph",
+        r#"module main
+
+import std/time
+
+fn accepted(iso: string) -> bool {
+  return match time.parse_iso(iso) {
+    Some(t) => true,
+    None => false,
+  }
+}
+
+fn expect(got: bool, want: bool) -> number {
+  return match got == want {
+    true => 0,
+    false => 1,
+  }
+}
+
+fn expect_num(got: number, want: number) -> number {
+  return match got == want {
+    true => 0,
+    false => 1,
+  }
+}
+
+fn day_of(iso: string) -> number {
+  return match time.parse_iso(iso) {
+    Some(t) => time.day(t),
+    None => 0,
+  }
+}
+
+fn main() -> number {
+  let fails = 0
+  mut fails = fails + expect(accepted("2026-02-31"), false)
+  mut fails = fails + expect(accepted("2026-1-3"), false)
+  mut fails = fails + expect(accepted("January 5 2026"), false)
+  mut fails = fails + expect(accepted("2026-13-01"), false)
+  mut fails = fails + expect(accepted("2026-01-03T10:00"), false)
+  mut fails = fails + expect(accepted("2026-02-29"), false)
+  mut fails = fails + expect(accepted("2026-01-03"), true)
+  mut fails = fails + expect(accepted("2026-07-25T18:33:08.000Z"), true)
+  mut fails = fails + expect(accepted("2026-03-15T09:30:00-05:00"), true)
+  mut fails = fails + expect(accepted("2028-02-29"), true)
+  mut fails = fails + expect_num(day_of("2026-01-03"), 3)
+  mut fails = fails + expect_num(day_of("2026-03-15T09:30:00-05:00"), 15)
+  return fails
+}
+"#,
+    );
+    let file = root.join("main.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "parse_iso had {code} wrong outcome(s)");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping: toolchain not found at run time");
+        }
+        other => panic!("parse_iso program did not run: {other:?}"),
     }
 }
 

@@ -336,7 +336,7 @@ that shipped in 0.1.11 (the README only updates on publish). No code changes.
 
 ## hookrelay dogfood trip — eliminate the extern (0.1.33 → 0.1.35)
 
-**Status: 0.1.33 landed on `main`; 0.1.34 (Next) and 0.1.35 remain.** The
+**Status: 0.1.33 and 0.1.34 landed on `main`; 0.1.35 (Next) remains.** The
 improve-glyph loop applied to a real networked app: `hookrelay`, a webhook
 receiver and dispatcher, built end to end in Glyph — like
 `examples/apps/tasks.glyph` (0.1.25) but harder (raw-body HMAC verification, a
@@ -399,40 +399,45 @@ missing) with no extern. Additive, low risk, plus the one outright bug.
   `export` appears in `docs/reference/stdlib.md`, so the reference can't drift
   behind the real surface again.
 
-### 0.1.34 — Planned · Reads like Glyph (emit ergonomics + formatter)
+### 0.1.34 — Landed on main · Reads like Glyph (emit ergonomics + formatter)
 
-**Goal / acceptance:** rebuild hookrelay; the short-circuit combinators use
-`Ok(true)` directly, the JSON-rules validators inline their early-returns instead
-of each spawning a one-shot helper function, the async fan-out closure takes a
-normal annotation, and the code stops exploding to one argument per line.
+**Status: all six on `main` (pending an npm publish).** The papercuts that most
+inflated the hookrelay code are gone: short-circuit combinators use `Ok(true)`
+directly, value-position validators early-return inline, async fan-out takes a
+normal closure, and short calls stop exploding to one argument per line.
 
-- **Nested constructor+literal patterns** (M, F4) — `match r { Ok(true) => …,
-  Ok(false) => …, Err(e) => … }` is E0300 ("nested or multi-argument pattern …
-  not implemented"). Lower it. Hit three separate times in the build; the papercut
-  that most inflated the code (every `Result<bool, E>`/`Option<bool>` match).
-- **`return` / block in a value-position match arm** (M, F5) — `let x = match c {
-  Some(v) => v, None => return Err(…) }` is E0300 ("block body in a value-position
-  match arm"). Lower a value-position match whose arm diverges (hoist to a
-  statement match / IIFE). Removes the helper-function proliferation the
-  label-prefixing validators were forced into.
-- **Inline structural unions in a signature** (M, F3) — `fn f(x: Array<string |
-  number>)` is E0300 ("TS emission for tagged union type not implemented"). Emit
-  an inline `A | B` in type position. Glyph's own `Issue.path` is this type, yet
-  user code cannot name it.
-- **Async closures** (M, F11) — `async fn() { await … }` is a parse error
-  ("unexpected token: Async"), which makes `std/task.all`'s thunk API (`fn() -> T`)
-  unusable for awaited work. Accept `async` on a closure and emit `async () => {}`.
-- **Async-call closure inference** (S, F12) — falls out of F11: a closure whose
-  body is an async call gets the awaited return type, so `par.all(array.map(xs,
-  fn(x) { f(x) }))` type-checks with or without a return annotation (today adding
-  the annotation is a raw TS2740 against emitted code, with no Glyph-level
-  diagnostic).
-- **Width-aware formatter** (M, F6, snapshot churn expected) — `glyph fmt` breaks
-  every call or payload constructor with three or more arguments to one argument
-  per line regardless of width. Make it keep a call/record on one line when it fits
-  the print width. This *serves* the diff-stability pillar (a stable width rule is
-  more stable than blanket explosion) and regenerates the conformance/AST
-  snapshots.
+- **Nested constructor+literal patterns** (M, F4) — ✅ **done.** The existing
+  degroup pass now treats a literal payload like a nested constructor, so
+  `Ok(true) => A, Ok(false) => B` lowers to `Ok(__p) => match __p { true => A,
+  false => B }`; a later same-variant wildcard/binding arm (`Some(_)`) is absorbed
+  as the inner catch-all so the value dispatch stays exhaustive. Emit + run tests.
+- **`return` / block in a value-position match arm** (M, F5) — ✅ **done.** A `let`
+  whose initializer is a `match` with a block arm now lowers to a statement
+  `switch` (a new `ArmTerm::Assign` assigns the binding in value arms; block arms'
+  `return` still returns from the function; the exhaustive `default: throw` keeps
+  tsc's definite-assignment happy) instead of an IIFE that would capture the
+  `return`. A block arm nested in a sub-expression still uses the IIFE and is
+  still rejected. Emit + run tests.
+- **Inline structural unions in a signature** (M, F3) — ✅ **done.** The type
+  emitter renders an inline union of type references (`string | number`,
+  `Array<string | number>`) as a TS union, mapping primitives (`bool` ->
+  `boolean`). A payload-carrying variant only parses inside a named `type`
+  declaration, so that guard is defensive. Emit + `is`-narrowing run test.
+- **Async closures** (M, F11) — ✅ **done.** A lambda takes an optional `async`
+  prefix, emitting an `async` arrow, so a task thunk can await inside a closure.
+  `Expr::Lambda` gained `is_async` (parser snapshots regenerated); parsed,
+  formatted, and lowered.
+- **Async-call closure inference** (S, F12) — ✅ **done.** An annotated return
+  type on an async closure wraps in `Promise<T>` (an async arrow returns a
+  Promise), exactly like an async `fn`, so `par.all(array.map(xs, async fn(n) {
+  await work(n) }))` type-checks in both the annotated and bare forms and runs.
+- **Width-aware formatter** (M, F6) — ✅ **done.** A list of more than two
+  elements stays inline when its rendered form fits the print width (100 columns)
+  from the current column, otherwise it goes one-per-line with a trailing comma;
+  one or two elements are always inline. `leaf("body.type", Equals, "push")` now
+  stays on one line. The decision is a pure function of content and column, so the
+  layout still round-trips and is idempotent. Little snapshot churn (formatter
+  output is not snapshotted; two formatting-shape tests updated).
 
 ### 0.1.35 — Planned · Interop & concurrency (the design-heavy set)
 

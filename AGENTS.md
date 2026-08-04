@@ -409,7 +409,7 @@ Property tests are deterministic (sampled by index, no RNG). Run them with
 ### std/http (client + server)
 
 ```
-type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown }
+type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
 type Response = { status: number, body: unknown }
 type HttpError = { status: number, message: string }
 type Handler  = fn(Request) -> Result<Response, string>   // may be async
@@ -421,7 +421,12 @@ http.json(status, body) -> Response                   // application/json respon
 http.text(status, body) -> Response                   // text/plain response
 http.query(req) -> Record<string, string>             // parse the URL query string
 http.path(req) -> string                              // URL path without the query
+http.raw(req) -> string                               // unparsed request body, for HMAC signature verification
 ```
+
+`req.body` is the parsed body; `http.raw(req)` is the unparsed bytes as received,
+what an HMAC signature must be verified over (re-serializing the parsed body
+changes whitespace and key order, so a recomputed signature would not match).
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
 `Err(message)` (sent as a 500). `await http.serve(port, handler)` starts the

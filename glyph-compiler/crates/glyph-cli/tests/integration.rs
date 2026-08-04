@@ -944,6 +944,60 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn http_server_raw_body_accessor_type_checks() {
+    // F7: a handler can read the unparsed request body via `http.raw(req)`,
+    // needed to verify a signature (HMAC) over the exact bytes received. Requires
+    // tsc; skipped otherwise.
+    if !tsc_available() {
+        eprintln!("skipping raw-body tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("httprawbody");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/http { serve, raw, header, text, Request, Response }
+import std/crypto
+import std/result { Result, Ok }
+import std/option { Some, None }
+
+fn verify(req: Request) -> Result<Response, string> {
+  let expected = crypto.hmac_sha256("shared-secret", raw(req))
+  return match header(req, "x-hook-signature") {
+    Some(sig) => match sig == expected {
+      true => Ok(text(202, "accepted")),
+      false => Ok(text(401, "bad signature")),
+    },
+    None => Ok(text(401, "missing signature")),
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let outcome = await serve(8080, verify)
+  return match outcome {
+    Ok(_) => 0,
+    Err(_) => 1,
+  }
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("raw-body program failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn new_constructs_an_external_class_and_type_checks() {
     // D37 interop constructor: `new` on a class declared in a `.types` ambient
     // file type-checks against that constructor under `tsc --strict`, and a

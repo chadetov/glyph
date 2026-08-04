@@ -20,6 +20,11 @@ export type Request = {
   method: string;
   headers: Record<string, string>;
   body: unknown;
+  // The unparsed request body exactly as received. `body` is `parse_body(raw)`;
+  // `raw` is the bytes themselves, needed when a signature (HMAC) must be
+  // verified over the exact payload the client sent. Empty string when there is
+  // no body.
+  raw: string;
 };
 
 export type Response = { status: number; body: unknown };
@@ -83,6 +88,14 @@ export function query(req: Request): Record<string, string> {
 export function path(req: Request): string {
   const q = req.url.indexOf("?");
   return q < 0 ? req.url : req.url.slice(0, q);
+}
+
+/// The unparsed request body exactly as received (empty string when there is no
+/// body). `req.body` is the parsed value; `raw` is the bytes themselves, which
+/// is what a signature check (HMAC over the payload) must run over, since
+/// re-serializing a parsed body changes whitespace and key order.
+export function raw(req: Request): string {
+  return req.raw;
 }
 
 /// The request path split into its non-empty segments: `/tasks/5` becomes
@@ -172,6 +185,7 @@ function read_request(nreq: IncomingMessage): Promise<Request> {
         method: nreq.method ?? "GET",
         headers,
         body: raw === "" ? null : parse_body(raw),
+        raw,
       });
     });
   });

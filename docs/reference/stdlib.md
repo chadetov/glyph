@@ -419,11 +419,16 @@ counterexample. Example:
 A `fetch`-based client and a small server, both errors-as-values.
 
 ```
-type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown }
+type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
 type Response = { status: number, body: unknown }
 type HttpError = { status: number, message: string }
 type Handler  = fn(Request) -> Result<Response, string>         // may be async
 ```
+
+`body` is the parsed body; `raw` is the unparsed bytes exactly as received (read
+it with `http.raw(req)`, below), which is what a signature check (HMAC over the
+payload) must run over, since re-serializing a parsed body changes whitespace and
+key order.
 
 Client (async; `await` them):
 
@@ -443,6 +448,7 @@ http.json(status: number, body) -> Response          // application/json respons
 http.text(status: number, body: string) -> Response  // text/plain response
 http.query(req: Request) -> Record<string, string>   // parse the URL query string
 http.path(req: Request) -> string                    // URL path without the query
+http.raw(req: Request) -> string                     // the unparsed request body, for signature (HMAC) verification
 http.header(req: Request, name: string) -> Option<string>       // a header (case-insensitive), None if absent
 http.query_param(req: Request, name: string) -> Option<string>  // one query parameter, None if absent
 http.segments(req: Request) -> Array<string>         // path split into non-empty segments, for array-pattern routing

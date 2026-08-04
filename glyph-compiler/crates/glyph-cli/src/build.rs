@@ -153,6 +153,13 @@ pub fn build_project_inner(
     // no concrete type for the emitter to inspect.
     let mut record_payload_variants: std::collections::BTreeSet<(String, String)> =
         Default::default();
+    // Cross-module generic-descriptor arities: `(module path, type name) -> arity`
+    // for every generic record type across all project modules. The emitter needs
+    // this to thread the runtime checker argument into an *imported* generic
+    // descriptor's `Imported.parse<T>(v)` call — a module-local scan sees arity 0
+    // for the import, which would leave the required checker arg off.
+    let mut generic_descriptor_arities: std::collections::BTreeMap<(String, String), usize> =
+        Default::default();
     for (module_path, sf) in &entries {
         let parsed = parse_module(&db, *sf);
         let Some(ast) = parsed.module() else { continue };
@@ -165,6 +172,12 @@ pub fn build_project_inner(
                                 .insert((module_path.clone(), v.name.to_string()));
                         }
                     }
+                }
+                if !td.generics.is_empty()
+                    && matches!(&td.body, glyph_ast::TypeExpr::Record { .. })
+                {
+                    generic_descriptor_arities
+                        .insert((module_path.clone(), td.name.to_string()), td.generics.len());
                 }
             }
         }
@@ -299,6 +312,7 @@ pub fn build_project_inner(
             module_path: module_path.as_str(),
             project_modules: &project_modules,
             record_payload_variants: &record_payload_variants,
+            generic_descriptor_arities: &generic_descriptor_arities,
         };
         match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(output) => {

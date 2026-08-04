@@ -49,8 +49,23 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.35</span>
+            <span class="rel-ver">0.1.36</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Generic validators check the same across module boundaries</h3>
+            <p>A generic type's <code>.parse&lt;T&gt;</code> and <code>is</code> checks now thread their per-element runtime check even when the generic type is defined in another file and imported. Which module the type lives in no longer changes what gets validated.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>Imported.parse&lt;User&gt;(v)</code> on a generic type imported from another module now validates each element as a <code>User</code>, the same as a module-local <code>Paginated.parse&lt;User&gt;</code>. Before, the checker argument was dropped across the import and the call failed <code>tsc</code>. The build now carries a project-wide map of each generic type's arity and resolves an imported receiver through its import symbol.</li>
+              <li><span class="tag fixed">Fixed</span> The same fix backs the <code>is</code> side: <code>match v { is Imported&lt;User&gt; =&gt; ... }</code> narrows across modules instead of erroring. A qualified receiver through a namespace or aliased import (<code>bm.Box.parse&lt;User&gt;(v)</code>), a multi-parameter type (<code>Pair.parse&lt;X, Y&gt;</code>), and a nested type argument (<code>Box.parse&lt;Box&lt;User&gt;&gt;</code>, validated deeply) are all covered.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.35</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

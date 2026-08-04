@@ -350,6 +350,12 @@ pub struct EmitContext<'a> {
     /// bind the whole object (record payload) or `.value` (single-value payload).
     /// Empty for a single-module build (no imported project unions).
     pub record_payload_variants: &'a std::collections::BTreeSet<(String, String)>,
+    /// `(module path, type name) -> arity` for every generic record descriptor
+    /// across the project, so an *imported* generic descriptor's
+    /// `Imported.parse<T>(v)` call threads its runtime checker argument (a
+    /// module-local scan resolves the import to arity 0 and would drop it).
+    /// Empty for a single-module build (no imported generic descriptors).
+    pub generic_descriptor_arities: &'a std::collections::BTreeMap<(String, String), usize>,
 }
 
 impl<'a> EmitContext<'a> {
@@ -360,12 +366,16 @@ impl<'a> EmitContext<'a> {
             module_path: "",
             project_modules: &EMPTY_MODULES,
             record_payload_variants: &EMPTY_VARIANTS,
+            generic_descriptor_arities: &EMPTY_ARITIES,
         }
     }
 }
 
 static EMPTY_VARIANTS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
+
+static EMPTY_ARITIES: std::sync::LazyLock<std::collections::BTreeMap<(String, String), usize>> =
+    std::sync::LazyLock::new(std::collections::BTreeMap::new);
 
 static EMPTY_MODULES: std::sync::LazyLock<std::collections::BTreeSet<String>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
@@ -2527,10 +2537,14 @@ impl<'a> Emitter<'a> {
                         },
                         _ => Some(format!("Array.isArray({m})")),
                     },
-                    // `is Paginated<User>` on a module-local generic descriptor:
-                    // call its `is` with the type arguments (to narrow) and a
-                    // synthesized checker per argument.
-                    Some(gname) if self.has_generic_descriptor(gname) => {
+                    // `is Paginated<User>` on a generic descriptor: call its `is`
+                    // with the type arguments (to narrow) and a synthesized checker
+                    // per argument. The descriptor may be module-local or imported
+                    // from another project module; `generic_descriptor_arity`
+                    // resolves both (local-first, then the arity registry), so a
+                    // cross-module `is` narrows the same way `parse` does rather
+                    // than hard-erroring.
+                    Some(gname) if self.generic_descriptor_arity(gname) > 0 => {
                         let mut targ_strs = Vec::with_capacity(args.len());
                         for a in args {
                             targ_strs.push(self.ty(a).ok()?);
@@ -2610,19 +2624,6 @@ impl<'a> Emitter<'a> {
                 None => return Some(body),
             }
         }
-    }
-
-    /// True if `name` is a module-local *generic* record type, which now emits a
-    /// descriptor whose `is`/`parse` take one runtime checker per type parameter
-    /// (`__is_T`). Distinct from `has_local_descriptor` (non-generic only): a
-    /// generic descriptor's entry points cannot be called without checker args.
-    fn has_generic_descriptor(&self, name: &str) -> bool {
-        self.module.items.iter().any(|d| match d {
-            Decl::Type(t) if t.name.as_ref() == name && !t.generics.is_empty() => {
-                matches!(&t.body, TypeExpr::Record { .. })
-            }
-            _ => false,
-        })
     }
 
     /// The guard variable (`__is_T`) for a type parameter `name` in scope while a
@@ -2758,11 +2759,14 @@ impl<'a> Emitter<'a> {
                             "(typeof {access} === \"object\" && {access} !== null && !Array.isArray({access}) && Object.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))"
                         )
                     }
-                    // A field typed as a module-local generic record
-                    // (`Paginated<User>`): call its descriptor's `is` with a
-                    // synthesized checker per type argument. Type arguments are
-                    // omitted here because the call is used only as a boolean.
-                    (Some(gname), _) if self.has_generic_descriptor(gname) => {
+                    // A field typed as a generic record (`Paginated<User>`): call
+                    // its descriptor's `is` with a synthesized checker per type
+                    // argument. Type arguments are omitted here because the call is
+                    // used only as a boolean. The descriptor may be module-local or
+                    // imported; `generic_descriptor_arity` resolves both, so a
+                    // nested cross-module argument (`Box.parse<Box<User>>`)
+                    // validates deeply instead of falling to the presence floor.
+                    (Some(gname), _) if self.generic_descriptor_arity(gname) > 0 => {
                         let checkers = args
                             .iter()
                             .map(|a| self.checker_lambda(a))
@@ -3122,12 +3126,15 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// Rewrite `Paginated.parse<User>(v)` on a module-local generic descriptor
-    /// into `Paginated.parse<User>(v, <checker for User>)`, appending one
-    /// synthesized checker per type argument (its `parse`/`is` need a runtime
-    /// checker per type parameter). Returns `None` for any non-matching call —
-    /// a non-descriptor receiver, a wrong arity, or missing type arguments —
-    /// where the call is emitted verbatim.
+    /// Rewrite `Paginated.parse<User>(v)` on a generic descriptor into
+    /// `Paginated.parse<User>(v, <checker for User>)`, appending one synthesized
+    /// checker per type argument (its `parse`/`is` need a runtime checker per type
+    /// parameter). The receiver may be a bare name (`Box`, module-local or a named
+    /// import) or a qualified namespace access (`bm.Box`, where `bm` is a
+    /// namespace/aliased module import); both resolve their arity so neither drops
+    /// the checker argument. Returns `None` for any non-matching call — a
+    /// non-descriptor receiver, a wrong arity, or missing type arguments — where
+    /// the call is emitted verbatim.
     fn try_generic_descriptor_parse(
         &self,
         callee: &Expr,
@@ -3140,10 +3147,31 @@ impl<'a> Emitter<'a> {
         if field.as_ref() != "parse" {
             return Ok(None);
         }
-        let Expr::Ident { name, .. } = object.as_ref() else {
-            return Ok(None);
+        // Resolve the descriptor receiver and its arity. A bare `Box` resolves
+        // local-first then through the import registry; a qualified `bm.Box`
+        // resolves `bm` to its module path and looks that type up in the registry
+        // directly (a namespace member is never a module-local declaration).
+        let (receiver, arity) = match object.as_ref() {
+            Expr::Ident { name, .. } => {
+                (name.to_string(), self.generic_descriptor_arity(name.as_ref()))
+            }
+            Expr::Member { object: inner, field: type_name, optional: false, .. } => {
+                let Expr::Ident { name: ns, .. } = inner.as_ref() else {
+                    return Ok(None);
+                };
+                let Some(module_path) = self.namespace_module_path(ns.as_ref()) else {
+                    return Ok(None);
+                };
+                let arity = self
+                    .ctx
+                    .generic_descriptor_arities
+                    .get(&(module_path, type_name.to_string()))
+                    .copied()
+                    .unwrap_or(0);
+                (format!("{ns}.{type_name}"), arity)
+            }
+            _ => return Ok(None),
         };
-        let arity = self.generic_descriptor_arity(name.as_ref());
         // The type arguments must be given explicitly and match the arity; the
         // checker for each is synthesized from it. Anything else is not a call we
         // can complete soundly, so leave it for `tsc` to judge.
@@ -3162,25 +3190,78 @@ impl<'a> Emitter<'a> {
         for ta in type_args {
             call_args.push(self.checker_lambda(ta));
         }
-        Ok(Some(format!("{name}.parse{targs}({})", call_args.join(", "))))
+        Ok(Some(format!("{receiver}.parse{targs}({})", call_args.join(", "))))
     }
 
-    /// The number of type parameters of a module-local generic record
-    /// descriptor `name`, or `0` when `name` is not one.
-    fn generic_descriptor_arity(&self, name: &str) -> usize {
-        self.module
-            .items
-            .iter()
-            .find_map(|d| match d {
-                Decl::Type(t)
-                    if t.name.as_ref() == name
-                        && !t.generics.is_empty()
-                        && matches!(&t.body, TypeExpr::Record { .. }) =>
-                {
-                    Some(t.generics.len())
+    /// The imported module path for a namespace/aliased import binding
+    /// (`import boxmod` -> `boxmod` under `boxmod`, `import a/b as bm` -> `a/b`
+    /// under `bm`), or `None` when `binding` is not such an import. Used to
+    /// resolve a qualified descriptor receiver (`bm.Box`) to its declaring module
+    /// so its arity can be looked up in the project registry.
+    fn namespace_module_path(&self, binding: &str) -> Option<String> {
+        self.module.items.iter().find_map(|d| {
+            let Decl::Import(im) = d else { return None };
+            let matches = match &im.kind {
+                ImportKind::Namespace => {
+                    im.path.segments.last().map(|s| s.as_ref()) == Some(binding)
                 }
-                _ => None,
-            })
+                ImportKind::Aliased(alias) => alias.as_ref() == binding,
+                ImportKind::Named(_) => false,
+            };
+            if !matches {
+                return None;
+            }
+            Some(
+                im.path
+                    .segments
+                    .iter()
+                    .map(|s| s.as_ref())
+                    .collect::<Vec<_>>()
+                    .join("/"),
+            )
+        })
+    }
+
+    /// The number of type parameters of a generic record descriptor `name`, or
+    /// `0` when `name` is not one. Resolves a module-local descriptor first; on a
+    /// miss, resolves `name` through its `ImportNamed` symbol and consults the
+    /// project-wide arity registry, so an *imported* generic descriptor's
+    /// `Imported.parse<T>(v)` call threads its checker argument.
+    fn generic_descriptor_arity(&self, name: &str) -> usize {
+        if let Some(n) = self.module.items.iter().find_map(|d| match d {
+            Decl::Type(t)
+                if t.name.as_ref() == name
+                    && !t.generics.is_empty()
+                    && matches!(&t.body, TypeExpr::Record { .. }) =>
+            {
+                Some(t.generics.len())
+            }
+            _ => None,
+        }) {
+            return n;
+        }
+        // Imported generic descriptor: resolve via its own module's `ImportNamed`
+        // symbol and consult the project registry. A same-module type name shadows
+        // an import in `by_name`, so this only fires for a genuinely imported one.
+        let Some(&sym_id) = self.resolved.symbols.by_name.get(name) else {
+            return 0;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(sym_id) else {
+            return 0;
+        };
+        let SymbolKind::ImportNamed { path, original } = &sym.kind else {
+            return 0;
+        };
+        let module_path: String = path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        self.ctx
+            .generic_descriptor_arities
+            .get(&(module_path, original.to_string()))
+            .copied()
             .unwrap_or(0)
     }
 
@@ -4602,6 +4683,7 @@ mod tests {
             module_path: "sub/a",
             project_modules: &modules,
             record_payload_variants: &EMPTY_VARIANTS,
+            generic_descriptor_arities: &EMPTY_ARITIES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -4859,6 +4941,30 @@ mod tests {
     }
 
     #[test]
+    fn imported_generic_descriptor_parse_call_threads_a_checker() {
+        // `Box.parse<User>(v)` where `Box` is imported from another module still
+        // appends the checker: the arity resolves through the import's
+        // `ImportNamed` symbol and the project-wide registry, not just a
+        // module-local scan (which sees the import as arity 0 and would drop it).
+        let (module, resolved, types, prelude) = pipeline(
+            "module app\nimport boxmod { Box }\npub type User = { name: string }\npub fn f(v: unknown) -> string {\n  return match Box.parse<User>(v) {\n    Ok(_) => \"ok\",\n    Err(_) => \"no\",\n  }\n}\n",
+        );
+        let mut arities: std::collections::BTreeMap<(String, String), usize> = Default::default();
+        arities.insert(("boxmod".to_string(), "Box".to_string()), 1);
+        let ctx = EmitContext {
+            module_path: "app",
+            project_modules: &EMPTY_MODULES,
+            record_payload_variants: &EMPTY_VARIANTS,
+            generic_descriptor_arities: &arities,
+        };
+        let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
+        assert!(
+            ts.contains("Box.parse<User>(v, (__cv: unknown) => User.is(__cv))"),
+            "{ts}"
+        );
+    }
+
+    #[test]
     fn is_pattern_on_a_generic_descriptor_threads_a_checker() {
         // `is Box<User>` narrows via `Box.is<User>(m, checker)`.
         let ts = emit(
@@ -4967,6 +5073,7 @@ mod tests {
             module_path: "a",
             project_modules: &project,
             record_payload_variants: &EMPTY_VARIANTS,
+            generic_descriptor_arities: &EMPTY_ARITIES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");

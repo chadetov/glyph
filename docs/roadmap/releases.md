@@ -275,6 +275,30 @@ generic edges). 0.1.10 closes the engineering behind them:
   A generic descriptor omits the `.schema` member (a `Schema<Paginated<T>>`
   factory would need the checker threaded too). Function-typed fields were also
   tightened from presence to `typeof === "function"`.
+  - **Cross-module `Imported.parse<T>(v)`** — ✅ **closed (follow-up, 0.1.36).** The
+    original slice only threaded the checker when the generic descriptor was
+    module-local: `generic_descriptor_arity` scanned the current module's items,
+    so an imported generic type resolved to arity 0 and the checker argument was
+    dropped, leaving a call the imported `parse<T>(value, __is_T)` rejected under
+    `tsc`. The build now populates a project-wide `(module path, type name) ->
+    arity` registry (the same shape as the record-variant registry), and the
+    emitter resolves an imported receiver through its `ImportNamed` symbol before
+    consulting it. `Imported.parse<User>(v)` now emits the checker unchanged, so a
+    two-module program type-checks and rejects a badly-shaped element at runtime.
+    - **`is` symmetry + receiver/argument coverage** — ✅ **closed (follow-up).**
+      The registry lookup now backs the `is` side too: `is_check` and
+      `field_value_check` both resolve a generic descriptor through
+      `generic_descriptor_arity` (local-first, then the registry), so cross-module
+      `match v { is Imported<User> => ... }` narrows instead of hard-erroring
+      `EmitError::Unsupported`. The parse rewrite also handles a qualified receiver
+      (`bm.Box.parse<User>(v)` through a namespace/aliased import) rather than
+      dropping the checker, and cross-module tests now cover a multi-parameter
+      descriptor (`Pair.parse<X, Y>`) and a nested type argument
+      (`Box.parse<Box<User>>`, validated deeply, not at the presence floor). Known
+      edge: a descriptor reached through a *re-exporting* intermediary module keys
+      the registry to the intermediary, misses, and drops the checker; D15's
+      rejection of barrel-only modules narrows the blast radius but does not
+      eliminate it.
 - **Imported-type descriptors** (M) — still open. A type from an external
   `.d.ts` you only reference carries no descriptor, so a field of that type is
   presence-checked. Materializing it with `glyph gen dts` gives it one; a

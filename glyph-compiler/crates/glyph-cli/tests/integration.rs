@@ -1001,6 +1001,327 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
+    // Calling `parse<T>` on a generic descriptor imported from another module
+    // must thread the runtime checker argument the imported `parse<T>(value,
+    // __is_T)` demands. Without it the emitted call drops the checker, which both
+    // fails `tsc --strict` (missing argument) and would skip nested validation at
+    // runtime. This builds a two-module program, type-checks it with tsc, and
+    // runs it: `main` returns 0 only when a well-shaped value is accepted and a
+    // badly-shaped element (a numeric `name`) is rejected.
+    if !js_toolchain_available() {
+        eprintln!("skipping imported-generic-descriptor run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("impgeneric");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "boxmod.glyph",
+        "module boxmod\npub type Box<T> = { value: T }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import boxmod { Box }\n\
+         import std/result { Ok, Err }\n\
+         pub type User = { name: string }\n\
+         fn describe(v: unknown) -> string {\n\
+         \x20 return match Box.parse<User>(v) {\n\
+         \x20   Ok(_) => \"ok\",\n\
+         \x20   Err(_) => \"bad\",\n\
+         \x20 }\n\
+         }\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let good: unknown = { value: { name: \"ada\" } }\n\
+         \x20 let bad: unknown = { value: { name: 42 } }\n\
+         \x20 return match describe(good) == \"ok\" {\n\
+         \x20   true => match describe(bad) == \"bad\" {\n\
+         \x20     true => 0,\n\
+         \x20     false => 3,\n\
+         \x20   },\n\
+         \x20   false => 2,\n\
+         \x20 }\n\
+         }\n",
+    );
+
+    let file = src.join("app.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(
+                code, 0,
+                "imported descriptor should accept the good value and reject the bad one \
+                 (2 = good wrongly rejected, 3 = bad wrongly accepted)"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping: `tsc` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("two-module program should build: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("imported descriptor parse should type-check under tsc:\n{msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a `main`; got NoMain: {exports:?}");
+        }
+    }
+}
+
+#[test]
+fn imported_generic_descriptor_is_narrows_cross_module() {
+    // `match v { is Box<User> => .. }` on a generic descriptor imported from
+    // another module must narrow the same way `Box.parse<User>(v)` does. Before
+    // this fix `is_check` consulted only module-local descriptors, so an imported
+    // `Box` fell through to a hard `EmitError::Unsupported` — while the website
+    // claimed the `is` form "narrows the same way ... across module boundaries."
+    // Assert the build no longer errors and emits the imported descriptor's
+    // `is<T>` call with a threaded checker (not just a shape check).
+    let root = unique_tmp("impgenericis");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "boxmod.glyph",
+        "module boxmod\npub type Box<T> = { value: T }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import boxmod { Box }\n\
+         pub type User = { name: string }\n\
+         fn describe(v: unknown) -> string {\n\
+         \x20 return match v {\n\
+         \x20   is Box<User> => \"ok\",\n\
+         \x20   else => \"bad\",\n\
+         \x20 }\n\
+         }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "cross-module `is Box<User>` must not hard-error: {:?}",
+        report.diagnostics
+    );
+    let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
+    assert!(
+        ts.contains("Box.is<User>(v, "),
+        "cross-module `is` should call the imported descriptor's is<T> with a \
+         synthesized checker: {ts}"
+    );
+}
+
+#[test]
+fn imported_generic_descriptor_is_rejects_bad_element_at_runtime() {
+    // The runtime half of the cross-module `is` narrowing: a well-shaped value is
+    // accepted and a badly-shaped element (numeric `name`) is rejected, proving
+    // the threaded checker validates deeply across the module boundary.
+    if !js_toolchain_available() {
+        eprintln!("skipping cross-module `is` run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("impgenericisrun");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "boxmod.glyph",
+        "module boxmod\npub type Box<T> = { value: T }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import boxmod { Box }\n\
+         pub type User = { name: string }\n\
+         fn describe(v: unknown) -> string {\n\
+         \x20 return match v {\n\
+         \x20   is Box<User> => \"ok\",\n\
+         \x20   else => \"bad\",\n\
+         \x20 }\n\
+         }\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let good: unknown = { value: { name: \"ada\" } }\n\
+         \x20 let bad: unknown = { value: { name: 42 } }\n\
+         \x20 return match describe(good) == \"ok\" {\n\
+         \x20   true => match describe(bad) == \"bad\" {\n\
+         \x20     true => 0,\n\
+         \x20     false => 3,\n\
+         \x20   },\n\
+         \x20   false => 2,\n\
+         \x20 }\n\
+         }\n",
+    );
+
+    let file = src.join("app.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(
+                code, 0,
+                "cross-module `is` should accept the good value and reject the bad \
+                 element (2 = good wrongly rejected, 3 = bad wrongly accepted)"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => eprintln!("skipping: `tsx` not found"),
+        glyph_cli::run::RunOutcome::TscMissing => eprintln!("skipping: `tsc` not found"),
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("two-module `is` program should build: {:?}", r.diagnostics)
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("cross-module `is` should type-check under tsc:\n{msg}")
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a `main`; got NoMain: {exports:?}")
+        }
+    }
+}
+
+#[test]
+fn imported_generic_descriptor_parse_through_namespace_alias() {
+    // `bm.Box.parse<User>(v)` where `bm` is an aliased module import must thread
+    // the checker just like the bare `Box.parse<User>(v)` form. Before the fix the
+    // receiver was a nested `Member` (`bm.Box`), not an `Expr::Ident`, so the
+    // rewrite bailed and emitted the call with the checker dropped — a silent tsc
+    // arity failure.
+    let root = unique_tmp("impgenericalias");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "boxmod.glyph",
+        "module boxmod\npub type Box<T> = { value: T }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import boxmod as bm\n\
+         import std/result { Ok, Err }\n\
+         pub type User = { name: string }\n\
+         fn describe(v: unknown) -> string {\n\
+         \x20 return match bm.Box.parse<User>(v) {\n\
+         \x20   Ok(_) => \"ok\",\n\
+         \x20   Err(_) => \"bad\",\n\
+         \x20 }\n\
+         }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "aliased-module parse must build: {:?}",
+        report.diagnostics
+    );
+    let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
+    assert!(
+        ts.contains("bm.Box.parse<User>(v, "),
+        "aliased-module receiver must thread the checker argument: {ts}"
+    );
+}
+
+#[test]
+fn imported_generic_descriptor_parse_multi_parameter_threads_both_checkers() {
+    // A two-parameter cross-module descriptor (`Pair<A, B>`): `Pair.parse<User,
+    // Item>(v)` must thread one checker per parameter, in order, so the registry's
+    // real arity (2, not 1) is used and both element types validate. Asserts both
+    // field checks (`.name` for User, `.sku` for Item) appear in the threaded
+    // checkers.
+    let root = unique_tmp("impgenericpair");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "pairmod.glyph",
+        "module pairmod\npub type Pair<A, B> = { first: A, second: B }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import pairmod { Pair }\n\
+         import std/result { Ok, Err }\n\
+         pub type User = { name: string }\n\
+         pub type Item = { sku: string }\n\
+         fn describe(v: unknown) -> string {\n\
+         \x20 return match Pair.parse<User, Item>(v) {\n\
+         \x20   Ok(_) => \"ok\",\n\
+         \x20   Err(_) => \"bad\",\n\
+         \x20 }\n\
+         }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "multi-parameter cross-module parse must build: {:?}",
+        report.diagnostics
+    );
+    let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
+    assert!(
+        ts.contains("Pair.parse<User, Item>(v, "),
+        "multi-parameter parse threads checkers: {ts}"
+    );
+    assert!(
+        ts.contains(".name") && ts.contains(".sku"),
+        "both parameter checkers validate their element's fields, in order: {ts}"
+    );
+}
+
+#[test]
+fn imported_generic_descriptor_parse_nested_type_argument_validates_deeply() {
+    // A nested type argument through the imported path (`Box.parse<Box<User>>(v)`):
+    // the outer checker must itself invoke the inner descriptor's `is`, not fall to
+    // the presence floor. This is the deep-validation claim under test across a
+    // module boundary; `field_value_check` now resolves an imported descriptor for
+    // the nested argument too.
+    let root = unique_tmp("impgenericnested");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "boxmod.glyph",
+        "module boxmod\npub type Box<T> = { value: T }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import boxmod { Box }\n\
+         import std/result { Ok, Err }\n\
+         pub type User = { name: string }\n\
+         fn describe(v: unknown) -> string {\n\
+         \x20 return match Box.parse<Box<User>>(v) {\n\
+         \x20   Ok(_) => \"ok\",\n\
+         \x20   Err(_) => \"bad\",\n\
+         \x20 }\n\
+         }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "nested-argument cross-module parse must build: {:?}",
+        report.diagnostics
+    );
+    let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
+    assert!(
+        ts.contains("Box.parse<Box<User>>(v, "),
+        "nested parse threads a checker: {ts}"
+    );
+    assert!(
+        ts.contains("Box.is("),
+        "the nested checker calls the inner descriptor's is (deep validation), not \
+         the presence floor: {ts}"
+    );
+}
+
+#[test]
 fn stale_node_shim_is_removed_when_types_node_appears() {
     // F15: a build with no @types/node writes the bundled node shim. If
     // @types/node is installed later, the next build must remove that stale shim.

@@ -244,6 +244,12 @@ match Customer.parse(webhook_body) {
           <code>parse</code> takes the type argument: <code>Paginated.parse&lt;User&gt;(body)</code>
           checks every <code>items</code> entry <em>as a <code>User</code></em>, not just for
           presence, and <code>match v { is Paginated&lt;User&gt; =&gt; ... }</code> narrows the same way.
+          This holds across module boundaries: define <code>Paginated&lt;T&gt;</code> in one file,
+          <code>import</code> it into another, and both <code>Paginated.parse&lt;User&gt;(body)</code>
+          and <code>is Paginated&lt;User&gt;</code> there still check each element as a
+          <code>User</code>. The compiler builds the per-element
+          check from the type argument at the call site, so which file the generic type lives in
+          makes no difference to what gets validated.
         </p>
         <p>
           Where it stops: descriptors cover the shapes most payloads are made of:

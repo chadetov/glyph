@@ -14,10 +14,17 @@ export const User = {
       && typeof (value as Record<string, unknown>).name === "string"
       && Object.keys(value as object).every((__k: string) => __k === "id" || __k === "name");
   },
-  parse(value: unknown): { tag: "Ok"; value: User } | { tag: "Err"; value: string } {
-    return this.is(value)
-      ? { tag: "Ok", value: value }
-      : { tag: "Err", value: "expected User" };
+  parse(value: unknown): { tag: "Ok"; value: User } | { tag: "Err"; value: Issue[] } {
+    if (typeof value !== "object" || value === null) {
+      return { tag: "Err", value: [{ path: [], message: "expected User (an object)" }] };
+    }
+    const __issues: Issue[] = [];
+    if (!(typeof (value as Record<string, unknown>).id === "number")) __issues.push({ path: ["id"], message: "field `id` is missing or has the wrong type" });
+    if (!(typeof (value as Record<string, unknown>).name === "string")) __issues.push({ path: ["name"], message: "field `name` is missing or has the wrong type" });
+    for (const __k of Object.keys(value as object)) {
+      if (!(__k === "id" || __k === "name")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`" });
+    }
+    return __issues.length === 0 ? { tag: "Ok", value: value as User } : { tag: "Err", value: __issues };
   },
   schema: __glyph_schema<User>("User", (v): v is User => User.is(v)),
 };

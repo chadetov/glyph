@@ -854,14 +854,14 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.line("},");
         let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
-        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
+        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: Issue[] }}");
         self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
         self.indent += 1;
         self.line("return this.is(value)");
         self.indent += 1;
         self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
         self.line(&format!(
-            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: \"expected {name}\" }};"
+            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: [{{ path: [], message: \"expected {name}\" }}] }};"
         ));
         self.indent -= 1;
         self.indent -= 1;
@@ -915,21 +915,31 @@ impl<'a> Emitter<'a> {
             .iter()
             .map(|g| (g.name.to_string(), Self::guard_param_name(g.name.as_ref())))
             .collect();
-        let mut checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
+        let field_checks: Vec<String> = fields.iter().map(|f| self.record_field_check(f)).collect();
         self.desc_param_guards.borrow_mut().clear();
         // Strict-by-default: reject a value carrying keys the type doesn't
         // declare (mass-assignment / leaked-field protection). `@open` opts out.
-        // The key set is closed over the declared field names; an empty record
-        // must be an empty object.
-        if !open {
-            if fields.is_empty() {
-                checks.push("Object.keys(value as object).length === 0".to_string());
-            } else {
-                let allowed = fields
+        // `allowed_keys` is the disjunction that a known key satisfies (empty for
+        // an empty record, where no key is allowed); `None` when `@open`.
+        let allowed_keys: Option<String> = if open {
+            None
+        } else if fields.is_empty() {
+            Some(String::new())
+        } else {
+            Some(
+                fields
                     .iter()
                     .map(|f| format!("__k === \"{}\"", f.name))
                     .collect::<Vec<_>>()
-                    .join(" || ");
+                    .join(" || "),
+            )
+        };
+        // `is` combines every field check and the strict-keys check with `&&`.
+        let mut checks: Vec<String> = field_checks.clone();
+        if let Some(allowed) = &allowed_keys {
+            if allowed.is_empty() {
+                checks.push("Object.keys(value as object).length === 0".to_string());
+            } else {
                 checks.push(format!(
                     "Object.keys(value as object).every((__k: string) => {allowed})"
                 ));
@@ -952,30 +962,42 @@ impl<'a> Emitter<'a> {
         }
         self.indent -= 1;
         self.line("},");
-        // The `parse` entry point reuses the `is` guard, then wraps the value in
-        // a `Result`. The return type and the values are the inline `Result`
-        // shape; `Ok`'s payload is the narrowed value, `Err`'s is a message.
+        // `parse` validates field by field and returns `Result<T, Issue[]>`: each
+        // failing field contributes an `Issue` naming it (`path: [field]`), so a
+        // boundary rejection reports which field is wrong rather than a single
+        // "expected T" string. A non-object value fails outright. When no issue is
+        // found the value is exactly a `T`, so the `Ok` payload is a checked cast.
         let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {self_ty} }}");
-        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
+        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: Issue[] }}");
         self.line(&format!("parse{decl_generics}({entry_params}): {ok_ty} | {err_ty} {{"));
         self.indent += 1;
-        // Call the sibling guard through `this`, not by the descriptor's name:
-        // a record named after the `value` parameter (or any name) would
-        // otherwise be shadowed by the parameter and `.is` would dispatch on
-        // the `unknown` argument. `this` is the descriptor object at every call
-        // site the compiler emits (`T.parse(x)`). A generic `parse` forwards its
-        // type arguments and threaded checkers to the `is` guard.
-        let is_call_args = std::iter::once("value".to_string())
-            .chain(generics.iter().map(|g| Self::guard_param_name(g.name.as_ref())))
-            .collect::<Vec<_>>()
-            .join(", ");
-        self.line(&format!("return this.is{type_args}({is_call_args})"));
+        self.line("if (typeof value !== \"object\" || value === null) {");
         self.indent += 1;
-        self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
         self.line(&format!(
-            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: \"expected {name}\" }};"
+            "return {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: [{{ path: [], message: \"expected {name} (an object)\" }}] }};"
         ));
         self.indent -= 1;
+        self.line("}");
+        self.line("const __issues: Issue[] = [];");
+        for (f, check) in fields.iter().zip(field_checks.iter()) {
+            self.line(&format!(
+                "if (!({check})) __issues.push({{ path: [\"{fname}\"], message: \"field `{fname}` is missing or has the wrong type\" }});",
+                fname = f.name
+            ));
+        }
+        if let Some(allowed) = &allowed_keys {
+            let cond = if allowed.is_empty() { "false" } else { allowed.as_str() };
+            self.line("for (const __k of Object.keys(value as object)) {");
+            self.indent += 1;
+            self.line(&format!(
+                "if (!({cond})) __issues.push({{ path: [__k], message: \"unexpected field `\" + __k + \"`\" }});"
+            ));
+            self.indent -= 1;
+            self.line("}");
+        }
+        self.line(&format!(
+            "return __issues.length === 0 ? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value as {self_ty} }} : {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: __issues }};"
+        ));
         self.indent -= 1;
         self.line("},");
         // Q8/Q40 `T.schema`: a `Schema<T>` built from the `is` guard by the
@@ -1135,14 +1157,14 @@ impl<'a> Emitter<'a> {
         // Inlined wire-format (not the prelude Ok/Err) so the descriptor
         // compiles without a `std/result` import, exactly like the record one.
         let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
-        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: string }}");
+        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: Issue[] }}");
         self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
         self.indent += 1;
         self.line("return this.is(value)");
         self.indent += 1;
         self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
         self.line(&format!(
-            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: \"expected {name}\" }};"
+            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: [{{ path: [], message: \"expected {name}\" }}] }};"
         ));
         self.indent -= 1;
         self.indent -= 1;
@@ -4621,23 +4643,28 @@ mod tests {
     #[test]
     fn record_descriptor_emits_a_self_contained_parse() {
         let ts = emit("module x\npub type User = { id: string }\n");
-        // `parse` returns the inline `Result` shape — no `std/result` import,
-        // no `Ok`/`Err` constructor reference; the only name it mentions is the
-        // record type itself.
+        // `parse` returns the inline `Result` shape with an `Issue[]` error (the
+        // documented `Result<T, Array<Issue>>` contract), no `std/result` import.
         assert!(
             ts.contains(
-                "parse(value: unknown): { tag: \"Ok\"; value: User } | { tag: \"Err\"; value: string } {"
+                "parse(value: unknown): { tag: \"Ok\"; value: User } | { tag: \"Err\"; value: Issue[] } {"
             ),
             "{ts}"
         );
-        // It reuses the `is` guard (reached via `this`, never by name) and
-        // wraps the value in `Ok`/`Err` literals.
-        assert!(ts.contains("return this.is(value)"), "{ts}");
-        assert!(ts.contains("? { tag: \"Ok\", value: value }"), "{ts}");
+        // It validates field by field, naming the offending field in the issue.
         assert!(
-            ts.contains(": { tag: \"Err\", value: \"expected User\" };"),
+            ts.contains(
+                "if (!(typeof (value as Record<string, unknown>).id === \"string\")) __issues.push({ path: [\"id\"], message: \"field `id` is missing or has the wrong type\" });"
+            ),
             "{ts}"
         );
+        // The `Ok` payload is a checked cast (issues empty implies a `User`).
+        assert!(
+            ts.contains("? { tag: \"Ok\", value: value as User }"),
+            "{ts}"
+        );
+        // No stale `this.is` reuse or single-string error remains.
+        assert!(!ts.contains("value: \"expected User\""), "{ts}");
         // `parse` itself pulls in no `std/result` import (it inlines the shape).
         assert!(!ts.contains("from \"std/result\""), "{ts}");
     }
@@ -4663,12 +4690,16 @@ mod tests {
 
     #[test]
     fn parse_does_not_shadow_a_record_named_value() {
-        // A record literally named `value` collides with the `parse` parameter.
-        // Reaching the guard via `this` (not `value.is(...)`) keeps the emitted
-        // TS valid: the parameter no longer shadows the descriptor binding.
+        // A record literally named `value` collides with the `parse`/`is`
+        // parameter. `parse` validates fields directly against the `value`
+        // parameter and never calls the descriptor by name, so no shadow arises.
         let ts = emit("module x\npub type value = { id: string }\n");
-        assert!(ts.contains("return this.is(value)"), "{ts}");
-        assert!(!ts.contains("return value.is(value)"), "{ts}");
+        assert!(ts.contains("const __issues: Issue[] = [];"), "{ts}");
+        assert!(
+            ts.contains("(value as Record<string, unknown>).id"),
+            "{ts}"
+        );
+        assert!(!ts.contains("value.is(value)"), "{ts}");
     }
 
     #[test]
@@ -4694,11 +4725,15 @@ mod tests {
             ts.contains("parse<T>(value: unknown, __is_T: (v: unknown) => boolean):"),
             "{ts}"
         );
-        assert!(ts.contains("return this.is<T>(value, __is_T)"), "{ts}");
-        // The `value: T` field is validated by the threaded checker.
+        // The `value: T` field is validated by the threaded checker, in both the
+        // `is` guard and `parse`'s per-field issue check.
         assert!(
             ts.contains("__is_T((value as Record<string, unknown>).value)"),
             "T-typed field uses the checker: {ts}"
+        );
+        assert!(
+            ts.contains("__issues.push({ path: [\"value\"], message:"),
+            "generic parse names the offending field: {ts}"
         );
         // No `schema` member for a generic descriptor.
         assert!(!ts.contains("schema: __glyph_schema<Box"), "{ts}");

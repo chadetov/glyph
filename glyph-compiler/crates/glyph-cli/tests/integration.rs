@@ -1885,6 +1885,51 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn record_parse_error_is_an_issue_array() {
+    // F2: T.parse returns Result<T, Array<Issue>> (not Result<T, string>), so the
+    // Err binds as an issue list whose entries carry a `.message`, matching the
+    // documented contract. This is the type the Glyph checker already modeled;
+    // the fix aligns the emitted TS, so both agree under tsc.
+    if !tsc_available() {
+        eprintln!("skipping parse-issues tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("parseissues");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+type User = { id: string, name: string }
+
+pub fn describe(value: unknown) -> string {
+  return match User.parse(value) {
+    Ok(u) => u.name,
+    Err(issues) => match issues {
+      [] => "invalid",
+      [first, ..._rest] => "bad: " + first.message,
+    },
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  return 0
+}
+"#,
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("record .parse Err-as-Issue[] failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn fs_make_dir_and_append_text_round_trip() {
     // F10: make_dir creates the directory (mkdir -p, idempotent) and append_text
     // adds lines without a read-modify-write. The program returns 0 only if two

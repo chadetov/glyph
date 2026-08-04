@@ -14,10 +14,17 @@ export const Account = {
       && (typeof (value as Record<string, unknown>).balance === "number" && Number.isInteger((value as Record<string, unknown>).balance))
       && Object.keys(value as object).every((__k: string) => __k === "id" || __k === "balance");
   },
-  parse(value: unknown): { tag: "Ok"; value: Account } | { tag: "Err"; value: string } {
-    return this.is(value)
-      ? { tag: "Ok", value: value }
-      : { tag: "Err", value: "expected Account" };
+  parse(value: unknown): { tag: "Ok"; value: Account } | { tag: "Err"; value: Issue[] } {
+    if (typeof value !== "object" || value === null) {
+      return { tag: "Err", value: [{ path: [], message: "expected Account (an object)" }] };
+    }
+    const __issues: Issue[] = [];
+    if (!(typeof (value as Record<string, unknown>).id === "bigint")) __issues.push({ path: ["id"], message: "field `id` is missing or has the wrong type" });
+    if (!((typeof (value as Record<string, unknown>).balance === "number" && Number.isInteger((value as Record<string, unknown>).balance)))) __issues.push({ path: ["balance"], message: "field `balance` is missing or has the wrong type" });
+    for (const __k of Object.keys(value as object)) {
+      if (!(__k === "id" || __k === "balance")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`" });
+    }
+    return __issues.length === 0 ? { tag: "Ok", value: value as Account } : { tag: "Err", value: __issues };
   },
   schema: __glyph_schema<Account>("Account", (v): v is Account => Account.is(v)),
 };

@@ -23,10 +23,10 @@ export const Shape = {
       default: return false;
     }
   },
-  parse(value: unknown): { tag: "Ok"; value: Shape } | { tag: "Err"; value: string } {
+  parse(value: unknown): { tag: "Ok"; value: Shape } | { tag: "Err"; value: Issue[] } {
     return this.is(value)
       ? { tag: "Ok", value: value }
-      : { tag: "Err", value: "expected Shape" };
+      : { tag: "Err", value: [{ path: [], message: "expected Shape" }] };
   },
   schema: __glyph_schema<Shape>("Shape", (v): v is Shape => Shape.is(v)),
 };

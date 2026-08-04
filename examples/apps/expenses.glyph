@@ -1,0 +1,442 @@
+// expenses — an expense-report CLI over a CSV ledger.
+//
+// Reads a ledger, validates every row at the boundary, and prints a per-category
+// report: count, exact total, share of spend, and a bar chart. Money is
+// std/decimal, so cents never drift across a sum. Bad rows are collected with
+// their source line number and reported all at once, with a nonzero exit.
+//
+// Usage:
+//   expenses <ledger.csv> [--month YYYY-MM]
+//
+// Rows are split on commas, so a quoted field containing a comma is out of
+// scope; there is no CSV reader in the standard library to lean on.
+//
+// Run it end to end (copy the whole block):
+//
+//   cat > /tmp/ledger.csv <<'EOF'
+//   date,category,description,amount
+//   2026-01-03,groceries,corner store,42.10
+//   2026-01-05,transit,metro card,30.00
+//   2026-01-11,groceries,weekly shop,88.45
+//   2026-01-14,rent,january rent,1450.00
+//   2026-01-19,coffee,two flat whites,9.60
+//   2026-01-22,transit,airport train,18.75
+//   2026-02-02,groceries,corner store,12.05
+//   2026-02-04,rent,february rent,1450.00
+//   EOF
+//   glyph run examples/apps/expenses.glyph /tmp/ledger.csv --month 2026-01
+
+module main
+
+import std/array
+import std/decimal { Decimal, decimal, from_int, zero }
+import std/fs
+import std/io
+import std/option { Option, Some, None }
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+import std/time
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+type Transaction = {
+  // Epoch milliseconds, parsed once at the boundary. Nothing downstream looks
+  // at the date as a string.
+  date: number,
+  category: string,
+  description: string,
+  amount: Decimal,
+}
+
+// Every way a ledger row can be bad. The reporting arm matches on this, so a
+// new failure mode cannot be forgotten.
+type RowError =
+  | MissingColumn({ line: int, found: int })
+  | BadDate({ line: int, value: string })
+  | BadAmount({ line: int, value: string })
+  | EmptyCategory({ line: int })
+
+type Ledger = { rows: Array<Transaction>, errors: Array<RowError> }
+
+type Group = { category: string, count: int, total: Decimal }
+
+type MonthFilter = { year: int, month: int }
+
+type Args = { path: string, month: Option<MonthFilter> }
+
+// ---------------------------------------------------------------------------
+// Text helpers
+// ---------------------------------------------------------------------------
+
+@example repeat("ab", 0) == ""
+@example repeat("ab", 3) == "ababab"
+fn repeat(unit: string, count: int) -> string {
+  let out = ""
+  let i = 0
+  loop {
+    match i < count {
+      false => {
+        break
+      },
+      true => {
+        mut out = "${out}${unit}"
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+// A nested string literal inside `${...}` is not supported, so the pad unit is
+// a module constant rather than a literal argument.
+const SPACE = " "
+
+fn pad_end(s: string, width: int) -> string {
+  return "${s}${repeat(SPACE, width - string.len(s))}"
+}
+
+fn pad_start(s: string, width: int) -> string {
+  return "${repeat(SPACE, width - string.len(s))}${s}"
+}
+
+@example two_digits(12) == "12"
+@example two_digits(7) == "07"
+fn two_digits(n: int) -> string {
+  let s = number.to_string(n)
+  return match string.len(s) < 2 {
+    true => "0${s}",
+    false => s,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Row parsing
+// ---------------------------------------------------------------------------
+
+// The ledger's contract is an ISO-8601 date. `time.parse_iso` enforces it:
+// "2026-1-3", "January 5 2026", an offset-less "2026-01-03T10:00", and an
+// impossible day like "2026-02-31" are all `None`, so a row can never be filed
+// under a month the ledger did not write.
+fn parse_date(line: int, value: string) -> Result<number, RowError> {
+  return match time.parse_iso(value) {
+    Some(ms) => Ok(ms),
+    None => Err(BadDate({ line: line, value: value })),
+  }
+}
+
+fn parse_amount(line: int, value: string) -> Result<Decimal, RowError> {
+  return match decimal(value) {
+    Ok(d) => Ok(d),
+    Err(_) => Err(BadAmount({ line: line, value: value })),
+  }
+}
+
+fn parse_row(line: int, raw: string) -> Result<Transaction, RowError> {
+  let columns = array.map(string.split(raw, ","), fn(c: string) -> string { return string.trim(c) })
+  match array.len(columns) < 4 {
+    true => {
+      return Err(MissingColumn({ line: line, found: array.len(columns) }))
+    },
+    false => {},
+  }
+
+  let date = parse_date(line, columns[0])?
+  let category = columns[1]
+  match string.len(category) == 0 {
+    true => {
+      return Err(EmptyCategory({ line: line }))
+    },
+    false => {},
+  }
+  let amount = parse_amount(line, columns[3])?
+
+  return Ok({ date: date, category: category, description: columns[2], amount: amount })
+}
+
+// Parse the whole file. The header row is skipped, blank lines are ignored, and
+// every failure is collected so one bad row does not hide the next one.
+fn parse_ledger(text: string) -> Ledger {
+  let rows: Array<Transaction> = []
+  let errors: Array<RowError> = []
+
+  // The header row is dropped before the loop, so index 0 is source line 2.
+  // The annotation is load-bearing: a two-binding `for` only binds a numeric
+  // index when the iterand's type is a visible `Array<T>`, and the type of a
+  // std-module call is not.
+  let lines: Array<string> = array.slice(string.split(text, "\n"), 1)
+
+  for i, raw in lines {
+    let line = i + 2
+    match string.len(string.trim(raw)) == 0 {
+      true => {},
+      false => match parse_row(line, raw) {
+        Ok(t) => {
+          mut rows.push(t)
+        },
+        Err(e) => {
+          mut errors.push(e)
+        },
+      },
+    }
+  }
+
+  return { rows: rows, errors: errors }
+}
+
+@example format_row_error(EmptyCategory({ line: 4 })) == "line 4: empty category"
+@example format_row_error(MissingColumn({ line: 9, found: 3 })) == "line 9: expected 4 columns, found 3"
+fn format_row_error(e: RowError) -> string {
+  return match e {
+    MissingColumn({ line, found }) => "line ${number.to_string(line)}: expected 4 columns, found ${number.to_string(found)}",
+    BadDate({ line, value }) => "line ${number.to_string(line)}: bad date \"${value}\"",
+    BadAmount({ line, value }) => "line ${number.to_string(line)}: bad amount \"${value}\"",
+    EmptyCategory({ line }) => "line ${number.to_string(line)}: empty category",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Aggregation
+// ---------------------------------------------------------------------------
+
+fn in_month(t: Transaction, f: MonthFilter) -> bool {
+  return time.year(t.date) == f.year && time.month(t.date) == f.month
+}
+
+fn select_month(rows: Array<Transaction>, month: Option<MonthFilter>) -> Array<Transaction> {
+  return match month {
+    None => rows,
+    Some(f) => array.filter(rows, fn(t: Transaction) -> bool { return in_month(t, f) }),
+  }
+}
+
+fn total_of(rows: Array<Transaction>) -> Decimal {
+  // Seeded at two decimal places so an empty ledger still prints "0.00".
+  let sum = zero.round(2)
+  for t in rows {
+    mut sum = sum.add(t.amount)
+  }
+  return sum
+}
+
+fn group_by_category(rows: Array<Transaction>) -> Array<Group> {
+  let acc: Record<string, Group> = {}
+  for t in rows {
+    let current = match record.get(acc, t.category) {
+      Some(g) => g,
+      None => { category: t.category, count: 0, total: zero },
+    }
+    mut acc = record.set(
+      acc,
+      t.category,
+      { category: t.category, count: current.count + 1, total: current.total.add(t.amount) },
+    )
+  }
+  return array.sort(record.values(acc), fn(a: Group, b: Group) -> number { return b.total.cmp(a.total) })
+}
+
+// ---------------------------------------------------------------------------
+// Report
+// ---------------------------------------------------------------------------
+
+const BAR_WIDTH = 24
+
+const HUNDRED = from_int(100, 0)
+
+const SHARE_CAP = from_int(9990, 1)
+
+fn is_positive(d: Decimal) -> bool {
+  return !d.is_zero() && !d.is_negative()
+}
+
+// A share of overall spend only means something when overall spend is positive;
+// a ledger whose refunds cancel it out prints a dash instead of a number that
+// would be arithmetically true and useless.
+@example share_label(from_int(1, 0), zero) == "-"
+@example share_label(from_int(50, 0), from_int(200, 0)) == "25.0%"
+fn share_label(part: Decimal, whole: Decimal) -> string {
+  return match is_positive(whole) {
+    false => "-",
+    true => {
+      let pct = part.div(whole, 6).mul(HUNDRED).round(1)
+      // A ledger whose refunds nearly cancel its spend can produce a share in
+      // the thousands of percent; clamp it so the column stays aligned.
+      match pct.abs().cmp(SHARE_CAP) > 0 {
+        false => "${pct.to_string()}%",
+        true => match pct.is_negative() {
+          true => "<-999%",
+          false => ">999%",
+        },
+      }
+    },
+  }
+}
+
+// Bar length is the category's share of the largest category, so the top row is
+// always full width. A category that rounds to nothing but still has spend gets
+// a single mark rather than an empty cell; a net-negative category gets none.
+fn bar_for(part: Decimal, largest: Decimal) -> string {
+  return match is_positive(largest) && is_positive(part) {
+    false => "",
+    true => {
+      let width = part.div(largest, 4).mul(from_int(BAR_WIDTH, 0)).round(0).to_number()
+      match width < 1 {
+        true => "#",
+        false => repeat("#", width),
+      }
+    },
+  }
+}
+
+// One line of the table. Column widths live here only, so the header and the
+// body can never drift apart.
+fn table_row(category: string, count: string, total: string, share: string, chart: string) -> string {
+  return string.join([
+    pad_end(category, 14),
+    pad_start(count, 6),
+    pad_start(total, 12),
+    pad_start(share, 8),
+    "  ",
+    chart,
+  ], "")
+}
+
+fn print_report(rows: Array<Transaction>, label: string) -> void {
+  let groups = group_by_category(rows)
+  let grand = total_of(rows)
+  let largest = match groups {
+    [] => zero,
+    [first, ..._] => first.total,
+  }
+  let rule = repeat("-", 64)
+
+  io.println("expense report ${label}")
+  io.println("")
+  io.println(table_row("category", "count", "total", "share", "chart"))
+  io.println(rule)
+
+  for g in groups {
+    io.println(table_row(
+      g.category,
+      number.to_string(g.count),
+      g.total.to_string(),
+      share_label(g.total, grand),
+      bar_for(g.total, largest),
+    ))
+  }
+
+  let count = array.len(rows)
+  let mean = match count == 0 {
+    true => zero.round(2),
+    false => grand.div(from_int(count, 0), 2),
+  }
+
+  io.println(rule)
+  io.println(table_row(
+    "all",
+    number.to_string(count),
+    grand.to_string(),
+    share_label(grand, grand),
+    "",
+  ))
+  io.println("")
+  io.println("mean per transaction: ${mean.to_string()}")
+}
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+const USAGE = "usage: expenses <ledger.csv> [--month YYYY-MM]"
+
+@example parse_month("2026-02") == Ok({ year: 2026, month: 2 })
+fn parse_month(value: string) -> Result<MonthFilter, string> {
+  let parts = string.split(value, "-")
+  match array.len(parts) == 2 {
+    false => {
+      return Err("--month expects YYYY-MM, got \"${value}\"")
+    },
+    true => {},
+  }
+  let year = match number.parse(parts[0]) {
+    Ok(y) => y,
+    Err(_) => {
+      return Err("--month expects YYYY-MM, got \"${value}\"")
+    },
+  }
+  let month = match number.parse(parts[1]) {
+    Ok(m) => m,
+    Err(_) => {
+      return Err("--month expects YYYY-MM, got \"${value}\"")
+    },
+  }
+  match month < 1 || month > 12 {
+    true => {
+      return Err("--month: ${number.to_string(month)} is not a month")
+    },
+    false => {},
+  }
+  return Ok({ year: year, month: month })
+}
+
+fn with_month(path: string, raw: string) -> Result<Args, string> {
+  return match parse_month(raw) {
+    Ok(f) => Ok({ path: path, month: Some(f) }),
+    Err(e) => Err(e),
+  }
+}
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  return match argv {
+    [path] => Ok({ path: path, month: None }),
+    [path, "--month", raw] => with_month(path, raw),
+    ["--month", raw, path] => with_month(path, raw),
+    else => Err(USAGE),
+  }
+}
+
+fn month_label(month: Option<MonthFilter>) -> string {
+  return match month {
+    None => "(all months)",
+    Some(f) => "(${number.to_string(f.year)}-${two_digits(f.month)})",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+
+  let text = match fs.read_text(args.path) {
+    Ok(t) => t,
+    Err(e) => {
+      io.eprintln("error: cannot read ${args.path}: ${e.message}")
+      return 2
+    },
+  }
+
+  let ledger = parse_ledger(text)
+  match array.len(ledger.errors) > 0 {
+    true => {
+      io.eprintln("error: ${number.to_string(array.len(ledger.errors))} invalid row(s) in ${args.path}")
+      for e in ledger.errors {
+        io.eprintln("  ${format_row_error(e)}")
+      }
+      return 1
+    },
+    false => {},
+  }
+
+  print_report(select_month(ledger.rows, args.month), month_label(args.month))
+  return 0
+}

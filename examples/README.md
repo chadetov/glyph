@@ -25,6 +25,8 @@ stdlib and fixing whatever the language lacked along the way.
 |---|---|---|
 | `fridge.glyph` | Shopping-list CLI: JSON-on-disk persistence, optional fields, list mutations, and a persistence boundary that must `parse` back into a real `Fridge` | Verifiability + greppability |
 | `tasks.glyph` | Persisted task API: `std/sqlite` (Node's built-in SQLite) for durable storage, a storage/domain type split at the DB boundary (SQLite has no `bool`), `std/http` routes, wire-body validation, all errors-as-values. Data survives restarts | Verifiability + greppability |
+| `minesweeper.glyph` | Terminal Minesweeper: a 9x9 grid, lazy first-click mine placement, flood-fill reveal, a flag/unflag stdin command loop, and a seeded RNG so a piped transcript replays byte for byte | Verifiability + diff stability |
+| `expenses.glyph` | Expense-report CLI over a CSV ledger: every row validated at the boundary with its source line number, exact money via `std/decimal`, per-category totals and shares, and a nonzero exit that lists every bad row at once | Verifiability + greppability |
 
 ## `corpus/` — self-contained regression programs
 

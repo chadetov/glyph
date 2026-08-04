@@ -137,6 +137,14 @@ for key, value in scores {           // over a Record: key (string), value
   io.println("${key} = ${value}")
 }
 
+// The array form is picked from the iterand's declared type. Iterating a call's
+// result directly gives you a STRING index and nothing complains, so bind it:
+let rows: Array<string> = array.slice(lines, 1)
+
+for i, row in rows {
+  io.println("${i}: ${row}")
+}
+
 loop {                               // unbounded; `break`/`continue` are legal
   match done() {
     true => break,

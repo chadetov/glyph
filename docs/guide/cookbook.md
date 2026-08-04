@@ -153,6 +153,12 @@ fn print_all(items: Array<string>) -> void {
 A second binding gives you the position without a hand-rolled counter. Over an
 array it is the numeric index; over a `Record` it is the string key.
 
+Bind the array first if it comes from a call. The emitter picks the array
+lowering from the iterand's declared type, so iterating a call's result directly
+(`for i, x in array.slice(xs, 1)`) hands you the *string* `"0"` and nothing
+fails: write `let ys: Array<string> = array.slice(xs, 1)` and loop over `ys`.
+Tracked in `docs/dogfooding-gaps.md` as G37.
+
 ```glyph
 import std/io
 

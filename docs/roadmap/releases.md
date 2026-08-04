@@ -634,12 +634,13 @@ parked; it should be scheduled as a designed release once the fork is resolved.
 
 The loop pointed at another ordinary program: an expense-report CLI
 (`examples/apps/expenses.glyph`) that reads a CSV ledger, validates every row,
-and prints a per-category report with exact `Decimal` money. Fourteen findings
-came out of it. Thirteen are "Glyph made me type more". One is a different
+and prints a per-category report with exact `Decimal` money. Fifteen findings
+came out of it. Thirteen are "Glyph made me type more". Two are a different
 category: the standard library returned a value where its own reference docs
-promised a rejection. This trip carries the Next marker.
+promised a rejection, and the two-binding `for` picks the wrong lowering when you
+iterate a call's result. This trip carries the Next marker.
 
-### 0.1.39 — Landed on main · `time.parse_iso` parses ISO-8601, and nothing else
+### 0.1.39 — Shipped · `time.parse_iso` parses ISO-8601, and nothing else
 
 `parse_iso` was a bare `Date.parse`, which meant it accepted whatever the host
 engine's date heuristics accepted. `"January 5 2026"` parsed. `"2026-1-3"`
@@ -695,6 +696,20 @@ nested string literal, which is a lexer artifact rather than a rule.
 
 ### Still open from this trip
 
+- **A two-binding `for` over a call's result binds a string index** (S/M).
+  Documenting `for i, x in xs` (above) meant the app could finally drop its
+  hand-rolled line counter, and the natural spelling miscompiles.
+  `iter_is_array` (`glyph-emit/src/lib.rs:1783`) asks the type map for the
+  iterand's type and falls back to the record lowering when it is not a known
+  `Array`, so `for i, raw in array.slice(lines, 1)` emits
+  `Object.entries(...)` and `i` is the string `"0"`. This is the silent-green
+  class: `glyph build` is clean, `tsc --strict` passes (`"0" + 1` is legal
+  TypeScript), and the program prints `01:` where it should print `1:`. An
+  inferred `let` does not rescue it; only an explicit `Array<T>` annotation on
+  the binding does, which is what the app does today. The fix is either
+  recording a call expression's result type at its span or defaulting the
+  unknown case to the array lowering; both change what an unannotated iterand
+  means, so it wants a decision rather than a patch.
 - **`std/string`: `slice`; `std/array`: `fold`** (S). The `fold` gap costs a
   pillar, not just keystrokes: with no fold, every accumulation is a `mut` in a
   loop, which dilutes what `grep -n "^\s*mut "` is supposed to find (D5). Pairs

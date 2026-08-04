@@ -522,11 +522,13 @@ on a decision in `docs/roadmap/releases.md`.
 
 The loop pointed at a plain command-line tool: `examples/apps/expenses.glyph`
 reads a CSV ledger, validates every row, and prints a per-category report with
-exact money. Fourteen findings came out of it. Thirteen are "Glyph made me type
+exact money. Fifteen findings came out of it. Thirteen are "Glyph made me type
 more" (a missing `string.repeat`/`pad_start`, no `array.fold`, no
-`allow_hyphen_values` on the clap binding). One is different in kind, and it is
-the only one fixed here: the stdlib returned a value where its own reference
-docs promised a rejection.
+`allow_hyphen_values` on the clap binding). Two are different in kind: the stdlib
+returned a value where its own reference docs promised a rejection, and the loop
+form that replaces a hand-rolled counter silently binds the wrong kind of index.
+The first is fixed here; the second was found while deleting the app's
+workaround for the first and is still open.
 
 - **G31. [FIXED] `time.parse_iso` accepted non-ISO text, read it in local time,
   and rolled impossible dates over.** It was a bare `Date.parse`, so
@@ -576,3 +578,20 @@ docs promised a rejection.
   nothing parallel. The parse error names a token, not the rule.
 - **G36. The clap binding has no `allow_hyphen_values`.** A negative amount as a
   CLI argument (`--amount -12.50`) cannot be expressed.
+- **G37. A two-binding `for` over a call's result binds a *string* index, and
+  nothing catches it.** With G32 documented, the app could drop its hand-rolled
+  line counter, and the natural spelling was wrong:
+  `for i, raw in array.slice(lines, 1)` emits
+  `for (const [i, raw] of Object.entries(...))`, so `i` is `"0"`, not `0`.
+  `iter_is_array` (`glyph-emit/src/lib.rs:1783`) reads the iterand's type from
+  the type map and falls back to the record lowering whenever it is not a known
+  `Array`, and a call expression's result is not in the map. This is the
+  silent-green class G1 and G2 belong to: `glyph build` is clean, `tsc --strict`
+  passes (`"0" + 1` is legal TypeScript), and the loop prints `01:` where it
+  should print `1:`. Verified on a three-line program. A `let` binding does not
+  rescue it either: `let a = array.slice(...)` still emits `Object.entries(a)`,
+  and only `let a: Array<string> = array.slice(...)` emits `a.entries()`, which
+  is what the app does today. Fixing it means either
+  recording a call's result type at its span or defaulting the unknown case to
+  the array lowering, and both change what an unannotated iterand means, so it
+  is a decision rather than a patch. Recorded in `docs/roadmap/releases.md`.

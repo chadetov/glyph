@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.38</span>
+            <span class="rel-ver">0.1.39</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3><code>time.parse_iso</code> parses ISO-8601, and nothing else</h3>
+            <p>It was a bare <code>Date.parse</code> underneath, so it took free-form text, read an unpadded date in whatever timezone the process ran in, and reported an impossible day as a success. The reference docs said <em>None if invalid</em>. Now they are true.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>time.parse_iso</code> returns <code>None</code> for <code>"January 5 2026"</code>, <code>"2026-1-3"</code>, <code>"2026-13-01"</code>, <code>"2026-02-31"</code> (which used to come back as March 3), and <code>"2026-02-29"</code> in a non-leap year. It accepts a bare <code>YYYY-MM-DD</code> as UTC midnight, or <code>YYYY-MM-DDTHH:MM(:SS)?(.sss)?</code> with an explicit <code>Z</code>, <code>+HH:MM</code>, or <code>-HH:MM</code>. Three stages do it: an anchored shape check before <code>Date.parse</code> sees the string, the existing <code>NaN</code> check, then arithmetic validation of the year/month/day triple with real month lengths and leap years, because calendar rollover is reported as success and no <code>NaN</code> check can see it.</li>
+              <li><span class="tag changed">Changed</span> A datetime with no offset (<code>"2026-01-03T10:00"</code>) is rejected rather than read as local time. That is the deliberate part: the same string would otherwise name a different calendar day depending on which machine ran the program, and <code>time.year</code>/<code>month</code>/<code>day</code> are documented UTC. Anything that stops parsing because of this release contradicted both the function's name and its docs.</li>
+              <li><span class="tag added">Added</span> Two documentation corrections, both of which were making people write worse code than the compiler required. The two-binding <code>for i, x in xs</code> form is implemented and appeared in no file a reader would find, so it is now in the spec (D21), the agent bootstrap, and the cookbook. D22 claimed a <code>${...}</code> interpolation could only hold a literal, an identifier, or a member access; the parser has always accepted the full expression grammar there, calls included.</li>
+              <li><span class="tag known">Known</span> A two-binding <code>for</code> gets a string index when you iterate a call's result directly (<code>for i, x in array.slice(xs, 1)</code>), because the emitter falls back to the object form when it can't see an <code>Array</code> type. It compiles and <code>tsc</code> passes. Bind the array to a <code>let</code> with an <code>Array&lt;T&gt;</code> annotation first and the index is a number.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.38</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

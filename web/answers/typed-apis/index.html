@@ -215,6 +215,56 @@ type User = { name: string; age: number };
           string is rejected instead, and you decide what it meant.
         </p>
 
+        <p>
+          This one came out of writing an <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses.glyph">expense-report
+          CLI in Glyph</a>. Every ledger row carries a date,
+          and filing a row under the wrong month is the bug that matters, so the app didn't trust
+          the old <code>parse_iso</code>: it checked the shape with a regex first, then round-tripped
+          the timestamp back to text to catch a rolled-over day. When an application writes a
+          correctness guard around a standard-library primitive, the guard belongs in the
+          primitive. Here is what the app deleted:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">before: the app guards the stdlib</span>
+<pre>const ISO_DATE = "^\\d{4}-\\d{2}-\\d{2}$"
+
+fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match regex.matches(ISO_DATE, value) {
+    false =&gt; Err(BadDate({ line: line, value: value })),
+    true =&gt; match time.parse_iso(value) {
+      Some(ms) =&gt; match string.starts_with(
+        time.format_iso(ms), value
+      ) {
+        true =&gt; Ok(ms),
+        false =&gt; Err(BadDate({ line: line, value: value })),
+      },
+      None =&gt; Err(BadDate({ line: line, value: value })),
+    },
+  }
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">after: the primitive holds the line</span>
+<pre>fn parse_date(line: int, value: string)
+  -&gt; Result&lt;number, RowError&gt; {
+  return match time.parse_iso(value) {
+    Some(ms) =&gt; Ok(ms),
+    None =&gt; Err(BadDate({ line: line, value: value })),
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The <code>import std/regex</code> went with it. Same ledger, same rejected rows, same
+          report byte for byte.
+        </p>
+
         <p class="block-label">You don't even have to write the types</p>
         <p>
           If the shape already exists in an OpenAPI spec or a TypeScript declaration file, generate
@@ -435,7 +485,7 @@ if (amount &lt; 0) throw new Error(...);
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage. Typed client and server code from a spec already ships. See <a href="/answers/codegen/">client &amp; server</a>.</p>
+          <p>Discriminated unions now generate from both an OpenAPI <code>discriminator</code> and a TypeScript <code>.d.ts</code> union (a <code>parse_&lt;Name&gt;</code> dispatcher reads the tag and validates into the right variant). Next: richer enum and mapped-type coverage. Typed client and server code from a spec already ships. See <a href="/answers/codegen/">client &amp; server</a>. On dates, the strictness is the whole feature and it stops at the parse: <code>parse_iso</code> hands back epoch milliseconds, so a timestamp and a duration are both <code>number</code> and nothing stops you adding one to the other. A distinct date type is a later decision, not a small one.</p>
         </div>
       </div>
 

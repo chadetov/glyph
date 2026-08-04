@@ -1885,6 +1885,71 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn nested_literal_patterns_run_correctly() {
+    // F4: a match with nested literal payloads (Ok(true)/Ok(false), Some(0)) runs
+    // with the right semantics, including a trailing same-variant catch-all. The
+    // program returns a non-zero code if any case is misdispatched.
+    if !js_toolchain_available() {
+        eprintln!("skipping nested-literal run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("nestedlit");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+import std/result { Result, Ok, Err }
+import std/option { Option, Some, None }
+
+fn describe(r: Result<bool, string>) -> string {
+  return match r {
+    Ok(true) => "t",
+    Ok(false) => "f",
+    Err(e) => "e",
+  }
+}
+
+fn classify(o: Option<number>) -> string {
+  return match o {
+    Some(0) => "z",
+    Some(_) => "n",
+    None => "x",
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let ok = describe(Ok(true)) == "t"
+    && describe(Ok(false)) == "f"
+    && describe(Err("boom")) == "e"
+    && classify(Some(0)) == "z"
+    && classify(Some(9)) == "n"
+    && classify(None) == "x"
+  return match ok {
+    true => 0,
+    false => 1,
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "nested-literal match dispatched a case wrong");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping nested-literal run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("nested-literal program failed to build: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
+    }
+}
+
+#[test]
 fn record_parse_error_is_an_issue_array() {
     // F2: T.parse returns Result<T, Array<Issue>> (not Result<T, string>), so the
     // Err binds as an issue list whose entries carry a `.message`, matching the

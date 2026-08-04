@@ -310,6 +310,9 @@ fn bootstrap_specifier(module_path: &str) -> String {
 fn is_nested_variant_arg(p: &Pattern) -> bool {
     match p {
         Pattern::Constructor { .. } => true,
+        // A literal payload (`Ok(true)`, `Some(0)`) is a nested pattern too: it
+        // is degrouped into an inner value-match on the payload.
+        Pattern::Literal { .. } => true,
         Pattern::Ident { name, .. } => is_prelude_variant(name),
         _ => false,
     }
@@ -1924,12 +1927,22 @@ impl<'a> Emitter<'a> {
                 continue;
             };
             let outer = path.last().map(|s| s.as_ref()).unwrap_or("");
+            let tag = path
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<_>>()
+                .join(".");
+            let already_grouped = group_at.iter().any(|(t, _)| *t == tag);
             // The single arg is a nested variant when it is a constructor
-            // pattern, a bare prelude variant (`Ok(None)`), or a bare *user*
-            // nullary variant of the outer variant's payload union (`Err(Empty)`)
-            // — the last is what the plain `is_nested_variant_arg` check missed.
+            // pattern, a literal (`Ok(true)`), a bare prelude variant
+            // (`Ok(None)`), or a bare *user* nullary variant of the outer
+            // variant's payload union (`Err(Empty)`). Once a variant is grouped,
+            // a later same-variant arm whose arg is a wildcard or a plain binding
+            // is absorbed as the inner match's catch-all, so a `Some(0) => ..,
+            // Some(_) => ..` pair stays exhaustive rather than emitting a second
+            // `case "Some":` that shadows the value dispatch.
             let inner: Pattern = match arg {
-                Pattern::Constructor { .. } => arg.clone(),
+                Pattern::Constructor { .. } | Pattern::Literal { .. } => arg.clone(),
                 Pattern::Ident { name, span }
                     if is_prelude_variant(name)
                         || self
@@ -1945,17 +1958,15 @@ impl<'a> Emitter<'a> {
                         span: *span,
                     }
                 }
-                // Not a nested arm: keep it as is (a genuine payload binding).
+                // A wildcard or plain binding is a genuine payload binding on its
+                // own, but the catch-all of an already-open group when it follows
+                // one for the same variant.
+                Pattern::Wildcard { .. } | Pattern::Ident { .. } if already_grouped => arg.clone(),
                 _ => {
                     out.push(arm.clone());
                     continue;
                 }
             };
-            let tag = path
-                .iter()
-                .map(|s| s.as_ref())
-                .collect::<Vec<_>>()
-                .join(".");
             let inner_arm = MatchArm {
                 pattern: inner,
                 body: arm.body.clone(),
@@ -5100,6 +5111,40 @@ mod tests {
         assert!(ts.contains("case \"BadQty\""), "{ts}");
         // The nullary arm must NOT bind the payload as a catch-all.
         assert!(!ts.contains("const Empty ="), "{ts}");
+    }
+
+    #[test]
+    fn nested_literal_payload_degroups_to_a_value_match() {
+        // F4: `Ok(true)`/`Ok(false)` (a nested literal payload) lowers to a
+        // single `case "Ok"` whose payload dispatches through an inner
+        // value-match, instead of an E0300. A later same-variant catch-all is
+        // absorbed into that inner match so it stays exhaustive.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok, Err }\npub fn describe(r: Result<bool, string>) -> string {\n  return match r {\n    Ok(true) => \"t\",\n    Ok(false) => \"f\",\n    Err(e) => e,\n  }\n}\n",
+        );
+        assert_eq!(
+            ts.matches("case \"Ok\"").count(),
+            1,
+            "one `case \"Ok\"` with an inner value switch, not a duplicate:\n{ts}"
+        );
+        // The payload is bound to a temp and switched on its value.
+        assert!(ts.contains("case true:"), "inner value dispatch on the payload:\n{ts}");
+    }
+
+    #[test]
+    fn nested_literal_absorbs_a_trailing_catch_all() {
+        // `Some(0) => .., Some(_) => ..` must fold the wildcard into the inner
+        // value-match (a single `case "Some"`), so the payload switch is
+        // exhaustive rather than emitting a second, shadowed `case "Some"`.
+        let ts = emit(
+            "module x\nimport std/option { Option, Some, None }\npub fn classify(o: Option<number>) -> string {\n  return match o {\n    Some(0) => \"zero\",\n    Some(_) => \"nonzero\",\n    None => \"none\",\n  }\n}\n",
+        );
+        assert_eq!(
+            ts.matches("case \"Some\"").count(),
+            1,
+            "the trailing Some(_) must be absorbed, not a second case:\n{ts}"
+        );
+        assert!(ts.contains("case 0:"), "inner value switch on 0:\n{ts}");
     }
 
     #[test]

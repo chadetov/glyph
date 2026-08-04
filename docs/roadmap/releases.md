@@ -334,6 +334,143 @@ symbols, formatting); these are the two most-requested gaps on top of it.
 Republished so the npm README documents the MCP server and the language server
 that shipped in 0.1.11 (the README only updates on publish). No code changes.
 
+## hookrelay dogfood trip — eliminate the extern (0.1.33 → 0.1.35)
+
+**Status: planned (committed Next).** The improve-glyph loop applied to a real
+networked app: `hookrelay`, a webhook receiver and dispatcher, built end to end
+in Glyph — like `examples/apps/tasks.glyph` (0.1.25) but harder (raw-body HMAC
+verification, a recursive and/or/not rule engine, bounded-concurrency dispatch
+with retry, lossless NDJSON round-trip, a subcommand CLI with exit codes). All 16
+findings from that build fold into three releases, sequenced additive-first. The
+headline result the trip is built to prove: **a webhook service needs zero
+hand-written TypeScript.**
+
+The core wedge held up in the build — `@open` boundary validation, `unknown`
+without casts, errors-as-values, and tagged unions across the FFI all worked with
+no fight. The friction clustered at I/O surfaces, the local-`.ts` interop
+direction, and a handful of unimplemented emit cases. Each item below traces to
+one finding (Fn) from the build. This trip carries the Next marker; the
+Road-to-1.0 interop items below continue in parallel (F8/F14/F15 are new,
+concrete instances of interop classes already tracked there).
+
+### 0.1.33 — Planned · Stay in Glyph (I/O boundaries + the red build)
+
+**Goal / acceptance:** hookrelay drops its extern *server* and *mkdir* entirely —
+HMAC verify, routing, classify, persist all run inside a `std/http.serve`
+handler. Additive, low risk, plus the one outright bug.
+
+- **Raw request body in `std/http`** (S, F7) — add `Request.raw: string` (the
+  unparsed body) alongside the parsed `body`, populated from the raw string the
+  server already has in scope (`runtime/std/http.ts`: `body: raw === "" ? null :
+  parse_body(raw)`). This one change is what lets a signature-verifying server
+  stay in Glyph: HMAC must run over the exact received bytes, and the server
+  currently discards them, which forced the *entire* HTTP server into an extern.
+  `Request.body` stays `unknown` (safe-by-construction, per the 0.1.5 note);
+  `.raw` is purely additive. Emit + ambient `.d.ts` + stdlib docs + a web answer.
+- **`@types/node` no longer reddens Glyph's own runtime** (S, F15) — installing
+  `@types/node@26` makes the bundled `std/crypto.ts` fail `tsc`
+  (`randomBytes(count)` → TS2554), so the interop path the docs recommend turns
+  the whole build red. A concrete new instance of the already-tracked "node-shim /
+  @types/node consistency" item (Linus review 04); fix the runtime call/shim so
+  the bundled std type-checks against a current `@types/node`. Gate: `npm i -D
+  @types/node && glyph build` stays green.
+- **`fs.append_text` + `fs.make_dir`, Result-returning** (S, F10) — `std/fs` has
+  read/write-whole-file, `exists`, `remove`, but no append and no mkdir. NDJSON
+  needs append (today it is read-whole-file + concat + rewrite, O(n) and unsafe
+  under concurrent writers) and the data dir needs creating. Node's
+  `appendFileSync`/`mkdirSync` throw and Glyph has no `try`/`catch`, so both must
+  be wrapped in the runtime (errors-as-values out).
+- **`glyph fmt --check`** (S, F1) — exit non-zero when any file would reformat
+  (in-place stays the default). The prompt asked for it as a CI gate; today it
+  does not exist, so a copy-and-diff hack stands in.
+- **`T.parse` returns the documented `Result<T, Array<Issue>>`** (M, F2, breaking
+  shape) — the generated descriptor `parse` actually returns `Result<T, string>`
+  with a hardcoded `"expected T"`, while AGENTS.md and `docs/reference/stdlib.md`
+  document `Array<Issue>`. Align the emit to the contract and name the offending
+  field/path in the issues, so a boundary rejection is a readable error rather
+  than a generic string. Pre-1.0 breaking change; the conformance corpus pins the
+  new shape and a human signs the diff. (Distinct from the tracked imported-`.d.ts`
+  presence-only edge — this is the hand-written record descriptor.)
+- **Stdlib reference completeness** (S, F9) — `time.format_iso`/`parse_iso` shipped
+  in 0.1.17 but never landed in `docs/reference/stdlib.md`, so the build reached
+  for `extern_ts("new Date().toISOString()")` when it did not have to. Audit the
+  reference against the real runtime exports and add a drift test so the documented
+  surface can't fall behind the real one again.
+
+### 0.1.34 — Planned · Reads like Glyph (emit ergonomics + formatter)
+
+**Goal / acceptance:** rebuild hookrelay; the short-circuit combinators use
+`Ok(true)` directly, the JSON-rules validators inline their early-returns instead
+of each spawning a one-shot helper function, the async fan-out closure takes a
+normal annotation, and the code stops exploding to one argument per line.
+
+- **Nested constructor+literal patterns** (M, F4) — `match r { Ok(true) => …,
+  Ok(false) => …, Err(e) => … }` is E0300 ("nested or multi-argument pattern …
+  not implemented"). Lower it. Hit three separate times in the build; the papercut
+  that most inflated the code (every `Result<bool, E>`/`Option<bool>` match).
+- **`return` / block in a value-position match arm** (M, F5) — `let x = match c {
+  Some(v) => v, None => return Err(…) }` is E0300 ("block body in a value-position
+  match arm"). Lower a value-position match whose arm diverges (hoist to a
+  statement match / IIFE). Removes the helper-function proliferation the
+  label-prefixing validators were forced into.
+- **Inline structural unions in a signature** (M, F3) — `fn f(x: Array<string |
+  number>)` is E0300 ("TS emission for tagged union type not implemented"). Emit
+  an inline `A | B` in type position. Glyph's own `Issue.path` is this type, yet
+  user code cannot name it.
+- **Async closures** (M, F11) — `async fn() { await … }` is a parse error
+  ("unexpected token: Async"), which makes `std/task.all`'s thunk API (`fn() -> T`)
+  unusable for awaited work. Accept `async` on a closure and emit `async () => {}`.
+- **Async-call closure inference** (S, F12) — falls out of F11: a closure whose
+  body is an async call gets the awaited return type, so `par.all(array.map(xs,
+  fn(x) { f(x) }))` type-checks with or without a return annotation (today adding
+  the annotation is a raw TS2740 against emitted code, with no Glyph-level
+  diagnostic).
+- **Width-aware formatter** (M, F6, snapshot churn expected) — `glyph fmt` breaks
+  every call or payload constructor with three or more arguments to one argument
+  per line regardless of width. Make it keep a call/record on one line when it fits
+  the print width. This *serves* the diff-stability pillar (a stable width rule is
+  more stable than blanket explosion) and regenerates the conformance/AST
+  snapshots.
+
+### 0.1.35 — Planned · Interop & concurrency (the design-heavy set)
+
+**Needs a new dogfood target** that legitimately requires hand-written TS (a
+worker-threads job, or a library that ships no types) — 0.1.33 removes
+hookrelay's extern, so this trip proves itself on a different app.
+
+- **First-class local-`.ts` interop — Option A** (L, F8 + F16, touches D15) —
+  **decision made: a sanctioned `extern/` mechanism, not general relative
+  imports.** Interop today is one-directional: a `.ts` file importing *compiled*
+  Glyph works, but a Glyph module cannot import a hand-written local `.ts` at
+  runtime (relative imports are banned by D15/E0101, a bare specifier only
+  resolves through `node_modules`, and `.types/` gives types only). Add a reserved
+  specifier (e.g. `import extern/foo`) that resolves to a project `extern/`
+  directory; `glyph build` copies those `.ts` verbatim into the output **and the
+  stale-output clean pass preserves them** (today it deletes any output `.ts` it
+  did not itself emit, silently un-staging hand-placed files — F16). Keeps
+  D15/greppability intact while making the direction first-class both ways.
+  Resolver + `build.rs` + a spec note; the one item in the trip touching the spec.
+- **Bounded concurrency in `std/task`** (M, F13) — `par.all` and `task.all` are
+  all-at-once; there is no pool/semaphore, so "at most N in flight" had to be
+  hand-rolled as slice-into-N batches (correct, verified at N=4 against a sink, but
+  a slow item in a batch stalls the next batch). Add `task.pool(limit, tasks)` (or
+  `par.all_bounded(limit, tasks)`), extending the 0.1.16 `std/task`. Gate:
+  dispatch-style code drops the manual batching for a one-liner and still caps at N.
+- **Richer node shims / the `@types/node` path** (M, F14, extends the tracked
+  consistency item) — the bundled `http` shim types `req.on` for only
+  `"data"`/`"end"` (no `"error"`) and `server.listen` as single-argument, so a
+  correct hand-written extern does not `tsc` against the generated tsconfig. With
+  F15 fixed, either expand the shims to the common server surface
+  (`req.on("error")`, `listen(port, cb)`, `timers`, `child_process`) or make
+  installed `@types/node` the supported, green path for extern code. Gate: the new
+  dogfood app's extern type-checks cleanly and survives rebuilds.
+
+*Sequencing:* F12 depends on F11; F16 pairs with F8; F14 is unblocked by F15. Risk
+rises across the three — 0.1.33 additive, 0.1.34 core-compiler but self-contained
+(expected snapshot churn), 0.1.35 touches the resolver and one spec decision. Per
+repo convention each shipped item also updates its docs, adds a `web/answers/`
+Q&A, and marks its finding resolved in the same change.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code
@@ -345,9 +482,12 @@ and real projects are all seam. The road below closes that seam, decides and
 builds interop, proves it on real apps, and settles the productivity claim.
 Everything here traces to a specific finding with file evidence.
 
-The **Next** marker: 0.1.13 shipped four of the six boundary items. The next
-0.1.x picks up the two that need design (node builtins typecheck out of the box,
-imported-`.d.ts` validate-or-diagnose), and 0.1.14 makes the interop decision.
+This track's boundary items: 0.1.13 shipped four of the six (node builtins
+typecheck out of the box landed; imported-`.d.ts` validate-or-diagnose is still
+open below), and 0.1.14 made the interop decision. The committed **Next** marker
+now sits on the hookrelay dogfood trip (0.1.33 → 0.1.35, above); this interop
+track continues in parallel, and F8/F14/F15 there are concrete new instances of
+its open items.
 
 The version numbers below mark themes and milestones, not a fixed schedule. The
 0.1.x series stays open: expect several 0.1.x releases between the named ones as

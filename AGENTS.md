@@ -394,6 +394,11 @@ type Duration                                 // time.Duration.ms(n) constructs 
 time.now() -> number                          // epoch milliseconds
 time.sleep(duration) -> void                  // async; await it
 time.debounce(delay, f) -> fn                  // returns a debounced function
+time.format_iso(epoch_ms) -> string           // ISO-8601 UTC string (no need for a Date via extern_ts)
+time.parse_iso(iso) -> Option<number>          // epoch ms, or None if invalid
+time.add_days(epoch_ms, days) -> number
+time.add_hours(epoch_ms, hours) -> number
+time.year(epoch_ms) / month(epoch_ms) / day(epoch_ms) -> number   // UTC; month is 1-12
 ```
 
 ### std/stream and std/test (property testing)

@@ -76,6 +76,56 @@ fn root_and_web_mirrors_match_agents_md() {
 }
 
 #[test]
+fn stdlib_reference_documents_every_runtime_export() {
+    // Guard against docs/reference/stdlib.md drifting behind the real stdlib
+    // surface. A runtime function added without a doc entry sends an agent
+    // reaching for an escape hatch for something that already exists
+    // (time.format_iso was undocumented and did exactly that). Every
+    // `export function`/`export const` in a std/*.ts must appear in the
+    // reference. Substring-by-word, so a genuine internal helper can be named in
+    // any prose form; the guard only catches a wholly absent export.
+    let reference =
+        fs::read_to_string(repo_file("docs/reference/stdlib.md")).expect("read stdlib.md");
+    let documented: std::collections::HashSet<&str> = reference
+        .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+        .collect();
+    let std_dir = repo_file("glyph-compiler/runtime/std");
+    let mut missing: Vec<String> = Vec::new();
+    for entry in fs::read_dir(&std_dir).expect("read std dir") {
+        let path = entry.expect("dir entry").path();
+        if path.extension().and_then(|e| e.to_str()) != Some("ts") {
+            continue;
+        }
+        let module = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+        let src = fs::read_to_string(&path).expect("read std file");
+        for line in src.lines() {
+            let trimmed = line.trim_start();
+            let rest = trimmed
+                .strip_prefix("export function ")
+                .or_else(|| trimmed.strip_prefix("export const "));
+            if let Some(rest) = rest {
+                let name = rest
+                    .split(|c: char| !(c.is_alphanumeric() || c == '_'))
+                    .next()
+                    .unwrap_or("");
+                if !name.is_empty() && !documented.contains(name) {
+                    missing.push(format!("std/{module}: {name}"));
+                }
+            }
+        }
+    }
+    missing.sort();
+    assert!(
+        missing.is_empty(),
+        "stdlib exports missing from docs/reference/stdlib.md (document them): {missing:?}"
+    );
+}
+
+#[test]
 fn agents_md_inlines_every_diagnostic_code() {
     // The npm README promises the agent bootstrap carries the full diagnostic
     // catalogue. Keep that true: every `E0xxx` documented in the error-codes

@@ -638,7 +638,8 @@ and prints a per-category report with exact `Decimal` money. Fifteen findings
 came out of it. Thirteen are "Glyph made me type more". Two are a different
 category: the standard library returned a value where its own reference docs
 promised a rejection, and the two-binding `for` picks the wrong lowering when you
-iterate a call's result. This trip carries the Next marker.
+iterate a call's result. The Next marker has moved on to the text-adventure trip
+below.
 
 ### 0.1.39 — Shipped · `time.parse_iso` parses ISO-8601, and nothing else
 
@@ -722,6 +723,83 @@ nested string literal, which is a lexer artifact rather than a rule.
 - **`glyph check <file>`, a counted range for `for`, and decimal literals** are
   the same three forks the minesweeper trip left open; they are recorded above
   and are not re-litigated here.
+
+## text-adventure dogfood trip — the command developers run all day
+
+The loop pointed at `examples/apps/adventure.glyph`: rooms, an inventory, a
+command parser, no dependencies. Thirteen findings came out of it. Twelve are the
+compiler not knowing something or the stdlib not having something, and a user can
+read an error about those. One is the compiler knowing the answer and hiding it,
+on the command an agent runs in a loop. That one is fixed here. This trip carries
+the Next marker.
+
+### 0.1.40 — Shipped · `glyph run` reports what `glyph build` reports
+
+`glyph run solo.glyph` printed the program's output and exited 0. `glyph build .`
+on the identical tree printed `E0204` on a sibling module and `E0106` on
+`solo.glyph` itself, and exited 1. Same compiler, same sources, seconds apart:
+`run_file` computed a full `BuildReport` and read `report.emitted` out of it,
+leaving `diagnostics`, `structured`, and `error_count` unread on the success
+path. The eaten warning was on the entry file the user named, so the documented
+"sibling modules are best-effort at run time" stance does not cover it. Nothing
+decided to suppress it; it was never wired up.
+
+`run_file` now returns a `RunResult`: the outcome plus every diagnostic the build
+computed. `glyph run` prints them before dispatching on the outcome, so they
+appear on the successful path too, and follows the program's output with a
+`glyph run: N error(s), M warning(s) in the source tree` summary line in the
+shape `glyph build` uses. Rendering stays in the CLI; `run_file` still never
+prints.
+
+The half that makes a naive fix worse is the run cache. A warm cache skips the
+build entirely, so there is no report to read and run #2 of unchanged source
+would have printed nothing after run #1 printed the warning: an intermittent
+silence reads as a warning that went away, which is worse than a consistent one.
+A build now writes its diagnostics to `.glyph-diagnostics.json` in the staging
+directory, so the sidecar moves into the fingerprint-keyed cache dir with the
+rest of the output, and a cache hit reads them back. A hit whose sidecar is
+missing, unparseable, or rendered for a different color setting counts as a miss
+and rebuilds, rather than reporting a tree it never checked. The format is the
+same `Diagnostic` the `--json` output uses, now round-tripping.
+
+Verifiability: the compiler is the source of truth, and the source of truth has
+to be reachable from the command people actually type. `docs/dogfooding-gaps.md`
+names "silent green" as the class to close before 1.0 and marks G9 and G10 fixed;
+the class survived one layer up because those fixes were verified through
+`glyph build`.
+
+Exit codes are unchanged. On the `Ran` path `glyph run` still exits with the
+program's own exit code, including when a sibling module failed to compile.
+
+### Still open from this trip
+
+- **Should a sibling error make `glyph run` exit non-zero?** (decision) Today it
+  does not: a module that failed to compile is simply unavailable to import, and
+  the program runs. With the diagnostics now reported, the question is whether
+  telling is enough or whether the exit code should follow. Changing it makes
+  `glyph run` fail on trees that run fine today, which is a real break for anyone
+  running one entry point out of a directory with work-in-progress siblings.
+  Leaving it means a red diagnostic can still accompany a green exit. Not decided
+  here.
+- **Unchecked member access and call arguments against `Ty::Unknown`**
+  (architecture decision, then M/L). `s.slice(0, 1)` on a `string`, a misspelled
+  `xs.pusj(x)`, and wrong-arity calls into a stdlib namespace all compile,
+  because the receiver's type is `Ty::Unknown` and the checker has nothing to
+  check against. The manifesto promises no `any`; this is one, spelled `Unknown`,
+  load-bearing at exactly the boundary where the promise is made, and it is one
+  defect wearing four hats rather than four bugs. The fork: model the stdlib from
+  its own `.d.ts` sources (the Q21/Q40 direction, which also makes `gen dts` the
+  single mechanism for every boundary) versus keep growing the hand-written
+  `stdlib_fn_ty` table (cheaper per name, permanently behind the runtime). The
+  first is the larger change and the one that stops the table from drifting; the
+  second ships value next week. Needs the orchestrator's call before any code.
+- **`std/string`: `slice`, `lines`; `std/array`: `fold`, `compare`** (S). The
+  same stdlib-breadth item the expense-CLI trip left open, with two more names on
+  it. `fold` still costs a pillar rather than keystrokes.
+- **`EmitError::help()` returns one constant string for every unsupported
+  construct** (S). A diagnostic that says the same thing whatever you did is a
+  shrug, not help. Found while checking a report claim that turned out to be
+  wrong for a different reason (block-bodied match arms compile fine).
 
 ## Road to 1.0
 

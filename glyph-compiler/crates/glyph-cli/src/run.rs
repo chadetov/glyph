@@ -15,7 +15,17 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::atomic::AtomicU64;
 
+use serde::{Deserialize, Serialize};
+
 use crate::build::{build_project_inner, BuildError, BuildReport};
+
+/// Name of the diagnostics sidecar written into the run cache directory.
+///
+/// A build's diagnostics are cached next to the output they came from, so a
+/// warm-cache run reports exactly what the cold run reported. Without it the
+/// second `glyph run` of unchanged source would print nothing, and a warning
+/// that appears once and then stops is read as a warning that went away.
+const DIAGNOSTICS_CACHE: &str = ".glyph-diagnostics.json";
 
 /// Per-process counter making each run's staging directory unique even across
 /// threads (the pid alone repeats — the concurrent-run test shares one process).
@@ -78,12 +88,76 @@ pub enum RunOutcome {
     NoMain { exports: Vec<String> },
 }
 
+/// The diagnostics a build produced, rendered and structured.
+///
+/// Doubles as the on-disk shape of the run cache's diagnostics sidecar, so the
+/// cached form and the in-memory form cannot drift apart. `structured` is the
+/// same `Diagnostic` the `--json` output uses.
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct BuildDiagnostics {
+    diagnostics: Vec<String>,
+    structured: Vec<crate::diagnostic::Diagnostic>,
+    error_count: usize,
+    /// Whether the rendered strings carry ANSI color. Cached diagnostics are
+    /// reusable only by a run that renders the same way, so a redirected run
+    /// never replays escape codes captured by an earlier terminal run.
+    with_color: bool,
+}
+
+impl BuildDiagnostics {
+    fn of(report: &BuildReport, with_color: bool) -> Self {
+        BuildDiagnostics {
+            diagnostics: report.diagnostics.clone(),
+            structured: report.structured.clone(),
+            error_count: report.error_count,
+            with_color,
+        }
+    }
+
+    fn into_result(self, outcome: RunOutcome) -> RunResult {
+        RunResult {
+            outcome,
+            diagnostics: self.diagnostics,
+            structured: self.structured,
+            error_count: self.error_count,
+        }
+    }
+}
+
+/// Read the diagnostics sidecar written beside a cached build. `None` when it is
+/// missing, unparseable, or rendered for a different color setting; that makes
+/// the whole cache entry invalid. Rebuilding costs a second, and reporting a
+/// clean tree we never checked costs the user their trust in the command.
+fn read_cached_diagnostics(path: &Path, with_color: bool) -> Option<BuildDiagnostics> {
+    let cached: BuildDiagnostics = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
+    (cached.with_color == with_color).then_some(cached)
+}
+
+/// What a run produced: the outcome, plus every diagnostic the build computed.
+///
+/// The diagnostics ride along with every outcome, a successful `Ran` included,
+/// so `glyph run` reports what `glyph build` reports on the same tree.
+/// Rendering is the caller's job; `run_file` never prints.
+#[derive(Debug)]
+pub struct RunResult {
+    pub outcome: RunOutcome,
+    /// One entry per diagnostic (errors and warnings), pre-rendered.
+    pub diagnostics: Vec<String>,
+    /// The same diagnostics in structured form, in the same order.
+    pub structured: Vec<crate::diagnostic::Diagnostic>,
+    /// How many of `diagnostics` are error-severity (the rest are warnings).
+    pub error_count: usize,
+}
+
 /// Build `file`'s directory and run the program's `main` with `args`.
 ///
 /// The build covers the whole directory containing `file` (so sibling modules
 /// and a `.types/` directory resolve); the program runs only if `file`'s own
 /// module emitted cleanly. Sibling modules that failed to compile are not a
-/// hard error here — they simply are not available to import at run time.
+/// hard error here — they simply are not available to import at run time. Their
+/// diagnostics are still reported: every diagnostic from the whole tree comes
+/// back on `RunResult`, on the successful path as well as the failing ones, so
+/// declining to block the run never means declining to tell the user.
 ///
 /// When `check` is set (the default), the emitted output is type-checked with
 /// `tsc` before running: type errors are reported and nothing runs, so they
@@ -94,7 +168,7 @@ pub fn run_file(
     args: &[String],
     with_color: bool,
     check: bool,
-) -> Result<RunOutcome, RunError> {
+) -> Result<RunResult, RunError> {
     if !file.exists() {
         return Err(RunError::FileMissing(file.to_path_buf()));
     }
@@ -129,7 +203,15 @@ pub fn run_file(
     // errored after writing the target (or a partially-deleted dir) is not
     // mistaken for a hit.
     let build_marker = out.join(".glyph-build-ok");
-    let build_cached = fingerprint.is_some() && build_marker.exists();
+    // A cached build is usable only if its diagnostics came back with it: the
+    // cache hit is what makes the report unavailable, so the report is cached
+    // too. A hit whose sidecar is missing or unreadable counts as a miss.
+    let cached_diags = if fingerprint.is_some() && build_marker.exists() {
+        read_cached_diagnostics(&out.join(DIAGNOSTICS_CACHE), with_color)
+    } else {
+        None
+    };
+    let build_cached = cached_diags.is_some();
 
     // We type-check unless a cached build already passed `tsc` (its marker
     // exists). When we will type-check, the emitter's source maps are needed to
@@ -140,6 +222,7 @@ pub fn run_file(
     let do_build = !build_cached || will_typecheck;
 
     let mut module_maps: Vec<crate::tscmap::ModuleMap> = Vec::new();
+    let mut diags = cached_diags.unwrap_or_default();
     if do_build {
         // Build into a private staging dir, then move it onto the shared,
         // fingerprint-keyed `out` path. Two concurrent `glyph run`s of the same
@@ -152,11 +235,19 @@ pub fn run_file(
         let _ = remove_dir_all_retry(&staging);
 
         let report = build_project_inner(src, &staging, with_color)?;
+        diags = BuildDiagnostics::of(&report, with_color);
         if !report.emitted.iter().any(|e| e == &target_rel) {
             let _ = remove_dir_all_retry(&staging);
-            return Ok(RunOutcome::BuildFailed(report));
+            return Ok(diags.into_result(RunOutcome::BuildFailed(report)));
         }
         module_maps = report.module_maps;
+
+        // Cache the diagnostics beside the output they describe. Written into
+        // staging so it moves into place with the rest of the build; a dir that
+        // never finished moving cannot claim a clean tree.
+        if let Ok(json) = serde_json::to_string(&diags) {
+            let _ = std::fs::write(staging.join(DIAGNOSTICS_CACHE), json);
+        }
 
         // Move staging into place. If `out` reappeared meanwhile (another run of
         // the identical fingerprint built it — same content), just drop staging
@@ -181,13 +272,13 @@ pub fn run_file(
             }
             TscOutcome::Failed(msg) => {
                 let remapped = crate::tscmap::remap_tsc_output(&msg, &module_maps, with_color);
-                return Ok(RunOutcome::TypeCheckFailed(remapped));
+                return Ok(diags.into_result(RunOutcome::TypeCheckFailed(remapped)));
             }
             TscOutcome::NotFound => {
                 // The type check was requested (the default) but tsc is absent.
                 // Refuse rather than run unchecked, so the guarantee never
                 // silently evaporates. `--no-check` is the explicit opt-out.
-                return Ok(RunOutcome::TscMissing);
+                return Ok(diags.into_result(RunOutcome::TscMissing));
             }
         }
     }
@@ -211,7 +302,7 @@ pub fn run_file(
                     _ => None,
                 })
                 .collect();
-            return Ok(RunOutcome::NoMain { exports });
+            return Ok(diags.into_result(RunOutcome::NoMain { exports }));
         }
     }
 
@@ -228,8 +319,10 @@ pub fn run_file(
         .args(args)
         .status()
     {
-        Ok(status) => Ok(RunOutcome::Ran(status.code().unwrap_or(1))),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(RunOutcome::TsxNotFound),
+        Ok(status) => Ok(diags.into_result(RunOutcome::Ran(status.code().unwrap_or(1)))),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            Ok(diags.into_result(RunOutcome::TsxNotFound))
+        }
         Err(e) => Err(RunError::Io(e)),
     }
 }

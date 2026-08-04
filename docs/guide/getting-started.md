@@ -61,6 +61,12 @@ glyph run hello.glyph one two three
 
 `main` returns a `number` — the process exit code.
 
+`glyph run` reports every diagnostic `glyph build` would report on the same
+directory, warnings included, and prints them after the program's output with a
+one-line count. A sibling module that failed to compile does not stop the run
+(it is simply not importable), but its errors are still printed, so `run` and
+`build` never disagree about what is wrong with your tree.
+
 ## The commands
 
 | Command | What it does |

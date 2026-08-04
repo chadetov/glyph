@@ -2,7 +2,9 @@
 
 Every diagnostic the compiler emits carries a stable code. The code appears in
 the rendered error (`[E0200] Error: ...`), and `glyph --explain <code>` prints a
-longer explanation with a fix example. Codes are allocated by compiler phase:
+longer explanation with a fix example. `glyph build` and `glyph run` report the
+same set on the same tree, warnings included; `glyph build --json` gives you the
+machine-readable form. Codes are allocated by compiler phase:
 
 | Range | Phase | Source |
 |-------|-------|--------|

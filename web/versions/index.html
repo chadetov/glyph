@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.39</span>
+            <span class="rel-ver">0.1.40</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3><code>glyph run</code> reports what <code>glyph build</code> reports</h3>
+            <p><code>glyph run app.glyph</code> printed the program's output and exited 0. <code>glyph build</code> on the same directory, seconds later, printed a warning on <em>that same file</em> and an error on a sibling. Same compiler, same sources. The run path built everything, read the list of emitted files out of the report, and dropped the diagnostics on the floor.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>glyph run</code> prints every diagnostic the build computed, warnings included, on the file you named and on its siblings, and follows the program's output with <code>glyph run: N error(s), M warning(s) in the source tree</code>. Nothing had decided to suppress them; <code>run_file</code> returned only an outcome, so there was nowhere for them to go. It now returns the outcome plus the diagnostics, and the CLI does the printing.</li>
+              <li><span class="tag fixed">Fixed</span> The warm run cache carries the diagnostics with it. A repeat run of unchanged sources skips the build, so a naive fix would have printed the warning once and then gone quiet, which reads as a warning that went away. A build now writes its diagnostics into the staging directory, so they move into the fingerprint-keyed cache with the rest of the output, and a cache entry whose diagnostics are missing or unreadable counts as a miss and rebuilds instead of reporting a tree it never checked.</li>
+              <li><span class="tag known">Known</span> A sibling module that fails to compile still does not change the exit code. It is unavailable to import and the program runs; you now see its error, but <code>glyph run</code> exits with whatever <code>main</code> returned. Whether telling is enough or the exit code should follow is a deliberate open question: changing it fails trees that run fine today.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/adventure.glyph</code>, the app that found it. A ten-room text adventure: a keyed world where every exit names a room id, a parser over free-form stdin, world rules that depend on state (the cellar is dark until the lantern is lit), and a save file that has to validate back into a <code>World</code>. Piping a script plays it deterministically.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.39</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -17,6 +17,13 @@ checking is deferred to an optional `tsc --check` — and even `tsc` misses the
 two miscompiles below. The verifiability pillar (the project's lead claim) is
 the most exposed.
 
+G9 and G10 closed that class in the emitter and the `tsc` pass. It came back one
+layer up: `glyph run` computed a full build report and then read only the list of
+emitted files out of it, so a program that ran fine reported fewer diagnostics
+than `glyph build` on the same tree, including warnings on the file the user
+named. That is G38 below, and it is fixed. The lesson for the next fix in this
+class is that "verified through `glyph build`" is not the same as verified.
+
 ## Critical — silent miscompiles (pass `glyph build` + `tsc`, wrong at runtime)
 
 - **G1. [FIXED] `None` in nested patterns miscompiles.** The match emitter didn't
@@ -595,3 +602,42 @@ workaround for the first and is still open.
   recording a call's result type at its span or defaulting the unknown case to
   the array lowering, and both change what an unannotated iterand means, so it
   is a decision rather than a patch. Recorded in `docs/roadmap/releases.md`.
+
+## Round 8 — a text adventure, and the return of "silent green"
+
+The loop pointed at `examples/apps/adventure.glyph`, a text adventure: rooms, an
+inventory, a command parser. Thirteen findings came out of it. Twelve are the
+compiler not knowing something (member access and call arguments against a
+`Ty::Unknown` receiver go unchecked at the stdlib boundary) or the stdlib not
+having something (`string.slice`, `string.lines`, `array.fold`, a `compare`).
+One is different in kind, and it is the one fixed here.
+
+- **G38. [FIXED] `glyph run` computed a build report and threw its diagnostics
+  away.** On the success path `run_file` read `report.emitted` and nothing else,
+  so `report.diagnostics`, `report.structured` and `report.error_count` never
+  reached the user. `glyph run solo.glyph` printed the program's output and
+  exited 0 while `glyph build .` on the identical tree printed E0204 on a sibling
+  and E0106 on `solo.glyph` itself. The eaten warning was on the entry file the
+  user pointed the command at, so this was not the documented "sibling modules
+  are best-effort" stance: nothing decided to suppress it, it was never wired up.
+  *Fixed: `run_file` returns a `RunResult` carrying the outcome plus every
+  diagnostic the build computed, and `glyph run` prints them before dispatching
+  on the outcome, followed by a `glyph run: N error(s), M warning(s) in the
+  source tree` summary on the path where the program ran. The warm run cache
+  carries them too: a build writes `.glyph-diagnostics.json` into its staging
+  directory (so it moves into place atomically with the rest), and a cache hit
+  whose sidecar is missing, unreadable, or rendered for a different color setting
+  is treated as a miss and rebuilt rather than reported as a clean tree. The
+  regression test that matters is the second run: reporting a warning once and
+  then falling silent reads as a warning that went away. Exit codes are
+  unchanged; whether a sibling error should also make `glyph run` exit non-zero
+  is a separate call, tracked in `docs/roadmap/releases.md`.*
+- **G39. Member access and call arguments against `Ty::Unknown` are unchecked.**
+  `s.slice(0, 1)` on a `string`, a misspelled `xs.pusj(x)`, and a wrong-arity
+  call into a stdlib namespace all compile, because the receiver's type is
+  `Unknown` and the checker has nothing to check against. The manifesto promises
+  no `any`; this is one, spelled `Unknown`, load-bearing at exactly the boundary
+  where the promise is made. Closing it is an architecture decision rather than a
+  patch (model the stdlib from its own `.d.ts` sources per Q21/Q40, or keep
+  growing the hand-written `stdlib_fn_ty` table), so it is recorded in
+  `docs/roadmap/releases.md` and not fixed here.

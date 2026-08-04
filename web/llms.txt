@@ -20,7 +20,7 @@ npm install -g tsx typescript       # needed for `glyph run` and `--check`
 
 ```sh
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
-glyph run path.glyph [args...]      # type-check, compile, and run main(argv)
+glyph run path.glyph [args...]      # type-check, compile, and run main(argv); reports every diagnostic `glyph build` reports
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict by default)
 glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file, line/col, help) for tools/agents
 glyph build src/ --out dist/ --test # also run @example / @doc @run / property tests
@@ -33,6 +33,13 @@ glyph llms                          # reprint this bootstrap offline (alias: gly
 glyph --explain E0204               # long-form explanation + fix for any error code
 glyph mcp [root]                    # run an MCP server (stdio) exposing analysis to an agent as tools
 ```
+
+`glyph run` builds the whole directory the file sits in, so it reports exactly
+the diagnostics `glyph build` would report on that tree, warnings included. They
+go to stderr after the program's output, followed by a `glyph run: N error(s), M
+warning(s) in the source tree` line. A sibling module that fails to compile is
+not importable but does not stop the run, and today does not change the exit
+code: `glyph run` exits with whatever `main` returned.
 
 If you drive Glyph through the Model Context Protocol, `glyph mcp [root]` speaks
 MCP over stdio and exposes five tools over the project: `glyph_diagnostics`

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>When it breaks in production, what does on-call see? · Glyph</title>
-    <meta name="description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source. One current limitation is the glyph run stack. An ops-focused answer." />
+    <meta name="description" content="Glyph compiles to readable TypeScript you own, and every emitted .ts ships a v3 source map back to your .glyph. tsc errors map back to Glyph source, and glyph run reports what glyph build reports. An ops-focused answer, with its two limitations named." />
     <link rel="canonical" href="https://glyphlang.io/answers/debugging/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -55,8 +55,10 @@
       <p class="short-answer">
         Readable TypeScript you own, with a <strong>source map back to your <code>.glyph</code></strong>
         beside every emitted file. A debugger, a bundler, or an error tracker traces the running code
-        to your source, and even someone who's never seen Glyph can read the generated TS. One
-        limitation, on the <code>glyph run</code> path, is called out below.
+        to your source, and even someone who's never seen Glyph can read the generated TS. Before any
+        of that, <code>glyph build</code> and <code>glyph run</code> report the same diagnostics on
+        the same tree, so the quick loop can't hide something the build would have caught. Two
+        limitations, both on the <code>glyph run</code> path, are called out below.
       </p>
 
       <div class="detail">
@@ -94,7 +96,35 @@
           file, 1-based line/col, help) for your CI or tooling to act on.
         </p>
 
-        <p class="block-label">One current limitation</p>
+        <p class="block-label">4 &middot; <code>glyph run</code> tells you the same things</p>
+        <p>
+          The command you type all day is <code>glyph run</code>, and until 0.1.40 it was quieter
+          than the build. It compiled the whole directory, took the list of emitted files out of the
+          report, and threw the diagnostics away. A tree that <code>glyph build</code> called out
+          would run clean and exit 0. Now it reports the same set: warnings included, on the file you
+          named and on its siblings, after the program's output, with a one-line count. The
+          run cache carries them, so a second run of unchanged sources says what the first one said
+          rather than falling silent, and a cache entry whose diagnostics are missing counts as a
+          miss and rebuilds.
+        </p>
+      </div>
+      <div class="code">
+        <span class="cap">an unused import, added a step before the code that would have used it</span>
+<pre>$ printf 'look\nquit\n' | glyph run adventure.glyph
+<span class="cm">...the game plays and exits 0...</span>
+
+[E0106] Warning: lint: unused import `math`
+    ╭─[adventure:21:1]
+    │
+ 21 │ import std/math
+    │         ╰─────── unused import `math`
+    │ Help: Remove the import. Nothing in this module references it.
+
+glyph run: 0 error(s), 1 warning(s) in the source tree</pre>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">Two current limitations</p>
         <p>
           <strong><code>glyph run</code>'s own crash stack still shows <code>.ts</code> line
           numbers.</strong> <code>glyph run</code> executes via <code>tsx</code>, and <code>tsx</code>
@@ -105,17 +135,25 @@
           toolchain, and the <code>.ts.map</code> chains as usual, so the production stack you
           actually page on maps back to <code>.glyph</code>.
         </p>
+        <p>
+          <strong>An error in a sibling module doesn't change <code>glyph run</code>'s exit
+          code.</strong> A module that failed to compile is unavailable to import, and a program that
+          never imported it runs anyway. You see the error now, but the process still exits with
+          whatever <code>main</code> returned. Making it exit non-zero would fail trees that run fine
+          today, so it's an open decision rather than an oversight. If you want the tree's health to
+          decide the exit code, that's <code>glyph build</code>.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.</p>
+          <p>Readable committed TS, a v3 <code>.ts.map</code> per file, <code>tsc</code> errors remapped onto <code>.glyph</code>, and <code>--json</code> diagnostics. <code>glyph run</code> reports what <code>glyph build</code> reports, warm cache included. Your deploy toolchain's source-map chain reaches <code>.glyph</code>.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), and richer editor debugging via the LSP.</p>
+          <p>Remapping the <code>glyph run</code> crash stack itself (so the local run loop shows <code>.glyph</code> frames too), a decision on whether a sibling module's error should make <code>glyph run</code> exit non-zero, and richer editor debugging via the LSP.</p>
         </div>
       </div>
 

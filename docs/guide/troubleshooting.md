@@ -68,6 +68,13 @@ the emitted TypeScript. Build diagnostics and `tsc` errors are mapped back to
 your `.glyph` source; a runtime stack from `tsx` is not yet remapped. The emitted
 `.ts` (with a source map) is in your build output.
 
+**`glyph run` printed an error and still exited 0.** The error is in a sibling
+module, not in the file you ran. `glyph run` builds the whole directory and
+reports everything it finds, but a module that failed to compile is only
+unavailable to import; it does not stop a program that never imported it. The
+exit code is whatever `main` returned. Run `glyph build` on the directory if you
+want the tree's health to decide the exit code.
+
 **`T.parse` accepts a value I expected it to reject.** A field typed by an
 imported `.d.ts` type is checked for presence only until you materialize that
 type with `glyph gen dts`. Materialize it to get deep, leaf-level validation.

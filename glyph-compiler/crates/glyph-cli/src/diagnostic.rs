@@ -5,8 +5,10 @@
 //! diagnostics as structured data instead: a stable code, severity, message,
 //! file, and a 1-based line/column range, plus the help and note. The build's
 //! own diagnostics and the remapped `tsc` errors flow through the same shape.
+//! The shape round-trips (it deserializes as well as serializes) because
+//! `glyph run` caches a build's diagnostics beside its output in this format.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use glyph_ast::Span;
 use glyph_emit::EmitError;
@@ -15,7 +17,7 @@ use glyph_resolver::ResolveError;
 use glyph_typechecker::{Severity, TypeError};
 
 /// One structured diagnostic.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Diagnostic {
     pub code: String,
     /// `"error"` or `"warning"`.
@@ -25,20 +27,20 @@ pub struct Diagnostic {
     pub range: Range,
     /// The compiler stage (`parse`/`resolve`/`typecheck`/`emit`/`tsc`).
     pub stage: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub help: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Range {
     pub start: Pos,
     pub end: Pos,
 }
 
 /// A source position: 1-based `line`/`col` plus the byte `offset`.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pos {
     pub line: u32,
     pub col: u32,

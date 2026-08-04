@@ -336,56 +336,74 @@ fn main() {
             use std::io::IsTerminal;
             let with_color = std::io::stderr().is_terminal();
             match glyph_cli::run::run_file(&file, &args, with_color, !no_check) {
-                Ok(glyph_cli::run::RunOutcome::Ran(code)) => std::process::exit(code),
-                Ok(glyph_cli::run::RunOutcome::BuildFailed(report)) => {
-                    for diag in &report.diagnostics {
+                Ok(result) => {
+                    // Every diagnostic the build computed is printed, whatever
+                    // the outcome. `glyph run` used to read only `emitted` from
+                    // the report, so the command agents run in a loop reported
+                    // strictly less than `glyph build` on the same tree.
+                    for diag in &result.diagnostics {
                         eprintln!("{diag}");
                     }
-                    eprintln!(
-                        "glyph run: build failed; {} diagnostic(s)",
-                        report.diagnostics.len()
-                    );
-                    std::process::exit(1);
-                }
-                Ok(glyph_cli::run::RunOutcome::TypeCheckFailed(msg)) => {
-                    eprint!("{msg}");
-                    eprintln!("glyph run: tsc reported type errors; not running. Pass --no-check to run anyway.");
-                    std::process::exit(1);
-                }
-                Ok(glyph_cli::run::RunOutcome::TscMissing) => {
-                    eprintln!(
-                        "glyph run: tsc not found on PATH, so the type check can't run. \
-                         Install TypeScript (`npm install -g typescript`), or pass \
-                         `--no-check` to run without it. (`glyph doctor` checks your toolchain.)"
-                    );
-                    std::process::exit(2);
-                }
-                Ok(glyph_cli::run::RunOutcome::TsxNotFound) => {
-                    eprintln!(
-                        "glyph run: `tsx` not found on PATH. Install it with \
-                         `npm install -g tsx` to run Glyph programs. \
-                         (`glyph doctor` checks your whole toolchain.)"
-                    );
-                    std::process::exit(127);
-                }
-                Ok(glyph_cli::run::RunOutcome::NoMain { exports }) => {
-                    eprintln!(
-                        "[E0310] glyph run: `{}` has no `fn main` to run.",
-                        file.display()
-                    );
-                    eprintln!(
-                        "  `glyph run` executes a program's `main(argv)` entry; this module is a \
-                         library (it exports functions but no `main`)."
-                    );
-                    if !exports.is_empty() {
-                        let mut names: Vec<&str> = exports.iter().map(String::as_str).collect();
-                        names.sort_unstable();
-                        names.dedup();
-                        let shown: Vec<&str> = names.into_iter().take(5).collect();
-                        eprintln!("  It defines: {}.", shown.join(", "));
+                    match result.outcome {
+                        glyph_cli::run::RunOutcome::Ran(code) => {
+                            if !result.diagnostics.is_empty() {
+                                eprintln!(
+                                    "glyph run: {} error(s), {} warning(s) in the source tree",
+                                    result.error_count,
+                                    result.diagnostics.len() - result.error_count
+                                );
+                            }
+                            std::process::exit(code)
+                        }
+                        glyph_cli::run::RunOutcome::BuildFailed(report) => {
+                            eprintln!(
+                                "glyph run: build failed; {} diagnostic(s)",
+                                report.diagnostics.len()
+                            );
+                            std::process::exit(1);
+                        }
+                        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+                            eprint!("{msg}");
+                            eprintln!("glyph run: tsc reported type errors; not running. Pass --no-check to run anyway.");
+                            std::process::exit(1);
+                        }
+                        glyph_cli::run::RunOutcome::TscMissing => {
+                            eprintln!(
+                                "glyph run: tsc not found on PATH, so the type check can't run. \
+                                 Install TypeScript (`npm install -g typescript`), or pass \
+                                 `--no-check` to run without it. (`glyph doctor` checks your toolchain.)"
+                            );
+                            std::process::exit(2);
+                        }
+                        glyph_cli::run::RunOutcome::TsxNotFound => {
+                            eprintln!(
+                                "glyph run: `tsx` not found on PATH. Install it with \
+                                 `npm install -g tsx` to run Glyph programs. \
+                                 (`glyph doctor` checks your whole toolchain.)"
+                            );
+                            std::process::exit(127);
+                        }
+                        glyph_cli::run::RunOutcome::NoMain { exports } => {
+                            eprintln!(
+                                "[E0310] glyph run: `{}` has no `fn main` to run.",
+                                file.display()
+                            );
+                            eprintln!(
+                                "  `glyph run` executes a program's `main(argv)` entry; this module is a \
+                                 library (it exports functions but no `main`)."
+                            );
+                            if !exports.is_empty() {
+                                let mut names: Vec<&str> =
+                                    exports.iter().map(String::as_str).collect();
+                                names.sort_unstable();
+                                names.dedup();
+                                let shown: Vec<&str> = names.into_iter().take(5).collect();
+                                eprintln!("  It defines: {}.", shown.join(", "));
+                            }
+                            eprintln!("  Add `fn main(argv: Array<string>) -> number`, or `glyph build` it as a library. See `glyph --explain E0310`.");
+                            std::process::exit(2);
+                        }
                     }
-                    eprintln!("  Add `fn main(argv: Array<string>) -> number`, or `glyph build` it as a library. See `glyph --explain E0310`.");
-                    std::process::exit(2);
                 }
                 Err(e) => {
                     eprintln!("glyph run: {e}");

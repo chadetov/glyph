@@ -40,7 +40,9 @@ JS library, the same as in TypeScript.
 
 A Glyph program starts as fast as the Node process that runs it. `glyph run`
 caches the build and the type-check by a fingerprint of the sources, so a
-repeated run of an unchanged program skips both and just executes.
+repeated run of an unchanged program skips both and just executes. The
+diagnostics are cached alongside the output, so a cached run still reports the
+warnings the first one reported rather than going quiet.
 
 ## Measuring
 

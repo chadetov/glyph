@@ -1133,7 +1133,7 @@ fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
     );
 
     let file = src.join("app.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(
                 code, 0,
@@ -1246,7 +1246,7 @@ fn imported_generic_descriptor_is_rejects_bad_element_at_runtime() {
     );
 
     let file = src.join("app.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(
                 code, 0,
@@ -1667,7 +1667,7 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "where-refinement had {code} wrong boundary outcome(s)");
         }
@@ -1712,7 +1712,7 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "bigint produced {code} wrong result(s)");
         }
@@ -1791,7 +1791,7 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "parse_iso had {code} wrong outcome(s)");
         }
@@ -1851,7 +1851,7 @@ fn main() -> number {
 "#,
     );
     let file = root.join("main.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "std/decimal produced {code} wrong result(s)");
         }
@@ -2351,7 +2351,7 @@ fn run_executes_main_and_propagates_exit_code() {
         "module runprog\nfn main(argv: Array<string>) -> number {\n  return 7\n}\n",
     );
     let file = root.join("runprog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 7, "main's return value should be the exit code");
         }
@@ -2539,7 +2539,7 @@ async fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "task.pool broke ordering (1), the limit (2), or completeness (3)");
         }
@@ -2598,7 +2598,7 @@ async fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "async closure + par.all produced a wrong result");
         }
@@ -2652,7 +2652,7 @@ fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "inline-union program produced a wrong value");
         }
@@ -2717,7 +2717,7 @@ fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "value-position match with a return arm dispatched wrong");
         }
@@ -2782,7 +2782,7 @@ fn main(argv: Array<string>) -> number {
 "#,
     );
     let file = root.join("prog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "nested-literal match dispatched a case wrong");
         }
@@ -2885,7 +2885,7 @@ fn fs_make_dir_and_append_text_round_trip() {
     );
     write_file(&root, "fsprog.glyph", &prog);
     let file_glyph = root.join("fsprog.glyph");
-    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
             assert_eq!(code, 0, "make_dir + two append_text should yield exactly \"a\\nb\\n\"");
         }
@@ -2987,7 +2987,7 @@ fn run_reports_no_main_for_a_library_instead_of_a_type_error() {
         "module lib\nfn helper(x: number) -> number { return x }\nfn other() -> number { return 1 }\n",
     );
     let file = root.join("lib.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::NoMain { exports } => {
             assert!(exports.contains(&"helper".to_string()), "lists exports: {exports:?}");
             assert!(exports.contains(&"other".to_string()), "lists exports: {exports:?}");
@@ -3014,7 +3014,7 @@ fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
         "module broken\nimport std/string\nimport std/io\nfn main(argv: Array<string>) -> number {\n  let n: number = string.upper(\"hi\")\n  io.println(\"done\")\n  return 0\n}\n",
     );
     let file = root.join("broken.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             assert!(msg.to_lowercase().contains("error"), "tsc output: {msg}");
             // The tsc error is remapped onto the Glyph source: it carries the
@@ -3029,7 +3029,7 @@ fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
     }
 
     // With checking off, the same program runs (its return value is 0).
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(0) => {}
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping --no-check run assertion: tsx not found");
@@ -3136,7 +3136,7 @@ fn run_reports_build_failure_for_a_broken_target() {
          fn main(argv: Array<string>) -> number {\n  return 0\n}\n",
     );
     let file = root.join("brokenprog.glyph");
-    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::BuildFailed(report) => {
             assert!(
                 !report.diagnostics.is_empty(),
@@ -3264,5 +3264,70 @@ fn non_exhaustive_imported_union_match_is_caught() {
         report.diagnostics.iter().any(|d| d.contains("E0200") && d.contains("NotANumber")),
         "diags: {:?}",
         report.diagnostics
+    );
+}
+
+#[test]
+fn run_reports_every_build_diagnostic_including_on_a_cache_hit() {
+    // `glyph run` computed a full build report and read only `emitted` from it,
+    // so a program that ran successfully reported strictly fewer diagnostics
+    // than `glyph build` on the same tree, including a warning on the entry file
+    // the user named. Both diagnostics must appear now, and they must appear
+    // again on the second run: that one is served from the warm run cache, which
+    // otherwise has no report to read at all.
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("rundiag");
+    write_file(
+        &root,
+        "solo.glyph",
+        "module solo\n\
+         import std/io\n\
+         import std/record\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 io.println(\"hi\")\n\
+         \x20 return 0\n\
+         }\n",
+    );
+    write_file(
+        &root,
+        "other.glyph",
+        "module other\nfn broken() -> number {\n\x20 return \"nope\"\n}\n",
+    );
+
+    let run = || {
+        std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
+            .arg("run")
+            .arg(root.join("solo.glyph"))
+            .arg("--no-check")
+            .output()
+            .expect("spawn glyph run")
+    };
+
+    let first = run();
+    let out = String::from_utf8_lossy(&first.stdout).to_string();
+    let err = String::from_utf8_lossy(&first.stderr).to_string();
+    assert!(out.contains("hi"), "the program still runs: stdout {out:?}");
+    assert!(
+        err.contains("E0204"),
+        "the sibling module's type error must be reported: stderr {err}"
+    );
+    assert!(
+        err.contains("E0106"),
+        "the entry file's own unused-import warning must be reported: stderr {err}"
+    );
+
+    // Second run, unchanged sources: the build is cached, so the diagnostics can
+    // only come back from the cache. Reporting them once and then falling silent
+    // is worse than never reporting them.
+    let second = run();
+    let out2 = String::from_utf8_lossy(&second.stdout).to_string();
+    let err2 = String::from_utf8_lossy(&second.stderr).to_string();
+    assert!(out2.contains("hi"), "the program still runs: stdout {out2:?}");
+    assert!(
+        err2.contains("E0204") && err2.contains("E0106"),
+        "a warm cache must report the identical diagnostics: stderr {err2}"
     );
 }

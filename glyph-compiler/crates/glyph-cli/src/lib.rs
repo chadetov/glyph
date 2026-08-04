@@ -28,7 +28,7 @@ pub mod tscmap;
 pub use build::{build_project, BuildError, BuildReport};
 pub use examples::{run_examples, ExampleError, ExampleReport};
 pub use fmt::{format_path, FmtError, FmtReport};
-pub use run::{run_file, RunError, RunOutcome};
+pub use run::{run_file, RunError, RunOutcome, RunResult};
 
 /// The agent bootstrap (the repo-root `AGENTS.md`, mirrored to `llms.txt`),
 /// embedded into the binary so `glyph llms` prints it with no network or repo

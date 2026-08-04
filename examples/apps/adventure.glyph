@@ -1,0 +1,1056 @@
+// adventure — a ten-room text adventure with a keyed world, a command parser,
+// conditional world rules, and a validating save file.
+//
+// Play it:
+//   glyph run examples/apps/adventure.glyph
+//
+// Or pipe a script, which plays deterministically to completion:
+//   printf 'north\ntake lantern\ndown\nlook\nquit\n' \
+//     | glyph run examples/apps/adventure.glyph
+
+module adventure
+
+import std/result { Result, Ok, Err }
+import std/option { Option, Some, None }
+import std/array
+import std/string
+import std/record
+import std/json
+import std/fs
+import std/io
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+type Item = {
+  id: string,
+  name: string,
+  description: string,
+  // False for scenery: it is examinable and matchable, but it stays put.
+  takeable: bool,
+}
+
+type Room = {
+  id: string,
+  title: string,
+  description: string,
+  // direction -> destination room id. Every destination is a key of World.rooms,
+  // never a Room value, so there is exactly one copy of each room.
+  exits: Record<string, string>,
+  // direction -> item id that must be in the inventory to use that exit.
+  locks: Record<string, string>,
+  // Item ids present in the room. The Item itself lives in World.items.
+  items: Array<string>,
+  // Fires once, the first time the room is entered.
+  on_enter: Option<string>,
+}
+
+type Player = {
+  location: string,
+  // Item ids. Same keyed-store rule as Room.items.
+  inventory: Array<string>,
+}
+
+type World = {
+  rooms: Record<string, Room>,
+  items: Record<string, Item>,
+  player: Player,
+  // World state that is not a room or an item: what has been visited, lit,
+  // opened. Read by descriptions and by the win check.
+  flags: Record<string, bool>,
+  moves: int,
+  collected: int,
+  won: bool,
+}
+
+const WRAP_WIDTH: int = 66
+
+const SAVE_PATH: string = "adventure-save.json"
+
+// Carrying this item into this room, with the altar open, wins the game.
+const WIN_ITEM: string = "idol"
+
+const WIN_ROOM: string = "shrine"
+
+// ---------------------------------------------------------------------------
+// The world, as data
+// ---------------------------------------------------------------------------
+
+fn starting_rooms() -> Record<string, Room> {
+  return {
+    clearing: {
+      id: "clearing",
+      title: "Forest Clearing",
+      description: "Wet grass, a ring of birches, and the smell of woodsmoke. A footpath runs east into the trees; a cottage sits north.",
+      exits: { north: "cottage", east: "path" },
+      locks: {},
+      items: [],
+      on_enter: None,
+    },
+    cottage: {
+      id: "cottage",
+      title: "Abandoned Cottage",
+      description: "One room, one table, one cold hearth. A trapdoor in the floorboards stands open on a ladder going down.",
+      exits: { south: "clearing", down: "cellar" },
+      locks: {},
+      items: ["lantern"],
+      on_enter: Some("The door swings shut behind you and settles into its frame."),
+    },
+    cellar: {
+      id: "cellar",
+      title: "Cellar",
+      description: "Packed earth and the sour smell of old cider.",
+      exits: { up: "cottage" },
+      locks: {},
+      items: ["iron key"],
+      on_enter: Some("Something small runs across your boot and is gone."),
+    },
+    path: {
+      id: "path",
+      title: "Forest Path",
+      description: "Beech trunks close on both sides. The path forks: on east toward water, north toward a dark seam in the hillside.",
+      exits: { west: "clearing", east: "riverbank", north: "cave mouth" },
+      locks: {},
+      items: [],
+      on_enter: None,
+    },
+    riverbank: {
+      id: "riverbank",
+      title: "Riverbank",
+      description: "The river runs fast and brown over a shelf of rock. A plank bridge crosses it to the north.",
+      exits: { west: "path", north: "bridge" },
+      locks: {},
+      items: ["rod", "stone"],
+      on_enter: None,
+    },
+    bridge: {
+      id: "bridge",
+      title: "Plank Bridge",
+      description: "Four planks and a rope. It sways under you the whole way across. A squat tower waits on the far bank.",
+      exits: { south: "riverbank", north: "tower" },
+      locks: {},
+      items: [],
+      on_enter: None,
+    },
+    tower: {
+      id: "tower",
+      title: "Squat Tower",
+      description: "A single round room, roofless, floored with droppings and twigs.",
+      exits: { down: "bridge" },
+      locks: {},
+      items: ["brass key"],
+      on_enter: Some("A raven lifts off the parapet and beats away over the river, complaining."),
+    },
+    "cave mouth": {
+      id: "cave mouth",
+      title: "Cave Mouth",
+      description: "A seam in the hillside, wide enough to walk into. Someone has hung an iron gate across it and locked it.",
+      exits: { south: "path", in: "cave" },
+      locks: { in: "iron key" },
+      items: ["sword"],
+      on_enter: None,
+    },
+    cave: {
+      id: "cave",
+      title: "Dripping Cave",
+      description: "The walls sweat. Water counts the seconds somewhere behind you. The passage runs east and gets warmer.",
+      exits: { out: "cave mouth", east: "shrine" },
+      locks: {},
+      items: ["idol"],
+      on_enter: None,
+    },
+    shrine: {
+      id: "shrine",
+      title: "Shrine",
+      description: "A round chamber cut smooth. In the middle stands a stone altar with a keyhole in its face.",
+      exits: { west: "cave" },
+      locks: {},
+      items: ["altar"],
+      on_enter: Some("A voice you cannot place says: bring it home, and open the stone."),
+    },
+  }
+}
+
+fn starting_items() -> Record<string, Item> {
+  return {
+    lantern: {
+      id: "lantern",
+      name: "brass lantern",
+      description: "A brass lantern with a stub of candle in it, still warm.",
+      takeable: true,
+    },
+    "iron key": {
+      id: "iron key",
+      name: "iron key",
+      description: "A long iron key, black with rust except at the bit.",
+      takeable: true,
+    },
+    "brass key": {
+      id: "brass key",
+      name: "brass key",
+      description: "A small brass key on a loop of wire. The teeth are square and shallow.",
+      takeable: true,
+    },
+    rod: {
+      id: "rod",
+      name: "fishing rod",
+      description: "A fishing rod, snapped at the third guide and repaired with tarred string.",
+      takeable: true,
+    },
+    stone: {
+      id: "stone",
+      name: "mossy stone",
+      description: "A boulder in the shallows, furred green on the upstream side. It is not going anywhere.",
+      takeable: false,
+    },
+    sword: {
+      id: "sword",
+      name: "rusty sword",
+      description: "A short sword, more rust than steel. It would break on the first parry.",
+      takeable: true,
+    },
+    idol: {
+      id: "idol",
+      name: "stone idol",
+      description: "A hand-sized figure of a seated woman, cut from the same stone as the cave.",
+      takeable: true,
+    },
+    altar: {
+      id: "altar",
+      name: "stone altar",
+      description: "A block of dressed stone, waist high, with a brass-lined keyhole in the front face.",
+      takeable: false,
+    },
+  }
+}
+
+fn new_world() -> World {
+  return {
+    rooms: starting_rooms(),
+    items: starting_items(),
+    player: { location: "clearing", inventory: [] },
+    flags: {},
+    moves: 0,
+    collected: 0,
+    won: false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Keyed lookups
+// ---------------------------------------------------------------------------
+
+fn room_of(world: World, id: string) -> Option<Room> {
+  return record.get(world.rooms, id)
+}
+
+fn item_of(world: World, id: string) -> Option<Item> {
+  return record.get(world.items, id)
+}
+
+fn here(world: World) -> Option<Room> {
+  return room_of(world, world.player.location)
+}
+
+fn flag(world: World, name: string) -> bool {
+  return match record.get(world.flags, name) {
+    None => false,
+    Some(value) => value,
+  }
+}
+
+fn set_flag(world: World, name: string, value: bool) -> void {
+  mut world.flags = record.set(world.flags, name, value)
+}
+
+fn carrying(world: World, id: string) -> bool {
+  return array.contains(world.player.inventory, id)
+}
+
+// ---------------------------------------------------------------------------
+// Text helpers
+// ---------------------------------------------------------------------------
+
+@example words("  take   the lantern ") == ["take", "the", "lantern"]
+fn words(line: string) -> Array<string> {
+  return array.filter(string.split(line, " "), fn(w: string) -> bool { return w != "" })
+}
+
+@example wrap("one two three", 7) == ["one two", "three"]
+fn wrap(text: string, width: int) -> Array<string> {
+  let out: Array<string> = []
+  let line = ""
+  for w in words(text) {
+    let candidate = match line == "" {
+      true => w,
+      false => "${line} ${w}",
+    }
+    match string.len(candidate) > width && line != "" {
+      true => {
+        mut out.push(line)
+        mut line = w
+      },
+      false => {
+        mut line = candidate
+      },
+    }
+  }
+  match line == "" {
+    true => {},
+    false => {
+      mut out.push(line)
+    },
+  }
+  return out
+}
+
+fn say(text: string) -> void {
+  for line in wrap(text, WRAP_WIDTH) {
+    io.println(line)
+  }
+}
+
+fn oxford(parts: Array<string>) -> string {
+  return match parts {
+    [] => "nothing",
+    [only] => only,
+    [a, b] => "${a} and ${b}",
+    [first, ...rest] => "${first}, ${oxford(rest)}",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+type Command =
+  | Go({ direction: string })
+  | Take({ noun: string })
+  | Drop({ noun: string })
+  | Examine({ noun: string })
+  | Unlock({ noun: string, key: string })
+  | Look
+  | Inventory
+  | Help
+  | Save
+  | Load
+  | Quit
+
+type ParseError =
+  // An empty line. Not a mistake; just prompt again.
+  | Blank
+  | UnknownVerb({ word: string })
+  | MissingNoun({ verb: string })
+  // `unlock chest` with no `with <item>` clause.
+  | MissingKey({ noun: string })
+  | GoWhere
+
+fn direction_of(word: string) -> Option<string> {
+  return match word {
+    "n" => Some("north"),
+    "north" => Some("north"),
+    "s" => Some("south"),
+    "south" => Some("south"),
+    "e" => Some("east"),
+    "east" => Some("east"),
+    "w" => Some("west"),
+    "west" => Some("west"),
+    "u" => Some("up"),
+    "up" => Some("up"),
+    "d" => Some("down"),
+    "down" => Some("down"),
+    "in" => Some("in"),
+    "enter" => Some("in"),
+    "out" => Some("out"),
+    "exit" => Some("out"),
+    else => None,
+  }
+}
+
+// The canonical verb for a raw first word, so every synonym table lives here.
+fn verb_of(word: string) -> Option<string> {
+  return match word {
+    "go" => Some("go"),
+    "walk" => Some("go"),
+    "move" => Some("go"),
+    "take" => Some("take"),
+    "get" => Some("take"),
+    "grab" => Some("take"),
+    "pick" => Some("take"),
+    "drop" => Some("drop"),
+    "put" => Some("drop"),
+    "examine" => Some("examine"),
+    "x" => Some("examine"),
+    "inspect" => Some("examine"),
+    "read" => Some("examine"),
+    "unlock" => Some("unlock"),
+    "open" => Some("unlock"),
+    "look" => Some("look"),
+    "l" => Some("look"),
+    "inventory" => Some("inventory"),
+    "i" => Some("inventory"),
+    "inv" => Some("inventory"),
+    "help" => Some("help"),
+    "h" => Some("help"),
+    "?" => Some("help"),
+    "save" => Some("save"),
+    "load" => Some("load"),
+    "restore" => Some("load"),
+    "quit" => Some("quit"),
+    "q" => Some("quit"),
+    else => None,
+  }
+}
+
+// Words that carry no meaning in a noun phrase.
+fn is_filler(word: string) -> bool {
+  return word == "the" || word == "a" || word == "an" || word == "at" || word == "to" || word == "up"
+}
+
+fn noun_phrase(rest: Array<string>) -> string {
+  return string.join(array.filter(rest, fn(w: string) -> bool { return !is_filler(w) }), " ")
+}
+
+// Splits `<noun> with <key>` into its two halves. `with` may be absent.
+fn split_with(rest: Array<string>) -> Array<Array<string>> {
+  let left: Array<string> = []
+  let right: Array<string> = []
+  let seen = false
+  for w in rest {
+    match w == "with" || w == "using" {
+      true => {
+        mut seen = true
+      },
+      false => match seen {
+        true => {
+          mut right.push(w)
+        },
+        false => {
+          mut left.push(w)
+        },
+      },
+    }
+  }
+  return [left, right]
+}
+
+fn take_like(verb: string, rest: Array<string>) -> Result<Command, ParseError> {
+  let noun = noun_phrase(rest)
+  return match noun == "" {
+    true => Err(MissingNoun({ verb: verb })),
+    false => match verb {
+      "take" => Ok(Take({ noun: noun })),
+      "drop" => Ok(Drop({ noun: noun })),
+      else => Ok(Examine({ noun: noun })),
+    },
+  }
+}
+
+fn unlock_command(rest: Array<string>) -> Result<Command, ParseError> {
+  let halves = split_with(rest)
+  let noun = noun_phrase(halves[0])
+  let key = noun_phrase(halves[1])
+  return match noun == "" {
+    true => Err(MissingNoun({ verb: "unlock" })),
+    false => match key == "" {
+      true => Err(MissingKey({ noun: noun })),
+      false => Ok(Unlock({ noun: noun, key: key })),
+    },
+  }
+}
+
+fn go_command(rest: Array<string>) -> Result<Command, ParseError> {
+  return match rest {
+    [] => Err(GoWhere),
+    [word, ..._] => match direction_of(word) {
+      None => Err(GoWhere),
+      Some(dir) => Ok(Go({ direction: dir })),
+    },
+  }
+}
+
+fn verb_command(verb: string, rest: Array<string>) -> Result<Command, ParseError> {
+  return match verb {
+    "go" => go_command(rest),
+    "take" => take_like("take", rest),
+    "drop" => take_like("drop", rest),
+    "examine" => take_like("examine", rest),
+    "unlock" => unlock_command(rest),
+    // `look` alone is the room; `look at <noun>` is an examine.
+    "look" => match noun_phrase(rest) == "" {
+      true => Ok(Look),
+      false => take_like("examine", rest),
+    },
+    "inventory" => Ok(Inventory),
+    "help" => Ok(Help),
+    "save" => Ok(Save),
+    "load" => Ok(Load),
+    "quit" => Ok(Quit),
+    else => Err(UnknownVerb({ word: verb })),
+  }
+}
+
+@example parse_command("  GO  North ") == Ok(Go({ direction: "north" }))
+@example parse_command("unlock altar with brass key") == Ok(Unlock({ noun: "altar", key: "brass key" }))
+@example parse_command("x lamp") == Ok(Examine({ noun: "lamp" }))
+fn parse_command(raw: string) -> Result<Command, ParseError> {
+  return match words(string.lower(string.trim(raw))) {
+    [] => Err(Blank),
+    // A bare direction is a move: `north`, `n`, `in`.
+    [head, ...rest] => match direction_of(head) {
+      Some(dir) => Ok(Go({ direction: dir })),
+      None => match verb_of(head) {
+        None => Err(UnknownVerb({ word: head })),
+        Some(verb) => verb_command(verb, rest),
+      },
+    },
+  }
+}
+
+fn describe_parse_error(e: ParseError) -> string {
+  return match e {
+    Blank => "Say something, or type `help`.",
+    UnknownVerb({ word }) => "I do not know how to `${word}`. Type `help` for the verbs I know.",
+    MissingNoun({ verb }) => "What do you want to ${verb}?",
+    MissingKey({ noun }) => "What do you want to unlock the ${noun} with? Try `unlock ${noun} with <item>`.",
+    GoWhere => "Go where? Try a direction: north, south, east, west, up, down, in, out.",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Noun resolution against what is visible right now
+// ---------------------------------------------------------------------------
+
+type Resolved =
+  | Found({ id: string })
+  | NotHere({ noun: string })
+  | Ambiguous({ noun: string, names: Array<string> })
+
+fn item_matches(item: Item, noun: string) -> bool {
+  return item.id == noun || item.name == noun || string.contains(item.name, noun) || string.contains(item.id, noun)
+}
+
+// Everything the player can refer to: the room's items plus the inventory.
+fn visible_ids(world: World) -> Array<string> {
+  let ids = array.slice(world.player.inventory, 0)
+  match here(world) {
+    None => {},
+    Some(room) => {
+      for id in visible_room_items(world, room) {
+        mut ids.push(id)
+      }
+    },
+  }
+  return ids
+}
+
+// A dark cellar hides what is in it. This is the one place a flag gates
+// visibility rather than only prose.
+fn visible_room_items(world: World, room: Room) -> Array<string> {
+  return match room.id == "cellar" && !flag(world, "cellar lit") {
+    true => [],
+    false => room.items,
+  }
+}
+
+fn resolve(world: World, noun: string) -> Resolved {
+  let hits: Array<string> = []
+  for id in visible_ids(world) {
+    match item_of(world, id) {
+      None => {},
+      Some(item) => match item_matches(item, noun) {
+        false => {},
+        true => {
+          mut hits.push(id)
+        },
+      },
+    }
+  }
+  return match hits {
+    [] => NotHere({ noun: noun }),
+    [only] => Found({ id: only }),
+    [first, ...rest] => match array.any(rest, fn(id: string) -> bool { return id != first }) {
+      false => Found({ id: first }),
+      true => Ambiguous({ noun: noun, names: array.map(hits, fn(id: string) -> string { return name_of(world, id) }) }),
+    },
+  }
+}
+
+fn name_of(world: World, id: string) -> string {
+  return match item_of(world, id) {
+    None => id,
+    Some(item) => item.name,
+  }
+}
+
+// `std/string` has no way to read one character, so the article is chosen with
+// five `starts_with` calls instead of looking at `name[0]`.
+fn starts_with_vowel(name: string) -> bool {
+  return string.starts_with(name, "a") || string.starts_with(name, "e") || string.starts_with(name, "i") || string.starts_with(name, "o") || string.starts_with(name, "u")
+}
+
+fn a_name_of(world: World, id: string) -> string {
+  let name = name_of(world, id)
+  return match starts_with_vowel(name) {
+    true => "an ${name}",
+    false => "a ${name}",
+  }
+}
+
+fn describe_resolution_failure(world: World, r: Resolved) -> string {
+  return match r {
+    Found({ id }) => "You see the ${name_of(world, id)}.",
+    NotHere({ noun }) => "You do not see any ${noun} here.",
+    Ambiguous({ noun, names }) => "Which ${noun} do you mean: ${oxford(names)}?",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering a room
+// ---------------------------------------------------------------------------
+
+fn exits_line(room: Room) -> string {
+  let names = array.sort(record.keys(room.exits), fn(a: string, b: string) -> number {
+    return match a < b {
+      true => -1,
+      false => 1,
+    }
+  })
+  let labelled = array.map(names, fn(dir: string) -> string {
+    return match record.get(room.locks, dir) {
+      None => dir,
+      Some(_) => "${dir} (locked)",
+    }
+  })
+  // The separator is hoisted because a string literal cannot appear inside `${...}`.
+  let separator = ", "
+  let list = string.join(labelled, separator)
+  return match labelled {
+    [] => "Exits: none.",
+    else => "Exits: ${list}.",
+  }
+}
+
+// Flags rewrite prose. Both of these read a flag the world sets elsewhere.
+fn room_description(world: World, room: Room) -> string {
+  return match room.id {
+    "cellar" => match flag(world, "cellar lit") {
+      true => "${room.description} Your lantern throws your shadow up the far wall, and the shelves come out of the dark.",
+      false => "It is pitch dark down here. You can hear the room but you cannot see it.",
+    },
+    "tower" => match flag(world, "raven gone") {
+      true => "${room.description} The parapet is empty now.",
+      false => room.description,
+    },
+    "shrine" => match flag(world, "altar open") {
+      true => "${room.description} The altar stands open on a hollow lined with dry moss.",
+      false => room.description,
+    },
+    else => room.description,
+  }
+}
+
+fn render_room(world: World, room: Room) -> void {
+  io.println("")
+  io.println("== ${room.title} ==")
+  say(room_description(world, room))
+  let ids = visible_room_items(world, room)
+  match ids {
+    [] => {},
+    else => {
+      let names = array.map(ids, fn(id: string) -> string { return a_name_of(world, id) })
+      say("You can see ${oxford(names)} here.")
+    },
+  }
+  io.println(exits_line(room))
+}
+
+fn inventory_line(world: World) -> string {
+  return match world.player.inventory {
+    [] => "You are empty-handed.",
+    else => "You are carrying ${oxford(array.map(world.player.inventory, fn(id: string) -> string { return a_name_of(world, id) }))}.",
+  }
+}
+
+fn help_text() -> string {
+  return string.join([
+    "Verbs I understand:",
+    "  go <direction>      (or just `north`, `n`, `in`, `out`)",
+    "  take <noun>         (get, grab, pick up)",
+    "  drop <noun>         (put)",
+    "  examine <noun>      (x, inspect, look at)",
+    "  unlock <noun> with <item>   (open)",
+    "  look                (l) describe the room again",
+    "  inventory           (i) list what you carry",
+    "  save / load         write or read ${SAVE_PATH}",
+    "  help                (h) this list",
+    "  quit                (q) stop playing",
+  ], "\n")
+}
+
+// ---------------------------------------------------------------------------
+// Movement, and the rules that hang off it
+// ---------------------------------------------------------------------------
+
+fn take_item(world: World, room: Room, id: string) -> void {
+  mut room.items = array.filter(room.items, fn(other: string) -> bool { return other != id })
+  mut world.player.inventory = array.push(world.player.inventory, id)
+  mut world.collected = world.collected + 1
+}
+
+fn drop_item(world: World, room: Room, id: string) -> void {
+  mut world.player.inventory = array.filter(world.player.inventory, fn(other: string) -> bool { return other != id })
+  mut room.items = array.push(room.items, id)
+}
+
+// Runs after every arrival: the one-shot event, then the standing rules.
+fn on_arrival(world: World, room: Room) -> void {
+  let key = "visited ${room.id}"
+  match flag(world, key) {
+    true => {},
+    false => {
+      set_flag(world, key, true)
+      match room.on_enter {
+        None => {},
+        Some(message) => {
+          io.println("")
+          say(message)
+        },
+      }
+      match room.id == "tower" {
+        false => {},
+        true => set_flag(world, "raven gone", true),
+      }
+    },
+  }
+  match room.id == "cellar" && carrying(world, "lantern") {
+    false => {},
+    true => set_flag(world, "cellar lit", true),
+  }
+}
+
+fn move_player(world: World, direction: string) -> string {
+  return match here(world) {
+    None => "You are nowhere at all. That is a bug.",
+    Some(room) => match record.get(room.exits, direction) {
+      None => "You cannot go ${direction} from here.",
+      Some(destination) => match record.get(room.locks, direction) {
+        Some(required) => match carrying(world, required) {
+          false => "The way ${direction} is locked. You would need the ${name_of(world, required)}.",
+          true => enter(
+            world,
+            destination,
+            "You unlock the way ${direction} with the ${name_of(world, required)} and go through.",
+          ),
+        },
+        None => enter(world, destination, ""),
+      },
+    },
+  }
+}
+
+fn enter(world: World, destination: string, preamble: string) -> string {
+  return match room_of(world, destination) {
+    None => "The way leads nowhere. That is a bug.",
+    Some(room) => {
+      mut world.player.location = destination
+      match preamble == "" {
+        true => {},
+        false => say(preamble),
+      }
+      on_arrival(world, room)
+      render_room(world, room)
+      ""
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Save and load
+// ---------------------------------------------------------------------------
+
+type LoadError =
+  | Missing
+  | Unreadable({ message: string })
+  | Corrupt({ message: string })
+
+fn save_world(world: World) -> string {
+  return match fs.write_text(SAVE_PATH, json.stringify(world, { indent: 2 })) {
+    Err(e) => "The game could not be saved: ${e.message}",
+    Ok(_) => "Saved to ${SAVE_PATH}.",
+  }
+}
+
+fn load_world() -> Result<World, LoadError> {
+  match fs.exists(SAVE_PATH) {
+    false => {
+      return Err(Missing)
+    },
+    true => {},
+  }
+  let text = match fs.read_text(SAVE_PATH) {
+    Err(e) => {
+      return Err(Unreadable({ message: e.message }))
+    },
+    Ok(contents) => contents,
+  }
+  return match json.parse<World>(text) {
+    Err(issues) => Err(Corrupt({ message: describe_issues(issues) })),
+    Ok(world) => Ok(world),
+  }
+}
+
+fn describe_issues(issues: Array<Issue>) -> string {
+  return match issues {
+    [] => "the file is not a saved game",
+    [first, ..._] => {
+      // Hoisted out of the interpolation: a string literal cannot appear inside `${...}`.
+      let dot = "."
+      let where_it_is = string.join(array.map(first.path, fn(p: string | number) -> string { return string.from(p) }), dot)
+      match first.path {
+        [] => first.message,
+        else => "${where_it_is}: ${first.message}",
+      }
+    },
+  }
+}
+
+fn describe_load_error(e: LoadError) -> string {
+  return match e {
+    Missing => "There is no saved game at ${SAVE_PATH}.",
+    Unreadable({ message }) => "The save file could not be read: ${message}",
+    Corrupt({ message }) => "That save file is corrupt (${message}). Your game is untouched.",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The turn
+// ---------------------------------------------------------------------------
+
+type Turn =
+  // The ordinary case: print this and keep going.
+  | Said({ message: string })
+  // `load` succeeded, so the caller rebinds its world to this one.
+  | Replaced({ message: string, world: World })
+  | Ended({ message: string })
+
+fn turn_take(world: World, noun: string) -> string {
+  return match here(world) {
+    None => "You are nowhere at all. That is a bug.",
+    Some(room) => match resolve(world, noun) {
+      NotHere({ noun: missing }) => describe_resolution_failure(world, NotHere({ noun: missing })),
+      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+      Found({ id }) => match carrying(world, id) {
+        true => "You are already carrying the ${name_of(world, id)}.",
+        false => match item_of(world, id) {
+          None => "That is a bug: ${id} has no item record.",
+          Some(item) => match item.takeable {
+            false => "The ${item.name} will not come with you.",
+            true => {
+              take_item(world, room, id)
+              "Taken: ${item.name}."
+            },
+          },
+        },
+      },
+    },
+  }
+}
+
+fn turn_drop(world: World, noun: string) -> string {
+  return match here(world) {
+    None => "You are nowhere at all. That is a bug.",
+    Some(room) => match resolve(world, noun) {
+      NotHere({ noun: missing }) => "You are not carrying any ${missing}.",
+      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+      Found({ id }) => match carrying(world, id) {
+        false => "You are not carrying the ${name_of(world, id)}.",
+        true => {
+          drop_item(world, room, id)
+          "Dropped: ${name_of(world, id)}."
+        },
+      },
+    },
+  }
+}
+
+fn turn_examine(world: World, noun: string) -> string {
+  return match resolve(world, noun) {
+    NotHere({ noun: missing }) => describe_resolution_failure(world, NotHere({ noun: missing })),
+    Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+    Found({ id }) => match item_of(world, id) {
+      None => "That is a bug: ${id} has no item record.",
+      Some(item) => item.description,
+    },
+  }
+}
+
+fn turn_unlock(world: World, noun: string, key: string) -> string {
+  return match resolve(world, noun) {
+    NotHere({ noun: missing }) => describe_resolution_failure(world, NotHere({ noun: missing })),
+    Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+    Found({ id }) => match resolve(world, key) {
+      NotHere({ noun: missing }) => "You are not carrying any ${missing}.",
+      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+      Found({ id: key_id }) => match carrying(world, key_id) {
+        false => "You would have to be holding the ${name_of(world, key_id)} first.",
+        true => unlock_with(world, id, key_id),
+      },
+    },
+  }
+}
+
+fn unlock_with(world: World, target: string, key_id: string) -> string {
+  return match target == "altar" && key_id == "brass key" {
+    false => "The ${name_of(world, key_id)} does not fit the ${name_of(world, target)}.",
+    true => match flag(world, "altar open") {
+      true => "The altar is already open.",
+      false => {
+        set_flag(world, "altar open", true)
+        "The brass key turns. The face of the altar swings back on a hollow lined with dry moss, exactly the size of a small figure."
+      },
+    },
+  }
+}
+
+// Printed rather than returned: the help block is already laid out, and `say`
+// would re-wrap it into one paragraph.
+fn turn_help() -> string {
+  io.println(help_text())
+  return ""
+}
+
+fn turn_look(world: World) -> string {
+  match here(world) {
+    None => {},
+    Some(room) => render_room(world, room),
+  }
+  return ""
+}
+
+fn apply(world: World, command: Command) -> Turn {
+  return match command {
+    Look => Said({ message: turn_look(world) }),
+    Inventory => Said({ message: inventory_line(world) }),
+    Help => Said({ message: turn_help() }),
+    Quit => Ended({ message: "You put the world down and walk away." }),
+    Go({ direction }) => Said({ message: move_player(world, direction) }),
+    Take({ noun }) => Said({ message: turn_take(world, noun) }),
+    Drop({ noun }) => Said({ message: turn_drop(world, noun) }),
+    Examine({ noun }) => Said({ message: turn_examine(world, noun) }),
+    Unlock({ noun, key }) => Said({ message: turn_unlock(world, noun, key) }),
+    Save => Said({ message: save_world(world) }),
+    Load => match load_world() {
+      Err(e) => Said({ message: describe_load_error(e) }),
+      Ok(loaded) => Replaced({ message: "Restored from ${SAVE_PATH}.", world: loaded }),
+    },
+  }
+}
+
+// Commands that are bookkeeping rather than play do not cost a move.
+fn counts_as_move(command: Command) -> bool {
+  return match command {
+    Look => false,
+    Inventory => false,
+    Help => false,
+    Save => false,
+    Load => false,
+    Quit => false,
+    Go(_) => true,
+    Take(_) => true,
+    Drop(_) => true,
+    Examine(_) => true,
+    Unlock(_) => true,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Win condition and the loop
+// ---------------------------------------------------------------------------
+
+// `won` short-circuits so the ending can only fire once.
+fn check_win(world: World) -> bool {
+  return !world.won && world.player.location == WIN_ROOM && carrying(world, WIN_ITEM) && flag(world, "altar open")
+}
+
+fn final_summary(world: World) -> string {
+  return string.join([
+    "",
+    "You set the idol in the hollow. The stone closes over it and the room goes quiet.",
+    "",
+    "*** You have won ***",
+    "Moves taken: ${number.to_string(world.moves)}",
+    "Items collected: ${number.to_string(world.collected)}",
+  ], "\n")
+}
+
+fn play(world: World) -> int {
+  say("ADVENTURE. A small wood, a locked hill, and something that wants to go home.")
+  io.println("")
+  io.println(help_text())
+  match here(world) {
+    None => {},
+    Some(room) => {
+      on_arrival(world, room)
+      render_room(world, room)
+    },
+  }
+
+  let current = world
+  let exit_code = 0
+  loop {
+    io.println("")
+    match io.read_line() {
+      None => {
+        break
+      },
+      Some(line) => match parse_command(line) {
+        Err(e) => say("${describe_parse_error(e)}"),
+        Ok(command) => {
+          match counts_as_move(command) {
+            false => {},
+            true => {
+              mut current.moves = current.moves + 1
+            },
+          }
+          let outcome = apply(current, command)
+          match outcome {
+            Ended({ message }) => {
+              say(message)
+              say("Moves taken: ${number.to_string(current.moves)}.")
+              mut exit_code = 0
+              break
+            },
+            Replaced({ message, world: loaded }) => {
+              mut current = loaded
+              say(message)
+              match here(current) {
+                None => {},
+                Some(room) => render_room(current, room),
+              }
+            },
+            Said({ message }) => match message == "" {
+              true => {},
+              false => say(message),
+            },
+          }
+          match check_win(current) {
+            false => {},
+            true => {
+              mut current.won = true
+              io.println(final_summary(current))
+              mut exit_code = 0
+              break
+            },
+          }
+        },
+      },
+    }
+  }
+  return exit_code
+}
+
+fn main(argv: Array<string>) -> number {
+  return play(new_world())
+}

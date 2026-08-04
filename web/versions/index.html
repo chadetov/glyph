@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.37</span>
+            <span class="rel-ver">0.1.38</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The formatter keeps a comment where you wrote it</h3>
+            <p>A <code>//</code> comment written inside a record, a union variant list, an array or object literal, an argument list, or above a <code>match</code> arm used to be re-emitted above the next declaration or statement, where it read as documentation for something else. It now stays with the item it was written above.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>glyph fmt</code> flushed pending comments at declaration and statement granularity only, so any comment inside a construct drifted downward. One pass over a nine-line file produced three separate corruptions, including a comment that escaped its <code>const</code> and landed above an unrelated <code>type</code>. Nothing warned: exit 0, <code>tsc</code> passed, and the mangled output was a fixed point, so <code>glyph fmt --check</code> in CI accepted it. Comments are now flushed above the item that followed them in source, with a drain before the closing delimiter.</li>
+              <li><span class="tag changed">Changed</span> A construct holding an interior comment always takes the one-element-per-line form, at any element count and any width, so the comment has an item to sit above. <code>type Shape = { w: int, h: int }</code> still collapses to one line; document a field and the record stays expanded. Across the whole <code>examples/</code> tree exactly one file's output changes, to what its author originally wrote.</li>
+              <li><span class="tag known">Known</span> A comment is still always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.37</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

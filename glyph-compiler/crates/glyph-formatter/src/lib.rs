@@ -4,9 +4,12 @@
 //! - two-space indentation;
 //! - trailing commas on every multi-line list (D17/D2);
 //! - a list (call args, params, array/object/record fields, generics excepted)
-//!   goes one-element-per-line once it has more than two elements, and is inline
-//!   otherwise — the only trigger is element count, never line width (no
-//!   line-length reflow);
+//!   with one or two elements is always inline; above that it stays inline only
+//!   while its rendered form fits `PRINT_WIDTH` from the current column, and
+//!   otherwise goes one-element-per-line;
+//! - a list holding an interior `//` comment is always one-element-per-line, so
+//!   the comment stays above the item it documents (D14 leaves `//` as the only
+//!   way to document a record field, a union variant, or a match arm);
 //! - `match` is always multi-line; a tagged union is always the multi-line
 //!   `| Variant` form;
 //! - annotations are emitted in canonical (sorted) order above their
@@ -156,37 +159,68 @@ impl Printer {
     /// A comma-separated list that is inline (`open a, b close`) at or below
     /// `INLINE_MAX` elements and one-per-line (with a trailing comma) above it.
     /// `empty` is the rendering for zero elements.
+    ///
+    /// `end` is the source offset just past the construct's closing delimiter and
+    /// `start_of` gives each item's source offset. Together they let the list keep
+    /// interior `//` comments where the author wrote them: an interior comment
+    /// forces the multi-line form (the inline form has nowhere to put a line
+    /// comment) and is re-emitted above the item that followed it in source.
+    /// Without this, a comment inside a list stayed pending until the next
+    /// declaration or statement and was re-attached there, documenting the wrong
+    /// thing.
+    #[allow(clippy::too_many_arguments)]
     fn delimited<T>(
         &mut self,
         items: &[T],
+        end: u32,
         inline_open: &str,
         inline_close: &str,
         empty: &str,
         ml_open: &str,
         ml_close: &str,
+        start_of: impl Fn(&T) -> u32,
         mut render: impl FnMut(&mut Self, &T),
     ) {
+        // Decided from spans *before* any `capture` runs. `capture` swaps `out`
+        // into a throwaway buffer but `cidx` is shared state, so a flush performed
+        // while rendering the discarded inline candidate would consume comments
+        // into a buffer that is thrown away — deleting them instead of moving
+        // them. Read the comment cursor here and never inside the candidate.
+        let has_interior_comment = self.has_comment_before(end);
         if items.is_empty() {
-            self.push(empty);
+            if !has_interior_comment {
+                self.push(empty);
+                return;
+            }
+            // An otherwise-empty list still has to hold its comments.
+            self.push(ml_open);
+            self.indent += 1;
+            self.drain_comments_before(end);
+            self.indent -= 1;
+            self.newline();
+            self.push(ml_close);
             return;
         }
         // Two or fewer elements are always inline. Above that, render the inline
         // candidate and keep it inline when it has no intrinsic line break and
         // fits the print width from the current column; otherwise go one-per-line.
-        let inline_fits = items.len() <= INLINE_MAX || {
-            let col = self.current_column();
-            let candidate = self.capture(|s| {
-                s.push(inline_open);
-                for (i, it) in items.iter().enumerate() {
-                    if i > 0 {
-                        s.push(", ");
+        // An interior comment vetoes the inline path outright, at any count and
+        // any width — the same rule `lambda_block` already applies to a body.
+        let inline_fits = !has_interior_comment
+            && (items.len() <= INLINE_MAX || {
+                let col = self.current_column();
+                let candidate = self.capture(|s| {
+                    s.push(inline_open);
+                    for (i, it) in items.iter().enumerate() {
+                        if i > 0 {
+                            s.push(", ");
+                        }
+                        render(s, it);
                     }
-                    render(s, it);
-                }
-                s.push(inline_close);
+                    s.push(inline_close);
+                });
+                !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH
             });
-            !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH
-        };
         if inline_fits {
             self.push(inline_open);
             for (i, it) in items.iter().enumerate() {
@@ -201,12 +235,28 @@ impl Printer {
             self.indent += 1;
             for it in items {
                 self.newline();
+                self.flush_comments_before(start_of(it));
                 render(self, it);
                 self.push(",");
             }
+            // Comments after the last item, before the closing delimiter.
+            self.drain_comments_before(end);
             self.indent -= 1;
             self.newline();
             self.push(ml_close);
+        }
+    }
+
+    /// Emit every pending comment before `offset` as its own line, each starting
+    /// on a fresh padded line. Unlike `flush_comments_before` this leaves the
+    /// cursor at the end of the last comment rather than on a new line, so the
+    /// caller controls what follows (a closing delimiter at the outer indent).
+    fn drain_comments_before(&mut self, offset: u32) {
+        while self.has_comment_before(offset) {
+            self.newline();
+            let text = self.comments[self.cidx].text.clone();
+            self.push(&text);
+            self.cidx += 1;
         }
     }
 
@@ -305,7 +355,7 @@ impl Printer {
         self.push("interface ");
         self.push(&i.name);
         self.generics(&i.generics);
-        if i.members.is_empty() {
+        if i.members.is_empty() && !self.has_comment_before(i.span.end) {
             self.push(" {}\n");
             return;
         }
@@ -313,16 +363,18 @@ impl Printer {
         self.indent += 1;
         for m in &i.members {
             self.newline();
+            // A member's documentation comment stays above that member.
+            self.flush_comments_before(interface_member_start(m));
             match m {
                 glyph_ast::InterfaceMember::Method {
                     name,
                     params,
                     return_ty,
-                    ..
+                    span,
                 } => {
                     self.push("fn ");
                     self.push(name);
-                    self.params(params);
+                    self.params(params, params_end_before(return_ty.as_ref(), span.end));
                     if let Some(rt) = return_ty {
                         self.push(" -> ");
                         self.type_expr(rt);
@@ -338,6 +390,8 @@ impl Printer {
                 }
             }
         }
+        // Comments after the last member, before the closing brace.
+        self.drain_comments_before(i.span.end);
         self.indent -= 1;
         self.newline();
         self.push("}\n");
@@ -398,7 +452,10 @@ impl Printer {
         self.push("fn ");
         self.push(&f.name);
         self.generics(&f.generics);
-        self.params(&f.params);
+        self.params(
+            &f.params,
+            params_end_before(f.return_ty.as_ref(), f.body.span.start),
+        );
         if let Some(rt) = &f.return_ty {
             self.push(" -> ");
             self.type_expr(rt);
@@ -414,7 +471,10 @@ impl Printer {
         self.push("component ");
         self.push(&c.name);
         self.generics(&c.generics);
-        self.params(&c.params);
+        self.params(
+            &c.params,
+            params_end_before(c.return_ty.as_ref(), c.body.span.start),
+        );
         if let Some(rt) = &c.return_ty {
             self.push(" -> ");
             self.type_expr(rt);
@@ -486,8 +546,22 @@ impl Printer {
         self.push(">");
     }
 
-    fn params(&mut self, params: &[Param]) {
-        self.delimited(params, "(", ")", "()", "(", ")", |p, param| p.param(param));
+    /// `end` is the offset the parameter list closes before — the return type's
+    /// start when there is one, else the body's `{`. Nothing but `)` and `->`
+    /// lives between the last parameter and that offset, so it is a safe bound
+    /// for "a comment inside this parameter list".
+    fn params(&mut self, params: &[Param], end: u32) {
+        self.delimited(
+            params,
+            end,
+            "(",
+            ")",
+            "()",
+            "(",
+            ")",
+            |param: &Param| param.span.start,
+            |p, param| p.param(param),
+        );
     }
 
     fn param(&mut self, param: &Param) {
@@ -502,17 +576,27 @@ impl Printer {
     /// Lambda parameters. An un-annotated lambda parameter is recorded by the
     /// parser as type `unknown`; reprint it bare (`fn(x) { .. }`) rather than
     /// inventing a `: unknown` annotation. An explicit annotation is kept.
-    fn lambda_params(&mut self, params: &[Param]) {
-        self.delimited(params, "(", ")", "()", "(", ")", |p, param| {
-            if param.owned {
-                p.push("owned ");
-            }
-            p.push(&param.name);
-            if !is_unknown_ty(&param.ty) {
-                p.push(": ");
-                p.type_expr(&param.ty);
-            }
-        });
+    fn lambda_params(&mut self, params: &[Param], end: u32) {
+        self.delimited(
+            params,
+            end,
+            "(",
+            ")",
+            "()",
+            "(",
+            ")",
+            |param: &Param| param.span.start,
+            |p, param| {
+                if param.owned {
+                    p.push("owned ");
+                }
+                p.push(&param.name);
+                if !is_unknown_ty(&param.ty) {
+                    p.push(": ");
+                    p.type_expr(&param.ty);
+                }
+            },
+        );
     }
 
     // ----- statements + blocks -----
@@ -672,7 +756,7 @@ impl Printer {
                 callee,
                 type_args,
                 args,
-                ..
+                span,
             } => {
                 self.atom(callee);
                 if !type_args.is_empty() {
@@ -685,13 +769,23 @@ impl Printer {
                     }
                     self.push(">");
                 }
-                self.delimited(args, "(", ")", "()", "(", ")", |p, a| p.expr(a));
+                self.delimited(
+                    args,
+                    span.end,
+                    "(",
+                    ")",
+                    "()",
+                    "(",
+                    ")",
+                    |a: &Expr| a.span().start,
+                    |p, a| p.expr(a),
+                );
             }
             Expr::New {
                 callee,
                 type_args,
                 args,
-                ..
+                span,
             } => {
                 self.push("new ");
                 self.atom(callee);
@@ -705,7 +799,17 @@ impl Printer {
                     }
                     self.push(">");
                 }
-                self.delimited(args, "(", ")", "()", "(", ")", |p, a| p.expr(a));
+                self.delimited(
+                    args,
+                    span.end,
+                    "(",
+                    ")",
+                    "()",
+                    "(",
+                    ")",
+                    |a: &Expr| a.span().start,
+                    |p, a| p.expr(a),
+                );
             }
             Expr::Member {
                 object,
@@ -727,14 +831,36 @@ impl Printer {
                 self.push("await ");
                 self.atom(expr);
             }
-            Expr::Array { elements, .. } => {
-                self.delimited(elements, "[", "]", "[]", "[", "]", |p, el| p.array_elem(el));
+            Expr::Array { elements, span } => {
+                self.delimited(
+                    elements,
+                    span.end,
+                    "[",
+                    "]",
+                    "[]",
+                    "[",
+                    "]",
+                    array_elem_start,
+                    |p, el| p.array_elem(el),
+                );
             }
-            Expr::Object { fields, .. } => {
-                self.delimited(fields, "{ ", " }", "{}", "{", "}", |p, f| p.object_field(f));
+            Expr::Object { fields, span } => {
+                self.delimited(
+                    fields,
+                    span.end,
+                    "{ ",
+                    " }",
+                    "{}",
+                    "{",
+                    "}",
+                    object_field_start,
+                    |p, f| p.object_field(f),
+                );
             }
             Expr::Match {
-                scrutinee, arms, ..
+                scrutinee,
+                arms,
+                span,
             } => {
                 self.push("match ");
                 self.expr(scrutinee);
@@ -743,14 +869,29 @@ impl Printer {
                 let mut prev_end: Option<u32> = None;
                 for arm in arms {
                     self.newline();
-                    // Preserve a blank line the author left to group arms.
-                    if prev_end.is_some_and(|pe| self.blank_line_in_source(pe, arm.span.start)) {
+                    // Preserve a blank line the author left to group arms — the
+                    // gap is measured to the arm's leading comment block, if any,
+                    // not to the arm itself.
+                    let lead = self
+                        .pending_comment_start(arm.span.start)
+                        .unwrap_or(arm.span.start);
+                    if prev_end.is_some_and(|pe| self.blank_line_in_source(pe, lead)) {
+                        self.blank_line();
+                    }
+                    // An arm's documentation comment stays above that arm (D14
+                    // makes `//` the only way to write it), mirroring `block`.
+                    let last_comment_end = self.flush_comments_before(arm.span.start);
+                    if last_comment_end
+                        .is_some_and(|end| self.blank_line_in_source(end, arm.span.start))
+                    {
                         self.blank_line();
                     }
                     self.match_arm(arm);
                     self.push(",");
                     prev_end = Some(arm.span.end);
                 }
+                // Comments after the last arm, before the closing brace.
+                self.drain_comments_before(span.end);
                 self.indent -= 1;
                 self.newline();
                 self.push("}");
@@ -766,7 +907,7 @@ impl Printer {
                     self.push("async ");
                 }
                 self.push("fn");
-                self.lambda_params(params);
+                self.lambda_params(params, params_end_before(return_ty.as_ref(), body.span.start));
                 if let Some(rt) = return_ty {
                     self.push(" -> ");
                     self.type_expr(rt);
@@ -891,7 +1032,15 @@ impl Printer {
                     // `source` so nested string literals take the re-escape path
                     // instead of slicing the module at a bogus offset.
                     let saved = self.source.take();
+                    // The sub-expression's spans are relative to the literal, not
+                    // to the module, so they cannot be compared against comment
+                    // offsets. Park the comment cursor past the end for the
+                    // duration: a flush inside this `capture` would write into a
+                    // buffer that is re-escaped into the string, destroying the
+                    // comment rather than moving it.
+                    let saved_cidx = std::mem::replace(&mut self.cidx, self.comments.len());
                     let code = self.capture(|p| p.expr(value));
+                    self.cidx = saved_cidx;
                     self.source = saved;
                     self.push("${");
                     self.push(&escape_string(&code));
@@ -1002,8 +1151,18 @@ impl Printer {
                     self.type_expr(rt);
                 }
             }
-            TypeExpr::Record { fields, .. } => {
-                self.delimited(fields, "{ ", " }", "{}", "{", "}", |p, f| p.record_field(f));
+            TypeExpr::Record { fields, span } => {
+                self.delimited(
+                    fields,
+                    span.end,
+                    "{ ",
+                    " }",
+                    "{}",
+                    "{",
+                    "}",
+                    |f: &RecordTypeField| f.span.start,
+                    |p, f| p.record_field(f),
+                );
             }
             // A union nested outside a `type` decl body renders on one line.
             TypeExpr::Union { variants, .. } => {
@@ -1058,6 +1217,9 @@ impl Printer {
         self.indent += 1;
         for v in variants {
             self.newline();
+            // A variant's documentation comment stays above that variant; it does
+            // not route through `delimited`, so flush it here.
+            self.flush_comments_before(v.span.start);
             self.push("| ");
             self.union_variant(v);
         }
@@ -1146,6 +1308,36 @@ impl Printer {
             }
             JsxChild::Text { content, .. } => self.push(content.trim()),
         }
+    }
+}
+
+/// The offset a parameter list closes before: the return type's start when the
+/// signature declares one, else the fallback (the body's `{`, or the end of an
+/// interface method signature). Only `)` and `->` sit between the last parameter
+/// and that offset, so it bounds "inside this parameter list" exactly.
+fn params_end_before(return_ty: Option<&TypeExpr>, fallback: u32) -> u32 {
+    return_ty.map_or(fallback, |rt| rt.span().start)
+}
+
+/// The source offset an array element begins at. `ArrayElem` carries no span of
+/// its own; a spread's `...` immediately precedes its expression, so the inner
+/// expression's start is a sound upper bound for a comment above the element.
+fn array_elem_start(el: &ArrayElem) -> u32 {
+    match el {
+        ArrayElem::Expr(e) | ArrayElem::Spread(e) => e.span().start,
+    }
+}
+
+fn object_field_start(f: &ObjectField) -> u32 {
+    match f {
+        ObjectField::KeyValue { span, .. } | ObjectField::Spread { span, .. } => span.start,
+    }
+}
+
+fn interface_member_start(m: &glyph_ast::InterfaceMember) -> u32 {
+    match m {
+        glyph_ast::InterfaceMember::Method { span, .. } => span.start,
+        glyph_ast::InterfaceMember::Field(f) => f.span.start,
     }
 }
 

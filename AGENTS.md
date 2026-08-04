@@ -625,6 +625,12 @@ constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
   interpolated key (`{"${e}": x}`) is not allowed (no computed keys).
 - **`mut` is narrow.** It only enables reassignment and mutating method calls;
   there is no `mut` parameter, field, or other position.
+- **Write a `//` comment on its own line, above what it documents.** `glyph fmt`
+  keeps a comment above the same item, including inside a record, a union variant
+  list, an array or object literal, an argument list, and a `match` (a construct
+  holding an interior comment stays one-element-per-line so the comment has an
+  item to sit above). A comment always lands on its own line, so one written at
+  the end of a code line moves to the line above the next item.
 - **No `node:` import prefix.** Import Node builtins by bare name (`import http`).
 
 ## Diagnostic codes

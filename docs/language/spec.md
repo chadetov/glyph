@@ -10,7 +10,7 @@ Principle: **prefer the choice an established language has already validated, un
 - **D12. One string syntax: `"..."`.** Escapes `\n \t \r \" \\ \u{HEX}`. Embedded raw newlines preserved. **Update (session 3): template literals adopted — see D22.**  Originally deferred; the forward-compatibility window was used in session 3. *[abstraction]*
 - **D22. Template literals: `"hello ${expr}"`.** `${...}` inside a string literal interpolates an expression. Interior expressions are restricted to literals, identifier reads, member access, `?` postfix, and parenthesized expressions — no statements, no nested string literals, no function declarations. Escape via `\${` for a literal dollar-brace. Replaces the previous "`+` concatenation only" idiom. *[abstraction — `"hello " + name + ", count is " + n` becomes `"hello ${name}, count is ${n}"`]*
 - **D13. Numeric literals: integers and decimals.** `/-?\d+(_\d+)*(\.\d+(_\d+)*)?/` with optional `e` exponent. Underscore separators allowed (`1_000_000`). No hex/octal/binary in v1; deferred but forward-compatible. *[baseline]*
-- **D14. `//` line comments only.** No block comments (nested-block-comment confusion is a known footgun). No doc-comment syntax yet — `///` is reserved for it, forward-compatible. *[greppability]*
+- **D14. `//` line comments only.** No block comments (nested-block-comment confusion is a known footgun). No doc-comment syntax yet — `///` is reserved for it, forward-compatible. Because `//` is the only way to document a record field, a union variant, a literal element, an argument, or a `match` arm, the formatter must preserve what a comment sits under: `glyph fmt` emits every comment above the item that followed it in source, including inside a record body, a union variant list, an array or object literal, an argument or parameter list, and a `match`, and a comment inside such a construct forces it to the one-element-per-line form so the comment has an item to sit above. A comment is always placed on its own line, so one written at the end of a code line moves to the line above the next item; it does not cross into another declaration. *[greppability, verifiability — a relocated comment makes the file assert something false about itself]*
 - **D17. Trailing commas legal everywhere they're meaningful.** Array/object literals, parameter lists, argument lists, type field lists, generic parameter lists, match arm lists, import name lists, tuple patterns. *[diff stability]*
 
 ## Control flow & expressions
@@ -135,7 +135,7 @@ an agent needs and previously had to discover by reading the compiler.
 
 | Pillar | Decisions |
 |---|---|
-| Verifiability | D5, D16, D23, D24, D25, D26, D28, D31 |
+| Verifiability | D5, D14, D16, D23, D24, D25, D26, D28, D31 |
 | Greppability | D1, D4, D10, D14, D19, D20, D21, D33, D35 |
 | Diff stability | D2, D8, D15, D17 |
 | Abstraction | D3, D6, D9, D12, D22, D27, D30, D32, D34, D36 |

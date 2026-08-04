@@ -450,3 +450,70 @@ directly surfaced one new gap.
   decision: the `is TypeName` guard path and imported/cross-module coverage
   remain the open
   forks above.
+
+## Round 6 — Minesweeper in the terminal (no framework, no dependency)
+
+The improve-glyph loop pointed at an ordinary program instead of an integration:
+Minesweeper (`examples/apps/minesweeper.glyph`), a 9x9 grid, lazy first-click
+mine placement, flood-fill reveal, a flag/unflag command loop, and a deterministic
+seeded RNG so a transcript compares byte for byte. No npm dependency, no server,
+no JSX. It builds, passes `tsc --strict`, and plays. Eight gaps came out of
+writing it; one is fixed and shipped in 0.1.38, the rest are scheduled or waiting
+on a decision in `docs/roadmap/releases.md`.
+
+- **G23. [FIXED] `glyph fmt` relocated any comment written inside a construct.**
+  The printer flushed pending `//` comments at declaration and statement
+  granularity only, so a comment inside a record body, a union variant list, an
+  array or object literal, a call argument list, or above a `match` arm stayed
+  pending and was re-emitted above the next declaration or statement. One pass
+  over a nine-line file produced three separate corruptions, including an
+  array-element comment that escaped its `const` and landed above an unrelated
+  `type`, where it reads as that type's documentation. Nothing warned: exit 0,
+  `tsc` passed, and the mangled output is a fixed point, so `glyph fmt --check`
+  in CI accepts it. The app had to hoist every field comment out of its record
+  onto the declaration line to survive a format. *Fixed: `delimited` now takes the
+  construct's closing offset and each item's start offset, flushes pending
+  comments above the item that followed them in source, drains the rest before
+  the closing delimiter, and vetoes the inline form outright when the construct
+  holds an interior comment (at any element count and any width). Match arms and
+  union variants, which do not route through `delimited`, flush directly. The
+  veto is read from spans before the inline candidate is rendered, since that
+  candidate is built into a buffer that gets discarded and a flush inside it
+  would delete the comment rather than move it. Verified: the app round-trips
+  byte for byte through two `fmt` passes, and across the whole `examples/` tree
+  exactly one file's output changes, to what its author originally wrote. Ten
+  formatter tests; D14 records the guarantee.* The remaining edge is placement,
+  not loss: a comment is always emitted on its own line, so one written at the
+  end of a code line moves to the line above the next item.
+- **G24. `?` is rejected in an expression-form `match` arm.** `=> f(x)?` fails
+  while `=> { return f(x)? }` and `=> return Ok(f(x)?)` both compile. One call
+  site in the emitter uses `self.expr` where every other statement position uses
+  `self.emit_value`. A missed call site, not a design.
+- **G25. A value-position `match` cannot host block arms.** A `match` used as a
+  sub-expression lowers to an IIFE that rejects block arms, and in that position
+  G24 has no workaround. Structural and separate from G24.
+- **G26. `std/string` has no `repeat`, `pad_start`, or `pad_end`.** Every program
+  that renders a grid or aligned columns needs them; the app hand-rolled all
+  three. Three wrappers plus three names in the resolver seed.
+- **G27. An unknown stdlib namespace member leaks a raw `tsc` error.** `import
+  std/string { repeat }` gives a clean E0105, because `verify_imports` checks
+  named imports against the resolver seed. `string.repeat(...)` gives a TS2339
+  carrying an absolute build path, because nothing checks member access against
+  the same seed. The same typo gets two experiences depending on import style,
+  and the absolute path in a remapped TS error is a second, separable defect.
+- **G28. There is no `glyph check <file>`.** `build` rejects a non-directory
+  source, so the only door into type checking a single file is running it.
+- **G29. Two formatter layout complaints, deliberately not bundled with G23.** A
+  one-statement `match` arm body is always exploded to three lines, because the
+  parser wraps it in a synthetic block and every block prints multi-line; and the
+  `INLINE_MAX` check short-circuits the width test, flattening every
+  two-argument `array.map(xs, fn(...) { ... })`.
+- **G30. Two decisions the trip surfaced, both open.** `for` has nothing in the
+  stdlib that produces a counted range, so the most common bounded loop cannot
+  use the keyword D21 built for bounded loops and gets hand-rolled from
+  `loop`/`match`/`break` instead, which costs greppability. And `xs[i]` types as
+  `Ty::Unknown` with `noUncheckedIndexedAccess` off and no `array.get`, so
+  `cells[999]` type-checks clean, passes `tsc --strict`, and hands back
+  `undefined` where the compiler claimed `Cell`. Both are architecture forks with
+  their options and costs written out in `docs/roadmap/releases.md`; neither is
+  decided here.

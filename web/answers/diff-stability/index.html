@@ -126,17 +126,84 @@
           formatter vs. yours&rdquo; noise, and a clean <code>git blame</code> that points at the
           commit that actually changed a line, not the one that reformatted it.
         </p>
+
+        <p class="block-label">One canonical layout, so does the formatter move my comments?</p>
+        <p>
+          It used to, and that was a bug worth naming. Glyph has no block comments and no
+          doc-comment syntax, so a <code>//</code> line is the only way to explain a record field,
+          a union variant, or a <code>match</code> arm. The formatter flushed pending comments only
+          at declaration and statement boundaries, which meant a comment written <em>inside</em>
+          a construct drifted down to the next declaration and read as documentation for whatever
+          it landed on. Writing Minesweeper in Glyph is what surfaced it. These two declarations come
+          from <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/minesweeper.glyph">the
+          real app</a> (comments trimmed to fit), run through the old formatter and the new one.
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">0.1.37: one fmt pass</span>
+<pre>type Visibility =
+  | Hidden
+  | Flagged
+  | Revealed
+
+<span class="del">// Face down. Prints as `.`.</span>
+<span class="del">// Face down and marked by the player.</span>
+<span class="del">// Face up. `Cell.adjacent` is what gets printed.</span>
+type Cell = { mine: bool, adjacent: int, visibility: Visibility }
+<span class="del">// Number of mined neighbours. Only meaningful</span>
+<span class="del">// once mines are placed.</span></pre>
+          <div style="padding:0 16px 14px"><span class="verdict bad">three variant comments now document a record</span></div>
+        </div>
+        <div class="code">
+          <span class="cap">0.1.38: the same file</span>
+<pre>type Visibility =
+<span class="add">  // Face down. Prints as `.`.</span>
+  | Hidden
+<span class="add">  // Face down and marked by the player.</span>
+  | Flagged
+<span class="add">  // Face up. `Cell.adjacent` is what gets printed.</span>
+  | Revealed
+
+type Cell = {
+  mine: bool,
+<span class="add">  // Number of mined neighbours. Only meaningful</span>
+<span class="add">  // once mines are placed.</span>
+  adjacent: int,
+  visibility: Visibility,
+}</pre>
+          <div style="padding:0 16px 14px"><span class="verdict good">every comment on what it describes</span></div>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The rule now: a comment is re-emitted above the item it was written above, inside a
+          record body, a union variant list, an array or object literal, an argument or parameter
+          list, and a <code>match</code>. And a construct holding an interior comment always takes
+          the one-element-per-line form, at any size, so the comment has an item to sit above. So
+          <code>type Shape = { w: int, h: int }</code> still collapses to one line, and the moment
+          you document <code>h</code> the record stays expanded.
+        </p>
+        <p>
+          Why this counts as a correctness bug and not a cosmetic one: nothing failed. The build
+          exited 0, <code>tsc</code> passed, and the mangled output was itself a fixed point, so
+          <code>glyph fmt --check</code> in CI went green on a file whose comments now said
+          something false. That is the same class of failure Glyph exists to remove, just in the
+          formatter rather than the type system.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor.</p>
+          <p>Required trailing commas, one-item-per-line lists, and <code>glyph fmt</code>'s single canonical layout, round-tripping and idempotent, with format-on-save in the editor. Comments are kept above the item they were written above, including inside a record, a literal, an argument list, and a <code>match</code>.</p>
         </div>
         <div class="status-card next">
-          <p class="h">Measuring it</p>
-          <p>We're building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check, not just a claim.</p>
+          <p class="h">The edge, and what's next</p>
+          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
         </div>
       </div>
 

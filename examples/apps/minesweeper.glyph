@@ -1,0 +1,756 @@
+// minesweeper — a terminal Minesweeper with a seeded, reproducible board.
+//
+// Run it interactively:
+//   glyph run examples/apps/minesweeper.glyph beginner --seed 7
+//
+// Or pipe a script of commands, which plays deterministically to completion:
+//   printf 'reveal 4 4\nflag 0 0\nreveal 1 1\nquit\n' \
+//     | glyph run examples/apps/minesweeper.glyph beginner --seed 7
+
+module minesweeper
+
+import std/result { Result, Ok, Err }
+import std/option { Option, Some, None }
+import std/random { Rng, seeded }
+import std/array
+import std/string
+import std/math
+import std/io
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+// What the player can see about a cell. The mine flag lives on the cell itself;
+// this union is only about visibility, so "revealed" and "mined" cannot be
+// confused for one another.
+type Visibility =
+  // Face down. Prints as `.`.
+  | Hidden
+  // Face down and marked by the player. A flagged cell cannot be revealed.
+  | Flagged
+  // Face up. `Cell.adjacent` is what gets printed.
+  | Revealed
+
+type Cell = {
+  mine: bool,
+  // Number of mined neighbours. Only meaningful once mines are placed, and
+  // recomputed for the whole board at that point.
+  adjacent: int,
+  visibility: Visibility,
+}
+
+type Coord = { row: int, col: int }
+
+type Board = { rows: int, cols: int, mines: int, cells: Array<Array<Cell>> }
+
+// The game state machine.
+type Phase =
+  | Playing
+  // Every non-mine cell is revealed.
+  | Won
+  // A mine was revealed.
+  | Lost
+
+type Game = {
+  board: Board,
+  phase: Phase,
+  moves: int,
+  seed: int,
+  // False until the first reveal: mines are placed lazily so the first
+  // revealed cell and its eight neighbours are always safe.
+  placed: bool,
+}
+
+type Offset = { dr: int, dc: int }
+
+const OFFSETS: Array<Offset> = [
+  // The row above.
+  { dr: -1, dc: -1 },
+  { dr: -1, dc: 0 },
+  { dr: -1, dc: 1 },
+  // The same row. There is no { dr: 0, dc: 0 }: a cell is not its own neighbour.
+  { dr: 0, dc: -1 },
+  { dr: 0, dc: 1 },
+  // The row below.
+  { dr: 1, dc: -1 },
+  { dr: 1, dc: 0 },
+  { dr: 1, dc: 1 },
+]
+
+// ---------------------------------------------------------------------------
+// Small helpers the stdlib does not have
+// ---------------------------------------------------------------------------
+
+// `0..n` as an array, because there is no numeric range and no `while`.
+@example upto(3) == [0, 1, 2]
+fn upto(n: int) -> Array<int> {
+  let out: Array<int> = []
+  let i = 0
+  loop {
+    match i < n {
+      false => {
+        break
+      },
+      true => {
+        mut out.push(i)
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+fn repeat_text(s: string, n: int) -> string {
+  let out = ""
+  let i = 0
+  loop {
+    match i < n {
+      false => {
+        break
+      },
+      true => {
+        mut out = "${out}${s}"
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+@example pad_left("123", 2) == "123"
+@example pad_left("7", 3) == "  7"
+fn pad_left(s: string, width: int) -> string {
+  // The pad is hoisted because a string literal cannot appear inside `${...}`.
+  let pad = repeat_text(" ", width - string.len(s))
+  return "${pad}${s}"
+}
+
+// ---------------------------------------------------------------------------
+// Board construction and absence-aware reads
+// ---------------------------------------------------------------------------
+
+fn blank_cell() -> Cell {
+  return { mine: false, adjacent: 0, visibility: Hidden }
+}
+
+fn new_board(rows: int, cols: int, mines: int) -> Board {
+  return {
+    rows: rows,
+    cols: cols,
+    mines: mines,
+    // Every cell starts blank. Mines land on the first reveal, not here, so a
+    // fresh board is the same for every seed.
+    cells: array.map(upto(rows), fn(_r: int) -> Array<Cell> { return array.map(upto(cols), fn(_c: int) -> Cell { return blank_cell() }) }),
+  }
+}
+
+fn in_bounds(board: Board, at: Coord) -> bool {
+  return at.row >= 0 && at.row < board.rows && at.col >= 0 && at.col < board.cols
+}
+
+// The only read of the grid. Out of range is `None`, never an undefined index.
+fn cell_at(board: Board, at: Coord) -> Option<Cell> {
+  return match in_bounds(board, at) {
+    false => None,
+    true => Some(board.cells[at.row][at.col]),
+  }
+}
+
+fn set_cell(board: Board, at: Coord, cell: Cell) -> void {
+  mut board.cells[at.row][at.col] = cell
+}
+
+fn neighbors(board: Board, at: Coord) -> Array<Coord> {
+  let out: Array<Coord> = []
+  for off in OFFSETS {
+    let candidate = { row: at.row + off.dr, col: at.col + off.dc }
+    match in_bounds(board, candidate) {
+      false => {},
+      true => {
+        mut out.push(candidate)
+      },
+    }
+  }
+  return out
+}
+
+fn all_coords(board: Board) -> Array<Coord> {
+  let out: Array<Coord> = []
+  for r in upto(board.rows) {
+    for c in upto(board.cols) {
+      mut out.push({ row: r, col: c })
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Mine placement (seeded, first-move safe)
+// ---------------------------------------------------------------------------
+
+fn same_coord(a: Coord, b: Coord) -> bool {
+  return a.row == b.row && a.col == b.col
+}
+
+// The first revealed cell and its eight neighbours are never mined.
+fn safe_zone(board: Board, first: Coord) -> Array<Coord> {
+  return [first, ...neighbors(board, first)]
+}
+
+fn is_in(zone: Array<Coord>, at: Coord) -> bool {
+  return array.any(zone, fn(z: Coord) -> bool { return same_coord(z, at) })
+}
+
+// A partial Fisher-Yates over the candidate pool: same seed, same board.
+fn sample(pool: Array<Coord>, count: int, rng: Rng) -> Array<Coord> {
+  let bag = array.slice(pool, 0)
+  let picked: Array<Coord> = []
+  let i = 0
+  loop {
+    match i < count && i < bag.length {
+      false => {
+        break
+      },
+      true => {
+        let j = rng.int(i, bag.length)
+        let chosen = bag[j]
+        mut bag[j] = bag[i]
+        mut bag[i] = chosen
+        mut picked.push(chosen)
+        mut i = i + 1
+      },
+    }
+  }
+  return picked
+}
+
+fn count_adjacent(board: Board, at: Coord) -> int {
+  let total = 0
+  for n in neighbors(board, at) {
+    match cell_at(board, n) {
+      None => {},
+      Some(cell) => match cell.mine {
+        false => {},
+        true => {
+          mut total = total + 1
+        },
+      },
+    }
+  }
+  return total
+}
+
+fn place_mines(game: Game, first: Coord) -> void {
+  let board = game.board
+  let zone = safe_zone(board, first)
+  let candidates = array.filter(all_coords(board), fn(at: Coord) -> bool { return !is_in(zone, at) })
+  let rng = seeded(game.seed)
+  for at in sample(candidates, board.mines, rng) {
+    match cell_at(board, at) {
+      None => {},
+      Some(cell) => set_cell(board, at, { ...cell, mine: true }),
+    }
+  }
+  for at in all_coords(board) {
+    match cell_at(board, at) {
+      None => {},
+      Some(cell) => set_cell(board, at, { ...cell, adjacent: count_adjacent(board, at) }),
+    }
+  }
+  mut game.placed = true
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+type Command =
+  | Reveal({ at: Coord })
+  | Flag({ at: Coord })
+  | Unflag({ at: Coord })
+  | Help
+  | Quit
+
+type CommandError =
+  // An empty line. Not an error the player made; just reprint the prompt.
+  | Blank
+  | UnknownCommand({ name: string })
+  // A known verb with fewer than two coordinates after it.
+  | MissingCoords({ name: string })
+  | NotANumber({ text: string })
+  // Carries the board size so the message can name the legal range.
+  | OffBoard({ at: Coord, rows: int, cols: int })
+
+@example words("  reveal   3 4 ") == ["reveal", "3", "4"]
+fn words(line: string) -> Array<string> {
+  return array.filter(string.split(string.trim(line), " "), fn(w: string) -> bool { return w != "" })
+}
+
+fn parse_index(text: string) -> Result<int, CommandError> {
+  return match number.parse(text) {
+    Err(_) => Err(NotANumber({ text: text })),
+    Ok(n) => match n == math.floor(n) {
+      false => Err(NotANumber({ text: text })),
+      true => Ok(n),
+    },
+  }
+}
+
+fn parse_coord(board: Board, row_text: string, col_text: string) -> Result<Coord, CommandError> {
+  let row = parse_index(row_text)?
+  let col = parse_index(col_text)?
+  let at = { row: row, col: col }
+  return match in_bounds(board, at) {
+    false => Err(OffBoard({ at: at, rows: board.rows, cols: board.cols })),
+    true => Ok(at),
+  }
+}
+
+// The three coordinate-taking verbs, so the verb and the coordinates can be
+// parsed in separate steps. (`?` cannot appear inside a `match` arm, so a
+// `parse_coord(...)?` in the arm that builds the command is not available.)
+type Verb =
+  | RevealVerb
+  | FlagVerb
+  | UnflagVerb
+
+fn verb_of(name: string) -> Option<Verb> {
+  return match name {
+    "reveal" => Some(RevealVerb),
+    "r" => Some(RevealVerb),
+    "flag" => Some(FlagVerb),
+    "f" => Some(FlagVerb),
+    "unflag" => Some(UnflagVerb),
+    "u" => Some(UnflagVerb),
+    else => None,
+  }
+}
+
+fn coord_command(board: Board, name: string, r: string, c: string) -> Result<Command, CommandError> {
+  return match verb_of(name) {
+    None => Err(UnknownCommand({ name: name })),
+    Some(verb) => match parse_coord(board, r, c) {
+      Err(e) => Err(e),
+      Ok(at) => Ok(match verb {
+        RevealVerb => Reveal({ at: at }),
+        FlagVerb => Flag({ at: at }),
+        UnflagVerb => Unflag({ at: at }),
+      }),
+    },
+  }
+}
+
+fn parse_command(board: Board, line: string) -> Result<Command, CommandError> {
+  return match words(line) {
+    [] => Err(Blank),
+    ["help", ..._] => Ok(Help),
+    ["h", ..._] => Ok(Help),
+    ["quit", ..._] => Ok(Quit),
+    ["q", ..._] => Ok(Quit),
+    // Three or more words is the only shape that can carry coordinates. Extra
+    // trailing words are ignored so `reveal 3 4 please` still works.
+    [name, r, c, ..._] => coord_command(board, name, r, c),
+    // One or two words: a verb we know, but without a usable pair of numbers.
+    [name, ..._] => match verb_of(name) {
+      Some(_) => Err(MissingCoords({ name: name })),
+      None => Err(UnknownCommand({ name: name })),
+    },
+  }
+}
+
+fn describe_command_error(e: CommandError) -> string {
+  return match e {
+    Blank => "type a command, or `help`",
+    UnknownCommand({ name }) => "unknown command `${name}` (try `help`)",
+    MissingCoords({ name }) => "`${name}` needs a row and a column, e.g. `${name} 3 4`",
+    NotANumber({ text }) => "`${text}` is not a whole number",
+    OffBoard({ at, rows, cols }) => "row ${number.to_string(at.row)} col ${number.to_string(at.col)} is off the board (rows 0-${number.to_string(rows - 1)}, cols 0-${number.to_string(cols - 1)})",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Applying a command
+// ---------------------------------------------------------------------------
+
+// Recursive flood fill. A zero-adjacency cell cascades into its neighbours;
+// numbered cells stop the cascade and an already-revealed cell is never
+// revisited, so the recursion terminates.
+fn reveal_cascade(board: Board, at: Coord) -> void {
+  match cell_at(board, at) {
+    None => {},
+    Some(cell) => match cell.visibility {
+      Revealed => {},
+      Flagged => {},
+      Hidden => {
+        set_cell(board, at, { ...cell, visibility: Revealed })
+        match cell.adjacent == 0 && !cell.mine {
+          false => {},
+          true => {
+            for n in neighbors(board, at) {
+              reveal_cascade(board, n)
+            }
+          },
+        }
+      },
+    },
+  }
+}
+
+fn count_cells(board: Board, keep: fn(Cell) -> bool) -> int {
+  let total = 0
+  for at in all_coords(board) {
+    match cell_at(board, at) {
+      None => {},
+      Some(cell) => match keep(cell) {
+        false => {},
+        true => {
+          mut total = total + 1
+        },
+      },
+    }
+  }
+  return total
+}
+
+fn flags_placed(board: Board) -> int {
+  return count_cells(board, fn(cell: Cell) -> bool {
+    return match cell.visibility {
+      Flagged => true,
+      Hidden => false,
+      Revealed => false,
+    }
+  })
+}
+
+fn hidden_safe_cells(board: Board) -> int {
+  return count_cells(board, fn(cell: Cell) -> bool {
+    return !cell.mine && match cell.visibility {
+      Revealed => false,
+      Hidden => true,
+      Flagged => true,
+    }
+  })
+}
+
+fn revealed_a_mine(board: Board) -> bool {
+  return count_cells(board, fn(cell: Cell) -> bool {
+    return cell.mine && match cell.visibility {
+      Revealed => true,
+      Hidden => false,
+      Flagged => false,
+    }
+  }) > 0
+}
+
+fn settle_phase(game: Game) -> void {
+  match revealed_a_mine(game.board) {
+    true => {
+      mut game.phase = Lost
+    },
+    false => match hidden_safe_cells(game.board) == 0 {
+      true => {
+        mut game.phase = Won
+      },
+      false => {},
+    },
+  }
+}
+
+fn set_visibility(board: Board, at: Coord, visibility: Visibility) -> void {
+  match cell_at(board, at) {
+    None => {},
+    Some(cell) => set_cell(board, at, { ...cell, visibility: visibility }),
+  }
+}
+
+// Applies a board command and returns the line to print above the new board.
+fn apply(game: Game, command: Command) -> string {
+  return match command {
+    Help => help_text(),
+    Quit => "bye",
+
+    // The only arm that can place mines, and the only one that can end the game.
+    Reveal({ at }) => {
+      match game.placed {
+        true => {},
+        false => place_mines(game, at),
+      }
+      let before = cell_at(game.board, at)
+      let message = match before {
+        None => "nothing there",
+        Some(cell) => match cell.visibility {
+          Flagged => "that cell is flagged; `unflag` it first",
+          Revealed => "already revealed",
+          Hidden => {
+            reveal_cascade(game.board, at)
+            mut game.moves = game.moves + 1
+            "revealed ${number.to_string(at.row)} ${number.to_string(at.col)}"
+          },
+        },
+      }
+      settle_phase(game)
+      message
+    },
+
+    Flag({ at }) => match cell_at(game.board, at) {
+      None => "nothing there",
+      Some(cell) => match cell.visibility {
+        Revealed => "that cell is already revealed",
+        Flagged => "already flagged",
+        Hidden => {
+          set_visibility(game.board, at, Flagged)
+          mut game.moves = game.moves + 1
+          "flagged ${number.to_string(at.row)} ${number.to_string(at.col)}"
+        },
+      },
+    },
+
+    Unflag({ at }) => match cell_at(game.board, at) {
+      None => "nothing there",
+      Some(cell) => match cell.visibility {
+        Revealed => "that cell is already revealed",
+        Hidden => "that cell is not flagged",
+        Flagged => {
+          set_visibility(game.board, at, Hidden)
+          mut game.moves = game.moves + 1
+          "unflagged ${number.to_string(at.row)} ${number.to_string(at.col)}"
+        },
+      },
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+fn cell_glyph(cell: Cell, expose_mines: bool) -> string {
+  return match cell.visibility {
+    Flagged => match expose_mines && !cell.mine {
+      true => "X",
+      false => "F",
+    },
+    Hidden => match expose_mines && cell.mine {
+      true => "*",
+      false => ".",
+    },
+    Revealed => match cell.mine {
+      true => "*",
+      false => match cell.adjacent {
+        0 => " ",
+        else => number.to_string(cell.adjacent),
+      },
+    },
+  }
+}
+
+fn render_board(board: Board, expose_mines: bool) -> string {
+  let label_width = string.len(number.to_string(board.rows - 1))
+  let corner = repeat_text(" ", label_width)
+  let heads = array.map(upto(board.cols), fn(c: int) -> string { return pad_left(number.to_string(c), 2) })
+  let head_row = string.join(heads, "")
+  let header = "${corner} ${head_row}"
+  let lines = array.map(upto(board.rows), fn(r: int) -> string {
+    let cells = array.map(upto(board.cols), fn(c: int) -> string {
+      return match cell_at(board, { row: r, col: c }) {
+        None => " ?",
+        Some(cell) => pad_left(cell_glyph(cell, expose_mines), 2),
+      }
+    })
+    let label = pad_left(number.to_string(r), label_width)
+    let body = string.join(cells, "")
+    return "${label} ${body}"
+  })
+  return string.join([header, ...lines], "\n")
+}
+
+fn status_line(game: Game) -> string {
+  let remaining = game.board.mines - flags_placed(game.board)
+  let phase = match game.phase {
+    Playing => "playing",
+    Won => "WON",
+    Lost => "LOST",
+  }
+  return "mines remaining: ${number.to_string(remaining)}   moves: ${number.to_string(game.moves)}   ${phase}"
+}
+
+fn legend() -> string {
+  return "legend: . hidden   F flag   * mine   X wrong flag   1-8 adjacent mines   blank empty"
+}
+
+fn render(game: Game) -> string {
+  let expose = match game.phase {
+    Playing => false,
+    Won => true,
+    Lost => true,
+  }
+  return string.join(
+    [render_board(game.board, expose), "", legend(), status_line(game)],
+    // Joined with a bare newline, not the platform separator: the transcript
+    // has to compare byte-for-byte across machines.
+    "\n",
+  )
+}
+
+fn help_text() -> string {
+  return string.join([
+    "commands:",
+    "  reveal <row> <col>   (r) uncover a cell",
+    "  flag <row> <col>     (f) mark a suspected mine",
+    "  unflag <row> <col>   (u) remove a mark",
+    "  help                 (h) this list",
+    "  quit                 (q) give up and exit",
+  ], "\n")
+}
+
+// ---------------------------------------------------------------------------
+// Configuration from argv
+// ---------------------------------------------------------------------------
+
+type Config = { rows: int, cols: int, mines: int, seed: int }
+
+fn preset(name: string) -> Option<Config> {
+  return match name {
+    "beginner" => Some({ rows: 9, cols: 9, mines: 10, seed: 1 }),
+    "intermediate" => Some({ rows: 16, cols: 16, mines: 40, seed: 1 }),
+    "expert" => Some({ rows: 16, cols: 30, mines: 99, seed: 1 }),
+    else => None,
+  }
+}
+
+fn parse_whole(value: string, flag: string) -> Result<int, string> {
+  return match number.parse(value) {
+    Err(_) => Err("${flag} expects a whole number, got `${value}`"),
+    Ok(n) => match n == math.floor(n) {
+      false => Err("${flag} expects a whole number, got `${value}`"),
+      true => Ok(n),
+    },
+  }
+}
+
+fn apply_option(acc: Config, flag: string, value: string) -> Result<Config, string> {
+  return match parse_whole(value, flag) {
+    Err(message) => Err(message),
+    Ok(n) => match flag {
+      "--rows" => Ok({ ...acc, rows: n }),
+      "--cols" => Ok({ ...acc, cols: n }),
+      "--mines" => Ok({ ...acc, mines: n }),
+      "--seed" => Ok({ ...acc, seed: n }),
+      else => Err("unknown option `${flag}`"),
+    },
+  }
+}
+
+fn parse_options(args: Array<string>, acc: Config) -> Result<Config, string> {
+  return match args {
+    [] => Ok(acc),
+    [only] => Err("unknown or incomplete option `${only}`"),
+    [flag, value, ...rest] => match apply_option(acc, flag, value) {
+      Err(message) => Err(message),
+      Ok(next) => parse_options(rest, next),
+    },
+  }
+}
+
+fn validate(cfg: Config) -> Result<Config, string> {
+  return match cfg.rows >= 3 && cfg.cols >= 3 {
+    false => Err("the board must be at least 3x3"),
+    true => match cfg.rows <= 40 && cfg.cols <= 60 {
+      false => Err("the board must be at most 40x60"),
+      true => match cfg.mines >= 1 && cfg.mines <= cfg.rows * cfg.cols - 9 {
+        false => Err("mines must be between 1 and rows*cols-9 (${number.to_string(cfg.rows * cfg.cols - 9)} here)"),
+        true => Ok(cfg),
+      },
+    },
+  }
+}
+
+fn parse_config(argv: Array<string>) -> Result<Config, string> {
+  let base = match argv {
+    [] => Ok({ rows: 9, cols: 9, mines: 10, seed: 1 }),
+    [first, ...rest] => match preset(first) {
+      Some(cfg) => parse_options(rest, cfg),
+      None => parse_options(argv, { rows: 9, cols: 9, mines: 10, seed: 1 }),
+    },
+  }
+  return validate(base?)
+}
+
+fn usage() -> string {
+  return string.join([
+    "usage: minesweeper [beginner|intermediate|expert] [--rows N] [--cols N] [--mines N] [--seed N]",
+    "",
+    "  presets: beginner 9x9/10, intermediate 16x16/40, expert 16x30/99",
+    "  the same --seed always produces the same board",
+  ], "\n")
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn new_game(cfg: Config) -> Game {
+  return {
+    board: new_board(cfg.rows, cfg.cols, cfg.mines),
+    phase: Playing,
+    moves: 0,
+    seed: cfg.seed,
+    placed: false,
+  }
+}
+
+fn play(cfg: Config) -> int {
+  let game = new_game(cfg)
+  io.println("minesweeper ${number.to_string(cfg.rows)}x${number.to_string(cfg.cols)}, ${number.to_string(cfg.mines)} mines, seed ${number.to_string(cfg.seed)}")
+  io.println(help_text())
+  io.println(render(game))
+
+  let exit_code = 0
+  loop {
+    match io.read_line() {
+      None => {
+        break
+      },
+      Some(line) => match parse_command(game.board, line) {
+        Err(e) => io.println("! ${describe_command_error(e)}"),
+        Ok(command) => match command {
+          Quit => {
+            io.println("bye")
+            mut exit_code = 130
+            break
+          },
+          else => {
+            io.println("> ${apply(game, command)}")
+            io.println(render(game))
+            match game.phase {
+              Playing => {},
+              Won => {
+                io.println("all clear in ${number.to_string(game.moves)} moves")
+                mut exit_code = 0
+                break
+              },
+              Lost => {
+                io.println("boom after ${number.to_string(game.moves)} moves")
+                mut exit_code = 1
+                break
+              },
+            }
+          },
+        },
+      },
+    }
+  }
+  return exit_code
+}
+
+fn main(argv: Array<string>) -> number {
+  return match parse_config(argv) {
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      io.eprintln(usage())
+      2
+    },
+    Ok(cfg) => play(cfg),
+  }
+}

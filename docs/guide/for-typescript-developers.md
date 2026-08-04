@@ -306,6 +306,16 @@ line once a list has more than two elements, no line-length reflow. There are no
 options. The point is diff stability — everyone's files look identical, so a
 semantic one-line change is a one-line diff. The LSP runs it on save.
 
+Comments stay where you put them. A `//` written inside a record body, a union
+variant list, an array or object literal, an argument list, or above a `match`
+arm is re-emitted above the same item, and a construct holding an interior
+comment stays one-element-per-line so the comment has something to sit above.
+So `type Shape = { w: int, h: int }` collapses to one line, but the moment you
+document `h` the record stays expanded. One placement rule to know: a comment
+always lands on its own line, so `w: int, // width in cells` moves to the line
+above `h`. Prefer writing the comment on its own line to begin with and the file
+is already formatted.
+
 ## What is deliberately missing in v1
 
 - No `if`/`else`, no ternary, no `switch` (use `match`).

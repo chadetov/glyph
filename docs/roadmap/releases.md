@@ -503,6 +503,133 @@ rises across the three — 0.1.33 additive, 0.1.34 core-compiler but self-contai
 repo convention each shipped item also updates its docs, adds a `web/answers/`
 Q&A, and marks its finding resolved in the same change.
 
+## minesweeper dogfood trip — a terminal app, no framework
+
+The improve-glyph loop applied to a plain program: Minesweeper in the terminal
+(`examples/apps/minesweeper.glyph`). No npm dependency, no server, no JSX. The
+point was to find what an ordinary developer hits writing ordinary code, and what
+they hit is a formatter that quietly rewrites their source, a stdlib missing the
+three string functions any grid renderer needs, and an array index that lies.
+
+The app ships in the tree as the evidence. This trip carries the Next marker;
+the first finding is released as 0.1.38, the rest are listed below with their
+effort and the two decisions they wait on.
+
+### 0.1.38 — Shipped · The formatter keeps a comment where you wrote it
+
+`glyph fmt` flushed pending `//` comments at declaration and statement
+granularity only. A comment written inside a record body, a union variant list,
+an array or object literal, a call argument list, or above a match arm stayed
+pending until the next declaration or statement and was re-emitted there. Three
+distinct corruptions came out of one format pass on a nine-line file: a match-arm
+comment moved past the code it documented to the end of the function body, an
+array-element comment escaped its `const` and landed above the next `type` where
+it read as that type's documentation, and a record-field comment ended up
+orphaned at end of file. Exit 0, no warning, `tsc` passes, and the result is a
+fixed point, so `glyph fmt --check` in CI passes on the corrupted file.
+
+The fix makes `delimited` comment-aware: it takes the construct's closing offset
+and each item's start offset, an interior comment vetoes the inline form at any
+element count and any width, and comments are flushed above the item that
+followed them in source with a trailing drain before the closing delimiter. The
+constructs that do not route through `delimited` (match arms, union variants,
+interface members) flush directly. The veto is decided from spans before the
+inline candidate is rendered: the candidate goes into a buffer that is discarded
+while the comment cursor is shared, so a flush inside it would delete the comment
+rather than move it.
+
+A record that would collapse to `{ a: int, b: int }` now stays expanded when it
+holds an interior comment. That is the same rule `lambda_block` already applied
+to a body, and it is what diff stability wants anyway. Across the whole
+`examples/` tree exactly one file's output changes, and it changes to match what
+its author originally wrote.
+
+Verifiability first: D14 leaves `//` as the only way to document a record field
+or a match arm, so a formatter that reattaches one to the next declaration makes
+the file assert something false about itself and gives the author no way to
+comply. Diff stability second: editing one type used to produce a diff on an
+unrelated declaration further down the file.
+
+The edge that remains: every comment is still emitted on its own line above the
+item that follows it, so a comment written at the end of a code line
+(`w: int, // width in cells`) moves down to the line above the next item rather
+than staying on the line it annotated. It no longer crosses a declaration
+boundary or changes what it sits under, but it does move. Keeping a trailing
+comment trailing needs the printer to track a comment's column and the item it
+shares a line with, which is a separate change. Ten formatter tests cover the
+five reported positions, params and call arguments, trailing comments before a
+closing delimiter, the empty construct, the inline veto and its negative case,
+and a guard that every comment appears exactly once through a nested construct.
+Spec: D14 records the guarantee.
+
+### Still open from this trip
+
+- **`?` in an expression-form match arm** (S). `?` is rejected in an arm whose
+  body is a single expression, because one call site in the emitter
+  (`glyph-emit/src/lib.rs:3010`) uses `self.expr` where every other statement
+  position uses `self.emit_value`. A block-form arm and a `=> return Ok(f(x)?)`
+  one-liner both compile today, so this is a missed call site, not a design.
+- **Value-position `match` cannot host block arms** (M). A `match` used as a
+  sub-expression lowers to an IIFE that rejects block arms
+  (`glyph-emit/src/lib.rs:3519-3530`). In that position `?` has no workaround.
+  Structural, and separate from the call site above.
+- **`std/string`: `repeat`, `pad_start`, `pad_end`** (S). Three wrappers in
+  `runtime/std/string.ts` plus three names in the resolver seed. Every program
+  that renders a grid or aligned columns needs them.
+- **Unknown stdlib namespace member is a raw TS2339** (M). `import std/string
+  { repeat }` gives a clean E0105 because `verify_imports` checks named imports
+  against the seed; `string.repeat(...)` leaks a `tsc` error with an absolute
+  build path, because nothing checks member access against the same seed the
+  resolver already holds. Same typo, two experiences, decided by import style.
+  The absolute-path leak in TS error remapping is a second, separable defect.
+- **`glyph check <file>`** (S). `build.rs:100-103` rejects a non-directory
+  source and there is no `check` subcommand; the only non-executing door into
+  type checking is running the program.
+- **Formatter, layout only** (S each, deliberately not bundled with the
+  correctness fix above): a one-statement match-arm body is always exploded to
+  three lines because the parser wraps it in a synthetic block and the formatter
+  prints every block multi-line; and `items.len() <= INLINE_MAX` short-circuits
+  the width test, flattening every two-argument `array.map(xs, fn(...) {...})`.
+- **`llms.txt`** (XS). It does not say annotations are canonically sorted (D27),
+  and it does not mention the expression-arm `?` restriction while that exists.
+
+### Two forks for the orchestrator
+
+Neither is decidable inside an iteration; both need a decision before a line is
+written.
+
+**A numeric range for `for`.** D21 is settled and not reopening, but nothing in
+the stdlib produces the iterable a counted loop needs, so the most common bounded
+loop in any program cannot use the keyword D21 built for bounded loops. That
+costs greppability: `grep -n "^\s*for "` is supposed to audit every iteration
+site, and instead half of them are hand-rolled `loop`/`match`/`break` counters.
+The options:
+
+- `array.range(start, end) -> Array<int>` — smallest, purely additive, allocates.
+- A lazy iterable protocol `for` understands — no allocation, touches the
+  emitter's `for...of` lowering, and defines a protocol we then have to keep.
+- `0..n` range syntax — a grammar change and a new D-decision.
+
+**What `xs[i]` means.** The checker types `Expr::Index` as `Ty::Unknown`
+(`glyph-typechecker/src/assign.rs:501-510`), the generated tsconfig omits
+`noUncheckedIndexedAccess` (`glyph-cli/src/runtime.rs:174-194`), and there is no
+`array.get`. So `cells[999]` type-checks clean, passes `tsc --strict`, and hands
+back `undefined` where the compiler claimed `Cell`. That is the verifiability
+pillar as literally written ("anything the type system claims must be true at
+runtime"), and `array.find -> Option<T>` and `record.get -> Option<V>` already
+set the policy this hole sits outside of. The options:
+
+- `array.get(xs, i) -> Option<T>` alone — additive and cheap, but `xs[i]` still
+  lies and a helper nobody is forced to use does not restore a guarantee.
+- `array.get` **plus** `noUncheckedIndexedAccess` **plus** a Glyph-level
+  diagnostic **plus** the migration — closes it, and turns every existing `xs[i]`
+  in `examples/corpus`, the Glyph-source stdlib, hookrelay, and the guide into an
+  error. Without the Glyph-level diagnostic the user sees a raw TS2532, which is
+  the same leaked-backend-error defect as the TS2339 item above.
+
+Pre-1.0 with few users is the cheapest this will ever be, so it should not be
+parked; it should be scheduled as a designed release once the fork is resolved.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

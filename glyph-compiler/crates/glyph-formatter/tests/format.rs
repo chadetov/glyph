@@ -278,6 +278,148 @@ fn pub_interface_and_defer_round_trip() {
     assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
 }
 
+/// Assert that `needle` appears in `out` — used for interior-comment tests,
+/// where the needle always carries the comment *and* the line that follows it,
+/// so a comment merely surviving somewhere in the file is not enough to pass.
+fn assert_neighbors(out: &str, needle: &str, what: &str) {
+    assert!(
+        out.contains(needle),
+        "{what}: expected {needle:?} (comment kept next to what it documents)\n--- output ---\n{out}"
+    );
+}
+
+#[test]
+fn interior_comment_stays_above_the_record_field_it_documents() {
+    // D14 makes `//` the only way to document a record field, and the formatter
+    // used to flush the comment at the next declaration instead — the source
+    // ended up asserting something false about itself (verifiability).
+    let src = "module x\ntype Last = {\n  a: int,\n  // b is the tuned one\n  b: int,\n}\n\ntype After = int\n";
+    let out = fmt(src);
+    assert_neighbors(&out, "// b is the tuned one\n  b: int,", "record field");
+    // And it did not escape upward to become documentation for `type After`.
+    assert!(
+        !out.contains("// b is the tuned one\n\ntype After"),
+        "comment escaped its declaration:\n{out}"
+    );
+    assert_eq!(fmt(&out), out, "record-comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn interior_comment_stays_above_the_union_variant_it_documents() {
+    let src = "module x\ntype Verb =\n  // the default action\n  | Reveal\n  | Flag\n";
+    let out = fmt(src);
+    assert_neighbors(&out, "// the default action\n  | Reveal", "union variant");
+    assert_eq!(fmt(&out), out, "union-comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn interior_comment_stays_above_the_array_element_it_documents() {
+    // The reported worst case: the comment escaped the `const` entirely and
+    // landed above the next `type`, reading as that type's documentation.
+    let src = "module x\nconst LIMITS: Array<int> = [\n  1,\n  // 2 is the tuned default\n  2,\n  3,\n]\n\ntype Last = int\n";
+    let out = fmt(src);
+    assert_neighbors(&out, "// 2 is the tuned default\n  2,", "array element");
+    assert!(
+        !out.contains("// 2 is the tuned default\n\ntype Last"),
+        "comment escaped its declaration and now documents `type Last`:\n{out}"
+    );
+    assert_eq!(fmt(&out), out, "array-comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn interior_comment_stays_above_the_object_field_it_documents() {
+    let src = "module x\nfn f() -> unknown {\n  return {\n    a: 1,\n    // b is derived\n    b: 2,\n  }\n}\n";
+    let out = fmt(src);
+    assert_neighbors(&out, "// b is derived\n    b: 2,", "object field");
+    assert_eq!(fmt(&out), out, "object-comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn interior_comment_stays_above_the_match_arm_it_documents() {
+    // The arm comment used to move *past* the code it documented, to the end of
+    // the enclosing function body.
+    let src = "module x\nfn classify(n: int) -> string {\n  return match n > 0 {\n    // positive numbers take the fast path\n    true => \"pos\",\n    false => \"nonpos\",\n  }\n}\n";
+    let out = fmt(src);
+    assert_neighbors(
+        &out,
+        "// positive numbers take the fast path\n    true => \"pos\",",
+        "match arm",
+    );
+    assert!(
+        !out.contains("}\n  // positive numbers take the fast path"),
+        "comment moved past the arm it documents:\n{out}"
+    );
+    assert_eq!(fmt(&out), out, "match-comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn interior_comment_stays_inside_call_args_and_params() {
+    let src = "module x\nfn f(\n  a: int,\n  // b carries the width\n  b: int,\n) -> int {\n  return f(\n    a,\n    // the second one\n    b,\n  )\n}\n";
+    let out = fmt(src);
+    assert_neighbors(&out, "// b carries the width\n  b: int,", "parameter");
+    assert_neighbors(&out, "// the second one\n    b,", "call argument");
+    assert_eq!(fmt(&out), out, "arg-comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn trailing_interior_comment_stays_inside_its_construct() {
+    // A comment after the last item, before the closing delimiter, must not fall
+    // out of the construct. Covers array, record, match, and interface.
+    let src = "module x\nconst XS: Array<int> = [\n  1,\n  // more later\n]\n\ntype R = {\n  a: int,\n  // more fields later\n}\n\ninterface N {\n  fn name() -> string\n  // more members later\n}\n\nfn g() -> string {\n  return match 1 {\n    else => \"other\",\n    // no other cases yet\n  }\n}\n";
+    let out = fmt(src);
+    assert_neighbors(&out, "// more later\n]", "array tail");
+    assert_neighbors(&out, "// more fields later\n}", "record tail");
+    assert_neighbors(&out, "// more members later\n}", "interface tail");
+    assert_neighbors(&out, "// no other cases yet\n  }", "match tail");
+    assert_eq!(fmt(&out), out, "trailing-comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn empty_construct_with_only_a_comment_keeps_it() {
+    // The zero-item early return used to emit `[]`/`{}` and leave the comment
+    // pending, relocating it to the next declaration.
+    let src = "module x\nconst EMPTY: Array<int> = [\n  // nothing yet\n]\n\ntype Nil = {\n  // no fields yet\n}\n";
+    let out = fmt(src);
+    assert_neighbors(&out, "[\n  // nothing yet\n]", "empty array");
+    assert_neighbors(&out, "{\n  // no fields yet\n}", "empty record");
+    assert_eq!(fmt(&out), out, "empty-construct comment format is not idempotent:\n{out}");
+}
+
+#[test]
+fn an_interior_comment_forces_the_multiline_form() {
+    // A record that would collapse to `{ a: int, b: int }` stays expanded when it
+    // holds an interior comment: the inline form has nowhere to put a `//`, and
+    // dropping the comment there is what relocated it. Same rule `lambda_block`
+    // already applies to a body.
+    let with_comment = fmt("module x\ntype P = {\n  a: int,\n  // why b exists\n  b: int,\n}\n");
+    assert!(
+        !with_comment.contains("{ a: int, b: int }"),
+        "an interior comment must veto the inline form:\n{with_comment}"
+    );
+    // Without the comment, the same record still collapses — the veto is not a
+    // blanket layout change.
+    let without = fmt("module x\ntype P = {\n  a: int,\n  b: int,\n}\n");
+    assert!(without.contains("{ a: int, b: int }"), "{without}");
+}
+
+#[test]
+fn comments_are_never_deleted_by_the_inline_capture() {
+    // `capture` renders a throwaway inline candidate into a discarded buffer
+    // while `cidx` stays shared, so a flush performed inside it would delete the
+    // comment outright. Every comment in a wide, deeply nested construct must
+    // still appear exactly once.
+    let src = "module x\nfn f() -> unknown {\n  return g(\n    // one\n    alpha_value,\n    // two\n    [\n      1,\n      // three\n      2,\n    ],\n    \"a ${1 + 2} b\",\n  )\n}\n\nfn g(a: unknown, b: unknown, c: unknown) -> unknown {\n  return a\n}\n";
+    let out = fmt(src);
+    for text in ["// one", "// two", "// three"] {
+        assert_eq!(
+            out.matches(text).count(),
+            1,
+            "{text} must appear exactly once:\n{out}"
+        );
+    }
+    assert_eq!(fmt(&out), out, "not idempotent:\n{out}");
+}
+
 #[test]
 fn blank_lines_are_preserved_collapsed_to_one() {
     // A source blank line between declarations, between a section comment and

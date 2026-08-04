@@ -336,14 +336,15 @@ that shipped in 0.1.11 (the README only updates on publish). No code changes.
 
 ## hookrelay dogfood trip — eliminate the extern (0.1.33 → 0.1.35)
 
-**Status: planned (committed Next).** The improve-glyph loop applied to a real
-networked app: `hookrelay`, a webhook receiver and dispatcher, built end to end
-in Glyph — like `examples/apps/tasks.glyph` (0.1.25) but harder (raw-body HMAC
-verification, a recursive and/or/not rule engine, bounded-concurrency dispatch
-with retry, lossless NDJSON round-trip, a subcommand CLI with exit codes). All 16
-findings from that build fold into three releases, sequenced additive-first. The
-headline result the trip is built to prove: **a webhook service needs zero
-hand-written TypeScript.**
+**Status: 0.1.33 landed on `main`; 0.1.34 (Next) and 0.1.35 remain.** The
+improve-glyph loop applied to a real networked app: `hookrelay`, a webhook
+receiver and dispatcher, built end to end in Glyph — like
+`examples/apps/tasks.glyph` (0.1.25) but harder (raw-body HMAC verification, a
+recursive and/or/not rule engine, bounded-concurrency dispatch with retry,
+lossless NDJSON round-trip, a subcommand CLI with exit codes). All 16 findings
+from that build fold into three releases, sequenced additive-first. The headline
+result the trip is built to prove: **a webhook service needs zero hand-written
+TypeScript** — reached for the ingress in 0.1.33.
 
 The core wedge held up in the build — `@open` boundary validation, `unknown`
 without casts, errors-as-values, and tagged unions across the FFI all worked with
@@ -353,49 +354,50 @@ one finding (Fn) from the build. This trip carries the Next marker; the
 Road-to-1.0 interop items below continue in parallel (F8/F14/F15 are new,
 concrete instances of interop classes already tracked there).
 
-### 0.1.33 — Planned · Stay in Glyph (I/O boundaries + the red build)
+### 0.1.33 — Landed on main · Stay in Glyph (I/O boundaries + the red build)
 
-**Goal / acceptance:** hookrelay drops its extern *server* and *mkdir* entirely —
-HMAC verify, routing, classify, persist all run inside a `std/http.serve`
-handler. Additive, low risk, plus the one outright bug.
+**Status: all six on `main` (pending an npm publish).** hookrelay's ingress
+extern is gone: a signed-webhook receiver verifies HMAC and serves entirely in
+Glyph. A pure-Glyph server was proven end to end (202 valid / 401 bad / 401
+missing) with no extern. Additive, low risk, plus the one outright bug.
 
-- **Raw request body in `std/http`** (S, F7) — add `Request.raw: string` (the
-  unparsed body) alongside the parsed `body`, populated from the raw string the
-  server already has in scope (`runtime/std/http.ts`: `body: raw === "" ? null :
-  parse_body(raw)`). This one change is what lets a signature-verifying server
-  stay in Glyph: HMAC must run over the exact received bytes, and the server
-  currently discards them, which forced the *entire* HTTP server into an extern.
-  `Request.body` stays `unknown` (safe-by-construction, per the 0.1.5 note);
-  `.raw` is purely additive. Emit + ambient `.d.ts` + stdlib docs + a web answer.
-- **`@types/node` no longer reddens Glyph's own runtime** (S, F15) — installing
-  `@types/node@26` makes the bundled `std/crypto.ts` fail `tsc`
-  (`randomBytes(count)` → TS2554), so the interop path the docs recommend turns
-  the whole build red. A concrete new instance of the already-tracked "node-shim /
-  @types/node consistency" item (Linus review 04); fix the runtime call/shim so
-  the bundled std type-checks against a current `@types/node`. Gate: `npm i -D
-  @types/node && glyph build` stays green.
-- **`fs.append_text` + `fs.make_dir`, Result-returning** (S, F10) — `std/fs` has
-  read/write-whole-file, `exists`, `remove`, but no append and no mkdir. NDJSON
-  needs append (today it is read-whole-file + concat + rewrite, O(n) and unsafe
-  under concurrent writers) and the data dir needs creating. Node's
-  `appendFileSync`/`mkdirSync` throw and Glyph has no `try`/`catch`, so both must
-  be wrapped in the runtime (errors-as-values out).
-- **`glyph fmt --check`** (S, F1) — exit non-zero when any file would reformat
-  (in-place stays the default). The prompt asked for it as a CI gate; today it
-  does not exist, so a copy-and-diff hack stands in.
-- **`T.parse` returns the documented `Result<T, Array<Issue>>`** (M, F2, breaking
-  shape) — the generated descriptor `parse` actually returns `Result<T, string>`
-  with a hardcoded `"expected T"`, while AGENTS.md and `docs/reference/stdlib.md`
-  document `Array<Issue>`. Align the emit to the contract and name the offending
-  field/path in the issues, so a boundary rejection is a readable error rather
-  than a generic string. Pre-1.0 breaking change; the conformance corpus pins the
-  new shape and a human signs the diff. (Distinct from the tracked imported-`.d.ts`
-  presence-only edge — this is the hand-written record descriptor.)
-- **Stdlib reference completeness** (S, F9) — `time.format_iso`/`parse_iso` shipped
-  in 0.1.17 but never landed in `docs/reference/stdlib.md`, so the build reached
-  for `extern_ts("new Date().toISOString()")` when it did not have to. Audit the
-  reference against the real runtime exports and add a drift test so the documented
-  surface can't fall behind the real one again.
+- **Raw request body in `std/http`** (S, F7) — ✅ **done.** `Request` carries
+  `raw: string` (the unparsed body, `""` when none), populated by the server and
+  exposed as a typed accessor `http.raw(req) -> string` beside `path`/`header`/
+  `query`. This is what lets a signature-verifying server stay in Glyph: HMAC must
+  run over the exact received bytes, which the server used to discard (forcing the
+  whole HTTP server into an extern). `Request.body` stays `unknown`
+  (safe-by-construction, per the 0.1.5 note). Integration test type-checks a
+  signature-verifying handler under tsc; stdlib reference + bootstrap updated.
+- **`@types/node` no longer reddens Glyph's own runtime** (S, F15) — ✅ **done.**
+  The root cause: the build skips *writing* the bundled shim when `@types/node` is
+  present, but a shim from an earlier shimless build lingered and its
+  `declare module "node:crypto"` merged with `@types/node`'s, resolving
+  `randomBytes(n).toString("hex")` to a 0-arg `toString` (TS2554). The build now
+  *removes* the stale shim when `@types/node` is present. A concrete instance of
+  the tracked "node-shim / @types/node consistency" item. Hermetic regression test.
+- **`fs.append_text` + `fs.make_dir`, Result-returning** (S, F10) — ✅ **done.**
+  `append_text` appends (creating the file), O(1) per call, the primitive for an
+  append-only log; `make_dir` is `mkdir -p` (recursive, idempotent). Both wrap the
+  throwing node call in the runtime and return `Result`. Run-based round-trip test.
+- **`glyph fmt --check`** (S, F1) — ✅ **done.** Writes nothing, exits non-zero if
+  any file is not already canonical, listing each as "would reformat"; a parse
+  failure also counts as non-clean. In-place stays the default. Test + CLI docs.
+- **`T.parse` returns the documented `Result<T, Array<Issue>>`** (M, F2) — ✅
+  **done.** The record descriptor's `parse` now validates field by field and
+  returns `Result<T, Issue[]>`, each failing field naming itself
+  (`{ path: ["balance"], message: ... }`); union and refinement descriptors move
+  to the same `Issue[]` error type. The emit was the side that was wrong: the
+  Glyph checker already modeled `Array<Issue>`, so code written to the docs
+  type-checked in Glyph then failed tsc. Five conformance snapshots regenerated;
+  an integration test binds `Err(issues)` and reads `.message` under tsc --strict.
+- **Stdlib reference completeness** (S, F9) — ✅ **done.** The full reference was
+  actually complete; the gap was the agent bootstrap (AGENTS.md) listing only
+  `now`/`sleep`/`debounce` under `std/time`, so an agent could not see
+  `time.format_iso` and reached for a `Date` via `extern_ts`. The bootstrap now
+  lists the full `std/time` surface, and a new test asserts every runtime
+  `export` appears in `docs/reference/stdlib.md`, so the reference can't drift
+  behind the real surface again.
 
 ### 0.1.34 — Planned · Reads like Glyph (emit ergonomics + formatter)
 

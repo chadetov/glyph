@@ -130,7 +130,7 @@ impl StdlibStubs {
         s.add("std/store", &["Store", "create"]);
         // Structured-concurrency helpers over Promises: `all` (fail-fast join),
         // `race` (first to settle), `all_settled` (one outcome per task).
-        s.add("std/task", &["all", "race", "all_settled", "Settled"]);
+        s.add("std/task", &["all", "race", "pool", "all_settled", "Settled"]);
         // Regular expressions (stateless, one `RegExp` per call).
         s.add(
             "std/regex",

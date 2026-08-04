@@ -701,6 +701,7 @@ is built for.
 - **fail:** return `Result<T, E>`; propagate with `?`, recover with `match`
 - **share state:** module-level `const s = store.create(init)`; `mut s.update(fn(v) { ... })`
 - **run concurrently:** `await task.all([fn() { a() }, fn() { b() }])`
+- **bounded concurrency:** `await task.pool(4, tasks)` runs the thunks with at most 4 in flight
 - **regex:** `regex.matches(pat, text)`, `regex.find_all(pat, text)`
 - **hash / uuid:** `crypto.sha256(s)`, `crypto.random_uuid()`
 - **paths:** `path.join(["a", "b"])`, `path.extname(p)`

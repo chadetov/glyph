@@ -1888,6 +1888,84 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn task_pool_bounds_concurrency() {
+    // F13: task.pool(limit, tasks) runs the thunks with at most `limit` in
+    // flight and joins the results in order. The program tracks the peak in-flight
+    // count via a store and returns non-zero if the pool exceeded the limit, ran
+    // fewer tasks than given, or returned them out of order.
+    if !js_toolchain_available() {
+        eprintln!("skipping task.pool run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("taskpool");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+import std/task
+import std/array
+import std/store
+import std/time
+
+const INFLIGHT = store.create<number>(0)
+const MAXSEEN = store.create<number>(0)
+
+async fn work(i: number) -> number {
+  mut INFLIGHT.update(fn(n: number) -> number { n + 1 })
+  let cur = INFLIGHT.get()
+  mut MAXSEEN.update(fn(m: number) -> number { match cur > m { true => cur, false => m, } })
+  let _ = await time.sleep(time.Duration.ms(25))
+  mut INFLIGHT.update(fn(n: number) -> number { n - 1 })
+  return i * 2
+}
+
+fn ordered(xs: Array<number>, expected: number) -> bool {
+  return match xs {
+    [] => true,
+    [head, ...rest] => match head == expected {
+      true => ordered(rest, expected + 2),
+      false => false,
+    },
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let thunks = array.map([0, 1, 2, 3, 4, 5], fn(i: number) {
+    async fn() -> number { await work(i) }
+  })
+  let results = await task.pool(2, thunks)
+  return match ordered(results, 0) {
+    false => 1,
+    true => match MAXSEEN.get() <= 2 {
+      false => 2,
+      true => match array.len(results) == 6 {
+        true => 0,
+        false => 3,
+      },
+    },
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "task.pool broke ordering (1), the limit (2), or completeness (3)");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping task.pool run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("task.pool program failed to build: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
+    }
+}
+
+#[test]
 fn async_closure_with_par_all_runs() {
     // F11/F12: an async closure passed to array.map, its results awaited by
     // par.all, type-checks (tsc) and runs the concurrency correctly.

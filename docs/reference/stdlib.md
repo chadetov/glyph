@@ -195,6 +195,7 @@ outcome so a partial failure never loses the successes.
 type Settled<T>                                          // { ok: true, value: T } | { ok: false, error: unknown }
 all<T>(tasks: Array<fn() -> T>) -> Array<T>              // run concurrently, join in order (fail-fast)
 race<T>(tasks: Array<fn() -> T>) -> T                    // first task to settle
+pool<T>(limit: number, tasks: Array<fn() -> T>) -> Array<T>   // at most `limit` in flight, join in order (fail-fast)
 all_settled<T>(tasks: Array<fn() -> T>) -> Array<Settled<T>>  // one outcome per task, never rejects
 ```
 

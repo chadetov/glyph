@@ -70,6 +70,235 @@
 
         <div class="release">
           <div class="rel-head">
+            <span class="rel-ver">0.1.32</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Fluent await and discriminated unions from a .d.ts</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>await</code> on a fluent chain awaits the async terminal: <code>await cursor.find({}).to_array()</code> awaits <code>to_array</code>, so the mongodb cursor pattern no longer needs a split line.</li>
+              <li><span class="tag added">Added</span> A TypeScript <code>.d.ts</code> union of variants that share a string-literal tag materializes as a Glyph tagged union plus a <code>parse_&lt;Name&gt;</code> dispatcher that reads the tag and validates into the right variant.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.31</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Taint tracking</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/taint</code>: <code>Tainted&lt;T&gt;</code> and <code>Trusted&lt;T&gt;</code> are structurally distinct, so a sink typed <code>Trusted&lt;string&gt;</code> (a SQL runner, a shell command) cannot receive a <code>Tainted&lt;string&gt;</code> without going through <code>sanitize</code> first. A SQL injection path becomes a compile error.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.30</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Refinement types</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>where</code> refinements: <code>type Amount = int where value &gt;= 0</code>, <code>type Rating = int where value &gt;= 1 &amp;&amp; value &lt;= 5</code>. The predicate is woven into the descriptor, so <code>Amount.parse(-1)</code> is an <code>Err</code> at the boundary, not just "is a number".</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.29</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Exact large integers</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> The <code>bigint</code> prelude type, literals <code>123n</code>, kept distinct from <code>number</code> by <code>tsc</code> (no mixed arithmetic). A <code>bigint</code> field's descriptor rejects a JSON number rather than truncating an account id past 2^53.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.28</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Exact money math</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/decimal</code>, exact base-10 fixed-point over BigInt: <code>0.1 + 0.2</code> is exactly <code>0.3</code>, with no precision loss past 2^53. Construction validates and returns a <code>Result</code>; operations are methods (<code>price.add(tax)</code>). Money is never a float.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.27</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Real database interop, and two bugs it surfaced</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>std/sqlite</code> is <code>tsc</code>-clean under <code>@types/node</code>, and a JS-only package's <code>@types/&lt;pkg&gt;</code> companion now resolves, so <code>pg</code>, <code>react</code>, and <code>express</code> type-check instead of reporting an implicit <code>any</code>.</li>
+              <li><span class="tag added">Added</span> A databases guide proving Postgres and MongoDB work end to end; every program in it was compiled against the real client types first.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.26</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>new for class-based npm clients</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>new Client(args)</code> for interop, type-checked against the real constructor (<code>pg</code>'s <code>new Pool</code>, <code>mongodb</code>'s <code>new MongoClient</code>, <code>kafkajs</code>'s <code>new Kafka</code>). It exists only to construct a type from a package; Glyph gains no <code>class</code> declarations of its own.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.25</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A persisted database, and a real app on it</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/sqlite</code> over Node's built-in SQLite (no native install, no flag); rows come back as <code>unknown</code>, so the database is a validated boundary like any other.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/tasks.glyph</code>, a persisted, validated task API with data that survives a restart and no hand-written validators anywhere in it.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.24</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Imported-union resolution and shift operators</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> over a tagged union imported from another module is now held to full exhaustiveness (the imported-union type-resolution pass), retiring the recurring cross-module-<code>Unknown</code> class the dogfood loop kept surfacing.</li>
+              <li><span class="tag added">Added</span> Bitwise shift operators <code>&lt;&lt; &gt;&gt; &gt;&gt;&gt;</code>, completing the operator family.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.23</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Imported-union match fixes</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> An empty-block match arm no longer falls through into the next case, and an imported tagged union's no-payload variant match lowers to a real <code>case</code> instead of a binding catch-all.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.22</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Interfaces as ordinary types</h3>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> A structural <code>interface</code> is usable as an ordinary parameter or return type, with member access and structural assignability checked, not only as a generic bound.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.21</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Cross-module payload-binding fix</h3>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>Variant(v)</code> pattern that binds the whole payload emitted <code>v.value</code> and failed <code>tsc</code> when the union was imported from another module. The whole object now binds correctly across a module boundary.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.20</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Bitwise operators</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> Bitwise operators <code>&amp; | ^ ~</code>, surfaced writing a reproducible PRNG in pure Glyph. They emit verbatim to TypeScript, number-typed, at JS precedence.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.19</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Dogfooding the stdlib in Glyph</h3>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> A TypeScript reserved word (<code>class</code>, <code>switch</code>, <code>new</code>, <code>typeof</code>) used as an identifier is now <code>E0109</code>, caught in the resolver instead of emitting broken TypeScript.</li>
+              <li><span class="tag added">Added</span> Negative-number literals as match patterns (<code>-1 =&gt; ...</code>).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.18</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Governance, distribution, and editor tooling</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> The standard OSS surface: a Code of Conduct, a security policy, governance and maintainers docs, an RFC process, and a deprecation policy; plus distribution and deployment guides.</li>
+              <li><span class="tag added">Added</span> <code>glyph bench</code> (ns/op per <code>bench_*</code>), and LSP warning-tier lints, a remove-unused-import quick-fix, and inlay type hints on untyped <code>let</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.17</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Stdlib breadth, tooling, and docs</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> Four stdlib modules: <code>std/regex</code>, <code>std/set</code>, <code>std/path</code>, and <code>std/crypto</code> (sha256/512, HMAC, UUID); <code>std/time</code> gained <code>format_iso</code>/<code>parse_iso</code> and UTC calendar accessors.</li>
+              <li><span class="tag added">Added</span> <code>glyph fix</code> (safe autofixes), <code>glyph init --template &lt;cli|web|lib&gt;</code>, diagnostics that link to the error-codes reference, and a large guide expansion.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.16</span>
+            <span class="rel-date">July 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Language-design completeness</h3>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> Structural <code>interface</code>s and generic bounds (<code>fn f&lt;T: Named&gt;(x: T)</code>); module visibility (private by default, <code>pub</code> to export, so the public API is <code>grep '^pub'</code>); digit separators in numeric literals; and <code>defer</code> for deterministic cleanup on every exit path.</li>
+              <li><span class="tag added">Added</span> <code>std/task</code>: <code>all</code> (concurrent join, fail-fast), <code>race</code>, and <code>all_settled</code> over the promise model.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
             <span class="rel-ver">0.1.15</span>
             <span class="rel-date">July 2026</span>
           </div>

@@ -2020,11 +2020,13 @@ mod tests {
                "properties":{"id":{"type":"integer"},"title":{"type":"string"},
                              "done":{"type":"boolean"}}}}}}"#,
         );
-        assert!(out.contains("type Task = {"), "got:\n{out}");
-        // `integer` materializes as `int` (a boundary Number.isInteger check).
-        assert!(out.contains("id: int,"), "got:\n{out}");
-        assert!(out.contains("title: string,"), "got:\n{out}");
-        assert!(out.contains("done?: bool,"), "optional non-required; got:\n{out}");
+        // A short record formats inline (width-aware); `integer` materializes as
+        // `int` (a boundary Number.isInteger check) and a non-required property is
+        // optional (`done?`).
+        assert!(
+            out.contains("type Task = { done?: bool, id: int, title: string }"),
+            "got:\n{out}"
+        );
     }
 
     #[test]

@@ -188,12 +188,23 @@ fn binary_precedence_uses_minimal_parens() {
 }
 
 #[test]
-fn record_over_two_fields_is_multiline_with_trailing_comma() {
-    let two = fmt("module x\ntype P = { a: number, b: number }\n");
-    assert!(two.contains("type P = { a: number, b: number }"), "{two}");
-    let three = fmt("module x\ntype P = { a: number, b: number, c: number }\n");
-    assert!(three.contains("a: number,\n"), "expected one-per-line; got:\n{three}");
-    assert!(three.contains("c: number,\n}"), "expected trailing comma; got:\n{three}");
+fn record_layout_is_width_aware() {
+    // F6: a small record stays inline even past two fields when it fits the print
+    // width; a record whose inline form exceeds the width goes one-per-line with a
+    // trailing comma. Both layouts are idempotent.
+    let small = fmt("module x\ntype P = { a: number, b: number, c: number }\n");
+    assert!(
+        small.contains("{ a: number, b: number, c: number }"),
+        "a short three-field record stays inline:\n{small}"
+    );
+    assert_eq!(fmt(&small), small, "small record layout is not idempotent");
+
+    let wide = fmt(
+        "module x\ntype Big = { alpha: number, bravo: number, charlie: number, delta: number, echo: number, foxtrot: number }\n",
+    );
+    assert!(wide.contains("alpha: number,\n"), "a wide record is one-per-line:\n{wide}");
+    assert!(wide.contains("foxtrot: number,\n}"), "wide record keeps a trailing comma:\n{wide}");
+    assert_eq!(fmt(&wide), wide, "wide record layout is not idempotent");
 }
 
 #[test]

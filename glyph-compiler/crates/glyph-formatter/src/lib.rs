@@ -27,8 +27,18 @@ use glyph_ast::{
     RecordTypeField, Span, Stmt, TemplatePart, TypeDecl, TypeExpr, UnaryOp, UnionVariant,
 };
 
-/// A list with more than this many elements is laid out one-per-line.
+/// A list with more than this many elements stays inline only if it fits the
+/// print width; at or below it, a list is always inline (a one- or two-element
+/// call never breaks, keeping small calls compact regardless of width).
 const INLINE_MAX: usize = 2;
+
+/// The print width a list is kept inline within. A list of more than
+/// `INLINE_MAX` elements whose inline rendering fits the line within this column
+/// stays inline; otherwise it goes one-element-per-line. A fixed width keeps the
+/// layout a deterministic function of content and column, so it round-trips and
+/// is idempotent (the diff-stability pillar) while not exploding every short
+/// three-argument call.
+const PRINT_WIDTH: usize = 100;
 
 /// Format a whole module to canonical Glyph source. `comments` are the `//`
 /// line comments recovered from the source (via `glyph_lexer::comments`); they
@@ -158,7 +168,35 @@ impl Printer {
     ) {
         if items.is_empty() {
             self.push(empty);
-        } else if items.len() > INLINE_MAX {
+            return;
+        }
+        // Two or fewer elements are always inline. Above that, render the inline
+        // candidate and keep it inline when it has no intrinsic line break and
+        // fits the print width from the current column; otherwise go one-per-line.
+        let inline_fits = items.len() <= INLINE_MAX || {
+            let col = self.current_column();
+            let candidate = self.capture(|s| {
+                s.push(inline_open);
+                for (i, it) in items.iter().enumerate() {
+                    if i > 0 {
+                        s.push(", ");
+                    }
+                    render(s, it);
+                }
+                s.push(inline_close);
+            });
+            !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH
+        };
+        if inline_fits {
+            self.push(inline_open);
+            for (i, it) in items.iter().enumerate() {
+                if i > 0 {
+                    self.push(", ");
+                }
+                render(self, it);
+            }
+            self.push(inline_close);
+        } else {
             self.push(ml_open);
             self.indent += 1;
             for it in items {
@@ -169,15 +207,15 @@ impl Printer {
             self.indent -= 1;
             self.newline();
             self.push(ml_close);
-        } else {
-            self.push(inline_open);
-            for (i, it) in items.iter().enumerate() {
-                if i > 0 {
-                    self.push(", ");
-                }
-                render(self, it);
-            }
-            self.push(inline_close);
+        }
+    }
+
+    /// The current output column: bytes since the last newline (ASCII source, so
+    /// bytes approximate display columns).
+    fn current_column(&self) -> usize {
+        match self.out.rfind('\n') {
+            Some(i) => self.out.len() - i - 1,
+            None => self.out.len(),
         }
     }
 

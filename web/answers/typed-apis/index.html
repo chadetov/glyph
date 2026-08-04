@@ -320,6 +320,31 @@ if (row.done === true) { ... }   // never runs
       </div>
 
       <div class="detail">
+        <p class="block-label">A signed webhook is a boundary too</p>
+        <p>
+          Verifying a webhook signature needs the exact bytes the sender signed, not a
+          re-serialized copy (re-stringifying a parsed body changes whitespace and key order, so the
+          HMAC would never match). <code>http.raw(req)</code> hands you those bytes, so the check
+          stays in Glyph:
+        </p>
+<pre>fn handle(req: Request) -&gt; Result&lt;Response, string&gt; {
+  let expected = crypto.hmac_sha256(secret, raw(req))
+  return match header(req, "x-hook-signature") {
+    Some(sig) =&gt; match sig == expected {
+      true  =&gt; accept(req),          // then validate req.body with T.parse
+      false =&gt; Ok(text(401, "bad signature")),
+    },
+    None =&gt; Ok(text(401, "missing signature")),
+  }
+}</pre>
+        <p>
+          <code>req.body</code> is still the parsed value for the shape check; <code>raw</code> is the
+          untampered payload the signature is computed over. A receiver that verifies a signature and
+          validates the body needs no hand-written TypeScript.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">A type can validate its invariants, not just its shape</p>
         <p>
           A shape check tells you a field is a number. It does not tell you the
@@ -357,7 +382,7 @@ if (amount &lt; 0) throw new Error(...);
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); a <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape; <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other. <code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time.</p>
+          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); a <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape; <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other. <code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph. <code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

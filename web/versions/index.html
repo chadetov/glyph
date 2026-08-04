@@ -49,8 +49,28 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.15</span>
+            <span class="rel-ver">0.1.34</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A whole app in Glyph: I/O boundaries and code that reads like Glyph</h3>
+            <p>Building a webhook receiver end to end surfaced sixteen gaps. These closed twelve of them, in two batches: the I/O boundaries a real service hits, then the papercuts that made otherwise-natural code verbose.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> The unparsed request body. <code>http.raw(req)</code> returns the exact bytes a client sent, so you can verify an HMAC signature over the payload and keep a signed-webhook receiver entirely in Glyph. The parsed <code>req.body</code> is unchanged.</li>
+              <li><span class="tag added">Added</span> <code>fs.append_text</code> and <code>fs.make_dir</code>, both returning a <code>Result</code>. Append is the right primitive for a log (no read-the-whole-file-then-rewrite), and <code>make_dir</code> is idempotent <code>mkdir -p</code>.</li>
+              <li><span class="tag added">Added</span> <code>glyph fmt --check</code>. It writes nothing and exits non-zero when any file is not already formatted, so CI can gate on formatting without a copy-and-diff hack.</li>
+              <li><span class="tag added">Added</span> Async closures: <code>async fn(x) { await ... }</code>. A task thunk can now await inside a closure, so bounded fan-out like <code>par.all(array.map(xs, async fn(n) { await work(n) }))</code> type-checks and runs, annotated or not.</li>
+              <li><span class="tag changed">Changed</span> <code>match</code> handles nested literal payloads (<code>Ok(true) =&gt; ..., Ok(false) =&gt; ...</code>) and a value-position <code>let x = match</code> whose arm returns from the function, so a <code>Result&lt;bool, E&gt;</code> short-circuit and an early-return-on-error read the way you'd write them. Inline unions like <code>string | number</code> are now nameable in a signature.</li>
+              <li><span class="tag changed">Changed</span> <code>T.parse</code> returns the documented <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, naming the field that failed, instead of a single generic string. The formatter keeps a short call or record on one line when it fits, instead of breaking every three-argument call.</li>
+              <li><span class="tag fixed">Fixed</span> Installing <code>@types/node</code> no longer reddens the build. A shim from an earlier build could merge-conflict with <code>@types/node</code>'s crypto types; the build now removes it.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.15</span>
             <span class="rel-date">July 2026</span>
           </div>
           <div class="rel-body">

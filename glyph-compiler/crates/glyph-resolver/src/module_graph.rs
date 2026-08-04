@@ -116,7 +116,7 @@ impl StdlibStubs {
         s.add("std/json", &["parse", "stringify", "discriminant"]);
         s.add(
             "std/fs",
-            &["read_text", "write_text", "exists", "remove", "ErrorKind"],
+            &["read_text", "write_text", "append_text", "make_dir", "exists", "remove", "ErrorKind"],
         );
         s.add(
             "std/time",

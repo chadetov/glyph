@@ -360,6 +360,8 @@ TypeScript `extends` clause).
 type FsError = { kind: ErrorKind, message: string }
 fs.read_text(path) -> Result<string, FsError>
 fs.write_text(path, contents) -> Result<void, FsError>
+fs.append_text(path, contents) -> Result<void, FsError>   // append, creating the file (append-only logs)
+fs.make_dir(path) -> Result<void, FsError>                // create dir + parents, idempotent (mkdir -p)
 fs.exists(path) -> bool
 fs.remove(path) -> Result<void, FsError>     // ErrorKind.NotFound for a missing file
 ```

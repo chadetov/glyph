@@ -1885,6 +1885,70 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn fs_make_dir_and_append_text_round_trip() {
+    // F10: make_dir creates the directory (mkdir -p, idempotent) and append_text
+    // adds lines without a read-modify-write. The program returns 0 only if two
+    // appends produce exactly the expected file content.
+    if !js_toolchain_available() {
+        eprintln!("skipping fs append/mkdir run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("fsappend");
+    let dir = root.join("nested").join("data");
+    let file = dir.join("log.ndjson");
+    let prog = format!(
+        "module main\n\
+         import std/fs {{ make_dir, append_text, read_text }}\n\
+         import std/result {{ Ok, Err }}\n\
+         \n\
+         fn main(argv: Array<string>) -> number {{\n\
+         \x20 let dir = \"{dir}\"\n\
+         \x20 let file = \"{file}\"\n\
+         \x20 return match make_dir(dir) {{\n\
+         \x20   Err(_) => 2,\n\
+         \x20   Ok(_) => match append_text(file, \"a\\n\") {{\n\
+         \x20     Err(_) => 3,\n\
+         \x20     Ok(_) => match append_text(file, \"b\\n\") {{\n\
+         \x20       Err(_) => 4,\n\
+         \x20       Ok(_) => match read_text(file) {{\n\
+         \x20         Err(_) => 5,\n\
+         \x20         Ok(text) => match text == \"a\\nb\\n\" {{\n\
+         \x20           true => 0,\n\
+         \x20           false => 1,\n\
+         \x20         }},\n\
+         \x20       }},\n\
+         \x20     }},\n\
+         \x20   }},\n\
+         \x20 }}\n\
+         }}\n",
+        dir = dir.display(),
+        file = file.display(),
+    );
+    write_file(&root, "fsprog.glyph", &prog);
+    let file_glyph = root.join("fsprog.glyph");
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "make_dir + two append_text should yield exactly \"a\\nb\\n\"");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping fs append/mkdir run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("unexpected type-check failure: {msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a main; got NoMain: {exports:?}");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check");
+        }
+    }
+}
+
+#[test]
 fn start_here_tutorials_broken_program_is_exactly_e0200() {
     // B4 honesty guard: the Start-Here tutorial shows deleting a match arm
     // producing E0200, then fixing it. Keep both halves true so the tutorial

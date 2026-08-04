@@ -118,6 +118,8 @@ type ErrorKind = { tag: string }               // ErrorKind.NotFound for a missi
 type FsError = { kind: ErrorKind, message: string }
 fs.read_text(path: string) -> Result<string, FsError>
 fs.write_text(path: string, contents: string) -> Result<void, FsError>
+fs.append_text(path: string, contents: string) -> Result<void, FsError>   // append, creating the file; the primitive for an append-only log
+fs.make_dir(path: string) -> Result<void, FsError>                        // create the dir and any parents; idempotent (`mkdir -p`)
 fs.exists(path: string) -> bool
 fs.remove(path: string) -> Result<void, FsError>
 ```

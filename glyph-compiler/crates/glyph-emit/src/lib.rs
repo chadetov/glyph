@@ -3809,11 +3809,28 @@ impl<'a> Emitter<'a> {
                 }
                 format!("{{ {} }}", fs.join("; "))
             }
-            TypeExpr::Union { span, .. } => {
-                return Err(EmitError::Unsupported {
-                    construct: "tagged union type",
-                    span: *span,
-                })
+            TypeExpr::Union { variants, span } => {
+                // An inline structural union of type references (`string |
+                // number`, `A | B`) emits as a TS union. A variant that carries a
+                // payload is a nominal tagged-union constructor, which has no
+                // anonymous inline type: that still needs a named `type`
+                // declaration (emitted as a discriminated union with a descriptor).
+                if variants.iter().any(|v| v.payload.is_some()) {
+                    return Err(EmitError::Unsupported {
+                        construct: "an inline union with a payload-carrying variant (declare a named type)",
+                        span: *span,
+                    });
+                }
+                variants
+                    .iter()
+                    .map(|v| match v.name.as_ref() {
+                        // Same primitive mapping as `TypeExpr::Path`.
+                        "bool" => "boolean".to_string(),
+                        "int" => "number".to_string(),
+                        other => other.to_string(),
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" | ")
             }
             // The escape hatch emits its raw TypeScript verbatim; `tsc` checks it.
             TypeExpr::Extern { raw, .. } => raw.clone(),
@@ -5584,6 +5601,20 @@ mod tests {
             ts.contains(r#".tier === "free" || (value as Record<string, unknown>).tier === "pro""#),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn inline_structural_union_emits_a_ts_union() {
+        // F3: `string | number` in a signature (and as a type argument) emits as
+        // a TS union, mapping primitives (`bool` -> `boolean`). A payload-carrying
+        // variant only appears in a named `type` declaration (the parser rejects
+        // it inline in a type position), so the ty()-level payload guard is
+        // defensive and cannot be reached by well-formed input.
+        let ts = emit(
+            "module x\npub fn seg(p: string | number) -> string {\n  return match p {\n    is string => p,\n    is number => number.to_string(p),\n  }\n}\npub fn f(xs: Array<bool | number>) -> number {\n  return 0\n}\n",
+        );
+        assert!(ts.contains("p: string | number"), "inline union param:\n{ts}");
+        assert!(ts.contains("Array<boolean | number>"), "union in a type arg, bool mapped:\n{ts}");
     }
 
     #[test]

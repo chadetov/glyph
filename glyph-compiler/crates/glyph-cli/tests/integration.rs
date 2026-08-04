@@ -1888,6 +1888,60 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn inline_union_signature_runs_and_type_checks() {
+    // F3: an inline `string | number` in a signature and as a type argument
+    // type-checks (tsc) and runs, with `is` narrowing over the union.
+    if !js_toolchain_available() {
+        eprintln!("skipping inline-union run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("inlineunion");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+fn seg(p: string | number) -> string {
+  return match p {
+    is string => p,
+    is number => number.to_string(p),
+  }
+}
+
+fn render(parts: Array<string | number>) -> string {
+  return match parts {
+    [] => "",
+    [head, ...rest] => seg(head) + render(rest),
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let ok = seg("a") == "a" && seg(42) == "42" && render(["x", 7]) == "x7"
+  return match ok {
+    true => 0,
+    false => 1,
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "inline-union program produced a wrong value");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping inline-union run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("inline-union program failed to build: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
+    }
+}
+
+#[test]
 fn value_position_match_with_return_arm_runs() {
     // F5: `let x = match { ... None => return Err(e) }` type-checks (tsc) and runs
     // with function-return semantics; a value-tail block arm assigns the binding.

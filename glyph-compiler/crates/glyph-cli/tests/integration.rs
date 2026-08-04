@@ -1888,6 +1888,65 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn async_closure_with_par_all_runs() {
+    // F11/F12: an async closure passed to array.map, its results awaited by
+    // par.all, type-checks (tsc) and runs the concurrency correctly.
+    if !js_toolchain_available() {
+        eprintln!("skipping async-closure run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("asyncclosure");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+import std/array
+
+async fn work(n: number) -> number {
+  return n * 2
+}
+
+async fn run(items: Array<number>) -> Array<number> {
+  return await par.all(array.map(items, async fn(n: number) -> number {
+    await work(n)
+  }))
+}
+
+fn sum(xs: Array<number>) -> number {
+  return match xs {
+    [] => 0,
+    [head, ...rest] => head + sum(rest),
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let doubled = await run([1, 2, 3, 4])
+  return match sum(doubled) == 20 {
+    true => 0,
+    false => 1,
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "async closure + par.all produced a wrong result");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping async-closure run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("async-closure program failed to build: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
+    }
+}
+
+#[test]
 fn inline_union_signature_runs_and_type_checks() {
     // F3: an inline `string | number` in a signature and as a type argument
     // type-checks (tsc) and runs, with `is` narrowing over the union.

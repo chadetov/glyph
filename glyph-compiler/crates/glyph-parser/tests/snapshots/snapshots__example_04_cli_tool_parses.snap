@@ -4460,6 +4460,7 @@ Module {
                                                                                 end: 4521,
                                                                             },
                                                                         },
+                                                                        is_async: false,
                                                                         span: Span {
                                                                             start: 4470,
                                                                             end: 4521,
@@ -5048,6 +5049,7 @@ Module {
                                                                                 end: 5037,
                                                                             },
                                                                         },
+                                                                        is_async: false,
                                                                         span: Span {
                                                                             start: 5010,
                                                                             end: 5037,
@@ -5380,6 +5382,7 @@ Module {
                                                                                                                         end: 5379,
                                                                                                                     },
                                                                                                                 },
+                                                                                                                is_async: false,
                                                                                                                 span: Span {
                                                                                                                     start: 5228,
                                                                                                                     end: 5379,
@@ -5885,6 +5888,7 @@ Module {
                                                                                             end: 5824,
                                                                                         },
                                                                                     },
+                                                                                    is_async: false,
                                                                                     span: Span {
                                                                                         start: 5797,
                                                                                         end: 5824,

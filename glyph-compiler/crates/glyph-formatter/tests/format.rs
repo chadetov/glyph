@@ -105,6 +105,16 @@ fn where_refinement_round_trips() {
 }
 
 #[test]
+fn async_closure_round_trips() {
+    // F11: an `async fn(x) { ... }` closure must keep its `async` prefix through
+    // formatting (dropping it would change the emitted TypeScript).
+    let src = "module x\npub fn run() -> void {\n  let f = async fn(n: number) -> number {\n    n\n  }\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("async fn(n: number)"), "async prefix preserved:\n{out}");
+    assert_eq!(fmt(&out), out, "async closure format is not stable");
+}
+
+#[test]
 fn jsx_fragment_round_trips() {
     let src = "module x\ncomponent P(name: string) -> Component {\n  return <>\n    <h1>{name}</h1>\n    <p>{name}</p>\n  </>\n}\n";
     let out = fmt(src);

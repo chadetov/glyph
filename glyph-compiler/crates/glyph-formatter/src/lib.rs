@@ -721,8 +721,12 @@ impl Printer {
                 params,
                 return_ty,
                 body,
+                is_async,
                 ..
             } => {
+                if *is_async {
+                    self.push("async ");
+                }
                 self.push("fn");
                 self.lambda_params(params);
                 if let Some(rt) = return_ty {

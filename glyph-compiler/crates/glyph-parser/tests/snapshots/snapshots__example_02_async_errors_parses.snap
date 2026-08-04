@@ -850,6 +850,7 @@ Module {
                                                             end: 1385,
                                                         },
                                                     },
+                                                    is_async: false,
                                                     span: Span {
                                                         start: 1331,
                                                         end: 1385,
@@ -1916,6 +1917,7 @@ Module {
                                                                 end: 2598,
                                                             },
                                                         },
+                                                        is_async: false,
                                                         span: Span {
                                                             start: 2562,
                                                             end: 2598,
@@ -2122,6 +2124,7 @@ Module {
                                                     end: 2794,
                                                 },
                                             },
+                                            is_async: false,
                                             span: Span {
                                                 start: 2724,
                                                 end: 2794,

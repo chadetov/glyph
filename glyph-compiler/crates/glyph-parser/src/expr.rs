@@ -481,7 +481,7 @@ fn parse_primary(p: &mut Cursor) -> Result<Expr, ParseError> {
             Ok(Expr::Jsx(elem))
         }
         Token::Match => parse_match(p, span),
-        Token::Fn => parse_lambda(p, span),
+        Token::Fn | Token::Async => parse_lambda(p, span),
         other => Err(ParseError::Unexpected {
             found: format!("{other:?}"),
             span,
@@ -684,6 +684,14 @@ fn parse_object_literal(p: &mut Cursor) -> Result<Expr, ParseError> {
 }
 
 fn parse_lambda(p: &mut Cursor, start_span: Span) -> Result<Expr, ParseError> {
+    // An optional `async` prefix (`async fn(x) { await ... }`) makes the lambda
+    // emit an `async` arrow, so a task thunk can await inside a closure.
+    let is_async = if matches!(p.peek(), Token::Async) {
+        p.advance();
+        true
+    } else {
+        false
+    };
     p.expect(&Token::Fn, "`fn` (lambda)")?;
     p.expect(&Token::LParen, "`(` after `fn`")?;
     // Type annotations are optional inside a lambda (corpus has both
@@ -724,6 +732,7 @@ fn parse_lambda(p: &mut Cursor, start_span: Span) -> Result<Expr, ParseError> {
         params,
         return_ty,
         body,
+        is_async,
         span: Span::new(start_span.start, end),
     })
 }

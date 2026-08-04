@@ -471,12 +471,14 @@ pub enum Expr {
         arms: Vec<MatchArm>,
         span: Span,
     },
-    /// Lambda expression: `fn(args) -> T { body }` or `fn(args) { body }`.
-    /// Anonymous form per D4; body is a block.
+    /// Lambda expression: `fn(args) -> T { body }` or `fn(args) { body }`, with
+    /// an optional `async` prefix (`async fn(args) { await ... }`). Anonymous
+    /// form per D4; body is a block.
     Lambda {
         params: Vec<Param>,
         return_ty: Option<TypeExpr>,
         body: Block,
+        is_async: bool,
         span: Span,
     },
     /// JSX element in expression position (D6).

@@ -3397,10 +3397,15 @@ impl<'a> Emitter<'a> {
                 params,
                 return_ty,
                 body,
+                is_async,
                 ..
             } => {
                 let params = self.lambda_params(params)?;
+                let prefix = if *is_async { "async " } else { "" };
+                // An async arrow returns a Promise, so an annotated return type
+                // wraps in `Promise<T>` exactly like an async `fn` declaration.
                 let ret = match return_ty {
+                    Some(te) if *is_async => format!(": Promise<{}>", self.ty(te)?),
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
@@ -3417,7 +3422,7 @@ impl<'a> Emitter<'a> {
                 // never need the enclosing function's generic return cast.
                 let mut sub = self.sub(self.indent);
                 sub.emit_fn_block(body, rv, None)?;
-                format!("({params}){ret} => {}", sub.out)
+                format!("{prefix}({params}){ret} => {}", sub.out)
             }
             // A value-position `match` (`let x = match ...`, or nested in an
             // expression) wraps the same statement lowering in an
@@ -4616,6 +4621,22 @@ mod tests {
             "{ts}"
         );
         assert!(ts.contains("return (await fetch());"), "{ts}");
+    }
+
+    #[test]
+    fn async_closure_emits_an_async_arrow() {
+        // F11/F12: `async fn(x) { await ... }` emits an async arrow, and an
+        // annotated return type wraps in `Promise<T>` (an async arrow returns a
+        // Promise), so a task thunk can await inside a closure.
+        let ts = emit(
+            "module x\npub async fn run(xs: Array<number>) -> Array<number> {\n  return await par.all(array.map(xs, async fn(n: number) -> number {\n    await work(n)\n  }))\n}\n",
+        );
+        assert!(ts.contains("async (n: number): Promise<number> =>"), "async arrow with Promise return:\n{ts}");
+        // The unannotated form emits a bare async arrow.
+        let ts2 = emit(
+            "module x\npub async fn run(xs: Array<number>) -> Array<number> {\n  return await par.all(array.map(xs, async fn(n: number) {\n    await work(n)\n  }))\n}\n",
+        );
+        assert!(ts2.contains("async (n: number) =>"), "bare async arrow:\n{ts2}");
     }
 
     #[test]

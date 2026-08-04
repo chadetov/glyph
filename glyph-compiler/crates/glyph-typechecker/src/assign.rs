@@ -650,6 +650,7 @@ impl Assigner<'_> {
                 params,
                 return_ty,
                 body,
+                is_async,
                 span,
             } => {
                 let er = self.enclosing_return(return_ty.as_ref());
@@ -659,7 +660,7 @@ impl Assigner<'_> {
                 self.return_stack.pop();
                 let ty = self
                     .lowerer
-                    .lower_callable_signature(params, return_ty.as_ref(), false);
+                    .lower_callable_signature(params, return_ty.as_ref(), *is_async);
                 self.tm.insert(*span, ty);
             }
             Expr::Jsx(j) => {

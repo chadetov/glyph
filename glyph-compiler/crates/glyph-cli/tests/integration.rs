@@ -1888,6 +1888,55 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn extern_http_server_type_checks_against_bundled_shim() {
+    // F14: a hand-written extern .ts that runs an http server (the common shape)
+    // type-checks against the bundled node shim with no @types/node installed:
+    // req.on("error"), server.listen(port, callback), res.writeHead/end.
+    if !tsc_available() {
+        eprintln!("skipping extern-server tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("externserver");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "extern/server.ts",
+        r#"import { createServer, type IncomingMessage, type ServerResponse } from "http";
+export function serve(port: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      let body = "";
+      req.setEncoding("utf8");
+      req.on("data", (c: string) => { body = body + c; });
+      req.on("end", () => {
+        res.writeHead(200, { "content-type": "text/plain" });
+        res.end(`${req.method ?? "GET"} ${req.url ?? "/"} ${body.length}`);
+      });
+      req.on("error", () => res.end("err"));
+    });
+    server.on("close", () => resolve());
+    server.listen(port, () => { console.log(`up on ${port}`); });
+  });
+}
+"#,
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport extern/server { serve }\nasync fn main(argv: Array<string>) -> number {\n  let _ = await serve(8080)\n  return 0\n}\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "extern server is well-formed: {:?}", report.diagnostics);
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("extern http server failed tsc against the shim:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn extern_ts_module_is_imported_typed_and_preserved() {
     // F8/F16: a Glyph module reaches hand-written TypeScript through
     // `import extern/*`. The `.ts` in `<src>/extern/` is staged into the output,

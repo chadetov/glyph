@@ -35,13 +35,15 @@ declare module "http" {
     setEncoding(encoding: string): void;
     on(event: "data", listener: (chunk: string) => void): void;
     on(event: "end", listener: () => void): void;
+    on(event: "error", listener: (err: { message?: string }) => void): void;
   }
   export interface ServerResponse {
-    writeHead(status: number, headers: Record<string, string>): void;
-    end(data: string): void;
+    writeHead(status: number, headers?: Record<string, string>): void;
+    end(data?: string): void;
   }
   export interface Server {
-    listen(port: number): Server;
+    listen(port: number, callback?: () => void): Server;
+    close(callback?: () => void): void;
     on(event: "error", listener: (err: { message?: string }) => void): Server;
     on(event: "close", listener: () => void): Server;
   }

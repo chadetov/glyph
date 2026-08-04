@@ -398,6 +398,12 @@ types enforce your calls, and a wrong argument is a real error mapped back to th
 `.glyph` source. The prune pass that clears stale output never touches
 `extern/`, so a rebuild keeps it.
 
+An extern using the common Node surface (an `http` server, `fs`) type-checks
+against the bundled shim with nothing installed: `createServer`, `req.on(...)`
+including `"error"`, `server.listen(port, callback)`, `res.writeHead`/`end`. For
+the full, exact Node API in your extern, install `@types/node` (the build detects
+it and loads its complete typings).
+
 This is the one supported way a Glyph module imports a local `.ts`. It is
 deliberately narrow and greppable (`grep -rn 'import extern/'` finds every place
 you left the language), and it is the inverse of the common direction, a `.ts`

@@ -117,6 +117,36 @@ fn label(s: Status) -&gt; string {
           doesn't account for a case doesn't compile.
         </p>
         <p>
+          A typo can't quietly paper over a gap either. A capitalized arm head is a
+          <strong>reference to a variant</strong>, not a fresh binding, so if you misspell
+          <code>Loading</code> as <code>Loadign</code>, older Glyph read the misspelling as a
+          catch-all that bound every value and made the match look total. Now the head has to
+          name a real variant of the union you're matching. When it doesn't, the build stops
+          with <code>E0220</code> and points at the nearest real name, and the variant you
+          actually skipped still shows up as <code>E0200</code> right next to it.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph: a misspelled arm is a gap, not a catch-all</span>
+<pre>fn label(s: Status) -&gt; string {
+  return match s {
+<span class="del">    Loadign =&gt; "…",        // typo for Loading, read as a variant, not a binding</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0220] `Loadign` is not a variant of `Status`; did you mean `Loading`?</span>
+   ╰─ a lowercase name would be a binding; a PascalCase name is read as a variant
+<span class="del">[E0200] non-exhaustive match on `Status`: missing variant `Loading`</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
           The same "make it type-level, not convention" instinct covers PII. Put
           <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a
           <code>redact()</code> on its descriptor that masks those fields, so
@@ -130,11 +160,11 @@ fn label(s: Status) -&gt; string {
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Exhaustive <code>match</code> over sealed unions <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
+          <p>Exhaustive <code>match</code> over sealed unions <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), a typo'd variant arm caught as a compile error with a nearest-variant suggestion (<code>E0220</code>) instead of a silent catch-all, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing and richer validation for generic and imported types are on the roadmap, extending the same guarantee to more of the type system.</p>
+          <p>Deeper flow-narrowing and richer validation for generic and imported types are on the roadmap, extending the same guarantee to more of the type system. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm.</p>
         </div>
       </div>
 

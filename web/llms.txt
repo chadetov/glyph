@@ -670,6 +670,7 @@ machine-readably. The full catalogue:
 | E0217 | Discarded `Result` (warning) | `match`/`?` it, or `let _ = ...` to say it's intentional |
 | E0218 | Non-exhaustive match on `number`/`string` | Add an `else` arm |
 | E0219 | `@redact` names a missing field | Fix the field name |
+| E0220 | A `match` arm's PascalCase head is not a variant of the union (typo or wrong union) | Fix the spelling (a `did you mean` suggestion is offered), or add the variant |
 | E0221 | Unknown `@annotation` (D27) | Use a recognized one: `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
 | E0300 | Construct not supported by the emitter | Use a supported form |
 | E0310 | `glyph run` on a module with no `fn main` | Add `fn main`, or `glyph build` it as a library |

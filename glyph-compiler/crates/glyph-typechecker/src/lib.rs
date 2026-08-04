@@ -322,6 +322,24 @@ pub enum TypeError {
     /// at the dropped expression.
     #[error("this `Result` is discarded; its `Err` case is silently ignored")]
     UnusedResult { span: Span },
+
+    /// A `match` arm whose bare head is a PascalCase name that is not a variant
+    /// of the scrutinee's tagged union. Glyph classifies a bare arm head by
+    /// shape (the same rule the resolver uses): a lowercase/underscore-led name
+    /// (`x`, `_rest`) is a fresh binding, while a PascalCase name (`Loading`)
+    /// is a variant *reference*. A PascalCase head that names no variant of
+    /// this union is a typo (`Loadign` for `Loading`) or a wrong-union variant,
+    /// not a binding. Escalating it is a verifiability win: left as a binding
+    /// it would silently act as an irrefutable catch-all, masking a genuine
+    /// missing variant and misrouting values at runtime. `suggestion` is the
+    /// nearest real variant by edit distance, when one is close enough.
+    #[error("`{name}` is not a variant of `{union}`{}", .suggestion.as_deref().map(|s| format!("; did you mean `{s}`?")).unwrap_or_default())]
+    UnknownVariantPattern {
+        union: String,
+        name: String,
+        suggestion: Option<String>,
+        span: Span,
+    },
 }
 
 /// Diagnostic severity. Most diagnostics are hard `Error`s that fail the build;
@@ -368,6 +386,7 @@ impl TypeError {
             TypeError::OwnedAliased { span, .. } => *span,
             TypeError::UnreachableMatchArm { span } => *span,
             TypeError::UnusedResult { span } => *span,
+            TypeError::UnknownVariantPattern { span, .. } => *span,
         }
     }
 
@@ -396,6 +415,7 @@ impl TypeError {
             TypeError::OwnedAliased { .. } => "E0215",
             TypeError::UnreachableMatchArm { .. } => "E0216",
             TypeError::UnusedResult { .. } => "E0217",
+            TypeError::UnknownVariantPattern { .. } => "E0220",
         }
     }
 
@@ -465,6 +485,9 @@ impl TypeError {
             TypeError::UnusedResult { .. } => {
                 "Handle it with `match`, propagate it with `?`, or bind it (`let _ = ...`) to say the discard is intentional."
             }
+            TypeError::UnknownVariantPattern { .. } => {
+                "Check the name for a typo, or add the variant to the union. A lowercase name would be a binding; a PascalCase name is read as a variant."
+            }
         })
     }
 
@@ -486,6 +509,9 @@ impl TypeError {
             ),
             TypeError::NonExhaustiveValueMatch { .. } => Some(
                 "`number` and `string` are unbounded, so literal arms can never cover every value; the emitted `switch` `default` throws at runtime.",
+            ),
+            TypeError::UnknownVariantPattern { .. } => Some(
+                "A bare PascalCase arm head is a variant reference, not a binding (D9). Treating a non-variant as a binding would hide it as a silent catch-all.",
             ),
             _ => None,
         }

@@ -49,8 +49,22 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.36</span>
+            <span class="rel-ver">0.1.37</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A misspelled match arm is a compile error, not a silent catch-all</h3>
+            <p>A capitalized <code>match</code> arm head is a reference to a variant, not a fresh binding. A typo that names no variant used to be read as a catch-all that made the match look total; now it stops the build and suggests the nearest real variant.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A PascalCase arm head that names no variant of the union (<code>Loadign</code> for <code>Loading</code>, or a variant from the wrong union) is now <code>E0220</code> with a nearest-variant suggestion, instead of being read as an irrefutable binding that swallowed the arm. Before, the typo passed exhaustiveness and misrouted values at runtime; the variant you actually skipped is now reported as <code>E0200</code> right alongside. Covers all three arm shapes: bare <code>Loadign</code>, payload-bearing <code>Loadign(x)</code>, and qualified <code>Feed.Loadign</code>. Scope is a union decidable in the same module; a union imported from another file is checked for coverage but not yet for this typo.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.36</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

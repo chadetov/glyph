@@ -1426,6 +1426,19 @@ land here until they're assigned a release.
   resolves interface members so member access is verified. Surfaced dogfooding a
   ranking module (`examples/corpus/ranking.glyph`, `Ranked` used both as a bound
   and as a plain parameter type); three typechecker unit tests added.
+- **Typo'd `match` variant is E0220, not a silent catch-all** (S, verifiability) —
+  ✅ **done.** A PascalCase arm head that names no variant of the union used to be
+  read as a fresh binding, an irrefutable catch-all that masked the missing-variant
+  error (E0200) and misrouted values at runtime. `check_patterns_exhaustive` now
+  escalates such a head to `UnknownVariantPattern` (E0220) with a nearest-variant
+  suggestion (`Loadign` -> did you mean `Loading`?), for all three arm shapes:
+  bare `Loadign`, payload-bearing `Loadign(x)`, and qualified `Feed.Loadign`. It is
+  neither covered nor a catch-all, so a genuinely missing variant still surfaces as
+  E0200 alongside. Scope is a module-local, decidable-scrutinee union; a union
+  imported from another module is checked for coverage but not yet this typo (the
+  G22 fork in `docs/dogfooding-gaps.md`). Surfaced by persona-agent testing; spec
+  refinement recorded under D9. Typechecker and CLI integration tests, including
+  the co-occurring E0200 and the cross-module scope boundary.
 - **Private-vs-missing import diagnostic** (S, from 0.1.16 visibility). Importing a
   non-`pub` name reports E0105 "`N` is not exported by `M`", the same message as a
   genuinely missing name. Distinguishing "exists but private (mark it `pub`)" from

@@ -1,0 +1,15 @@
+module app
+
+// `Loadign` is a typo for `Loading`. A PascalCase arm head is read as a variant
+// reference, not a binding, so a name that is not a variant of `Feed` is
+// escalated to E0220 with a nearest-variant suggestion instead of silently
+// acting as a catch-all (which would have masked the missing `Failed`).
+type Feed = | Loading | Loaded | Failed
+
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+    Loadign => 3,
+  }
+}

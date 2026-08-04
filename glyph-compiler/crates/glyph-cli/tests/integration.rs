@@ -664,6 +664,87 @@ fn build_flags_non_exhaustive_match_on_tagged_union() {
 }
 
 #[test]
+fn build_flags_unknown_variant_pattern_with_suggestion() {
+    // A PascalCase arm head that names no variant of the union is E0220, not a
+    // silent binding catch-all. Here `Loadign` is a typo for `Loading`; the
+    // diagnostic escalates it AND suggests the nearest real variant. Because it
+    // is no longer read as a catch-all, the genuinely missing `Failed` still
+    // surfaces as a separate non-exhaustiveness error.
+    let root = unique_tmp("unknownvariant");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module app\n\
+         type Feed = | Loading | Loaded | Failed\n\
+         fn show(f: Feed) -> number {\n  \
+           return match f {\n    \
+             Loading => 1,\n    \
+             Loaded => 2,\n    \
+             Loadign => 3,\n  \
+           }\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build_project ok");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0220") && d.contains("did you mean `Loading`?")),
+        "expected E0220 with a `did you mean` suggestion; got: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "the previously-swallowed missing-variant error should surface; got: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn cross_module_union_typo_is_module_local_scope_only() {
+    // Pins the current scope boundary of E0220: the escalation is module-local.
+    // When the union is defined in another module, the scrutinee's type lowers to
+    // `Unknown` and coverage is checked by `check_imported_union_coverage`, which
+    // counts any PascalCase head as covering a variant with no membership check.
+    // So a cross-module typo (`Loadign`) draws NO E0220 today. The imported
+    // full-union masking is a known architecture decision (fork C); this test
+    // makes the boundary visible in code so the day it changes, it changes here
+    // deliberately rather than by surprise.
+    let root = unique_tmp("crossmoduletypo");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\npub type Feed = | Loading | Loaded | Failed\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import lib { Feed, Loading, Loaded }\n\
+         fn show(f: Feed) -> number {\n  \
+           return match f {\n    \
+             Loading => 1,\n    \
+             Loaded => 2,\n    \
+             Loadign => 3,\n  \
+           }\n\
+         }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0220")),
+        "E0220 is module-local only; a cross-module typo must not draw it today \
+         (see check_imported_union_coverage / fork C): {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
 fn build_flags_question_operator_outside_result_fn() {
     // Day-15 acceptance: the `?`-operator typing rule flows through
     // type_map → BuildReport. A `?` in a function that does not return

@@ -1201,15 +1201,15 @@ impl Assigner<'_> {
     ///   destructure, array patterns, literal patterns. A single-payload arm
     ///   whose sub-pattern is a binding fully covers its variant.
     ///
-    /// **Known trade-off**: a `Pattern::Ident { name }` whose name
-    /// doesn't match a variant is treated as a binding (catch-all).
-    /// This means a typo like `Loadign` (vs `Loading`) silently passes
-    /// exhaustiveness AND catches every input at runtime as a binding.
-    /// Fixing this properly needs scrutinee-aware resolver
-    /// disambiguation — when an ident's name shadows a hoisted Variant
-    /// of the scrutinee's type, the resolver could warn or escalate to
-    /// an error per the Glyph 'stricter-than-TS' posture. Deferred to
-    /// week 3.
+    /// **Bare-head classification**: a `Pattern::Ident { name }` is resolved
+    /// by shape. A lowercase/underscore-led name is a binding (an irrefutable
+    /// catch-all); a PascalCase name is a variant reference. A PascalCase head
+    /// that names a variant covers it; one that names no variant of the union
+    /// is a typo (`Loadign` for `Loading`) or a wrong-union variant, and is
+    /// escalated to `UnknownVariantPattern` (E0220) with a nearest-variant
+    /// suggestion rather than being read as a silent catch-all. This is the
+    /// module-local, decidable-scrutinee case; cross-module/imported unions
+    /// are out of scope (see `docs/dogfooding-gaps.md`).
     fn check_match_exhaustiveness(
         &mut self,
         scrutinee_ty: &Ty,
@@ -1503,9 +1503,8 @@ impl Assigner<'_> {
         // module), so a nullary variant like `EmptyOctet` would otherwise be
         // misread as an irrefutable catch-all and draw a false E0216 on every
         // later arm. The emitter classifies the same way, so the two stay in step.
-        let is_constructor_shaped = |name: &Ident| {
-            name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
-        };
+        // `is_constructor_shaped` is the shared free fn (single source of truth
+        // with `check_patterns_exhaustive`).
         let is_irrefutable = |p: &Pattern| match p {
             Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
             Pattern::Ident { name, .. } => {
@@ -1689,12 +1688,33 @@ impl Assigner<'_> {
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => {
                     has_catch_all = true;
                 }
-                Pattern::Constructor { path, args, .. } if !path.is_empty() => {
+                Pattern::Constructor {
+                    path, args, span, ..
+                } if !path.is_empty() => {
                     // Take the LAST segment as the variant name. Bare
                     // `Loading` → ["Loading"] → "Loading". Qualified
                     // `Feed.Loading` → ["Feed", "Loading"] → "Loading".
                     let variant = path.last().unwrap();
                     if !variants.iter().any(|v| v == variant) {
+                        // A constructor-form (`Loadign(x)`) or qualified
+                        // (`Feed.Loadign`) head that names no variant of this
+                        // union is the same silent-swallow class the bare
+                        // `Ident` branch escalates, and it is the common shape
+                        // for prelude unions (`Ok`/`Err`/`Some`). Escalate to
+                        // E0220 with a nearest-variant hint before dropping the
+                        // arm. Unlike the bare form it can never be an
+                        // irrefutable binding (a binding takes no payload and no
+                        // qualifier), so it is neither covered nor a catch-all
+                        // and a genuinely missing variant still surfaces as
+                        // E0200 alongside it.
+                        if is_constructor_shaped(variant) {
+                            self.errors.push(TypeError::UnknownVariantPattern {
+                                union: type_name.clone(),
+                                name: variant.to_string(),
+                                suggestion: nearest_variant(variant.as_ref(), &variants),
+                                span: *span,
+                            });
+                        }
                         continue;
                     }
                     match args.as_slice() {
@@ -1714,13 +1734,26 @@ impl Assigner<'_> {
                         }
                     }
                 }
-                Pattern::Ident { name, .. } => {
-                    // See the function-level docstring for the
-                    // typo-vs-binding trade-off. If `name` matches a
-                    // known variant, cover it; otherwise treat as a
-                    // binding (universal match).
+                Pattern::Ident { name, span } => {
+                    // A bare head that names a known variant covers it.
+                    // Otherwise its *shape* decides (the same rule the resolver
+                    // and reachability pass use): a lowercase/underscore-led
+                    // name is a fresh binding — an irrefutable catch-all — while
+                    // a PascalCase name is a variant reference. A PascalCase
+                    // head that names no variant of this union is a typo or a
+                    // wrong-union variant, escalated to E0220 rather than
+                    // silently absorbing every value. It is neither covered nor
+                    // a catch-all, so a genuinely missing variant still surfaces
+                    // as E0200 alongside it.
                     if variants.iter().any(|v| v == name) {
                         covered.insert(name.clone());
+                    } else if is_constructor_shaped(name) {
+                        self.errors.push(TypeError::UnknownVariantPattern {
+                            union: type_name.clone(),
+                            name: name.to_string(),
+                            suggestion: nearest_variant(name.as_ref(), &variants),
+                            span: *span,
+                        });
                     } else {
                         has_catch_all = true;
                     }
@@ -2373,6 +2406,51 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
         },
         other => other.clone(),
     }
+}
+
+/// Whether a bare ident used as a `match` arm head is constructor-shaped: a
+/// PascalCase name (`Idle`, `Ok`, `None`) denotes a union variant reference;
+/// a lowercase or underscore-led name (`x`, `_rest`) is a fresh binding. This
+/// is the single predicate shared by the reachability pass and
+/// `check_patterns_exhaustive`, and it mirrors the resolver's identically
+/// named check (`glyph_resolver::resolve`) so the three stages agree on what
+/// counts as a variant reference.
+fn is_constructor_shaped(name: &Ident) -> bool {
+    name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+}
+
+/// The nearest variant name to `name` by Levenshtein distance, when one is
+/// close enough to be a plausible typo. Powers the `did you mean` hint on
+/// `UnknownVariantPattern` (E0220). Returns `None` when every variant is too
+/// far to be a likely misspelling, so the diagnostic never guesses wildly.
+fn nearest_variant(name: &str, variants: &[Ident]) -> Option<String> {
+    let name_len = name.chars().count();
+    // A short name tolerates fewer edits than a long one; at least 2 so a
+    // single transposition (`Loadign` vs `Loading`, distance 2) still matches.
+    let threshold = (name_len / 3).max(2);
+    variants
+        .iter()
+        .map(|v| (levenshtein(name, v.as_ref()), v))
+        .filter(|(d, _)| *d <= threshold)
+        .min_by_key(|(d, _)| *d)
+        .map(|(_, v)| v.to_string())
+}
+
+/// Classic two-row Levenshtein edit distance over Unicode scalar values.
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut curr = vec![0usize; b.len() + 1];
+    for (i, ca) in a.iter().enumerate() {
+        curr[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            curr[j + 1] = (prev[j + 1] + 1).min(curr[j] + 1).min(prev[j] + cost);
+        }
+        std::mem::swap(&mut prev, &mut curr);
+    }
+    prev[b.len()]
 }
 
 #[cfg(test)]
@@ -3088,11 +3166,208 @@ fn show(f: Feed) -> number {
         let m = glyph_parser::parse(src).expect("parse failed");
         let syms = collect_module_symbols(&m).unwrap();
         let prelude = build_prelude();
-        let (_resolved, errs) = resolve_module(&m, syms, &prelude);
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
         assert!(
             errs.iter()
                 .any(|e| format!("{e:?}").contains("Loadign")),
             "typo'd constructor must raise an unresolved-name error; got: {errs:?}"
+        );
+        // The typechecker independently escalates the typo to E0220 with a
+        // union-scoped `did you mean` suggestion, and — because the typo is no
+        // longer read as a catch-all — the genuinely missing `Failed` variant
+        // now surfaces as E0200 alongside it.
+        let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
+        let e0220 = ty_errs
+            .iter()
+            .find(|e| e.code() == "E0220")
+            .expect("expected E0220 for the PascalCase typo");
+        let TypeError::UnknownVariantPattern {
+            name,
+            union,
+            suggestion,
+            ..
+        } = e0220
+        else {
+            panic!("expected UnknownVariantPattern, got {e0220:?}");
+        };
+        assert_eq!(name, "Loadign");
+        assert_eq!(union, "Feed");
+        assert_eq!(suggestion.as_deref(), Some("Loading"));
+        assert!(
+            format!("{e0220}").contains("did you mean `Loading`?"),
+            "message should carry the suggestion: {e0220}"
+        );
+        assert!(
+            ty_errs.iter().any(|e| e.code() == "E0200"),
+            "the previously-swallowed missing-variant error should surface: {ty_errs:?}"
+        );
+    }
+
+    #[test]
+    fn pascal_arm_that_resolves_to_a_foreign_variant_is_e0220() {
+        // A PascalCase arm head can *resolve* cleanly (here `Red` is a real
+        // variant of another union) yet still not be a variant of the
+        // scrutinee's union. The resolver is happy, so this is the case the
+        // typechecker must catch: without E0220 the arm was read as a silent
+        // catch-all, masking the missing `Failed`. `Red` is too far from any
+        // `Feed` variant to suggest, so no `did you mean`.
+        let src = r#"module x
+type Color = | Red | Green | Blue
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+    Red => 3,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        let e0220 = errs
+            .iter()
+            .find(|e| e.code() == "E0220")
+            .unwrap_or_else(|| panic!("expected E0220; got {errs:?}"));
+        let TypeError::UnknownVariantPattern {
+            name, suggestion, ..
+        } = e0220
+        else {
+            panic!("expected UnknownVariantPattern, got {e0220:?}");
+        };
+        assert_eq!(name, "Red");
+        assert_eq!(suggestion.as_deref(), None, "no near variant to suggest");
+        assert!(
+            errs.iter().any(|e| e.code() == "E0200"),
+            "the missing `Failed` variant must still surface: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn typo_constructor_form_with_payload_is_e0220() {
+        // The payload-bearing shape of the same typo must escalate to E0220 too,
+        // not slip through as a silently-dropped arm. `Loadign(x)` is the common
+        // mistake shape for the prelude unions an agent touches most (`Errr(e)`,
+        // `Somee(x)`); before this fix only the bare `Ident` head was caught and
+        // the parenthesized form walked straight through. The genuinely missing
+        // `Failed` still surfaces as E0200 because the dropped arm covers nothing.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+    Loadign(x) => x,
+  }
+}
+"#;
+        // The resolver independently rejects the unresolved head; this test pins
+        // the typechecker's E0220, so it drives resolve + assign directly rather
+        // than through `ty_errors_of` (which asserts a clean resolve).
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
+        let e0220 = ty_errs
+            .iter()
+            .find(|e| e.code() == "E0220")
+            .unwrap_or_else(|| panic!("expected E0220 for the constructor-form typo; got {ty_errs:?}"));
+        let TypeError::UnknownVariantPattern {
+            name,
+            union,
+            suggestion,
+            ..
+        } = e0220
+        else {
+            panic!("expected UnknownVariantPattern, got {e0220:?}");
+        };
+        assert_eq!(name, "Loadign");
+        assert_eq!(union, "Feed");
+        assert_eq!(suggestion.as_deref(), Some("Loading"));
+        assert!(
+            ty_errs.iter().any(|e| e.code() == "E0200"),
+            "the missing `Failed` variant must still surface: {ty_errs:?}"
+        );
+    }
+
+    #[test]
+    fn typo_qualified_head_is_e0220() {
+        // A qualified head `Feed.Loadign` parses as a `Constructor` with a
+        // 2-segment path and no args; the last segment is the variant name and
+        // must escalate identically to the bare and payload-bearing forms.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Feed.Loading => 1,
+    Feed.Loaded => 2,
+    Feed.Loadign => 3,
+  }
+}
+"#;
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
+        let e0220 = ty_errs
+            .iter()
+            .find(|e| e.code() == "E0220")
+            .unwrap_or_else(|| panic!("expected E0220 for the qualified typo; got {ty_errs:?}"));
+        let TypeError::UnknownVariantPattern {
+            name,
+            union,
+            suggestion,
+            ..
+        } = e0220
+        else {
+            panic!("expected UnknownVariantPattern, got {e0220:?}");
+        };
+        assert_eq!(name, "Loadign");
+        assert_eq!(union, "Feed");
+        assert_eq!(suggestion.as_deref(), Some("Loading"));
+        assert!(
+            ty_errs.iter().any(|e| e.code() == "E0200"),
+            "the missing `Failed` variant must still surface: {ty_errs:?}"
+        );
+    }
+
+    #[test]
+    fn lowercase_binding_catch_all_stays_exhaustive() {
+        // A lowercase bare head is a binding, an irrefutable catch-all — it
+        // absorbs the rest of the union with no error, unchanged by E0220.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    rest => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            errs.is_empty(),
+            "a lowercase binding catch-all is exhaustive: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn all_correct_variants_draw_no_e0220() {
+        // The happy path: every arm names a real variant. No spurious E0220.
+        let src = r#"module x
+type Feed = | Loading | Loaded | Failed
+fn show(f: Feed) -> number {
+  return match f {
+    Loading => 1,
+    Loaded => 2,
+    Failed => 3,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        assert!(
+            !errs.iter().any(|e| e.code() == "E0220"),
+            "correct variant names must not draw E0220: {errs:?}"
         );
     }
 

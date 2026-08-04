@@ -45,6 +45,15 @@ string-literal union must cover every case (E0200 lists the missing ones). A
 `match` over an unbounded `number`/`string` can never be exhaustive, so it needs
 an `else` (E0218).
 
+**E0220: unknown variant in a `match` arm.** A PascalCase arm head that names no
+variant of the union you are matching, usually a typo (`Loadign` for `Loading`)
+or a variant from the wrong union. Glyph reads a capitalized bare head as a
+variant reference, not a fresh binding, so it does not silently swallow the arm;
+the message suggests the nearest real variant when one is close. A lowercase head
+(`rest`) is still a binding. This is caught for a module-local union whose type is
+known at the match; a union imported from another module is checked for coverage
+but not yet for this typo.
+
 **E0105: `N` is not exported by `M`.** The name you imported is either
 misspelled or private. Declarations are module-private by default; mark the one
 you want to expose `pub` in its own module.

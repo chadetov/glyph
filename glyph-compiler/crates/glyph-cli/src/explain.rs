@@ -206,6 +206,23 @@ pub fn explain(code: &str) -> Option<&'static str> {
               ssn: string,   // the name must match a real field\n\
             }",
 
+        "E0220" => "E0220: unknown variant in a `match` arm\n\n\
+            A bare `match` arm head is read by shape (the same rule the resolver \
+            uses): a lowercase name (`x`, `rest`) is a fresh binding, while a \
+            PascalCase name (`Loading`) is a variant reference. A PascalCase head \
+            that names no variant of the scrutinee's union is a typo or a \
+            wrong-union variant, not a binding.\n\n\
+            Left as a binding it would act as a silent catch-all (masking a \
+            missing variant and misrouting values at runtime), so Glyph escalates \
+            it to an error and suggests the nearest real variant:\n\n\
+            type Feed = | Loading | Loaded | Failed\n\
+            match f {\n  \
+              Loading => 1,\n  \
+              Loadign => 2,   // E0220: did you mean `Loading`?\n\
+            }\n\n\
+            Fix the spelling, or add the variant to the union. A genuinely \
+            missing variant is still reported separately as E0200.",
+
         // ----- emitter (E03xx) -----
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -236,7 +253,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0105", "E0106", "E0107", "E0108", "E0109", "E0200", "E0201", "E0202", "E0203", "E0204",
     "E0205",
     "E0206", "E0207", "E0208",
-    "E0209", "E0210", "E0211", "E0212", "E0218", "E0219", "E0300", "E0310",
+    "E0209", "E0210", "E0211", "E0212", "E0218", "E0219", "E0220", "E0300", "E0310",
 ];
 
 #[cfg(test)]

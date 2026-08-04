@@ -436,3 +436,17 @@ directly surfaced one new gap.
 
   Recommendation deferred to the orchestrator. Option 1 is the principled fix and
   closes the parallel exhaustiveness hole; option 3 is the current shipped stance.
+
+  *Module-local subset closed (E0220).* The related **module-local** hole — a
+  PascalCase arm head that is not a variant of a *decidable, same-module* union
+  was read as a silent binding catch-all, so a typo like `Loadign` (for `Loading`)
+  passed exhaustiveness and swallowed the real missing-variant error — is now
+  fixed independently of this fork. `check_patterns_exhaustive` escalates such a
+  head to `UnknownVariantPattern` (E0220) with a nearest-variant suggestion for
+  all three arm shapes — bare `Loadign`, payload-bearing `Loadign(x)`, and
+  qualified `Feed.Loadign` — and no longer marks it a catch-all, so a genuinely
+  missing variant still surfaces as E0200. This needed no cross-module data (the
+  scrutinee's variant set is already known locally), so it does not touch the G22
+  decision: the `is TypeName` guard path and imported/cross-module coverage
+  remain the open
+  forks above.

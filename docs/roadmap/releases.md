@@ -336,9 +336,10 @@ that shipped in 0.1.11 (the README only updates on publish). No code changes.
 
 ## hookrelay dogfood trip — eliminate the extern (0.1.33 → 0.1.35)
 
-**Status: 0.1.33 and 0.1.34 landed on `main`; 0.1.35 (Next) remains.** The
-improve-glyph loop applied to a real networked app: `hookrelay`, a webhook
-receiver and dispatcher, built end to end in Glyph — like
+**Status: all three trips landed on `main` (0.1.33 and 0.1.34 published; 0.1.35
+pending a publish). All sixteen findings closed.** The improve-glyph loop applied
+to a real networked app: `hookrelay`, a webhook receiver and dispatcher, built
+end to end in Glyph — like
 `examples/apps/tasks.glyph` (0.1.25) but harder (raw-body HMAC verification, a
 recursive and/or/not rule engine, bounded-concurrency dispatch with retry,
 lossless NDJSON round-trip, a subcommand CLI with exit codes). All 16 findings
@@ -439,38 +440,38 @@ normal closure, and short calls stop exploding to one argument per line.
   layout still round-trips and is idempotent. Little snapshot churn (formatter
   output is not snapshotted; two formatting-shape tests updated).
 
-### 0.1.35 — Planned · Interop & concurrency (the design-heavy set)
+### 0.1.35 — Landed on main · Interop & concurrency (the design-heavy set)
 
-**Needs a new dogfood target** that legitimately requires hand-written TS (a
-worker-threads job, or a library that ships no types) — 0.1.33 removes
-hookrelay's extern, so this trip proves itself on a different app.
+**Status: all three on `main` (pending an npm publish).** The last four findings
+closed, so all sixteen from the hookrelay build are now fixed. Interop is
+first-class in both directions, and bounded concurrency is a one-liner.
 
-- **First-class local-`.ts` interop — Option A** (L, F8 + F16, touches D15) —
-  **decision made: a sanctioned `extern/` mechanism, not general relative
-  imports.** Interop today is one-directional: a `.ts` file importing *compiled*
-  Glyph works, but a Glyph module cannot import a hand-written local `.ts` at
-  runtime (relative imports are banned by D15/E0101, a bare specifier only
-  resolves through `node_modules`, and `.types/` gives types only). Add a reserved
-  specifier (e.g. `import extern/foo`) that resolves to a project `extern/`
-  directory; `glyph build` copies those `.ts` verbatim into the output **and the
-  stale-output clean pass preserves them** (today it deletes any output `.ts` it
-  did not itself emit, silently un-staging hand-placed files — F16). Keeps
-  D15/greppability intact while making the direction first-class both ways.
-  Resolver + `build.rs` + a spec note; the one item in the trip touching the spec.
-- **Bounded concurrency in `std/task`** (M, F13) — `par.all` and `task.all` are
-  all-at-once; there is no pool/semaphore, so "at most N in flight" had to be
-  hand-rolled as slice-into-N batches (correct, verified at N=4 against a sink, but
-  a slow item in a batch stalls the next batch). Add `task.pool(limit, tasks)` (or
-  `par.all_bounded(limit, tasks)`), extending the 0.1.16 `std/task`. Gate:
-  dispatch-style code drops the manual batching for a one-liner and still caps at N.
-- **Richer node shims / the `@types/node` path** (M, F14, extends the tracked
-  consistency item) — the bundled `http` shim types `req.on` for only
-  `"data"`/`"end"` (no `"error"`) and `server.listen` as single-argument, so a
-  correct hand-written extern does not `tsc` against the generated tsconfig. With
-  F15 fixed, either expand the shims to the common server surface
-  (`req.on("error")`, `listen(port, cb)`, `timers`, `child_process`) or make
-  installed `@types/node` the supported, green path for extern code. Gate: the new
-  dogfood app's extern type-checks cleanly and survives rebuilds.
+- **First-class local-`.ts` interop — Option A** (L, F8 + F16, touches D15) — ✅
+  **done.** A reserved import prefix `extern/<name>` imports a hand-written `.ts`
+  under `<src>/extern/`. The build stages `<src>/extern/**` into the output, the
+  emitter emits a relative specifier for it (like a sibling module), and the
+  stale-output prune pass skips `extern/` so a rebuild never deletes it (it used
+  to remove any output `.ts` it did not itself emit — F16). `tsc` type-checks the
+  extern with the Glyph code, so a wrong argument is a real error mapped to
+  `.glyph` source. Keeps the no-relative-import rule (D15) intact for Glyph source
+  and is greppable by `import extern/`. Resolver-free (an unknown-module import was
+  already permitted); emitter + `build.rs` + `runtime.rs` + a D15 spec note and an
+  external-imports guide section. Integration test covers import, type
+  enforcement, and rebuild preservation.
+- **Bounded concurrency in `std/task`** (M, F13) — ✅ **done.** `task.pool(limit,
+  tasks)` runs the thunks with at most `limit` in flight and joins the results in
+  order (fail-fast like `all`); a worker pool pulls from a shared index, so a fast
+  task starts the next immediately rather than waiting for a batch boundary. A run
+  test tracks the peak in-flight count through a store and asserts the pool never
+  exceeds the limit.
+- **Richer node shims for extern** (M, F14) — ✅ **done.** The bundled `http` shim
+  now declares `req.on("error")`, `server.listen(port, callback?)`,
+  `server.close(callback?)`, and optional `writeHead`/`end` args, matching
+  `@types/node`'s shapes. A realistic extern http server (stream reads, an error
+  handler, `listen` with a callback) type-checks against the shim with nothing
+  installed; installed `@types/node` still supplies the full surface (its crypto
+  conflict was fixed in 0.1.33, F15). Integration test plus a no-regression check
+  on the `std/http` server tests.
 
 *Sequencing:* F12 depends on F11; F16 pairs with F8; F14 is unblocked by F15. Risk
 rises across the three — 0.1.33 additive, 0.1.34 core-compiler but self-contained

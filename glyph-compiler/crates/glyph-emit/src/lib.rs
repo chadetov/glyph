@@ -324,6 +324,11 @@ fn is_nested_variant_arg(p: &Pattern) -> bool {
 enum ArmTerm {
     Return,
     Break,
+    /// A value-position `match` lowered as a statement `switch`: a value arm
+    /// assigns the binding in `self.assign_target` (then breaks), while a block
+    /// arm's `return` still returns from the function. Lets `let x = match { ...
+    /// None => return Err(e) }` compile without an IIFE capturing the `return`.
+    Assign,
 }
 
 /// Project context the emitter needs to resolve cross-module import specifiers.
@@ -404,6 +409,7 @@ pub fn emit_module_mapped(
         used_schema: Rc::new(Cell::new(false)),
         used_infer_output: Rc::new(Cell::new(false)),
         desc_param_guards: RefCell::new(Vec::new()),
+            assign_target: RefCell::new(None),
         return_cast: None,
         emit_export: "export ",
         loop_labels: Vec::new(),
@@ -446,6 +452,11 @@ struct Emitter<'a> {
     /// threaded checker instead of a presence check. Empty for non-generic
     /// descriptors (the common case), so their emission is unchanged.
     desc_param_guards: RefCell<Vec<(String, String)>>,
+    /// The binding a value-position `match` lowered as a statement `switch`
+    /// assigns to (`ArmTerm::Assign`). Set only while such a `switch` is emitted
+    /// (save/restore around it), so its value arms assign the binding and its
+    /// `return` arms still return from the function.
+    assign_target: RefCell<Option<String>>,
     /// The declared return type (rendered) the current function's `return`
     /// values must be cast to, set only when that type mentions `infer_output<S>`
     /// (D28) — a combinator asserting a dynamically-built value matches the
@@ -509,6 +520,7 @@ impl<'a> Emitter<'a> {
             // Descriptor field checks are generated on the main emitter, never a
             // sub-emitter (lambda/IIFE) body, so a sub starts with no guards.
             desc_param_guards: RefCell::new(Vec::new()),
+            assign_target: RefCell::new(None),
             // A sub-emitter (lambda body, value-position match IIFE) does not
             // inherit the function's return cast; its returns are not the
             // function's. `emit_fn_block` sets it from the lambda's own type.
@@ -1392,11 +1404,32 @@ impl<'a> Emitter<'a> {
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
-                // `emit_value` hoists any `?` in the initializer first, so both
-                // a whole-value `?` (`let x = E?`) and a mid-chain `?` (`let x =
-                // await f()?.g()`) propagate the `Err` and bind the `Ok` payload.
-                let value = self.emit_value(&l.value)?;
-                self.line(&format!("let {}{ty} = {value};", l.name));
+                match &l.value {
+                    // `let x = match { ... }` where an arm is a block (so it may
+                    // `return` from the function) can't lower to a value IIFE — the
+                    // arrow would capture the `return`. Declare the binding, then
+                    // lower the match as a statement `switch` whose value arms
+                    // assign it and whose `return` arms return from the function.
+                    // The `default: throw` on an exhaustive switch keeps `tsc`'s
+                    // definite-assignment happy.
+                    Expr::Match { scrutinee, arms, .. }
+                        if arms.iter().any(|a| matches!(a.body, MatchArmBody::Block(_))) =>
+                    {
+                        self.line(&format!("let {}{ty};", l.name));
+                        let prev = self.assign_target.borrow_mut().replace(l.name.to_string());
+                        let res = self.emit_match_dispatch(scrutinee, arms, ArmTerm::Assign);
+                        *self.assign_target.borrow_mut() = prev;
+                        res?;
+                    }
+                    _ => {
+                        // `emit_value` hoists any `?` in the initializer first, so
+                        // both a whole-value `?` (`let x = E?`) and a mid-chain `?`
+                        // (`let x = await f()?.g()`) propagate the `Err` and bind
+                        // the `Ok` payload.
+                        let value = self.emit_value(&l.value)?;
+                        self.line(&format!("let {}{ty} = {value};", l.name));
+                    }
+                }
             }
             Stmt::Mut(m) => {
                 let s = match &m.kind {
@@ -2875,7 +2908,7 @@ impl<'a> Emitter<'a> {
             // needs the outer break after it.
             Stmt::Expr(Expr::Match { scrutinee, arms, .. }) => {
                 self.emit_match_dispatch(scrutinee, arms, term)?;
-                if matches!(term, ArmTerm::Break) && break_on_fall {
+                if matches!(term, ArmTerm::Break | ArmTerm::Assign) && break_on_fall {
                     self.line("break;");
                 }
             }
@@ -2894,6 +2927,13 @@ impl<'a> Emitter<'a> {
                             self.line("break;");
                         }
                     }
+                    ArmTerm::Assign => {
+                        let t = self.assign_target.borrow().clone().unwrap_or_default();
+                        self.line(&format!("{t} = {r}.{PAYLOAD};"));
+                        if break_on_fall {
+                            self.line("break;");
+                        }
+                    }
                 }
             }
             // A tail bare expression is the block's value.
@@ -2907,6 +2947,13 @@ impl<'a> Emitter<'a> {
                             self.line("break;");
                         }
                     }
+                    ArmTerm::Assign => {
+                        let t = self.assign_target.borrow().clone().unwrap_or_default();
+                        self.line(&format!("{t} = {v};"));
+                        if break_on_fall {
+                            self.line("break;");
+                        }
+                    }
                 }
             }
             // A tail that already exits the function or loop emits unchanged; no
@@ -2916,7 +2963,7 @@ impl<'a> Emitter<'a> {
             // a `switch` case, break afterward.
             other => {
                 self.emit_stmt(other)?;
-                if matches!(term, ArmTerm::Break) && break_on_fall {
+                if matches!(term, ArmTerm::Break | ArmTerm::Assign) && break_on_fall {
                     self.line("break;");
                 }
             }
@@ -2949,7 +2996,7 @@ impl<'a> Emitter<'a> {
                 // one: the nested arms only `break` themselves. When the nested
                 // match diverges (every arm returns/throws) this break is
                 // unreachable but valid.
-                if matches!(term, ArmTerm::Break) && break_on_fall {
+                if matches!(term, ArmTerm::Break | ArmTerm::Assign) && break_on_fall {
                     self.line("break;");
                 }
             }
@@ -2959,6 +3006,13 @@ impl<'a> Emitter<'a> {
                     ArmTerm::Return => self.line(&format!("return {s};")),
                     ArmTerm::Break => {
                         self.line(&format!("{s};"));
+                        if break_on_fall {
+                            self.line("break;");
+                        }
+                    }
+                    ArmTerm::Assign => {
+                        let t = self.assign_target.borrow().clone().unwrap_or_default();
+                        self.line(&format!("{t} = {s};"));
                         if break_on_fall {
                             self.line("break;");
                         }
@@ -5763,17 +5817,21 @@ mod tests {
     }
 
     #[test]
-    fn value_position_block_arm_is_unsupported() {
-        let err = emit_err(
-            "module x\npub type E = A | B\npub fn f(e: E) -> number {\n  let x = match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n  return x\n}\n",
+    fn value_position_block_arm_lowers_to_a_switch() {
+        // F5: `let x = match { ... None => return Err(...) }` (a block arm that
+        // returns from the function) lowers to a statement `switch` that declares
+        // and assigns the binding, not a value IIFE that would capture the
+        // `return`.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok, Err }\nimport std/option { Option, Some, None }\npub fn f(o: Option<string>) -> Result<string, string> {\n  let x = match o {\n    Some(s) => s,\n    None => return Err(\"none\"),\n  }\n  return Ok(x)\n}\n",
         );
-        assert!(matches!(
-            err,
-            EmitError::Unsupported {
-                construct: "a block body in a value-position match arm",
-                ..
-            }
-        ));
+        assert!(ts.contains("let x"), "the binding is declared up front:\n{ts}");
+        assert!(ts.contains("switch"), "lowered to a statement switch:\n{ts}");
+        assert!(ts.contains("x = s;"), "a value arm assigns the binding:\n{ts}");
+        assert!(
+            ts.contains("return Err(\"none\");"),
+            "the return arm returns from the function, not an arrow:\n{ts}"
+        );
     }
 
     #[test]

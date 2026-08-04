@@ -496,12 +496,15 @@ fn build_reports_emit_diagnostic_for_unsupported_construct() {
     let root = unique_tmp("emit_unsupported");
     let src = root.join("src");
     let out = root.join("dist");
-    // A value-position block-body match arm is a later week-4 day; the build
-    // should surface a diagnostic and NOT write a .ts file for this module.
+    // A block-body match arm in a sub-expression value position (a call
+    // argument) still lowers to a value IIFE, which cannot capture a
+    // function-level `return`; the build should surface a diagnostic and NOT
+    // write a .ts file for this module. (A `let x = match { ... }` block arm is
+    // supported via the statement-switch lowering; nested in a call it is not.)
     write_file(
         &src,
         "main.glyph",
-        "module main\ntype E = A | B\nfn f(e: E) -> number {\n  let x = match e {\n    A => { return 0 },\n    B => { return 1 },\n  }\n  return x\n}\n",
+        "module main\ntype E = A | B\nfn wrap(n: number) -> number {\n  return n\n}\nfn f(e: E) -> number {\n  let x = wrap(match e {\n    A => { return 0 },\n    B => { return 1 },\n  })\n  return x\n}\n",
     );
 
     let report = build_project_inner(&src, &out, false).expect("build_project ok");
@@ -1881,6 +1884,71 @@ fn run_executes_main_and_propagates_exit_code() {
         glyph_cli::run::RunOutcome::TscMissing => {
             unreachable!("run was --no-check, so tsc is never required");
         }
+    }
+}
+
+#[test]
+fn value_position_match_with_return_arm_runs() {
+    // F5: `let x = match { ... None => return Err(e) }` type-checks (tsc) and runs
+    // with function-return semantics; a value-tail block arm assigns the binding.
+    if !js_toolchain_available() {
+        eprintln!("skipping value-position-match run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("valmatch");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+import std/result { Result, Ok, Err }
+import std/option { Option, Some, None }
+
+fn require_op(v: Option<string>) -> Result<string, string> {
+  let op = match v {
+    Some(o) => o,
+    None => return Err("missing"),
+  }
+  return Ok("op=" + op)
+}
+
+fn label(n: number) -> string {
+  let tag = match n > 0 {
+    true => {
+      let sign = "pos"
+      "sign:" + sign
+    },
+    false => "nonpos",
+  }
+  return tag
+}
+
+fn main(argv: Array<string>) -> number {
+  let ok = match require_op(Some("push")) { Ok(s) => s == "op=push", Err(_) => false, }
+    && match require_op(None) { Ok(_) => false, Err(e) => e == "missing", }
+    && label(5) == "sign:pos"
+    && label(-1) == "nonpos"
+  return match ok {
+    true => 0,
+    false => 1,
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok") {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "value-position match with a return arm dispatched wrong");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping value-position-match run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("value-position-match program failed to build: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
 

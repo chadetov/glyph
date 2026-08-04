@@ -530,6 +530,16 @@ declaration file under `<src>/.types/`. Anything matching
 `<src>/.types/**/*.d.ts` is auto-discovered and type-checked with your build.
 (Full guide with a worked example: `docs/guide/external-imports.md`.)
 
+To write **whole hand-written TypeScript** a Glyph module calls (an idiom Glyph
+can't spell, a node-stream loop, a `new Promise`), put the `.ts` under
+`<src>/extern/` and import it as `import extern/<name>`. The build stages
+`<src>/extern/**` into the output and emits a relative specifier, so the file is
+type-checked (its exported types enforce your Glyph calls) and resolved at
+runtime, and a rebuild never prunes it. This is the only way a Glyph module
+imports a local `.ts`: relative imports are illegal (D15), so `extern/*` is the
+reserved, greppable path. (`extern_ts("...")` is the smaller escape hatch, for a
+single inline type or expression rather than a module.)
+
 A class-based client is instantiated with `new`, which Glyph has for exactly
 this interop and nothing else: `import kafkajs { Kafka }` then
 `let k = new Kafka({ clientId: "app", brokers: [b], })`. `new <callee>(<args>)`

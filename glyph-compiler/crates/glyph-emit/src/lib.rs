@@ -1058,8 +1058,12 @@ impl<'a> Emitter<'a> {
             .join("/");
         // A project (sibling) module must be imported by a relative specifier so
         // `tsc`/`tsx` resolve it against the emitted file tree; `std/*` stays
-        // bare (tsconfig-mapped) and an external npm package stays bare too.
-        let spec = if self.ctx.project_modules.contains(&path) {
+        // bare (tsconfig-mapped) and an external npm package stays bare too. An
+        // `extern/*` import names a hand-written `.ts` file the build stages into
+        // `<out>/extern/`; it emits a relative specifier like a sibling so the
+        // same resolution finds it (this is the sanctioned way to reach
+        // hand-written TypeScript without a relative import in Glyph source).
+        let spec = if self.ctx.project_modules.contains(&path) || path.starts_with("extern/") {
             relative_specifier(self.ctx.module_path, &path)
         } else {
             path

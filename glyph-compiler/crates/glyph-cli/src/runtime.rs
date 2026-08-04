@@ -326,6 +326,15 @@ pub fn write_build_support(out: &Path, src: &Path) -> std::io::Result<()> {
     if src_types.is_dir() {
         copy_dir(&src_types, &out.join(".types"))?;
     }
+
+    // Hand-written TypeScript a Glyph module reaches through an `import extern/*`
+    // lives in `<src>/extern/`. Stage it verbatim into `<out>/extern/` so the
+    // emitted relative specifier resolves and the tsconfig type-checks it; the
+    // prune pass skips `extern/`, so it survives a rebuild.
+    let src_extern = src.join("extern");
+    if src_extern.is_dir() {
+        copy_dir(&src_extern, &out.join("extern"))?;
+    }
     Ok(())
 }
 

@@ -1888,6 +1888,61 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn extern_ts_module_is_imported_typed_and_preserved() {
+    // F8/F16: a Glyph module reaches hand-written TypeScript through
+    // `import extern/*`. The `.ts` in `<src>/extern/` is staged into the output,
+    // type-checked (its types enforce the Glyph call), and preserved across a
+    // rebuild (the prune pass must not delete it).
+    if !tsc_available() {
+        eprintln!("skipping extern tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("externimport");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "extern/mathx.ts",
+        "export function triple(n: number): string {\n  return `x3=${n * 3}`;\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/io\nimport extern/mathx { triple }\nfn main(argv: Array<string>) -> number {\n  io.println(triple(7))\n  return 0\n}\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "extern import is well-formed: {:?}", report.diagnostics);
+    let staged = out.join("extern").join("mathx.ts");
+    assert!(staged.exists(), "the extern .ts is staged into the output");
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("extern program failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+
+    // A rebuild must preserve the staged extern (F16: the prune pass used to
+    // delete any output .ts it did not itself emit).
+    build_project_inner(&src, &out, false).expect("rebuild ok");
+    assert!(staged.exists(), "the extern .ts survives a rebuild");
+
+    // Its types are enforced: a wrong-typed call is a real tsc error.
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/io\nimport extern/mathx { triple }\nfn main(argv: Array<string>) -> number {\n  io.println(triple(\"nope\"))\n  return 0\n}\n",
+    );
+    build_project_inner(&src, &out, false).expect("build ok");
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Failed(_) => {}
+        TscOutcome::Passed => panic!("a string passed to triple(n: number) should fail tsc"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn task_pool_bounds_concurrency() {
     // F13: task.pool(limit, tasks) runs the thunks with at most `limit` in
     // flight and joins the results in order. The program tracks the peak in-flight

@@ -422,7 +422,10 @@ fn collect_ts_outputs(
         })?;
         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
         if meta.is_dir() {
-            if name.starts_with('.') {
+            // Skip dot-dirs (the runtime, `.types`) and `extern/`: the latter
+            // holds hand-written `.ts` the build staged, which it must never
+            // prune (F16). A Glyph module never emits into `extern/`.
+            if name.starts_with('.') || name == "extern" {
                 continue;
             }
             collect_ts_outputs(root, &path, out)?;

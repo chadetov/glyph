@@ -361,6 +361,50 @@ async fn main() -> void {
 }
 ```
 
+## Hand-written TypeScript modules: `import extern/*`
+
+`.types/` gives the type-checker *types* for a module that already exists at
+runtime (an npm package, a Node builtin). Sometimes you need to write the runtime
+code yourself in TypeScript: an idiom Glyph's grammar can't spell, a node-stream
+loop, a `new Promise`, a worker thread. Glyph forbids relative imports (D15), and
+a bare specifier only resolves through `node_modules`, so there is one reserved
+path for this: put the `.ts` under `<src>/extern/` and import it as
+`import extern/<name>`.
+
+```
+src/
+  main.glyph
+  extern/
+    raw_server.ts     // hand-written TypeScript
+```
+
+```ts
+// src/extern/raw_server.ts
+export function serve_raw(port: number, handler: (raw: string) => string): void {
+  // node http, stream reads, whatever Glyph can't express
+}
+```
+
+```glyph
+module main
+import extern/raw_server { serve_raw }
+// serve_raw is typed from the .ts; a wrong argument is a real tsc error.
+```
+
+The build stages `<src>/extern/**` verbatim into the output and emits a
+**relative** specifier for the import, so the file resolves at build and run time
+and `tsc` type-checks it together with your Glyph code: the extern's exported
+types enforce your calls, and a wrong argument is a real error mapped back to the
+`.glyph` source. The prune pass that clears stale output never touches
+`extern/`, so a rebuild keeps it.
+
+This is the one supported way a Glyph module imports a local `.ts`. It is
+deliberately narrow and greppable (`grep -rn 'import extern/'` finds every place
+you left the language), and it is the inverse of the common direction, a `.ts`
+file importing your compiled Glyph, which needs nothing special. Reach for it
+only for genuine runtime code Glyph can't express; for a single inline type or
+expression, `extern_ts("...")` below is lighter.
+
 ## The escape hatch: `extern_ts` for types Glyph can't spell
 
 Some TypeScript idioms have no Glyph form, most often a value-derived type like

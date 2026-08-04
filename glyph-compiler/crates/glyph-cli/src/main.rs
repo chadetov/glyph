@@ -74,6 +74,9 @@ enum Command {
     Fmt {
         #[arg(value_name = "PATH")]
         path: Option<std::path::PathBuf>,
+        /// Do not write; exit non-zero if any file is not already formatted.
+        #[arg(long)]
+        check: bool,
     },
     /// Apply safe autofixes in place (today: remove imports whose every name is
     /// unused). Scans a directory or a single file (default: the current dir).
@@ -390,15 +393,27 @@ fn main() {
                 }
             }
         }
-        Some(Command::Fmt { path }) => {
+        Some(Command::Fmt { path, check }) => {
             let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
-            match glyph_cli::fmt::format_path(&target) {
+            match glyph_cli::fmt::format_path(&target, check) {
                 Ok(report) => {
                     for (file, reason) in &report.failed {
                         eprintln!("glyph fmt: skipped {} (parse error: {reason})", file.display());
                     }
                     for file in &report.formatted {
-                        eprintln!("formatted {}", file.display());
+                        let verb = if check { "would reformat" } else { "formatted" };
+                        eprintln!("{verb} {}", file.display());
+                    }
+                    if check {
+                        eprintln!(
+                            "glyph fmt --check: {} would reformat, {} already formatted, {} failed",
+                            report.formatted.len(),
+                            report.unchanged.len(),
+                            report.failed.len()
+                        );
+                        // Non-zero if anything is unformatted or unparseable.
+                        let clean = report.formatted.is_empty() && report.failed.is_empty();
+                        std::process::exit(if clean { 0 } else { 1 });
                     }
                     eprintln!(
                         "glyph fmt: {} formatted, {} already formatted, {} failed",

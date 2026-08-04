@@ -76,6 +76,7 @@ above) — everyone on the team then builds against the same TypeScript.
 | `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict` |
 | `glyph build <src> --out <dir> --test` | Also run every `@example` and `@doc @run` test |
 | `glyph fmt [path]` | Format files in place (the one canonical layout) |
+| `glyph fmt --check [path]` | Check formatting for CI: writes nothing, exits non-zero if any file is unformatted |
 | `glyph canonical <file>` | Print the agent canonical view (stable line numbers + per-declaration fingerprints) |
 | `glyph publish [dir]` | Audit-gate, build, and type-check a package for `npm publish` |
 | `glyph doctor` | Check the JavaScript toolchain (node/tsx/tsc present + new enough) |

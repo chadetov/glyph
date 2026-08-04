@@ -2099,7 +2099,7 @@ fn fmt_normalizes_a_comment_free_file_in_place() {
         "module messy\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n",
     );
     let file = root.join("messy.glyph");
-    let report = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    let report = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
     assert_eq!(report.formatted.len(), 1, "expected one file formatted");
 
     let after = std::fs::read_to_string(&file).unwrap();
@@ -2107,8 +2107,33 @@ fn fmt_normalizes_a_comment_free_file_in_place() {
     assert!(glyph_parser::parse(&after).is_ok(), "formatted file must parse");
 
     // Idempotent: a second pass changes nothing.
-    let report2 = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    let report2 = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
     assert_eq!(report2.formatted.len(), 0, "second pass should be a no-op");
+    assert_eq!(report2.unchanged.len(), 1);
+}
+
+#[test]
+fn fmt_check_reports_without_writing() {
+    // F1: `glyph fmt --check` reports a file that would reformat but leaves it
+    // untouched, and calls a canonical file clean.
+    let root = unique_tmp("fmtcheck");
+    let messy = "module messy\nfn   f(a:number)->number{return a}\n";
+    write_file(&root, "messy.glyph", messy);
+    let file = root.join("messy.glyph");
+
+    // check mode: reports one would-reformat, writes nothing.
+    let report = glyph_cli::fmt::format_path(&file, true).expect("fmt ok");
+    assert_eq!(report.formatted.len(), 1, "the messy file would reformat");
+    assert_eq!(
+        std::fs::read_to_string(&file).unwrap(),
+        messy,
+        "--check must not modify the file"
+    );
+
+    // Format it for real, then --check reports it clean.
+    glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
+    let report2 = glyph_cli::fmt::format_path(&file, true).expect("fmt ok");
+    assert_eq!(report2.formatted.len(), 0, "a canonical file is clean under --check");
     assert_eq!(report2.unchanged.len(), 1);
 }
 
@@ -2118,7 +2143,7 @@ fn fmt_preserves_comments() {
     let original = "module c\n// keep this comment\nfn f() -> number { return 1 }\n";
     write_file(&root, "commented.glyph", original);
     let file = root.join("commented.glyph");
-    let report = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    let report = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
     assert!(report.failed.is_empty(), "should not fail: {:?}", report.failed);
     let after = std::fs::read_to_string(&file).unwrap();
     assert!(
@@ -2128,7 +2153,7 @@ fn fmt_preserves_comments() {
     assert!(glyph_parser::parse(&after).is_ok(), "formatted file must parse");
 
     // Idempotent: a second pass changes nothing.
-    let report2 = glyph_cli::fmt::format_path(&file).expect("fmt ok");
+    let report2 = glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
     assert_eq!(
         report2.formatted.len(),
         0,

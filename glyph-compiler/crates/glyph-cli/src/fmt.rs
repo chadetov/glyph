@@ -1,10 +1,14 @@
-//! `glyph fmt` — format Glyph source in place.
+//! `glyph fmt` — format Glyph source in place, or check formatting (`--check`).
 //!
 //! A path may be a single `.glyph` file or a directory (walked recursively,
 //! skipping dot-directories and `target/`, mirroring `glyph build`). Each file
 //! is parsed and reprinted in the one canonical layout; a file whose contents
 //! already match is left untouched. A file that fails to parse is reported and
 //! skipped — formatting never writes output derived from unparseable source.
+//!
+//! In `--check` mode nothing is written: a file whose layout would change is
+//! still recorded in `formatted` (read it as "would be formatted"), so the CLI
+//! can exit non-zero for CI without touching the tree.
 
 use std::path::{Path, PathBuf};
 
@@ -33,8 +37,9 @@ pub struct FmtReport {
     pub failed: Vec<(PathBuf, String)>,
 }
 
-/// Format `path` (a file or directory tree) in place.
-pub fn format_path(path: &Path) -> Result<FmtReport, FmtError> {
+/// Format `path` (a file or directory tree) in place. With `check`, no file is
+/// written; a file that would change is still recorded in `formatted`.
+pub fn format_path(path: &Path, check: bool) -> Result<FmtReport, FmtError> {
     if !path.exists() {
         return Err(FmtError::Missing(path.to_path_buf()));
     }
@@ -61,10 +66,12 @@ pub fn format_path(path: &Path) -> Result<FmtReport, FmtError> {
                 if formatted == src {
                     report.unchanged.push(file);
                 } else {
-                    std::fs::write(&file, formatted).map_err(|e| FmtError::Io {
-                        path: file.clone(),
-                        source: e,
-                    })?;
+                    if !check {
+                        std::fs::write(&file, formatted).map_err(|e| FmtError::Io {
+                            path: file.clone(),
+                            source: e,
+                        })?;
+                    }
                     report.formatted.push(file);
                 }
             }

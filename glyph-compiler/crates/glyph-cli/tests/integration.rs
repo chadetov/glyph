@@ -998,6 +998,44 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn stale_node_shim_is_removed_when_types_node_appears() {
+    // F15: a build with no @types/node writes the bundled node shim. If
+    // @types/node is installed later, the next build must remove that stale shim.
+    // The tsconfig `include` globs `.glyph-runtime/**/*.d.ts` unconditionally, so
+    // a lingering shim's `declare module "node:crypto"` merges with
+    // @types/node's and resolves `randomBytes(n).toString("hex")` to a 0-arg
+    // `toString`, reddening the whole build (std/crypto.ts TS2554).
+    let root = unique_tmp("stale_shim");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport std/crypto\n\nfn main(argv: Array<string>) -> number {\n  print(crypto.random_hex(8))\n  return 0\n}\n",
+    );
+
+    // First build, no @types/node: the shim is written.
+    build_project_inner(&src, &out, false).expect("build ok");
+    let shim = out.join(".glyph-runtime/glyph-node-shims.d.ts");
+    assert!(shim.exists(), "shim is written when @types/node is absent");
+
+    // @types/node appears in the project.
+    write_file(
+        &src,
+        "node_modules/@types/node/package.json",
+        r#"{ "name": "@types/node", "version": "26.0.0", "types": "index.d.ts" }"#,
+    );
+    write_file(&src, "node_modules/@types/node/index.d.ts", "// minimal\n");
+
+    // The next build must remove the stale shim so it can't merge-conflict.
+    build_project_inner(&src, &out, false).expect("build ok after @types/node");
+    assert!(
+        !shim.exists(),
+        "stale bundled node shim must be removed once @types/node is present"
+    );
+}
+
+#[test]
 fn new_constructs_an_external_class_and_type_checks() {
     // D37 interop constructor: `new` on a class declared in a `.types` ambient
     // file type-checks against that constructor under `tsc --strict`, and a

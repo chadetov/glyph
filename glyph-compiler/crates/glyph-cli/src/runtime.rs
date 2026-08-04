@@ -299,13 +299,19 @@ pub fn write_build_support(out: &Path, src: &Path) -> std::io::Result<()> {
     // The bundled Node shim covers the common builtins out of the box. When the
     // project ships `@types/node`, prefer its full, exact typings and skip the
     // shim so its `declare module "fs"` does not collide with `@types/node`'s.
-    if !types_node {
-        let (rel, contents) = NODE_SHIMS;
-        let path = out.join(rel);
-        if let Some(parent) = path.parent() {
+    // When `@types/node` is present we also remove any shim a previous build
+    // wrote while it was absent: a stale shim is still globbed in by the tsconfig
+    // `include`, and its `declare module "node:crypto"` then merges with
+    // `@types/node`'s, resolving `randomBytes(n).toString("hex")` to a 0-arg
+    // `toString` and reddening the whole build (`std/crypto.ts` TS2554).
+    let shim_path = out.join(NODE_SHIMS.0);
+    if types_node {
+        let _ = std::fs::remove_file(&shim_path);
+    } else {
+        if let Some(parent) = shim_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        std::fs::write(path, contents)?;
+        std::fs::write(&shim_path, NODE_SHIMS.1)?;
     }
 
     std::fs::write(

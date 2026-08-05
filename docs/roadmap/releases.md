@@ -989,8 +989,8 @@ The loop pointed at `examples/apps/bracket.glyph`: a single-elimination
 tournament bracket, seeding, results, standings. Twelve findings came out of it,
 six of them re-reports of gaps already on this page. The one worth the release is
 none of the syntax complaints: the app carried its own `@example`s, and the build
-that runs them was reporting success without running them. This trip carries the
-Next marker.
+that runs them was reporting success without running them. The Next marker has
+moved on to the shortlink trip below.
 
 ### 0.1.43 — Shipped · `@example` runs on every build, including `--json`
 
@@ -1046,6 +1046,50 @@ minimal-image build of a project with examples needs either `tsx` installed or
 - **Escaping `$` in a template literal is a docs gap, not a lexer gap** (docs).
   `"${string.join(p, \".\")}"` works today and is regression-tested; the app
   author invented a `const SPACE = " "` around a limitation that does not exist.
+
+## shortlink dogfood trip — a green build running yesterday's shim
+
+The loop pointed at `examples/apps/shortlink.glyph`: shorten a URL, redirect a
+visitor, count the hits. The loudest finding is `std/http`: `Response` is
+`{ status, body }` with no headers, `respond` hard-codes the content type, and
+the constructors are `json` and `text`, so a 302 and an HTML page are both
+unspellable and the server story covers JSON APIs and nothing else. That is a
+real blocker, and it carries a surface-shape decision for the orchestrator. It is
+not what this release fixes, because the trip also turned up the only false
+*green* in the batch, and a stale-cache lie has to go first: shipping
+`http.redirect` would push people to migrate off the shims they wrote to work
+around it, editing `extern/` on every iteration, straight into the bug below.
+This trip carries the Next marker.
+
+### 0.1.44 — Shipped · A change to an `extern` shim busts the `glyph run` cache
+
+`glyph run` keys its build cache on `source_fingerprint`, which hashed every
+`.glyph` file and every `<src>/.types/**/*.d.ts` and stopped there.
+`<src>/extern/**` was not hashed, even though `runtime.rs` stages it verbatim
+into `<out>/extern` and the generated tsconfig type-checks it, the exact
+condition the comment above the `.types` block states as the rule. Because
+staging only runs on the rebuild path, and because the output prune deliberately
+skips `extern/` so a staged shim survives a rebuild, the stale copy also survived
+a cache hit. Editing a hand-written shim and running `glyph run` printed a clean,
+type-checked build and executed the previous version of the TypeScript. Nothing
+on screen told the two apart.
+
+The fingerprint now hashes `<src>/extern/**/*.ts` and `.tsx` the way it hashes
+`.types`: relative path as well as contents, so renaming or deleting a shim busts
+it too. The extern walk follows symlinks, which closes a second door onto the
+same failure. The `.glyph` walker skips symlinks outright, and this app ships a
+symlinked shim in `extern/` today, so a link would otherwise have been invisible
+to the cache. Following reads the target's contents while still hashing the
+link's own path, and a canonical-path set stops a symlink cycle. Five tests pin
+the behaviour: editing, deleting and adding a shim each change the fingerprint, a
+symlinked shim whose target changes changes it, and a README under `extern/`
+does not, so the cache is not busted for files no one type-checks.
+
+Out of scope here, both recorded rather than fixed: `extern/` resolves against a
+build root that differs between `glyph run` and `glyph build` (loud and
+self-announcing, but its fix is a real fork), and whether symlinked `.glyph`
+sources should be walked at all, which is a question about whether they are
+supported, not a bug to patch.
 
 ## Road to 1.0
 

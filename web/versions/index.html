@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.43</span>
+            <span class="rel-ver">0.1.44</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Editing a hand-written shim rebuilds instead of running the old one</h3>
+            <p><code>glyph run</code> caches a build under a fingerprint of your sources so a repeated run of unchanged code just executes. The fingerprint hashed every <code>.glyph</code> file and every <code>.d.ts</code> under <code>.types/</code>, and stopped there. A <code>.ts</code> you wrote yourself under <code>&lt;src&gt;/extern/</code> was left out, even though the build stages it into the output and <code>tsc</code> checks it with the rest of your code. So you edited your shim, ran the program, and got a clean type-checked build of the version you had before the edit. A URL shortener found it: the app declared its response shape twice, once in Glyph and once in the shim, and the <code>tsc</code> pass that was supposed to keep the two in agreement was reading the stale copy.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> The fingerprint hashes every <code>.ts</code> and <code>.tsx</code> under <code>&lt;src&gt;/extern/</code>, by path as well as by contents, so editing a shim, renaming one, adding one, or deleting one rebuilds and re-runs <code>tsc</code>. Before the fix, renaming a field in the shim left the app compiling against the old declaration; now it is a <code>TS2353</code> on the <code>.glyph</code> line that builds the wrong object.</li>
+              <li><span class="tag fixed">Fixed</span> A symlinked shim under <code>extern/</code> is followed, so a <code>.ts</code> that lives outside the source tree is hashed by its target's contents while still counting under its own path. A symlink cycle terminates instead of hanging.</li>
+              <li><span class="tag known">Known</span> A file under <code>extern/</code> that is not <code>.ts</code> or <code>.tsx</code> does not bust the cache, which is intended: a <code>README.md</code> next to your shim is copied into the output with it, but nothing type-checks or runs it, so there is nothing to rebuild. Symlinked <code>.glyph</code> sources are still skipped by the source walker, so keep your Glyph files as real files.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/shortlink.glyph</code>, the app that found it. Shorten a URL, redirect a visitor, count the clicks, with the HTML and the 302 handled by a hand-written server shim that the app now imports its response type from instead of declaring it twice.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.43</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

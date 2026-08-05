@@ -1,0 +1,418 @@
+// shortlink — a URL shortener you can point a browser at.
+//
+// POST a long URL from an HTML form, get back a base62 short code. GET the code
+// and the browser is redirected (302 + Location) to the target; the click is
+// counted. GET the code with a trailing `+` for a stats page. Everything is
+// server-rendered HTML, escaped, and the link table survives a restart.
+//
+// Run it:  glyph run examples/apps/shortlink.glyph
+// Then:
+//   curl -i -X POST localhost:8138/ --data-urlencode 'url=https://example.com/x'
+//   curl -i localhost:8138/<code>
+//   curl localhost:8138/<code>+
+//   open http://localhost:8138/
+//
+// One workaround lives in examples/extern/web.ts: `std/http`'s `Response` is
+// `{ status, body }` with no headers and its server hard-codes
+// `content-type: text/plain`, so there is no way to send `Location:` (no 302,
+// which is this app's whole point) or `text/html` (a browser would show the
+// page source). That file is a transport shim only; the routing, rendering,
+// validation, and storage below are all Glyph.
+
+module main
+
+import extern/web { serve_web, decode_component, WebResponse }
+import std/array
+import std/fs
+import std/http { Request, path, segments, raw }
+import std/io { println }
+import std/json
+import std/option { Option, Some, None }
+import std/random { seeded }
+import std/record
+import std/regex
+import std/result { Result, Ok, Err }
+import std/store { create }
+import std/string
+import std/time
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+type Link = { code: string, target: string, created_at: int, clicks: int }
+
+// `WebResponse` is imported from the shim above: it is the shim's wire contract,
+// so it is declared where the wire is. This is `std/http`'s `Response` plus the
+// two things it does not have and this app cannot work without: a content type
+// and a `Location`. See the note at the top of extern/web.ts.
+
+const HTML_TYPE = "text/html; charset=utf-8"
+
+fn html(status: int, body: string) -> WebResponse {
+  return { status: status, content_type: HTML_TYPE, location: "", body: body }
+}
+
+fn redirect(status: int, location: string) -> WebResponse {
+  return {
+    status: status,
+    content_type: "text/plain; charset=utf-8",
+    location: location,
+    body: "Redirecting to ${location}",
+  }
+}
+
+// The on-disk shape. A record (not a bare array) so `Snapshot.parse` validates
+// the whole file at the boundary where untrusted bytes come back in.
+type Snapshot = { links: Array<Link> }
+
+const DB_PATH = "shortlink.json"
+
+const PORT = 8138
+
+const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+const MAX_ATTEMPTS = 16
+
+const MAX_ALIAS_LEN = 32
+
+// The one piece of shared mutable state. Every change is a greppable
+// `links.set(...)` / `links.update(...)`.
+const links = create<Array<Link>>([])
+
+const rng = seeded(time.now())
+
+// ---------------------------------------------------------------------------
+// Persistence
+// ---------------------------------------------------------------------------
+
+fn load_links(path: string) -> Array<Link> {
+  return match fs.read_text(path) {
+    Ok(text) => match json.parse<Snapshot>(text) {
+      Ok(snapshot) => snapshot.links,
+      Err(issues) => [],
+    },
+    Err(e) => [],
+  }
+}
+
+fn save_links(path: string, current: Array<Link>) -> Result<void, string> {
+  let snapshot: Snapshot = { links: current }
+  return match fs.write_text(path, json.stringify(snapshot, { indent: 2 })) {
+    Ok(nothing) => Ok(nothing),
+    Err(e) => Err(e.message),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Codes
+// ---------------------------------------------------------------------------
+
+fn random_code() -> string {
+  let alphabet: Array<string> = string.split(ALPHABET, "")
+  let out = ""
+  // No range syntax, so a fixed-length loop is a literal array of indices.
+  for _i in [0, 1, 2, 3, 4, 5, 6] {
+    mut out = "${out}${alphabet[rng.int(0, 62)]}"
+  }
+  return out
+}
+
+fn find_link(current: Array<Link>, code: string) -> Option<Link> {
+  return array.find(current, fn(l: Link) -> bool { l.code == code })
+}
+
+fn is_taken(current: Array<Link>, code: string) -> bool {
+  return match find_link(current, code) {
+    Some(existing) => true,
+    None => false,
+  }
+}
+
+// Collision-checked: keep drawing until the code is free, and give up rather
+// than loop forever.
+fn fresh_code(current: Array<Link>) -> Result<string, string> {
+  let attempts = 0
+  loop {
+    let candidate = random_code()
+    match is_taken(current, candidate) {
+      false => {
+        return Ok(candidate)
+      },
+      true => {},
+    }
+    mut attempts = attempts + 1
+    match attempts >= MAX_ATTEMPTS {
+      true => {
+        return Err("Could not find a free code. Try again.")
+      },
+      false => {},
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+// The host of an absolute http(s) URL, or "" when there isn't one.
+fn host_of(url: string) -> string {
+  let after_scheme: Array<string> = string.split(url, "://")
+  return match array.len(after_scheme) < 2 {
+    true => "",
+    false => {
+      let rest = after_scheme[1]
+      let authority: Array<string> = string.split(rest, "/")
+      let no_query: Array<string> = string.split(authority[0], "?")
+      let no_hash: Array<string> = string.split(no_query[0], "#")
+      no_hash[0]
+    },
+  }
+}
+
+// A submitted URL is never stored until it passes here.
+fn validate_url(input: string) -> Result<string, string> {
+  let url = string.trim(input)
+  return match string.len(url) == 0 {
+    true => Err("Enter a URL."),
+    false => match string.starts_with(url, "http://") || string.starts_with(url, "https://") {
+      false => Err("URL must start with http:// or https://."),
+      true => match string.len(host_of(url)) == 0 {
+        true => Err("URL has no host."),
+        false => Ok(url),
+      },
+    },
+  }
+}
+
+fn is_base62(s: string) -> bool {
+  return regex.matches("^[0-9A-Za-z]+$", s)
+}
+
+fn validate_alias(current: Array<Link>, alias: string) -> Result<Option<string>, string> {
+  let candidate = string.trim(alias)
+  return match string.len(candidate) == 0 {
+    true => Ok(None),
+    false => match is_base62(candidate) {
+      false => Err("Alias may only contain letters and digits."),
+      true => match string.len(candidate) > MAX_ALIAS_LEN {
+        true => Err("Alias is too long."),
+        false => match is_taken(current, candidate) {
+          true => Err("That alias is already taken."),
+          false => Ok(Some(candidate)),
+        },
+      },
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+// Every untrusted value goes through here before it reaches the page.
+fn escape_html(s: string) -> string {
+  let amp = regex.replace_all("&", s, "&amp;")
+  let lt = regex.replace_all("<", amp, "&lt;")
+  let gt = regex.replace_all(">", lt, "&gt;")
+  let quot = regex.replace_all("\"", gt, "&quot;")
+  return regex.replace_all("'", quot, "&#39;")
+}
+
+const STYLE = "
+body { font: 15px/1.5 system-ui, sans-serif; margin: 3rem auto; max-width: 46rem; padding: 0 1rem; }
+h1 { font-size: 1.4rem; }
+form { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.5rem 0; }
+input { flex: 1 1 14rem; padding: .5rem; font: inherit; border: 1px solid #bbb; border-radius: 4px; }
+button { padding: .5rem 1rem; font: inherit; cursor: pointer; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #eee; }
+.error { background: #fdeaea; border: 1px solid #e8a0a0; padding: .6rem .8rem; border-radius: 4px; }
+.empty { color: #777; }
+code { font-family: ui-monospace, monospace; }
+"
+
+fn page(title: string, body: string) -> string {
+  return "<!doctype html>\n<html lang='en'>\n<head>\n<meta charset='utf-8'>\n<meta name='viewport' content='width=device-width, initial-scale=1'>\n<title>${escape_html(title)}</title>\n<style>${STYLE}</style>\n</head>\n<body>\n${body}\n</body>\n</html>\n"
+}
+
+fn error_banner(message: Option<string>) -> string {
+  return match message {
+    Some(text) => "<p class='error'>${escape_html(text)}</p>",
+    None => "",
+  }
+}
+
+fn row(l: Link) -> string {
+  let code = escape_html(l.code)
+  let target = escape_html(l.target)
+  let clicks = number.to_string(l.clicks)
+  let created = escape_html(time.format_iso(l.created_at))
+  return "<tr><td><a href='/${code}'><code>${code}</code></a></td><td><a href='${target}'>${target}</a></td><td>${clicks}</td><td>${created}</td><td><a href='/${code}+'>stats</a></td></tr>"
+}
+
+fn table(current: Array<Link>) -> string {
+  return match array.len(current) == 0 {
+    true => "<p class='empty'>No links yet.</p>",
+    false => {
+      let rows: Array<string> = array.map(array.reverse(current), row)
+      let joined = string.join(rows, "\n")
+      "<table><thead><tr><th>Code</th><th>Target</th><th>Clicks</th><th>Created</th><th></th></tr></thead><tbody>\n${joined}\n</tbody></table>"
+    },
+  }
+}
+
+fn home_page(current: Array<Link>, error: Option<string>) -> string {
+  let body = "<h1>shortlink</h1>\n${error_banner(error)}\n<form method='post' action='/'>\n<input name='url' placeholder='https://example.com/a-long-path' autofocus>\n<input name='alias' placeholder='custom alias (optional)'>\n<button type='submit'>Shorten</button>\n</form>\n${table(current)}\n"
+  return page("shortlink", body)
+}
+
+fn stats_page(l: Link) -> string {
+  let code = escape_html(l.code)
+  let target = escape_html(l.target)
+  let body = "<h1>/${code}</h1>\n<table><tbody>\n<tr><th>Code</th><td><code>${code}</code></td></tr>\n<tr><th>Target</th><td><a href='${target}'>${target}</a></td></tr>\n<tr><th>Created</th><td>${escape_html(time.format_iso(l.created_at))}</td></tr>\n<tr><th>Clicks</th><td>${number.to_string(l.clicks)}</td></tr>\n</tbody></table>\n<p><a href='/'>&larr; all links</a></p>\n"
+  return page("shortlink /${l.code}", body)
+}
+
+fn not_found_page(what: string) -> string {
+  let body = "<h1>404</h1>\n<p>No link with the code <code>${escape_html(what)}</code>.</p>\n<p><a href='/'>&larr; all links</a></p>\n"
+  return page("404", body)
+}
+
+// ---------------------------------------------------------------------------
+// Form decoding
+// ---------------------------------------------------------------------------
+
+fn form_field(form: Record<string, string>, name: string) -> string {
+  return match record.get(form, name) {
+    Some(value) => value,
+    None => "",
+  }
+}
+
+fn parse_form(body: string) -> Record<string, string> {
+  let out: Record<string, string> = {}
+  for pair in string.split(body, "&") {
+    // Split on the *first* `=` only. With no `string.index_of`/`slice` that
+    // means splitting on every `=` and rejoining the tail.
+    let parts: Array<string> = string.split(pair, "=")
+    match array.len(parts) >= 2 {
+      true => {
+        let key = parts[0]
+        let value = string.join(array.slice(parts, 1), "=")
+        mut out = record.set(out, url_decode(key), url_decode(value))
+      },
+      false => {},
+    }
+  }
+  return out
+}
+
+fn url_decode(s: string) -> string {
+  return decode_component(regex.replace_all("\\+", s, " "))
+}
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+fn create_link(url_input: string, alias_input: string) -> Result<Link, string> {
+  let current = links.get()
+  let target = validate_url(url_input)?
+  let alias = validate_alias(current, alias_input)?
+  // `?` is rejected in a match-arm value position (E0300), so the Result is
+  // built first and unwrapped on its own line.
+  let chosen = match alias {
+    Some(a) => Ok(a),
+    None => fresh_code(current),
+  }
+  let code = chosen?
+  let link: Link = { code: code, target: target, created_at: time.now(), clicks: 0 }
+  links.set(array.push(current, link))
+  save_links(DB_PATH, links.get())?
+  return Ok(link)
+}
+
+fn count_click(code: string) -> void {
+  links.update(fn(current: Array<Link>) -> Array<Link> {
+    return array.map(current, fn(l: Link) -> Link {
+      return match l.code == code {
+        true => { code: l.code, target: l.target, created_at: l.created_at, clicks: l.clicks + 1 },
+        false => l,
+      }
+    })
+  })
+  let _saved = save_links(DB_PATH, links.get())
+}
+
+// ---------------------------------------------------------------------------
+// Routing
+// ---------------------------------------------------------------------------
+
+// `/abc+` is the stats page for `/abc`.
+fn stats_code(segment: string) -> Option<string> {
+  return match string.ends_with(segment, "+") {
+    false => None,
+    true => {
+      let head: Array<string> = string.split(segment, "+")
+      match string.len(head[0]) == 0 {
+        true => None,
+        false => Some(head[0]),
+      }
+    },
+  }
+}
+
+fn handle_home(req: Request) -> WebResponse {
+  return match req.method {
+    "GET" => html(200, home_page(links.get(), None)),
+    "POST" => {
+      let form = parse_form(raw(req))
+      match create_link(form_field(form, "url"), form_field(form, "alias")) {
+        Ok(link) => redirect(302, "/${link.code}+"),
+        Err(message) => html(400, home_page(links.get(), Some(message))),
+      }
+    },
+    else => html(405, page("405", "<h1>405</h1><p>Method not allowed.</p>")),
+  }
+}
+
+fn handle_code(code: string) -> WebResponse {
+  return match find_link(links.get(), code) {
+    Some(link) => {
+      count_click(link.code)
+      redirect(302, link.target)
+    },
+    None => html(404, not_found_page(code)),
+  }
+}
+
+fn handle_stats(code: string) -> WebResponse {
+  return match find_link(links.get(), code) {
+    Some(link) => html(200, stats_page(link)),
+    None => html(404, not_found_page(code)),
+  }
+}
+
+fn route(req: Request) -> WebResponse {
+  return match segments(req) {
+    [] => handle_home(req),
+    [one] => match stats_code(one) {
+      Some(code) => handle_stats(code),
+      None => handle_code(one),
+    },
+    else => html(404, not_found_page(path(req))),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+async fn main(argv: Array<string>) -> number {
+  links.set(load_links(DB_PATH))
+  println("shortlink listening on http://localhost:${number.to_string(PORT)}")
+  println("  ${number.to_string(array.len(links.get()))} link(s) loaded from ${DB_PATH}")
+  let _served = await serve_web(PORT, route)
+  return 0
+}

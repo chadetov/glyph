@@ -806,3 +806,35 @@ of truth. On the async path it was a preprocessor with opinions.
   the author reimplemented or routed around something that already shipped. Two
   of the three are discoverability failures, not surface failures, which is a
   docs round of its own: a shipped feature nobody can find is not a feature.
+
+## Round 11 — a URL shortener, and a green build running yesterday's code
+
+The loop pointed at `examples/apps/shortlink.glyph`: shorten a URL, redirect a
+visitor, count the hits. Most of what came out of it is stdlib shape (`std/http`
+has no headers, so a 302 and an HTML page are both unspellable), and that is
+recorded with the trip in [`roadmap/releases.md`](roadmap/releases.md). One
+finding belongs here because it is a different class from the rest: it is the
+only false *green* in the batch.
+
+- **G56. [FIXED] `glyph run`'s build cache did not hash `<src>/extern/**`.**
+  `source_fingerprint` hashed every `.glyph` file and every `<src>/.types/**/*.d.ts`,
+  with a comment above the `.types` block spelling out the rule: a file that is
+  copied into the out dir and type-checked is a build input, so a change to it
+  must bust the cache. `<src>/extern/**/*.ts` satisfies that sentence word for
+  word (`runtime.rs` stages it into `<out>/extern`, the generated tsconfig checks
+  it) and was not hashed. Staging only runs on the rebuild path and the output
+  prune deliberately skips `extern/`, so the stale staged copy survived the cache
+  hit: you edited your hand-written shim, ran `glyph run`, and the compiler
+  printed a clean type-checked build while executing the previous version of your
+  TypeScript. Not a stale error, a stale program, and nothing on screen
+  distinguished it from a correct build. Compounding it, the recursive `.glyph`
+  walker skips symlinks outright, and this app ships a symlinked shim in
+  `extern/`, so the same false green had a second door. *Fixed: the `.d.ts`
+  collector is now suffix-parameterized and `source_fingerprint` hashes
+  `<src>/extern/**/*.ts` and `.tsx` the same way it hashes `.types`: relative
+  path as well as contents, so a rename or a deletion busts the fingerprint too.
+  The extern walk follows symlinks (reading the target's contents while hashing
+  the link's own path) with a canonical-path set so a symlink cycle terminates.
+  Five tests pin it: editing, deleting, adding, the symlink case, and a non-`.ts`
+  file under `extern/` that must NOT bust the cache. Whether symlinked `.glyph`
+  sources should be walked at all is a separate question and is still open.*

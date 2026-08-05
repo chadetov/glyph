@@ -518,9 +518,33 @@ pub fn source_fingerprint(src: &Path) -> Result<String, BuildError> {
     let types_dir = src.join(".types");
     if types_dir.is_dir() {
         let mut dts = Vec::new();
-        collect_dts_files(&types_dir, &mut dts)?;
+        collect_files_with_suffix(&types_dir, ".d.ts", false, &mut dts)?;
         dts.sort();
         for path in &dts {
+            let text = std::fs::read_to_string(path).map_err(|e| BuildError::Io {
+                path: path.clone(),
+                source: e,
+            })?;
+            let rel = path.strip_prefix(src).unwrap_or(path);
+            rel.to_string_lossy().hash(&mut hasher);
+            text.hash(&mut hasher);
+        }
+    }
+    // `<src>/extern/**` is a build input for the same reason: `runtime.rs` stages
+    // it verbatim into `<out>/extern` and the generated tsconfig type-checks it,
+    // so a change to a hand-written shim must bust the cache. This one is easy to
+    // miss because `collect_ts_outputs` deliberately excludes `extern/` from the
+    // output prune (F16): a stale staged copy survives a cache hit, and the run
+    // then executes the previous version of the shim under a green build.
+    // Hashing the relative path as well as the contents is what makes a deletion
+    // or a rename bust the fingerprint.
+    let extern_dir = src.join("extern");
+    if extern_dir.is_dir() {
+        let mut shims = Vec::new();
+        collect_files_with_suffix(&extern_dir, ".ts", true, &mut shims)?;
+        collect_files_with_suffix(&extern_dir, ".tsx", true, &mut shims)?;
+        shims.sort();
+        for path in &shims {
             let text = std::fs::read_to_string(path).map_err(|e| BuildError::Io {
                 path: path.clone(),
                 source: e,
@@ -533,8 +557,42 @@ pub fn source_fingerprint(src: &Path) -> Result<String, BuildError> {
     Ok(format!("{:016x}", hasher.finish()))
 }
 
-/// Collect every `.d.ts` file under `dir` (recursively) into `out`.
-fn collect_dts_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError> {
+/// Collect every file under `dir` (recursively) whose name ends with `suffix`
+/// into `out`.
+///
+/// `follow_symlinks` decides what a symlinked entry reports as. The `.types`
+/// walk passes `false` and keeps `DirEntry::metadata` semantics, where a symlink
+/// is neither a file nor a directory and is therefore skipped. The `extern`
+/// walk passes `true`: a project is likely to symlink a shared shim into
+/// `<src>/extern` (`examples/apps/extern/web.ts` is one today), and a skipped
+/// symlink is a hole in the fingerprint of exactly the kind this collector
+/// exists to close. Following reads the target's contents while the caller still
+/// hashes the link's own relative path.
+fn collect_files_with_suffix(
+    dir: &Path,
+    suffix: &str,
+    follow_symlinks: bool,
+    out: &mut Vec<PathBuf>,
+) -> Result<(), BuildError> {
+    let mut seen = std::collections::HashSet::new();
+    collect_files_with_suffix_inner(dir, suffix, follow_symlinks, &mut seen, out)
+}
+
+/// `seen` holds the canonical path of every directory already walked, so a
+/// symlink cycle (`extern/loop -> ..`) terminates instead of recursing forever.
+fn collect_files_with_suffix_inner(
+    dir: &Path,
+    suffix: &str,
+    follow_symlinks: bool,
+    seen: &mut std::collections::HashSet<PathBuf>,
+    out: &mut Vec<PathBuf>,
+) -> Result<(), BuildError> {
+    if follow_symlinks {
+        let canonical = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+        if !seen.insert(canonical) {
+            return Ok(());
+        }
+    }
     for entry in std::fs::read_dir(dir).map_err(|e| BuildError::Io {
         path: dir.to_path_buf(),
         source: e,
@@ -544,14 +602,24 @@ fn collect_dts_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildErro
             source: e,
         })?;
         let path = entry.path();
-        let meta = entry.metadata().map_err(|e| BuildError::Io {
-            path: path.clone(),
-            source: e,
-        })?;
+        let meta = if follow_symlinks {
+            // `std::fs::metadata` resolves the link, so a link to a file reports
+            // as a file. A broken link has no target metadata; there is nothing
+            // to read, and the staging copy will report it.
+            match std::fs::metadata(&path) {
+                Ok(meta) => meta,
+                Err(_) => continue,
+            }
+        } else {
+            entry.metadata().map_err(|e| BuildError::Io {
+                path: path.clone(),
+                source: e,
+            })?
+        };
         if meta.is_dir() {
-            collect_dts_files(&path, out)?;
+            collect_files_with_suffix_inner(&path, suffix, follow_symlinks, seen, out)?;
         } else if meta.is_file()
-            && path.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(".d.ts"))
+            && path.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.ends_with(suffix))
         {
             out.push(path);
         }
@@ -642,6 +710,90 @@ mod tests {
         let fp2 = source_fingerprint(&root).unwrap();
         let _ = std::fs::remove_dir_all(&root);
         assert_ne!(fp1, fp2, "fingerprint must change when a .types/*.d.ts changes");
+    }
+
+    /// Build a throwaway `<src>` root holding one `.glyph` module and one
+    /// hand-written shim under `extern/`. Each caller passes its own `tag` so
+    /// the roots do not collide when the tests run in parallel.
+    fn extern_fixture(tag: &str) -> PathBuf {
+        let root = std::env::temp_dir()
+            .join(format!("glyph-fp-extern-{}-{tag}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("extern")).unwrap();
+        std::fs::write(root.join("main.glyph"), "module main\n").unwrap();
+        std::fs::write(
+            root.join("extern/x.ts"),
+            "export function greet(): string { return \"hi\"; }\n",
+        )
+        .unwrap();
+        root
+    }
+
+    #[test]
+    fn fingerprint_changes_when_extern_ts_contents_change() {
+        // `<src>/extern/*.ts` is staged into the out dir and type-checked, but
+        // the prune pass skips `extern/`, so a cache hit would run the previous
+        // shim under a green build if the fingerprint ignored it.
+        let root = extern_fixture("edit");
+        let fp1 = source_fingerprint(&root).unwrap();
+        std::fs::write(
+            root.join("extern/x.ts"),
+            "export function greet(): string { return \"bye\"; }\n",
+        )
+        .unwrap();
+        let fp2 = source_fingerprint(&root).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert_ne!(fp1, fp2, "editing <src>/extern/x.ts must bust the fingerprint");
+    }
+
+    #[test]
+    fn fingerprint_changes_when_extern_ts_is_deleted() {
+        let root = extern_fixture("delete");
+        let fp1 = source_fingerprint(&root).unwrap();
+        std::fs::remove_file(root.join("extern/x.ts")).unwrap();
+        let fp2 = source_fingerprint(&root).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert_ne!(fp1, fp2, "deleting <src>/extern/x.ts must bust the fingerprint");
+    }
+
+    #[test]
+    fn fingerprint_changes_when_extern_ts_is_added() {
+        let root = extern_fixture("add");
+        let fp1 = source_fingerprint(&root).unwrap();
+        std::fs::write(root.join("extern/y.ts"), "export const n = 1;\n").unwrap();
+        let fp2 = source_fingerprint(&root).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert_ne!(fp1, fp2, "adding <src>/extern/y.ts must bust the fingerprint");
+    }
+
+    #[test]
+    fn fingerprint_ignores_non_typescript_files_under_extern() {
+        // Only TypeScript under `extern/` is a build input. A README there is
+        // not staged into anything `tsc` reads, so it must not force a rebuild.
+        let root = extern_fixture("readme");
+        std::fs::write(root.join("extern/README.md"), "shims\n").unwrap();
+        let fp1 = source_fingerprint(&root).unwrap();
+        std::fs::write(root.join("extern/README.md"), "shims, rewritten\n").unwrap();
+        let fp2 = source_fingerprint(&root).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert_eq!(fp1, fp2, "a non-.ts file under extern/ must not bust the fingerprint");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn fingerprint_follows_extern_symlinks() {
+        // `examples/apps/extern/web.ts` is a symlink today. A skipped symlink is
+        // the same stale-green defect through a second door, so the extern walk
+        // follows the link and hashes the target's contents.
+        let root = extern_fixture("symlink");
+        let shared = root.join("shared.ts");
+        std::fs::write(&shared, "export const v = 1;\n").unwrap();
+        std::os::unix::fs::symlink(&shared, root.join("extern/linked.ts")).unwrap();
+        let fp1 = source_fingerprint(&root).unwrap();
+        std::fs::write(&shared, "export const v = 2;\n").unwrap();
+        let fp2 = source_fingerprint(&root).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        assert_ne!(fp1, fp2, "a symlinked extern shim must bust the fingerprint");
     }
 }
 

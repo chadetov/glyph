@@ -22,6 +22,20 @@ every machine resolves the same one; a project pin wins over a global install.
 the box against a bundled shim. For the full surface, add `@types/node`
 (`npm i -D @types/node`); the build detects it and loads it.
 
+**`import extern/x` is not found by one command and is by the other.** The two
+commands pick the source root differently: `glyph run apps/app.glyph` roots at
+`apps/`, so the shim must be `apps/extern/x.ts`, while `glyph build .` roots at
+`.` and wants `./extern/x.ts`. Keep the shim reachable from both roots (a
+symlink works) until this is settled. A missing one is a `TS2307` mapped onto
+the `import` line, never a silent skip.
+
+**`glyph run` seems to be running an older version of my code.** It should not,
+and it is worth reporting if it does. The cache key covers every `.glyph` file,
+every `.d.ts` under `.types/`, and every `.ts` and `.tsx` under `extern/`, by
+path as well as by contents, so an edit, a rename, or a deletion rebuilds.
+Before 0.1.44 the `extern/` half was missing, so editing a hand-written shim
+left a stale build in place; upgrade if you are on an older version.
+
 ## Language errors people hit first
 
 **"unexpected token" on `if` / `else`.** Glyph has no `if` statement. Branch with

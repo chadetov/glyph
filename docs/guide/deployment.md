@@ -49,7 +49,9 @@ effective.
 output. Combined with a committed `package-lock.json` and an immutable npm
 version pin, a deployment is reproducible from source. `glyph run` additionally
 caches the build and type-check by a fingerprint of the sources, so repeated runs
-of an unchanged program skip straight to execution.
+of an unchanged program skip straight to execution. "Sources" means everything
+the build type-checks: `.glyph` files, `.d.ts` under `.types/`, and `.ts` or
+`.tsx` under `extern/`.
 
 ## What Glyph does not change
 

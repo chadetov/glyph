@@ -398,6 +398,24 @@ types enforce your calls, and a wrong argument is a real error mapped back to th
 `.glyph` source. The prune pass that clears stale output never touches
 `extern/`, so a rebuild keeps it.
 
+Your extern is a build input like any `.glyph` file, so `glyph run`'s cache
+fingerprint covers it: editing a `.ts` or `.tsx` under `extern/`, renaming one,
+adding one, or deleting one rebuilds and re-type-checks. Symlinks under
+`extern/` are followed, so a shim that lives outside the source tree is still
+hashed by its contents. Files under `extern/` that are not `.ts` or `.tsx` (a
+`README.md` next to the shim) are copied into the output with the rest of
+`extern/`, but nothing type-checks or runs them, so they do not invalidate the
+cache.
+
+One layout trap while this is still open: `extern/` is resolved against the
+source root, and the two commands choose that root differently. `glyph run
+apps/app.glyph` roots at `apps/`, so the shim must be `apps/extern/web.ts`,
+while `glyph build .` roots at `.`, so it must be `./extern/web.ts`. If your
+program lives in a subdirectory of what you build, keep the shim reachable from
+both roots (a symlink is enough; the fingerprint follows it). A root that has no
+shim fails loudly: `tsc` reports `TS2307` and it is mapped back onto the
+`import extern/...` line.
+
 An extern using the common Node surface (an `http` server, `fs`) type-checks
 against the bundled shim with nothing installed: `createServer`, `req.on(...)`
 including `"error"`, `server.listen(port, callback)`, `res.writeHead`/`end`. For

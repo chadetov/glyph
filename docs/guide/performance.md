@@ -44,6 +44,13 @@ repeated run of an unchanged program skips both and just executes. The
 diagnostics are cached alongside the output, so a cached run still reports the
 warnings the first one reported rather than going quiet.
 
+The fingerprint covers everything the build type-checks: every `.glyph` file,
+every `.d.ts` under `<src>/.types/`, and every `.ts` or `.tsx` under
+`<src>/extern/`. Paths count as well as contents, so renaming or deleting one of
+those files rebuilds too. If a run ever looks like it is executing code you
+already changed, that is a bug worth reporting, not something to work around by
+clearing the cache.
+
 ## Measuring
 
 Reason about cost the way you would for the emitted TypeScript, because that is

@@ -614,7 +614,10 @@ type-checked (its exported types enforce your Glyph calls) and resolved at
 runtime, and a rebuild never prunes it. This is the only way a Glyph module
 imports a local `.ts`: relative imports are illegal (D15), so `extern/*` is the
 reserved, greppable path. (`extern_ts("...")` is the smaller escape hatch, for a
-single inline type or expression rather than a module.)
+single inline type or expression rather than a module.) `glyph run`'s build
+cache hashes every `.ts` and `.tsx` under `<src>/extern/` by path and by
+contents, so editing, renaming, adding, or deleting a shim rebuilds and
+re-type-checks; symlinked shims are followed.
 
 A class-based client is instantiated with `new`, which Glyph has for exactly
 this interop and nothing else: `import kafkajs { Kafka }` then

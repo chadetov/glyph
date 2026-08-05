@@ -356,6 +356,14 @@ pub struct EmitContext<'a> {
     /// module-local scan resolves the import to arity 0 and would drop it).
     /// Empty for a single-module build (no imported generic descriptors).
     pub generic_descriptor_arities: &'a std::collections::BTreeMap<(String, String), usize>,
+    /// `(module path, type name)` for every *non-generic* exported type across
+    /// the project that emits a runtime descriptor (a record, a tagged union
+    /// whose descriptor name is free, or a D39 refined primitive). Without it a
+    /// field typed by an imported record or refined alias resolves to no
+    /// descriptor and falls to the `!== undefined` presence floor, so the
+    /// emitted boundary check is weaker than the type declares.
+    /// Empty for a single-module build (no imported descriptors).
+    pub plain_descriptors: &'a std::collections::BTreeSet<(String, String)>,
 }
 
 impl<'a> EmitContext<'a> {
@@ -367,11 +375,15 @@ impl<'a> EmitContext<'a> {
             project_modules: &EMPTY_MODULES,
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &EMPTY_ARITIES,
+            plain_descriptors: &EMPTY_DESCRIPTORS,
         }
     }
 }
 
 static EMPTY_VARIANTS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
+    std::sync::LazyLock::new(std::collections::BTreeSet::new);
+
+static EMPTY_DESCRIPTORS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
 
 static EMPTY_ARITIES: std::sync::LazyLock<std::collections::BTreeMap<(String, String), usize>> =
@@ -2505,7 +2517,7 @@ impl<'a> Emitter<'a> {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
                 if let Some(jt) = js_typeof(ty) {
                     Some(format!("typeof {m} === \"{jt}\""))
-                } else if self.has_local_descriptor(segments[0].as_ref()) {
+                } else if self.has_descriptor(segments[0].as_ref()) {
                     Some(format!("{}.is({m})", segments[0]))
                 } else {
                     None
@@ -2567,28 +2579,71 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// True if `name` is a module-local type with an emitted runtime descriptor
-    /// whose `is` guard this `is` check can call — a non-generic record, or a
-    /// non-generic tagged union (whose descriptor `const` name is free). Mirrors
-    /// the emission guards in `emit_decl`/`emit_union`.
-    fn has_local_descriptor(&self, name: &str) -> bool {
-        self.module.items.iter().any(|d| match d {
-            Decl::Type(t) if t.name.as_ref() == name && t.generics.is_empty() => match &t.body {
-                TypeExpr::Record { .. } => true,
-                TypeExpr::Union { variants, .. } => union_descriptor_name_free(name, variants),
-                _ => false,
-            },
-            _ => false,
-        })
+    /// True if `name` resolves to a non-generic type with an emitted runtime
+    /// descriptor whose `is`/`schema` members this check can call: a record, a
+    /// tagged union whose descriptor `const` name is free, or a D39 refined
+    /// primitive. Mirrors the emission guards in `emit_decl`/`emit_union`
+    /// through the shared [`emits_plain_descriptor`] predicate.
+    ///
+    /// Resolves a module-local declaration first; on a miss, resolves `name`
+    /// through its `ImportNamed` symbol and consults the project-wide descriptor
+    /// registry, exactly the way `generic_descriptor_arity` resolves an imported
+    /// generic descriptor. A module-local name shadows an import in `by_name`,
+    /// so the registry lookup only fires for a genuinely imported type. Without
+    /// the import half, a field typed by an imported record fell to the
+    /// `!== undefined` presence floor while the type promised a full check.
+    fn has_descriptor(&self, name: &str) -> bool {
+        if let Some(local) = self.module.items.iter().find_map(|d| match d {
+            Decl::Type(t) if t.name.as_ref() == name && t.generics.is_empty() => Some(t),
+            _ => None,
+        }) {
+            return emits_plain_descriptor(local);
+        }
+        let Some(&sym_id) = self.resolved.symbols.by_name.get(name) else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(sym_id) else {
+            return false;
+        };
+        let SymbolKind::ImportNamed { path, original } = &sym.kind else {
+            return false;
+        };
+        let module_path: String = path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        self.ctx
+            .plain_descriptors
+            .contains(&(module_path, original.to_string()))
     }
 
-    /// Resolve a module-local *non-record* type alias to its leaf body, so a
+    /// True if the type named by the two-segment path `ns.name` (a namespace or
+    /// aliased module import, `import types` then `types.Inner`) has an emitted
+    /// descriptor in the module `ns` binds. The same registry lookup as
+    /// [`Self::has_descriptor`]'s import half, reached through
+    /// `namespace_module_path` rather than an `ImportNamed` symbol.
+    fn has_namespaced_descriptor(&self, ns: &str, name: &str) -> bool {
+        let Some(module_path) = self.namespace_module_path(ns) else {
+            return false;
+        };
+        self.ctx
+            .plain_descriptors
+            .contains(&(module_path, name.to_string()))
+    }
+
+    /// Resolve a module-local *descriptorless* type alias to its leaf body, so a
     /// field typed by the alias validates like the inline type. Follows a chain
-    /// of alias hops (`type A = B; type B = "x" | "y"`), stopping at a type that
-    /// is not itself a followable local alias (a record — which resolves via its
-    /// descriptor — a prelude type, a literal union, etc.). Returns `None` for a
-    /// name that is not a local alias, and guards against a cycle. The returned
-    /// leaf is never a followable alias, so `field_value_check` on it terminates.
+    /// of alias hops (`type A = B; type B = "x" | "y"`), stopping at any type
+    /// that `has_descriptor` accepts (a record, a tagged union, or a D39 refined
+    /// primitive — each resolves through its own descriptor instead) and at any
+    /// type that is not a local alias at all (a prelude type, a literal union,
+    /// etc.). Stopping at a refined alias is load-bearing: resolving through it
+    /// to the base type would emit the base leaf-check and silently drop the
+    /// `where` predicate. Returns `None` for a name that is not a local alias,
+    /// and guards against a cycle. The returned leaf is never a followable
+    /// alias, so `field_value_check` on it terminates.
     fn resolve_alias_leaf(&self, name: &str) -> Option<TypeExpr> {
         let alias_body = |n: &str| -> Option<TypeExpr> {
             self.module.items.iter().find_map(|d| match d {
@@ -2610,7 +2665,7 @@ impl<'a> Emitter<'a> {
             let next = match &body {
                 TypeExpr::Path { segments, .. } if segments.len() == 1 => {
                     let n = segments[0].as_ref();
-                    (!self.has_local_descriptor(n) && n != current)
+                    (!self.has_descriptor(n) && n != current)
                         .then(|| n.to_string())
                         .filter(|n| alias_body(n).is_some())
                 }
@@ -2717,7 +2772,7 @@ impl<'a> Emitter<'a> {
                     // parameters: validate it with the checker threaded in at the
                     // call site, not a presence check.
                     format!("{guard}({access})")
-                } else if self.has_local_descriptor(name) {
+                } else if self.has_descriptor(name) {
                     format!("{name}.is({access})")
                 } else if let Some(leaf) = self.resolve_alias_leaf(name) {
                     // A non-record type alias (`type Tier = "free" | "pro"`,
@@ -2725,6 +2780,19 @@ impl<'a> Emitter<'a> {
                     // the alias gets the same runtime check as the inline type
                     // (membership, isInteger, …), not a bare presence check.
                     self.field_value_check(&leaf, access)
+                } else {
+                    format!("{access} !== undefined")
+                }
+            }
+            // A namespaced reference to another project module's type
+            // (`import types` then a field typed `types.Inner`): the descriptor
+            // is reachable as `types.Inner`, the same binding the emitted type
+            // annotation uses, so the check is as deep as the named-import form.
+            TypeExpr::Path { segments, .. } if segments.len() == 2 => {
+                let ns = segments[0].as_ref();
+                let name = segments[1].as_ref();
+                if self.has_namespaced_descriptor(ns, name) {
+                    format!("{ns}.{name}.is({access})")
                 } else {
                     format!("{access} !== undefined")
                 }
@@ -3107,7 +3175,7 @@ impl<'a> Emitter<'a> {
                 let [name] = segments.as_slice() else {
                     return None;
                 };
-                self.has_local_descriptor(name.as_ref())
+                self.has_descriptor(name.as_ref())
                     .then(|| format!("{name}.schema"))
             }
             TypeExpr::Generic { base, args, .. } => {
@@ -3949,6 +4017,26 @@ fn union_descriptor_name_free(name: &str, variants: &[UnionVariant]) -> bool {
     variants.iter().all(|v| v.name.as_ref() != name)
 }
 
+/// True when a type declaration emits a *non-generic* runtime descriptor whose
+/// `is`/`parse`/`schema` members a caller can use directly (no threaded
+/// checkers): a record, a tagged union whose descriptor name is free, or a D39
+/// refined primitive. Single-sourced so the emitter's descriptor resolution and
+/// the CLI's project-wide registry agree on what "has a descriptor" means; a
+/// generic record is excluded because its members take one checker per type
+/// parameter (see `generic_descriptor_arities`).
+pub fn emits_plain_descriptor(t: &glyph_ast::TypeDecl) -> bool {
+    if !t.generics.is_empty() {
+        return false;
+    }
+    match &t.body {
+        TypeExpr::Record { .. } => true,
+        TypeExpr::Union { variants, .. } => {
+            union_descriptor_name_free(t.name.as_ref(), variants)
+        }
+        _ => t.refinement.is_some(),
+    }
+}
+
 /// True if the type parameter `name` appears anywhere in the type `te`.
 fn type_mentions(te: &TypeExpr, name: &str) -> bool {
     match te {
@@ -4684,6 +4772,7 @@ mod tests {
             project_modules: &modules,
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &EMPTY_ARITIES,
+            plain_descriptors: &EMPTY_DESCRIPTORS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -4956,6 +5045,7 @@ mod tests {
             project_modules: &EMPTY_MODULES,
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &arities,
+            plain_descriptors: &EMPTY_DESCRIPTORS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -5074,6 +5164,7 @@ mod tests {
             project_modules: &project,
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &EMPTY_ARITIES,
+            plain_descriptors: &EMPTY_DESCRIPTORS,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -6547,6 +6638,113 @@ mod tests {
         // A refinement on a record type is a clear error in v1, not a silent drop.
         let err = emit_err("module x\npub type Bad = {\n  x: int,\n} where value.x > 0\n");
         assert!(matches!(err, EmitError::Unsupported { .. }), "record refinement errors: {err:?}");
+    }
+
+    #[test]
+    fn refined_alias_in_field_position_calls_its_descriptor() {
+        // The D39 promise has to hold wherever the type is used, not only at a
+        // direct `Instant.parse`. A field typed by a refined alias must call
+        // `Instant.is`, which runs the predicate; the old resolver knew only
+        // records and unions, so the field fell to `typeof ... === "string"` and
+        // `Block.parse({ start: "no" })` returned Ok on data the type rejects.
+        let ts = emit(
+            "module x\npub type Instant = string where value.length > 3\n\
+             pub type Block = {\n  start: Instant,\n  tags: Array<Instant>,\n  note: Option<Instant>,\n}\n",
+        );
+        assert!(
+            ts.contains("Instant.is((value as Record<string, unknown>).start)"),
+            "refined field calls the descriptor: {ts}"
+        );
+        assert!(
+            ts.contains("(__e: unknown) => Instant.is(__e)"),
+            "refined array element calls the descriptor: {ts}"
+        );
+        assert!(
+            ts.contains(
+                "Instant.is((((value as Record<string, unknown>).note) as { value?: unknown }).value)"
+            ),
+            "refined option payload calls the descriptor: {ts}"
+        );
+        // The presence floor must be gone for these fields.
+        assert!(
+            !ts.contains("(value as Record<string, unknown>).start !== undefined"),
+            "no presence floor for a refined field: {ts}"
+        );
+    }
+
+    #[test]
+    fn json_parse_of_a_refined_type_uses_its_schema() {
+        // `json.parse<Instant>` had no descriptor to find, so it degraded to the
+        // casting `parse<T>` and validated nothing at all. It now lowers to the
+        // schema form, which runs the predicate.
+        let ts = emit(
+            "module x\nimport std/json\npub type Instant = string where value.length > 3\n\
+             pub fn decode(s: string) -> unknown {\n  return json.parse<Instant>(s)\n}\n",
+        );
+        assert!(
+            ts.contains("json.parse_with(s, Instant.schema)"),
+            "refined json.parse uses the descriptor schema: {ts}"
+        );
+    }
+
+    #[test]
+    fn imported_record_in_field_position_calls_its_descriptor() {
+        // Every non-generic cross-module record composition used to validate by
+        // `!== undefined`: the descriptor resolver scanned only the current
+        // module. It now resolves the import through its `ImportNamed` symbol and
+        // the project registry, the same way generic descriptors already did.
+        let (module, resolved, types, prelude) = pipeline(
+            "module app\nimport inner { Inner }\npub type Outer = {\n  i: Inner,\n}\n",
+        );
+        let mut project = std::collections::BTreeSet::new();
+        project.insert("app".to_string());
+        project.insert("inner".to_string());
+        let mut descriptors = std::collections::BTreeSet::new();
+        descriptors.insert(("inner".to_string(), "Inner".to_string()));
+        let ctx = EmitContext {
+            module_path: "app",
+            project_modules: &project,
+            record_payload_variants: &EMPTY_VARIANTS,
+            generic_descriptor_arities: &EMPTY_ARITIES,
+            plain_descriptors: &descriptors,
+        };
+        let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
+        assert!(
+            ts.contains("Inner.is((value as Record<string, unknown>).i)"),
+            "imported record field calls the descriptor: {ts}"
+        );
+        assert!(
+            !ts.contains("(value as Record<string, unknown>).i !== undefined"),
+            "no presence floor for an imported record field: {ts}"
+        );
+        // Regression guard for the binding the check depends on: `Inner` is used
+        // only in type position here, so an "emit `import type` for type-only
+        // uses" optimization would erase the value and break `Inner.is` at
+        // runtime with no `tsc` complaint. The import must stay a value import.
+        assert!(
+            ts.contains("import { Inner } from \"./inner\";"),
+            "descriptor reference needs a value import, not `import type`: {ts}"
+        );
+        assert!(
+            !ts.contains("import type"),
+            "a type-only import would erase the descriptor binding: {ts}"
+        );
+    }
+
+    #[test]
+    fn imported_type_without_a_descriptor_keeps_the_presence_floor() {
+        // The registry is the authority: a type the project does not emit a
+        // descriptor for (an `interface`, a `.d.ts` type, a bare alias) must not
+        // grow a bogus `X.is` call that would be a runtime ReferenceError.
+        let (module, resolved, types, prelude) = pipeline(
+            "module app\nimport inner { Opaque }\npub type Outer = {\n  o: Opaque,\n}\n",
+        );
+        let ts = emit_module(&module, &resolved, &types, &prelude, EmitContext::single())
+            .expect("emit failed");
+        assert!(
+            ts.contains("(value as Record<string, unknown>).o !== undefined"),
+            "unknown imported type keeps the presence floor: {ts}"
+        );
     }
 
     #[test]

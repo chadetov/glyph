@@ -730,8 +730,8 @@ The loop pointed at `examples/apps/adventure.glyph`: rooms, an inventory, a
 command parser, no dependencies. Thirteen findings came out of it. Twelve are the
 compiler not knowing something or the stdlib not having something, and a user can
 read an error about those. One is the compiler knowing the answer and hiding it,
-on the command an agent runs in a loop. That one is fixed here. This trip carries
-the Next marker.
+on the command an agent runs in a loop. That one is fixed here. The Next marker
+has moved on to the scheduler trip below.
 
 ### 0.1.40 — Shipped · `glyph run` reports what `glyph build` reports
 
@@ -800,6 +800,76 @@ program's own exit code, including when a sibling module failed to compile.
   construct** (S). A diagnostic that says the same thing whatever you did is a
   shrug, not help. Found while checking a report claim that turned out to be
   wrong for a different reason (block-bodied match arms compile fine).
+
+## scheduler dogfood trip — the descriptors were there, nobody looked them up
+
+The loop pointed at a scheduling app: time ranges, blocks, a JSON boundary, types
+split across modules. The headline finding was that `type Instant = string where
+value.length > 3` validated at `Instant.parse("no")` and nowhere else:
+`Block.parse({ start: "no" })` returned Ok. Probing one step further found the
+same hole on a second axis. This trip carries the Next marker.
+
+### 0.1.41 — Shipped · Every descriptor the emitter emits, the emitter can find
+
+Glyph's promise is that a type carries a runtime descriptor, so data crossing a
+boundary is checked against what the type declares. The descriptors were emitted.
+The resolver that decides whether to *call* one recognized two kinds: a
+module-local non-generic record, and a module-local non-generic tagged union.
+Everything else fell to a `!== undefined` presence check, which is not a check of
+anything except that a key exists.
+
+Two kinds fell through. A D39 refined alias in field position dropped its `where`
+predicate, so `Block.parse({ start: "no" })` returned Ok on a value
+`Instant.parse` rejects. And a field typed by a record **imported from another
+project module** was validated by presence alone, which is every non-generic
+cross-module composition in every multi-file Glyph program: `Outer.parse({ i:
+42 })` returned Ok with `i` typed by an imported record whose descriptor was
+emitted, exported, and already imported as a value on line 5 of the same file.
+Both built clean and passed `tsc --strict`.
+
+The fix is in the resolver, not at the symptom. `has_descriptor` now also
+accepts a refined alias, and resolves an imported name through its `ImportNamed`
+symbol and a project-wide descriptor registry — the same shape
+`generic_descriptor_arity` had been using for imported *generic* descriptors
+since 0.1.23. The hard version was built first and the easy one never was. Four
+call sites read the resolver, so one change closes the record-field drop, the
+`Array<Refined>` element drop, the `Option<Refined>` payload drop, the
+union-variant payload drop, the synthesized checker passed to a generic
+descriptor, `is T` narrowing, and `json.parse<T>` for both refined and imported
+types. The namespaced form (`import types`, then a field typed `types.Inner`) is
+covered too; it was previously not handled at all.
+
+Verifiability. No syntax changed and nothing relaxed. The only behavior change is
+that a boundary which returned Ok on unvalidated data now returns Err, so a
+program relying on the old floor will start failing at the boundary — which is
+the point.
+
+One structural risk is pinned by a test: the emitted import is a value import
+(`import { Inner } from "./types"`) even when the type is used only in type
+position, and `Inner.is` depends on that. An "emit `import type` for type-only
+uses" optimization would erase the binding with `tsc` still clean, so a
+regression test asserts the value import.
+
+### Still open from this trip
+
+- **A descriptor's `.parse` result is not assignable to `Result`** (M). Confirmed
+  as TS2322; the cookbook recipes that thread `T.parse(x)` into a function
+  returning `Result<T, E>` do not compile. Separate from the resolution fix.
+- **`glyph build` prints "no diagnostics" above its own `tsc` errors** (S). The
+  Glyph-stage summary is printed before the TypeScript stage runs, so a red build
+  is introduced by a green line.
+- **The namespaced form is handled in field position only** (S). A field typed
+  `types.Inner` now calls `types.Inner.is`, but `match v { is types.Inner => … }`
+  and `json.parse<types.Inner>(s)` still take the two-segment path as unresolved.
+  Both are the same registry lookup through `namespace_module_path` that the
+  field check already does; nothing blocks it, it was simply out of the scope of
+  this fix. Recorded rather than left silent, because an undocumented presence
+  floor is how this class survived to 0.1.40.
+- **A descriptor for an imported type from a non-project module** stays on the
+  presence floor. `glyph gen dts` materializes those with real descriptors; a
+  bare `.d.ts` type still has nothing to call. Unchanged by this fix, and the
+  registry is deliberately the authority so no bogus `X.is` is emitted for a type
+  that has none.
 
 ## Road to 1.0
 

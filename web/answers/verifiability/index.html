@@ -154,6 +154,43 @@ fn label(s: Status) -&gt; string {
           have and it's a compile error (<code>E0219</code>), not a redaction that silently does
           nothing.
         </p>
+        <p>
+          A descriptor is only worth anything if it's the check the type declares, all the
+          way down. A <code>where</code> refinement runs its predicate wherever the type
+          appears, not just at a direct <code>Instant.parse</code>: as a record field, as an
+          <code>Array</code> element, as an <code>Option</code> payload, inside a union
+          variant, and through <code>json.parse&lt;T&gt;</code>. The same goes for a record
+          imported from another module. Until 0.1.41 both of those fell back to checking that
+          the key was present, which is not a check of anything.
+        </p>
+        <p>
+          The scheduling app below is where this surfaced. It reads calendars from a JSON file
+          and needs every timestamp to be a real ISO-8601 instant. Before, the refinement
+          stopped at the top level, so a hand-edited file with <code>"start": "no"</code>
+          parsed fine, the instant read as 0, and the app printed a confident schedule and
+          exited 0. The fix is four levels down from the boundary:
+          <code>Calendar</code> to <code>Array&lt;WireParticipant&gt;</code> to
+          <code>busy</code> to <code>start</code> to the predicate.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">schedule.glyph: the predicate follows the type into the field</span>
+<pre>fn is_instant(value: string) -&gt; bool {
+  return match time.parse_iso(value) {
+    Some(_) =&gt; true,
+    None =&gt; false,
+  }
+}
+
+type Instant = string where is_instant(value)
+
+type WireBlock = { start: Instant, end: Instant }
+type WireParticipant = { name: string, busy: Array&lt;WireBlock&gt; }
+type Calendar = { participants: Array&lt;WireParticipant&gt; }
+
+<span class="cm">// json.parse&lt;Calendar&gt;(text) on a file holding "start": "no"</span>
+<span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
       </div>
 
       <p class="block-label">Where it stands</p>
@@ -164,7 +201,7 @@ fn label(s: Status) -&gt; string {
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing and richer validation for generic and imported types are on the roadmap, extending the same guarantee to more of the type system. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm.</p>
+          <p>Deeper flow-narrowing is on the roadmap. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm.</p>
         </div>
       </div>
 

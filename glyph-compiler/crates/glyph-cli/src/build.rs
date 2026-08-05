@@ -160,6 +160,13 @@ pub fn build_project_inner(
     // for the import, which would leave the required checker arg off.
     let mut generic_descriptor_arities: std::collections::BTreeMap<(String, String), usize> =
         Default::default();
+    // Cross-module plain descriptors: `(module path, type name)` for every
+    // exported non-generic type that emits a runtime descriptor (a record, a
+    // tagged union, or a D39 refined primitive). The emitter needs this to call
+    // an *imported* descriptor's `is`/`schema` from a field check, an `is T`
+    // narrowing, or `json.parse<T>`; a module-local scan sees nothing for the
+    // import and would fall back to a bare `!== undefined` presence check.
+    let mut plain_descriptors: std::collections::BTreeSet<(String, String)> = Default::default();
     for (module_path, sf) in &entries {
         let parsed = parse_module(&db, *sf);
         let Some(ast) = parsed.module() else { continue };
@@ -178,6 +185,9 @@ pub fn build_project_inner(
                 {
                     generic_descriptor_arities
                         .insert((module_path.clone(), td.name.to_string()), td.generics.len());
+                }
+                if td.is_public && glyph_emit::emits_plain_descriptor(td) {
+                    plain_descriptors.insert((module_path.clone(), td.name.to_string()));
                 }
             }
         }
@@ -313,6 +323,7 @@ pub fn build_project_inner(
             project_modules: &project_modules,
             record_payload_variants: &record_payload_variants,
             generic_descriptor_arities: &generic_descriptor_arities,
+            plain_descriptors: &plain_descriptors,
         };
         match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(output) => {

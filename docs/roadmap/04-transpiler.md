@@ -12,9 +12,9 @@ The whole pipeline is shipped and running on `main`:
 - **Emitter** — the AST→TS visitor emits every construct, lowers `match`/`?`/JSX, and generates the descriptors and source maps; `glyph build --check` runs `tsc --strict`.
 - **CLI + tooling** — `glyph build [--check] [--test] [--json]`, `run`, `fmt`, `regen`, `gen` (openapi/dts/zod), `init`, `publish`, plus the language server and MCP server (`lsp`/`mcp`) and `--explain`. Ariadne-rendered diagnostics with caret pointers, source context, TTY-aware color, and UTF-8-correct byte spans.
 
-**641 workspace tests pass.**
+**742 workspace tests pass.**
 
-*Since these decisions were written, two deferrals below have shipped: `infer_shape` landed as the narrow `infer_output<S>` operator (D28) and later a first-class `z.infer<typeof s>` via the `typeof` query (D32); runtime descriptors grew from "shallow validation" to deep structural, generic, membership, and integer validation.*
+*Since these decisions were written, two deferrals below have shipped: `infer_shape` landed as the narrow `infer_output<S>` operator (D28) and later a first-class `z.infer<typeof s>` via the `typeof` query (D32); runtime descriptors grew from "shallow validation" to deep structural, generic, membership, and integer validation, and in 0.1.41 descriptor resolution was completed on both axes it was missing, so a `where` refinement (D39) and a type imported from another module are validated by their own descriptors in field, element, and payload position instead of falling back to a presence check.*
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

@@ -3331,3 +3331,194 @@ fn run_reports_every_build_diagnostic_including_on_a_cache_hit() {
         "a warm cache must report the identical diagnostics: stderr {err2}"
     );
 }
+
+#[test]
+fn imported_descriptors_are_called_from_a_record_field_check() {
+    // Descriptor resolution used to scan only the emitting module, so every
+    // non-generic cross-module composition validated its field by
+    // `!== undefined`: `Outer.parse({ i: 42 })` returned Ok with `i` typed by an
+    // imported record. The project registry now carries the plain descriptors
+    // too, so the field check calls `Inner.is` / `Instant.is` (the D39 predicate
+    // included) exactly as a module-local field would.
+    let root = unique_tmp("importeddesc");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "types.glyph",
+        "module types\n\
+         pub type Inner = {\n\x20 n: number,\n}\n\
+         pub type Instant = string where value.length > 3\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import types { Inner, Instant }\n\
+         pub type Outer = {\n\x20 i: Inner,\n\x20 t: Instant,\n}\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "cross-module descriptor composition must build: {:?}",
+        report.diagnostics
+    );
+    let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
+    assert!(
+        ts.contains("Inner.is((value as Record<string, unknown>).i)"),
+        "imported record field calls its descriptor: {ts}"
+    );
+    assert!(
+        ts.contains("Instant.is((value as Record<string, unknown>).t)"),
+        "imported refined field calls its descriptor: {ts}"
+    );
+    assert!(
+        !ts.contains("(value as Record<string, unknown>).i !== undefined"),
+        "the presence floor must be gone: {ts}"
+    );
+    // The check depends on `Inner`/`Instant` being *value* bindings; they are
+    // used only in type position here, so a future `import type` optimization
+    // would erase them and break the guard at runtime with tsc still clean.
+    assert!(
+        ts.contains("import { Inner, Instant } from \"./types\";"),
+        "descriptor references need a value import: {ts}"
+    );
+}
+
+#[test]
+fn imported_descriptor_field_rejects_bad_data_at_runtime() {
+    // The regression that matters: before the fix this program exited 3, because
+    // `Outer.parse({ i: 42, ... })` returned Ok. A boundary that accepted
+    // unvalidated data now returns Err.
+    if !js_toolchain_available() {
+        eprintln!("skipping imported-descriptor run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("importeddescrun");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "types.glyph",
+        "module types\n\
+         pub type Inner = {\n\x20 n: number,\n}\n\
+         pub type Instant = string where value.length > 3\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import types { Inner, Instant }\n\
+         import std/result { Ok, Err }\n\
+         pub type Outer = {\n\x20 i: Inner,\n\x20 t: Instant,\n}\n\
+         fn classify(v: unknown) -> string {\n\
+         \x20 return match Outer.parse(v) {\n\
+         \x20   Ok(_) => \"ok\",\n\
+         \x20   Err(_) => \"err\",\n\
+         \x20 }\n\
+         }\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let good: unknown = { i: { n: 1 }, t: \"abcd\" }\n\
+         \x20 let bad_field: unknown = { i: 42, t: \"abcd\" }\n\
+         \x20 let bad_refine: unknown = { i: { n: 1 }, t: \"no\" }\n\
+         \x20 return match classify(good) == \"ok\" {\n\
+         \x20   true => match classify(bad_field) == \"err\" {\n\
+         \x20     true => match classify(bad_refine) == \"err\" {\n\
+         \x20       true => 0,\n\
+         \x20       false => 4,\n\
+         \x20     },\n\
+         \x20     false => 3,\n\
+         \x20   },\n\
+         \x20   false => 2,\n\
+         \x20 }\n\
+         }\n",
+    );
+
+    let file = src.join("app.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(
+                code, 0,
+                "2 = a valid value was rejected, 3 = an imported record field was \
+                 not validated, 4 = the imported `where` predicate was dropped"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => eprintln!("skipping: `tsx` not found"),
+        glyph_cli::run::RunOutcome::TscMissing => eprintln!("skipping: `tsc` not found"),
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("two-module descriptor program should build: {:?}", r.diagnostics)
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("emitted descriptor checks should type-check under tsc:\n{msg}")
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a `main`; got NoMain: {exports:?}")
+        }
+    }
+}
+
+#[test]
+fn namespaced_imported_descriptor_is_called_from_a_field_check() {
+    // The namespaced form (`import types` then a field typed `types.Inner`) is a
+    // two-segment path, which the field check did not handle at all. It resolves
+    // through the same registry, reached by the namespace binding.
+    let root = unique_tmp("nsdesc");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "types.glyph",
+        "module types\npub type Inner = {\n\x20 n: number,\n}\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\nimport types\npub type Outer = {\n\x20 i: types.Inner,\n}\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "namespaced descriptor composition must build: {:?}",
+        report.diagnostics
+    );
+    let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
+    assert!(
+        ts.contains("types.Inner.is((value as Record<string, unknown>).i)"),
+        "namespaced field calls the imported descriptor: {ts}"
+    );
+}
+
+#[test]
+fn json_parse_of_an_imported_type_uses_its_schema() {
+    // `json.parse<T>` gated on the same resolver, so an imported `T` silently
+    // degraded to the casting parse. It now lowers to the validating form.
+    let root = unique_tmp("jsonimported");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "types.glyph",
+        "module types\npub type Inner = {\n\x20 n: number,\n}\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\n\
+         import types { Inner }\n\
+         import std/json\n\
+         pub fn decode(s: string) -> unknown {\n\x20 return json.parse<Inner>(s)\n}\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "imported json.parse must build: {:?}",
+        report.diagnostics
+    );
+    let ts = std::fs::read_to_string(out.join("app.ts")).unwrap();
+    assert!(
+        ts.contains("json.parse_with(s, Inner.schema)"),
+        "imported json.parse uses the descriptor schema: {ts}"
+    );
+}

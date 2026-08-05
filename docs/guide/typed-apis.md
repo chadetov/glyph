@@ -115,6 +115,39 @@ match header(req, "authorization") {
 }
 ```
 
+## How deep the check goes
+
+A descriptor validates the type as declared, not just its top level. If a field
+is typed by another type that has a descriptor, the field is checked against that
+descriptor, and this holds through the containers too: an `Array` element, an
+`Option` payload, a union variant's payload.
+
+```glyph
+import rooms { Room }
+
+type Slug = string where value.length > 0
+
+type Block = {
+  slug: Slug,             // the `where` predicate runs here
+  room: Room,             // checked against Room, from the rooms module
+  aliases: Array<Slug>,   // every element runs the predicate
+}
+
+// Block.parse({ slug: "", room: 42, aliases: [] })
+//   => Err, on the slug and on the room. It returned Ok before 0.1.41.
+```
+
+The same resolution backs `json.parse<T>`, `T.is`, and `is T` narrowing inside a
+`match`, so all of them agree on what a `T` is. A refined alias
+(`type Instant = string where ...`) and a type imported from another Glyph module
+both used to fall back to checking that the key was present, which validates
+nothing about the value under it.
+
+One case still falls back: a type imported from a plain `.d.ts` has no
+descriptor to call, so a field typed by one is checked for presence only. Run
+`glyph gen dts <package>` to materialize it as a real Glyph type and the field is
+validated like any other.
+
 ## Generating DTOs from a spec
 
 You do not have to hand-write the types either. If you have an OpenAPI 3,

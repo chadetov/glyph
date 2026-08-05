@@ -539,7 +539,12 @@ A `where` refinement types an *invariant* that a boundary must validate:
 `type Amount = int where value >= 0`, `type Rating = int where value >= 1 && value <= 5`,
 `type NonEmpty = string where value.length > 0`. The predicate (over a bound
 `value`) is woven into the type's descriptor, so `Amount.parse(x)` rejects a
-negative value, not just a non-number. v1 refines primitive base types only
+negative value, not just a non-number. The predicate runs wherever the type is
+used: a record field typed `Amount`, an `Array<Amount>` element, an
+`Option<Amount>` payload, a union variant's payload, and `json.parse<Amount>`.
+So does the descriptor of a type imported from another Glyph module, so a field
+typed by an imported record is checked against that record and not just for
+presence. v1 refines primitive base types only
 (`int`/`number`/`string`/`bool`/`bigint`); a `where` on a record or union is a
 compile error, not a silent drop.
 

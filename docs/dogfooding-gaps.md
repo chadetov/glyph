@@ -641,3 +641,43 @@ One is different in kind, and it is the one fixed here.
   patch (model the stdlib from its own `.d.ts` sources per Q21/Q40, or keep
   growing the hand-written `stdlib_fn_ty` table), so it is recorded in
   `docs/roadmap/releases.md` and not fixed here.
+
+## Round 9 — a scheduler, and a boundary that was open the whole time
+
+The loop pointed at a scheduling app: time ranges, blocks, a JSON boundary, types
+split across modules. The report's headline was that a `where` refinement stopped
+working the moment the type was used as a field. Probing one step further found
+the same hole on a second axis, and the two are one defect.
+
+- **G40. [FIXED] Descriptor resolution scanned only the emitting module and knew
+  nothing about refinements.** `has_local_descriptor` recognized a module-local
+  non-generic record and a module-local non-generic tagged union, and nothing
+  else. So a D39 refined alias in field position dropped its predicate
+  (`Instant.parse("no")` -> Err, but `Block.parse({ start: "no" })` -> Ok, and
+  `json.parse<Instant>` validated nothing), and a field typed by a record
+  **imported from another project module** was checked by `!== undefined`, which
+  covers every non-generic cross-module composition in every multi-file Glyph
+  program: `Outer.parse({ i: 42 })` returned Ok. Both built clean and passed
+  `tsc --strict`. The cross-module machinery already existed for imported
+  *generic* descriptors (`generic_descriptor_arity` resolves through
+  `ImportNamed` and a project registry, shipped in 0.1.23); the hard version was
+  built and the easy one was not. *Fixed in the resolver, not at the symptoms:
+  `has_descriptor` accepts a refined alias and resolves an imported name the same
+  way the generic path does, backed by a new `plain_descriptors` project
+  registry. Four call sites read it, so the one change closes the record-field
+  drop, the `Array<Refined>` element drop, the `Option<Refined>` payload drop,
+  the union-variant payload drop, the synthesized checker for a generic
+  descriptor, `is T` narrowing, and `json.parse<T>` for both refined and imported
+  types. The namespaced form (`import types`, then a field typed `types.Inner`)
+  is handled too; it previously was not handled at all. A regression test pins
+  the value import (`import { Inner } from "./types"`), because an "emit `import
+  type` for type-only uses" optimization would erase the binding `Inner.is`
+  depends on with `tsc` still clean.*
+- **G41. A descriptor's `.parse` result is not assignable to `Result`.** TS2322,
+  confirmed; the cookbook recipes that thread `T.parse(x)` into a function
+  returning `Result<T, E>` do not compile. Separate from G40 and tracked in
+  `docs/roadmap/releases.md`.
+- **G42. `glyph build` prints "no diagnostics" above its own `tsc` errors.** The
+  Glyph-stage summary is printed before the TypeScript stage runs, so a red build
+  is introduced by a green line. The same "silent green" family as G38, one stage
+  later. Tracked in `docs/roadmap/releases.md`.

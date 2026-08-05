@@ -1,0 +1,859 @@
+// schedule — find the meeting slots everybody is free for.
+//
+// Reads a calendar file (JSON) of participants and their busy blocks, validates
+// it at the boundary, merges each participant's overlapping blocks, unions the
+// busy time across everybody, subtracts it from a working window on each day of
+// a date range, and prints the slots long enough to hold the meeting.
+//
+// Usage:
+//   schedule <calendar.json> [--duration MINUTES] [--from YYYY-MM-DD]
+//                            [--days N] [--hours HH:MM-HH:MM]
+//                            [--who alice,bob] [--weekends]
+//
+// Everything is UTC. Exit status is 0 when at least one common slot exists,
+// 1 when the range holds none, and 2 for a bad argument or an unreadable or
+// corrupt calendar file.
+//
+// Run it end to end (copy the whole block):
+//
+//   cat > /tmp/calendar.json <<'EOF'
+//   {
+//     "participants": [
+//       { "name": "alice", "busy": [
+//         { "start": "2026-01-05T09:00:00Z", "end": "2026-01-05T10:30:00Z" },
+//         { "start": "2026-01-05T10:00:00Z", "end": "2026-01-05T11:00:00Z" },
+//         { "start": "2026-01-06T13:00:00Z", "end": "2026-01-06T17:00:00Z" },
+//         { "start": "2026-01-07T09:00:00Z", "end": "2026-01-07T17:00:00Z" }
+//       ] },
+//       { "name": "bob", "busy": [
+//         { "start": "2026-01-05T11:00:00Z", "end": "2026-01-05T12:00:00Z" },
+//         { "start": "2026-01-05T14:00:00Z", "end": "2026-01-05T15:30:00Z" },
+//         { "start": "2026-01-06T09:00:00Z", "end": "2026-01-06T12:30:00Z" }
+//       ] },
+//       { "name": "carol", "busy": [
+//         { "start": "2026-01-05T09:00:00Z", "end": "2026-01-05T09:30:00Z" },
+//         { "start": "2026-01-06T15:00:00Z", "end": "2026-01-06T16:00:00Z" }
+//       ] }
+//     ]
+//   }
+//   EOF
+//   glyph run examples/apps/schedule.glyph /tmp/calendar.json \
+//     --from 2026-01-05 --days 5 --duration 60 --hours 09:00-17:00
+
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/math
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+import std/time
+
+// ---------------------------------------------------------------------------
+// The wire shape — what a hand-edited calendar file is allowed to contain
+// ---------------------------------------------------------------------------
+
+// An instant is a string here because that is what the file holds, but not any
+// string: `time.parse_iso` is the definition of a good one, and the refinement
+// runs wherever an `Instant` appears. A hand-edited file with a broken timestamp
+// is rejected by `json.parse<Calendar>` below and never reaches the domain code.
+fn is_instant(value: string) -> bool {
+  return match time.parse_iso(value) {
+    Some(_) => true,
+    None => false,
+  }
+}
+
+type Instant = string where is_instant(value)
+
+// Instants become epoch milliseconds exactly once, in `load_block`, and every
+// line below that point works in numbers.
+type WireBlock = { start: Instant, end: Instant }
+
+type WireParticipant = { name: string, busy: Array<WireBlock> }
+
+type Calendar = { participants: Array<WireParticipant> }
+
+// ---------------------------------------------------------------------------
+// The domain — half-open intervals in epoch milliseconds
+// ---------------------------------------------------------------------------
+
+// [start, end): a block ending at 10:00 and one starting at 10:00 do not
+// overlap, they touch. Merging treats touching blocks as one.
+type Interval = { start: number, end: number }
+
+type Conflict = { first: Interval, second: Interval }
+
+type Person = {
+  name: string,
+  // Sorted and merged: no two entries overlap or touch.
+  busy: Array<Interval>,
+  // Pairs that overlapped before the merge — a double-booked participant.
+  conflicts: Array<Conflict>,
+}
+
+type Day = {
+  start: number,
+  window: Interval,
+  free: Array<Interval>,
+  candidates: Array<Interval>,
+}
+
+type Args = {
+  path: string,
+  duration_minutes: int,
+  from_ms: number,
+  days: int,
+  // Minutes from UTC midnight.
+  window_start: int,
+  window_end: int,
+  who: Array<string>,
+  weekends: bool,
+}
+
+const MS_PER_MINUTE = 60000
+
+const MS_PER_HOUR = 3600000
+
+const MS_PER_DAY = 86400000
+
+const HALF_HOUR = 1800000
+
+// ---------------------------------------------------------------------------
+// Text helpers
+// ---------------------------------------------------------------------------
+
+// A nested string literal inside `${...}` is not supported, so every literal a
+// template needs is a module constant.
+const SPACE = " "
+
+const COMMA = ", "
+
+const DOT = "."
+
+const BUSY_MARK = "#"
+
+const FREE_MARK = "."
+
+@example repeat("ab", 0) == ""
+@example repeat("ab", 3) == "ababab"
+fn repeat(unit: string, count: int) -> string {
+  let out = ""
+  let i = 0
+  loop {
+    match i < count {
+      false => {
+        break
+      },
+      true => {
+        mut out = "${out}${unit}"
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+fn pad_end(s: string, width: int) -> string {
+  return "${s}${repeat(SPACE, width - string.len(s))}"
+}
+
+@example two_digits(9) == "09"
+@example two_digits(30) == "30"
+fn two_digits(n: int) -> string {
+  let s = number.to_string(n)
+  return match string.len(s) < 2 {
+    true => "0${s}",
+    false => s,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Calendar arithmetic
+// ---------------------------------------------------------------------------
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+// The epoch fell on a Thursday, so day 0 is index 4. The double modulo keeps a
+// pre-1970 instant in range instead of returning a negative index.
+@example weekday_index(0) == 4
+@example weekday_index(1767571200000) == 1
+fn weekday_index(ms: number) -> int {
+  let days = math.floor(ms / MS_PER_DAY)
+  return ((days + 4) % 7 + 7) % 7
+}
+
+fn weekday_name(ms: number) -> string {
+  return DAY_NAMES[weekday_index(ms)]
+}
+
+fn is_working_day(ms: number) -> bool {
+  let d = weekday_index(ms)
+  return d != 0 && d != 6
+}
+
+fn midnight_of(ms: number) -> number {
+  return math.floor(ms / MS_PER_DAY) * MS_PER_DAY
+}
+
+// `time` exposes year/month/day but no hour or minute, so the clock half of a
+// timestamp is arithmetic on the epoch value.
+@example clock_label(0) == "00:00"
+@example clock_label(45296000) == "12:34"
+fn clock_label(ms: number) -> string {
+  let minute_of_day = math.floor((ms % MS_PER_DAY) / MS_PER_MINUTE)
+  let h = math.floor(minute_of_day / 60)
+  let m = minute_of_day % 60
+  return "${two_digits(h)}:${two_digits(m)}"
+}
+
+fn date_label(ms: number) -> string {
+  let y = number.to_string(time.year(ms))
+  return "${y}-${two_digits(time.month(ms))}-${two_digits(time.day(ms))}"
+}
+
+fn stamp_label(ms: number) -> string {
+  return "${date_label(ms)} ${weekday_name(ms)} ${clock_label(ms)}"
+}
+
+fn span_label(iv: Interval) -> string {
+  return "${clock_label(iv.start)}-${clock_label(iv.end)}"
+}
+
+fn minutes_of(iv: Interval) -> int {
+  return math.floor((iv.end - iv.start) / MS_PER_MINUTE)
+}
+
+// ---------------------------------------------------------------------------
+// Interval algebra — the part worth testing without a clock or a file
+// ---------------------------------------------------------------------------
+
+fn by_start(xs: Array<Interval>) -> Array<Interval> {
+  return array.sort(xs, fn(a: Interval, b: Interval) -> number { return a.start - b.start })
+}
+
+// Sort, then fold overlapping *and* touching blocks into one. The result is the
+// canonical form every later stage assumes.
+@example merge([]) == []
+@example merge([{ start: 3, end: 5 }, { start: 1, end: 2 }]) == [{ start: 1, end: 2 }, { start: 3, end: 5 }]
+@example merge([{ start: 1, end: 4 }, { start: 2, end: 6 }]) == [{ start: 1, end: 6 }]
+@example merge([{ start: 1, end: 2 }, { start: 2, end: 3 }]) == [{ start: 1, end: 3 }]
+@example merge([{ start: 1, end: 9 }, { start: 3, end: 4 }]) == [{ start: 1, end: 9 }]
+fn merge(xs: Array<Interval>) -> Array<Interval> {
+  let out: Array<Interval> = []
+  for iv in by_start(xs) {
+    let n = array.len(out)
+    match n == 0 {
+      true => {
+        mut out.push(iv)
+      },
+      false => {
+        let last = out[n - 1]
+        match iv.start > last.end {
+          true => {
+            mut out.push(iv)
+          },
+          false => {
+            mut out[n - 1] = { start: last.start, end: math.max(last.end, iv.end) }
+          },
+        }
+      },
+    }
+  }
+  return out
+}
+
+// Every pair that genuinely overlaps, in sorted order. Touching blocks are not
+// a conflict; a block strictly inside another one is.
+@example double_bookings([{ start: 1, end: 2 }, { start: 2, end: 3 }]) == []
+@example double_bookings([{ start: 1, end: 4 }, { start: 2, end: 6 }]) == [{ first: { start: 1, end: 4 }, second: { start: 2, end: 6 } }]
+fn double_bookings(xs: Array<Interval>) -> Array<Conflict> {
+  let sorted = by_start(xs)
+  let out: Array<Conflict> = []
+  for i, a in sorted {
+    for j, b in sorted {
+      match j > i && b.start < a.end {
+        true => {
+          mut out.push({ first: a, second: b })
+        },
+        false => {},
+      }
+    }
+  }
+  return out
+}
+
+fn intersect(a: Interval, b: Interval) -> Option<Interval> {
+  let start = math.max(a.start, b.start)
+  let end = math.min(a.end, b.end)
+  return match start < end {
+    true => Some({ start: start, end: end }),
+    false => None,
+  }
+}
+
+// Clip a busy list to a window and drop whatever falls outside it.
+fn clip_all(xs: Array<Interval>, window: Interval) -> Array<Interval> {
+  let out: Array<Interval> = []
+  for iv in xs {
+    match intersect(iv, window) {
+      Some(cut) => {
+        mut out.push(cut)
+      },
+      None => {},
+    }
+  }
+  return out
+}
+
+// The window minus the busy time. `busy` may be unsorted and overlapping; it is
+// canonicalised here so no caller has to remember to do it.
+@example subtract({ start: 0, end: 10 }, []) == [{ start: 0, end: 10 }]
+@example subtract({ start: 0, end: 10 }, [{ start: 0, end: 10 }]) == []
+@example subtract({ start: 0, end: 10 }, [{ start: 3, end: 5 }]) == [{ start: 0, end: 3 }, { start: 5, end: 10 }]
+@example subtract({ start: 0, end: 10 }, [{ start: -5, end: 2 }, { start: 8, end: 20 }]) == [{ start: 2, end: 8 }]
+@example subtract({ start: 0, end: 10 }, [{ start: 6, end: 8 }, { start: 2, end: 7 }]) == [{ start: 0, end: 2 }, { start: 8, end: 10 }]
+fn subtract(window: Interval, busy: Array<Interval>) -> Array<Interval> {
+  let free: Array<Interval> = []
+  let cursor = window.start
+  for b in merge(clip_all(busy, window)) {
+    match b.start > cursor {
+      true => {
+        mut free.push({ start: cursor, end: b.start })
+      },
+      false => {},
+    }
+    mut cursor = math.max(cursor, b.end)
+  }
+  match cursor < window.end {
+    true => {
+      mut free.push({ start: cursor, end: window.end })
+    },
+    false => {},
+  }
+  return free
+}
+
+// Keep only the intervals that can actually hold the meeting.
+@example clip_to_duration([], 5) == []
+@example clip_to_duration([{ start: 0, end: 4 }], 5) == []
+@example clip_to_duration([{ start: 0, end: 5 }], 5) == [{ start: 0, end: 5 }]
+@example clip_to_duration([{ start: 0, end: 4 }, { start: 10, end: 20 }], 5) == [{ start: 10, end: 20 }]
+fn clip_to_duration(free: Array<Interval>, minimum: number) -> Array<Interval> {
+  return array.filter(free, fn(iv: Interval) -> bool { return iv.end - iv.start >= minimum })
+}
+
+fn overlaps_any(xs: Array<Interval>, probe: Interval) -> bool {
+  return array.any(xs, fn(iv: Interval) -> bool {
+    return iv.start < probe.end && probe.start < iv.end
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Loading the calendar
+// ---------------------------------------------------------------------------
+
+// The `Instant` refinement already ran at the boundary, so this parse cannot
+// fail. The `None` arm exists because `time.parse_iso` returns an `Option`, not
+// because a calendar that got this far can hold a bad stamp.
+@example instant_ms("1970-01-01T00:00:00Z") == 0
+fn instant_ms(value: Instant) -> number {
+  return match time.parse_iso(value) {
+    Some(ms) => ms,
+    None => 0,
+  }
+}
+
+fn load_block(who: string, raw: WireBlock) -> Result<Interval, string> {
+  let start = instant_ms(raw.start)
+  let end = instant_ms(raw.end)
+  match end <= start {
+    true => {
+      return Err("${who}: block ${raw.start} ends before it starts")
+    },
+    false => {},
+  }
+  return Ok({ start: start, end: end })
+}
+
+fn load_participant(raw: WireParticipant) -> Result<Person, string> {
+  let blocks: Array<Interval> = []
+  for b in raw.busy {
+    mut blocks.push(load_block(raw.name, b)?)
+  }
+  return Ok({
+    name: raw.name,
+    busy: merge(blocks),
+    conflicts: double_bookings(blocks),
+  })
+}
+
+fn select_people(people: Array<Person>, who: Array<string>) -> Result<Array<Person>, string> {
+  match array.len(who) == 0 {
+    true => {
+      return Ok(people)
+    },
+    false => {},
+  }
+  let chosen: Array<Person> = []
+  for name in who {
+    let found = array.find(people, fn(p: Person) -> bool { return p.name == name })
+    match found {
+      Some(p) => {
+        mut chosen.push(p)
+      },
+      None => {
+        return Err("--who: no participant named \"${name}\" in the calendar")
+      },
+    }
+  }
+  return Ok(chosen)
+}
+
+// The typed `json.parse` is the boundary: nothing downstream sees the file's
+// text. It reports one issue with an empty `path` for any structural failure, so
+// this renders whatever the issue carries rather than pointing at a field.
+fn load_calendar(text: string, who: Array<string>) -> Result<Array<Person>, string> {
+  let calendar = match json.parse<Calendar>(text) {
+    Ok(c) => c,
+    Err(issues) => {
+      let parts: Array<string> = []
+      for issue in issues {
+        let path = string.join(array.map(issue.path, fn(p: unknown) -> string {
+          return string.from(p)
+        }), DOT)
+        mut parts.push("${path}: ${issue.message}")
+      }
+      return Err("calendar is corrupt: ${string.join(parts, COMMA)}")
+    },
+  }
+
+  let people: Array<Person> = []
+  for raw in calendar.participants {
+    mut people.push(load_participant(raw)?)
+  }
+  return select_people(people, who)
+}
+
+// ---------------------------------------------------------------------------
+// Scheduling
+// ---------------------------------------------------------------------------
+
+fn union_busy(people: Array<Person>) -> Array<Interval> {
+  let all: Array<Interval> = []
+  for p in people {
+    for iv in p.busy {
+      mut all.push(iv)
+    }
+  }
+  return merge(all)
+}
+
+fn day_starts(from_ms: number, days: int, weekends: bool) -> Array<number> {
+  let out: Array<number> = []
+  let d = 0
+  loop {
+    match d < days {
+      false => {
+        break
+      },
+      true => {
+        let ms = time.add_days(from_ms, d)
+        match weekends || is_working_day(ms) {
+          true => {
+            mut out.push(ms)
+          },
+          false => {},
+        }
+        mut d = d + 1
+      },
+    }
+  }
+  return out
+}
+
+fn window_of(day_start: number, args: Args) -> Interval {
+  return {
+    start: day_start + args.window_start * MS_PER_MINUTE,
+    end: day_start + args.window_end * MS_PER_MINUTE,
+  }
+}
+
+fn plan_day(day_start: number, args: Args, busy: Array<Interval>) -> Day {
+  let window = window_of(day_start, args)
+  let free = subtract(window, busy)
+  return {
+    start: day_start,
+    window: window,
+    free: free,
+    candidates: clip_to_duration(free, args.duration_minutes * MS_PER_MINUTE),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+const NAME_WIDTH = 10
+
+const LABEL_WIDTH = 8
+
+// A `${...}` interpolation cannot hold a string literal, so every literal these
+// rows need is hoisted to a constant.
+const BLANK = ""
+
+const BUSY_LABEL = "busy"
+
+const FREE_LABEL = "free"
+
+const CLEAR_LABEL = "(clear)"
+
+const NONE_LABEL = "(none)"
+
+fn spans_label(xs: Array<Interval>, empty: string) -> string {
+  return match array.len(xs) == 0 {
+    true => empty,
+    false => string.join(array.map(xs, fn(iv: Interval) -> string { return span_label(iv) }), COMMA),
+  }
+}
+
+// One character per half hour of the working window, so a week of these read as
+// a block of text. A half hour is busy if any busy interval touches it.
+fn availability_bar(window: Interval, busy: Array<Interval>) -> string {
+  let out = ""
+  let t = window.start
+  loop {
+    match t < window.end {
+      false => {
+        break
+      },
+      true => {
+        let slot = { start: t, end: math.min(t + HALF_HOUR, window.end) }
+        let mark = match overlaps_any(busy, slot) {
+          true => BUSY_MARK,
+          false => FREE_MARK,
+        }
+        mut out = "${out}${mark}"
+        mut t = t + HALF_HOUR
+      },
+    }
+  }
+  return out
+}
+
+// The hour ruler above the bars: an hour label every two characters.
+fn bar_ruler(window: Interval) -> string {
+  let out = ""
+  let t = window.start
+  loop {
+    match t < window.end {
+      false => {
+        break
+      },
+      true => {
+        mut out = "${out}${two_digits(math.floor((t % MS_PER_DAY) / MS_PER_HOUR))}"
+        mut t = t + MS_PER_HOUR
+      },
+    }
+  }
+  return out
+}
+
+fn print_day(day: Day, people: Array<Person>, busy: Array<Interval>) -> void {
+  let header = "${date_label(day.start)} ${weekday_name(day.start)}"
+  io.println("${header}  window ${span_label(day.window)}")
+
+  let gutter = pad_end(BLANK, NAME_WIDTH)
+  let busy_column = pad_end(BUSY_LABEL, LABEL_WIDTH)
+  let free_column = pad_end(FREE_LABEL, LABEL_WIDTH)
+  let blank_column = pad_end(BLANK, LABEL_WIDTH)
+
+  for p in people {
+    let busy_today = clip_all(p.busy, day.window)
+    let spans = spans_label(busy_today, CLEAR_LABEL)
+    io.println("  ${pad_end(p.name, NAME_WIDTH)}${busy_column}${spans}")
+  }
+
+  let free = spans_label(day.free, NONE_LABEL)
+  io.println("  ${gutter}${free_column}${free}")
+  io.println("  ${gutter}${blank_column}${bar_ruler(day.window)}")
+  io.println("  ${gutter}${blank_column}${availability_bar(day.window, busy)}")
+  io.println("")
+}
+
+fn print_conflicts(people: Array<Person>) -> void {
+  for p in people {
+    for c in p.conflicts {
+      io.eprintln("warning: ${p.name} is double-booked: ${stamp_label(c.first.start)}-${clock_label(c.first.end)} overlaps ${stamp_label(c.second.start)}-${clock_label(c.second.end)}")
+    }
+  }
+}
+
+fn print_candidates(days: Array<Day>) -> int {
+  let total = 0
+  for day in days {
+    for slot in day.candidates {
+      io.println("  ${date_label(slot.start)} ${weekday_name(slot.start)}  ${clock_label(slot.start)} - ${clock_label(slot.end)}  (${number.to_string(minutes_of(slot))} min)")
+      mut total = total + 1
+    }
+  }
+  return total
+}
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+const USAGE = "usage: schedule <calendar.json> [--duration MINUTES] [--from YYYY-MM-DD] [--days N] [--hours HH:MM-HH:MM] [--who a,b] [--weekends]"
+
+fn arg_at(argv: Array<string>, i: int) -> Option<string> {
+  return match i < array.len(argv) {
+    true => Some(argv[i]),
+    false => None,
+  }
+}
+
+@example parse_clock("09:30") == Ok(570)
+@example parse_clock("24:00") == Err("expected HH:MM, got \"24:00\"")
+fn parse_clock(value: string) -> Result<int, string> {
+  let bad = "expected HH:MM, got \"${value}\""
+  let parts = string.split(value, ":")
+  match array.len(parts) == 2 {
+    false => {
+      return Err(bad)
+    },
+    true => {},
+  }
+  let hours = match number.parse(parts[0]) {
+    Ok(h) => h,
+    Err(_) => {
+      return Err(bad)
+    },
+  }
+  let minutes = match number.parse(parts[1]) {
+    Ok(m) => m,
+    Err(_) => {
+      return Err(bad)
+    },
+  }
+  match hours < 0 || hours > 23 || minutes < 0 || minutes > 59 {
+    true => {
+      return Err(bad)
+    },
+    false => {},
+  }
+  return Ok(hours * 60 + minutes)
+}
+
+@example parse_window("09:00-17:00") == Ok({ start: 540, end: 1020 })
+@example parse_window("17:00-09:00") == Err("--hours: the window ends before it starts")
+fn parse_window(value: string) -> Result<Interval, string> {
+  let parts = string.split(value, "-")
+  match array.len(parts) == 2 {
+    false => {
+      return Err("--hours expects HH:MM-HH:MM, got \"${value}\"")
+    },
+    true => {},
+  }
+  let start = parse_clock(parts[0]).map_err(fn(e: string) -> string { return "--hours: ${e}" })?
+  let end = parse_clock(parts[1]).map_err(fn(e: string) -> string { return "--hours: ${e}" })?
+  match end <= start {
+    true => {
+      return Err("--hours: the window ends before it starts")
+    },
+    false => {},
+  }
+  return Ok({ start: start, end: end })
+}
+
+fn parse_count(flag: string, value: string) -> Result<int, string> {
+  let n = match number.parse(value) {
+    Ok(v) => v,
+    Err(_) => {
+      return Err("${flag} expects a whole number, got \"${value}\"")
+    },
+  }
+  match n < 1 || n != math.floor(n) {
+    true => {
+      return Err("${flag} expects a whole number of at least 1, got \"${value}\"")
+    },
+    false => {},
+  }
+  return Ok(n)
+}
+
+fn parse_from(value: string) -> Result<number, string> {
+  return match time.parse_iso(value) {
+    Some(ms) => Ok(midnight_of(ms)),
+    None => Err("--from expects YYYY-MM-DD, got \"${value}\""),
+  }
+}
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let path = ""
+  let duration_minutes = 30
+  let from_ms = midnight_of(time.now())
+  let days = 5
+  let window_start = 540
+  let window_end = 1020
+  let who: Array<string> = []
+  let weekends = false
+
+  let i = 0
+  loop {
+    match i < array.len(argv) {
+      false => {
+        break
+      },
+      true => {
+        let flag = argv[i]
+        match string.starts_with(flag, "--") {
+          false => {
+            match string.len(path) == 0 {
+              true => {
+                mut path = flag
+              },
+              false => {
+                return Err("unexpected argument \"${flag}\"")
+              },
+            }
+            mut i = i + 1
+          },
+          true => {
+            match flag == "--weekends" {
+              true => {
+                mut weekends = true
+                mut i = i + 1
+              },
+              false => {
+                let value = match arg_at(argv, i + 1) {
+                  Some(v) => v,
+                  None => {
+                    return Err("${flag} needs a value")
+                  },
+                }
+                match flag {
+                  "--duration" => {
+                    mut duration_minutes = parse_count("--duration", value)?
+                  },
+                  "--days" => {
+                    mut days = parse_count("--days", value)?
+                  },
+                  "--from" => {
+                    mut from_ms = parse_from(value)?
+                  },
+                  "--hours" => {
+                    let w = parse_window(value)?
+                    mut window_start = w.start
+                    mut window_end = w.end
+                  },
+                  "--who" => {
+                    mut who = array.map(string.split(value, ","), fn(s: string) -> string {
+                      return string.trim(s)
+                    })
+                  },
+                  else => {
+                    return Err("unknown flag \"${flag}\"")
+                  },
+                }
+                mut i = i + 2
+              },
+            }
+          },
+        }
+      },
+    }
+  }
+
+  match string.len(path) == 0 {
+    true => {
+      return Err(USAGE)
+    },
+    false => {},
+  }
+
+  return Ok({
+    path: path,
+    duration_minutes: duration_minutes,
+    from_ms: from_ms,
+    days: days,
+    window_start: window_start,
+    window_end: window_end,
+    who: who,
+    weekends: weekends,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn run(args: Args, people: Array<Person>) -> number {
+  print_conflicts(people)
+
+  let busy = union_busy(people)
+  let days: Array<Day> = []
+  for day_start in day_starts(args.from_ms, args.days, args.weekends) {
+    mut days.push(plan_day(day_start, args, busy))
+  }
+
+  let names = string.join(array.map(people, fn(p: Person) -> string { return p.name }), COMMA)
+  io.println("schedule for ${names}")
+  io.println("range ${date_label(args.from_ms)} + ${number.to_string(args.days)} day(s), meeting of ${number.to_string(args.duration_minutes)} min")
+  io.println("")
+
+  for day in days {
+    print_day(day, people, busy)
+  }
+
+  io.println("candidate slots (${number.to_string(args.duration_minutes)} min or longer)")
+  let found = print_candidates(days)
+
+  match found == 0 {
+    true => {
+      io.eprintln("error: no common ${number.to_string(args.duration_minutes)}-minute slot in the requested range")
+      return 1
+    },
+    false => {},
+  }
+  return 0
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+
+  let text = match fs.read_text(args.path) {
+    Ok(t) => t,
+    Err(e) => {
+      io.eprintln("error: cannot read ${args.path}: ${e.message}")
+      return 2
+    },
+  }
+
+  let people = match load_calendar(text, args.who) {
+    Ok(p) => p,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+
+  match array.len(people) == 0 {
+    true => {
+      io.eprintln("error: the calendar has no participants")
+      return 2
+    },
+    false => {},
+  }
+
+  return run(args, people)
+}

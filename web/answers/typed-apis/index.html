@@ -462,7 +462,12 @@ type NonEmpty = string where value.length &gt; 0
 
 // Amount.parse(-1)  -&gt; Err   (not just "is a number")
 // Rating.parse(6)   -&gt; Err
-// Amount.parse(3.5) -&gt; Err   (int check too)</pre>
+// Amount.parse(3.5) -&gt; Err   (int check too)
+
+type Line = { amount: Amount, }
+// Line.parse({ amount: -1 }) -&gt; Err too:
+// the predicate follows the type into
+// the field, and across modules.</pre>
         </div>
         <div class="code">
           <span class="cap">what you're not writing</span>

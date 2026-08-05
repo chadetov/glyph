@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.40</span>
+            <span class="rel-ver">0.1.41</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Every descriptor the compiler emits, the compiler can find</h3>
+            <p>A type carries a runtime descriptor so data crossing a boundary is checked against what the type declares. The descriptors were emitted. The code that decided whether to <em>call</em> one recognized a record and a tagged union defined in the same file, and nothing else. Everything else got a check that the key was present, which validates nothing about the value under it. A scheduling app found it: <code>type Instant = string where is_instant(value)</code> rejected <code>Instant.parse("no")</code> and accepted <code>Block.parse({ start: "no" })</code>.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>where</code> refinement runs its predicate wherever the type appears, not only at a direct <code>Name.parse</code>. A record field typed <code>Name</code>, an <code>Array&lt;Name&gt;</code> element, an <code>Option&lt;Name&gt;</code> payload, a union variant's payload, <code>json.parse&lt;Name&gt;</code>, and <code>is Name</code> narrowing in a <code>match</code> all call the descriptor now.</li>
+              <li><span class="tag fixed">Fixed</span> A field typed by a record or union <strong>imported from another module</strong> is validated against that type's descriptor. This is every non-generic cross-module composition in every multi-file Glyph program: <code>Outer.parse({ i: 42 })</code> returned Ok where <code>i</code> was typed by an imported record whose descriptor was emitted, exported, and already imported as a value in the same file. The namespaced form (<code>import types</code>, then a field typed <code>types.Inner</code>) works too; it was previously not handled at all.</li>
+              <li><span class="tag changed">Changed</span> A boundary that used to return Ok on unvalidated data now returns Err. Nothing in the syntax changed and nothing was relaxed, but a program that leaned on the old presence check will start failing at the boundary, which is where you want to find out.</li>
+              <li><span class="tag known">Known</span> A type imported from a plain <code>.d.ts</code> still gets the presence check, because there is no descriptor to call. <code>glyph gen dts</code> materializes those with real descriptors. The registry is deliberately the authority here, so no bogus <code>X.is</code> is emitted for a type that has none.</li>
+              <li><span class="tag known">Known</span> The namespaced form is wired for field positions. <code>match v { is types.Inner =&gt; … }</code> and <code>json.parse&lt;types.Inner&gt;(s)</code> still take the unresolved path. Same lookup, not done yet.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/schedule.glyph</code>, the app that found it. A free-slot finder across several people's calendars: a JSON boundary, ISO-8601 instants, interval merging, and a text grid of the day. It now types its timestamps as <code>type Instant = string where is_instant(value)</code> and deleted the hand-rolled validation pass that existed only because the refinement stopped at the field.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.40</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

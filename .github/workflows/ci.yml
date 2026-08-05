@@ -18,6 +18,12 @@ jobs:
       - name: Check version consistency
         run: python3 scripts/check_versions.py
 
+      # Backlog discipline: a release that closes a dogfooding gap has to mark it
+      # and update the count, or the gap list drifts out of sync with the
+      # compiler and has to be reconciled by hand again.
+      - name: Check the dogfooding gap list
+        run: python3 scripts/check_gaps.py
+
   test:
     name: Test + type-check examples
     runs-on: ubuntu-latest

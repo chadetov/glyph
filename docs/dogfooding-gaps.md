@@ -7,6 +7,27 @@ six `@example` tests pass — but writing it surfaced concrete gaps, several of
 them silent-miscompile **bugs** (code that passes `glyph build` and `tsc` and
 then misbehaves at runtime). Ordered by severity.
 
+Later trips appended their own rounds below, so the file is both a backlog and a
+record of what each app found. The numbered `G` entries are the backlog; the
+per-round sections are history and stay as written.
+
+## Reading the markers
+
+A `G` entry carries its status in brackets after the number. No bracket means
+open.
+
+- **`[FIXED]`** — closed, with a note saying what closed it.
+- **`[HALF FIXED]`** / **`[IMPROVED]`** — part of the claim is closed; the note
+  says what remains.
+- **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
+  or an accepted won't-fix.
+
+Reconciled against the source at 0.1.46: of 59 entries, 28 are fixed, 5 are
+partly fixed, 4 are decided or resolved, and 22 are open. The most-repeated open
+item by a distance is `std/string` breadth (`slice`, `index_of`, `pad_start`,
+`repeat`, and codepoint-aware iteration), reported by five consecutive trips and
+hand-rolled around by nearly every app in `examples/apps/`.
+
 ## Verdict
 
 The toolchain works for a clean, single-file, primitives-and-tagged-unions app.
@@ -167,9 +188,10 @@ class is that "verified through `glyph build`" is not the same as verified.
   is deferred; the stance is documented rather than enforced in v1.* Pillar note:
   this trades a little verifiability (the footgun) for diff stability and
   simplicity; revisit if dogfooding shows real bugs from it.
-- **G15. `mut` on a `const` is not enforced (D20 says it is).** `mut N = 6`
+- **G15. [FIXED] `mut` on a `const` is not enforced (D20 says it is).** `mut N = 6`
   against `const N` passes the Glyph typechecker; only `tsc` catches it (TS2588,
-  no E-code). *Fix: enforce in the typechecker with a real E-code.*
+  no E-code). *Fixed: the typechecker raises `MutateConst` (E0212) with a test, so
+  the rule is enforced in Glyph rather than left to `tsc`.*
 - **G16. [DECIDED — v1.1 design item] D25 `owned` is unexercised and fights
   `?`.** No stdlib resource type or `open`/`close` exists; `owned`/`resource`
   appear only in negative tests. The natural open→fallible-work→close shape
@@ -181,12 +203,13 @@ class is that "verified through `glyph build`" is not the same as verified.
   remains in v1 as the discipline primitive, exercised by the negative suite. No
   code change here — this records the decision to defer the surrounding
   machinery, not the carve-out itself.*
-- **G17. `glyph build --out X` never cleans `X`.** A renamed/removed source
-  leaves a stale `.ts` that `tsc` and importers still pick up. *Fix: clean the
-  out dir, or track + prune.*
-- **G18. `glyph fmt` layout nits.** Deletes the blank line between a section
-  comment and its declaration; wraps the innermost call's args instead of the
-  long method chain.
+- **G17. [FIXED] `glyph build --out X` never cleans `X`.** A renamed/removed source
+  leaves a stale `.ts` that `tsc` and importers still pick up. *Fixed:
+  `prune_stale_outputs` removes emitted `.ts` left behind by an earlier build.*
+- **G18. [HALF FIXED] `glyph fmt` layout nits.** Deletes the blank line between a
+  section comment and its declaration; wraps the innermost call's args instead of
+  the long method chain. *The blank line is now preserved, with a test. A long
+  method chain still wraps the innermost call's arguments.*
 
 ## Low — expected / cosmetic
 
@@ -506,12 +529,15 @@ on a decision in `docs/roadmap/releases.md`.
 - **G26. `std/string` has no `repeat`, `pad_start`, or `pad_end`.** Every program
   that renders a grid or aligned columns needs them; the app hand-rolled all
   three. Three wrappers plus three names in the resolver seed.
-- **G27. An unknown stdlib namespace member leaks a raw `tsc` error.** `import
-  std/string { repeat }` gives a clean E0105, because `verify_imports` checks
-  named imports against the resolver seed. `string.repeat(...)` gives a TS2339
-  carrying an absolute build path, because nothing checks member access against
-  the same seed. The same typo gets two experiences depending on import style,
-  and the absolute path in a remapped TS error is a second, separable defect.
+- **G27. [HALF FIXED] An unknown stdlib namespace member leaks a raw `tsc` error.**
+  `import std/string { repeat }` gives a clean E0105, because `verify_imports`
+  checks named imports against the resolver seed. `string.repeat(...)` gives a
+  TS2339 carrying an absolute build path, because nothing checks member access
+  against the same seed. The same typo gets two experiences depending on import
+  style, and the absolute path in a remapped TS error is a second, separable
+  defect. *The path half is fixed: a `tsc` error now remaps onto a relative Glyph
+  module path. Member access is still unchecked against the resolver seed, so the
+  typo still surfaces as a TS2339 rather than an E-code.*
 - **G28. There is no `glyph check <file>`.** `build` rejects a non-directory
   source, so the only door into type checking a single file is running it.
 - **G29. Two formatter layout complaints, deliberately not bundled with G23.** A

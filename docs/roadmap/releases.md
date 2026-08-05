@@ -881,7 +881,8 @@ broken. Thirteen findings came out of it and most are stdlib breadth
 matters is not on that list. Five findings ended with the same sentence, `glyph
 build` reported no diagnostics and `tsc` caught it, and three of the five turned
 out to be one defect in the emitter wearing three faces. That one is fixed here;
-the other two are recorded below, unfixed. This trip carries the Next marker.
+the other two are recorded below, unfixed. The Next marker has moved on to the
+bracket trip below.
 
 ### 0.1.42 — Shipped · A `match` you assign is a `switch`, not a closure
 
@@ -981,6 +982,70 @@ workaround version produced.
   rejection now fires only for a `match` nested inside a larger expression, so the
   wording points at a position that works. The message should name the nested case
   and say "hoist it into its own `let`", which is the actual fix.
+
+## bracket dogfood trip — the build said ok on a false assertion
+
+The loop pointed at `examples/apps/bracket.glyph`: a single-elimination
+tournament bracket, seeding, results, standings. Twelve findings came out of it,
+six of them re-reports of gaps already on this page. The one worth the release is
+none of the syntax complaints: the app carried its own `@example`s, and the build
+that runs them was reporting success without running them. This trip carries the
+Next marker.
+
+### 0.1.43 — Shipped · `@example` runs on every build, including `--json`
+
+D23 says the compiler runs every `@example` on `glyph build` and a failing one
+fails the build. The implementation put that behind `--test`, so the default
+build, the one CI runs and the one an agent runs in a loop, skipped the
+project's own assertions and printed `tsc --strict passed`. The `--json` path
+was worse: the JSON emitter diverges and was reached before the example block,
+so even `glyph build --test --json` printed `"ok": true, "errors": 0, "tsc":
+"passed"` on a project whose `@example` asserted `2 * 2 == 999`. The channel
+agents read could not report a failing colocated test even when explicitly asked
+to run one.
+
+The checks now run on every `glyph build`. `--no-test` opts out and says how many
+tests it skipped, so the bypass is on the record rather than silent; `--test` is
+still accepted and ignored. Under `--json` the examples run before the JSON is
+built, and the object carries an `examples` field (`total`, `ran`, `skipped`,
+`failures`) whose failures fold into `errors` and `ok`, so the two channels
+report the same verdict and the same exit code. A missing `tsx` on a project that
+has examples is handled the way a missing `tsc` already was: no success line,
+`"ok": false`, exit 2, because a build that could not run its verification must
+not look verified. Projects with no examples pay nothing, which is now pinned by
+a test rather than assumed.
+
+On the app that found it, a plain `glyph build src --out dist` now prints `23
+example(s) passed`; flip one of bracket's own assertions and the same command
+prints `example failed: bracket example #16` and exits 1, with the `tsc --strict
+passed` line withheld. The repo's own CI step, `glyph build ../examples`, reports
+`100 example(s) passed` and still exits 0, so default-on cost nothing that was
+already green. The edge that remains: the runner shells out to `tsx`, so a
+project that has examples and no `tsx` on `PATH` now fails at exit 2 where it
+used to build quietly. That is the intended trade (a build that cannot run its
+verification should not claim to be verified), but it means an offline or
+minimal-image build of a project with examples needs either `tsx` installed or
+`--no-test`.
+
+### Still open from this trip
+
+- **`?` is rejected in an expression-position `match` arm** (M). `None =>
+  lookup(0)?` fails with E0300 while the block form `None => { lookup(0)? }`
+  compiles and emits correctly. The fix is a pre-check in `expr`'s `Expr::Match`
+  arm, next to the existing block-arm check, so the flat path can use
+  `emit_value` without turning a compile error into a silent miscompile in the
+  nested-IIFE case.
+- **A two-binding `for` picks the record lowering on an unknown iterand** (G37,
+  second sighting). The root is that `stdlib_fn_ty` models about a dozen
+  functions, so `string.split` and the `array` combinators return `Ty::Unknown`
+  and the emitter chooses between two incompatible lowerings on a type it does
+  not have. Two directions, both needing the orchestrator: model stdlib return
+  types (durable, large) or hard-error on an unknown-typed iterand (cheap,
+  wedge-shaped).
+- **Stdlib breadth, fourth sighting** (S). Same list as the linkcheck trip.
+- **Escaping `$` in a template literal is a docs gap, not a lexer gap** (docs).
+  `"${string.join(p, \".\")}"` works today and is regression-tested; the app
+  author invented a `const SPACE = " "` around a limitation that does not exist.
 
 ## Road to 1.0
 

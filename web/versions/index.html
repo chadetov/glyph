@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.42</span>
+            <span class="rel-ver">0.1.43</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Your <code>@example</code>s run on every build</h3>
+            <p>Glyph puts tests next to the code: an <code>@example</code> above a function, or a <code>@run</code> fence inside a <code>@doc</code>, is an assertion the compiler is supposed to execute. It executed them only when you passed <code>--test</code>, so a plain build of a project whose own assertion was false printed no diagnostics, printed <code>tsc --strict passed</code>, and exited 0. The <code>--json</code> output that agents and CI read was worse: it returned before the examples ran at all, so even <code>--test --json</code> reported <code>"ok": true</code>. A tournament bracket app found it by carrying 23 examples that a plain build never touched.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>glyph build</code> runs every <code>@example</code> and <code>@doc @run</code> with no flag to remember, and a false one fails the build. The bracket app now reports <code>23 example(s) passed</code>; break one assertion and the build prints <code>example failed: bracket example #16</code> and exits 1, with the <code>tsc --strict passed</code> line withheld.</li>
+              <li><span class="tag fixed">Fixed</span> <code>--json</code> reports the same verdict. The output carries an <code>examples</code> object with <code>total</code>, <code>ran</code>, <code>skipped</code>, and <code>failures</code>, and a failure makes <code>ok</code> false with a matching exit code. The two channels can no longer disagree about whether a project passed.</li>
+              <li><span class="tag fixed">Fixed</span> A missing <code>tsx</code> on a project that has examples is now handled the way a missing <code>tsc</code> already was: no success line, <code>"ok": false</code>, exit 2. A build that could not run its verification does not get to look verified.</li>
+              <li><span class="tag changed">Changed</span> <code>--test</code> is replaced by <code>--no-test</code>, which skips the checks and prints how many it skipped so the bypass shows up in the log. <code>--test</code> is still accepted and does nothing, so existing scripts keep working.</li>
+              <li><span class="tag known">Known</span> The runner shells out to <code>tsx</code>. A project with examples and no <code>tsx</code> on <code>PATH</code> fails where it used to build quietly, so an offline or minimal-image build needs <code>tsx</code> installed or <code>--no-test</code>. A project with no examples does no work and needs nothing.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/bracket.glyph</code>, the app that found it. Single-elimination brackets: seeding by standard bracket order, byes when the entrant count is not a power of two, reporting results that propagate winners through the feeder slots, and an ASCII bracket that re-renders after every match.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.42</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

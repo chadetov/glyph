@@ -193,15 +193,60 @@ type Calendar = { participants: Array&lt;WireParticipant&gt; }
 <span class="cm">//   =&gt; Err. It returned Ok before 0.1.41.</span></pre>
       </div>
 
+      <div class="detail">
+        <p>
+          Tests live next to the code and run as part of compiling it. An
+          <code>@example</code> above a function, or a <code>```glyph @run```</code> block inside
+          a <code>@doc</code>, is executed by <code>glyph build</code> with no flag to remember.
+          A false one fails the build the same way a type error does, which is the point: an
+          agent rewriting a function body cannot pass the build by leaving the assertion behind.
+          <code>--no-test</code> opts out and prints how many tests it skipped, so the bypass is
+          visible in the log.
+        </p>
+        <p>
+          The JSON output agents read reports the same verdict. <code>glyph build --json</code>
+          carries an <code>examples</code> object next to the diagnostics, and a failing example
+          makes <code>ok</code> false and the exit code non-zero. Until 0.1.43 the examples ran
+          only under <code>--test</code>, and the JSON path returned before they ran at all, so
+          the one channel an agent can read printed <code>"ok": true</code> on a project whose
+          own assertion was false. If <code>tsx</code> isn't on <code>PATH</code> the build fails
+          instead of reporting a pass it never checked.
+        </p>
+        <p>
+          The bracket app below carries 23 of these. <code>seed_order</code> builds standard
+          bracket order by doubling, which is the kind of function that is easy to get subtly
+          wrong and easy to describe exactly. Change the doubling rule and the build stops,
+          without a test file, a runner, or a flag.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">bracket.glyph: break the seeding and the build stops</span>
+<pre>@example seed_order(2) == [1, 2]
+@example seed_order(4) == [1, 4, 2, 3]
+@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
+fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
+
+<span class="cm">// glyph build src --out dist</span>
+<span class="del">example failed: bracket example #16:</span>
+<span class="del">  (seed_order(8)) != ([1, 2, 3, 4, 5, 6, 7, 8])</span>
+<span class="del">1 of 23 example(s) failed.            # exit 1, no "tsc passed" line</span>
+
+<span class="cm">// glyph build src --out dist --json</span>
+<span class="del">{ "ok": false, "errors": 1, "tsc": "passed",</span>
+<span class="del">  "examples": { "total": 23, "ran": true, "skipped": false,</span>
+<span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Exhaustive <code>match</code> over sealed unions <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), a typo'd variant arm caught as a compile error with a nearest-variant suggestion (<code>E0220</code>) instead of a silent catch-all, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, and <code>@example</code> tests that run at build time.</p>
+          <p>Exhaustive <code>match</code> over sealed unions <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), a typo'd variant arm caught as a compile error with a nearest-variant suggestion (<code>E0220</code>) instead of a silent catch-all, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, and <code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing is on the roadmap. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm. Async context is the one rule Glyph does not check itself: an <code>await</code> in a plain <code>fn</code> compiles here and is caught by <code>tsc</code> on the emitted TypeScript, so you get the error one stage later than you should.</p>
+          <p>Deeper flow-narrowing is on the roadmap. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context is the one rule Glyph does not check itself: an <code>await</code> in a plain <code>fn</code> compiles here and is caught by <code>tsc</code> on the emitted TypeScript, so you get the error one stage later than you should.</p>
         </div>
       </div>
 

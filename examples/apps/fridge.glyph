@@ -314,7 +314,7 @@ fn format_parse_error(e: ParseError) -> string {
 }
 
 // ---------------------------------------------------------------------------
-// Inline tests (D23). Run with: glyph build examples --test
+// Inline tests (D23). They run on every glyph build.
 // ---------------------------------------------------------------------------
 
 @example count(empty_fridge()) == 0

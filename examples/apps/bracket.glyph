@@ -1,0 +1,1289 @@
+// bracket — a single-elimination tournament bracket manager.
+//
+// The whole tournament is one value: a `Match` holds two `Slot`s, and a `Slot`
+// is either a seeded entrant, a bye, or another `Match`. Nothing is stored
+// twice, so "advance the winner" is not a write into a parallel table, it is
+// just reading the child match's outcome from the parent's slot.
+//
+// Usage:
+//   bracket new <entrants.txt> [--title T] [--file out.json] [--shuffle SEED]
+//   bracket new --seeds seeds.json [--file out.json]
+//   bracket show [--file bracket.json]
+//   bracket report <winner> [--score 3-1] [--match ID] [--file bracket.json]
+//   bracket standings [--champion] [--file bracket.json]
+//
+// Exit codes: 0 success, 1 a rejected report or a champion asked for before the
+// final is decided, 2 bad arguments or a bracket file that will not load.
+//
+// Run it end to end (copy the whole block):
+//
+//   cat > /tmp/entrants.txt <<'EOF'
+//   Alice
+//   Bruno
+//   Carla
+//   Dmitri
+//   Elena
+//   Farid
+//   EOF
+//   glyph run examples/apps/bracket.glyph new /tmp/entrants.txt --title "Spring Cup" --file /tmp/cup.json
+//   glyph run examples/apps/bracket.glyph report Alice --score 3-1 --file /tmp/cup.json
+//   glyph run examples/apps/bracket.glyph standings --file /tmp/cup.json
+
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/math
+import std/option { Option, Some, None }
+import std/random { seeded }
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+// One side of a match. `Feeder` is what makes the bracket recursive: the slot
+// is filled by whoever wins the match underneath it, so there is no separate
+// "advance" step and no way for the two representations to disagree.
+type Slot =
+  // A competitor placed by the seeding, `seed` being their 1-based rank.
+  | Seeded({ seed: int, name: string })
+  // An unfilled slot in a non-power-of-two field. The other side advances.
+  | Bye
+  // Filled by the winner of `source`.
+  | Feeder({ source: Match })
+
+// The result of a played match. `score` is optional because a walkover has no
+// score to report.
+type Outcome = { winner: string, score: Option<string> }
+
+type Match = {
+  // Stable, assigned once at construction. `--match` names one of these.
+  id: int,
+  // Distance from the entrant column: 1 is the first round played, and the
+  // root's round is log2(field size).
+  round: int,
+  left: Slot,
+  right: Slot,
+  outcome: Option<Outcome>,
+}
+
+type Bracket = {
+  title: string,
+  // Number of leaf slots: a power of two, byes included.
+  size: int,
+  // Seeded entrants, in seed order. Index 0 is seed 1.
+  entrants: Array<string>,
+  root: Match,
+}
+
+// The shape of a `--seeds` file. Validated at the boundary like everything else
+// read off disk.
+type SeedFile = { title: string, entrants: Array<string> }
+
+// Every way a `report` can be refused. Each arm carries what the message needs,
+// so adding a rejection cannot be half-implemented.
+type Reject =
+  | UnknownName({ name: string })
+  | NoSuchMatch({ id: int })
+  | NotInMatch({ id: int, name: string })
+  | NotReady({ id: int })
+  | AlreadyDecided({ id: int, winner: string })
+  | Eliminated({ name: string, id: int, by: string })
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+type Source =
+  | LinesFile({ path: string })
+  | SeedsFile({ path: string })
+
+type Command =
+  | New({ source: Source, title: string, file: string, shuffle: Option<int> })
+  | Show({ file: string })
+  | Report({ file: string, winner: string, score: Option<string>, id: Option<int> })
+  | Standings({ file: string, champion: bool })
+
+const DEFAULT_FILE = "bracket.json"
+
+const VALUE_FLAGS: Array<string> = [
+  "--seeds",
+  "--file",
+  "--title",
+  "--shuffle",
+  "--score",
+  "--match",
+]
+
+const BOOL_FLAGS: Array<string> = ["--champion"]
+
+const USAGE = "usage: bracket <new|show|report|standings> [args]"
+
+// ---------------------------------------------------------------------------
+// Text helpers the stdlib does not have
+// ---------------------------------------------------------------------------
+
+const SPACE = " "
+
+@example upto(0) == []
+@example upto(3) == [0, 1, 2]
+fn upto(n: int) -> Array<int> {
+  let out: Array<int> = []
+  let i = 0
+  loop {
+    match i < n {
+      false => {
+        break
+      },
+      true => {
+        mut out.push(i)
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+@example span(2, 5) == [2, 3, 4]
+@example span(3, 3) == []
+fn span(lo: int, hi: int) -> Array<int> {
+  return array.map(upto(math.max(hi - lo, 0)), fn(i: int) -> int { return lo + i })
+}
+
+@example repeat("ab", 0) == ""
+@example repeat("ab", 3) == "ababab"
+fn repeat(unit: string, count: int) -> string {
+  let out = ""
+  let i = 0
+  loop {
+    match i < count {
+      false => {
+        break
+      },
+      true => {
+        mut out = "${out}${unit}"
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+@example pad_end("ab", 4) == "ab  "
+fn pad_end(s: string, width: int) -> string {
+  return "${s}${repeat(SPACE, width - string.len(s))}"
+}
+
+@example pad_start("7", 3) == "  7"
+fn pad_start(s: string, width: int) -> string {
+  return "${repeat(SPACE, width - string.len(s))}${s}"
+}
+
+@example pow2(0) == 1
+@example pow2(4) == 16
+fn pow2(k: int) -> int {
+  let out = 1
+  let i = 0
+  loop {
+    match i < k {
+      false => {
+        break
+      },
+      true => {
+        mut out = out * 2
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+// Smallest power of two that is at least `n`, and never below 2: a one-entrant
+// tournament has no match to play.
+@example bracket_size(2) == 2
+@example bracket_size(6) == 8
+@example bracket_size(8) == 8
+fn bracket_size(n: int) -> int {
+  let size = 2
+  loop {
+    match size >= n {
+      true => {
+        break
+      },
+      false => {
+        mut size = size * 2
+      },
+    }
+  }
+  return size
+}
+
+@example log2_exact(8) == 3
+fn log2_exact(n: int) -> int {
+  let k = 0
+  let v = 1
+  loop {
+    match v >= n {
+      true => {
+        break
+      },
+      false => {
+        mut v = v * 2
+        mut k = k + 1
+      },
+    }
+  }
+  return k
+}
+
+// ---------------------------------------------------------------------------
+// Seeding
+// ---------------------------------------------------------------------------
+
+// Standard bracket order: 1 meets the lowest seed, and the top two seeds can
+// only meet in the final. Built by doubling: every seed `s` in a bracket of `n`
+// becomes the pair `s, n + 1 - s` in the bracket of `2n`.
+@example seed_order(2) == [1, 2]
+@example seed_order(4) == [1, 4, 2, 3]
+@example seed_order(8) == [1, 8, 4, 5, 2, 7, 3, 6]
+fn seed_order(size: int) -> Array<int> {
+  let order: Array<int> = [1]
+  loop {
+    match array.len(order) >= size {
+      true => {
+        break
+      },
+      false => {
+        let n = array.len(order) * 2
+        let next: Array<int> = []
+        for s in order {
+          mut next.push(s)
+          mut next.push(n + 1 - s)
+        }
+        mut order = next
+      },
+    }
+  }
+  return order
+}
+
+// Fisher-Yates over a seeded generator, so `--shuffle 7` always produces the
+// same draw.
+fn shuffled(names: Array<string>, seed: int) -> Array<string> {
+  let rng = seeded(seed)
+  let out = array.slice(names, 0)
+  for i in span(1, array.len(out)) {
+    let j = rng.int(0, array.len(out) - i)
+    let k = array.len(out) - i
+    let tmp = out[k]
+    mut out[k] = out[j]
+    mut out[j] = tmp
+  }
+  return out
+}
+
+fn leaf_slot(seed: int, entrants: Array<string>) -> Slot {
+  return match seed <= array.len(entrants) {
+    true => Seeded({ seed: seed, name: entrants[seed - 1] }),
+    false => Bye,
+  }
+}
+
+// Match ids are handed out in one pass so they are stable for a given field.
+type Counter = { next: int }
+
+fn take_id(c: Counter) -> int {
+  let id = c.next
+  mut c.next = id + 1
+  return id
+}
+
+// Build the match over `slots[start .. start + count]`. `count` is a power of
+// two of at least 2, so the two halves are always well formed.
+fn build_match(slots: Array<Slot>, start: int, count: int, ids: Counter) -> Match {
+  let half = count / 2
+  return {
+    id: take_id(ids),
+    round: log2_exact(count),
+    left: build_slot(slots, start, half, ids),
+    right: build_slot(slots, start + half, half, ids),
+    outcome: None,
+  }
+}
+
+fn build_slot(slots: Array<Slot>, start: int, count: int, ids: Counter) -> Slot {
+  return match count == 1 {
+    true => slots[start],
+    false => Feeder({ source: build_match(slots, start, count, ids) }),
+  }
+}
+
+fn build_bracket(title: string, entrants: Array<string>) -> Bracket {
+  let size = bracket_size(array.len(entrants))
+  let slots = array.map(seed_order(size), fn(s: int) -> Slot { return leaf_slot(s, entrants) })
+  let ids: Counter = { next: 1 }
+  return { title: title, size: size, entrants: entrants, root: build_match(slots, 0, size, ids) }
+}
+
+// ---------------------------------------------------------------------------
+// Reading the tree
+// ---------------------------------------------------------------------------
+
+fn is_bye(s: Slot) -> bool {
+  return match s {
+    Bye => true,
+    else => false,
+  }
+}
+
+// Who currently occupies a slot, or `None` if it is a bye or the match feeding
+// it has not been decided.
+fn slot_winner(s: Slot) -> Option<string> {
+  return match s {
+    Seeded(e) => Some(e.name),
+    Bye => None,
+    Feeder(f) => match_winner(f.source),
+  }
+}
+
+// A match is decided either because a result was reported or because one side
+// is a bye. With standard seeding a bye is only ever paired against a real
+// entrant, so a match never has two byes.
+fn match_winner(m: Match) -> Option<string> {
+  return match m.outcome {
+    Some(o) => Some(o.winner),
+    None => walkover_winner(m),
+  }
+}
+
+fn walkover_winner(m: Match) -> Option<string> {
+  return match is_bye(m.left) {
+    true => slot_winner(m.right),
+    false => match is_bye(m.right) {
+      true => slot_winner(m.left),
+      false => None,
+    },
+  }
+}
+
+// Every match, root first.
+fn all_matches(m: Match) -> Array<Match> {
+  return array.concat([m], array.concat(slot_matches(m.left), slot_matches(m.right)))
+}
+
+fn slot_matches(s: Slot) -> Array<Match> {
+  return match s {
+    Feeder(f) => all_matches(f.source),
+    else => [],
+  }
+}
+
+fn is_competitor(m: Match, name: string) -> bool {
+  return side_is(m.left, name) || side_is(m.right, name)
+}
+
+fn side_is(s: Slot, name: string) -> bool {
+  return match slot_winner(s) {
+    Some(w) => w == name,
+    None => false,
+  }
+}
+
+// Both feeders resolved and no result yet: the match can be played now.
+fn is_ready(m: Match) -> bool {
+  return match m.outcome {
+    Some(_) => false,
+    None => is_decided(m.left) && is_decided(m.right),
+  }
+}
+
+fn is_decided(s: Slot) -> bool {
+  return match slot_winner(s) {
+    Some(_) => true,
+    None => false,
+  }
+}
+
+fn find_match(b: Bracket, id: int) -> Option<Match> {
+  return array.find(all_matches(b.root), fn(m: Match) -> bool { return m.id == id })
+}
+
+fn round_name(matches_in_round: int) -> string {
+  return match matches_in_round {
+    1 => "Final",
+    2 => "Semifinal",
+    4 => "Quarterfinal",
+    else => "Round of ${number.to_string(matches_in_round * 2)}",
+  }
+}
+
+// A match at round `r` in a field of `size` is one of `size / 2^r` matches.
+fn match_round_name(b: Bracket, m: Match) -> string {
+  return round_name(b.size / pow2(m.round))
+}
+
+// ---------------------------------------------------------------------------
+// Reporting a result
+// ---------------------------------------------------------------------------
+
+// Pick the match a bare `report <name>` refers to: the one undecided match the
+// name is a current competitor in. Everything else is a rejection with a reason
+// the caller can print.
+fn locate_match(b: Bracket, name: string) -> Result<Match, Reject> {
+  match array.contains(b.entrants, name) {
+    false => {
+      return Err(UnknownName({ name: name }))
+    },
+    true => {},
+  }
+
+  let mine = array.filter(all_matches(b.root), fn(m: Match) -> bool { return is_competitor(m, name) })
+  let open = array.filter(mine, fn(m: Match) -> bool {
+    return match match_winner(m) {
+      Some(_) => false,
+      None => true,
+    }
+  })
+
+  match array.len(open) > 0 {
+    true => {
+      return Ok(open[0])
+    },
+    false => {},
+  }
+
+  // Every match this name is in is settled: either they lost one, or they won
+  // the final.
+  let deepest = deepest_match(mine)
+  return match deepest {
+    None => Err(UnknownName({ name: name })),
+    Some(m) => match match_winner(m) {
+      Some(w) => reject_settled(m, name, w),
+      None => Err(NotReady({ id: m.id })),
+    },
+  }
+}
+
+fn reject_settled(m: Match, name: string, winner: string) -> Result<Match, Reject> {
+  return match winner == name {
+    true => Err(AlreadyDecided({ id: m.id, winner: winner })),
+    false => Err(Eliminated({ name: name, id: m.id, by: winner })),
+  }
+}
+
+fn deepest_match(ms: Array<Match>) -> Option<Match> {
+  let best: Option<Match> = None
+  for m in ms {
+    mut best = match best {
+      None => Some(m),
+      Some(b) => match m.round > b.round {
+        true => Some(m),
+        false => Some(b),
+      },
+    }
+  }
+  return best
+}
+
+// Apply a result, or explain why it cannot be applied. On success the match is
+// updated in place, which is also how the winner reaches the parent slot: the
+// parent reads through the `Feeder`.
+fn report_result(b: Bracket, name: string, score: Option<string>, id: Option<int>) -> Result<Match, Reject> {
+  // The braces are load-bearing: `?` is rejected in an expression arm
+  // (`None => locate_match(b, name)?`) but accepted in a block arm.
+  let target = match id {
+    None => {
+      locate_match(b, name)?
+    },
+    Some(n) => {
+      explicit_match(b, name, n)?
+    },
+  }
+
+  match is_ready(target) {
+    false => {
+      return Err(NotReady({ id: target.id }))
+    },
+    true => {},
+  }
+
+  mut target.outcome = Some({ winner: name, score: score })
+  return Ok(target)
+}
+
+fn explicit_match(b: Bracket, name: string, id: int) -> Result<Match, Reject> {
+  match array.contains(b.entrants, name) {
+    false => {
+      return Err(UnknownName({ name: name }))
+    },
+    true => {},
+  }
+
+  let found = match find_match(b, id) {
+    None => {
+      return Err(NoSuchMatch({ id: id }))
+    },
+    Some(m) => m,
+  }
+
+  match match_winner(found) {
+    Some(w) => {
+      return Err(AlreadyDecided({ id: found.id, winner: w }))
+    },
+    None => {},
+  }
+
+  match is_competitor(found, name) {
+    false => {
+      return Err(NotInMatch({ id: id, name: name }))
+    },
+    true => {},
+  }
+
+  return Ok(found)
+}
+
+fn reject_message(r: Reject) -> string {
+  return match r {
+    UnknownName(e) => "no entrant named ${e.name} in this bracket",
+    NoSuchMatch(e) => "there is no ${id_label(e.id)} in this bracket",
+    NotInMatch(e) => "${e.name} is not a competitor in ${id_label(e.id)}",
+    NotReady(e) => "${id_label(e.id)} is not ready: both feeder matches must be decided first",
+    AlreadyDecided(e) => "${id_label(e.id)} is already decided, won by ${e.winner}",
+    Eliminated(e) => "${e.name} was eliminated by ${e.by} in ${id_label(e.id)}",
+  }
+}
+
+fn id_label(id: int) -> string {
+  return "M${number.to_string(id)}"
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+// Column geometry. `starts[r]` is the first column of round `r`'s labels and
+// `widths[r]` is the widest label in that round, so every column lines up no
+// matter how long a name is.
+type Layout = { starts: Array<int>, widths: Array<int>, rounds: int, height: int, width: int }
+
+// Gap between the end of one column's widest label and the start of the next:
+// " --+-- " with the corner in the middle.
+const GAP = 7
+
+fn slot_label(s: Slot) -> string {
+  return match s {
+    Seeded(e) => "${pad_start(number.to_string(e.seed), 2)}  ${e.name}",
+    Bye => " -  (bye)",
+    Feeder(_) => "",
+  }
+}
+
+fn match_label(m: Match) -> string {
+  return match m.outcome {
+    Some(o) => decided_label(o),
+    None => match walkover_winner(m) {
+      Some(w) => "${w} (bye)",
+      None => "?",
+    },
+  }
+}
+
+fn decided_label(o: Outcome) -> string {
+  return match o.score {
+    Some(s) => "${o.winner} ${s}",
+    None => o.winner,
+  }
+}
+
+fn measure(m: Match, widths: Array<int>) -> void {
+  mut widths[m.round] = math.max(widths[m.round], string.len(match_label(m)))
+  measure_slot(m.left, widths)
+  measure_slot(m.right, widths)
+}
+
+fn measure_slot(s: Slot, widths: Array<int>) -> void {
+  match s {
+    Feeder(f) => {
+      measure(f.source, widths)
+    },
+    else => {
+      mut widths[0] = math.max(widths[0], string.len(slot_label(s)))
+    },
+  }
+}
+
+fn layout_of(b: Bracket) -> Layout {
+  let rounds = log2_exact(b.size)
+  let widths = array.map(upto(rounds + 1), fn(_r: int) -> int { return 0 })
+  measure(b.root, widths)
+
+  // The header names sit above their column, so a long round name widens it.
+  mut widths[0] = math.max(widths[0], string.len("Seeds"))
+  for r in span(1, rounds + 1) {
+    mut widths[r] = math.max(widths[r], string.len(round_name(b.size / pow2(r))))
+  }
+
+  let starts: Array<int> = [0]
+  for r in span(1, rounds + 1) {
+    mut starts.push(starts[r - 1] + widths[r - 1] + GAP)
+  }
+
+  return {
+    starts: starts,
+    widths: widths,
+    rounds: rounds,
+    height: b.size * 2 - 1,
+    width: starts[rounds] + widths[rounds],
+  }
+}
+
+fn blank_grid(rows: int, cols: int) -> Array<Array<string>> {
+  return array.map(upto(rows), fn(_r: int) -> Array<string> { return array.map(upto(cols), fn(_c: int) -> string { return SPACE }) })
+}
+
+fn put(grid: Array<Array<string>>, row: int, col: int, text: string) -> void {
+  // The annotation is load-bearing: `for i, x in` over a binding whose type the
+  // emitter cannot see lowers to `Object.entries`, which makes `i` a string.
+  let chars: Array<string> = string.split(text, "")
+  for i, c in chars {
+    mut grid[row][col + i] = c
+  }
+}
+
+// The row a subtree's label sits on: leaves take every other row, and a match
+// sits halfway between its two children.
+@example node_row(0, 1) == 0
+@example node_row(0, 2) == 1
+@example node_row(2, 2) == 5
+fn node_row(start: int, count: int) -> int {
+  return start * 2 + count - 1
+}
+
+fn draw_match(grid: Array<Array<string>>, lay: Layout, m: Match, start: int) -> void {
+  let count = pow2(m.round)
+  let half = count / 2
+  let row = node_row(start, count)
+  put(grid, row, lay.starts[m.round], match_label(m))
+
+  let child = m.round - 1
+  let left_row = node_row(start, half)
+  let right_row = node_row(start + half, half)
+  let vx = lay.starts[child] + lay.widths[child] + 3
+
+  for r in span(left_row + 1, right_row) {
+    put(grid, r, vx, "|")
+  }
+  put(grid, left_row, vx - 2, "--+")
+  put(grid, right_row, vx - 2, "--+")
+  put(grid, row, vx, "+--")
+
+  draw_slot(grid, lay, m.left, start, half)
+  draw_slot(grid, lay, m.right, start + half, half)
+}
+
+fn draw_slot(grid: Array<Array<string>>, lay: Layout, s: Slot, start: int, count: int) -> void {
+  match s {
+    Feeder(f) => {
+      draw_match(grid, lay, f.source, start)
+    },
+    else => {
+      put(grid, node_row(start, count), lay.starts[0], slot_label(s))
+    },
+  }
+}
+
+fn join_row(cells: Array<string>) -> string {
+  let last = 0
+  for i, c in cells {
+    mut last = match c == SPACE {
+      true => last,
+      false => i + 1,
+    }
+  }
+  return string.join(array.slice(cells, 0, last), "")
+}
+
+fn render(b: Bracket) -> string {
+  let lay = layout_of(b)
+  let grid = blank_grid(lay.height, lay.width + 4)
+  draw_match(grid, lay, b.root, 0)
+
+  let header = blank_grid(1, lay.width + 4)
+  put(header, 0, lay.starts[0], "Seeds")
+  for r in span(1, lay.rounds + 1) {
+    put(header, 0, lay.starts[r], round_name(b.size / pow2(r)))
+  }
+
+  let lines = array.map(array.concat(header, array.concat([divider(lay.width)], grid)), join_row)
+  return string.join(lines, "\n")
+}
+
+fn divider(width: int) -> Array<string> {
+  return array.map(upto(width), fn(_c: int) -> string { return "-" })
+}
+
+// ---------------------------------------------------------------------------
+// Standings
+// ---------------------------------------------------------------------------
+
+fn wins_of(b: Bracket, name: string) -> int {
+  let played = array.filter(all_matches(b.root), fn(m: Match) -> bool {
+    return match m.outcome {
+      Some(o) => o.winner == name,
+      None => false,
+    }
+  })
+  return array.len(played)
+}
+
+fn eliminated_by(b: Bracket, name: string) -> Option<string> {
+  let lost = array.find(all_matches(b.root), fn(m: Match) -> bool { return is_competitor(m, name) && beaten_in(m, name) })
+  return match lost {
+    None => None,
+    Some(m) => match_winner(m),
+  }
+}
+
+fn beaten_in(m: Match, name: string) -> bool {
+  return match match_winner(m) {
+    Some(w) => w != name,
+    None => false,
+  }
+}
+
+fn competitor_label(s: Slot) -> string {
+  return match slot_winner(s) {
+    Some(w) => w,
+    None => match is_bye(s) {
+      true => "(bye)",
+      false => "?",
+    },
+  }
+}
+
+fn print_matches(b: Bracket) -> void {
+  io.println("")
+  io.println("Matches")
+  let ms = array.sort(all_matches(b.root), fn(a: Match, c: Match) -> number { return match_order(a, c) })
+  for m in ms {
+    let pairing = "${competitor_label(m.left)} vs ${competitor_label(m.right)}"
+    let state = match m.outcome {
+      Some(o) => "won by ${decided_label(o)}",
+      None => pending_state(m),
+    }
+    io.println("  ${pad_end(match_id_label(m), 5)}${pad_end(match_round_name(b, m), 14)}${pad_end(pairing, 30)}${state}")
+  }
+}
+
+fn match_id_label(m: Match) -> string {
+  return id_label(m.id)
+}
+
+fn pending_state(m: Match) -> string {
+  return match walkover_winner(m) {
+    Some(w) => "walkover to ${w}",
+    None => match is_ready(m) {
+      true => "ready to play",
+      false => "waiting on feeders",
+    },
+  }
+}
+
+// Lowest round first, then by id, so the printed order follows play order.
+fn match_order(a: Match, c: Match) -> number {
+  return match a.round == c.round {
+    true => a.id - c.id,
+    false => a.round - c.round,
+  }
+}
+
+fn print_standings(b: Bracket) -> void {
+  io.println(header_line(b))
+
+  let ready = array.sort(array.filter(all_matches(b.root), is_ready), fn(a: Match, c: Match) -> number { return match_order(a, c) })
+  io.println("")
+  io.println("Ready to play")
+  match array.len(ready) {
+    0 => {
+      io.println("  (none)")
+    },
+    else => {
+      for m in ready {
+        io.println("  ${pad_end(match_id_label(m), 5)}${pad_end(match_round_name(b, m), 14)}${competitor_label(m.left)} vs ${competitor_label(m.right)}")
+      }
+    },
+  }
+
+  io.println("")
+  io.println("Entrants")
+  for i, name in b.entrants {
+    let seed = pad_start(number.to_string(i + 1), 2)
+    let record_text = "${number.to_string(wins_of(b, name))} won"
+    let state = match eliminated_by(b, name) {
+      Some(w) => "out, beaten by ${w}",
+      None => alive_state(b, name),
+    }
+    io.println("  ${seed}  ${pad_end(name, 20)}${pad_end(record_text, 8)}${state}")
+  }
+
+  io.println("")
+  io.println(champion_line(b))
+}
+
+fn alive_state(b: Bracket, name: string) -> string {
+  return match match_winner(b.root) {
+    Some(w) => champion_or_alive(w, name),
+    None => "alive",
+  }
+}
+
+fn champion_or_alive(champion: string, name: string) -> string {
+  return match champion == name {
+    true => "champion",
+    false => "alive",
+  }
+}
+
+fn header_line(b: Bracket) -> string {
+  let n = number.to_string(array.len(b.entrants))
+  let size = number.to_string(b.size)
+  return "${b.title} - ${n} entrants, ${size} slots"
+}
+
+fn champion_line(b: Bracket) -> string {
+  return match match_winner(b.root) {
+    Some(w) => "Champion: ${w}",
+    None => "Champion: not decided yet",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading and saving
+// ---------------------------------------------------------------------------
+
+// The file is untrusted: the recursive shape is checked here, before any of the
+// code above assumes it holds.
+fn load(path: string) -> Result<Bracket, string> {
+  let text = match fs.read_text(path) {
+    Ok(t) => t,
+    Err(e) => {
+      return Err("cannot read ${path}: ${e.message}")
+    },
+  }
+  // Decode first, then validate with the type's own descriptor. `json.parse<Bracket>`
+  // would validate too, but it routes through `Bracket.schema`, which collapses
+  // every failure to one path-less "expected Bracket"; `Bracket.parse` reports
+  // the field that is actually wrong.
+  let raw = match json.parse<unknown>(text) {
+    Ok(v) => v,
+    Err(issues) => {
+      return Err("${path} is not JSON: ${issue_text(issues)}")
+    },
+  }
+  return match Bracket.parse(raw) {
+    Ok(b) => Ok(b),
+    Err(issues) => Err("${path} is not a valid bracket: ${issue_text(issues)}"),
+  }
+}
+
+fn issue_text(issues: Array<Issue>) -> string {
+  let parts = array.map(issues, fn(i: Issue) -> string {
+    let where_at = string.join(array.map(i.path, string.from), ".")
+    return "${where_at}: ${i.message}"
+  })
+  return string.join(parts, "; ")
+}
+
+fn save(path: string, b: Bracket) -> Result<void, string> {
+  return match fs.write_text(path, "${json.stringify(b, { indent: 2 })}\n") {
+    Ok(_) => Ok(void),
+    Err(e) => Err("cannot write ${path}: ${e.message}"),
+  }
+}
+
+fn read_entrant_lines(path: string) -> Result<Array<string>, string> {
+  let text = match fs.read_text(path) {
+    Ok(t) => t,
+    Err(e) => {
+      return Err("cannot read ${path}: ${e.message}")
+    },
+  }
+  let names = array.filter(array.map(string.split(text, "\n"), string.trim), fn(l: string) -> bool { return string.len(l) > 0 && !string.starts_with(l, "#") })
+  return Ok(names)
+}
+
+fn read_seed_file(path: string) -> Result<SeedFile, string> {
+  let text = match fs.read_text(path) {
+    Ok(t) => t,
+    Err(e) => {
+      return Err("cannot read ${path}: ${e.message}")
+    },
+  }
+  let raw = match json.parse<unknown>(text) {
+    Ok(v) => v,
+    Err(issues) => {
+      return Err("${path} is not JSON: ${issue_text(issues)}")
+    },
+  }
+  return match SeedFile.parse(raw) {
+    Ok(s) => Ok(s),
+    Err(issues) => Err("${path} is not a valid seeds file: ${issue_text(issues)}"),
+  }
+}
+
+fn check_entrants(names: Array<string>) -> Result<Array<string>, string> {
+  match array.len(names) < 2 {
+    true => {
+      return Err("a bracket needs at least 2 entrants")
+    },
+    false => {},
+  }
+  let seen: Record<string, bool> = {}
+  for n in names {
+    match record.has(seen, n) {
+      true => {
+        return Err("duplicate entrant: ${n}")
+      },
+      false => {
+        mut seen[n] = true
+      },
+    }
+  }
+  return Ok(names)
+}
+
+// ---------------------------------------------------------------------------
+// Argument parsing
+// ---------------------------------------------------------------------------
+
+type Parsed = { positional: Array<string>, flags: Record<string, string>, bools: Array<string> }
+
+fn split_args(rest: Array<string>) -> Result<Parsed, string> {
+  let positional: Array<string> = []
+  let flags: Record<string, string> = {}
+  let bools: Array<string> = []
+  let i = 0
+  loop {
+    match i < array.len(rest) {
+      false => {
+        break
+      },
+      true => {
+        let a = rest[i]
+        let is_value = array.contains(VALUE_FLAGS, a)
+        let is_bool = array.contains(BOOL_FLAGS, a)
+        match !is_value && !is_bool && string.starts_with(a, "--") {
+          true => {
+            return Err("unknown option ${a}")
+          },
+          false => {},
+        }
+        match is_value && i + 1 >= array.len(rest) {
+          true => {
+            return Err("${a} needs a value")
+          },
+          false => {},
+        }
+        match is_value {
+          true => {
+            mut flags[a] = rest[i + 1]
+            mut i = i + 2
+          },
+          false => {
+            match is_bool {
+              true => {
+                mut bools.push(a)
+              },
+              false => {
+                mut positional.push(a)
+              },
+            }
+            mut i = i + 1
+          },
+        }
+      },
+    }
+  }
+  return Ok({ positional: positional, flags: flags, bools: bools })
+}
+
+fn flag_of(p: Parsed, name: string) -> Option<string> {
+  return record.get(p.flags, name)
+}
+
+fn flag_or(p: Parsed, name: string, fallback: string) -> string {
+  return match flag_of(p, name) {
+    Some(v) => v,
+    None => fallback,
+  }
+}
+
+fn int_flag(p: Parsed, name: string) -> Result<Option<int>, string> {
+  return match flag_of(p, name) {
+    None => Ok(None),
+    Some(v) => match number.parse(v) {
+      Ok(n) => Ok(Some(math.trunc(n))),
+      Err(_) => Err("${name} needs a whole number, got ${v}"),
+    },
+  }
+}
+
+// A score is two whole numbers separated by a dash. A malformed one is a bad
+// argument, not a rejected result, so it never reaches the bracket.
+fn check_score(raw: Option<string>) -> Result<Option<string>, string> {
+  return match raw {
+    None => Ok(None),
+    Some(s) => validate_score(s),
+  }
+}
+
+fn validate_score(s: string) -> Result<Option<string>, string> {
+  let parts = string.split(s, "-")
+  match array.len(parts) == 2 && is_digits(parts[0]) && is_digits(parts[1]) {
+    true => {
+      return Ok(Some(s))
+    },
+    false => {
+      return Err("--score must look like 3-1, got ${s}")
+    },
+  }
+}
+
+@example is_digits("") == false
+@example is_digits("30") == true
+@example is_digits("3a") == false
+fn is_digits(s: string) -> bool {
+  match string.len(s) == 0 {
+    true => {
+      return false
+    },
+    false => {},
+  }
+  let ok = true
+  for c in string.split(s, "") {
+    mut ok = ok && array.contains(DIGITS, c)
+  }
+  return ok
+}
+
+const DIGITS: Array<string> = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+fn parse_args(argv: Array<string>) -> Result<Command, string> {
+  match array.len(argv) == 0 {
+    true => {
+      return Err(USAGE)
+    },
+    false => {},
+  }
+  let name = argv[0]
+  let p = split_args(array.slice(argv, 1))?
+  let file = flag_or(p, "--file", DEFAULT_FILE)
+
+  return match name {
+    "new" => parse_new(p, file),
+    "show" => Ok(Show({ file: file })),
+    "report" => parse_report(p, file),
+    "standings" => Ok(Standings({ file: file, champion: array.contains(p.bools, "--champion") })),
+    else => Err("unknown command ${name}\n${USAGE}"),
+  }
+}
+
+fn parse_new(p: Parsed, file: string) -> Result<Command, string> {
+  let seeds = flag_of(p, "--seeds")
+  let source = match seeds {
+    Some(path) => SeedsFile({ path: path }),
+    None => LinesFile({ path: first_positional(p) }),
+  }
+  match source_path(source) == "" {
+    true => {
+      return Err("new needs an entrants file or --seeds <file.json>")
+    },
+    false => {},
+  }
+  let shuffle = int_flag(p, "--shuffle")?
+  return Ok(New({
+    source: source,
+    title: flag_or(p, "--title", "Tournament"),
+    file: file,
+    shuffle: shuffle,
+  }))
+}
+
+fn source_path(s: Source) -> string {
+  return match s {
+    LinesFile(l) => l.path,
+    SeedsFile(l) => l.path,
+  }
+}
+
+fn first_positional(p: Parsed) -> string {
+  return match array.len(p.positional) > 0 {
+    true => p.positional[0],
+    false => "",
+  }
+}
+
+fn parse_report(p: Parsed, file: string) -> Result<Command, string> {
+  let winner = first_positional(p)
+  match winner == "" {
+    true => {
+      return Err("report needs a winner name")
+    },
+    false => {},
+  }
+  let score = check_score(flag_of(p, "--score"))?
+  let id = int_flag(p, "--match")?
+  return Ok(Report({ file: file, winner: winner, score: score, id: id }))
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+fn cmd_new(c: Source, title: string, file: string, shuffle: Option<int>) -> number {
+  let raw = match c {
+    LinesFile(l) => read_entrant_lines(l.path),
+    SeedsFile(l) => seed_file_names(l.path),
+  }
+  let names = match raw {
+    Ok(ns) => ns,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  let checked = match check_entrants(names) {
+    Ok(ns) => ns,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  let ordered = match shuffle {
+    Some(seed) => shuffled(checked, seed),
+    None => checked,
+  }
+  let b = build_bracket(title, ordered)
+  match save(file, b) {
+    Ok(_) => {},
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  io.println(header_line(b))
+  io.println("")
+  io.println(render(b))
+  print_matches(b)
+  io.println("")
+  io.println("Saved to ${file}")
+  return 0
+}
+
+fn seed_file_names(path: string) -> Result<Array<string>, string> {
+  let s = read_seed_file(path)?
+  return Ok(s.entrants)
+}
+
+fn cmd_show(file: string) -> number {
+  let b = match load(file) {
+    Ok(v) => v,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  io.println(header_line(b))
+  io.println("")
+  io.println(render(b))
+  print_matches(b)
+  return 0
+}
+
+fn cmd_report(file: string, winner: string, score: Option<string>, id: Option<int>) -> number {
+  let b = match load(file) {
+    Ok(v) => v,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  let played = match report_result(b, winner, score, id) {
+    Ok(m) => m,
+    Err(r) => {
+      io.eprintln("rejected: ${reject_message(r)}")
+      return 1
+    },
+  }
+  match save(file, b) {
+    Ok(_) => {},
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  io.println("${match_id_label(played)} ${match_round_name(b, played)}: ${winner} advances")
+  io.println("")
+  io.println(render(b))
+  io.println("")
+  io.println(champion_line(b))
+  return 0
+}
+
+fn cmd_standings(file: string, champion_only: bool) -> number {
+  let b = match load(file) {
+    Ok(v) => v,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  return match champion_only {
+    true => print_champion(b),
+    false => {
+      print_standings(b)
+      0
+    },
+  }
+}
+
+// Asking for a champion before the final is decided is an error, not an empty
+// answer: the exit code is what a script keys off.
+fn print_champion(b: Bracket) -> number {
+  return match match_winner(b.root) {
+    Some(w) => {
+      io.println(w)
+      0
+    },
+    None => {
+      io.eprintln("error: the tournament is not finished, there is no champion yet")
+      1
+    },
+  }
+}
+
+fn run(c: Command) -> number {
+  return match c {
+    New(n) => cmd_new(n.source, n.title, n.file, n.shuffle),
+    Show(s) => cmd_show(s.file),
+    Report(r) => cmd_report(r.file, r.winner, r.score, r.id),
+    Standings(s) => cmd_standings(s.file, s.champion),
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let cmd = match parse_args(argv) {
+    Ok(c) => c,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+  return run(cmd)
+}

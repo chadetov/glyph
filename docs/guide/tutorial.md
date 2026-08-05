@@ -186,7 +186,7 @@ glyph run todo.glyph nonsense
 
 ## Add a test
 
-Put an `@example` above `next_id` and it runs on every `glyph build --test`:
+Put an `@example` above `next_id` and it runs on every `glyph build`:
 
 ```glyph
 @example next_id([]) == 1
@@ -196,8 +196,11 @@ fn next_id(todos: Array<Todo>) -> number {
 ```
 
 ```sh
-glyph build . --out dist --test
+glyph build . --out dist
 ```
+
+A false `@example` fails the build, so there is no flag to remember and no way to
+land a change that quietly breaks one. `--no-test` skips them when you need to.
 
 ## Next
 

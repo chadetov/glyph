@@ -46,7 +46,7 @@ Scope creep. At step 5, effect types. At step 7, a custom protocol instead of LS
 ## Current status (where the work actually is)
 
 **Phase 1 is complete and step 6 (dogfooding) is core-complete.** The compiler
-works end to end (`glyph build`/`run`/`fmt`/`--test`/`--explain`), the fridge
+works end to end (`glyph build`/`run`/`fmt`/`--explain`), the fridge
 dogfood app has been built, used, extended, and hardened across three rounds,
 and the gap list it produced is closed (no open bugs; remaining items are
 forward-compatible v1.1 deferrals — see `docs/dogfooding-gaps.md`).

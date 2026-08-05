@@ -3640,3 +3640,244 @@ fn json_parse_of_an_imported_type_uses_its_schema() {
         "imported json.parse uses the descriptor schema: {ts}"
     );
 }
+
+// --- The `@example` / `@doc @run` gate on `glyph build` (D23/D26) -----------
+//
+// D23 says the compiler runs every `@example` on `glyph build` and a failure
+// fails the build. Execution used to sit behind `--test`, and `--json` returned
+// before the gate ran at all, so a project whose own example asserted something
+// false built green. These pin the default-on behavior on both channels.
+
+/// Spawn the `glyph` binary and collect (exit code, stdout, stderr, child pid).
+/// The pid matters: the example runner names its throwaway directory after the
+/// process that created it, so a unique pid proves whether one was created.
+fn spawn_glyph(args: &[&std::ffi::OsStr]) -> (i32, String, String, u32) {
+    let child = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .args(args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("spawn glyph");
+    let pid = child.id();
+    let out = child.wait_with_output().expect("wait glyph");
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).to_string(),
+        String::from_utf8_lossy(&out.stderr).to_string(),
+        pid,
+    )
+}
+
+fn failing_example_project(prefix: &str) -> (PathBuf, PathBuf, PathBuf) {
+    let root = unique_tmp(prefix);
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "calc.glyph",
+        "module calc\n\
+         @example double(2) == 999\n\
+         pub fn double(n: number) -> number { return n * 2 }\n",
+    );
+    (root, src, out)
+}
+
+#[test]
+fn failing_example_fails_a_plain_build() {
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not available");
+        return;
+    }
+    let (_root, src, out) = failing_example_project("exdefault");
+    let (code, _stdout, stderr, _pid) = spawn_glyph(&[
+        "build".as_ref(),
+        src.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+        "--no-check".as_ref(),
+    ]);
+    assert_eq!(code, 1, "a false @example must fail the build: {stderr}");
+    assert!(
+        stderr.contains("example failed"),
+        "the failing example is named: {stderr}"
+    );
+    assert!(
+        stderr.contains("1 of 1 example(s) failed"),
+        "the tally is reported: {stderr}"
+    );
+}
+
+#[test]
+fn failing_example_is_visible_under_json() {
+    // The agent-facing channel is the one that could not report a failing
+    // colocated test: `emit_build_json` diverges, so it ran before the gate.
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not available");
+        return;
+    }
+    let (_root, src, out) = failing_example_project("exjson");
+    let (code, stdout, stderr, _pid) = spawn_glyph(&[
+        "build".as_ref(),
+        src.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+        "--no-check".as_ref(),
+        "--json".as_ref(),
+    ]);
+    let v: serde_json::Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("stdout must be JSON ({e}): {stdout} / {stderr}"));
+    assert_eq!(v["ok"], serde_json::json!(false), "ok must be false: {v}");
+    assert_eq!(code, 1, "--json must agree with the human exit code: {v}");
+    assert_eq!(v["examples"]["total"], serde_json::json!(1), "{v}");
+    assert_eq!(v["examples"]["ran"], serde_json::json!(true), "{v}");
+    let failures = v["examples"]["failures"]
+        .as_array()
+        .unwrap_or_else(|| panic!("examples.failures must be an array: {v}"));
+    assert_eq!(failures.len(), 1, "the failure is listed: {v}");
+    assert!(
+        failures[0].as_str().unwrap_or_default().contains("double(2)"),
+        "the failure names the example: {v}"
+    );
+    assert!(
+        v["errors"].as_u64().unwrap_or(0) >= 1,
+        "an example failure counts as an error: {v}"
+    );
+}
+
+#[test]
+fn no_test_skips_the_gate_and_says_so() {
+    let (_root, src, out) = failing_example_project("exnotest");
+    let (code, _stdout, stderr, _pid) = spawn_glyph(&[
+        "build".as_ref(),
+        src.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+        "--no-check".as_ref(),
+        "--no-test".as_ref(),
+    ]);
+    assert_eq!(code, 0, "--no-test opts out of the gate: {stderr}");
+    assert!(
+        stderr.contains("1 example(s) skipped (--no-test)"),
+        "the skip is on the record: {stderr}"
+    );
+}
+
+#[test]
+fn project_without_examples_pays_nothing() {
+    // `run_examples` early-returns before it copies the project, so a project
+    // with no examples must not leave a throwaway build behind.
+    let root = unique_tmp("exnone");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "plain.glyph",
+        "module plain\npub fn id(n: number) -> number { return n }\n",
+    );
+    let (code, _stdout, stderr, pid) = spawn_glyph(&[
+        "build".as_ref(),
+        src.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+        "--no-check".as_ref(),
+    ]);
+    assert_eq!(code, 0, "a clean example-less build stays green: {stderr}");
+    assert!(
+        !stderr.contains("example(s)"),
+        "no example chatter on a project without examples: {stderr}"
+    );
+    let leftovers: Vec<PathBuf> = std::fs::read_dir(std::env::temp_dir())
+        .expect("read temp dir")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with(&format!("glyph-examples-{pid}-")))
+        })
+        .collect();
+    assert!(
+        leftovers.is_empty(),
+        "no throwaway project should be copied: {leftovers:?}"
+    );
+}
+
+#[test]
+fn failing_doc_run_fails_a_plain_build() {
+    // D26 rides the same path: a ```glyph @run``` block whose assert is false.
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("exdocrun");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "m.glyph",
+        "module m\n\
+         @doc \"\"\"\n```glyph @run\nassert(double(2) == 5)\n```\n\"\"\"\n\
+         pub fn double(n: number) -> number { return n * 2 }\n",
+    );
+    let (code, _stdout, stderr, _pid) = spawn_glyph(&[
+        "build".as_ref(),
+        src.as_os_str(),
+        "--out".as_ref(),
+        out.as_os_str(),
+        "--no-check".as_ref(),
+    ]);
+    assert_eq!(code, 1, "a false @doc @run must fail the build: {stderr}");
+    assert!(
+        stderr.contains("doc-run"),
+        "the failing doc block is named: {stderr}"
+    );
+}
+
+#[test]
+fn missing_tsx_refuses_to_look_verified() {
+    // The gate could not run, so nothing may claim it passed. Same stance as
+    // the missing-`tsc` branch: exit 2, no success line, and `--json` agrees.
+    let root = unique_tmp("exnotsx");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "calc.glyph",
+        "module calc\n\
+         @example double(2) == 4\n\
+         pub fn double(n: number) -> number { return n * 2 }\n",
+    );
+    let run = |json: bool| {
+        let mut cmd = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"));
+        cmd.arg("build")
+            .arg(&src)
+            .arg("--out")
+            .arg(&out)
+            .arg("--no-check")
+            .env("PATH", "/nonexistent-glyph-test-path");
+        if json {
+            cmd.arg("--json");
+        }
+        cmd.output().expect("spawn glyph")
+    };
+
+    let human = run(false);
+    let stderr = String::from_utf8_lossy(&human.stderr).to_string();
+    assert_eq!(human.status.code(), Some(2), "human exit: {stderr}");
+    assert!(
+        stderr.contains("tsx was not found on PATH"),
+        "the reason is named: {stderr}"
+    );
+    assert!(
+        !stderr.contains("example(s) passed"),
+        "nothing may claim the examples passed: {stderr}"
+    );
+
+    let json = run(true);
+    let stdout = String::from_utf8_lossy(&json.stdout).to_string();
+    let v: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("JSON ({e}): {stdout}"));
+    assert_eq!(v["ok"], serde_json::json!(false), "{v}");
+    assert_eq!(v["examples"]["ran"], serde_json::json!(false), "{v}");
+    assert_eq!(json.status.code(), Some(2), "--json agrees on the code: {v}");
+}

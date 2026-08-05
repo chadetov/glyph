@@ -751,13 +751,23 @@ of truth. On the async path it was a preprocessor with opinions.
   and passes `tsc`, and then `glyph fmt` takes the parentheses back off and the
   formatted file reproduces the error. Until this is decided, an arm that means
   "the empty map" needs a named constructor.
-- **G49. `@example` execution is opt-in behind `--test`, contradicting D23.** D23
-  is tagged verifiability precisely so an agent rewriting a body cannot bypass
-  the examples, and a flag is a bypass by default. Making it default-on requires
-  `tsx` on `PATH` during a plain `glyph build`, which is a product decision
-  (offline builds, CI without `node_modules`). Orchestrator call. The recorded
-  opinion: default it on and degrade to a *warning* when `tsx` is absent, rather
-  than skipping silently.
+- **G49. [FIXED] `@example` execution was opt-in behind `--test`, contradicting
+  D23.** D23 is tagged verifiability precisely so an agent rewriting a body
+  cannot bypass the examples, and a flag is a bypass by default. The `--json`
+  half was worse: `emit_build_json` diverges and was called before the example
+  block, so `glyph build --test --json` printed `"ok": true, "tsc": "passed"` on
+  a project whose own `@example` asserted something false. The agent-facing
+  channel could not report a failing colocated test even when asked to.
+  *Fixed: the `@example` and `@doc @run` checks run on every `glyph build`;
+  `--no-test` opts out and prints how many tests it skipped, and `--test` is
+  accepted and ignored for compatibility. Under `--json` the checks run before
+  the JSON is emitted, and the result is an `examples` object
+  (`total`/`ran`/`skipped`/`failures`) folded into `errors` and `ok`, so the two
+  channels agree on the exit code. A missing `tsx` on a project that has
+  examples is treated the way a missing `tsc` already was: no success line,
+  `"ok": false`, exit 2, rather than a build that looks verified. A project with
+  no examples pays nothing (the runner returns before it copies anything), which
+  a test now pins.*
 - **G50. `std/string` and `std/array` are still short of the basics.**
   `string.slice`, `index_of`, `replace`, `repeat`, `pad_start`, `pad_end`,
   `trim_start`, `trim_end`; `array.fold`, `index_of`, `flat_map`. This is G26's

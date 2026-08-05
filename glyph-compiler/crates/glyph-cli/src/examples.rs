@@ -61,8 +61,10 @@ struct FileExamples {
     malformed: Vec<String>,
 }
 
-/// Run every `@example` in the project rooted at `src`.
-pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
+/// Walk the project and collect every file that carries a test, along with the
+/// number of executable tests and of malformed `@example`s. Parsing only; it
+/// neither copies the project nor builds anything.
+fn collect_project(src: &Path) -> Result<(Vec<FileExamples>, usize, usize), ExampleError> {
     let mut files = Vec::new();
     collect_glyph_files(src, &mut files)?;
     files.sort();
@@ -93,6 +95,20 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
             malformed,
         });
     }
+    Ok((per_file, total, malformed_total))
+}
+
+/// How many executable tests (`@example` equalities plus `@doc @run` blocks)
+/// the project rooted at `src` carries. Used to report what `--no-test` skips
+/// without paying for a run.
+pub fn count_examples(src: &Path) -> Result<usize, ExampleError> {
+    let (_, total, _) = collect_project(src)?;
+    Ok(total)
+}
+
+/// Run every `@example` in the project rooted at `src`.
+pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
+    let (per_file, total, malformed_total) = collect_project(src)?;
 
     let mut report = ExampleReport {
         total,

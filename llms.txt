@@ -21,9 +21,9 @@ npm install -g tsx typescript       # needed for `glyph run` and `--check`
 ```sh
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
 glyph run path.glyph [args...]      # type-check, compile, and run main(argv); reports every diagnostic `glyph build` reports
-glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict by default)
+glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict and @example/@doc @run by default)
 glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file, line/col, help) for tools/agents
-glyph build src/ --out dist/ --test # also run @example / @doc @run / property tests
+glyph build src/ --out dist/ --no-test # skip the @example / @doc @run / property tests
 glyph fmt [path]                    # format in place (one canonical layout)
 glyph fmt --check [path]            # exit non-zero if anything is unformatted (CI), writes nothing
 glyph gen openapi spec.yaml --out src/  # generate committed Glyph types from an OpenAPI/JSON Schema spec (--client: a typed std/http client; --handlers: server stubs + a router)
@@ -678,10 +678,11 @@ import std/result { Ok }
 fn identity_holds() -> bool { true }
 ```
 
-Run them with `glyph build src/ --out dist/ --test`. An `@example expr == expr`
-passes when both sides are structurally equal; a bare `@example expr` asserts the
-expression is `true`. `@doc """..."""` blocks with a ` ```glyph @run ``` ` fence
-also execute. **Limitation:** an `@example` that compares against a prelude
+They run on every `glyph build` (needs `tsx` on PATH; `--no-test` skips them).
+An `@example expr == expr` passes when both sides are structurally equal; a bare
+`@example expr` asserts the expression is `true`. `@doc """..."""` blocks with a
+` ```glyph @run ``` ` fence also execute. A failing one fails the build, under
+`--json` too. **Limitation:** an `@example` that compares against a prelude
 constructor (e.g. `Ok`) must import it (`import std/result { Ok }`).
 
 ## Gotchas (read these once, save an hour)

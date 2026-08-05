@@ -79,8 +79,8 @@ consistent toolchain locally (instead of, or in addition to, the global install
 above) — everyone on the team then builds against the same TypeScript.
 
 | `glyph run <file> [args]` | Type-check, compile, and run a program |
-| `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict` |
-| `glyph build <src> --out <dir> --test` | Also run every `@example` and `@doc @run` test |
+| `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict`, running every `@example` and `@doc @run` test |
+| `glyph build <src> --out <dir> --no-test` | Skip the `@example` and `@doc @run` tests |
 | `glyph fmt [path]` | Format files in place (the one canonical layout) |
 | `glyph fmt --check [path]` | Check formatting for CI: writes nothing, exits non-zero if any file is unformatted |
 | `glyph canonical <file>` | Print the agent canonical view (stable line numbers + per-declaration fingerprints) |
@@ -90,7 +90,10 @@ above) — everyone on the team then builds against the same TypeScript.
 | `glyph llms` | Print the agent bootstrap (the `AGENTS.md` reference) offline; alias `glyph docs` |
 | `glyph --explain <code>` | Long-form explanation and fix for an error code |
 
-`glyph build` type-checks by default; pass `--no-check` to skip the `tsc` pass.
+`glyph build` type-checks and runs your `@example`s by default; `--no-check`
+skips the `tsc` pass and `--no-test` skips the examples. The example runner needs
+`tsx` on `PATH`; if it is missing on a project that has examples, the build fails
+rather than reporting a pass it never checked.
 
 ## Editor support
 
@@ -111,7 +114,7 @@ packaging a `.vsix`, format-on-save, other editors, and troubleshooting, see the
 ## Tests live next to the code
 
 Glyph runs example tests on build. Add an `@example` above a function and it is
-checked every time you run `glyph build --test`:
+checked every time you run `glyph build`:
 
 ```glyph
 @example double(21) == 42

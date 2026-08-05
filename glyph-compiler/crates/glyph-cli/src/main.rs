@@ -1,10 +1,11 @@
 //! Glyph CLI — stub for Phase 0.
 //!
 //! Commands (per `docs/implementation-plan.md §Phase 1 week 5`):
-//! - `glyph build src/ --out dist/ [--no-check]`  walk module graph, typecheck,
-//!   emit TS, write the bundled runtime + a generated `tsconfig.json` (and copy
-//!   `<src>/.types/` ambient declarations); type-checks the output with `tsc` by
-//!   default, `--no-check` skips it
+//! - `glyph build src/ --out dist/ [--no-check] [--no-test]`  walk module graph,
+//!   typecheck, emit TS, write the bundled runtime + a generated `tsconfig.json`
+//!   (and copy `<src>/.types/` ambient declarations); type-checks the output
+//!   with `tsc` by default (`--no-check` skips it) and runs every `@example` /
+//!   `@doc @run` test (D23/D26) by default (`--no-test` skips them)
 //! - `glyph run path.glyph [args]`   type-check then build and run via node
 //!   (`--no-check` to run without the tsc gate)
 //! - `glyph fmt [path]`              format-in-place (also called by LSP format-on-save)
@@ -51,8 +52,11 @@ enum Command {
         /// Deprecated: type-checking is now the default. Accepted for compatibility.
         #[arg(long, hide = true)]
         check: bool,
-        /// After emitting, run every `@example` (D23) via `tsx` (must be on PATH).
+        /// Skip the `@example` and `@doc @run` checks (D23/D26); they run by default.
         #[arg(long)]
+        no_test: bool,
+        /// Deprecated: the example checks are now the default. Accepted for compatibility.
+        #[arg(long, hide = true)]
         test: bool,
         /// Emit diagnostics as a JSON object on stdout (for tools and agents)
         /// instead of human-readable text. Includes remapped `tsc` errors.
@@ -212,7 +216,7 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out, no_check, check: _, test, json }) => {
+        Some(Command::Build { src, out, no_check, check: _, no_test, test: _, json }) => {
             // Type-checking is the default (verifiability is the lead pillar);
             // `--no-check` opts out. The old `--check` flag is now redundant.
             let do_check = !no_check;
@@ -227,7 +231,21 @@ fn main() {
             match glyph_cli::build::build_project_inner(&src, &out, with_color) {
             Ok(report) => {
                 if json {
-                    emit_build_json(&report, &out, do_check);
+                    // D23/D26 checks run on every build, and the JSON path is no
+                    // exception: `emit_build_json` diverges, so the examples have
+                    // to run before it is called or the agent-facing channel can
+                    // never report a failing colocated test. Examples are skipped
+                    // when the build already has errors (the augmented copy could
+                    // not compile either); `ok` is false there regardless.
+                    let examples = if no_test || report.has_errors() {
+                        ExamplesOutcome::Skipped
+                    } else {
+                        match glyph_cli::examples::run_examples(&src) {
+                            Ok(r) => ExamplesOutcome::Ran(r),
+                            Err(e) => ExamplesOutcome::Failed(e.to_string()),
+                        }
+                    };
+                    emit_build_json(&report, &out, do_check, &examples);
                 }
                 for diag in &report.diagnostics {
                     eprintln!("{diag}");
@@ -252,11 +270,15 @@ fn main() {
                     },
                     report.emitted.len()
                 );
+                // Held back until the example gate below has had its say: a
+                // build that could not run its own `@example`s must not sign
+                // off with a green line.
+                let mut tsc_passed = false;
                 if do_check {
                     use glyph_cli::runtime::TscOutcome;
                     match glyph_cli::runtime::check_with_tsc(&out) {
                         Ok(TscOutcome::Passed) => {
-                            eprintln!("glyph build: tsc --strict passed.");
+                            tsc_passed = true;
                         }
                         Ok(TscOutcome::Failed(msg)) => {
                             let remapped = glyph_cli::tscmap::remap_tsc_output(
@@ -285,37 +307,40 @@ fn main() {
                         }
                     }
                 }
-                if test {
+                if !no_test {
                     match glyph_cli::examples::run_examples(&src) {
-                        Ok(report) => {
-                            for f in &report.failures {
+                        Ok(ex) => {
+                            for f in &ex.failures {
                                 eprintln!("glyph build: example failed: {f}");
                             }
-                            if let Some(diags) = &report.build_failed {
+                            if let Some(diags) = &ex.build_failed {
                                 for d in diags {
                                     eprintln!("{d}");
                                 }
                                 eprintln!("glyph build: examples did not compile");
                                 std::process::exit(1);
                             }
-                            if !report.ran {
+                            if !ex.ran && ex.total > 0 {
+                                // Same stance as the missing-`tsc` gate above:
+                                // don't emit a build that looks verified when
+                                // the verification could not run.
                                 eprintln!(
-                                    "glyph build: `tsx` not found on PATH; \
-                                     {} example(s) not run.",
-                                    report.total
+                                    "glyph build: {} example(s) not run: tsx was not \
+                                     found on PATH (install tsx, or pass --no-test)",
+                                    ex.total
                                 );
-                            } else if report.ok() {
-                                eprintln!(
-                                    "glyph build: {} example(s) passed.",
-                                    report.total
-                                );
-                            } else {
+                                std::process::exit(2);
+                            }
+                            if !ex.ok() {
                                 eprintln!(
                                     "glyph build: {} of {} example(s) failed.",
-                                    report.failures.len(),
-                                    report.total
+                                    ex.failures.len(),
+                                    ex.total
                                 );
                                 std::process::exit(1);
+                            }
+                            if ex.total > 0 {
+                                eprintln!("glyph build: {} example(s) passed.", ex.total);
                             }
                         }
                         Err(e) => {
@@ -323,6 +348,13 @@ fn main() {
                             std::process::exit(2);
                         }
                     }
+                } else if let Ok(n) = glyph_cli::examples::count_examples(&src) {
+                    if n > 0 {
+                        eprintln!("glyph build: {n} example(s) skipped (--no-test)");
+                    }
+                }
+                if tsc_passed {
+                    eprintln!("glyph build: tsc --strict passed.");
                 }
                 std::process::exit(0);
             }
@@ -715,13 +747,26 @@ fn main() {
     }
 }
 
+/// What the `@example` / `@doc @run` gate (D23/D26) did on this build, as seen
+/// by the JSON emitter.
+enum ExamplesOutcome {
+    /// `--no-test`, or the build already had errors so there was nothing to run.
+    Skipped,
+    Ran(glyph_cli::examples::ExampleReport),
+    /// The runner itself failed (io, or the throwaway build errored out).
+    Failed(String),
+}
+
 /// Print the build's diagnostics as a JSON object on stdout and exit. Runs
 /// `tsc` (when `do_check` and the build had no errors) and appends its remapped
-/// diagnostics. Diverges: control never returns to the text path.
+/// diagnostics. Example failures (already computed by the caller, since this
+/// diverges) fold into `errors` and `ok`, so `--json` and the human output
+/// agree on the exit code. Diverges: control never returns to the text path.
 fn emit_build_json(
     report: &glyph_cli::build::BuildReport,
     out: &std::path::Path,
     do_check: bool,
+    examples: &ExamplesOutcome,
 ) -> ! {
     use glyph_cli::runtime::TscOutcome;
     let mut diags = report.structured.clone();
@@ -740,7 +785,8 @@ fn emit_build_json(
             Err(_) => tsc_status = "error",
         }
     }
-    let errors = diags.iter().filter(|d| d.severity == "error").count();
+    let (examples_json, example_errors) = examples_to_json(examples);
+    let errors = diags.iter().filter(|d| d.severity == "error").count() + example_errors;
     let warnings = diags.iter().filter(|d| d.severity == "warning").count();
     let ok = errors == 0;
     let value = serde_json::json!({
@@ -750,10 +796,72 @@ fn emit_build_json(
         "tsc": tsc_status,
         "emitted": report.emitted,
         "diagnostics": diags,
+        "examples": examples_json,
     });
     println!(
         "{}",
         serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())
     );
-    std::process::exit(if ok { 0 } else { 1 });
+    // A gate that could not run at all exits 2, the same code the human path
+    // uses for a missing `tsx`; a gate that ran and failed exits 1.
+    let gate_unavailable = match examples {
+        ExamplesOutcome::Ran(ex) => !ex.ran && ex.total > 0,
+        ExamplesOutcome::Failed(_) => true,
+        ExamplesOutcome::Skipped => false,
+    };
+    std::process::exit(match (ok, gate_unavailable) {
+        (true, _) => 0,
+        (false, true) => 2,
+        (false, false) => 1,
+    });
+}
+
+/// Render the example gate as the JSON `examples` object, plus how many errors
+/// it contributes. A gate that could not run (no `tsx`) counts as an error on a
+/// project that has examples, the same way a missing `tsc` fails the build.
+fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
+    match examples {
+        ExamplesOutcome::Skipped => (
+            serde_json::json!({
+                "total": 0,
+                "ran": false,
+                "skipped": true,
+                "failures": [],
+            }),
+            0,
+        ),
+        ExamplesOutcome::Failed(msg) => (
+            serde_json::json!({
+                "total": 0,
+                "ran": false,
+                "skipped": false,
+                "failures": [format!("failed to run examples: {msg}")],
+            }),
+            1,
+        ),
+        ExamplesOutcome::Ran(ex) => {
+            let mut failures: Vec<String> = ex.failures.clone();
+            if let Some(diags) = &ex.build_failed {
+                failures.push("examples did not compile".to_string());
+                failures.extend(diags.iter().cloned());
+            }
+            if !ex.ran && ex.total > 0 {
+                failures.push(format!(
+                    "{} example(s) not run: tsx was not found on PATH \
+                     (install tsx, or pass --no-test)",
+                    ex.total
+                ));
+            }
+            let count = failures.len();
+            (
+                serde_json::json!({
+                    "total": ex.total,
+                    "ran": ex.ran,
+                    "skipped": false,
+                    "failures": failures,
+                }),
+                count,
+            )
+        }
+    }
 }

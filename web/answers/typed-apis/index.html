@@ -112,6 +112,22 @@ const NewTask = z.object({
       </div>
 
       <div class="detail">
+        <p>
+          You can also pull the value out instead of doing the work inside the arm.
+          <code>T.parse</code> is typed as <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>
+          and a <code>match</code> whose arms agree carries their type, so
+          <code>let task = match NewTask.parse(req.body) { Ok(t) =&gt; t, Err(issues)
+          =&gt; { return bad_request(issues) }, }</code> gives you a
+          <code>NewTask</code> for the rest of the function, with field names
+          checked by Glyph rather than by <code>tsc</code> on the generated
+          TypeScript. That landed in 0.1.45; before it, the value went untyped once
+          it left the <code>match</code>. A generic type's <code>parse</code> is the
+          one that still doesn't, because its descriptor takes a runtime checker per
+          type parameter.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">Composing your own: the output type is derived, not trusted</p>
         <p>
           Sometimes you want a <code>zod</code>-style combinator: build a validator by composing

@@ -482,9 +482,14 @@ impl Assigner<'_> {
                     },
                     // Not a decidable record. Try the stdlib namespace path
                     // (`http.get`, `fs.read_text`, ...) so a hand-written
-                    // TS-wrapper function still gets a Glyph-level signature;
-                    // otherwise stay `Unknown` (permissive).
-                    None => self.stdlib_member_ty(object, field).unwrap_or(Ty::Unknown),
+                    // TS-wrapper function still gets a Glyph-level signature,
+                    // then the runtime descriptor a type declaration of our own
+                    // emits (`WireLedger.parse`); otherwise stay `Unknown`
+                    // (permissive).
+                    None => self
+                        .stdlib_member_ty(object, field)
+                        .or_else(|| self.descriptor_member_ty(object, field))
+                        .unwrap_or(Ty::Unknown),
                 };
                 self.tm.insert(*span, member_ty);
             }
@@ -644,7 +649,16 @@ impl Assigner<'_> {
                         MatchArmBody::Block(b) => self.walk_block(b),
                     }
                 }
-                self.tm.insert(*span, Ty::Unknown);
+                // `match` is Glyph's only branching construct (D: no `if`), so
+                // leaving it `Unknown` starves everything downstream: a
+                // `let`-bound match had no type, which silently misclassified a
+                // two-binding `for` over one of its fields as a record
+                // (string-key `Object.entries`) and pushed field-existence
+                // checking out to `tsc`. Join the arms by equality: when every
+                // non-divergent arm produces the same decidable type, the whole
+                // expression has it. Anything else keeps the old `Unknown`.
+                let ty = self.join_match_arms(arms);
+                self.tm.insert(*span, ty);
             }
             Expr::Lambda {
                 params,
@@ -868,6 +882,73 @@ impl Assigner<'_> {
             .collect::<Vec<_>>()
             .join("/");
         self.stdlib_fn_ty(&key, field.as_ref())
+    }
+
+    /// The signature of `T.parse` for a module-local type `T` that emits a Q8
+    /// runtime descriptor: `parse(value) -> Result<T, Array<Issue>>`.
+    ///
+    /// This is the entry point for untrusted input, so leaving it `Unknown`
+    /// undoes the work of every downstream inference: the `match` over its
+    /// result has an undecidable scrutinee, the `Ok(w)` arm binds nothing, and
+    /// the checked value is back to being an opaque blob that only `tsc` sees.
+    /// The signature is read off the same shape the emitter writes, so the two
+    /// agree by construction.
+    ///
+    /// Eligibility mirrors `emit_type_decl` exactly, because typing a `parse`
+    /// the emitter does not write would be a signature for a member that is not
+    /// there. A descriptor exists for a non-generic record, a non-generic
+    /// tagged union whose name no variant shadows, and a refined primitive.
+    /// A plain alias (`type Cents = int`) has none. A *generic* record's
+    /// descriptor takes one runtime checker per type parameter, so its arity
+    /// differs and it is left `Unknown`.
+    fn descriptor_member_ty(&self, object: &Expr, field: &Ident) -> Option<Ty> {
+        if field.as_ref() != "parse" {
+            return None;
+        }
+        let Expr::Ident { span, .. } = object else {
+            return None;
+        };
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(*span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let SymbolKind::Type { decl_idx } = sym.kind else {
+            return None;
+        };
+        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        if !td.generics.is_empty() {
+            return None;
+        }
+        let has_descriptor = match &td.body {
+            TypeExpr::Record { .. } => true,
+            TypeExpr::Union { variants, .. } => {
+                variants.iter().all(|v| v.name.as_ref() != td.name.as_ref())
+            }
+            _ => td.refinement.is_some(),
+        };
+        if !has_descriptor {
+            return None;
+        }
+        let parsed = Ty::Named {
+            symbol: SymbolRef(id.0),
+            path: vec![td.name.clone()],
+        };
+        let issue_id = self.lowerer.prelude.lookup("Issue")?;
+        let issues = self.stdlib_array_ty(Ty::Named {
+            symbol: SymbolRef(issue_id.0),
+            path: vec![Ident::from("Issue")],
+        })?;
+        Some(Ty::Fn {
+            params: vec![FnParam {
+                name: None,
+                owned: false,
+                ty: Ty::Unknown,
+            }],
+            return_ty: Arc::new(self.stdlib_result_ty(parsed, issues)?),
+            is_async: false,
+        })
     }
 
     /// The signature of a modeled stdlib TS-wrapper function, or `None` for any
@@ -1823,6 +1904,41 @@ impl Assigner<'_> {
         });
     }
 
+    /// The type of a `match` expression: an equality join over the arms.
+    ///
+    /// Every arm must be walked before this runs, since each arm's value type
+    /// is read back out of the type map. An arm whose body block ends in
+    /// `return`/`break`/`continue` diverges and contributes nothing to the join
+    /// (`Err(_) => return 1` parses as a block holding a single `Stmt::Return`).
+    /// A block ending in anything other than an expression (a `let`, a `mut`,
+    /// an empty block) has no value type and stops the join.
+    ///
+    /// The join is equality only: no widening, no union, no subtyping. If the
+    /// contributing arms disagree, or any of them is undecidable, or all of
+    /// them diverge, the result is `Ty::Unknown` — exactly the old behavior.
+    fn join_match_arms(&self, arms: &[MatchArm]) -> Ty {
+        let mut joined: Option<Ty> = None;
+        for arm in arms {
+            let ty = match &arm.body {
+                MatchArmBody::Expr(e) => self.tm.get(e.span()).clone(),
+                MatchArmBody::Block(b) => match b.stmts.last() {
+                    Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_)) => continue,
+                    Some(Stmt::Expr(e)) => self.tm.get(e.span()).clone(),
+                    _ => return Ty::Unknown,
+                },
+            };
+            if ty.is_unknown() {
+                return Ty::Unknown;
+            }
+            match &joined {
+                None => joined = Some(ty),
+                Some(prev) if *prev == ty => {}
+                Some(_) => return Ty::Unknown,
+            }
+        }
+        joined.unwrap_or(Ty::Unknown)
+    }
+
     /// Recover a module-local tagged union from a `match`'s arm patterns, used
     /// only when the scrutinee's static type is undecidable (see the call site
     /// in the `Expr::Match` handler). An arm whose head names an in-scope union
@@ -2139,10 +2255,12 @@ impl Assigner<'_> {
     ///   (`NetworkError({ url, status })` → each field bound to its record
     ///   field type).
     ///
-    /// Deferred: nested constructor payloads and array payloads. Prelude
-    /// unions (`Ok(x)`, `Some(x)`) aren't handled either: their scrutinee
-    /// lowers to `Ty::App`, not the `Ty::Named` `union_variant_payload`
-    /// requires.
+    /// Prelude unions are included: `variant_payload` reads `Ok`/`Err`/`Some`
+    /// payloads off the scrutinee's `Ty::App` arguments, so `match r { Ok(v) =>
+    /// v, ... }` binds `v` to the success type. Without that binding the arm
+    /// body types as `Unknown` and the match's arm join has nothing to join.
+    ///
+    /// Deferred: nested constructor payloads and array payloads.
     fn bind_arm_payloads(&mut self, scrutinee_ty: &Ty, pattern: &Pattern) {
         let Pattern::Constructor { path, args, .. } = pattern else {
             return;
@@ -2150,7 +2268,7 @@ impl Assigner<'_> {
         let Some(variant_name) = path.last() else {
             return;
         };
-        let Some(payload_ty) = self.union_variant_payload(scrutinee_ty, variant_name) else {
+        let Some(payload_ty) = self.variant_payload(scrutinee_ty, variant_name) else {
             return;
         };
         match args.as_slice() {
@@ -2519,6 +2637,119 @@ mod tests {
             _ => None,
         });
         assert_eq!(missing.as_deref(), Some("\"team\""), "errs: {errs:?}");
+    }
+
+    /// The value span of the first `let` in the first `fn` that has one.
+    /// Unlike `first_let_value_span` this skips leading type declarations and
+    /// functions whose body starts with something else.
+    fn first_let_value_span_anywhere(m: &Module) -> glyph_ast::Span {
+        for item in &m.items {
+            let Decl::Fn(f) = item else { continue };
+            for s in &f.body.stmts {
+                if let Stmt::Let(l) = s {
+                    return l.value.span();
+                }
+            }
+        }
+        panic!("no let statement in any fn");
+    }
+
+    #[test]
+    fn match_with_arms_of_one_type_takes_that_type() {
+        let (m, _, tm) = type_map_of(
+            "module x\ntype Shape = Circle(number) | Square(number)\n\
+             fn area(s: Shape) -> number {\n  let a = match s {\n    Circle(r) => r,\n    Square(w) => w,\n  }\n  return a\n}\n",
+        );
+        assert!(
+            matches!(
+                tm.get(first_let_value_span_anywhere(&m)),
+                Ty::Prim(Primitive::Number)
+            ),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    #[test]
+    fn diverging_match_arm_does_not_block_the_join() {
+        // `Err(_) => return 1` parses as a block holding a single `Stmt::Return`.
+        // It contributes nothing to the join, so the match takes `Ok`'s type.
+        let (m, _, tm) = type_map_of(
+            "module x\nfn get() -> Result<number, string> {\n  return Ok(1)\n}\n\
+             fn main() -> number {\n  let w = match get() {\n    Ok(v) => v,\n    Err(_) => return 1,\n  }\n  return w\n}\n",
+        );
+        assert!(
+            matches!(
+                tm.get(first_let_value_span_anywhere(&m)),
+                Ty::Prim(Primitive::Number)
+            ),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    #[test]
+    fn match_with_arms_of_differing_types_stays_unknown_and_silent() {
+        // The join is equality only: no widening, no union. Disagreeing arms
+        // keep the pre-join behavior exactly, including reporting no error.
+        let src = "module x\ntype Tier = \"free\" | \"pro\"\n\
+             fn pick(t: Tier) -> number {\n  let v = match t {\n    \"free\" => 1,\n    \"pro\" => \"two\",\n  }\n  return 0\n}\n";
+        let (m, _, tm) = type_map_of(src);
+        assert!(
+            tm.get(first_let_value_span_anywhere(&m)).is_unknown(),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+        assert!(
+            errors_of(src).is_empty(),
+            "differing arms must not error: {:?}",
+            errors_of(src)
+        );
+    }
+
+    #[test]
+    fn match_whose_arms_all_diverge_stays_unknown() {
+        // No `Never`/bottom type exists in Glyph; an all-divergent match keeps
+        // `Unknown` rather than inventing one.
+        let (m, _, tm) = type_map_of(
+            "module x\ntype Tier = \"free\" | \"pro\"\n\
+             fn pick(t: Tier) -> number {\n  let v = match t {\n    \"free\" => return 1,\n    \"pro\" => return 2,\n  }\n  return 0\n}\n",
+        );
+        assert!(
+            tm.get(first_let_value_span_anywhere(&m)).is_unknown(),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    #[test]
+    fn descriptor_parse_result_flows_through_a_match() {
+        // `T.parse` is the boundary between untrusted input and typed data. Its
+        // `Result<T, Array<Issue>>` signature is what lets the `Ok` arm bind a
+        // real `Wire`, which is what the arm join then hands to the `let`.
+        let (m, _, tm) = type_map_of(
+            "module x\ntype Wire = { rows: Array<number> }\n\
+             fn main() -> number {\n  let w = match Wire.parse(0) {\n    Ok(v) => v,\n    Err(_) => return 1,\n  }\n  return 0\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::Named { path, .. } if path.last().map(|n| n.as_ref()) == Some("Wire")),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn plain_alias_has_no_descriptor_parse() {
+        // A `type Cents = int` alias emits no runtime descriptor, so claiming a
+        // `parse` signature for it would describe a member that is not there.
+        let (m, _, tm) = type_map_of(
+            "module x\ntype Cents = int\nfn main() -> number {\n  let c = Cents.parse(0)\n  return 0\n}\n",
+        );
+        assert!(
+            tm.get(first_let_value_span_anywhere(&m)).is_unknown(),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
     }
 
     #[test]

@@ -181,6 +181,54 @@ let cache = <span class="add">match</span> args.offline {
       </div>
 
       <div class="detail">
+        <p class="block-label">And the compiler knows what the <code>match</code> produced</p>
+        <p>
+          The follow-up question is the one that decides whether any of this is
+          load-bearing: once you bind a value out of a branch, does Glyph know its
+          type, or does it shrug and let <code>tsc</code> sort it out later? Until
+          0.1.45 it shrugged. Every <code>match</code> expression typed as unknown,
+          so a value that came out of the only branching construct in the language
+          was untyped from that point on. A <code>match</code> now takes its arms'
+          type when they agree, and <code>T.parse</code> is known to return
+          <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, which is the shape most
+          real code branches on.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">from the expense splitter: no annotation, and <code>i</code> is a number</span>
+<pre>let wire = <span class="add">match</span> WireLedger.parse(decoded) {
+  Ok(w) =&gt; w,
+  Err(issues) =&gt; {
+    return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+  },
+}
+
+for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", "1", "2"</span>
+  ...
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Both halves of that are things that used to go wrong quietly. The loop
+          emits <code>wire.expenses.entries()</code>; when the iterand's type is
+          unknown it emits <code>Object.entries(...)</code> instead and
+          <code>i</code> is the <em>string</em> <code>"0"</code>, which is legal
+          TypeScript, so the build was clean and the program printed
+          <code>01:a</code> where it meant <code>1:a</code>. And
+          <code>wire.expensez</code> is now <code>[E0210] type WireLedger has no
+          field expensez</code> from Glyph, on the <code>.glyph</code> line, rather
+          than a <code>TS2339</code> on generated TypeScript. The join is equality
+          and nothing more: an arm that ends in <code>return</code> doesn't vote,
+          arms that disagree leave the type unknown the way it was before, and
+          nothing that compiled before stopped compiling. The snippet is from
+          <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle.glyph"><code>examples/apps/settle.glyph</code></a>,
+          which carried the annotation this deleted.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">Money doesn't run on floats</p>
         <p>
           The gap that would end a fintech evaluation on the spot is doing money
@@ -219,11 +267,11 @@ decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, and a spec section owning the JS-inherited semantics.</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, and a spec section owning the JS-inherited semantics.</p>
         </div>
         <div class="status-card next">
           <p class="h">The honest edge</p>
-          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is not checked by Glyph: <code>await</code> in a plain <code>fn</code> compiles and <code>tsc</code> catches it on the emitted TypeScript. And an async callback has no type you can write down yet, so a function taking one can't be given a signature.</p>
+          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is not checked by Glyph: <code>await</code> in a plain <code>fn</code> compiles and <code>tsc</code> catches it on the emitted TypeScript. An async callback has no type you can write down yet, so a function taking one can't be given a signature. And the arm join only handles arms that agree: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it, same as an iterand that came from a stdlib call the checker doesn't model, which still binds a string index.</p>
         </div>
       </div>
 

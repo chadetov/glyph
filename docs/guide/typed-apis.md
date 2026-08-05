@@ -115,6 +115,33 @@ match header(req, "authorization") {
 }
 ```
 
+## The type survives the `match`
+
+You do not have to do the work inside the `Ok` arm. A `match` whose arms agree
+has their type, so pulling the value out into a `let` keeps it typed, and
+`T.parse` is known to return `Result<T, Array<Issue>>` for any type that gets a
+descriptor:
+
+```glyph
+let ledger = match Ledger.parse(decoded) {
+  Ok(l) => l,
+  Err(issues) => {
+    return Err("not a ledger")
+  },
+}
+
+for i, e in ledger.expenses {      // `i` is a number
+  print("${number.to_string(i + 1)}: ${e.description}")
+}
+```
+
+`ledger` is a `Ledger` from there on, so `ledger.expensez` is `E0210` from Glyph
+rather than a `TS2339` on the emitted TypeScript, and the index loop gets the
+array lowering with no `Array<T>` annotation to remember. Before 0.1.45 every
+`match` typed as unknown, which is why older code carries that annotation. Arms
+that produce *different* types still leave the result unknown to Glyph's checker;
+`tsc` is what checks uses of it then.
+
 ## How deep the check goes
 
 A descriptor validates the type as declared, not just its top level. If a field

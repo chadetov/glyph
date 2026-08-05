@@ -1036,12 +1036,15 @@ minimal-image build of a project with examples needs either `tsx` installed or
   `emit_value` without turning a compile error into a silent miscompile in the
   nested-IIFE case.
 - **A two-binding `for` picks the record lowering on an unknown iterand** (G37,
-  second sighting). The root is that `stdlib_fn_ty` models about a dozen
-  functions, so `string.split` and the `array` combinators return `Ty::Unknown`
-  and the emitter chooses between two incompatible lowerings on a type it does
-  not have. Two directions, both needing the orchestrator: model stdlib return
-  types (durable, large) or hard-error on an unknown-typed iterand (cheap,
-  wedge-shaped).
+  second sighting). Re-scoped by the settle trip below: the case where the
+  iterand came out of a `match` (directly or through a field of a match-bound
+  record) is fixed, because the checker now gives a `match` its arms' type. What
+  is left is the iterand whose type is honestly unknown. `stdlib_fn_ty` models
+  about a dozen functions, so `string.split` and the `array` combinators return
+  `Ty::Unknown` and the emitter chooses between two incompatible lowerings on a
+  type it does not have. Two directions, both needing the orchestrator: model
+  stdlib return types (durable, large) or hard-error on an unknown-typed iterand
+  (cheap, wedge-shaped).
 - **Stdlib breadth, fourth sighting** (S). Same list as the linkcheck trip.
 - **Escaping `$` in a template literal is a docs gap, not a lexer gap** (docs).
   `"${string.join(p, \".\")}"` works today and is regression-tested; the app
@@ -1090,6 +1093,83 @@ build root that differs between `glyph run` and `glyph build` (loud and
 self-announcing, but its fix is a real fork), and whether symlinked `.glyph`
 sources should be walked at all, which is a question about whether they are
 supported, not a bug to patch.
+
+## settle dogfood trip — the only branching construct had no type
+
+The loop pointed at `examples/apps/settle.glyph`, a shared-expense settler: parse
+a ledger, split expenses, minimize the transfers that square everyone up. The
+review that came back listed sixteen findings, twelve of which already carried a
+G-number. The one taken here is the one with no design question attached.
+
+### 0.1.45 — Shipped · A `match` whose arms agree has their type
+
+Glyph has no `if`, so `match` is the branching construct, and the typechecker
+ended its `Expr::Match` arm by recording `Ty::Unknown` for every `match` in every
+program. A value taken out of a branch therefore reached the rest of the compiler
+untyped, and two things went wrong downstream. Field access on it was left to
+`tsc`, so a typo in a field name came back as `[TS2339]` on generated TypeScript
+instead of Glyph's own `E0210`. Worse, a two-binding `for` over one of its fields
+picked the wrong lowering: `iter_is_array` asks the type map whether the iterand
+is an `Array` and falls back to `Object.entries` when it cannot tell, so
+`for i, row in w.rows` bound `i` to the string `"0"` and the program printed
+`01:a` where it should print `1:a`. `glyph build` was clean, `tsc --strict` was
+clean, and the output was wrong with no diagnostic anywhere.
+
+A `match` now takes its arms' type when they agree. The join is equality and
+nothing more: each arm contributes its value type, an arm that ends in
+`return`/`break`/`continue` diverges and contributes nothing, and if the
+contributing arms disagree or any of them is undecidable the result is `Unknown`
+exactly as before. No widening, no union, no subtyping, and no bottom type, which
+Glyph does not have. Making the join useful needed one prerequisite:
+`bind_arm_payloads` handled module-local unions only, so `Ok(v)` over the prelude
+`Result` bound `v` to nothing and the arm had no type to contribute. It now reads
+prelude payloads off the scrutinee's type arguments too.
+
+The visible effect is a workaround that stops being necessary.
+`let w = match get() { Ok(v) => v, Err(_) => return 1, }` gives `w` the success
+type, so `w.rows` iterates with a numeric index and `w.rowz` is an `E0210` from
+Glyph rather than a `TS2339` from `tsc`. Nothing new became spellable and no rule
+was relaxed; the compiler simply stopped throwing away what it already knew.
+Rebuilding `examples/` produces byte-identical output apart from `settle`.
+
+Deleting the annotation from the app took one more piece. `settle` gets its
+ledger from `WireLedger.parse(decoded)`, and the checker had no signature for the
+`parse` that a type declaration's runtime descriptor emits, so the scrutinee was
+still undecidable and the join still had nothing to join. `T.parse` now types as
+`Result<T, Array<Issue>>`, read off the shape the emitter writes, for the
+non-generic record, tagged-union, and refined-primitive types that get a
+descriptor. A plain alias (`type Cents = int`) emits none and gets none, and a
+generic record's descriptor threads a runtime checker per type parameter, so its
+arity differs and it stays `Unknown`. This is the boundary between untrusted
+input and typed data, so leaving it opaque undid every inference downstream of
+it. With both pieces in, `let rows: Array<WireExpense> = wire.expenses` and its
+"the annotation is load-bearing" comment are gone from
+`examples/apps/settle.glyph`, the loop below it reads `for i, w in wire.expenses`
+and still binds a number: feed it a ledger whose third entry has three decimal
+places and it reports `expense 3`, not `expense 21`.
+
+Also in the release: the app ships as `examples/apps/settle.glyph`. Record a
+shared expense, split it evenly, by exact shares, or by weights, print the
+balances, and settle up in as few payments as possible, with every amount an
+exact whole number of cents. It builds and runs under the same `examples/` gate
+as the rest.
+
+### Still open from this trip
+
+- **The unknown-typed iterand** (G37, what remains). An iterand whose type the
+  checker honestly does not have, a call into one of the stdlib functions
+  `stdlib_fn_ty` does not model, still takes the record lowering and binds a
+  string index with a clean build. Modeling stdlib return types (durable, large)
+  or hard-erroring on an unknown-typed iterand (cheap, wedge-shaped) are both
+  orchestrator calls, unchanged by this release.
+- **`parse` on a generic type stays `Unknown`** (S). A generic record's
+  descriptor threads one runtime checker per type parameter, so its `parse` has a
+  different arity than the non-generic one, and typing it needs the checker to
+  know what the call site passed.
+- **Arms that disagree stay `Unknown`** (M). The join is equality, so a `match`
+  producing different types per arm gives the rest of the compiler nothing, same
+  as before. Improving on that means widening or a union type in Glyph's own
+  checker, which is a type-system decision rather than a patch.
 
 ## Road to 1.0
 

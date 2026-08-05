@@ -607,6 +607,29 @@ workaround for the first and is still open.
   the array lowering, and both change what an unannotated iterand means, so it
   is a decision rather than a patch. Recorded in `docs/roadmap/releases.md`.
 
+  *Partly closed.* A `match` expression used to type as `Ty::Unknown` no matter
+  what its arms produced, which meant a binding taken out of the only branching
+  construct in the language reached `iter_is_array` with no type. The typechecker
+  now joins the arms by equality, so `let w = match get() { Ok(v) => v, Err(_) =>
+  return 1, }` types as the success type and `for i, row in w.rows` gets the
+  numeric-index lowering with no annotation.
+
+  The arm join alone was not enough for the site it was written for. `settle`
+  reads its ledger through `WireLedger.parse(decoded)`, and the checker had no
+  signature for the `parse` a type declaration's runtime descriptor emits, so the
+  scrutinee was undecidable, the `Ok(w)` arm bound nothing, and the join had
+  nothing to join. `T.parse` now types as `Result<T, Array<Issue>>` for the
+  non-generic record, union, and refined-primitive types that emit a descriptor,
+  read off the same shape the emitter writes. With both pieces in place the
+  annotation came out of `examples/apps/settle.glyph` and the loop still binds a
+  number: a corrupt third entry reports `expense 3`, not `expense 21`.
+
+  The half that remains is the one that was always a decision: an iterand whose
+  type is honestly unknown, such as a call into an unmodeled stdlib function
+  (`array.slice`, `string.split`), still falls back to the record lowering.
+  Closing that means either modeling the stdlib return types or hard-erroring on
+  an unknown-typed iterand. See Round 12.
+
 ## Round 8 — a text adventure, and the return of "silent green"
 
 The loop pointed at `examples/apps/adventure.glyph`, a text adventure: rooms, an
@@ -838,3 +861,66 @@ only false *green* in the batch.
   Five tests pin it: editing, deleting, adding, the symlink case, and a non-`.ts`
   file under `extern/` that must NOT bust the cache. Whether symlinked `.glyph`
   sources should be walked at all is a separate question and is still open.*
+
+## Round 12 — a group expense splitter, and a `match` with no type
+
+The loop pointed at `examples/apps/settle.glyph`: read a ledger of shared
+expenses, split each one, and compute the smallest set of payments that squares
+the group up. Sixteen findings came back and twelve of them already carried a
+G-number, mostly stdlib shape. The one below is new, and it is the reason the app
+was carrying an annotation with a comment above it explaining why the annotation
+could not be removed.
+
+- **G57. [FIXED] A `match` expression always typed as `Ty::Unknown`.** Glyph has
+  no `if`, so `match` is the branching construct, and the typechecker's
+  `Expr::Match` arm walked the arms and then recorded `Ty::Unknown` for the whole
+  expression, in every program. Anything taken out of a branch was therefore
+  untyped from that point on. Two failures came out of it. A field access on the
+  binding was left to `tsc`, so a typo in a field name came back as a `TS2339` on
+  generated TypeScript instead of Glyph's `E0210` on the `.glyph` line. And a
+  two-binding `for` over one of its fields picked the wrong lowering: this is
+  G37's mechanism, `iter_is_array` falling back to `Object.entries` when it
+  cannot see an `Array`, so `for i, row in w.rows` bound `i` to the string `"0"`,
+  `glyph build` was clean, `tsc --strict` was clean, and the program printed
+  `01:a` instead of `1:a`. *Fixed: a `match` now takes its arms' type through an
+  equality join. Each arm contributes the type of its value, an arm ending in
+  `return`/`break`/`continue` diverges and contributes nothing, and if the
+  contributing arms disagree or any one of them is undecidable the result is
+  `Unknown` exactly as before. No widening, no union, no bottom type. One
+  prerequisite came with it: `bind_arm_payloads` resolved payloads for
+  module-local unions only, so `Ok(v)` over the prelude `Result` bound `v` to
+  nothing and the arm had nothing to contribute; it now reads prelude payloads
+  off the scrutinee's type arguments.*
+
+- **G58. [FIXED] The `parse` on a type's runtime descriptor had no signature.**
+  The arm join above did not remove `settle`'s annotation on its own. The app
+  gets its ledger from `WireLedger.parse(decoded)`, and the checker knew nothing
+  about the `parse` that a `type` declaration's descriptor emits, so the call
+  typed `Unknown`, the scrutinee was undecidable, the `Ok(w)` arm bound nothing,
+  and the join had nothing to join. This is the boundary between untrusted input
+  and typed data, which makes it the worst place in a program to lose a type: it
+  undoes every inference downstream of it. *Fixed: `T.parse` types as
+  `Result<T, Array<Issue>>`, read off the same shape the emitter writes, for the
+  types that actually get a descriptor. Eligibility mirrors `emit_type_decl`:
+  a non-generic record, a non-generic tagged union whose name no variant shadows,
+  and a refined primitive. A plain alias (`type Cents = int`) emits no descriptor
+  and gets no signature. With both fixes in, the annotation and its comment are
+  gone from the app, `for i, w in wire.expenses` still binds a number, and a
+  ledger whose third entry has three decimal places reports `expense 3` rather
+  than `expense 21`.*
+
+### Still open from this trip
+
+- **The unknown-typed iterand** (G37, what remains). An iterand whose type is
+  honestly unknown, a call into a stdlib function `stdlib_fn_ty` does not model,
+  still takes the record lowering and binds a string index with no diagnostic.
+  The two ways out are modeling stdlib return types or hard-erroring on an
+  unknown-typed iterand, and picking between them is a decision, not a patch.
+- **A generic type's `parse` stays `Unknown`.** A generic record's descriptor
+  threads one runtime checker per type parameter, so its `parse` has a different
+  arity than the non-generic one and typing it needs the checker to know what the
+  caller passed.
+- **Arms that disagree stay `Unknown`.** The join is equality, so a `match` whose
+  arms produce different types gives the rest of the compiler nothing, same as
+  before. Doing better means widening or a union type, which Glyph does not have
+  in its checker today.

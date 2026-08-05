@@ -1,0 +1,1163 @@
+// settle — split group expenses and settle up in as few payments as possible.
+//
+// Every amount is an exact whole number of cents. A split that does not divide
+// evenly hands the leftover cents out by a documented, stable rule, and the app
+// asserts the parts sum to the whole before it records anything.
+//
+// Usage:
+//   settle [--file ledger.json] add "<description>" --payer <who> --amount <n>
+//            (--among a,b,c | --shares a=40.00,b=44.30 | --weights a=2,b=1)
+//            [--date YYYY-MM-DD]
+//   settle [--file ledger.json] balances
+//   settle [--file ledger.json] up
+//   settle [--file ledger.json] log [--since YYYY-MM-DD] [--who alice]
+//   settle --help
+//
+// Exit codes: 0 success, 1 a rejected operation (an exact split that does not
+// sum to the total, a non-positive weight), 2 bad arguments or a ledger that
+// cannot be read.
+//
+// Run it end to end (copy the whole block). `glyph run` needs `--` before the
+// program's own flags, otherwise it reads them as its own:
+//
+//   L=/tmp/settle.json
+//   rm -f $L
+//   glyph run examples/apps/settle.glyph -- --file $L add "dinner" \
+//     --payer alice --amount 84.30 --among alice,bob,carla --date 2026-01-03
+//   glyph run examples/apps/settle.glyph -- --file $L add "coffee" \
+//     --payer bob --amount 10.00 --among alice,bob,carla --date 2026-01-04
+//   glyph run examples/apps/settle.glyph -- --file $L add "cab" \
+//     --payer bob --amount 21.00 --weights alice=2,bob=1 --date 2026-01-05
+//   glyph run examples/apps/settle.glyph -- --file $L add "tickets" \
+//     --payer carla --amount 84.30 --shares alice=40.00,bob=44.30 --date 2026-01-06
+//   glyph run examples/apps/settle.glyph -- --file $L balances
+//   glyph run examples/apps/settle.glyph -- --file $L up
+//   glyph run examples/apps/settle.glyph -- --file $L log --since 2026-01-05
+
+module main
+
+import std/array
+import std/decimal { decimal, from_int }
+import std/fs
+import std/io
+import std/json
+import std/math
+import std/option { Option, Some, None }
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+import std/time
+
+// ---------------------------------------------------------------------------
+// Money
+// ---------------------------------------------------------------------------
+
+// Money lives in this program as an exact whole number of cents. Decimal is used
+// only at the two boundaries: reading what a human typed and printing what we
+// show. Nothing in between can drift, and the penny allocator gets plain integer
+// arithmetic to work with.
+type Cents = int
+
+const HUNDRED = from_int(100, 0)
+
+@example format_money(-5) == "-0.05"
+@example format_money(0) == "0.00"
+@example format_money(8430) == "84.30"
+fn format_money(cents: Cents) -> string {
+  return from_int(cents, 2).to_string()
+}
+
+@example format_signed(-2810) == "-28.10"
+@example format_signed(0) == "0.00"
+@example format_signed(5620) == "+56.20"
+fn format_signed(cents: Cents) -> string {
+  return match cents > 0 {
+    true => "+${format_money(cents)}",
+    false => format_money(cents),
+  }
+}
+
+// "84.30" is 8430 cents. A third of a cent is not money, so anything finer than
+// two decimal places is rejected rather than rounded behind the user's back.
+@example parse_money("0.05") == Ok(5)
+@example parse_money("7") == Ok(700)
+@example parse_money("84.30") == Ok(8430)
+fn parse_money(text: string) -> Result<Cents, string> {
+  return match decimal(text) {
+    Err(_) => Err("not an amount: \"${text}\""),
+    Ok(d) => match d.round(2).eq(d) {
+      false => Err("more than two decimal places: \"${text}\""),
+      true => Ok(d.mul(HUNDRED).round(0).to_number()),
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+// One person's slice of one expense, and also one person's net position across
+// the whole ledger. Same shape, same rules, so the table printers are shared.
+type Portion = { who: string, cents: Cents }
+
+// A relative weight, in hundredths, so "--weights alice=2.5,bob=1" is exact.
+type Weight = { who: string, units: int }
+
+// How one expense divides. Each variant carries exactly what that rule needs,
+// so an exact split cannot be missing its amounts and a weighted split cannot be
+// missing its weights.
+type Split =
+  | Equal({ among: Array<string> })
+  | Exact({ shares: Array<Portion> })
+  | Weighted({ weights: Array<Weight> })
+
+type Expense = {
+  // Epoch milliseconds, parsed once at the boundary.
+  date: number,
+  description: string,
+  payer: string,
+  amount: Cents,
+  split: Split,
+}
+
+type Transfer = { debtor: string, creditor: string, cents: Cents }
+
+// Two failure classes, because they exit differently: a rejected operation is a
+// well-formed request the rules refuse (exit 1), bad input is a request we could
+// not even read (exit 2).
+type Fail =
+  | Rejected({ message: string })
+  | BadInput({ message: string })
+
+fn fail_message(f: Fail) -> string {
+  return match f {
+    Rejected({ message }) => message,
+    BadInput({ message }) => message,
+  }
+}
+
+fn exit_code_for(f: Fail) -> int {
+  return match f {
+    Rejected({ message: _ }) => 1,
+    BadInput({ message: _ }) => 2,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Small numeric helpers
+// ---------------------------------------------------------------------------
+
+fn sum_of(xs: Array<int>) -> int {
+  let total = 0
+  for x in xs {
+    mut total = total + x
+  }
+  return total
+}
+
+fn min_int(a: int, b: int) -> int {
+  return match a < b {
+    true => a,
+    false => b,
+  }
+}
+
+// Both operands are non-negative everywhere this is called, so floor is the
+// truncation the allocator wants.
+@example div_floor(1000, 3) == 333
+fn div_floor(numerator: int, denominator: int) -> int {
+  return math.floor(numerator / denominator)
+}
+
+fn ones(count: int) -> Array<int> {
+  let out: Array<int> = []
+  let i = 0
+  loop {
+    match i < count {
+      false => {
+        break
+      },
+      true => {
+        mut out.push(1)
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+fn compare_names(a: string, b: string) -> number {
+  return match a < b {
+    true => 0 - 1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The penny rule
+// ---------------------------------------------------------------------------
+
+// Largest remainder, ties broken by position.
+//
+// Each participant first gets floor(total * weight / total_weight). That always
+// leaves between 0 and n-1 cents over. Those leftover cents go out one apiece to
+// the participants with the largest fractional remainder; when two remainders
+// tie, the earlier participant in the list wins. So 10.00 among three people is
+// 3.34 / 3.33 / 3.33 and never 3.33 / 3.33 / 3.33 with a cent quietly lost.
+//
+// The rule is total (the parts always sum to the whole), deterministic (the same
+// input gives the same output, run to run), and order-stable (the order comes
+// from the participant list, which the user wrote).
+@example allocate(1, [1, 1, 1]) == [1, 0, 0]
+@example allocate(1000, [1, 1, 1]) == [334, 333, 333]
+@example allocate(1000, [2, 1]) == [667, 333]
+@example allocate(8430, [1, 1, 1]) == [2810, 2810, 2810]
+fn allocate(total: Cents, weights: Array<int>) -> Array<Cents> {
+  let denominator = sum_of(weights)
+  let parts: Array<Cents> = []
+  let remainders: Array<int> = []
+
+  for w in weights {
+    let numerator = total * w
+    let base = div_floor(numerator, denominator)
+    mut parts.push(base)
+    mut remainders.push(numerator - base * denominator)
+  }
+
+  let leftover = total - sum_of(parts)
+  let order = by_largest_remainder(remainders)
+  let i = 0
+  loop {
+    match i < leftover {
+      false => {
+        break
+      },
+      true => {
+        let target = order[i]
+        mut parts[target] = parts[target] + 1
+        mut i = i + 1
+      },
+    }
+  }
+  return parts
+}
+
+// Indices ordered by remainder, largest first, earlier index first on a tie.
+fn by_largest_remainder(remainders: Array<int>) -> Array<int> {
+  let indices: Array<int> = []
+  for i, _r in remainders {
+    mut indices.push(i)
+  }
+  return array.sort(indices, fn(a: int, b: int) -> number {
+    return match remainders[a] == remainders[b] {
+      true => a - b,
+      false => remainders[b] - remainders[a],
+    }
+  })
+}
+
+// Weighted division plus the invariant that makes the whole thing trustworthy.
+fn portions(total: Cents, names: Array<string>, weights: Array<int>) -> Array<Portion> {
+  let amounts = allocate(total, weights)
+  let parts = array.zip(
+    names,
+    amounts,
+    fn(who: string, cents: Cents) -> Portion { return { who: who, cents: cents } },
+  )
+  // No cent invented, no cent lost.
+  assert(total_of(parts) == total)
+  return parts
+}
+
+fn total_of(parts: Array<Portion>) -> Cents {
+  return sum_of(array.map(parts, fn(p: Portion) -> int { return p.cents }))
+}
+
+fn names_of(parts: Array<Portion>) -> Array<string> {
+  return array.map(parts, fn(p: Portion) -> string { return p.who })
+}
+
+// What each participant owes for one expense. An exact split is already stated
+// in cents; the other two are computed by the penny rule.
+//
+// 10.00 three ways: the odd cent lands on the first participant.
+@example shares_of({
+  date: 0,
+  description: "cab",
+  payer: "bob",
+  amount: 2100,
+  split: Weighted({ weights: [{ who: "alice", units: 200 }, { who: "bob", units: 100 }] }),
+}) == [{ who: "alice", cents: 1400 }, { who: "bob", cents: 700 }]
+@example shares_of({
+  date: 0,
+  description: "coffee",
+  payer: "alice",
+  amount: 1000,
+  split: Equal({ among: ["alice", "bob", "carla"] }),
+}) == [
+  { who: "alice", cents: 334 },
+  { who: "bob", cents: 333 },
+  { who: "carla", cents: 333 },
+]
+@example shares_of({
+  date: 0,
+  description: "tickets",
+  payer: "carla",
+  amount: 8430,
+  split: Exact({ shares: [{ who: "alice", cents: 4000 }, { who: "bob", cents: 4430 }] }),
+}) == [{ who: "alice", cents: 4000 }, { who: "bob", cents: 4430 }]
+fn shares_of(
+  // Exact shares are taken as written.
+
+  // 21.00 split two-to-one.
+  e: Expense,
+) -> Array<Portion> {
+  return match e.split {
+    Equal({ among }) => portions(e.amount, among, ones(array.len(among))),
+    Exact({ shares }) => shares,
+    Weighted({ weights }) => portions(
+      e.amount,
+      array.map(weights, fn(w: Weight) -> string { return w.who }),
+      array.map(weights, fn(w: Weight) -> int { return w.units }),
+    ),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Split validation
+// ---------------------------------------------------------------------------
+
+// The rules a split has to satisfy before it can be recorded. Every variant is
+// checked against what that variant actually promises, which is why the split is
+// a union and not a record with three optional fields.
+//
+// Exact shares that do not add up are refused, not silently rescaled.
+@example validate_split(
+  0 - 1,
+  Equal({ among: ["alice"] }),
+) == Err("an expense cannot be negative")
+@example validate_split(
+  5000,
+  Exact({ shares: [{ who: "alice", cents: 2000 }, { who: "bob", cents: 2000 }] }),
+) == Err("exact shares total 40.00, but the expense is 50.00")
+@example validate_split(100, Weighted({ weights: [{ who: "alice", units: 0 }] })) == Err("weight for alice must be positive")
+fn validate_split(amount: Cents, split: Split) -> Result<Split, string> {
+  match amount < 0 {
+    true => {
+      return Err("an expense cannot be negative")
+    },
+    false => {},
+  }
+
+  return match split {
+    Equal({ among }) => match check_people(among) {
+      Err(m) => Err(m),
+      Ok(_) => Ok(Equal({ among: among })),
+    },
+    Exact({ shares }) => match check_people(names_of(shares)) {
+      Err(m) => Err(m),
+      Ok(_) => match total_of(shares) == amount {
+        false => Err("exact shares total ${format_money(total_of(shares))}, but the expense is ${format_money(amount)}"),
+        true => Ok(Exact({ shares: shares })),
+      },
+    },
+    Weighted({ weights }) => match check_people(array.map(weights, fn(w: Weight) -> string { return w.who })) {
+      Err(m) => Err(m),
+      Ok(_) => match array.find(weights, fn(w: Weight) -> bool { return w.units <= 0 }) {
+        Some(bad) => Err("weight for ${bad.who} must be positive"),
+        None => Ok(Weighted({ weights: weights })),
+      },
+    },
+  }
+}
+
+fn check_people(names: Array<string>) -> Result<void, string> {
+  match array.len(names) == 0 {
+    true => {
+      return Err("a split needs at least one participant")
+    },
+    false => {},
+  }
+  match array.any(names, fn(n: string) -> bool { return string.len(n) == 0 }) {
+    true => {
+      return Err("a participant name cannot be empty")
+    },
+    false => {},
+  }
+  return match first_duplicate(names) {
+    Some(name) => Err("${name} is listed twice"),
+    None => Ok(void),
+  }
+}
+
+@example first_duplicate(["a", "b", "a"]) == Some("a")
+@example first_duplicate(["a", "b"]) == None
+fn first_duplicate(names: Array<string>) -> Option<string> {
+  let seen: Array<string> = []
+  for n in names {
+    match array.contains(seen, n) {
+      true => {
+        return Some(n)
+      },
+      false => {
+        mut seen.push(n)
+      },
+    }
+  }
+  return None
+}
+
+// ---------------------------------------------------------------------------
+// Balances and settlement
+// ---------------------------------------------------------------------------
+
+fn bump(acc: Record<string, int>, who: string, delta: int) -> Record<string, int> {
+  let current = match record.get(acc, who) {
+    Some(v) => v,
+    None => 0,
+  }
+  return record.set(acc, who, current + delta)
+}
+
+// Net position per person: what they paid out, minus what they owe. Sorted by
+// name so two runs over the same ledger print the same table.
+fn net_balances(expenses: Array<Expense>) -> Array<Portion> {
+  let acc: Record<string, int> = {}
+  for e in expenses {
+    mut acc = bump(acc, e.payer, e.amount)
+    for p in shares_of(e) {
+      mut acc = bump(acc, p.who, 0 - p.cents)
+    }
+  }
+
+  let names = array.sort(record.keys(acc), compare_names)
+  let out: Array<Portion> = []
+  for who in names {
+    let cents = match record.get(acc, who) {
+      Some(v) => v,
+      None => 0,
+    }
+    mut out.push({ who: who, cents: cents })
+  }
+  // Every cent someone is owed is a cent someone else owes.
+  assert(total_of(out) == 0)
+  return out
+}
+
+// Index of the person owed the most, or None when nobody is owed anything.
+// Ties go to the earlier name, so the plan is stable.
+fn largest_creditor(ledger: Array<Portion>) -> Option<int> {
+  let best = 0 - 1
+  for i, p in ledger {
+    let better = match best < 0 {
+      true => p.cents > 0,
+      false => p.cents > ledger[best].cents,
+    }
+    match better {
+      true => {
+        mut best = i
+      },
+      false => {},
+    }
+  }
+  return match best < 0 {
+    true => None,
+    false => Some(best),
+  }
+}
+
+fn largest_debtor(ledger: Array<Portion>) -> Option<int> {
+  let best = 0 - 1
+  for i, p in ledger {
+    let better = match best < 0 {
+      true => p.cents < 0,
+      false => p.cents < ledger[best].cents,
+    }
+    match better {
+      true => {
+        mut best = i
+      },
+      false => {},
+    }
+  }
+  return match best < 0 {
+    true => None,
+    false => Some(best),
+  }
+}
+
+// Greedy: the largest creditor is paid by the largest debtor, for the most that
+// clears one of them. Every step zeroes at least one person, so a group of n
+// settles in at most n-1 payments, and every transfer is exact to the cent.
+@example plan([
+  { who: "alice", cents: 5620 },
+  { who: "bob", cents: 0 - 2810 },
+  { who: "carla", cents: 0 - 2810 },
+]) == [
+  { debtor: "bob", creditor: "alice", cents: 2810 },
+  { debtor: "carla", creditor: "alice", cents: 2810 },
+]
+@example plan([{ who: "alice", cents: 0 }]) == []
+fn plan(nets: Array<Portion>) -> Array<Transfer> {
+  let ledger: Array<Portion> = []
+  for p in nets {
+    mut ledger.push({ who: p.who, cents: p.cents })
+  }
+
+  let transfers: Array<Transfer> = []
+  loop {
+    let creditor = largest_creditor(ledger)
+    let debtor = largest_debtor(ledger)
+    match creditor {
+      None => {
+        break
+      },
+      Some(c) => match debtor {
+        None => {
+          break
+        },
+        Some(d) => {
+          let amount = min_int(ledger[c].cents, 0 - ledger[d].cents)
+          mut transfers.push({ debtor: ledger[d].who, creditor: ledger[c].who, cents: amount })
+          mut ledger[c] = { who: ledger[c].who, cents: ledger[c].cents - amount }
+          mut ledger[d] = { who: ledger[d].who, cents: ledger[d].cents + amount }
+        },
+      },
+    }
+  }
+  return transfers
+}
+
+// ---------------------------------------------------------------------------
+// Text layout
+// ---------------------------------------------------------------------------
+
+const SPACE = " "
+
+const DASH = "-"
+
+@example repeat("ab", 0) == ""
+@example repeat("ab", 3) == "ababab"
+fn repeat(unit: string, count: int) -> string {
+  let out = ""
+  let i = 0
+  loop {
+    match i < count {
+      false => {
+        break
+      },
+      true => {
+        mut out = "${out}${unit}"
+        mut i = i + 1
+      },
+    }
+  }
+  return out
+}
+
+fn pad_end(s: string, width: int) -> string {
+  return "${s}${repeat(SPACE, width - string.len(s))}"
+}
+
+fn pad_start(s: string, width: int) -> string {
+  return "${repeat(SPACE, width - string.len(s))}${s}"
+}
+
+fn widest(values: Array<string>, floor_width: int) -> int {
+  let width = floor_width
+  for v in values {
+    mut width = match string.len(v) > width {
+      true => string.len(v),
+      false => width,
+    }
+  }
+  return width
+}
+
+// The date column, and the only place a stored timestamp becomes a date string.
+fn day_of(epoch_ms: number) -> string {
+  return string.split(time.format_iso(epoch_ms), "T")[0]
+}
+
+// ---------------------------------------------------------------------------
+// Persistence
+// ---------------------------------------------------------------------------
+
+// The on-disk shape. Amounts and weights are strings so the file holds exactly
+// what was typed and no cent is ever routed through a JSON float. The split is
+// flattened to a tag plus two lists, because a hand-edited file is untrusted
+// input and this shape is one that json.parse can check in full before any of it
+// is believed.
+type WireEntry = { who: string, value: string }
+
+type WireSplit = { kind: string, among: Array<string>, entries: Array<WireEntry> }
+
+type WireExpense = {
+  date: string,
+  description: string,
+  payer: string,
+  amount: string,
+  split: WireSplit,
+}
+
+type WireLedger = { version: int, expenses: Array<WireExpense> }
+
+const LEDGER_VERSION = 1
+
+// A validation issue carries a path and a message. The path's elements are
+// `string | number`, which Glyph has no type for, so it is rendered whole rather
+// than walked.
+fn describe_issues(issues: Array<Issue>) -> string {
+  let parts: Array<string> = []
+  for issue in issues {
+    let location = string.from(issue.path)
+    let described = match string.len(location) == 0 {
+      true => issue.message,
+      false => "at ${location}: ${issue.message}",
+    }
+    mut parts.push(described)
+  }
+  return string.join(parts, "; ")
+}
+
+fn split_to_wire(s: Split) -> WireSplit {
+  return match s {
+    Equal({ among }) => { kind: "equal", among: among, entries: [] },
+    Exact({ shares }) => {
+      kind: "shares",
+      among: [],
+      entries: array.map(shares, fn(p: Portion) -> WireEntry { return { who: p.who, value: format_money(p.cents) } }),
+    },
+    Weighted({ weights }) => {
+      kind: "weights",
+      among: [],
+      entries: array.map(weights, fn(w: Weight) -> WireEntry { return { who: w.who, value: format_money(w.units) } }),
+    },
+  }
+}
+
+fn split_from_wire(w: WireSplit) -> Result<Split, string> {
+  return match w.kind {
+    "equal" => Ok(Equal({ among: w.among })),
+    "shares" => match entries_as_portions(w.entries) {
+      Err(m) => Err(m),
+      Ok(shares) => Ok(Exact({ shares: shares })),
+    },
+    "weights" => match entries_as_weights(w.entries) {
+      Err(m) => Err(m),
+      Ok(weights) => Ok(Weighted({ weights: weights })),
+    },
+    else => Err("unknown split kind \"${w.kind}\""),
+  }
+}
+
+fn entries_as_portions(entries: Array<WireEntry>) -> Result<Array<Portion>, string> {
+  let out: Array<Portion> = []
+  for e in entries {
+    let cents = parse_money(e.value)?
+    mut out.push({ who: e.who, cents: cents })
+  }
+  return Ok(out)
+}
+
+fn entries_as_weights(entries: Array<WireEntry>) -> Result<Array<Weight>, string> {
+  let out: Array<Weight> = []
+  for e in entries {
+    let units = parse_money(e.value)?
+    mut out.push({ who: e.who, units: units })
+  }
+  return Ok(out)
+}
+
+fn expense_to_wire(e: Expense) -> WireExpense {
+  return {
+    date: time.format_iso(e.date),
+    description: e.description,
+    payer: e.payer,
+    amount: format_money(e.amount),
+    split: split_to_wire(e.split),
+  }
+}
+
+// A hand-edited ledger is checked the same way a fresh command line is: same
+// date rule, same money rule, same split rules. A file that fails any of them is
+// a reported error, never a crash and never a wrong balance.
+fn expense_from_wire(w: WireExpense) -> Result<Expense, string> {
+  let date = match time.parse_iso(w.date) {
+    Some(ms) => ms,
+    None => {
+      return Err("bad date \"${w.date}\"")
+    },
+  }
+  let amount = parse_money(w.amount)?
+  let split = split_from_wire(w.split)?
+  let checked = validate_split(amount, split)?
+  return Ok({
+    date: date,
+    description: w.description,
+    payer: w.payer,
+    amount: amount,
+    split: checked,
+  })
+}
+
+fn load_ledger(path: string) -> Result<Array<Expense>, Fail> {
+  // A ledger that does not exist yet is an empty ledger, not an error: the first
+  // `add` creates it.
+  match fs.exists(path) {
+    false => {
+      return Ok([])
+    },
+    true => {},
+  }
+
+  let text = match fs.read_text(path) {
+    Ok(t) => t,
+    Err(e) => {
+      return Err(BadInput({ message: "cannot read ${path}: ${e.message}" }))
+    },
+  }
+
+  // Decode first, validate second. `json.parse<WireLedger>` would do both in one
+  // step, but it checks with the type's boolean guard and so reports a single
+  // "expected WireLedger"; `WireLedger.parse` names the field that is wrong,
+  // which is the difference between a usable error and a shrug.
+  let decoded = match json.parse<unknown>(text) {
+    Ok(v) => v,
+    Err(issues) => {
+      return Err(BadInput({ message: "${path} is not JSON: ${describe_issues(issues)}" }))
+    },
+  }
+
+  let wire = match WireLedger.parse(decoded) {
+    Ok(w) => w,
+    Err(issues) => {
+      return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+    },
+  }
+
+  match wire.version == LEDGER_VERSION {
+    false => {
+      return Err(BadInput({ message: "${path} is version ${number.to_string(wire.version)}, this build reads version ${number.to_string(LEDGER_VERSION)}" }))
+    },
+    true => {},
+  }
+
+  let out: Array<Expense> = []
+  for i, w in wire.expenses {
+    match expense_from_wire(w) {
+      Ok(e) => {
+        mut out.push(e)
+      },
+      Err(m) => {
+        return Err(BadInput({ message: "${path}, expense ${number.to_string(i + 1)}: ${m}" }))
+      },
+    }
+  }
+  return Ok(out)
+}
+
+fn save_ledger(path: string, expenses: Array<Expense>) -> Result<void, Fail> {
+  let wire: WireLedger = { version: LEDGER_VERSION, expenses: array.map(expenses, expense_to_wire) }
+  return match fs.write_text(path, "${json.stringify(wire, { indent: 2 })}\n") {
+    Ok(_) => Ok(void),
+    Err(e) => Err(BadInput({ message: "cannot write ${path}: ${e.message}" })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Argument parsing
+// ---------------------------------------------------------------------------
+
+type Flags = { named: Record<string, string>, positional: Array<string> }
+
+const BARE_FLAGS = ["--help"]
+
+fn parse_flags(argv: Array<string>) -> Result<Flags, string> {
+  let named: Record<string, string> = {}
+  let positional: Array<string> = []
+  let i = 0
+
+  loop {
+    match i < array.len(argv) {
+      false => {
+        break
+      },
+      true => {
+        let token = argv[i]
+        match string.starts_with(token, "--") {
+          false => {
+            mut positional.push(token)
+            mut i = i + 1
+          },
+          true => match array.contains(BARE_FLAGS, token) {
+            true => {
+              mut named = record.set(named, token, "true")
+              mut i = i + 1
+            },
+            false => match i + 1 < array.len(argv) {
+              false => {
+                return Err("${token} needs a value")
+              },
+              true => {
+                mut named = record.set(named, token, argv[i + 1])
+                mut i = i + 2
+              },
+            },
+          },
+        }
+      },
+    }
+  }
+  return Ok({ named: named, positional: positional })
+}
+
+fn flag(f: Flags, name: string) -> Option<string> {
+  return record.get(f.named, name)
+}
+
+fn required_flag(f: Flags, name: string) -> Result<string, Fail> {
+  return match record.get(f.named, name) {
+    Some(v) => Ok(v),
+    None => Err(BadInput({ message: "${name} is required" })),
+  }
+}
+
+// "alice=40.00,bob=44.30" -> two entries. Both halves must be there and neither
+// may be blank, so a stray comma is an error and not a nameless share.
+@example parse_pairs("a=1,b=2") == Ok([{ who: "a", value: "1" }, { who: "b", value: "2" }])
+fn parse_pairs(raw: string) -> Result<Array<WireEntry>, string> {
+  let out: Array<WireEntry> = []
+  for chunk in string.split(raw, ",") {
+    let parts = string.split(string.trim(chunk), "=")
+    match array.len(parts) == 2 {
+      false => {
+        return Err("expected name=value, got \"${chunk}\"")
+      },
+      true => {},
+    }
+    let who = string.trim(parts[0])
+    let value = string.trim(parts[1])
+    match string.len(who) == 0 || string.len(value) == 0 {
+      true => {
+        return Err("expected name=value, got \"${chunk}\"")
+      },
+      false => {},
+    }
+    mut out.push({ who: who, value: value })
+  }
+  return Ok(out)
+}
+
+fn parse_names(raw: string) -> Result<Array<string>, string> {
+  let out: Array<string> = []
+  for chunk in string.split(raw, ",") {
+    mut out.push(string.trim(chunk))
+  }
+  return Ok(out)
+}
+
+// Exactly one of --among, --shares, --weights. Naming all three of them here
+// keeps "which split did the user ask for" a single greppable decision.
+fn split_from_flags(f: Flags) -> Result<Split, Fail> {
+  let among = flag(f, "--among")
+  let shares = flag(f, "--shares")
+  let weights = flag(f, "--weights")
+  let given = count_present([among, shares, weights])
+
+  match given == 1 {
+    false => {
+      return Err(BadInput({ message: "give exactly one of --among, --shares, --weights (got ${number.to_string(given)})" }))
+    },
+    true => {},
+  }
+
+  return match among {
+    Some(raw) => match parse_names(raw) {
+      Ok(names) => Ok(Equal({ among: names })),
+      Err(m) => Err(BadInput({ message: "--among: ${m}" })),
+    },
+    None => match shares {
+      Some(raw) => shares_from_raw(raw),
+      None => match weights {
+        Some(raw) => weights_from_raw(raw),
+        None => Err(BadInput({ message: "give exactly one of --among, --shares, --weights" })),
+      },
+    },
+  }
+}
+
+fn shares_from_raw(raw: string) -> Result<Split, Fail> {
+  return match parse_pairs(raw) {
+    Err(m) => Err(BadInput({ message: "--shares: ${m}" })),
+    Ok(entries) => match entries_as_portions(entries) {
+      Err(m) => Err(BadInput({ message: "--shares: ${m}" })),
+      Ok(portions_list) => Ok(Exact({ shares: portions_list })),
+    },
+  }
+}
+
+fn weights_from_raw(raw: string) -> Result<Split, Fail> {
+  return match parse_pairs(raw) {
+    Err(m) => Err(BadInput({ message: "--weights: ${m}" })),
+    Ok(entries) => match entries_as_weights(entries) {
+      Err(m) => Err(BadInput({ message: "--weights: ${m}" })),
+      Ok(list) => Ok(Weighted({ weights: list })),
+    },
+  }
+}
+
+fn count_present(values: Array<Option<string>>) -> int {
+  let n = 0
+  for v in values {
+    mut n = match v {
+      Some(_) => n + 1,
+      None => n,
+    }
+  }
+  return n
+}
+
+fn parse_day(raw: string, label: string) -> Result<number, Fail> {
+  return match time.parse_iso(raw) {
+    Some(ms) => Ok(ms),
+    None => Err(BadInput({ message: "${label} expects YYYY-MM-DD, got \"${raw}\"" })),
+  }
+}
+
+// `?` cannot be used inside a `match` arm, so an optional date flag reads
+// through its own function rather than inline at the call site.
+fn day_flag(f: Flags, name: string, fallback: number) -> Result<number, Fail> {
+  return match flag(f, name) {
+    None => Ok(fallback),
+    Some(raw) => parse_day(raw, name),
+  }
+}
+
+fn optional_day_flag(f: Flags, name: string) -> Result<Option<number>, Fail> {
+  return match flag(f, name) {
+    None => Ok(None),
+    Some(raw) => match parse_day(raw, name) {
+      Ok(ms) => Ok(Some(ms)),
+      Err(e) => Err(e),
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+fn ledger_path(f: Flags) -> string {
+  return match flag(f, "--file") {
+    Some(p) => p,
+    None => "ledger.json",
+  }
+}
+
+fn cmd_add(f: Flags, description: string) -> Result<int, Fail> {
+  let path = ledger_path(f)
+  let expenses = load_ledger(path)?
+  let payer = required_flag(f, "--payer")?
+  let raw_amount = required_flag(f, "--amount")?
+
+  let amount = match parse_money(raw_amount) {
+    Ok(c) => c,
+    Err(m) => {
+      return Err(BadInput({ message: "--amount: ${m}" }))
+    },
+  }
+
+  let date = day_flag(f, "--date", time.now())?
+
+  let split = split_from_flags(f)?
+  // A split the rules refuse is a rejected operation, not a malformed command
+  // line: the user said something we understood and will not do.
+  let checked = match validate_split(amount, split) {
+    Ok(s) => s,
+    Err(m) => {
+      return Err(Rejected({ message: m }))
+    },
+  }
+
+  let expense: Expense = {
+    date: date,
+    description: description,
+    payer: payer,
+    amount: amount,
+    split: checked,
+  }
+  save_ledger(path, array.push(expenses, expense))?
+
+  io.println("recorded ${description}: ${payer} paid ${format_money(amount)} on ${day_of(date)}")
+  print_portions(shares_of(expense))
+  return Ok(0)
+}
+
+fn print_portions(parts: Array<Portion>) -> void {
+  let width = widest(names_of(parts), 6)
+  for p in parts {
+    io.println("  ${pad_end(p.who, width)}  ${pad_start(format_money(p.cents), 10)}")
+  }
+}
+
+fn cmd_balances(f: Flags) -> Result<int, Fail> {
+  let expenses = load_ledger(ledger_path(f))?
+  let nets = net_balances(expenses)
+
+  match array.len(nets) == 0 {
+    true => {
+      io.println("no expenses yet")
+      return Ok(0)
+    },
+    false => {},
+  }
+
+  let width = widest(names_of(nets), 8)
+  let rule = repeat(DASH, width + 14)
+  // A string literal cannot appear inside `${...}`, so header rows are joined
+  // rather than interpolated.
+  io.println(string.join([pad_end("person", width), "  ", pad_start("balance", 12)], ""))
+  io.println(rule)
+  for p in nets {
+    io.println("${pad_end(p.who, width)}  ${pad_start(format_signed(p.cents), 12)}")
+  }
+  io.println(rule)
+  // net_balances asserts this, and the table prints it, so the invariant is
+  // visible to the reader too.
+  io.println(string.join([
+    pad_end("total", width),
+    "  ",
+    pad_start(format_money(total_of(nets)), 12),
+  ], ""))
+  return Ok(0)
+}
+
+fn cmd_up(f: Flags) -> Result<int, Fail> {
+  let expenses = load_ledger(ledger_path(f))?
+  let transfers = plan(net_balances(expenses))
+
+  match array.len(transfers) == 0 {
+    true => {
+      io.println("everyone is settled up")
+      return Ok(0)
+    },
+    false => {},
+  }
+
+  let payers = array.map(transfers, fn(t: Transfer) -> string { return t.debtor })
+  let width = widest(payers, 6)
+  io.println("${number.to_string(array.len(transfers))} payment(s) settle the group:")
+  for t in transfers {
+    io.println("  ${pad_end(t.debtor, width)}  pays  ${pad_end(t.creditor, width)}  ${pad_start(format_money(t.cents), 10)}")
+  }
+  return Ok(0)
+}
+
+fn matches_filters(e: Expense, since: Option<number>, who: Option<string>) -> bool {
+  let after = match since {
+    None => true,
+    Some(ms) => e.date >= ms,
+  }
+  let involved = match who {
+    None => true,
+    Some(name) => e.payer == name || array.contains(names_of(shares_of(e)), name),
+  }
+  return after && involved
+}
+
+fn cmd_log(f: Flags) -> Result<int, Fail> {
+  let expenses = load_ledger(ledger_path(f))?
+
+  let since = optional_day_flag(f, "--since")?
+  let who = flag(f, "--who")
+
+  let selected = array.filter(expenses, fn(e: Expense) -> bool { return matches_filters(e, since, who) })
+  let ordered = array.sort(selected, fn(a: Expense, b: Expense) -> number { return a.date - b.date })
+
+  match array.len(ordered) == 0 {
+    true => {
+      io.println("no expenses match")
+      return Ok(0)
+    },
+    false => {},
+  }
+
+  let payer_width = widest(array.map(ordered, fn(e: Expense) -> string { return e.payer }), 5)
+  let desc_width = widest(array.map(ordered, fn(e: Expense) -> string { return e.description }), 11)
+
+  io.println(string.join([
+    pad_end("date", 10),
+    "  ",
+    pad_end("payer", payer_width),
+    "  ",
+    pad_start("amount", 10),
+    "  ",
+    pad_end("description", desc_width),
+    "  participants",
+  ], ""))
+  for e in ordered {
+    let people = string.join(names_of(shares_of(e)), ", ")
+    io.println("${pad_end(day_of(e.date), 10)}  ${pad_end(e.payer, payer_width)}  ${pad_start(format_money(e.amount), 10)}  ${pad_end(e.description, desc_width)}  ${people}")
+  }
+  return Ok(0)
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn print_usage() -> void {
+  io.println("settle — split group expenses and settle up")
+  io.println("")
+  io.println("usage:")
+  io.println("  settle [--file F] add \"<description>\" --payer <who> --amount <n> \\")
+  io.println("           (--among a,b,c | --shares a=40.00,b=44.30 | --weights a=2,b=1) [--date YYYY-MM-DD]")
+  io.println("  settle [--file F] balances")
+  io.println("  settle [--file F] up")
+  io.println("  settle [--file F] log [--since YYYY-MM-DD] [--who alice]")
+  io.println("  settle --help")
+  io.println("")
+  io.println("the ledger defaults to ledger.json")
+  io.println("exit codes: 0 ok, 1 rejected operation, 2 bad arguments or unreadable ledger")
+}
+
+fn run(argv: Array<string>) -> Result<int, Fail> {
+  let flags = match parse_flags(argv) {
+    Ok(f) => f,
+    Err(m) => {
+      return Err(BadInput({ message: m }))
+    },
+  }
+
+  match record.has(flags.named, "--help") {
+    true => {
+      print_usage()
+      return Ok(0)
+    },
+    false => {},
+  }
+
+  return match flags.positional {
+    ["add", description] => cmd_add(flags, description),
+    ["balances"] => cmd_balances(flags),
+    ["up"] => cmd_up(flags),
+    ["log"] => cmd_log(flags),
+    [] => Err(BadInput({ message: "expected a subcommand: add, balances, up, log (try --help)" })),
+    ["add"] => Err(BadInput({ message: "add needs a description: settle add \"dinner\" ..." })),
+    [name, ..._] => Err(BadInput({ message: "unknown subcommand \"${name}\" (try --help)" })),
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  return match run(argv) {
+    Ok(code) => code,
+    Err(f) => {
+      io.eprintln("error: ${fail_message(f)}")
+      exit_code_for(f)
+    },
+  }
+}

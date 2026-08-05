@@ -28,6 +28,11 @@ stdlib and fixing whatever the language lacked along the way.
 | `minesweeper.glyph` | Terminal Minesweeper: a 9x9 grid, lazy first-click mine placement, flood-fill reveal, a flag/unflag stdin command loop, and a seeded RNG so a piped transcript replays byte for byte | Verifiability + diff stability |
 | `expenses.glyph` | Expense-report CLI over a CSV ledger: every row validated at the boundary with its source line number, exact money via `std/decimal`, per-category totals and shares, and a nonzero exit that lists every bad row at once | Verifiability + greppability |
 | `adventure.glyph` | Ten-room text adventure: a keyed world where every exit names a room id, a command parser over free-form stdin, conditional world rules (the cellar is dark until the lantern is lit), and a save file that must validate back into a `World` | Verifiability + greppability |
+| `schedule.glyph` | Meeting scheduler over a JSON calendar: validate participants and busy blocks at the boundary, merge overlapping blocks, subtract the union from a working window per day, and print the slots long enough to hold the meeting | Verifiability + abstraction |
+| `linkcheck.glyph` | Markdown link checker: inline links, reference definitions, autolinks, and image sources across a file or a directory, with links inside code fences and code spans deliberately excluded, and bounded concurrency on the network checks | Verifiability + greppability |
+| `bracket.glyph` | Single-elimination tournament bracket: the whole tournament is one recursive value (a `Match` of two `Slot`s, each an entrant, a bye, or another `Match`), so advancing a winner is a read, not a write into a parallel table | Abstraction + verifiability |
+| `shortlink.glyph` | URL shortener you can point a browser at: an HTML form, base62 codes, a 302 redirect with click counting, a stats page, and a hand-written `extern/` shim for the parts `std/http` does not spell yet | Verifiability + greppability |
+| `settle.glyph` | Group expense splitter: split evenly, by exact shares, or by weights, in whole cents with a documented rule for the leftover, then compute the fewest payments that settle everyone up. Its ledger round-trips through `WireLedger.parse` at the boundary | Verifiability + abstraction |
 
 ## `corpus/` — self-contained regression programs
 

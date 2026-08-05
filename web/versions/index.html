@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.44</span>
+            <span class="rel-ver">0.1.45</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A value that came out of a <code>match</code> keeps its type</h3>
+            <p>Glyph has no <code>if</code>, so <code>match</code> is how you branch, and the type checker recorded nothing for it: every <code>match</code> expression in every program typed as unknown. Bind one to a <code>let</code> and everything after that point was flying blind. A field typo on the binding came back as a <code>TS2339</code> on generated TypeScript instead of Glyph's own <code>E0210</code>, and a two-binding <code>for</code> over one of its fields picked the wrong lowering: <code>i</code> came out as the string <code>"0"</code>, the build was clean, <code>tsc --strict</code> was clean, and the program printed <code>01:a</code> where it should print <code>1:a</code>. An expense splitter found it, and was carrying an <code>Array&lt;T&gt;</code> annotation with a comment above it explaining why the annotation could not be deleted.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> takes its arms' type when they agree. An arm ending in <code>return</code>, <code>break</code>, or <code>continue</code> diverges and does not vote; every other arm contributes the type of its value. Arms that disagree, or an arm the checker cannot decide, leave the result unknown exactly as before, so nothing that compiled stops compiling. There is no widening and no union of arm types.</li>
+              <li><span class="tag fixed">Fixed</span> <code>T.parse</code> has a signature: <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>, for the record, tagged-union, and refined-primitive types that emit a runtime descriptor. This is the boundary between untrusted input and typed data, and it was opaque to the checker, which undid every inference downstream of it. A plain alias like <code>type Cents = int</code> emits no descriptor and still gets no <code>parse</code>.</li>
+              <li><span class="tag known">Known</span> An iterand whose type the checker really does not have, a call into a stdlib function it does not model such as <code>array.slice</code>, still binds a string index with no diagnostic. Keep the <code>let ys: Array&lt;T&gt; = ...</code> annotation there. A generic type's <code>parse</code> is also still untyped, because its descriptor takes one runtime checker per type parameter.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/settle.glyph</code>, the app that found it. Split group expenses evenly, by exact shares, or by weights, in whole cents, then settle everyone up in as few payments as possible.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.44</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

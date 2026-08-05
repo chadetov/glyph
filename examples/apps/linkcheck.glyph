@@ -138,68 +138,6 @@ const LOWER = "abcdefghijklmnopqrstuvwxyz"
 
 const DIGITS = "0123456789"
 
-fn repeat(unit: string, count: int) -> string {
-  let out = EMPTY
-  let i = 0
-  loop {
-    match i < count {
-      false => {
-        break
-      },
-      true => {
-        mut out = "${out}${unit}"
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-@example pad_end("ab", 4) == "ab  "
-fn pad_end(s: string, width: int) -> string {
-  let pad = repeat(SPACE, width - string.len(s))
-  return "${s}${pad}"
-}
-
-@example pad_start("7", 3) == "  7"
-fn pad_start(s: string, width: int) -> string {
-  let pad = repeat(SPACE, width - string.len(s))
-  return "${pad}${s}"
-}
-
-fn chars_of(s: string) -> Array<string> {
-  return string.split(s, EMPTY)
-}
-
-// A substring by character index. `std/string` has no slice, so it goes through
-// the character array.
-fn cut(chars: Array<string>, start: int, end: int) -> string {
-  return string.join(array.slice(chars, start, end), EMPTY)
-}
-
-// The index of `target` at or after `from`, or -1. A sentinel rather than an
-// `Option` because every caller immediately compares it against a bound.
-fn index_from(chars: Array<string>, from: int, target: string) -> int {
-  let n = array.len(chars)
-  let i = from
-  let found = -1
-  loop {
-    match i < n && found < 0 {
-      false => {
-        break
-      },
-      true => {
-        mut found = match chars[i] == target {
-          true => i,
-          false => -1,
-        }
-        mut i = i + 1
-      },
-    }
-  }
-  return found
-}
-
 @example max_of(3, 7) == 7
 fn max_of(a: int, b: int) -> int {
   return match a > b {
@@ -209,11 +147,7 @@ fn max_of(a: int, b: int) -> int {
 }
 
 fn widest(values: Array<string>) -> int {
-  let w = 0
-  for v in values {
-    mut w = max_of(w, string.len(v))
-  }
-  return w
+  return array.fold(values, 0, fn(w: int, v: string) -> int { return max_of(w, string.len(v)) })
 }
 
 // ---------------------------------------------------------------------------
@@ -230,17 +164,19 @@ fn widest(values: Array<string>) -> int {
 @example slugify("snake_case and dash-case") == "snake_case-and-dash-case"
 fn slugify(heading: string) -> string {
   let lowered = string.lower(string.trim(heading))
-  let out = EMPTY
-  for c in chars_of(lowered) {
-    mut out = match c == SPACE {
-      true => "${out}-",
-      false => match keeps_in_slug(c) {
-        true => "${out}${c}",
-        false => out,
-      },
-    }
-  }
-  return out
+  return array.fold(
+    string.split(lowered, EMPTY),
+    EMPTY,
+    fn(out: string, c: string) -> string {
+      return match c == SPACE {
+        true => "${out}-",
+        false => match keeps_in_slug(c) {
+          true => "${out}${c}",
+          false => out,
+        },
+      }
+    },
+  )
 }
 
 fn keeps_in_slug(c: string) -> bool {
@@ -277,11 +213,10 @@ fn is_fence(trimmed: string) -> bool {
 
 @example strip_hashes("## Getting Started") == "Getting Started"
 fn strip_hashes(line: string) -> string {
-  let cs = chars_of(line)
-  let n = array.len(cs)
+  let n = string.len(line)
   let i = 0
   loop {
-    match i < n && cs[i] == HASH {
+    match i < n && string.slice(line, i, i + 1) == HASH {
       false => {
         break
       },
@@ -290,7 +225,7 @@ fn strip_hashes(line: string) -> string {
       },
     }
   }
-  return string.trim(cut(cs, i, n))
+  return string.trim(string.slice(line, i))
 }
 
 // ---------------------------------------------------------------------------
@@ -302,21 +237,30 @@ type RawLink = { line: int, target: string, is_image: bool }
 // Pull every link out of a markdown document. Fenced blocks are skipped whole;
 // inline code spans are skipped as the scanner walks a line.
 fn extract(text: string) -> Array<RawLink> {
-  let out: Array<RawLink> = []
+  return array.flat_map(prose_lines(text), fn(l: NumberedLine) -> Array<RawLink> { return scan_line(l.text, l.lineno) })
+}
+
+// A source line and its 1-based number.
+type NumberedLine = { lineno: int, text: string }
+
+// Every line outside a fenced code block. The fence state is why this is a loop
+// and not a filter: whether a line counts depends on every line before it.
+fn prose_lines(text: string) -> Array<NumberedLine> {
+  let out: Array<NumberedLine> = []
   let in_fence = false
   let lineno = 0
-  let lines: Array<string> = string.split(text, NEWLINE)
-  for raw in lines {
+  for raw in string.split(text, NEWLINE) {
     mut lineno = lineno + 1
-    let trimmed = string.trim(raw)
-    let fence = is_fence(trimmed)
+    let fence = is_fence(string.trim(raw))
     mut in_fence = match fence {
       true => !in_fence,
       false => in_fence,
     }
-    mut out = match in_fence || fence {
-      true => out,
-      false => array.concat(out, scan_line(raw, lineno)),
+    match in_fence || fence {
+      true => {},
+      false => {
+        mut out.push({ lineno: lineno, text: raw })
+      },
     }
   }
   return out
@@ -332,31 +276,26 @@ fn scan_line(line: string, lineno: int) -> Array<RawLink> {
 // `[id]: https://example.com "optional title"` — a link with no surrounding
 // prose, only legal at the start of a line.
 fn reference_definition(line: string, lineno: int) -> Option<RawLink> {
-  let cs = chars_of(line)
-  let n = array.len(cs)
-  let starts = n > 0 && cs[0] == "["
-  return match starts {
+  return match string.starts_with(line, "[") {
     false => None,
-    true => {
-      let close = index_from(cs, 1, "]")
-      let has_colon = close > 0 && close + 1 < n && cs[close + 1] == ":"
-      match has_colon {
+    true => match string.index_of(line, "]", 1) {
+      None => None,
+      Some(close) => match string.slice(line, close + 1, close + 2) == ":" {
         false => None,
         true => {
-          let rest = string.trim(cut(cs, close + 2, n))
+          let rest = string.trim(string.slice(line, close + 2))
           match rest == EMPTY {
             true => None,
             false => Some({ line: lineno, target: clean_target(rest), is_image: false }),
           }
         },
-      }
+      },
     },
   }
 }
 
 fn scan_inline(line: string, lineno: int) -> Array<RawLink> {
-  let cs = chars_of(line)
-  let n = array.len(cs)
+  let n = string.len(line)
   let out: Array<RawLink> = []
   let i = 0
   loop {
@@ -365,15 +304,15 @@ fn scan_inline(line: string, lineno: int) -> Array<RawLink> {
         break
       },
       true => {
-        let c = cs[i]
+        let c = string.slice(line, i, i + 1)
         let step = match c == BACKTICK {
           // An inline code span runs to the next backtick; an unterminated one
           // swallows the rest of the line, which is what a renderer does too.
-          true => skip_code_span(cs, i, n),
+          true => skip_code_span(line, i, n),
           false => match c == "<" {
-            true => autolink_at(cs, i, n, lineno),
+            true => autolink_at(line, i, lineno),
             false => match c == "[" {
-              true => bracket_link_at(cs, i, n, lineno),
+              true => bracket_link_at(line, i, lineno),
               false => { found: None, next: i + 1 },
             },
           },
@@ -392,21 +331,19 @@ fn scan_inline(line: string, lineno: int) -> Array<RawLink> {
 // One step of the line scanner: what it found (if anything) and where to resume.
 type Step = { found: Option<RawLink>, next: int }
 
-fn skip_code_span(cs: Array<string>, i: int, n: int) -> Step {
-  let close = index_from(cs, i + 1, BACKTICK)
-  return match close < 0 {
-    true => { found: None, next: n },
-    false => { found: None, next: close + 1 },
+fn skip_code_span(line: string, i: int, n: int) -> Step {
+  return match string.index_of(line, BACKTICK, i + 1) {
+    None => { found: None, next: n },
+    Some(close) => { found: None, next: close + 1 },
   }
 }
 
 // `<https://example.com>` or `<mailto:a@b.c>`.
-fn autolink_at(cs: Array<string>, i: int, n: int, lineno: int) -> Step {
-  let close = index_from(cs, i + 1, ">")
-  return match close < 0 {
-    true => { found: None, next: i + 1 },
-    false => {
-      let inner = cut(cs, i + 1, close)
+fn autolink_at(line: string, i: int, lineno: int) -> Step {
+  return match string.index_of(line, ">", i + 1) {
+    None => { found: None, next: i + 1 },
+    Some(close) => {
+      let inner = string.slice(line, i + 1, close)
       match looks_like_autolink(inner) {
         false => { found: None, next: i + 1 },
         true => {
@@ -422,21 +359,19 @@ fn looks_like_autolink(inner: string) -> bool {
 }
 
 // `[text](url)`, and `![alt](src)` when the bracket is preceded by `!`.
-fn bracket_link_at(cs: Array<string>, i: int, n: int, lineno: int) -> Step {
-  let close = index_from(cs, i + 1, "]")
-  let opens_paren = close > 0 && close + 1 < n && cs[close + 1] == "("
-  return match opens_paren {
-    false => { found: None, next: i + 1 },
-    true => {
-      let rp = index_from(cs, close + 2, ")")
-      match rp < 0 {
-        true => { found: None, next: i + 1 },
-        false => {
-          let target = clean_target(cut(cs, close + 2, rp))
-          let image = i > 0 && cs[i - 1] == "!"
+fn bracket_link_at(line: string, i: int, lineno: int) -> Step {
+  return match string.index_of(line, "]", i + 1) {
+    None => { found: None, next: i + 1 },
+    Some(close) => match string.slice(line, close + 1, close + 2) == "(" {
+      false => { found: None, next: i + 1 },
+      true => match string.index_of(line, ")", close + 2) {
+        None => { found: None, next: i + 1 },
+        Some(rp) => {
+          let target = clean_target(string.slice(line, close + 2, rp))
+          let image = i > 0 && string.slice(line, i - 1, i) == "!"
           { found: Some({ line: lineno, target: target, is_image: image }), next: rp + 1 }
         },
-      }
+      },
     },
   }
 }
@@ -449,7 +384,7 @@ fn clean_target(raw: string) -> string {
   let first = array.slice(string.split(string.trim(raw), SPACE), 0, 1)
   let head = string.join(first, EMPTY)
   let stripped = match string.starts_with(head, "<") && string.ends_with(head, ">") {
-    true => cut(chars_of(head), 1, string.len(head) - 1),
+    true => string.slice(head, 1, string.len(head) - 1),
     false => head,
   }
   return stripped
@@ -468,7 +403,7 @@ fn classify(target: string) -> LinkKind {
   return match target == EMPTY {
     true => Malformed({ reason: "empty target" }),
     false => match string.starts_with(target, HASH) {
-      true => InPageAnchor({ slug: slugify(cut(chars_of(target), 1, string.len(target))) }),
+      true => InPageAnchor({ slug: slugify(string.slice(target, 1)) }),
       false => classify_non_anchor(target),
     },
   }
@@ -495,28 +430,33 @@ fn scheme_of(target: string) -> string {
 // `mailto:a@b.c`, `tel:+1`, `ftp:...` — a scheme is letters followed by a colon
 // before any slash.
 fn bare_scheme(target: string) -> Option<string> {
-  let cs = chars_of(target)
-  let colon = index_from(cs, 0, ":")
-  let slash = index_from(cs, 0, "/")
-  let before_slash = colon > 0 && (slash < 0 || colon < slash)
-  return match before_slash {
-    false => None,
-    true => {
-      let head = string.lower(cut(cs, 0, colon))
-      match all_letters(head) {
-        true => Some(head),
+  return match string.index_of(target, ":") {
+    None => None,
+    Some(colon) => {
+      let before_slash = colon > 0 && match string.index_of(target, "/") {
+        None => true,
+        Some(slash) => colon < slash,
+      }
+      match before_slash {
         false => None,
+        true => {
+          let head = string.lower(string.slice(target, 0, colon))
+          match all_letters(head) {
+            true => Some(head),
+            false => None,
+          }
+        },
       }
     },
   }
 }
 
 fn all_letters(s: string) -> bool {
-  let ok = string.len(s) > 0
-  for c in chars_of(s) {
-    mut ok = ok && string.contains(LOWER, c)
-  }
-  return ok
+  return string.len(s) > 0 && array.fold(
+    string.split(s, EMPTY),
+    true,
+    fn(ok: bool, c: string) -> bool { return ok && string.contains(LOWER, c) },
+  )
 }
 
 fn relative_kind(target: string) -> LinkKind {
@@ -707,11 +647,7 @@ fn empty_loaded() -> Loaded {
 }
 
 fn load_all(paths: Array<string>) -> Loaded {
-  let acc = empty_loaded()
-  for p in paths {
-    mut acc = load_one(acc, p)
-  }
-  return acc
+  return array.fold(paths, empty_loaded(), load_one)
 }
 
 fn load_one(acc: Loaded, p: string) -> Loaded {
@@ -891,29 +827,32 @@ fn outcome_for(
 // ---------------------------------------------------------------------------
 
 fn tally_of(rows: Array<Checked>) -> Tally {
-  let t: Tally = { checked: 0, ok: 0, broken: 0, skipped: 0, cached: 0 }
-  for row in rows {
-    mut t = {
-      checked: t.checked + 1,
-      ok: t.ok + match is_broken(row.outcome) || is_skipped(row.outcome) {
-        true => 0,
-        false => 1,
-      },
-      broken: t.broken + match is_broken(row.outcome) {
-        true => 1,
-        false => 0,
-      },
-      skipped: t.skipped + match is_skipped(row.outcome) {
-        true => 1,
-        false => 0,
-      },
-      cached: t.cached + match row.cached {
-        true => 1,
-        false => 0,
-      },
-    }
-  }
-  return t
+  let empty: Tally = { checked: 0, ok: 0, broken: 0, skipped: 0, cached: 0 }
+  return array.fold(
+    rows,
+    empty,
+    fn(t: Tally, row: Checked) -> Tally {
+      return {
+        checked: t.checked + 1,
+        ok: t.ok + match is_broken(row.outcome) || is_skipped(row.outcome) {
+          true => 0,
+          false => 1,
+        },
+        broken: t.broken + match is_broken(row.outcome) {
+          true => 1,
+          false => 0,
+        },
+        skipped: t.skipped + match is_skipped(row.outcome) {
+          true => 1,
+          false => 0,
+        },
+        cached: t.cached + match row.cached {
+          true => 1,
+          false => 0,
+        },
+      }
+    },
+  )
 }
 
 fn tally_line(t: Tally) -> string {
@@ -945,20 +884,18 @@ fn render_file(file: string, rows: Array<Checked>) -> Array<string> {
   let target_w = widest(targets)
   let lines: Array<string> = ["${file}"]
   for row in rows {
-    let loc = pad_start(number.to_string(row.link.line), loc_w)
-    let tag = pad_end(status_tag(row.outcome), tag_w)
+    let loc = string.pad_start(number.to_string(row.link.line), loc_w)
+    let tag = string.pad_end(status_tag(row.outcome), tag_w)
     let detail = status_detail(row.outcome)
     let note = match row.cached {
       true => " (cached)",
       false => EMPTY,
     }
     let tail = "${detail}${note}"
-    // The target column is only padded when something follows it; `std/string`
-    // has no right-trim, so the alternative is a row with trailing blanks.
-    let body = match tail == EMPTY {
-      true => "${loc}  ${tag}  ${shown_target(row.link)}",
-      false => "${loc}  ${tag}  ${pad_end(shown_target(row.link), target_w)}  ${tail}",
-    }
+    // A row with no detail would end in the target column's padding, so the
+    // whole line is right-trimmed.
+    let target = string.pad_end(shown_target(row.link), target_w)
+    let body = string.trim_end("${loc}  ${tag}  ${target}  ${tail}")
     mut lines = array.push(lines, "  ${body}")
   }
   mut lines = array.push(lines, "  ${tally_line(tally_of(rows))}")
@@ -1075,12 +1012,13 @@ async fn run(args: Args) -> number {
     io.eprintln("${fe.path}: ${fe.message}")
   }
 
-  let docs: Record<string, string> = {}
-  let all_links: Array<Link> = []
-  for doc in loaded.documents {
-    mut docs = record.set(docs, doc.path, doc.text)
-    mut all_links = array.concat(all_links, links_of(doc))
-  }
+  let no_docs: Record<string, string> = {}
+  let docs = array.fold(
+    loaded.documents,
+    no_docs,
+    fn(acc: Record<string, string>, doc: Document) -> Record<string, string> { return record.set(acc, doc.path, doc.text) },
+  )
+  let all_links = array.flat_map(loaded.documents, links_of)
 
   let cache = match args.offline {
     // `no_cache()` rather than `{}`, which in arm position is an empty block.

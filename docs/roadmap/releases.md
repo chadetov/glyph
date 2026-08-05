@@ -966,10 +966,37 @@ workaround version produced.
   extractor into a 180-line character scanner.
 - **`task.pool` is fail-fast with no settled variant** (S). One rejection abandons
   the rest; `all_settled` is unbounded. `pool_settled` is a few lines.
-- **Stdlib breadth, third sighting** (S). `string.slice`, `index_of`, `replace`,
-  `repeat`, `pad_start`, `pad_end`, `trim_start`, `trim_end`; `array.fold`,
-  `index_of`, `flat_map`; and `iter.take_while`, which D21's own prose cites and
-  which does not exist.
+- **Stdlib breadth, third sighting** (S). *Landed, except for two pieces.*
+  `string.repeat`, `pad_start`, `pad_end`, `slice`, `index_of`, `replace_all`,
+  `trim_start`, `trim_end` and `array.fold`, `index_of`, `flat_map` all ship, in
+  the runtime and in the resolver seed. Replacement is `replace_all` only, so
+  there is no first-only form to confuse with TS `replace`, and both `index_of`
+  functions return `Option` instead of `-1`. Still open: codepoint-aware
+  `string.chars`/`char_at`, which needs a decision on whether `std/string` indexes
+  UTF-16 code units (what `len` and `split` do) or codepoints; and
+  `iter.take_while`, which no longer appears in D21 (it never existed) and which
+  needs the `std/iter` module it would live in before it can be promised again.
+- **Model the two `index_of` returns in `stdlib_fn_ty`** (S, follow-up to the
+  above). `stdlib_fn_ty` (`glyph-typechecker/src/assign.rs`) is what makes an
+  Option-returning stdlib function's `match` exhaustiveness-checked, and it lists
+  `http.header`, `http.query_param`, and `json.discriminant`. Neither `index_of`
+  is in it, and `recover_union_from_arms` only recovers module-local unions, so
+  the prelude `Option` is never recovered: a `match string.index_of(s, x)` with
+  no `None` arm builds clean, passes `tsc --strict`, and throws at run time
+  (verified). The docs now say so rather than implying the checker catches it.
+  The fix is blocked on one decision: `stdlib_fn_ty` returns a concrete `Ty::Fn`
+  and E0213 fires on argument-count mismatch against it, so `string.index_of(s,
+  needle, from?)` cannot be modeled at a fixed arity without breaking one of its
+  two legal call shapes. Either teach the table a min/max arity, or model
+  `array.index_of` alone (it has no optional parameter) and leave the string one
+  unmodeled.
+- **Take the hand-rolled copies out of `examples/apps/`** (S, the other half of
+  G26 and G34). *Landed in 0.1.47.* Six apps defined `fn repeat` as a `loop` with
+  two `mut`s and five defined `pad_start`/`pad_end`, which is the `grep mut`
+  dilution G34 was written up to remove. All of it is deleted and the call sites
+  go through `std/string` and `std/array`; `grep -c "mut "` over `examples/apps/`
+  went from 192 to 161. G26 and G34 close here, because a function that ships and
+  a workaround that survives it are different claims.
 - **Two formatter defects** (S). The short-list branch short-circuits past the
   width check, so a two-argument call with a nested lambda is emitted at any
   length (137 columns observed). And D27 asks for canonical ordering of annotation
@@ -1184,8 +1211,9 @@ not look inside, and ran as unverified TypeScript wearing Glyph syntax. The stal
 `extern/` cache that forced the deferral last time shipped in 0.1.44, so the
 reason to wait is gone. The shim is gone with this release:
 `examples/apps/shortlink.glyph` imports no `extern/*` and no Node builtin, and
-`examples/extern/web.ts` is deleted. No release carries the Next marker right
-now; the next trip picks from the list at the end of this section.
+`examples/extern/web.ts` is deleted. 0.1.47 below was picked off this trip's open
+list, and no release carries the Next marker now; the next trip picks from what
+is left of it.
 
 ### 0.1.46 — Shipped · `std/http` can serve a web page
 
@@ -1245,11 +1273,80 @@ type now has one spelling to grep for.
   followed a redirect, only where it ended up.
 - **`std/url` percent encoding** (S). Encoding and decoding a URL component is
   still hand-written in the app.
-- **`std/string` breadth, fifth sighting** (S). `slice` and `index_of` have been
-  reported by five consecutive trips and are still not scheduled.
+- **`std/string` breadth, fifth sighting** (S). *Scheduled and shipped as 0.1.47,
+  below.* `slice` and `index_of` had been reported by five consecutive trips.
 - **`string.split(s, "")` splits UTF-16 units** (S). Splitting on the empty string
   breaks a surrogate pair, so a non-BMP character comes apart. Clean build, clean
   `tsc`, wrong output.
+
+### 0.1.47 — Shipped · The eleven functions the apps kept hand-rolling
+
+Five consecutive dogfood trips reported the same thing: `std/string` and
+`std/array` are short of the basics, so every app writes them again. This release
+adds them and then deletes the copies.
+
+`std/string` gains `repeat`, `pad_start`, `pad_end`, `slice`, `index_of`,
+`replace_all`, `trim_start`, and `trim_end`. `std/array` gains `fold`,
+`index_of`, and `flat_map`. Each one is a wrapper in `runtime/std/` plus a name
+in the resolver seed, and the seed is what turns a typo into E0105 instead of a
+`tsc` error about a property on a module object. Two names the reference already
+documented were missing from that seed and are added with them: `json.parse_with`
+and the `fs.FsError` type, both of which a named import rejected as unknown.
+
+Four of them diverge from their TypeScript namesakes on purpose. `repeat` clamps
+a negative count to `""` where TS throws, which is what makes the natural call
+`repeat(pad, width - len(s))` safe instead of a crash on a string that is already
+too long. `pad_start` and `pad_end` leave a string that is already at least
+`width` long alone. Replacement ships only as `replace_all`, so there is no
+first-only form to confuse with `String.prototype.replace`, which quietly does
+one occurrence. Both `index_of` functions return `Option<number>` rather than the
+`-1` sentinel, which is the point: the sentinel is a number that type-checks
+everywhere a real index does. `string.slice` matches `array.slice`, exclusive
+`end` and negative indices counting back from the end. Indices are UTF-16 code
+units, the same space `len` and `split` already use.
+
+Then the apps. Seven programs in `examples/apps/` carried hand-rolled copies, and
+all of them are gone: 191 lines of helper bodies deleted outright, 467 deletions
+against 256 insertions, net 211 lines. Beyond the copies, `linkcheck`'s four line
+scanners take a `string` instead of an `Array<string>` of characters, its
+`index_from` sentinel became a `match` on `Option`, and `shortlink`'s five
+`regex.replace_all` calls (a compiled regex per literal needle) became five
+`string.replace_all` calls. Two comments that stated the gap in the author's own
+words are deleted with the code that needed them.
+
+`array.fold` is the pillar item, and G34 named the reason: with no fold, every
+accumulation is a `mut` in a loop, so `grep mut` returns arithmetic that mutates
+nothing a reader cares about. Seventeen fold sites landed and `grep -c "mut "`
+over `examples/apps/` went from 192 to 161.
+
+The rewrite is proved by output, not by review. A harness ran all seven apps
+against fixed fixtures before and after, 26 output files covering five CLIs'
+stdout and exit codes including their error paths, minesweeper's full transcript
+on two seeds, and shortlink's HTTP surface. Every file is byte-identical.
+Shortlink's surface is what exercises the changed lines end to end: all five HTML
+entities in a rendered row, percent decoding round-tripping a 4-byte emoji, and
+the persisted `shortlink.json`.
+
+Pillar: greppability first, through the `mut` count, then abstraction. The
+`@example` count in the repo drops from 127 to 113 because fourteen assertions
+rode on the deleted functions; the equivalent assertions are in
+`glyph-cli/tests/integration.rs` against the stdlib itself.
+
+### Still open from this trip
+
+- **Codepoint-aware `chars` and `char_at`** (decision, then S). Shipping them
+  means deciding whether `std/string` indexes UTF-16 code units, which is what
+  `len` and `split` do today, or codepoints. The two answers disagree on any
+  non-BMP string, and shipping both index spaces in one module is worse than
+  either. This is what keeps G50 at `[HALF FIXED]`, and it is the same root as
+  the `string.split(s, "")` bullet above.
+- **`iter.take_while`** (decision, then M). There is no `std/iter` module and
+  never was. `std/stream` is a test-data generator, not a lazy sequence, so this
+  is a design rather than a wrapper. D21's prose no longer cites the function.
+- **Model the two `index_of` returns in `stdlib_fn_ty`** (S). Unchanged from the
+  linkcheck list above: a `match` on `index_of` with no `None` arm builds clean
+  and throws at run time, and fixing it needs a min/max arity in the table
+  because `string.index_of` has an optional third argument.
 
 ## Road to 1.0
 

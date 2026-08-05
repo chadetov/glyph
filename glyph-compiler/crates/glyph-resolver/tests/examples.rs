@@ -173,6 +173,39 @@ fn cross_module_unknown_export_is_flagged() {
 }
 
 #[test]
+fn stdlib_breadth_names_are_seeded() {
+    // G26/G34/G50: the runtime gained the string and array basics every app was
+    // hand-rolling. A named import of any of them used to be E0105 because the
+    // resolver seed is a separate list from the runtime `.ts` exports, so pin
+    // both lists here — the seed is what makes `import std/string { repeat }`
+    // legal at all.
+    // `index_of` exists in both modules, so the two imports cannot share a file.
+    let sources = [
+        "module main\n\
+         import std/string { repeat, pad_start, pad_end, slice, index_of, replace_all, trim_start, trim_end }\n\
+         \n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 return 0\n\
+         }\n",
+        "module main\n\
+         import std/array { fold, index_of, flat_map }\n\
+         \n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 return 0\n\
+         }\n",
+    ];
+    let stdlib = StdlibStubs::new();
+    for source in sources {
+        let module = glyph_parser::parse(source).expect("parse failed");
+        let errors = verify_imports(&module, &stdlib);
+        assert!(
+            errors.is_empty(),
+            "stdlib breadth names should all be seeded, got: {errors:?}"
+        );
+    }
+}
+
+#[test]
 fn duplicate_top_level_name_is_detected() {
     // Sanity check: even on the example files, the collector enforces
     // duplicate-name. None of the example files should trigger this.

@@ -68,7 +68,16 @@ array.slice<T>(xs, start: number, end?: number) -> Array<T>
 array.any<T>(xs, predicate: fn(T) -> bool) -> bool
 array.contains<T>(xs, value: T) -> bool
 array.sort<T>(xs, compare: fn(T, T) -> number) -> Array<T>
+array.fold<T, A>(xs, init: A, f: fn(A, T) -> A) -> A
+array.index_of<T>(xs, value: T) -> Option<number>
+array.flat_map<T, U>(xs, f: fn(T) -> Array<U>) -> Array<U>
 ```
+
+`fold` takes the callback last, so it reads like the rest of the module; the
+callback gets `(acc, x)` and no index. `index_of` compares with `===`, like
+`contains`, so for records use `find` with an explicit comparison, and it returns
+an `Option` whose missing-`None`-arm case Glyph does not yet catch (see the note
+at the end of `std/string`). `flat_map` flattens one level.
 
 ## std/string
 
@@ -83,7 +92,32 @@ string.upper(s: string) -> string
 string.contains(s: string, substring: string) -> bool
 string.starts_with(s: string, prefix: string) -> bool
 string.ends_with(s: string, suffix: string) -> bool
+string.repeat(s: string, count: number) -> string
+string.pad_start(s: string, width: number, pad?: string) -> string
+string.pad_end(s: string, width: number, pad?: string) -> string
+string.slice(s: string, start: number, end?: number) -> string
+string.index_of(s: string, needle: string, from?: number) -> Option<number>
+string.replace_all(s: string, from: string, to: string) -> string
+string.trim_start(s: string) -> string
+string.trim_end(s: string) -> string
 ```
+
+Indices are UTF-16 code units, the same space `len` and `split` use, and
+negative `slice` indices count back from the end exactly as `array.slice` does.
+Two functions diverge from their TypeScript namesakes on purpose: `repeat`
+clamps a negative count to `""` where TS throws, which is what makes
+`repeat(pad, width - len(s))` safe, and `index_of` returns `None` instead of
+`-1`. `replace_all` replaces every occurrence; there is no first-only form.
+`pad_start` and `pad_end` leave a string that is already at least `width` long
+untouched, and default the pad to a single space.
+
+One limit on the two `index_of` functions. The `Option` return is what stops you
+using the result as a number without unwrapping, and `tsc` is what enforces
+that. Glyph's own checker does not model either return yet, so a `match` on
+`index_of` that leaves out the `None` arm is not an E0200: it builds clean and
+throws `non-exhaustive match` at run time. Write the `None` arm. The functions
+whose `Option` the exhaustiveness checker does understand today are
+`http.header`, `http.query_param`, and `json.discriminant`.
 
 ## std/io
 
@@ -226,6 +260,13 @@ captures(pattern: string, text: string) -> Array<string> // capture groups of th
 replace_all(pattern: string, text: string, replacement: string) -> string
 split(pattern: string, text: string) -> Array<string>
 ```
+
+`std/regex` takes the pattern first. Every other module takes the subject first,
+so `regex.replace_all(pattern, text, replacement)` and
+`string.replace_all(s, from, to)` are the same idea in opposite orders, as are
+`regex.split(pattern, text)` and `string.split(s, separator)`. Every parameter
+in all four is a `string`, so a swapped call compiles, passes `tsc --strict`,
+and produces the wrong text.
 
 ## std/set
 

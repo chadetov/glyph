@@ -22,11 +22,16 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source at 0.1.46: of 59 entries, 28 are fixed, 5 are
-partly fixed, 4 are decided or resolved, and 22 are open. The most-repeated open
-item by a distance is `std/string` breadth (`slice`, `index_of`, `pad_start`,
-`repeat`, and codepoint-aware iteration), reported by five consecutive trips and
-hand-rolled around by nearly every app in `examples/apps/`.
+Reconciled against the source at 0.1.47: of 59 entries, 30 are fixed, 6 are
+partly fixed, 4 are decided or resolved, and 19 are open. The item reported by
+five consecutive trips, `std/string` breadth, is now mostly closed: `slice`,
+`index_of`, `repeat`, `pad_start`, `pad_end`, `replace_all`, `trim_start`, and
+`trim_end` ship, along with `array.fold`, `index_of`, and `flat_map`, and the
+hand-rolled copies came out of the seven apps that carried them. One thing keeps
+it off `[FIXED]` in G50: codepoint-aware iteration, blocked on deciding whether
+`std/string` indexes code units or codepoints. A stdlib function that ships and
+a workaround that survives it are different claims, which is why G26 and G34
+only closed once the apps stopped hand-rolling.
 
 ## Verdict
 
@@ -526,9 +531,15 @@ on a decision in `docs/roadmap/releases.md`.
   `mut` assignment no longer goes through the IIFE at all. A `match` nested
   inside a larger expression still rejects block arms, because a function-level
   `return` there genuinely cannot be captured by an arrow.*
-- **G26. `std/string` has no `repeat`, `pad_start`, or `pad_end`.** Every program
-  that renders a grid or aligned columns needs them; the app hand-rolled all
-  three. Three wrappers plus three names in the resolver seed.
+- **G26. [FIXED] `std/string` has no `repeat`, `pad_start`, or `pad_end`.**
+  Every program that renders a grid or aligned columns needs them; the app
+  hand-rolled all three. Three wrappers plus three names in the resolver seed.
+  *Fixed: all three ship, and the six apps that hand-rolled them (settle,
+  expenses, bracket, schedule, linkcheck, and minesweeper as `repeat_text`/
+  `pad_left`) now call the stdlib. `repeat` clamps a negative count instead of
+  throwing the way TS does, which is what makes `repeat(pad, width - len(s))`
+  safe, and `pad_start`/`pad_end` leave a string that is already at least `width`
+  long alone.*
 - **G27. [HALF FIXED] An unknown stdlib namespace member leaks a raw `tsc` error.**
   `import std/string { repeat }` gives a clean E0105, because `verify_imports`
   checks named imports against the resolver seed. `string.repeat(...)` gives a
@@ -605,11 +616,16 @@ workaround for the first and is still open.
   that forbids more than the compiler does makes people write worse code, so this
   is the same class of bug as G31 pointing the other way. *Fixed: D22 now
   describes what the parser accepts.*
-- **G34. `std/string` has no `slice`, and `std/array` has no `fold`.** The
-  `fold` gap is the one that costs a pillar: with no fold, every accumulation is
-  a `mut` in a loop, which dilutes `grep mut` (the whole point of D5) with
-  arithmetic that mutates nothing the reader cares about. Scheduled with G26's
-  `repeat`/`pad_start`/`pad_end`.
+- **G34. [FIXED] `std/string` has no `slice`, and `std/array` has no
+  `fold`.** The `fold` gap is the one that costs a pillar: with no fold, every
+  accumulation is a `mut` in a loop, which dilutes `grep mut` (the whole point of
+  D5) with arithmetic that mutates nothing the reader cares about. Scheduled with
+  G26's `repeat`/`pad_start`/`pad_end`. *Fixed: `string.slice` behaves like
+  `array.slice` (exclusive `end`, negative indices counting back from the end),
+  and `array.fold` takes the collection, then the seed, then the callback, so it
+  reads like the rest of the module. The callback gets `(acc, x)` and no index.
+  The accumulation loops the apps wrote before `fold` existed are folds now, and
+  `grep mut` over `examples/apps/` went from 192 sites to 161.*
 - **G35. A bare `x = e` gets no mut-teaching diagnostic.** E0006 exists to teach
   the `if` ban; D5 is the second-most-broken rule for a newcomer and there is
   nothing parallel. The parse error names a token, not the rule.
@@ -817,14 +833,24 @@ of truth. On the async path it was a preprocessor with opinions.
   `"ok": false`, exit 2, rather than a build that looks verified. A project with
   no examples pays nothing (the runner returns before it copies anything), which
   a test now pins.*
-- **G50. `std/string` and `std/array` are still short of the basics.**
+- **G50. [HALF FIXED] `std/string` and `std/array` are still short of the basics.**
   `string.slice`, `index_of`, `replace`, `repeat`, `pad_start`, `pad_end`,
   `trim_start`, `trim_end`; `array.fold`, `index_of`, `flat_map`. This is G26's
   third sighting and G34's second, and `array.fold` was already written up as
   "the one that costs a pillar". They are abstraction chores, which is exactly
   why they keep getting picked over harder work. Batch them in one stdlib round,
   and settle `iter.take_while` at the same time: D21's prose cites it and it does
-  not exist.
+  not exist. *Half fixed: eleven of the twelve names ship. Replacement landed as
+  `replace_all`, which replaces every occurrence and has no first-only form, so
+  it cannot be confused with TS `String.prototype.replace`. Both `index_of`
+  functions return `Option` rather than a `-1` sentinel, and `string.index_of`
+  takes an optional start index. Two things remain. Codepoint-aware `chars` and
+  `char_at` are still missing, because shipping them means deciding whether
+  `std/string` indexes UTF-16 code units (what `len` and `split` do today) or
+  codepoints, and the two answers disagree on any non-BMP string. And
+  `iter.take_while` is untouched: there is no `std/iter` at all, and the nearest
+  module, `std/stream`, is a test-data generator rather than a lazy sequence, so
+  it needs a design rather than a wrapper.*
 - **G51. `regex` cannot iterate captures.** `regex.find_all` maps each match to
   `m[0]` and drops the groups, so a scanner that needs the capture text has to be
   hand-rolled. It turned a 15-line link extractor into a 180-line character
@@ -995,4 +1021,7 @@ the fixed version against input a user controls.
   to hex first and walking bytes. This is the same root as the `std/string`
   breadth item: no `slice`, no `index_of`, no codepoint-aware iteration.
 - **`std/string` breadth, fifth sighting.** `slice` and `index_of` have now been
-  reported by five consecutive trips.
+  reported by five consecutive trips. *The stdlib round for G26 and G34 shipped
+  both, along with `repeat`, `pad_start`, `pad_end`, `replace_all`, `trim_start`,
+  `trim_end`, and `array.fold`/`index_of`/`flat_map`, and the apps now call them.
+  Codepoint-aware iteration is the part left open; see G50.*

@@ -101,31 +101,6 @@ fn upto(n: int) -> Array<int> {
   return out
 }
 
-fn repeat_text(s: string, n: int) -> string {
-  let out = ""
-  let i = 0
-  loop {
-    match i < n {
-      false => {
-        break
-      },
-      true => {
-        mut out = "${out}${s}"
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-@example pad_left("123", 2) == "123"
-@example pad_left("7", 3) == "  7"
-fn pad_left(s: string, width: int) -> string {
-  // The pad is hoisted because a string literal cannot appear inside `${...}`.
-  let pad = repeat_text(" ", width - string.len(s))
-  return "${pad}${s}"
-}
-
 // ---------------------------------------------------------------------------
 // Board construction and absence-aware reads
 // ---------------------------------------------------------------------------
@@ -226,19 +201,19 @@ fn sample(pool: Array<Coord>, count: int, rng: Rng) -> Array<Coord> {
 }
 
 fn count_adjacent(board: Board, at: Coord) -> int {
-  let total = 0
-  for n in neighbors(board, at) {
-    match cell_at(board, n) {
-      None => {},
-      Some(cell) => match cell.mine {
-        false => {},
-        true => {
-          mut total = total + 1
+  return array.fold(
+    neighbors(board, at),
+    0,
+    fn(total: int, n: Coord) -> int {
+      return match cell_at(board, n) {
+        None => total,
+        Some(cell) => match cell.mine {
+          false => total,
+          true => total + 1,
         },
-      },
-    }
-  }
-  return total
+      }
+    },
+  )
 }
 
 fn place_mines(game: Game, first: Coord) -> void {
@@ -398,19 +373,19 @@ fn reveal_cascade(board: Board, at: Coord) -> void {
 }
 
 fn count_cells(board: Board, keep: fn(Cell) -> bool) -> int {
-  let total = 0
-  for at in all_coords(board) {
-    match cell_at(board, at) {
-      None => {},
-      Some(cell) => match keep(cell) {
-        false => {},
-        true => {
-          mut total = total + 1
+  return array.fold(
+    all_coords(board),
+    0,
+    fn(total: int, at: Coord) -> int {
+      return match cell_at(board, at) {
+        None => total,
+        Some(cell) => match keep(cell) {
+          false => total,
+          true => total + 1,
         },
-      },
-    }
-  }
-  return total
+      }
+    },
+  )
 }
 
 fn flags_placed(board: Board) -> int {
@@ -547,18 +522,18 @@ fn cell_glyph(cell: Cell, expose_mines: bool) -> string {
 
 fn render_board(board: Board, expose_mines: bool) -> string {
   let label_width = string.len(number.to_string(board.rows - 1))
-  let corner = repeat_text(" ", label_width)
-  let heads = array.map(upto(board.cols), fn(c: int) -> string { return pad_left(number.to_string(c), 2) })
+  let corner = string.repeat(" ", label_width)
+  let heads = array.map(upto(board.cols), fn(c: int) -> string { return string.pad_start(number.to_string(c), 2) })
   let head_row = string.join(heads, "")
   let header = "${corner} ${head_row}"
   let lines = array.map(upto(board.rows), fn(r: int) -> string {
     let cells = array.map(upto(board.cols), fn(c: int) -> string {
       return match cell_at(board, { row: r, col: c }) {
         None => " ?",
-        Some(cell) => pad_left(cell_glyph(cell, expose_mines), 2),
+        Some(cell) => string.pad_start(cell_glyph(cell, expose_mines), 2),
       }
     })
-    let label = pad_left(number.to_string(r), label_width)
+    let label = string.pad_start(number.to_string(r), label_width)
     let body = string.join(cells, "")
     return "${label} ${body}"
   })

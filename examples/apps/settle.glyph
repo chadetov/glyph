@@ -147,14 +147,6 @@ fn exit_code_for(f: Fail) -> int {
 // Small numeric helpers
 // ---------------------------------------------------------------------------
 
-fn sum_of(xs: Array<int>) -> int {
-  let total = 0
-  for x in xs {
-    mut total = total + x
-  }
-  return total
-}
-
 fn min_int(a: int, b: int) -> int {
   return match a < b {
     true => a,
@@ -216,7 +208,7 @@ fn compare_names(a: string, b: string) -> number {
 @example allocate(1000, [2, 1]) == [667, 333]
 @example allocate(8430, [1, 1, 1]) == [2810, 2810, 2810]
 fn allocate(total: Cents, weights: Array<int>) -> Array<Cents> {
-  let denominator = sum_of(weights)
+  let denominator = array.fold(weights, 0, fn(total: int, w: int) -> int { return total + w })
   let parts: Array<Cents> = []
   let remainders: Array<int> = []
 
@@ -227,7 +219,7 @@ fn allocate(total: Cents, weights: Array<int>) -> Array<Cents> {
     mut remainders.push(numerator - base * denominator)
   }
 
-  let leftover = total - sum_of(parts)
+  let leftover = total - array.fold(parts, 0, fn(sum: Cents, p: Cents) -> Cents { return sum + p })
   let order = by_largest_remainder(remainders)
   let i = 0
   loop {
@@ -273,7 +265,7 @@ fn portions(total: Cents, names: Array<string>, weights: Array<int>) -> Array<Po
 }
 
 fn total_of(parts: Array<Portion>) -> Cents {
-  return sum_of(array.map(parts, fn(p: Portion) -> int { return p.cents }))
+  return array.fold(parts, 0, fn(sum: Cents, p: Portion) -> Cents { return sum + p.cents })
 }
 
 fn names_of(parts: Array<Portion>) -> Array<string> {
@@ -425,13 +417,18 @@ fn bump(acc: Record<string, int>, who: string, delta: int) -> Record<string, int
 // Net position per person: what they paid out, minus what they owe. Sorted by
 // name so two runs over the same ledger print the same table.
 fn net_balances(expenses: Array<Expense>) -> Array<Portion> {
-  let acc: Record<string, int> = {}
-  for e in expenses {
-    mut acc = bump(acc, e.payer, e.amount)
-    for p in shares_of(e) {
-      mut acc = bump(acc, p.who, 0 - p.cents)
-    }
-  }
+  let empty: Record<string, int> = {}
+  let acc = array.fold(
+    expenses,
+    empty,
+    fn(so_far: Record<string, int>, e: Expense) -> Record<string, int> {
+      return array.fold(
+        shares_of(e),
+        bump(so_far, e.payer, e.amount),
+        fn(with_payer: Record<string, int>, p: Portion) -> Record<string, int> { return bump(with_payer, p.who, 0 - p.cents) },
+      )
+    },
+  )
 
   let names = array.sort(record.keys(acc), compare_names)
   let out: Array<Portion> = []
@@ -535,46 +532,19 @@ fn plan(nets: Array<Portion>) -> Array<Transfer> {
 // Text layout
 // ---------------------------------------------------------------------------
 
-const SPACE = " "
-
 const DASH = "-"
 
-@example repeat("ab", 0) == ""
-@example repeat("ab", 3) == "ababab"
-fn repeat(unit: string, count: int) -> string {
-  let out = ""
-  let i = 0
-  loop {
-    match i < count {
-      false => {
-        break
-      },
-      true => {
-        mut out = "${out}${unit}"
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-fn pad_end(s: string, width: int) -> string {
-  return "${s}${repeat(SPACE, width - string.len(s))}"
-}
-
-fn pad_start(s: string, width: int) -> string {
-  return "${repeat(SPACE, width - string.len(s))}${s}"
-}
-
 fn widest(values: Array<string>, floor_width: int) -> int {
-  let width = floor_width
-  for v in values {
-    mut width = match string.len(v) > width {
-      true => string.len(v),
-      false => width,
-    }
-  }
-  return width
+  return array.fold(
+    values,
+    floor_width,
+    fn(width: int, v: string) -> int {
+      return match string.len(v) > width {
+        true => string.len(v),
+        false => width,
+      }
+    },
+  )
 }
 
 // The date column, and the only place a stored timestamp becomes a date string.
@@ -1000,7 +970,7 @@ fn cmd_add(f: Flags, description: string) -> Result<int, Fail> {
 fn print_portions(parts: Array<Portion>) -> void {
   let width = widest(names_of(parts), 6)
   for p in parts {
-    io.println("  ${pad_end(p.who, width)}  ${pad_start(format_money(p.cents), 10)}")
+    io.println("  ${string.pad_end(p.who, width)}  ${string.pad_start(format_money(p.cents), 10)}")
   }
 }
 
@@ -1017,21 +987,21 @@ fn cmd_balances(f: Flags) -> Result<int, Fail> {
   }
 
   let width = widest(names_of(nets), 8)
-  let rule = repeat(DASH, width + 14)
+  let rule = string.repeat(DASH, width + 14)
   // A string literal cannot appear inside `${...}`, so header rows are joined
   // rather than interpolated.
-  io.println(string.join([pad_end("person", width), "  ", pad_start("balance", 12)], ""))
+  io.println(string.join([string.pad_end("person", width), "  ", string.pad_start("balance", 12)], ""))
   io.println(rule)
   for p in nets {
-    io.println("${pad_end(p.who, width)}  ${pad_start(format_signed(p.cents), 12)}")
+    io.println("${string.pad_end(p.who, width)}  ${string.pad_start(format_signed(p.cents), 12)}")
   }
   io.println(rule)
   // net_balances asserts this, and the table prints it, so the invariant is
   // visible to the reader too.
   io.println(string.join([
-    pad_end("total", width),
+    string.pad_end("total", width),
     "  ",
-    pad_start(format_money(total_of(nets)), 12),
+    string.pad_start(format_money(total_of(nets)), 12),
   ], ""))
   return Ok(0)
 }
@@ -1052,7 +1022,7 @@ fn cmd_up(f: Flags) -> Result<int, Fail> {
   let width = widest(payers, 6)
   io.println("${number.to_string(array.len(transfers))} payment(s) settle the group:")
   for t in transfers {
-    io.println("  ${pad_end(t.debtor, width)}  pays  ${pad_end(t.creditor, width)}  ${pad_start(format_money(t.cents), 10)}")
+    io.println("  ${string.pad_end(t.debtor, width)}  pays  ${string.pad_end(t.creditor, width)}  ${string.pad_start(format_money(t.cents), 10)}")
   }
   return Ok(0)
 }
@@ -1090,18 +1060,18 @@ fn cmd_log(f: Flags) -> Result<int, Fail> {
   let desc_width = widest(array.map(ordered, fn(e: Expense) -> string { return e.description }), 11)
 
   io.println(string.join([
-    pad_end("date", 10),
+    string.pad_end("date", 10),
     "  ",
-    pad_end("payer", payer_width),
+    string.pad_end("payer", payer_width),
     "  ",
-    pad_start("amount", 10),
+    string.pad_start("amount", 10),
     "  ",
-    pad_end("description", desc_width),
+    string.pad_end("description", desc_width),
     "  participants",
   ], ""))
   for e in ordered {
     let people = string.join(names_of(shares_of(e)), ", ")
-    io.println("${pad_end(day_of(e.date), 10)}  ${pad_end(e.payer, payer_width)}  ${pad_start(format_money(e.amount), 10)}  ${pad_end(e.description, desc_width)}  ${people}")
+    io.println("${string.pad_end(day_of(e.date), 10)}  ${string.pad_end(e.payer, payer_width)}  ${string.pad_start(format_money(e.amount), 10)}  ${string.pad_end(e.description, desc_width)}  ${people}")
   }
   return Ok(0)
 }

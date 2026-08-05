@@ -42,6 +42,11 @@ are what fluent code looks like.
   `<T: Bound>`, you want a `type` record, not an interface.
 - Use **`int`** for a value that must be a whole number at a boundary (an id, a
   count, a page size); use **`number`** when fractions are legal.
+- Use **`array.fold`** when a loop exists only to build one value, and
+  **`array.flat_map`** when it exists only to concatenate. `mut` is the greppable
+  record of where state changes, and a `mut sum` in a counting loop is noise in
+  that record. Keep the `for` loop when the body does something per element,
+  which is usually printing or a side effect.
 
 ## Branching
 

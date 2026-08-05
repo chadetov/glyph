@@ -42,18 +42,6 @@ import std/time
 // Percent encoding, not in std
 // ---------------------------------------------------------------------------
 
-fn chars(s: string) -> Array<string> {
-  return string.split(s, "")
-}
-
-fn take(s: string, n: int) -> string {
-  return string.join(array.slice(chars(s), 0, n), "")
-}
-
-fn drop(s: string, n: int) -> string {
-  return string.join(array.slice(chars(s), n), "")
-}
-
 fn is_hex_pair(s: string) -> bool {
   return regex.matches("^[0-9A-Fa-f][0-9A-Fa-f]$", s)
 }
@@ -72,8 +60,8 @@ fn percent_decode(input: string) -> string {
   let out = parts[0]
   let pending = ""
   for part in array.slice(parts, 1) {
-    let head = take(part, 2)
-    let tail = drop(part, 2)
+    let head = string.slice(part, 0, 2)
+    let tail = string.slice(part, 2)
     match is_hex_pair(head) {
       true => {
         mut pending = "${pending}${head}"
@@ -99,7 +87,7 @@ fn percent_decode(input: string) -> string {
 const ASCII_LEAD = "01234567"
 
 fn encode_byte(pair: string, keep: string) -> string {
-  return match string.contains(ASCII_LEAD, take(pair, 1)) {
+  return match string.contains(ASCII_LEAD, string.slice(pair, 0, 1)) {
     // A continuation byte of a multi-byte character is never a literal.
     false => "%${pair}",
     true => {
@@ -113,23 +101,23 @@ fn encode_byte(pair: string, keep: string) -> string {
 }
 
 // Percent-encoding works on *bytes*, so the input is turned into hex once and
-// walked two digits at a time. Doing it per character instead looks right and
-// is wrong: `chars()` splits by UTF-16 unit, so `🎉` arrives as two lone
+// sliced two digits at a time. Doing it per character instead looks right and
+// is wrong: slicing by one splits by UTF-16 unit, so `🎉` arrives as two lone
 // surrogates and encodes to `%EF%BF%BD%EF%BF%BD`. There is no codepoint-aware
 // iteration in std/string.
 fn encode_bytes(input: string, keep: string) -> string {
-  let digits: Array<string> = chars(string.upper(encoding.hex_encode(input)))
+  let hex = string.upper(encoding.hex_encode(input))
+  let n = string.len(hex)
   let out = ""
   let i = 0
   loop {
-    match i >= array.len(digits) {
+    match i >= n {
       true => {
         return out
       },
       false => {},
     }
-    let pair = "${digits[i]}${digits[i + 1]}"
-    mut out = "${out}${encode_byte(pair, keep)}"
+    mut out = "${out}${encode_byte(string.slice(hex, i, i + 2), keep)}"
     mut i = i + 2
   }
 }
@@ -204,13 +192,15 @@ fn save_links(to_path: string, current: Array<Link>) -> Result<void, string> {
 // ---------------------------------------------------------------------------
 
 fn random_code() -> string {
-  let alphabet: Array<string> = chars(ALPHABET)
-  let out = ""
   // No range syntax, so a fixed-length loop is a literal array of indices.
-  for _i in [0, 1, 2, 3, 4, 5, 6] {
-    mut out = "${out}${alphabet[rng.int(0, 62)]}"
-  }
-  return out
+  return array.fold(
+    [0, 1, 2, 3, 4, 5, 6],
+    "",
+    fn(out: string, _i: int) -> string {
+      let pick = rng.int(0, 62)
+      return "${out}${string.slice(ALPHABET, pick, pick + 1)}"
+    },
+  )
 }
 
 fn find_link(current: Array<Link>, code: string) -> Option<Link> {
@@ -306,11 +296,11 @@ fn validate_alias(current: Array<Link>, alias: string) -> Result<Option<string>,
 
 // Every untrusted value goes through here before it reaches the page.
 fn escape_html(s: string) -> string {
-  let amp = regex.replace_all("&", s, "&amp;")
-  let lt = regex.replace_all("<", amp, "&lt;")
-  let gt = regex.replace_all(">", lt, "&gt;")
-  let quot = regex.replace_all("\"", gt, "&quot;")
-  return regex.replace_all("'", quot, "&#39;")
+  let amp = string.replace_all(s, "&", "&amp;")
+  let lt = string.replace_all(amp, "<", "&lt;")
+  let gt = string.replace_all(lt, ">", "&gt;")
+  let quot = string.replace_all(gt, "\"", "&quot;")
+  return string.replace_all(quot, "'", "&#39;")
 }
 
 const STYLE = "

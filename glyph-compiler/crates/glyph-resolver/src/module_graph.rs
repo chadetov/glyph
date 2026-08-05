@@ -99,24 +99,28 @@ impl StdlibStubs {
             "std/array",
             &[
                 "map", "filter", "find", "zip", "len", "push", "concat", "reverse", "slice", "any",
-                "contains", "sort",
+                "contains", "sort", "fold", "index_of", "flat_map",
             ],
         );
         s.add(
             "std/string",
             &[
                 "from", "join", "split", "len", "trim", "lower", "upper", "contains", "starts_with",
-                "ends_with",
+                "ends_with", "repeat", "pad_start", "pad_end", "slice", "index_of", "replace_all",
+                "trim_start", "trim_end",
             ],
         );
         s.add(
             "std/io",
             &["println", "eprintln", "read_line", "read_to_string", "inspect", "render"],
         );
-        s.add("std/json", &["parse", "stringify", "discriminant"]);
+        s.add("std/json", &["parse", "stringify", "discriminant", "parse_with"]);
         s.add(
             "std/fs",
-            &["read_text", "write_text", "append_text", "make_dir", "exists", "remove", "ErrorKind"],
+            &[
+                "read_text", "write_text", "append_text", "make_dir", "exists", "remove",
+                "ErrorKind", "FsError",
+            ],
         );
         s.add(
             "std/time",

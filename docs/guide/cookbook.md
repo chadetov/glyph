@@ -226,6 +226,107 @@ fn print_scores(scores: Record<string, number>) -> void {
 }
 ```
 
+## Total, count, or group without a `mut`
+
+`array.fold` takes the collection, then the seed, then a callback that gets
+`(acc, x)`. Reach for it whenever a loop's only job is to build one value:
+`grep mut` is supposed to find the places state changes, and an accumulator
+loop fills it with arithmetic nobody needs to audit.
+
+```glyph
+import std/array
+import std/math
+import std/record
+import std/string
+
+type Expense = { category: string, cents: number }
+
+fn total(expenses: Array<Expense>) -> number {
+  return array.fold(expenses, 0, fn(sum, e) { sum + e.cents })
+}
+
+fn widest(labels: Array<string>) -> number {
+  return array.fold(labels, 0, fn(w, l) { math.max(w, string.len(l)) })
+}
+
+fn by_category(expenses: Array<Expense>) -> Record<string, number> {
+  let seed: Record<string, number> = {}
+  return array.fold(expenses, seed, fn(acc, e) {
+    let running = match record.get(acc, e.category) {
+      None => 0,
+      Some(n) => n,
+    }
+    return record.set(acc, e.category, running + e.cents)
+  })
+}
+```
+
+A grouping fold needs that annotated `seed` binding. A bare `{}` in argument
+position carries no type, so the callback's `acc` comes back as `unknown` and
+`tsc` rejects the body.
+
+`array.flat_map` is the other half: one call replaces the
+`mut all = array.concat(all, f(x))` shape.
+
+```glyph
+import std/array
+
+type Document = { links: Array<string> }
+
+fn links_of(doc: Document) -> Array<string> {
+  return doc.links
+}
+
+fn all_links(docs: Array<Document>) -> Array<string> {
+  return array.flat_map(docs, links_of)
+}
+```
+
+## Align a column of text
+
+```glyph
+import std/array
+import std/io
+import std/math
+import std/string
+
+type Row = { name: string, count: string }
+
+fn print_table(rows: Array<Row>) -> void {
+  let width = array.fold(rows, 0, fn(w, r) { math.max(w, string.len(r.name)) })
+  io.println(string.repeat("-", width + 8))
+  for r in rows {
+    io.println("${string.pad_end(r.name, width)}  ${string.pad_start(r.count, 5)}")
+  }
+}
+```
+
+`repeat` returns `""` for a negative count instead of throwing, so
+`repeat(pad, width - string.len(s))` is safe even when the string is already too
+long, and `pad_start`/`pad_end` leave a string that already reaches `width`
+alone.
+
+## Find a substring, or find out it is not there
+
+`string.index_of` and `array.index_of` return `Option<number>`, not `-1`. The
+sentinel is a number that type-checks everywhere a real index does, which is how
+it turns into an off-by-one somewhere far away.
+
+```glyph
+import std/string
+
+fn after_colon(line: string) -> string {
+  return match string.index_of(line, ":") {
+    None => line,
+    Some(i) => string.trim_start(string.slice(line, i + 1)),
+  }
+}
+```
+
+Write the `None` arm. Glyph's own checker does not model these two return types
+yet, so a `match` that leaves it out builds clean, passes `tsc --strict`, and
+throws `non-exhaustive match` at run time.
+
 ## Use a generic bound
 
 ```glyph

@@ -155,35 +155,6 @@ fn span(lo: int, hi: int) -> Array<int> {
   return array.map(upto(math.max(hi - lo, 0)), fn(i: int) -> int { return lo + i })
 }
 
-@example repeat("ab", 0) == ""
-@example repeat("ab", 3) == "ababab"
-fn repeat(unit: string, count: int) -> string {
-  let out = ""
-  let i = 0
-  loop {
-    match i < count {
-      false => {
-        break
-      },
-      true => {
-        mut out = "${out}${unit}"
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-@example pad_end("ab", 4) == "ab  "
-fn pad_end(s: string, width: int) -> string {
-  return "${s}${repeat(SPACE, width - string.len(s))}"
-}
-
-@example pad_start("7", 3) == "  7"
-fn pad_start(s: string, width: int) -> string {
-  return "${repeat(SPACE, width - string.len(s))}${s}"
-}
-
 @example pow2(0) == 1
 @example pow2(4) == 16
 fn pow2(k: int) -> int {
@@ -578,7 +549,7 @@ const GAP = 7
 
 fn slot_label(s: Slot) -> string {
   return match s {
-    Seeded(e) => "${pad_start(number.to_string(e.seed), 2)}  ${e.name}",
+    Seeded(e) => "${string.pad_start(number.to_string(e.seed), 2)}  ${e.name}",
     Bye => " -  (bye)",
     Feeder(_) => "",
   }
@@ -777,7 +748,7 @@ fn print_matches(b: Bracket) -> void {
       Some(o) => "won by ${decided_label(o)}",
       None => pending_state(m),
     }
-    io.println("  ${pad_end(match_id_label(m), 5)}${pad_end(match_round_name(b, m), 14)}${pad_end(pairing, 30)}${state}")
+    io.println("  ${string.pad_end(match_id_label(m), 5)}${string.pad_end(match_round_name(b, m), 14)}${string.pad_end(pairing, 30)}${state}")
   }
 }
 
@@ -815,7 +786,7 @@ fn print_standings(b: Bracket) -> void {
     },
     else => {
       for m in ready {
-        io.println("  ${pad_end(match_id_label(m), 5)}${pad_end(match_round_name(b, m), 14)}${competitor_label(m.left)} vs ${competitor_label(m.right)}")
+        io.println("  ${string.pad_end(match_id_label(m), 5)}${string.pad_end(match_round_name(b, m), 14)}${competitor_label(m.left)} vs ${competitor_label(m.right)}")
       }
     },
   }
@@ -823,13 +794,13 @@ fn print_standings(b: Bracket) -> void {
   io.println("")
   io.println("Entrants")
   for i, name in b.entrants {
-    let seed = pad_start(number.to_string(i + 1), 2)
+    let seed = string.pad_start(number.to_string(i + 1), 2)
     let record_text = "${number.to_string(wins_of(b, name))} won"
     let state = match eliminated_by(b, name) {
       Some(w) => "out, beaten by ${w}",
       None => alive_state(b, name),
     }
-    io.println("  ${seed}  ${pad_end(name, 20)}${pad_end(record_text, 8)}${state}")
+    io.println("  ${seed}  ${string.pad_end(name, 20)}${string.pad_end(record_text, 8)}${state}")
   }
 
   io.println("")

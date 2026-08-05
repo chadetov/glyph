@@ -71,3 +71,24 @@ export function contains<T>(xs: ReadonlyArray<T>, value: T): boolean {
 export function sort<T>(xs: ReadonlyArray<T>, compare: (a: T, b: T) => number): Array<T> {
   return [...xs].sort(compare);
 }
+
+// `fold` is TS `reduce` with the argument order the rest of this module uses:
+// the collection first, the seed second, the callback last, so it reads like
+// `map(xs, f)` and `sort(xs, compare)`. The callback takes `(acc, x)` only —
+// there is no index and no source-array argument.
+export function fold<T, A>(xs: ReadonlyArray<T>, init: A, f: (acc: A, x: T) => A): A {
+  return xs.reduce(f, init);
+}
+
+// `index_of` uses primitive value equality (`===`), like `contains`; for
+// records, prefer `find`/`any` with an explicit comparison. It returns the
+// prelude `Option` rather than TS's `-1` sentinel.
+export function index_of<T>(xs: ReadonlyArray<T>, value: T): Option<number> {
+  const i = xs.indexOf(value);
+  return i < 0 ? None : Some(i);
+}
+
+// `flat_map` flattens exactly one level, like TS `flatMap`.
+export function flat_map<T, U>(xs: ReadonlyArray<T>, f: (x: T) => Array<U>): Array<U> {
+  return xs.flatMap(f);
+}

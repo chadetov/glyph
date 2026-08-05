@@ -71,37 +71,6 @@ type Args = { path: string, month: Option<MonthFilter> }
 // Text helpers
 // ---------------------------------------------------------------------------
 
-@example repeat("ab", 0) == ""
-@example repeat("ab", 3) == "ababab"
-fn repeat(unit: string, count: int) -> string {
-  let out = ""
-  let i = 0
-  loop {
-    match i < count {
-      false => {
-        break
-      },
-      true => {
-        mut out = "${out}${unit}"
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-// A nested string literal inside `${...}` is not supported, so the pad unit is
-// a module constant rather than a literal argument.
-const SPACE = " "
-
-fn pad_end(s: string, width: int) -> string {
-  return "${s}${repeat(SPACE, width - string.len(s))}"
-}
-
-fn pad_start(s: string, width: int) -> string {
-  return "${repeat(SPACE, width - string.len(s))}${s}"
-}
-
 @example two_digits(12) == "12"
 @example two_digits(7) == "07"
 fn two_digits(n: int) -> string {
@@ -214,27 +183,31 @@ fn select_month(rows: Array<Transaction>, month: Option<MonthFilter>) -> Array<T
 
 fn total_of(rows: Array<Transaction>) -> Decimal {
   // Seeded at two decimal places so an empty ledger still prints "0.00".
-  let sum = zero.round(2)
-  for t in rows {
-    mut sum = sum.add(t.amount)
-  }
-  return sum
+  return array.fold(
+    rows,
+    zero.round(2),
+    fn(sum: Decimal, t: Transaction) -> Decimal { return sum.add(t.amount) },
+  )
 }
 
 fn group_by_category(rows: Array<Transaction>) -> Array<Group> {
-  let acc: Record<string, Group> = {}
-  for t in rows {
-    let current = match record.get(acc, t.category) {
-      Some(g) => g,
-      None => { category: t.category, count: 0, total: zero },
-    }
-    mut acc = record.set(
-      acc,
-      t.category,
-      { category: t.category, count: current.count + 1, total: current.total.add(t.amount) },
-    )
-  }
-  return array.sort(record.values(acc), fn(a: Group, b: Group) -> number { return b.total.cmp(a.total) })
+  let empty: Record<string, Group> = {}
+  let grouped = array.fold(
+    rows,
+    empty,
+    fn(acc: Record<string, Group>, t: Transaction) -> Record<string, Group> {
+      let current = match record.get(acc, t.category) {
+        Some(g) => g,
+        None => { category: t.category, count: 0, total: zero },
+      }
+      return record.set(
+        acc,
+        t.category,
+        { category: t.category, count: current.count + 1, total: current.total.add(t.amount) },
+      )
+    },
+  )
+  return array.sort(record.values(grouped), fn(a: Group, b: Group) -> number { return b.total.cmp(a.total) })
 }
 
 // ---------------------------------------------------------------------------
@@ -284,7 +257,7 @@ fn bar_for(part: Decimal, largest: Decimal) -> string {
       let width = part.div(largest, 4).mul(from_int(BAR_WIDTH, 0)).round(0).to_number()
       match width < 1 {
         true => "#",
-        false => repeat("#", width),
+        false => string.repeat("#", width),
       }
     },
   }
@@ -294,10 +267,10 @@ fn bar_for(part: Decimal, largest: Decimal) -> string {
 // body can never drift apart.
 fn table_row(category: string, count: string, total: string, share: string, chart: string) -> string {
   return string.join([
-    pad_end(category, 14),
-    pad_start(count, 6),
-    pad_start(total, 12),
-    pad_start(share, 8),
+    string.pad_end(category, 14),
+    string.pad_start(count, 6),
+    string.pad_start(total, 12),
+    string.pad_start(share, 8),
     "  ",
     chart,
   ], "")
@@ -310,7 +283,7 @@ fn print_report(rows: Array<Transaction>, label: string) -> void {
     [] => zero,
     [first, ..._] => first.total,
   }
-  let rule = repeat("-", 64)
+  let rule = string.repeat("-", 64)
 
   io.println("expense report ${label}")
   io.println("")

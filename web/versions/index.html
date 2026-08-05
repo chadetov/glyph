@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.46</span>
+            <span class="rel-ver">0.1.47</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The eleven standard-library functions every app kept hand-rolling</h3>
+            <p>Five dogfooding trips in a row filed the same finding: <code>std/string</code> and <code>std/array</code> are short of the basics, so every program writes them again. Six apps in the repo carried their own <code>repeat</code>, five their own <code>pad_start</code>, and every total was a <code>mut</code> in a loop because there was no <code>fold</code>. This release adds the functions and then deletes the copies.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/string</code> gains <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>slice</code>, <code>index_of</code>, <code>replace_all</code>, <code>trim_start</code>, and <code>trim_end</code>. Indices are UTF-16 code units, the same space <code>len</code> and <code>split</code> already use, and <code>slice</code> matches <code>array.slice</code>: exclusive end, negative indices counting back from the end.</li>
+              <li><span class="tag added">Added</span> <code>std/array</code> gains <code>fold</code>, <code>index_of</code>, and <code>flat_map</code>. <code>fold</code> takes the collection, then the seed, then a callback that gets <code>(acc, x)</code>.</li>
+              <li><span class="tag added">Added</span> Three deliberate breaks from TypeScript. <code>repeat</code> returns <code>""</code> on a negative count where TS throws, which is what makes <code>repeat(pad, width - len(s))</code> safe. Both <code>index_of</code> functions return <code>Option&lt;number&gt;</code> instead of the <code>-1</code> sentinel, which is a number that type-checks everywhere a real index does. Replacement ships only as <code>replace_all</code>, so nothing looks like <code>String.prototype.replace</code>, which quietly replaces one occurrence.</li>
+              <li><span class="tag fixed">Fixed</span> The hand-rolled copies are gone from all seven apps in <code>examples/apps/</code>: 191 lines of helper bodies deleted outright, 211 lines net. <code>linkcheck</code>'s four line scanners take a <code>string</code> instead of an array of characters, its <code>-1</code> sentinel became a <code>match</code> on <code>Option</code>, and <code>shortlink</code>'s five <code>regex.replace_all</code> calls (a compiled regex per literal needle) became <code>string.replace_all</code>.</li>
+              <li><span class="tag fixed">Fixed</span> <code>mut</code> is how you find every place state changes, and with no <code>fold</code> that search came back full of counting loops. Seventeen fold sites landed and <code>grep -c "mut "</code> over <code>examples/apps/</code> went from 192 to 161. The rewrite is proved by output: all seven apps ran against fixed inputs before and after, 26 files of stdout, exit codes, and HTTP responses, all byte-identical.</li>
+              <li><span class="tag known">Known</span> There is no codepoint-aware <code>chars</code> or <code>char_at</code> yet. Shipping one means choosing whether <code>std/string</code> indexes UTF-16 code units or codepoints, and the two answers disagree on any non-BMP string. Glyph's own checker does not model the two <code>index_of</code> return types either, so a <code>match</code> on one with no <code>None</code> arm builds clean, passes <code>tsc --strict</code>, and throws at run time.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.46</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

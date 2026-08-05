@@ -313,6 +313,9 @@ array.slice<T>(xs, start, end?) -> Array<T>
 array.any<T>(xs, predicate) -> bool
 array.contains<T>(xs, value) -> bool
 array.sort<T>(xs, compare) -> Array<T>
+array.fold<T, A>(xs, init, f) -> A          // f is (acc, x); no index
+array.index_of<T>(xs, value) -> Option<number>
+array.flat_map<T, U>(xs, f) -> Array<U>     // flattens one level
 ```
 
 ### std/string
@@ -328,7 +331,26 @@ string.upper(s) -> string
 string.contains(s, substring) -> bool
 string.starts_with(s, prefix) -> bool
 string.ends_with(s, suffix) -> bool
+string.repeat(s, count) -> string           // a negative count yields "" (TS throws)
+string.pad_start(s, width, pad?) -> string  // pad defaults to a space
+string.pad_end(s, width, pad?) -> string
+string.slice(s, start, end?) -> string
+string.index_of(s, needle, from?) -> Option<number>   // None, not -1
+string.replace_all(s, from, to) -> string   // every occurrence
+string.trim_start(s) -> string
+string.trim_end(s) -> string
 ```
+
+Argument order: every module except `std/regex` takes the subject first;
+`std/regex` takes the pattern first. So `string.replace_all(s, from, to)` and
+`regex.replace_all(pattern, text, replacement)` are opposite orders, as are
+`string.split(s, separator)` and `regex.split(pattern, text)`, and every
+parameter of all four is a `string`, so a swap compiles and prints the wrong
+thing.
+
+Both `index_of` functions return `Option`, which `tsc` enforces, but Glyph does
+not model their return type yet: a `match` on `index_of` with no `None` arm is
+not an E0200 and throws at run time. Write the `None` arm.
 
 ### std/io
 

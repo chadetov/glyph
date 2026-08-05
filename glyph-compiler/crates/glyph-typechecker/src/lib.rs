@@ -237,6 +237,13 @@ pub enum TypeError {
     /// (a module-level fn/component or a typed lambda binding); a callee whose
     /// signature can't be judged (a member-access method, an unresolved name)
     /// stays `Unknown` and is left unchecked.
+    ///
+    /// The stdlib's TypeScript wrappers are the one place a trailing argument is
+    /// optional (`array.slice`, `string.slice`, `pad_start`, `pad_end`,
+    /// `string.index_of`, `json.stringify`); the spec documents that boundary
+    /// convention. Those calls escape this check only because the callee types
+    /// as `Unknown`, so adding one of them to `stdlib_fn_ty` means teaching this
+    /// check a minimum and maximum arity first.
     #[error("wrong number of arguments: expected {expected}, found {found}")]
     ArgumentCountMismatch {
         expected: usize,

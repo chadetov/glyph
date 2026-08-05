@@ -230,6 +230,56 @@ for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", 
       </div>
 
       <div class="detail">
+        <p class="block-label">Do I have to write <code>pad_start</code> myself?</p>
+        <p>
+          The gap you hit first in a real program isn't a type-system feature.
+          It's reaching for <code>string.slice</code> and finding nothing there.
+          Five dogfooding trips in a row filed the same list, and until 0.1.47
+          six apps in this repo carried their own <code>repeat</code>, five their
+          own <code>pad_start</code>, and all of them had a loop where a fold
+          belonged. Those eleven names ship now, and the copies are deleted from
+          all seven apps that had them.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">what landed</span>
+<pre>string.<span class="add">repeat</span>(s, n)           string.<span class="add">slice</span>(s, start, end?)       array.<span class="add">fold</span>(xs, init, f)
+string.<span class="add">pad_start</span>(s, w, pad?)   string.<span class="add">index_of</span>(s, needle, from?)  array.<span class="add">index_of</span>(xs, x)
+string.<span class="add">pad_end</span>(s, w, pad?)     string.<span class="add">replace_all</span>(s, from, to)     array.<span class="add">flat_map</span>(xs, f)
+string.<span class="add">trim_start</span>(s) / <span class="add">trim_end</span>(s)
+
+<span class="cm"># the 25-line block six apps each carried, and what replaced it:</span>
+let total = array.<span class="add">fold</span>(expenses, 0, fn(sum, e) { sum + e.cents })
+io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<span class="add">pad_start</span>(amount, 9)}")</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Three of them part ways with their TypeScript namesakes on purpose.
+          <code>repeat</code> returns <code>""</code> on a negative count where TS
+          throws, which is what makes <code>repeat(pad, width - len(s))</code>
+          safe on a string that's already too long. Both <code>index_of</code>
+          functions return <code>Option&lt;number&gt;</code> instead of
+          <code>-1</code>, because <code>-1</code> is a number that type-checks
+          everywhere a real index does and fails a long way from the call.
+          Replacement ships only as <code>replace_all</code>, so there's no
+          first-only form to confuse with <code>String.prototype.replace</code>,
+          which quietly does one occurrence.
+        </p>
+        <p>
+          <code>fold</code> is the one that buys a pillar rather than saving
+          typing. <code>mut</code> is the greppable record of every place state
+          changes, and with no fold, <code>grep mut</code> comes back full of
+          counting loops that mutate nothing a reviewer cares about. Deleting the
+          hand-rolled versions took <code>examples/apps/</code> from 192 mutation
+          sites to 161. The rewrite was checked by output, not by review: all
+          seven apps ran against fixed inputs before and after, 26 files of stdout,
+          exit codes, and HTTP responses, all byte-identical.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">Money doesn't run on floats</p>
         <p>
           The gap that would end a fintech evaluation on the spot is doing money
@@ -268,11 +318,11 @@ decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, and a spec section owning the JS-inherited semantics.</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>.</p>
         </div>
         <div class="status-card next">
           <p class="h">The honest edge</p>
-          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is not checked by Glyph: <code>await</code> in a plain <code>fn</code> compiles and <code>tsc</code> catches it on the emitted TypeScript. An async callback has no type you can write down yet, so a function taking one can't be given a signature. And the arm join only handles arms that agree: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it, same as an iterand that came from a stdlib call the checker doesn't model, which still binds a string index.</p>
+          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is not checked by Glyph: <code>await</code> in a plain <code>fn</code> compiles and <code>tsc</code> catches it on the emitted TypeScript. An async callback has no type you can write down yet, so a function taking one can't be given a signature. And the arm join only handles arms that agree: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it, same as an iterand that came from a stdlib call the checker doesn't model, which still binds a string index. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, so there's no codepoint-aware <code>chars</code> or <code>char_at</code> until that choice is settled, and a surrogate pair still comes apart under <code>split(s, "")</code>. The two <code>index_of</code> returns aren't modeled by Glyph's checker either: a <code>match</code> on one with no <code>None</code> arm builds clean and throws at run time, so write the <code>None</code> arm.</p>
         </div>
       </div>
 

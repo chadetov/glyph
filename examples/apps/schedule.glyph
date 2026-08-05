@@ -128,8 +128,6 @@ const HALF_HOUR = 1800000
 
 // A nested string literal inside `${...}` is not supported, so every literal a
 // template needs is a module constant.
-const SPACE = " "
-
 const COMMA = ", "
 
 const DOT = "."
@@ -137,29 +135,6 @@ const DOT = "."
 const BUSY_MARK = "#"
 
 const FREE_MARK = "."
-
-@example repeat("ab", 0) == ""
-@example repeat("ab", 3) == "ababab"
-fn repeat(unit: string, count: int) -> string {
-  let out = ""
-  let i = 0
-  loop {
-    match i < count {
-      false => {
-        break
-      },
-      true => {
-        mut out = "${out}${unit}"
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-fn pad_end(s: string, width: int) -> string {
-  return "${s}${repeat(SPACE, width - string.len(s))}"
-}
 
 @example two_digits(9) == "09"
 @example two_digits(30) == "30"
@@ -566,15 +541,15 @@ fn print_day(day: Day, people: Array<Person>, busy: Array<Interval>) -> void {
   let header = "${date_label(day.start)} ${weekday_name(day.start)}"
   io.println("${header}  window ${span_label(day.window)}")
 
-  let gutter = pad_end(BLANK, NAME_WIDTH)
-  let busy_column = pad_end(BUSY_LABEL, LABEL_WIDTH)
-  let free_column = pad_end(FREE_LABEL, LABEL_WIDTH)
-  let blank_column = pad_end(BLANK, LABEL_WIDTH)
+  let gutter = string.pad_end(BLANK, NAME_WIDTH)
+  let busy_column = string.pad_end(BUSY_LABEL, LABEL_WIDTH)
+  let free_column = string.pad_end(FREE_LABEL, LABEL_WIDTH)
+  let blank_column = string.pad_end(BLANK, LABEL_WIDTH)
 
   for p in people {
     let busy_today = clip_all(p.busy, day.window)
     let spans = spans_label(busy_today, CLEAR_LABEL)
-    io.println("  ${pad_end(p.name, NAME_WIDTH)}${busy_column}${spans}")
+    io.println("  ${string.pad_end(p.name, NAME_WIDTH)}${busy_column}${spans}")
   }
 
   let free = spans_label(day.free, NONE_LABEL)
@@ -593,14 +568,11 @@ fn print_conflicts(people: Array<Person>) -> void {
 }
 
 fn print_candidates(days: Array<Day>) -> int {
-  let total = 0
-  for day in days {
-    for slot in day.candidates {
-      io.println("  ${date_label(slot.start)} ${weekday_name(slot.start)}  ${clock_label(slot.start)} - ${clock_label(slot.end)}  (${number.to_string(minutes_of(slot))} min)")
-      mut total = total + 1
-    }
+  let slots = array.flat_map(days, fn(day: Day) -> Array<Interval> { return day.candidates })
+  for slot in slots {
+    io.println("  ${date_label(slot.start)} ${weekday_name(slot.start)}  ${clock_label(slot.start)} - ${clock_label(slot.end)}  (${number.to_string(minutes_of(slot))} min)")
   }
-  return total
+  return array.len(slots)
 }
 
 // ---------------------------------------------------------------------------

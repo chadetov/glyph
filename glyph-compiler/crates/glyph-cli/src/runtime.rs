@@ -388,7 +388,7 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
 mod tests {
     use super::{tsconfig_json, RUNTIME_FILES};
     use glyph_resolver::StdlibStubs;
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
     use std::path::Path;
 
     /// With no project `node_modules`, the tsconfig is the plain form: `std/*`
@@ -556,5 +556,53 @@ mod tests {
             }
         }
         assert!(missing.is_empty(), "stdlib stub/runtime drift:\n{}", missing.join("\n"));
+    }
+
+    /// The other direction: every name a bundled `std/*` runtime exports must be
+    /// in that module's stub, or `import std/json { parse_with }` is E0105 on a
+    /// function that exists and works. That was true of `json.parse_with` and
+    /// `fs.FsError` until this test was written. `std/schema` is deliberately
+    /// unseeded: its `schema` export is the descriptor builder the emitter calls,
+    /// not a module anyone imports by hand.
+    #[test]
+    fn the_bundled_runtime_exports_nothing_the_stubs_lack() {
+        const UNSEEDED: [&str; 1] = ["std/schema"];
+        let stubs = StdlibStubs::new();
+        let seeded: BTreeMap<&str, BTreeSet<String>> = stubs
+            .iter()
+            .map(|(path, exports)| {
+                (path, exports.names.iter().map(|n| n.to_string()).collect())
+            })
+            .collect();
+        let mut unadvertised: Vec<String> = Vec::new();
+        for (rel, src) in RUNTIME_FILES {
+            let Some(stem) = rel
+                .strip_prefix(".glyph-runtime/std/")
+                .and_then(|f| f.strip_suffix(".ts"))
+            else {
+                continue;
+            };
+            let path = format!("std/{stem}");
+            if UNSEEDED.contains(&path.as_str()) {
+                continue;
+            }
+            let Some(names) = seeded.get(path.as_str()) else {
+                unadvertised.push(format!("{path}: bundled runtime .ts with no stub entry"));
+                continue;
+            };
+            for name in exported_names(src) {
+                if !names.contains(&name) {
+                    unadvertised.push(format!(
+                        "{path}: runtime exports `{name}`, the stub does not advertise it"
+                    ));
+                }
+            }
+        }
+        assert!(
+            unadvertised.is_empty(),
+            "runtime exports the stubs never learned about (a named import of one is E0105):\n{}\n\
+             seed it in StdlibStubs::new, or add it to UNSEEDED if it is emitter-internal.",
+            unadvertised.join("\n")
+        );
     }
 }

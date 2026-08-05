@@ -3207,6 +3207,144 @@ fn fs_make_dir_and_append_text_round_trip() {
 }
 
 #[test]
+fn string_breadth_helpers_round_trip() {
+    // G26/G34/G50: the string basics every app hand-rolled. The stdlib is
+    // TypeScript, so it cannot carry `@example`; this run is where the behavior
+    // is pinned. Each `let` is a group of assertions and the program returns the
+    // number of the first group that failed, so a regression names itself.
+    if !js_toolchain_available() {
+        eprintln!("skipping string breadth run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("strbreadth");
+    let prog = "module main\n\
+         import std/string { repeat, pad_start, pad_end, slice, index_of, replace_all, trim_start, trim_end }\n\
+         import std/option { Some, None }\n\
+         \n\
+         fn at(s: string, needle: string, from: number) -> number {\n\
+         \x20 return match index_of(s, needle, from) {\n\
+         \x20\x20\x20 Some(i) => i,\n\
+         \x20\x20\x20 None => 0 - 1,\n\
+         \x20 }\n\
+         }\n\
+         \n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let repeated = repeat(\"ab\", 3) == \"ababab\" && repeat(\"ab\", 0) == \"\" && repeat(\"ab\", 0 - 1) == \"\"\n\
+         \x20 let padded = pad_start(\"123\", 2, \"0\") == \"123\" && pad_end(\"123\", 2, \"0\") == \"123\" && pad_start(\"7\", 3, \"0\") == \"007\" && pad_end(\"7\", 3, \".\") == \"7..\" && pad_start(\"7\", 3) == \"  7\"\n\
+         \x20 let sliced = slice(\"hello world\", 6) == \"world\" && slice(\"hello world\", 0, 5) == \"hello\" && slice(\"hello\", 0 - 3) == \"llo\"\n\
+         \x20 let searched = at(\"banana\", \"na\", 0) == 2 && at(\"banana\", \"na\", 3) == 4 && at(\"banana\", \"zz\", 0) == 0 - 1\n\
+         \x20 let replaced = replace_all(\"a-b-c-d\", \"-\", \"+\") == \"a+b+c+d\"\n\
+         \x20 let trimmed = trim_start(\"  x  \") == \"x  \" && trim_end(\"  x  \") == \"  x\"\n\
+         \x20 return match repeated {\n\
+         \x20\x20\x20 false => 1,\n\
+         \x20\x20\x20 true => match padded {\n\
+         \x20\x20\x20\x20\x20 false => 2,\n\
+         \x20\x20\x20\x20\x20 true => match sliced {\n\
+         \x20\x20\x20\x20\x20\x20\x20 false => 3,\n\
+         \x20\x20\x20\x20\x20\x20\x20 true => match searched {\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20 false => 4,\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20 true => match replaced {\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20 false => 5,\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20 true => match trimmed {\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20 false => 6,\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20 true => 0,\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20 },\n\
+         \x20 }\n\
+         }\n";
+    write_file(&root, "strprog.glyph", prog);
+    let file_glyph = root.join("strprog.glyph");
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "a non-zero code names the failing assertion group");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping string breadth run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("unexpected type-check failure: {msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a main; got NoMain: {exports:?}");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check");
+        }
+    }
+}
+
+#[test]
+fn array_fold_index_of_and_flat_map() {
+    // G34/G50: `fold` is the one that touches a pillar — without it every
+    // accumulation is a `mut` in a loop, which dilutes `grep mut`. The argument
+    // order (collection, seed, callback) is part of what is pinned here.
+    if !js_toolchain_available() {
+        eprintln!("skipping array fold run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("arrfold");
+    let prog = "module main\n\
+         import std/array { fold, index_of, flat_map, len }\n\
+         import std/option { Some, None }\n\
+         \n\
+         fn at(xs: Array<string>, value: string) -> number {\n\
+         \x20 return match index_of(xs, value) {\n\
+         \x20\x20\x20 Some(i) => i,\n\
+         \x20\x20\x20 None => 0 - 1,\n\
+         \x20 }\n\
+         }\n\
+         \n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let nums: Array<number> = [1, 2, 3, 4]\n\
+         \x20 let words: Array<string> = [\"a\", \"b\", \"c\"]\n\
+         \x20 let total = fold(nums, 0, fn(acc: number, x: number) -> number { return acc + x })\n\
+         \x20 let joined = fold(words, \"\", fn(acc: string, x: string) -> string { return acc + x })\n\
+         \x20 let pairs = flat_map(words, fn(w: string) -> Array<string> { return [w, w] })\n\
+         \x20 let folded = total == 10 && joined == \"abc\"\n\
+         \x20 let searched = at(words, \"b\") == 1 && at(words, \"z\") == 0 - 1\n\
+         \x20 let flattened = len(pairs) == 6 && pairs[0] == \"a\" && pairs[1] == \"a\" && pairs[2] == \"b\"\n\
+         \x20 return match folded {\n\
+         \x20\x20\x20 false => 1,\n\
+         \x20\x20\x20 true => match searched {\n\
+         \x20\x20\x20\x20\x20 false => 2,\n\
+         \x20\x20\x20\x20\x20 true => match flattened {\n\
+         \x20\x20\x20\x20\x20\x20\x20 false => 3,\n\
+         \x20\x20\x20\x20\x20\x20\x20 true => 0,\n\
+         \x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20 },\n\
+         \x20 }\n\
+         }\n";
+    write_file(&root, "arrprog.glyph", prog);
+    let file_glyph = root.join("arrprog.glyph");
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "a non-zero code names the failing assertion group");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping array fold run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("unexpected type-check failure: {msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a main; got NoMain: {exports:?}");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check");
+        }
+    }
+}
+
+#[test]
 fn start_here_tutorials_broken_program_is_exactly_e0200() {
     // B4 honesty guard: the Start-Here tutorial shows deleting a match arm
     // producing E0200, then fixing it. Keep both halves true so the tutorial

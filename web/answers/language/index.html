@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Is this a real language, or a toy with gaps? · Glyph</title>
-    <meta name="description" content="Glyph has module visibility, structural interfaces for generic bounds, defer for cleanup, and structured-concurrency helpers, and it names the semantics it inherits from JavaScript instead of hiding them." />
+    <meta name="description" content="Glyph has module visibility, structural interfaces for generic bounds, defer for cleanup, structured-concurrency helpers, and a match that works as the value of any binding, and it names the semantics it inherits from JavaScript instead of hiding them." />
     <link rel="canonical" href="https://glyphlang.io/answers/language/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -136,6 +136,51 @@ let both = await task.<span class="add">all</span>([fn() { fetch_a() }, fn() { f
       </div>
 
       <div class="detail">
+        <p class="block-label">There's no <code>if</code>, so <code>match</code> has to carry everything</p>
+        <p>
+          The first thing a TypeScript developer asks after the exhaustiveness
+          pitch is whether <code>match</code> is really a general-purpose
+          conditional or just a nice way to destructure a union. It's the former,
+          and the place that proves it is assignment. A <code>match</code> that is
+          the whole value of a <code>let</code> or a <code>mut</code> takes
+          anything a statement takes: an arm can be a block, an arm can
+          <code>await</code>, an arm can <code>break</code> out of the surrounding
+          loop, and an arm can read the binding it is assigning, which is how you
+          fold state through a loop without an <code>if</code>.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">from the link checker: fence tracking, and an awaited arm</span>
+<pre>for raw in lines {
+  let fence = is_fence(raw)
+  <span class="add">mut</span> in_fence = <span class="add">match</span> fence {      <span class="cm"># reads the binding it assigns</span>
+    true =&gt; !in_fence,
+    false =&gt; in_fence,
+  }
+}
+
+let cache = <span class="add">match</span> args.offline {
+  true =&gt; no_cache(),
+  false =&gt; <span class="add">await</span> fetch_unique(external(links), args.max_concurrency),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Both compile to a plain <code>switch</code> that assigns the binding per
+          arm, so the <code>await</code> sits in the enclosing async function and
+          the accumulator is a normal variable TypeScript can infer. A
+          <code>match</code> used <em>inside</em> a larger expression, as an
+          argument or an operand, still becomes a closure, which means its arms
+          have to be single expressions. Hoisting it to its own <code>let</code>
+          lifts that. Both snippets are from
+          <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck.glyph"><code>examples/apps/linkcheck.glyph</code></a>,
+          a Markdown link checker written to find exactly this kind of thing.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">Money doesn't run on floats</p>
         <p>
           The gap that would end a fintech evaluation on the spot is doing money
@@ -174,11 +219,11 @@ decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, and a spec section owning the JS-inherited semantics.</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, and a spec section owning the JS-inherited semantics.</p>
         </div>
         <div class="status-card next">
           <p class="h">The honest edge</p>
-          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement.</p>
+          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is not checked by Glyph: <code>await</code> in a plain <code>fn</code> compiles and <code>tsc</code> catches it on the emitted TypeScript. And an async callback has no type you can write down yet, so a function taking one can't be given a signature.</p>
         </div>
       </div>
 

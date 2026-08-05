@@ -807,7 +807,8 @@ The loop pointed at a scheduling app: time ranges, blocks, a JSON boundary, type
 split across modules. The headline finding was that `type Instant = string where
 value.length > 3` validated at `Instant.parse("no")` and nowhere else:
 `Block.parse({ start: "no" })` returned Ok. Probing one step further found the
-same hole on a second axis. This trip carries the Next marker.
+same hole on a second axis. The Next marker has moved on to the linkcheck trip
+below.
 
 ### 0.1.41 — Shipped · Every descriptor the emitter emits, the emitter can find
 
@@ -870,6 +871,116 @@ regression test asserts the value import.
   bare `.d.ts` type still has nothing to call. Unchanged by this fix, and the
   registry is deliberately the authority so no bogus `X.is` is emitted for a type
   that has none.
+
+## linkcheck dogfood trip — one wrong condition, three TypeScript errors
+
+The loop pointed at `examples/apps/linkcheck.glyph`: walk a directory, scan
+Markdown for links, fan out HTTP requests with a bounded pool, report what is
+broken. Thirteen findings came out of it and most are stdlib breadth
+(`fs.read_dir`, capture groups in `regex`, timeouts in `http`). The one that
+matters is not on that list. Five findings ended with the same sentence, `glyph
+build` reported no diagnostics and `tsc` caught it, and three of the five turned
+out to be one defect in the emitter wearing three faces. That one is fixed here;
+the other two are recorded below, unfixed. This trip carries the Next marker.
+
+### 0.1.42 — Shipped · A `match` you assign is a `switch`, not a closure
+
+Glyph has no `if`/`else`, so `match` is the conditional, and in a real program it
+is usually the right-hand side of a binding. The emitter has two lowerings for
+it: a flat statement `switch` that assigns per arm, and a value IIFE for a
+`match` used as a sub-expression. `Stmt::Let` chose between them by asking "does
+any arm have a block body?" when the question that decides correctness is "is
+this `match` the whole initializer?". Three failures came out of that one guard,
+and each looked like its own bug:
+
+- An `await` in an arm landed inside a synchronous arrow, so `tsc` rejected the
+  emitted file with TS1308. The app's one place where offline mode skips the
+  network is exactly this shape.
+- A self-referential accumulator, `mut on = match on { ... }` inside a `for`, went
+  through an untyped IIFE and TypeScript refused to infer the binding it was
+  being defined from (TS7024).
+- `Stmt::Mut` had no `Expr::Match` path at all, so a block arm under `mut` was a
+  hard `EmitError` while the identical `let` compiled. That is G25, open since the
+  Minesweeper round, where it was filed as its own structural limit.
+
+The fix removes a special case rather than adding one. A `match` that is the
+whole value of a `let` or a `mut` assignment always lowers to the flat `switch`,
+which declares (or reuses) the binding and assigns it in each arm; the existing
+`default: throw` is what keeps TypeScript's definite-assignment analysis happy.
+The IIFE now fires only where it is actually needed, a `match` nested inside a
+larger expression, and there an `await` in an arm makes it an awaited async arrow
+instead of a sync one. The old block-arm rejection on that nested path stands,
+because a function-level `return` inside an arrow cannot mean what it says.
+
+Two follow-ons that the wider path exposed and closed with it: a `break` or
+`continue` in a `let`- or `mut`-bound arm now labels its loop, since an unlabeled
+`break` would have escaped only the `switch`; and an empty array literal in an arm
+is pinned to `never[]`, because a bare `[]` assigned to an unannotated binding
+starts TypeScript's evolving-array inference and every later read becomes an
+implicit `any[]` (TS7034/TS7005).
+
+Verifiability, inverted and put back. Every one of these built clean under
+`glyph build` and failed at `tsc` on the emitted TypeScript. The compiler is
+supposed to be the source of truth; on this path it was a preprocessor with
+opinions. `examples/apps/linkcheck.glyph` ships with the release with all three
+workarounds deleted, and its offline output is byte-identical to what the
+workaround version produced.
+
+### Still open from this trip
+
+- **`await` in a non-`async fn` is not checked by Glyph** (M). `fn nope() -> int
+  { return await slow() }` builds with no diagnostics and fails at `tsc` with
+  TS1308. There is no Glyph-side check of async context anywhere; the whole async
+  story is delegated to the emitted TypeScript. Same family as the fix above and
+  the next verifiability item after it.
+- **An `async` function type is unspellable** (decision, then S). `parse_atom_type`
+  has one function-type entry and `TypeExpr::Fn` carries no async bit, so a
+  parameter that takes an async callback cannot be typed. The fork is `async
+  fn() -> T` emitting `() => Promise<T>` versus `fn() -> T` emitting
+  `() => T | Promise<T>`. Needs the orchestrator's call.
+- **`{}` as a match arm is silent green** (decision, then M). `true => {}` parses
+  as an empty block, emits `case true: { break; }`, and the function falls out of
+  its own switch returning `undefined` while claiming a record type. `tsc` catches
+  it as TS2366. `X => {}` as a deliberate no-op statement arm is meaningful, so
+  `{}` cannot simply be reread as a record literal; the deeper half is that
+  `check_return_type` never asks whether a value-position arm produces a value.
+  `=> ({})` compiles, and then `glyph fmt` removes the parentheses and the
+  formatted file fails again, so the workaround is a named constructor.
+- **`@example` execution is opt-in behind `--test`, contradicting D23** (decision).
+  D23 is tagged verifiability so an agent rewriting a body cannot bypass the
+  examples, and a flag is a bypass by default. Making it default-on requires `tsx`
+  on `PATH` during a plain `glyph build`, which is a product call. Recorded
+  opinion: default it on, and degrade to a warning when `tsx` is absent rather
+  than skipping in silence.
+- **`std/fs` has no `read_dir`, `is_dir`, or `stat`, and `FsError.kind` has one
+  constant** (M). The app discovered directories by reading every path in a tree
+  and inspecting the errno it got back. Blocking for any CLI that takes a path;
+  one change to `fs.ts` covers both.
+- **`std/http` cannot bound or observe a request** (M). No headers, no final URL,
+  so a redirect is invisible; no timeout, no redirect policy, no `head`. The
+  `task.race` timeout workaround leaves the loser in flight, the exact thing
+  structured concurrency exists to prevent.
+- **`regex.find_all` drops capture groups** (S). It maps each match to `m[0]`, so
+  a scanner that needs the capture text is hand-rolled. It turned a 15-line link
+  extractor into a 180-line character scanner.
+- **`task.pool` is fail-fast with no settled variant** (S). One rejection abandons
+  the rest; `all_settled` is unbounded. `pool_settled` is a few lines.
+- **Stdlib breadth, third sighting** (S). `string.slice`, `index_of`, `replace`,
+  `repeat`, `pad_start`, `pad_end`, `trim_start`, `trim_end`; `array.fold`,
+  `index_of`, `flat_map`; and `iter.take_while`, which D21's own prose cites and
+  which does not exist.
+- **Two formatter defects** (S). The short-list branch short-circuits past the
+  width check, so a two-argument call with a nested lambda is emitted at any
+  length (137 columns observed). And D27 asks for canonical ordering of annotation
+  *kinds*, not of repeated arguments within one kind, so sorting `@example`
+  arguments costs the author's sequence for nothing.
+- **Three findings that were not gaps** (docs). Multi-line strings, `math.max`,
+  and the two-import rule for `std/time` all already work; the author
+  reimplemented around them. A shipped feature nobody can find is not a feature.
+- **`E0300` still says "value-position match arm"** (XS). The remaining block-arm
+  rejection now fires only for a `match` nested inside a larger expression, so the
+  wording points at a position that works. The message should name the nested case
+  and say "hoist it into its own `let`", which is the actual fix.
 
 ## Road to 1.0
 
@@ -1746,6 +1857,10 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **Value-position `match` lowers to a flat switch** — ✅ **done (0.1.42).** The
+  emitter picked between its statement `switch` and its value IIFE on the wrong
+  condition, which cost three different `tsc` errors on code Glyph called clean.
+  Written up with the trip that found it under "linkcheck dogfood trip" above.
 - **Await-spine for fluent sync-then-async chains** — ✅ **done (0.1.32).** `await`
   used to bind to the innermost call of a chain, right for the Result idiom
   (`await load(p).map_err(f)`) but wrong for a fluent API whose synchronous call

@@ -1087,6 +1087,124 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn value_position_match_type_checks() {
+    // A `match` that is the whole value of a `let` or a `mut` assignment lowers
+    // to a flat statement `switch`. Before that, an `await` arm landed inside a
+    // synchronous arrow (TS1308), a self-referential accumulator tripped circular
+    // inference (TS7024), and a block arm under `mut` was a hard emit error.
+    // Requires tsc; skipped otherwise.
+    if !tsc_available() {
+        eprintln!("skipping value-match tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("valuematch");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io
+import std/result { Result, Ok, Err }
+
+async fn slow(n: number) -> number {
+  return n
+}
+
+fn double(n: number) -> number {
+  return n * 2
+}
+
+async fn awaited(flag: bool) -> number {
+  let n = match flag {
+    true => await slow(1),
+    false => 0,
+  }
+  return n
+}
+
+async fn nested(flag: bool) -> number {
+  return double(match flag {
+    true => await slow(3),
+    false => 4,
+  })
+}
+
+fn unannotated(r: Result<number, string>) -> string {
+  let label = match r {
+    Ok(n) => "ok",
+    Err(e) => "err",
+  }
+  return label
+}
+
+fn reassigned(r: Result<number, string>) -> string {
+  let label = ""
+  mut label = match r {
+    Ok(n) => "ok",
+    Err(e) => {
+      io.println(e)
+      "err"
+    },
+  }
+  return label
+}
+
+fn toggled(xs: Array<number>) -> bool {
+  let on = false
+  for x in xs {
+    mut on = match on {
+      true => false,
+      false => true,
+    }
+  }
+  return on
+}
+
+fn tail(xs: Array<string>) -> Array<string> {
+  let rest = match xs {
+    [] => [],
+    [head, ...more] => more,
+  }
+  return rest
+}
+
+async fn main(argv: Array<string>) -> number {
+  io.println(unannotated(Ok(1)))
+  io.println(reassigned(Err("x")))
+  io.println("${await awaited(true)}")
+  io.println("${await nested(false)}")
+  io.println("${toggled([1, 2, 3])}")
+  let words = ["a", "b"]
+  io.println("${tail(words)}")
+  return 0
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    let ts = std::fs::read_to_string(out.join("main.ts")).expect("read emitted main.ts");
+    assert!(
+        ts.contains("n = (await slow(1));"),
+        "the awaited arm assigns directly, with no arrow:\n{ts}"
+    );
+    assert!(
+        ts.contains("(await (async () => {"),
+        "a genuinely nested match with an await arm uses an async arrow:\n{ts}"
+    );
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("value-position match program failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
     // Calling `parse<T>` on a generic descriptor imported from another module
     // must thread the runtime checker argument the imported `parse<T>(value,

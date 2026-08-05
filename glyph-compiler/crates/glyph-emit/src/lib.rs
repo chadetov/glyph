@@ -1431,16 +1431,17 @@ impl<'a> Emitter<'a> {
                     None => String::new(),
                 };
                 match &l.value {
-                    // `let x = match { ... }` where an arm is a block (so it may
-                    // `return` from the function) can't lower to a value IIFE — the
-                    // arrow would capture the `return`. Declare the binding, then
-                    // lower the match as a statement `switch` whose value arms
-                    // assign it and whose `return` arms return from the function.
-                    // The `default: throw` on an exhaustive switch keeps `tsc`'s
+                    // A `match` that is the WHOLE initializer never needs the value
+                    // IIFE: declare the binding, then lower the match as a statement
+                    // `switch` whose value arms assign it and whose block arms keep
+                    // function-level `return`. Doing this unconditionally (rather
+                    // than only when an arm is a block) is what makes an `await` arm
+                    // legal (no synchronous arrow wrapping it, TS1308), keeps a
+                    // self-referential accumulator out of circular inference
+                    // (TS7024), and lets a block arm appear at all. The
+                    // `default: throw` on an exhaustive switch keeps `tsc`'s
                     // definite-assignment happy.
-                    Expr::Match { scrutinee, arms, .. }
-                        if arms.iter().any(|a| matches!(a.body, MatchArmBody::Block(_))) =>
-                    {
+                    Expr::Match { scrutinee, arms, .. } => {
                         self.line(&format!("let {}{ty};", l.name));
                         let prev = self.assign_target.borrow_mut().replace(l.name.to_string());
                         let res = self.emit_match_dispatch(scrutinee, arms, ArmTerm::Assign);
@@ -1457,20 +1458,34 @@ impl<'a> Emitter<'a> {
                     }
                 }
             }
-            Stmt::Mut(m) => {
-                let s = match &m.kind {
-                    MutKind::Assign { target, value } => {
-                        // `emit_value` hoists any `?` in the RHS (like `let`),
-                        // emitting the unwrap before this assignment; the target
-                        // is a plain lvalue and needs no hoisting.
-                        let t = self.expr(target)?;
-                        let v = self.emit_value(value)?;
-                        format!("{t} = {v};")
-                    }
-                    MutKind::MethodCall { call } => format!("{};", self.emit_value(call)?),
-                };
-                self.line(&s);
-            }
+            Stmt::Mut(m) => match &m.kind {
+                // `mut <lvalue> = match { ... }`: the mirror of the `let` case
+                // above. The lvalue is rendered first (so `a.b` and `a[i]` work)
+                // and becomes the assign target; no declaration is emitted, since
+                // the binding already exists.
+                MutKind::Assign {
+                    target,
+                    value: Expr::Match { scrutinee, arms, .. },
+                } => {
+                    let t = self.expr(target)?;
+                    let prev = self.assign_target.borrow_mut().replace(t);
+                    let res = self.emit_match_dispatch(scrutinee, arms, ArmTerm::Assign);
+                    *self.assign_target.borrow_mut() = prev;
+                    res?;
+                }
+                MutKind::Assign { target, value } => {
+                    // `emit_value` hoists any `?` in the RHS (like `let`),
+                    // emitting the unwrap before this assignment; the target
+                    // is a plain lvalue and needs no hoisting.
+                    let t = self.expr(target)?;
+                    let v = self.emit_value(value)?;
+                    self.line(&format!("{t} = {v};"));
+                }
+                MutKind::MethodCall { call } => {
+                    let v = self.emit_value(call)?;
+                    self.line(&format!("{v};"));
+                }
+            },
             Stmt::Return(r) => match &r.value {
                 // A `return match { ... }` lowers to a `switch` statement so
                 // that `return` keeps its function-return semantics (an IIFE
@@ -3025,6 +3040,7 @@ impl<'a> Emitter<'a> {
                     }
                     ArmTerm::Assign => {
                         let t = self.assign_target.borrow().clone().unwrap_or_default();
+                        let v = pin_empty_array(v, e);
                         self.line(&format!("{t} = {v};"));
                         if break_on_fall {
                             self.line("break;");
@@ -3088,6 +3104,7 @@ impl<'a> Emitter<'a> {
                     }
                     ArmTerm::Assign => {
                         let t = self.assign_target.borrow().clone().unwrap_or_default();
+                        let s = pin_empty_array(s, e);
                         self.line(&format!("{t} = {s};"));
                         if break_on_fall {
                             self.line("break;");
@@ -3577,12 +3594,12 @@ impl<'a> Emitter<'a> {
                 sub.emit_fn_block(body, rv, None)?;
                 format!("{prefix}({params}){ret} => {}", sub.out)
             }
-            // A value-position `match` (`let x = match ...`, or nested in an
-            // expression) wraps the same statement lowering in an
-            // immediately-invoked arrow. Each arm `return`s from the arrow, so
-            // the IIFE evaluates to the matched value. (Expression arm bodies
-            // cannot contain a function-level `return`, so capturing it in the
-            // arrow is sound.)
+            // A `match` genuinely nested inside a larger expression (an argument,
+            // an operand) wraps the statement lowering in an immediately-invoked
+            // arrow. Each arm `return`s from the arrow, so the IIFE evaluates to
+            // the matched value. (A `match` that is the whole value of a `let`,
+            // `mut`, `return`, or arm body does NOT come through here: those
+            // lower to a flat `switch` statement.)
             Expr::Match { scrutinee, arms, .. } => {
                 // A block arm's `return` means function-return; inside the IIFE
                 // arrow it would return from the arrow instead, so value-position
@@ -3599,7 +3616,18 @@ impl<'a> Emitter<'a> {
                 let mut sub = self.sub(self.indent + 1);
                 sub.emit_match_dispatch(scrutinee, arms, ArmTerm::Return)?;
                 let pad = "  ".repeat(self.indent);
-                format!("(() => {{\n{}{pad}}})()", sub.out)
+                // An `await` in an arm cannot run inside a synchronous arrow
+                // (TS1308), so the wrapper becomes an awaited async arrow. It is
+                // parenthesized as a whole so a following `.field` or `(...)`
+                // binds to the match's value, not to `await`'s operand.
+                if arms.iter().any(|a| match &a.body {
+                    MatchArmBody::Expr(e) => contains_await(e),
+                    MatchArmBody::Block(_) => false,
+                }) {
+                    format!("(await (async () => {{\n{}{pad}}})())", sub.out)
+                } else {
+                    format!("(() => {{\n{}{pad}}})()", sub.out)
+                }
             }
             Expr::Jsx(j) => self.emit_jsx(j)?,
             // The escape hatch emits its raw TypeScript verbatim, parenthesized
@@ -4226,7 +4254,14 @@ fn stmt_has_captured_jump(stmt: &Stmt, in_switch: bool) -> bool {
         Stmt::Expr(e) => expr_has_captured_jump(e),
         Stmt::Return(r) => r.value.as_ref().is_some_and(expr_has_captured_jump),
         Stmt::Defer(d) => expr_has_captured_jump(&d.expr),
-        Stmt::Let(_) | Stmt::Mut(_) => false,
+        // A `match` that is the whole value of a `let`/`mut` lowers to a
+        // statement `switch`, so a `break`/`continue` in one of its arms lands
+        // inside that switch and needs the loop's label.
+        Stmt::Let(l) => expr_has_captured_jump(&l.value),
+        Stmt::Mut(m) => match &m.kind {
+            MutKind::Assign { value, .. } => expr_has_captured_jump(value),
+            MutKind::MethodCall { .. } => false,
+        },
     }
 }
 
@@ -4505,6 +4540,64 @@ fn contains_hoistable_try(e: &Expr) -> bool {
             TemplatePart::Text { .. } => false,
         }),
         // Leaves and opaque constructs (lambda/match/JSX).
+        _ => false,
+    }
+}
+
+/// Pin an empty array literal that an arm assigns into a lowered `match`'s
+/// binding. A bare `[]` assigned to an unannotated `let` starts TypeScript's
+/// evolving-array inference, and every later read of the binding is then an
+/// implicit `any[]` (TS7034/TS7005). The value IIFE this lowering replaced
+/// inferred `never[]` in the same spot, so the cast keeps the emitted type what
+/// it always was; `never[]` is assignable to any annotated array type, so an
+/// annotated binding is unaffected.
+fn pin_empty_array(rendered: String, e: &Expr) -> String {
+    match e {
+        Expr::Array { elements, .. } if elements.is_empty() => format!("{rendered} as never[]"),
+        _ => rendered,
+    }
+}
+
+/// Whether `e` contains an `await` that would run in the current function's
+/// async context. A nested lambda body is NOT descended into: it carries its own
+/// async-ness, and its `await` belongs to that lambda, not to the expression
+/// wrapping it. Used to decide whether a nested value-position `match` needs an
+/// awaited async arrow rather than a synchronous one.
+fn contains_await(e: &Expr) -> bool {
+    match e {
+        Expr::Await { .. } => true,
+        Expr::Binary { left, right, .. } => contains_await(left) || contains_await(right),
+        Expr::Index {
+            object: a,
+            index: b,
+            ..
+        } => contains_await(a) || contains_await(b),
+        Expr::Unary { operand: x, .. }
+        | Expr::Postfix { operand: x, .. }
+        | Expr::Member { object: x, .. } => contains_await(x),
+        Expr::Call { callee, args, .. } => {
+            contains_await(callee) || args.iter().any(contains_await)
+        }
+        Expr::New { callee, args, .. } => contains_await(callee) || args.iter().any(contains_await),
+        Expr::Array { elements, .. } => elements.iter().any(|el| match el {
+            ArrayElem::Expr(e) | ArrayElem::Spread(e) => contains_await(e),
+        }),
+        Expr::Object { fields, .. } => fields.iter().any(|f| match f {
+            ObjectField::KeyValue { value, .. } | ObjectField::Spread { value, .. } => {
+                contains_await(value)
+            }
+        }),
+        Expr::TemplateString { parts, .. } => parts.iter().any(|p| match p {
+            TemplatePart::Expr { value, .. } => contains_await(value),
+            TemplatePart::Text { .. } => false,
+        }),
+        // A nested value-position `match` lowers to its own wrapper; an `await`
+        // in its arms makes that wrapper awaited, so this one must be async too.
+        Expr::Match { arms, .. } => arms.iter().any(|a| match &a.body {
+            MatchArmBody::Expr(e) => contains_await(e),
+            MatchArmBody::Block(_) => false,
+        }),
+        // Leaves, lambdas (own async context), and JSX.
         _ => false,
     }
 }
@@ -5888,14 +5981,139 @@ mod tests {
     }
 
     #[test]
-    fn value_position_match_wraps_in_an_iife() {
+    fn let_bound_match_lowers_to_a_flat_switch() {
+        // A `match` that is the whole initializer never wraps in an arrow: the
+        // binding is declared, the switch assigns it.
         let ts = emit(
             "module x\npub fn f(r: Result<number, string>) -> string {\n  let label = match r {\n    Ok(n) => \"ok\",\n    Err(e) => \"err\",\n  }\n  return label\n}\n",
         );
-        assert!(ts.contains("let label = (() => {"), "{ts}");
+        assert!(ts.contains("let label;"), "{ts}");
+        assert!(!ts.contains("=> {"), "no arrow wrapper:\n{ts}");
         assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
+        assert!(ts.contains("label = \"ok\";"), "{ts}");
+        assert!(ts.contains("return label;"), "{ts}");
+    }
+
+    #[test]
+    fn annotated_let_bound_match_keeps_its_type_on_the_declaration() {
+        let ts = emit(
+            "module x\npub fn f(r: Result<number, string>) -> string {\n  let label: string = match r {\n    Ok(n) => \"ok\",\n    Err(e) => \"err\",\n  }\n  return label\n}\n",
+        );
+        assert!(ts.contains("let label: string;"), "{ts}");
+    }
+
+    #[test]
+    fn match_nested_in_an_expression_still_wraps_in_an_iife() {
+        // Only a `match` that is NOT the whole statement value goes through the
+        // value IIFE: here it is a call argument.
+        let ts = emit(
+            "module x\npub fn f(r: Result<number, string>) -> string {\n  return show(match r {\n    Ok(n) => \"ok\",\n    Err(e) => \"err\",\n  })\n}\n",
+        );
+        assert!(ts.contains("show((() => {"), "{ts}");
         assert!(ts.contains("return \"ok\";"), "{ts}");
-        assert!(ts.contains("})();"), "{ts}");
+        assert!(ts.contains("})())"), "{ts}");
+    }
+
+    #[test]
+    fn awaited_arm_in_a_let_bound_match_needs_no_arrow() {
+        // Gap 1: the arm's `await` used to land inside a synchronous IIFE
+        // (TS1308). The flat switch puts it in the enclosing async function.
+        let ts = emit(
+            "module x\npub async fn f(flag: bool) -> number {\n  let n = match flag {\n    true => await slow(),\n    false => 0,\n  }\n  return n\n}\n",
+        );
+        assert!(ts.contains("let n;"), "{ts}");
+        assert!(ts.contains("n = (await slow());"), "{ts}");
+        assert!(!ts.contains("() => {"), "no arrow wrapper at all:\n{ts}");
+    }
+
+    #[test]
+    fn awaited_arm_in_a_nested_match_uses_an_async_arrow() {
+        // A `match` nested in a larger expression keeps the IIFE, but an `await`
+        // in an arm makes it an awaited async arrow rather than a sync one.
+        let ts = emit(
+            "module x\npub async fn f(flag: bool) -> number {\n  return use_it(match flag {\n    true => await slow(),\n    false => 0,\n  })\n}\n",
+        );
+        assert!(ts.contains("(await (async () => {"), "{ts}");
+        assert!(ts.contains("return (await slow());"), "{ts}");
+    }
+
+    #[test]
+    fn await_inside_a_lambda_arm_does_not_make_the_wrapper_async() {
+        // The lambda carries its own async-ness; hoisting its `await` to the
+        // wrapper would be wrong.
+        let ts = emit(
+            "module x\npub fn f(flag: bool) -> number {\n  return use_it(match flag {\n    true => async fn() -> number { return await slow() },\n    false => async fn() -> number { return 0 },\n  })\n}\n",
+        );
+        assert!(ts.contains("(() => {"), "{ts}");
+        assert!(!ts.contains("(await (async () => {"), "{ts}");
+    }
+
+    #[test]
+    fn mut_assigned_match_lowers_to_a_flat_switch() {
+        // G25: `mut x = match` with a block arm was a hard EmitError while the
+        // `let` form worked. It now mirrors `let`: no declaration, the rendered
+        // lvalue is the assign target.
+        let ts = emit(
+            "module x\npub fn f(r: Result<number, string>) -> string {\n  let label = \"\"\n  mut label = match r {\n    Ok(n) => \"ok\",\n    Err(e) => { log(e)\n      \"err\" },\n  }\n  return label\n}\n",
+        );
+        assert!(ts.contains("switch (__m0.tag) {"), "{ts}");
+        assert!(ts.contains("label = \"ok\";"), "{ts}");
+        assert!(ts.contains("label = \"err\";"), "{ts}");
+        assert!(!ts.contains("let label;"), "no re-declaration:\n{ts}");
+    }
+
+    #[test]
+    fn mut_assigned_match_targets_a_field_lvalue() {
+        let ts = emit(
+            "module x\npub fn f(s: State, flag: bool) -> void {\n  mut s.count = match flag {\n    true => 1,\n    false => 0,\n  }\n}\n",
+        );
+        assert!(ts.contains("s.count = 1;"), "{ts}");
+        assert!(ts.contains("s.count = 0;"), "{ts}");
+    }
+
+    #[test]
+    fn empty_array_arm_is_pinned_so_the_binding_is_not_an_evolving_any() {
+        // `let xs = match ... { [] => [], ... }`: a bare `[]` assigned to an
+        // unannotated `let` makes TypeScript infer an evolving `any[]` and reject
+        // every later read (TS7034/TS7005).
+        let ts = emit(
+            "module x\npub fn f(xs: Array<string>) -> Array<string> {\n  let out = match xs {\n    [] => [],\n    [head, ...rest] => rest,\n  }\n  return out\n}\n",
+        );
+        assert!(ts.contains("out = [] as never[];"), "{ts}");
+        assert!(ts.contains("out = rest;"), "{ts}");
+    }
+
+    #[test]
+    fn break_in_a_mut_bound_match_arm_labels_the_loop() {
+        // The `mut x = match` statement lowering puts the arm's `break` inside a
+        // `switch`, so the loop needs a label for the jump to reach it.
+        let ts = emit(
+            "module x\nimport std/option { Option, Some, None }\npub fn f(xs: Array<Option<string>>) -> string {\n  let found = \"\"\n  for x in xs {\n    mut found = match x {\n      Some(s) => s,\n      None => break,\n    }\n  }\n  return found\n}\n",
+        );
+        assert!(ts.contains("__loop0: for (const x of xs) {"), "{ts}");
+        assert!(ts.contains("break __loop0;"), "{ts}");
+    }
+
+    #[test]
+    fn break_in_a_let_bound_match_arm_labels_the_loop() {
+        let ts = emit(
+            "module x\nimport std/option { Option, Some, None }\npub fn f(xs: Array<Option<string>>) -> string {\n  for x in xs {\n    let found = match x {\n      Some(s) => s,\n      None => break,\n    }\n    log(found)\n  }\n  return \"\"\n}\n",
+        );
+        assert!(ts.contains("__loop0: for (const x of xs) {"), "{ts}");
+        assert!(ts.contains("break __loop0;"), "{ts}");
+    }
+
+    #[test]
+    fn self_referential_mut_match_in_a_loop_has_no_circular_inference() {
+        // Gap 2 / TS7024: `mut on = match on { ... }` inside a loop used to emit
+        // an untyped IIFE whose inferred return type referenced the variable
+        // being inferred. A flat assignment has no inference cycle.
+        let ts = emit(
+            "module x\npub fn f(xs: Array<number>) -> bool {\n  let on = false\n  for i in xs {\n    mut on = match on {\n      true => false,\n      false => true,\n    }\n  }\n  return on\n}\n",
+        );
+        assert!(ts.contains("on = false;"), "{ts}");
+        assert!(ts.contains("on = true;"), "{ts}");
+        assert!(!ts.contains("() => {"), "no arrow wrapper:\n{ts}");
     }
 
     #[test]

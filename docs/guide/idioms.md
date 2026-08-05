@@ -43,6 +43,33 @@ are what fluent code looks like.
 - Use **`int`** for a value that must be a whole number at a boundary (an id, a
   count, a page size); use **`number`** when fractions are legal.
 
+## Branching
+
+- `match` is the conditional, so most branches are the right-hand side of a
+  binding: `let label = match kind(x) { ... }`. That form takes anything a
+  statement takes. An arm can be a block, an arm can `await`, an arm can `break`
+  out of the surrounding loop, and an arm can read the binding it is assigning,
+  which is how you accumulate:
+
+  ```glyph
+  for raw in lines {
+    let fence = is_fence(raw)
+    mut in_fence = match fence {
+      true => !in_fence,
+      false => in_fence,
+    }
+  }
+  ```
+
+- Two edges are worth knowing. A `match` nested inside a larger expression (an
+  argument, an operand, a field of a literal) compiles to a closure, so its arms
+  have to be single expressions and a `return` inside one would return from the
+  closure rather than your function. Hoist it to its own `let` and the
+  restriction goes away. And `=> {}` is an empty *block*, not an empty record, so
+  an arm that means "the empty map" needs a named constructor (`=> no_cache()`)
+  rather than a literal; parenthesizing it works until `glyph fmt` takes the
+  parentheses back off.
+
 ## Errors
 
 - Put the failure in the type: `Result<User, LoadError>`, where `LoadError` is a

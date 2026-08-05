@@ -1,0 +1,76 @@
+// D3 match in value position. A `match` that is the WHOLE value of a `let` or a
+// `mut` assignment lowers to a flat statement `switch` that assigns the binding;
+// only a `match` nested inside a larger expression keeps the arrow wrapper.
+module x
+
+import std/result { Result, Ok, Err }
+
+pub fn labelled(r: Result<number, string>) -> string {
+  let label = match r {
+    Ok(n) => "ok",
+    Err(e) => "err",
+  }
+  return label
+}
+
+pub fn annotated(r: Result<number, string>) -> string {
+  let label: string = match r {
+    Ok(n) => "ok",
+    Err(e) => "err",
+  }
+  return label
+}
+
+pub fn reassigned(r: Result<number, string>) -> string {
+  let label = ""
+  mut label = match r {
+    Ok(n) => "ok",
+    Err(e) => {
+      let prefix = "e: "
+      prefix + e
+    },
+  }
+  return label
+}
+
+pub fn toggled(xs: Array<number>) -> bool {
+  let on = false
+  for x in xs {
+    mut on = match on {
+      true => false,
+      false => true,
+    }
+  }
+  return on
+}
+
+pub fn tail(xs: Array<string>) -> Array<string> {
+  let rest = match xs {
+    [] => [],
+    [head, ...tail] => tail,
+  }
+  return rest
+}
+
+pub async fn awaited(flag: bool) -> number {
+  let n = match flag {
+    true => await slow(),
+    false => 0,
+  }
+  return n
+}
+
+pub async fn nested(flag: bool) -> number {
+  return double(match flag {
+    true => await slow(),
+    false => 0,
+  })
+}
+
+async fn slow() -> number {
+  return 1
+}
+
+fn double(n: number) -> number {
+  return n * 2
+}

@@ -1,0 +1,139 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { Result, Ok, Err } from "std/result";
+
+export function labelled(r: Result<number, string>): string {
+  let label;
+  const __m0 = r;
+  switch (__m0.tag) {
+    case "Ok": {
+      const n = __m0.value;
+      label = "ok";
+      break;
+    }
+    case "Err": {
+      const e = __m0.value;
+      label = "err";
+      break;
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+  return label;
+}
+
+export function annotated(r: Result<number, string>): string {
+  let label: string;
+  const __m1 = r;
+  switch (__m1.tag) {
+    case "Ok": {
+      const n = __m1.value;
+      label = "ok";
+      break;
+    }
+    case "Err": {
+      const e = __m1.value;
+      label = "err";
+      break;
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+  return label;
+}
+
+export function reassigned(r: Result<number, string>): string {
+  let label = "";
+  const __m2 = r;
+  switch (__m2.tag) {
+    case "Ok": {
+      const n = __m2.value;
+      label = "ok";
+      break;
+    }
+    case "Err": {
+      const e = __m2.value;
+      let prefix = "e: ";
+      label = (prefix + e);
+      break;
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+  return label;
+}
+
+export function toggled(xs: Array<number>): boolean {
+  let on = false;
+  for (const x of xs) {
+    const __m3 = on;
+    switch (__m3) {
+      case true: {
+        on = false;
+        break;
+      }
+      case false: {
+        on = true;
+        break;
+      }
+      default: throw new Error("non-exhaustive match");
+    }
+  }
+  return on;
+}
+
+export function tail(xs: Array<string>): Array<string> {
+  let rest;
+  const __m4 = xs;
+  if (__m4.length === 0) {
+    rest = [] as never[];
+  } else if (__m4.length >= 1) {
+    const head = __m4[0];
+    const tail = __m4.slice(1);
+    rest = tail;
+  } else {
+    throw new Error("non-exhaustive match");
+  }
+  return rest;
+}
+
+export async function awaited(flag: boolean): Promise<number> {
+  let n;
+  const __m5 = flag;
+  switch (__m5) {
+    case true: {
+      n = (await slow());
+      break;
+    }
+    case false: {
+      n = 0;
+      break;
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+  return n;
+}
+
+export async function nested(flag: boolean): Promise<number> {
+  return double((await (async () => {
+    const __m6 = flag;
+    switch (__m6) {
+      case true: {
+        return (await slow());
+      }
+      case false: {
+        return 0;
+      }
+      default: throw new Error("non-exhaustive match");
+    }
+  })()));
+}
+
+async function slow(): Promise<number> {
+  return 1;
+}
+
+function double(n: number): number {
+  return (n * 2);
+}

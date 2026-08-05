@@ -126,6 +126,28 @@ let kind = match argv {                 // string-literal + array-destructuring 
 }
 ```
 
+A `match` that is the whole value of a `let` or a `mut` accepts everything a
+statement accepts: a block-bodied arm, an `await` in an arm, a `break` or
+`continue` that leaves the surrounding loop, and an arm that reads the binding it
+is assigning (the accumulator form).
+
+```glyph
+mut in_fence = match is_fence(line) {   // reads the binding it assigns
+  true => !in_fence,
+  false => in_fence,
+}
+
+let cache = match offline {
+  true => no_cache(),                   // `{}` here is an empty BLOCK, not a record
+  false => await fetch_all(urls),
+}
+```
+
+A `match` nested **inside a larger expression** (an argument, an operand, a field
+of a literal) compiles to a closure, so its arms must be single expressions and a
+`return` inside one is illegal. Hoist it into its own `let` and the restriction
+goes away.
+
 ### Loops (`for` / `loop`)
 
 There is no `while`. `for` iterates a bounded collection; `loop` is the

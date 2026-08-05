@@ -61,6 +61,17 @@ you want to expose `pub` in its own module.
 **E0221: unknown annotation.** An `@name` the compiler doesn't recognize (a typo
 like `@puer`). The recognized set is small and documented in the spec (D27).
 
+**E0300: a block body in a value-position match arm.** Only a `match` nested
+inside a larger expression hits this, because that form compiles to a closure. A
+`match` that is the whole value of a `let` or a `mut` takes block arms, `await`,
+and `break`. Pull the nested one out into its own `let` and the arms can be
+blocks again.
+
+**TS1308: `await` is only allowed within async functions.** Glyph does not check
+async context itself, so `await` inside a plain `fn` compiles and `tsc` reports
+it on the emitted TypeScript, mapped back to your line. Mark the function
+`async fn`.
+
 ## Runtime
 
 **A stack trace points at a `.ts` file, not my `.glyph`.** `glyph run` executes

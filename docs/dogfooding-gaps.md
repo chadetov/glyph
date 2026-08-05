@@ -496,9 +496,13 @@ on a decision in `docs/roadmap/releases.md`.
   while `=> { return f(x)? }` and `=> return Ok(f(x)?)` both compile. One call
   site in the emitter uses `self.expr` where every other statement position uses
   `self.emit_value`. A missed call site, not a design.
-- **G25. A value-position `match` cannot host block arms.** A `match` used as a
-  sub-expression lowers to an IIFE that rejects block arms, and in that position
-  G24 has no workaround. Structural and separate from G24.
+- **G25. [FIXED] A value-position `match` cannot host block arms.** A `match`
+  used as a sub-expression lowers to an IIFE that rejects block arms, and in that
+  position G24 has no workaround. Structural and separate from G24. *Fixed in
+  round 10 as part of G43: a `match` that is the whole value of a `let` or a
+  `mut` assignment no longer goes through the IIFE at all. A `match` nested
+  inside a larger expression still rejects block arms, because a function-level
+  `return` there genuinely cannot be captured by an arrow.*
 - **G26. `std/string` has no `repeat`, `pad_start`, or `pad_end`.** Every program
   that renders a grid or aligned columns needs them; the app hand-rolled all
   three. Three wrappers plus three names in the resolver seed.
@@ -681,3 +685,114 @@ the same hole on a second axis, and the two are one defect.
   Glyph-stage summary is printed before the TypeScript stage runs, so a red build
   is introduced by a green line. The same "silent green" family as G38, one stage
   later. Tracked in `docs/roadmap/releases.md`.
+
+## Round 10 — a Markdown link checker, and the emitter as the source of truth
+
+The loop pointed at `examples/apps/linkcheck.glyph`: walk a directory, scan text
+for Markdown links, fan out HTTP requests, report. It could not do any of those
+three things without reaching past the language, so the round produced a long
+stdlib list. The headline is not on that list. Five separate findings ended with
+the same sentence — Glyph reported no diagnostics and only `tsc` caught it — and
+a sixth turned up while checking them. The compiler is supposed to be the source
+of truth. On the async path it was a preprocessor with opinions.
+
+- **G43. [FIXED] Value-position `match` picked its lowering on the wrong
+  condition.** The emitter has two lowerings for `match`, a flat statement
+  `switch` and a value IIFE, and `Stmt::Let` chose between them by asking "is any
+  arm a block?" instead of "is this match the whole initializer?". Three symptoms
+  came out of that one guard: an `await` in an arm landed inside a synchronous
+  arrow and `tsc` rejected it (TS1308); a self-referential accumulator
+  (`mut on = match on { ... }` in a loop) went through an untyped IIFE and tripped
+  circular inference (TS7024); and `Stmt::Mut` had no `Expr::Match` path at all,
+  so a block arm was a hard `EmitError` under `mut` where the identical `let`
+  compiled (that is G25). All three built clean under `glyph build`. *Fixed by
+  deleting the special case rather than adding one: a `match` that is the whole
+  value of a `let` or a `mut` assignment always lowers to the flat `switch`,
+  which declares (or reuses) the binding and assigns it per arm, with the
+  existing `default: throw` keeping `tsc`'s definite-assignment analysis happy.
+  The IIFE now fires only for a `match` nested inside a larger expression, and
+  there an `await` in an arm makes it an awaited async arrow. Two follow-ons that
+  the wider path exposed: a `break`/`continue` in a `mut`-bound or `let`-bound
+  match arm now labels its loop (an unlabeled `break` would have escaped only the
+  `switch`), and an empty array literal in an arm is pinned to `never[]`, because
+  a bare `[]` assigned to an unannotated `let` starts TypeScript's evolving-array
+  inference and every later read becomes an implicit `any[]` (TS7034/TS7005).*
+- **G44. `await` in a non-`async fn` is not checked by Glyph.** `fn nope() -> int
+  { return await slow() }` builds with no diagnostics and fails at `tsc` with
+  TS1308. There is no Glyph-side check of async context anywhere; the whole async
+  story is delegated. Same family as G43 and the reason the async-arrow fallback
+  above is no regression.
+- **G45. An `async` function type is unspellable.** `parse_atom_type` has exactly
+  one function-type entry (`Token::Fn`) and `TypeExpr::Fn` carries no async bit,
+  so a parameter that takes an async callback cannot be typed. Closing it is a
+  fork — `async fn() -> T` emitting `() => Promise<T>`, versus `fn() -> T`
+  emitting `() => T | Promise<T>` — and that is an orchestrator call, not an
+  agent's. Deliberately out of scope for the G43 fix.
+- **G46. `std/fs` has no `read_dir`, `is_dir`, or `stat`.** Six exported
+  functions and nothing that enumerates a directory. The app discovered
+  directories by reading every path in a tree and inspecting the `errno` it got
+  back, which is as bad as it sounds. Blocking for any CLI that takes a path.
+- **G47. `FsError.kind` is `{ tag: string }` with one constant.** `NotFound` is
+  the entire taxonomy, so an fs error cannot be matched exhaustively. That is the
+  errors-as-values promise leaking. It batches with G46: one change to `fs.ts`
+  that names the errnos a filesystem program recovers from (`NotFound`,
+  `IsADirectory`, `NotADirectory`, `PermissionDenied`, `AlreadyExists`) and keeps
+  an `Other { code }` tail.
+- **G48. `{}` as a match arm is silent green.** `true => {}` parses as an empty
+  block, emits `case true: { break; }`, and the function falls out of its own
+  switch returning `undefined` while claiming a record type. No Glyph diagnostic;
+  `tsc` catches it as TS2366. Narrower than first reported: an unquoted `{ a: 1 }`
+  arm parses fine, so only `{}` and string-keyed literals are affected. Two
+  halves, both needing a decision rather than a patch: `X => {}` as a deliberate
+  no-op *statement* arm is meaningful, so `{}` cannot simply be reread as a
+  record; and the deeper half is that `check_return_type` never asks whether a
+  value-position arm produces a value at all. The next verifiability item after
+  G43. The obvious workaround does not survive the toolchain: `=> ({})` compiles
+  and passes `tsc`, and then `glyph fmt` takes the parentheses back off and the
+  formatted file reproduces the error. Until this is decided, an arm that means
+  "the empty map" needs a named constructor.
+- **G49. `@example` execution is opt-in behind `--test`, contradicting D23.** D23
+  is tagged verifiability precisely so an agent rewriting a body cannot bypass
+  the examples, and a flag is a bypass by default. Making it default-on requires
+  `tsx` on `PATH` during a plain `glyph build`, which is a product decision
+  (offline builds, CI without `node_modules`). Orchestrator call. The recorded
+  opinion: default it on and degrade to a *warning* when `tsx` is absent, rather
+  than skipping silently.
+- **G50. `std/string` and `std/array` are still short of the basics.**
+  `string.slice`, `index_of`, `replace`, `repeat`, `pad_start`, `pad_end`,
+  `trim_start`, `trim_end`; `array.fold`, `index_of`, `flat_map`. This is G26's
+  third sighting and G34's second, and `array.fold` was already written up as
+  "the one that costs a pillar". They are abstraction chores, which is exactly
+  why they keep getting picked over harder work. Batch them in one stdlib round,
+  and settle `iter.take_while` at the same time: D21's prose cites it and it does
+  not exist.
+- **G51. `regex` cannot iterate captures.** `regex.find_all` maps each match to
+  `m[0]` and drops the groups, so a scanner that needs the capture text has to be
+  hand-rolled. It turned a 15-line link extractor into a 180-line character
+  scanner.
+- **G52. `std/http` cannot bound or observe a request.** `Response` is
+  `{ status, body }` with no headers and no final URL, so a redirect is
+  invisible; `RequestInit` is `{ method }` with no timeout and no redirect
+  policy; there is no `head`. The app's `task.race` timeout workaround leaves the
+  loser in flight, which is the exact thing `task.ts`'s own doc comment says the
+  scope exists to prevent. A network client that cannot bound a request is not
+  shippable. One coherent `std/http` round.
+- **G53. `task.pool` is fail-fast with no settled variant.** `pool` is
+  `Promise.all` over workers, so one rejection abandons the rest, and
+  `all_settled` is unbounded. `pool_settled` is a few lines and turns a
+  convention into a check.
+- **G54. Two formatter defects, both cheap.** The `items.len() <= INLINE_MAX`
+  branch short-circuits past both the width check and the newline check, so a
+  two-argument call with a nested lambda body is emitted at any length (137
+  columns observed). And D27 asks for canonical ordering of annotation *kinds*,
+  not of repeated arguments within one kind, so the `raw_args` tiebreaker sorts
+  `@example` arguments and costs the author's sequence for nothing. Note the
+  reflow complaint underneath this is doc-versus-doc, not doc-versus-code: the
+  formatter's own module comment says it keeps a list inline while it fits
+  `PRINT_WIDTH`, and the guide is the document that overpromises.
+- **G55. Three findings that were not gaps, and what they have in common.**
+  Multi-line strings work (D12, with a regression test), `math.max` exists, and
+  the two-import rule for `std/time` is documented behaviour. In all three cases
+  the author reimplemented or routed around something that already shipped. Two
+  of the three are discoverability failures, not surface failures, which is a
+  docs round of its own: a shipped feature nobody can find is not a feature.

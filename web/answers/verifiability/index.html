@@ -201,7 +201,7 @@ type Calendar = { participants: Array&lt;WireParticipant&gt; }
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing is on the roadmap. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm.</p>
+          <p>Deeper flow-narrowing is on the roadmap. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm. Async context is the one rule Glyph does not check itself: an <code>await</code> in a plain <code>fn</code> compiles here and is caught by <code>tsc</code> on the emitted TypeScript, so you get the error one stage later than you should.</p>
         </div>
       </div>
 

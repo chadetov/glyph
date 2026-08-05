@@ -6,13 +6,19 @@ Status: **core complete; soft exit pending.** The fridge app
 rounds: (1) build + use across the whole command surface, producing a 20-item
 gap list in [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md); (2) extend
 (merge-on-add, summary footer) and surface round-2 findings; (3) an adversarial
-multi-agent review of the fixes, with round-3 fixes. **The gap list is now closed
-— zero open bugs:** the critical/high tier fixed (correctness, silent-green,
+multi-agent review of the fixes, with round-3 fixes. That first list closed with
+zero open bugs: the critical/high tier fixed (correctness, silent-green,
 multi-file, typechecker field/arg checks, validating recursive `json.parse`), and
 the medium/low tier fixed or resolved as documented, forward-compatible v1.1
-deferrals. Remaining (soft) exit criteria: sustained personal use and the
-optional app #2. The syntax corpus did not change, so no re-lock is needed before
+deferrals. The syntax corpus did not change, so no re-lock is needed before
 step 7. Full session log in `archive/glyph_step6_session.md`.
+
+Dogfooding did not stop there. It is now a standing loop: one app per release,
+each one written to find something. `examples/apps/` holds the apps and
+[`docs/dogfooding-gaps.md`](../dogfooding-gaps.md) is the live list, ten rounds
+deep. **Read it, not this paragraph, for what is open.** Each round's fix and its
+unfixed findings are written up per release in
+[`releases.md`](releases.md).
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

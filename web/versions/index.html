@@ -49,8 +49,28 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.41</span>
+            <span class="rel-ver">0.1.42</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A <code>match</code> you assign is a switch, not a closure</h3>
+            <p>Glyph has no <code>if</code>, so <code>match</code> is the conditional, and in real code it is usually the right-hand side of a binding. The emitter had two ways to lower it, a flat <code>switch</code> and a closure for a <code>match</code> used inside a bigger expression, and it picked between them by asking whether any arm had a block body instead of whether the <code>match</code> was the whole value being assigned. Three unrelated-looking failures came out of that one condition, and all three passed <code>glyph build</code> and then failed at <code>tsc</code>. A Markdown link checker found them.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> An <code>await</code> in a match arm no longer lands inside a synchronous arrow. <code>let cache = match args.offline { true =&gt; no_cache(), false =&gt; await fetch_all(urls), }</code> emits the <code>await</code> directly in the enclosing async function. It used to emit TS1308.</li>
+              <li><span class="tag fixed">Fixed</span> An accumulator that reads the binding it assigns works. <code>mut in_fence = match fence { true =&gt; !in_fence, false =&gt; in_fence, }</code> inside a loop went through an untyped closure and TypeScript refused to infer a variable from itself (TS7024).</li>
+              <li><span class="tag fixed">Fixed</span> <code>mut x = match ...</code> with a block-bodied arm compiles. It had no match path at all in the emitter, so it was a hard emit error while the identical <code>let</code> form worked. This was the oldest open item on the dogfooding list.</li>
+              <li><span class="tag fixed">Fixed</span> A <code>break</code> or <code>continue</code> in an assigned match arm labels its loop, so it leaves the loop instead of just the generated <code>switch</code>. And an empty array literal in an arm is pinned to <code>never[]</code>, so an unannotated binding does not become an evolving <code>any[]</code> (TS7034).</li>
+              <li><span class="tag known">Known</span> A <code>match</code> nested inside a larger expression still compiles to a closure, so its arms have to be single expressions and a <code>return</code> in one would return from the closure. Hoisting it to its own <code>let</code> removes the restriction. An <code>await</code> in that position now makes the closure async and awaited.</li>
+              <li><span class="tag known">Known</span> Glyph does not check async context itself. <code>await</code> in a plain <code>fn</code> compiles here and is caught by <code>tsc</code> on the emitted TypeScript, one stage later than it should be.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/linkcheck.glyph</code>, the app that found it. It walks a directory of Markdown, pulls out inline links, reference definitions, autolinks, and image sources, skips anything inside a fenced block or a code span, resolves relative links on disk, checks <code>file.md#anchor</code> against the target's headings with GitHub's slug rules, and fetches external URLs once per unique URL through a bounded pool.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.41</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

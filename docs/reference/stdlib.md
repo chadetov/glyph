@@ -145,17 +145,42 @@ named-import `parse`) when you want validation rather than a bare cast.
 
 ## std/fs
 
-Synchronous text file I/O. Errors are values: match on `e.kind` to recover.
+Synchronous text file I/O and directory inspection. Errors are values: match on
+`e.kind` to recover.
 
 ```
-type ErrorKind = { tag: string }               // ErrorKind.NotFound for a missing file
+type ErrorKind =
+  | NotFound | IsADirectory | NotADirectory | PermissionDenied | AlreadyExists
+  | Other({ code: string })                    // the raw errno for everything unnamed
 type FsError = { kind: ErrorKind, message: string }
+type FileInfo = { is_dir: bool, is_file: bool, size: int, modified: int }  // size in bytes, modified in epoch ms
 fs.read_text(path: string) -> Result<string, FsError>
 fs.write_text(path: string, contents: string) -> Result<void, FsError>
 fs.append_text(path: string, contents: string) -> Result<void, FsError>   // append, creating the file; the primitive for an append-only log
 fs.make_dir(path: string) -> Result<void, FsError>                        // create the dir and any parents; idempotent (`mkdir -p`)
 fs.exists(path: string) -> bool
 fs.remove(path: string) -> Result<void, FsError>
+fs.read_dir(path: string) -> Result<Array<string>, FsError>               // entry names, not full paths; not recursive
+fs.is_dir(path: string) -> bool                                           // false for a missing or unreadable path
+fs.stat(path: string) -> Result<FileInfo, FsError>                        // follows symlinks
+```
+
+The five named kinds cover what a filesystem program recovers from. EACCES and
+EPERM both arrive as `PermissionDenied`, so those two raw codes are the ones you
+cannot recover; every other unnamed errno keeps its code on `Other`. Glyph does
+not check a `match e.kind` for exhaustiveness yet (the typechecker models stdlib
+function returns, not stdlib type shapes), so write an `else` arm: an omitted
+kind throws at run time rather than failing the build.
+
+`read_dir` returns names in whatever order the OS gives, which differs across
+platforms and filesystems. Sort them when the output has to be reproducible.
+Walking a tree is `read_dir` + `is_dir` + `path.join([dir, name])`; there is no
+`walk` or glob helper.
+
+```
+fs.read_dir(dir).map(fn(names: Array<string>) {
+  return array.filter(names, fn(n: string) { return fs.is_dir(path.join([dir, n])) })
+})
 ```
 
 ## std/process
@@ -240,7 +265,15 @@ all<T>(tasks: Array<fn() -> T>) -> Array<T>              // run concurrently, jo
 race<T>(tasks: Array<fn() -> T>) -> T                    // first task to settle
 pool<T>(limit: number, tasks: Array<fn() -> T>) -> Array<T>   // at most `limit` in flight, join in order (fail-fast)
 all_settled<T>(tasks: Array<fn() -> T>) -> Array<Settled<T>>  // one outcome per task, never rejects
+pool_settled<T>(limit: number, tasks: Array<fn() -> T>) -> Array<Settled<T>>  // bounded, one outcome per task, never rejects
 ```
+
+`pool` is fail-fast: the first rejection rejects the pool. It does not stop the
+run, because nothing in JavaScript can. The other workers keep draining the queue
+and every result they produce is thrown away, so a fail-fast pool over 500 URLs
+still sends all 500. `pool_settled` is the same bound with `all_settled`'s
+behaviour: a task that throws costs one result, and you get the other 499. Read
+the `unknown` in a failed outcome with `string.from(e)`.
 
 Each is `async`, so `await` the result. JavaScript can't force-cancel a running
 task, so a failure in `all` abandons its siblings' results rather than halting
@@ -257,9 +290,31 @@ matches(pattern: string, text: string) -> bool           // does it match anywhe
 find_all(pattern: string, text: string) -> Array<string> // every match (global)
 find_first(pattern: string, text: string) -> string      // first match, or ""
 captures(pattern: string, text: string) -> Array<string> // capture groups of the first match
+captures_all(pattern: string, text: string) -> Array<Array<string>>  // capture groups of every match
 replace_all(pattern: string, text: string, replacement: string) -> string
 split(pattern: string, text: string) -> Array<string>
 ```
+
+`captures` and `captures_all` return groups 1 onward: the whole match is not in
+the array, so group 1 is at index 0. That differs from JavaScript's `matchAll`,
+which puts the whole match at index 0. They also differ on absence: a group that
+did not participate is `""`, not `undefined`, so an empty capture and a missing
+one read the same.
+
+That matters when one pattern alternates over several shapes and you need to know
+which one fired. Wrap each branch's group around the whole construct rather than
+around the part you want, and nest the payload group inside it. A group that
+fired then always starts with a literal character and can never be empty, so
+non-empty is a reliable test, and the payload group is never the thing you ask
+about:
+
+```
+// 1 fired: a code span. 2 fired: a link, and 3 is its target, which may be empty.
+const INLINE = "(`[^`]*`?)|(!?\\[[^\\]]*\\]\\(([^)]*)\\))"
+```
+
+Neither function reports where a match started. A scanner that needs the offset,
+or whose discriminator can legitimately match empty, still writes its own loop.
 
 `std/regex` takes the pattern first. Every other module takes the subject first,
 so `regex.replace_all(pattern, text, replacement)` and

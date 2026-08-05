@@ -119,7 +119,7 @@ impl StdlibStubs {
             "std/fs",
             &[
                 "read_text", "write_text", "append_text", "make_dir", "exists", "remove",
-                "ErrorKind", "FsError",
+                "read_dir", "is_dir", "stat", "ErrorKind", "FsError", "FileInfo",
             ],
         );
         s.add(
@@ -133,12 +133,19 @@ impl StdlibStubs {
         // `get`/`set`/`update` methods read and mutate a value held in a closure.
         s.add("std/store", &["Store", "create"]);
         // Structured-concurrency helpers over Promises: `all` (fail-fast join),
-        // `race` (first to settle), `all_settled` (one outcome per task).
-        s.add("std/task", &["all", "race", "pool", "all_settled", "Settled"]);
+        // `race` (first to settle), `all_settled` (one outcome per task), and the
+        // bounded pair `pool`/`pool_settled`.
+        s.add(
+            "std/task",
+            &["all", "race", "pool", "pool_settled", "all_settled", "Settled"],
+        );
         // Regular expressions (stateless, one `RegExp` per call).
         s.add(
             "std/regex",
-            &["matches", "find_all", "find_first", "captures", "replace_all", "split"],
+            &[
+                "matches", "find_all", "find_first", "captures", "captures_all", "replace_all",
+                "split",
+            ],
         );
         // A hash set with value semantics for primitives; maps use `Record<K, V>`.
         s.add("std/set", &["Set", "create", "unique"]);

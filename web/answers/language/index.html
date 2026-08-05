@@ -280,6 +280,115 @@ io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<s
       </div>
 
       <div class="detail">
+        <p class="block-label">Can I walk a directory and tell what broke?</p>
+        <p>
+          <code>std/fs</code> shipped six functions and none of them listed a
+          directory. The link checker in this repo reached past the stdlib into
+          node's <code>readdirSync</code>, and worked out which paths were
+          directories by trying to read them and inspecting the
+          <code>errno</code> that came back. Both halves of that are fixed.
+          <code>fs.read_dir</code> returns the entry names one level down,
+          <code>fs.is_dir</code> answers with a <code>bool</code> the way
+          <code>fs.exists</code> does, and <code>fs.stat</code> returns a
+          <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>,
+          <code>size</code> in bytes, and <code>modified</code> in epoch
+          milliseconds, which <code>time.format_iso</code> renders directly.
+          There is no recursive <code>walk</code> and no glob; a walk is those
+          three plus <code>path.join</code> in about ten lines.
+        </p>
+        <p>
+          The failure side changed more. <code>FsError.kind</code> was
+          <code>{ tag: string }</code> with <code>NotFound</code> as the whole
+          taxonomy, so telling &ldquo;that path is a directory&rdquo; from
+          &ldquo;that path is missing&rdquo; meant comparing an errno string.
+          Now the five kinds a program actually recovers from have names, and an
+          errno with no name arrives intact on the <code>Other</code> tail.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">walk a tree, and name what went wrong</span>
+<pre>let names = fs.<span class="add">read_dir</span>(dir)?
+for name in names {
+  let child = path.join([dir, name])
+  match fs.<span class="add">is_dir</span>(child) {
+    true  =&gt; visit(child),
+    false =&gt; {
+      let info = fs.<span class="add">stat</span>(child)?
+      report_size(child, info.size)
+    },
+  }
+}
+
+match err.<span class="add">kind</span> {
+  fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
+  fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
+  fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
+  fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
+  else =&gt; io.eprintln(err.message),
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Two smaller ones landed with it, both from the same app.
+          <code>regex.captures_all</code> gives you the capture groups of every
+          match instead of just the matched text, so a flat
+          <code>key=value</code> scan stops being a hand-rolled loop. And
+          <code>task.pool_settled</code> is <code>task.pool</code> with
+          <code>all_settled</code>&rsquo;s failure behaviour: bounded
+          concurrency, one outcome per task, and one dead host costs you that
+          host's result rather than every result the pool had collected.
+        </p>
+        <p>
+          What the <code>match</code> above does not get is a check. Glyph's
+          typechecker models what a stdlib function returns, not the shape of a
+          stdlib type, so <code>e.kind</code> is unknown to it and a match that
+          forgets <code>PermissionDenied</code> compiles clean and throws at run
+          time. Write the <code>else</code> arm. The names are the win here; the
+          exhaustiveness check waits on teaching the compiler the stdlib's own
+          types, which is a bigger change than adding a function.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p class="block-label">How do you know the functions are the right ones?</p>
+        <p>
+          Because the app that asked for them had to stop working around them
+          before the release counted as done. A library function that ships and a
+          workaround that outlives it are different claims, so the same change
+          that added these four deleted the link checker's copies: the
+          <code>readdirSync</code> import, both <code>errno</code> string
+          comparisons, 97 lines of hand-rolled scanner, and the fail-fast pool.
+          122 lines came out.
+        </p>
+        <p>
+          Two of those deletions changed what the program does, and the
+          difference was measured rather than argued. Point the old and new
+          versions at a tree containing a directory you cannot read: the new one
+          prints <code>permission denied</code> and counts the path as
+          unreadable, and the old one, which could only ask whether the errno was
+          <code>EISDIR</code>, left it out of the report entirely. Make one of
+          three URLs throw: <code>pool_settled</code> printed all three rows and
+          named the failure, and <code>pool</code> printed nothing and died on an
+          unhandled rejection, taking the two good results with it.
+        </p>
+        <p>
+          The scanner rewrite settled a design worry too. Since a capture group
+          that did not participate reads as <code>""</code>, the same as one that
+          matched empty, <code>captures_all</code> looked unable to tell you which
+          branch of an alternation fired. It can, if you write each branch's group
+          around the whole construct rather than around the part you want: a group
+          that fired then starts with <code>`</code>, <code>[</code>,
+          <code>!</code>, or <code>&lt;</code>, and cannot be empty. The
+          possibly-empty piece, the link target, nests inside and is never the
+          thing you ask about. That turned a 180-line character walk into two
+          patterns and a 12-line dispatch, with byte-identical output on the
+          repo's own docs and on a fixture built to break it.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">Money doesn't run on floats</p>
         <p>
           The gap that would end a fintech evaluation on the spot is doing money
@@ -318,11 +427,11 @@ decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>.</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, a named <code>FsError.kind</code> taxonomy, and <code>regex.captures_all</code>.</p>
         </div>
         <div class="status-card next">
           <p class="h">The honest edge</p>
-          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is not checked by Glyph: <code>await</code> in a plain <code>fn</code> compiles and <code>tsc</code> catches it on the emitted TypeScript. An async callback has no type you can write down yet, so a function taking one can't be given a signature. And the arm join only handles arms that agree: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it, same as an iterand that came from a stdlib call the checker doesn't model, which still binds a string index. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, so there's no codepoint-aware <code>chars</code> or <code>char_at</code> until that choice is settled, and a surrogate pair still comes apart under <code>split(s, "")</code>. The two <code>index_of</code> returns aren't modeled by Glyph's checker either: a <code>match</code> on one with no <code>None</code> arm builds clean and throws at run time, so write the <code>None</code> arm.</p>
+          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is not checked by Glyph: <code>await</code> in a plain <code>fn</code> compiles and <code>tsc</code> catches it on the emitted TypeScript. An async callback has no type you can write down yet, so a function taking one can't be given a signature. And the arm join only handles arms that agree: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it, same as an iterand that came from a stdlib call the checker doesn't model, which still binds a string index. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, so there's no codepoint-aware <code>chars</code> or <code>char_at</code> until that choice is settled, and a surrogate pair still comes apart under <code>split(s, "")</code>. The two <code>index_of</code> returns aren't modeled by Glyph's checker either: a <code>match</code> on one with no <code>None</code> arm builds clean and throws at run time, so write the <code>None</code> arm. <code>FsError.kind</code> is the same story: the kinds have names, but nothing checks that your <code>match</code> covers them, so keep the <code>else</code>. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible.</p>
         </div>
       </div>
 

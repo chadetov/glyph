@@ -60,15 +60,13 @@ import std/option { Option, Some, None }
 import std/path
 import std/process
 import std/record
+import std/regex
 import std/result { Result, Ok, Err }
 import std/set
 import std/string
 import std/task
 import std/time
 import std/time { Duration }
-// std/fs has no directory listing, so the one node builtin this program needs
-// comes in directly. Every use is greppable as `readdirSync`.
-import fs { readdirSync }
 
 // ---------------------------------------------------------------------------
 // Domain
@@ -130,8 +128,6 @@ const EMPTY = ""
 
 const NEWLINE = "\n"
 
-const BACKTICK = "`"
-
 const HASH = "#"
 
 const LOWER = "abcdefghijklmnopqrstuvwxyz"
@@ -148,6 +144,19 @@ fn max_of(a: int, b: int) -> int {
 
 fn widest(values: Array<string>) -> int {
   return array.fold(values, 0, fn(w: int, v: string) -> int { return max_of(w, string.len(v)) })
+}
+
+// `array.sort` takes the comparator, so lexicographic order has to be spelled.
+@example compare_text("a", "b") == 0 - 1
+@example compare_text("b", "b") == 0
+fn compare_text(a: string, b: string) -> number {
+  return match a < b {
+    true => 0 - 1,
+    false => match a == b {
+      true => 0,
+      false => 1,
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +275,25 @@ fn prose_lines(text: string) -> Array<NumberedLine> {
   return out
 }
 
+// Every inline link shape on one line, in one alternation. Ordered so a code
+// span wins: `[link](x)` between backticks is consumed by group 1 and never
+// reaches the others, which is how a renderer reads it too.
+//
+//   1  an inline code span, terminated or running to the end of the line
+//   2  the whole `[text](target)` construct, with a leading `!` for an image
+//   3  the target inside group 2
+//   4  the whole `<autolink>`, which has to carry a scheme to count
+//
+// Groups 2 and 4 are the discriminators, not 3, because `captures_all` reports a
+// group that did not participate as `""`. An empty target (`[]()`) and a branch
+// that never fired would read the same; a group that starts with `[`, `!` or `<`
+// cannot be empty when it does fire.
+const INLINE_LINK = "(`[^`]*`?)|(!?\\[[^\\]]*\\]\\(([^)]*)\\))|(<[^>]*://[^>]*>|<mailto:[^>]*>)"
+
+// `[id]: https://example.com "optional title"`, anchored to the start of a line.
+// Group 1 is everything after the colon.
+const REF_DEF = "^\\[[^\\]]*\\]:(.*)$"
+
 fn scan_line(line: string, lineno: int) -> Array<RawLink> {
   return match reference_definition(line, lineno) {
     Some(def) => [def],
@@ -276,104 +304,40 @@ fn scan_line(line: string, lineno: int) -> Array<RawLink> {
 // `[id]: https://example.com "optional title"` — a link with no surrounding
 // prose, only legal at the start of a line.
 fn reference_definition(line: string, lineno: int) -> Option<RawLink> {
-  return match string.starts_with(line, "[") {
-    false => None,
-    true => match string.index_of(line, "]", 1) {
-      None => None,
-      Some(close) => match string.slice(line, close + 1, close + 2) == ":" {
-        false => None,
-        true => {
-          let rest = string.trim(string.slice(line, close + 2))
-          match rest == EMPTY {
-            true => None,
-            false => Some({ line: lineno, target: clean_target(rest), is_image: false }),
-          }
-        },
-      },
+  let groups = regex.captures(REF_DEF, line)
+  return match array.len(groups) == 0 {
+    true => None,
+    false => match string.trim(groups[0]) == EMPTY {
+      true => None,
+      false => Some({ line: lineno, target: clean_target(groups[0]), is_image: false }),
     },
   }
 }
 
+// One regex pass per line. `captures_all` hands back the groups of every match
+// in source order, and which group is non-empty says which shape fired.
 fn scan_inline(line: string, lineno: int) -> Array<RawLink> {
-  let n = string.len(line)
-  let out: Array<RawLink> = []
-  let i = 0
-  loop {
-    match i < n {
-      false => {
-        break
-      },
-      true => {
-        let c = string.slice(line, i, i + 1)
-        let step = match c == BACKTICK {
-          // An inline code span runs to the next backtick; an unterminated one
-          // swallows the rest of the line, which is what a renderer does too.
-          true => skip_code_span(line, i, n),
-          false => match c == "<" {
-            true => autolink_at(line, i, lineno),
-            false => match c == "[" {
-              true => bracket_link_at(line, i, lineno),
-              false => { found: None, next: i + 1 },
-            },
-          },
-        }
-        mut out = match step.found {
-          Some(link) => array.push(out, link),
-          None => out,
-        }
-        mut i = step.next
-      },
-    }
-  }
-  return out
+  return array.flat_map(regex.captures_all(INLINE_LINK, line), fn(groups: Array<string>) -> Array<RawLink> { return link_of(groups, lineno) })
 }
 
-// One step of the line scanner: what it found (if anything) and where to resume.
-type Step = { found: Option<RawLink>, next: int }
-
-fn skip_code_span(line: string, i: int, n: int) -> Step {
-  return match string.index_of(line, BACKTICK, i + 1) {
-    None => { found: None, next: n },
-    Some(close) => { found: None, next: close + 1 },
-  }
-}
-
-// `<https://example.com>` or `<mailto:a@b.c>`.
-fn autolink_at(line: string, i: int, lineno: int) -> Step {
-  return match string.index_of(line, ">", i + 1) {
-    None => { found: None, next: i + 1 },
-    Some(close) => {
-      let inner = string.slice(line, i + 1, close)
-      match looks_like_autolink(inner) {
-        false => { found: None, next: i + 1 },
-        true => {
-          { found: Some({ line: lineno, target: inner, is_image: false }), next: close + 1 }
-        },
-      }
+fn link_of(groups: Array<string>, lineno: int) -> Array<RawLink> {
+  return match groups[1] != EMPTY {
+    true => [{
+      line: lineno,
+      target: clean_target(groups[2]),
+      is_image: string.starts_with(groups[1], "!"),
+    }],
+    false => match groups[3] != EMPTY {
+      true => [{ line: lineno, target: unwrap_angles(groups[3]), is_image: false }],
+      // Group 1 fired: an inline code span, which contributes no links.
+      false => [],
     },
   }
 }
 
-fn looks_like_autolink(inner: string) -> bool {
-  return string.contains(inner, "://") || string.starts_with(inner, "mailto:")
-}
-
-// `[text](url)`, and `![alt](src)` when the bracket is preceded by `!`.
-fn bracket_link_at(line: string, i: int, lineno: int) -> Step {
-  return match string.index_of(line, "]", i + 1) {
-    None => { found: None, next: i + 1 },
-    Some(close) => match string.slice(line, close + 1, close + 2) == "(" {
-      false => { found: None, next: i + 1 },
-      true => match string.index_of(line, ")", close + 2) {
-        None => { found: None, next: i + 1 },
-        Some(rp) => {
-          let target = clean_target(string.slice(line, close + 2, rp))
-          let image = i > 0 && string.slice(line, i - 1, i) == "!"
-          { found: Some({ line: lineno, target: target, is_image: image }), next: rp + 1 }
-        },
-      },
-    },
-  }
+@example unwrap_angles("<https://example.com>") == "https://example.com"
+fn unwrap_angles(raw: string) -> string {
+  return string.slice(raw, 1, string.len(raw) - 1)
 }
 
 // Strip an optional title and an angle-bracket wrapper: `<a.md> "Title"` is a
@@ -651,42 +615,56 @@ fn load_all(paths: Array<string>) -> Loaded {
 }
 
 fn load_one(acc: Loaded, p: string) -> Loaded {
-  return match fs.exists(p) {
-    false => with_error(acc, p, "no such file or directory"),
-    true => match fs.read_text(p) {
-      Ok(text) => with_document(acc, p, text),
-      // Reading a directory fails with EISDIR. std/fs has no `is_dir`, so the
-      // read is what tells the two apart.
-      Err(e) => match e.kind.tag == "EISDIR" {
-        true => load_directory(acc, p),
-        false => with_error(acc, p, e.message),
-      },
-    },
-  }
-}
-
-fn load_directory(acc: Loaded, dir: string) -> Loaded {
-  let out = acc
-  let entries: Array<string> = readdirSync(dir)
-  for entry in entries {
-    mut out = load_entry(out, path.join([dir, entry]))
-  }
-  return out
-}
-
-// Markdown files are collected; a subdirectory is walked. There is no `is_dir`
-// to ask, so a non-markdown entry is opened to find out: a successful read means
-// an ordinary file we ignore, EISDIR means a directory to descend into.
-fn load_entry(acc: Loaded, p: string) -> Loaded {
-  return match string.ends_with(string.lower(p), ".md") {
-    true => load_one(acc, p),
+  return match fs.is_dir(p) {
+    true => load_directory(acc, p),
     false => match fs.read_text(p) {
-      Ok(_) => acc,
-      Err(e) => match e.kind.tag == "EISDIR" {
-        true => load_directory(acc, p),
-        false => acc,
-      },
+      Ok(text) => with_document(acc, p, text),
+      Err(e) => with_error(acc, p, fs_reason(e)),
     },
+  }
+}
+
+// A directory contributes its markdown files and its subdirectories. The entries
+// are sorted because `fs.read_dir` returns them in whatever order the OS gives,
+// and a report whose rows move between machines cannot be diffed.
+fn load_directory(acc: Loaded, dir: string) -> Loaded {
+  return match fs.read_dir(dir) {
+    Err(e) => with_error(acc, dir, fs_reason(e)),
+    Ok(entries) => {
+      let out = acc
+      for entry in array.sort(entries, compare_text) {
+        mut out = load_entry(out, path.join([dir, entry]))
+      }
+      out
+    },
+  }
+}
+
+// Markdown files are collected; a subdirectory is walked; anything else is left
+// alone.
+fn load_entry(acc: Loaded, p: string) -> Loaded {
+  return match fs.is_dir(p) {
+    true => load_directory(acc, p),
+    false => match string.ends_with(string.lower(p), ".md") {
+      true => load_one(acc, p),
+      false => acc,
+    },
+  }
+}
+
+// Why an fs call failed, named by kind. Each arm is a variant of `fs.ErrorKind`,
+// so the reason is recovered from the error's own vocabulary instead of from an
+// errno string. The `else` arm covers `Other({ code })` and is required: Glyph
+// does not yet check a `match e.kind` for exhaustiveness, so an omitted kind
+// would be a run-time throw rather than an E0200.
+fn fs_reason(e: fs.FsError) -> string {
+  return match e.kind {
+    fs.ErrorKind.NotFound => "no such file or directory",
+    fs.ErrorKind.PermissionDenied => "permission denied",
+    fs.ErrorKind.IsADirectory => "is a directory",
+    fs.ErrorKind.NotADirectory => "not a directory",
+    fs.ErrorKind.AlreadyExists => "already exists",
+    else => e.message,
   }
 }
 
@@ -761,13 +739,27 @@ fn no_cache() -> Record<string, Outcome> {
   return {}
 }
 
+// `pool_settled`, not `pool`: `pool` is fail-fast, so one thunk that throws
+// discards every other URL's answer along with it. Here a throw costs exactly
+// one URL, and that URL says what went wrong instead of the run dying.
 async fn fetch_unique(urls: Array<string>, limit: int) -> Record<string, Outcome> {
-  let results: Array<Fetched> = await task.pool(limit, array.map(urls, task_for))
+  let settled = await task.pool_settled(limit, array.map(urls, task_for))
   let cache: Record<string, Outcome> = {}
-  for r in results {
-    mut cache = record.set(cache, r.url, r.outcome)
+  let i = 0
+  for s in settled {
+    mut cache = record.set(cache, urls[i], settled_outcome(s))
+    mut i = i + 1
   }
   return cache
+}
+
+// `pool_settled` keeps the order it was given, so the nth outcome belongs to the
+// nth URL. A task that threw is a network failure like any other.
+fn settled_outcome(s: task.Settled<Fetched>) -> Outcome {
+  return match s.ok {
+    true => s.value.outcome,
+    false => NetworkFail({ message: first_line(string.from(s.error)) }),
+  }
 }
 
 fn check_links(

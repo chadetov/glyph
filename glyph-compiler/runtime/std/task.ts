@@ -5,7 +5,8 @@
 // rejects, `all` rejects with that reason. `race` returns the first task to
 // settle. Glyph tasks return values (or a `Result`), so the ordinary path
 // collects every result; `all_settled` collects one outcome per task even when
-// some reject, so a partial failure never loses the successes.
+// some reject, so a partial failure never loses the successes. `pool` and
+// `pool_settled` are the same pair with concurrency bounded to `limit`.
 //
 // Cancellation: JavaScript cannot force-cancel a task that is already running,
 // so a failure in `all` abandons (ignores) its siblings' results rather than
@@ -29,7 +30,11 @@ export async function race<T>(
 // results in order. Unlike `all` (which starts every task immediately), a pool
 // bounds concurrency, so it is the primitive for "dispatch to N destinations,
 // but no more than K at a time". Fail-fast like `all`: the first task that
-// rejects rejects the pool. A `limit` below 1 is treated as 1 (no deadlock).
+// rejects rejects the pool. That is a fast answer, not a stop: the other workers
+// keep draining the queue in the background and their results are discarded, the
+// same cancellation limit the module header describes. Use `pool_settled` when
+// you want those results instead of losing them.
+// A `limit` below 1 is treated as 1 (no deadlock).
 export async function pool<T>(
   limit: number,
   tasks: ReadonlyArray<() => Promise<T> | T>,
@@ -61,4 +66,33 @@ export async function all_settled<T>(
       ? { ok: true as const, value: r.value }
       : { ok: false as const, error: r.reason },
   );
+}
+
+// `pool` with `all_settled`'s failure behaviour: at most `limit` tasks in flight,
+// one outcome per task in the order they were given, and never a rejection. A
+// task that throws produces `{ ok: false, error }`, so a failure costs one
+// result rather than the whole call. `pool` runs the same tasks, but a rejection
+// throws away every other result it collected. This is the bounded form for
+// "fan out to N endpoints and report what came back". Read the `unknown` error
+// with `string.from(e)`.
+// A `limit` below 1 is treated as 1 (no deadlock).
+export async function pool_settled<T>(
+  limit: number,
+  tasks: ReadonlyArray<() => Promise<T> | T>,
+): Promise<Array<Settled<T>>> {
+  const results = new Array<Settled<T>>(tasks.length);
+  const workers = Math.max(1, Math.min(Math.floor(limit), tasks.length || 1));
+  let next = 0;
+  async function run(): Promise<void> {
+    while (next < tasks.length) {
+      const i = next++;
+      try {
+        results[i] = { ok: true as const, value: await tasks[i]() };
+      } catch (error: unknown) {
+        results[i] = { ok: false as const, error };
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: workers }, () => run()));
+  return results;
 }

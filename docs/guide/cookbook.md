@@ -17,6 +17,60 @@ fn load(path: string) -> Result<string, string> {
 }
 ```
 
+## Walk a directory tree
+
+`fs.read_dir` lists one level and does not recurse, so a walk is `read_dir` plus
+`is_dir` plus `path.join`. There is no `walk` or glob helper.
+
+```glyph
+import std/array
+import std/fs
+import std/path
+
+fn walk(dir: string) -> Result<Array<string>, fs.FsError> {
+  let names = fs.read_dir(dir)?
+  let found: Array<string> = []
+  for name in names {
+    let child = path.join([dir, name])
+    mut found = match fs.is_dir(child) {
+      true => {
+        let sub = walk(child)?
+        array.concat(found, sub)
+      },
+      false => array.push(found, child),
+    }
+  }
+  return Ok(found)
+}
+```
+
+`read_dir` hands back names in whatever order the OS gives, which differs across
+platforms and filesystems. Sort with `array.sort(names, compare)` when the output
+has to be reproducible.
+
+## Recover from a filesystem error by its kind
+
+`FsError.kind` is a closed set, so recovery reads as a `match` on names instead of
+a comparison against an errno string.
+
+```glyph
+import std/fs
+
+fn reason(e: fs.FsError) -> string {
+  return match e.kind {
+    fs.ErrorKind.NotFound => "no such path",
+    fs.ErrorKind.IsADirectory => "that is a directory",
+    fs.ErrorKind.PermissionDenied => "cannot read it",
+    fs.ErrorKind.Other({ code }) => "errno ${code}",
+    else => e.message,
+  }
+}
+```
+
+The `else` arm is not optional. Glyph does not check a `match` on a stdlib type
+for exhaustiveness yet, so a kind you leave out compiles clean and throws at run
+time rather than failing the build.
+
 ## Parse untrusted JSON into a validated type
 
 ```glyph
@@ -128,6 +182,66 @@ async fn dashboard() -> Array<string> {
   return await task.all([fn() { fetch_a() }, fn() { fetch_b() }, fn() { fetch_c() }])
 }
 ```
+
+## Run many tasks, bounded, and survive the failures
+
+`task.pool` caps how many run at once but is fail-fast: the first task that
+throws rejects the pool, and every result its siblings already produced is
+discarded. `task.pool_settled` is the same bound with `all_settled`'s behaviour,
+so one dead host costs you one row instead of the whole report.
+
+```glyph
+import std/array
+import std/io
+import std/string
+import std/task
+
+async fn check_all(urls: Array<string>) -> void {
+  let tasks = array.map(urls, fn(u: string) -> fn() -> number { return fn() -> number { return probe(u) } })
+  let outcomes = await task.pool_settled(4, tasks)
+  let i = 0
+  for s in outcomes {
+    let line = match s.ok {
+      true => "${urls[i]} ${s.value}",
+      false => "${urls[i]} failed: ${string.from(s.error)}",
+    }
+    io.println(line)
+    mut i = i + 1
+  }
+}
+```
+
+Outcomes come back in the order the tasks went in, so the nth outcome belongs to
+the nth URL. The counter is hand-rolled rather than `for i, s in outcomes`
+because `outcomes` came out of a stdlib call the checker does not model, which is
+the G37 case in the index-loop recipe below. A failed task's `error` is
+`unknown`; read it with `string.from`.
+
+## Pull the capture groups out of every match
+
+`regex.find_all` gives you the matched text and drops the groups.
+`regex.captures_all` gives you the groups of every match, one inner array per
+match, starting at group 1.
+
+```glyph
+import std/array
+import std/regex
+
+const PAIR = "([a-z_]+)=([^;]*)"
+
+fn settings(text: string) -> Array<{ key: string, value: string }> {
+  return array.map(regex.captures_all(PAIR, text), fn(g: Array<string>) -> { key: string, value: string } {
+    return { key: g[0], value: g[1] }
+  })
+}
+```
+
+A group that did not participate comes back as `""`, the same as one that matched
+empty. When a pattern alternates over several shapes and you need to know which
+one fired, put each branch's group around the whole construct rather than around
+the payload you want: a group that fired then starts with a literal character and
+can never be empty. `examples/apps/linkcheck.glyph` does this to tell a code
+span, an inline link, and an autolink apart in one pass.
 
 ## Validate with a string-literal union
 

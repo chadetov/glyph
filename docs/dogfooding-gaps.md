@@ -22,8 +22,16 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source at 0.1.47: of 59 entries, 30 are fixed, 6 are
-partly fixed, 4 are decided or resolved, and 19 are open. The item reported by
+Reconciled against the source after the `std/fs` breadth, `regex.captures_all`,
+and `task.pool_settled` batch and the `linkcheck` rewrite that consumed it: of 59
+entries, 33 are fixed, 7 are partly fixed, 4 are decided or resolved, and 15 are
+open. Three of that batch's four entries are `[FIXED]`, and the fourth stops
+short: G47's error taxonomy is spellable in a pattern but nothing checks that the
+`match` covers it, so an omitted kind is a run-time throw rather than an E0200.
+G51 spent one release at `[HALF FIXED]` on the belief that `captures_all` could
+not discriminate an alternation, and closed when rewriting the app showed that
+wrapping each branch's group around the whole construct answers the question
+without an offset. The item reported by
 five consecutive trips, `std/string` breadth, is now mostly closed: `slice`,
 `index_of`, `repeat`, `pad_start`, `pad_end`, `replace_all`, `trim_start`, and
 `trim_end` ship, along with `array.fold`, `index_of`, and `flat_map`, and the
@@ -793,16 +801,54 @@ of truth. On the async path it was a preprocessor with opinions.
   fork — `async fn() -> T` emitting `() => Promise<T>`, versus `fn() -> T`
   emitting `() => T | Promise<T>` — and that is an orchestrator call, not an
   agent's. Deliberately out of scope for the G43 fix.
-- **G46. `std/fs` has no `read_dir`, `is_dir`, or `stat`.** Six exported
+- **G46. [FIXED] `std/fs` has no `read_dir`, `is_dir`, or `stat`.** Six exported
   functions and nothing that enumerates a directory. The app discovered
   directories by reading every path in a tree and inspecting the `errno` it got
   back, which is as bad as it sounds. Blocking for any CLI that takes a path.
-- **G47. `FsError.kind` is `{ tag: string }` with one constant.** `NotFound` is
+  *Fixed: `fs.read_dir(path) -> Result<Array<string>, FsError>` (entry names, one
+  level, not recursive), `fs.is_dir(path) -> bool` (no `Result`, mirroring
+  `exists`: a missing or unreadable path is `false`), and
+  `fs.stat(path) -> Result<FileInfo, FsError>` where
+  `FileInfo = { is_dir, is_file, size, modified }` with `size` in bytes and
+  `modified` in epoch milliseconds, so it feeds `time.format_iso` directly. Both
+  Result-returning functions are modeled in the typechecker, so `?` on them
+  decides its error type the way `read_text` does. Two things deliberately did
+  not ship. There is no recursive `walk` or glob: a walk is `read_dir` + `is_dir`
+  + `path.join` in about ten lines, and a walk primitive is surface the gap did
+  not ask for. And `read_dir` returns entries in OS order, which differs across
+  platforms and filesystems, so a program that wants a reproducible report still
+  sorts them itself; whether the stdlib should sort is a behaviour call left
+  open. There is no `is_file` either, since that is `let info = stat(p)?`
+  followed by `info.is_file` (the `?` operator does not chain into a field
+  access, so the binding is not optional).*
+- **G47. [HALF FIXED] `FsError.kind` is `{ tag: string }` with one constant.**
+  `NotFound` is
   the entire taxonomy, so an fs error cannot be matched exhaustively. That is the
   errors-as-values promise leaking. It batches with G46: one change to `fs.ts`
   that names the errnos a filesystem program recovers from (`NotFound`,
   `IsADirectory`, `NotADirectory`, `PermissionDenied`, `AlreadyExists`) and keeps
   an `Other { code }` tail.
+  *The taxonomy shipped, the checking did not. `ErrorKind` is now the closed set
+  `NotFound`, `IsADirectory`, `NotADirectory`, `PermissionDenied`,
+  `AlreadyExists`, and `Other({ code })` carrying the raw errno for anything
+  unnamed. Every kind is spellable in a pattern, so the app's
+  `e.kind.tag == "EISDIR"` errno comparison becomes `fs.ErrorKind.IsADirectory`.
+  EACCES and EPERM collapse into `PermissionDenied`, so those are the two raw
+  codes that do not survive. This is `[HALF FIXED]` rather than `[FIXED]` because
+  the gap's word was "exhaustively", and nothing checks the match: the typechecker
+  models stdlib function return types and has no field model for a stdlib named
+  type, so `e.kind` types as unknown, a `match` over it resolves no required
+  variants, and omitting `PermissionDenied` is not an E0200. It emits a
+  `default: throw` and dies at run time, so keep an `else` arm. Spellable is real
+  progress; checkable is what the entry asked for. Teaching the compiler the
+  taxonomy means a stdlib named-type table, which is the general "model the
+  stdlib's types, not just its signatures" question G39 and Q21 already own, and
+  deciding it is an orchestrator call rather than something to settle inside a
+  stdlib-breadth round. The names are load-bearing even unchecked. `linkcheck`
+  now recovers by kind in `fs_reason`, and on a tree containing a `chmod 000`
+  directory the rewritten app prints `permission denied` and counts the path as
+  unreadable, where the pre-batch app (which could only ask whether the errno was
+  `EISDIR`) dropped that directory from the report with no row and no mention.*
 - **G48. `{}` as a match arm is silent green.** `true => {}` parses as an empty
   block, emits `case true: { break; }`, and the function falls out of its own
   switch returning `undefined` while claiming a record type. No Glyph diagnostic;
@@ -851,10 +897,36 @@ of truth. On the async path it was a preprocessor with opinions.
   `iter.take_while` is untouched: there is no `std/iter` at all, and the nearest
   module, `std/stream`, is a test-data generator rather than a lazy sequence, so
   it needs a design rather than a wrapper.*
-- **G51. `regex` cannot iterate captures.** `regex.find_all` maps each match to
+- **G51. [FIXED] `regex` cannot iterate captures.** `regex.find_all` maps
+  each match to
   `m[0]` and drops the groups, so a scanner that needs the capture text has to be
   hand-rolled. It turned a 15-line link extractor into a 180-line character
-  scanner.
+  scanner. *Added: `regex.captures_all(pattern, text) -> Array<Array<string>>`,
+  one inner array per match holding groups 1 onward, symmetrical with the
+  existing `captures` (first match only). It inherits `captures`'s two
+  conventions, both of which differ from JavaScript's `matchAll`: the whole match
+  is not in the array, and a group that did not participate is `""` rather than
+  `undefined`. The second convention was the reason this entry sat at `[HALF
+  FIXED]` for one release: an empty capture and an absent capture read the same,
+  so a scanner that asks which group is non-empty to learn which alternation
+  branch fired looked unserviceable, and `linkcheck`'s character scanner stayed
+  hand-rolled. Rewriting the app closed it. Write each branch's group around the
+  whole construct rather than around its payload, and a group that fired can
+  never be empty, because it starts with `` ` ``, `[`, `!`, or `<`. The
+  possibly-empty capture (the link target) is then nested inside a discriminator
+  group and never asked whether it fired, so `[]()` still reports an empty
+  target. Ordering the alternation with the code span first reproduces the "a
+  link inside backticks is not a link" rule without tracking an offset, which is
+  what made the offset unnecessary too. The scanner is now two patterns and a
+  12-line dispatch: `scan_inline`'s stepping loop, `type Step`, `skip_code_span`,
+  `autolink_at`, `looks_like_autolink`, `bracket_link_at`, and the `index_of`
+  chain in `reference_definition` are all deleted, 81 lines of scanner plus 16 of
+  reference-definition parsing, and both the app's own header and a hostile
+  fixture (nested brackets, an unterminated code span, angle-bracketed targets,
+  autolinks containing bracket pairs) produce byte-identical output before and
+  after. What `Array<Array<Option<string>>>` would still buy is a scanner whose
+  discriminator genuinely can match empty; that is a narrower case than this
+  entry claimed, and it stays parked against `captures` agreeing with it.*
 - **G52. [HALF FIXED] `std/http` cannot bound or observe a request.** `Response` is
   `{ status, body }` with no headers and no final URL, so a redirect is
   invisible; `RequestInit` is `{ method }` with no timeout and no redirect
@@ -868,10 +940,21 @@ of truth. On the async path it was a preprocessor with opinions.
   request body). The bound half is untouched: still no timeout, no redirect
   policy, no `head`, and no final URL after a redirect, so a client still cannot
   see that it was redirected, only that it landed somewhere.*
-- **G53. `task.pool` is fail-fast with no settled variant.** `pool` is
+- **G53. [FIXED] `task.pool` is fail-fast with no settled variant.** `pool` is
   `Promise.all` over workers, so one rejection abandons the rest, and
   `all_settled` is unbounded. `pool_settled` is a few lines and turns a
-  convention into a check.
+  convention into a check. *Fixed: `task.pool_settled(limit, tasks)` is `pool`'s
+  worker loop with each call guarded, returning one `Settled<T>` per task in
+  order and never rejecting, with the same "a `limit` below 1 is treated as 1"
+  clamp. A run test pins the behaviour `pool` cannot deliver: task 2 of 4 throws
+  and the other three still produce values. `pool`'s doc comment now points at
+  it. `Settled<T>`, `all_settled`, `all`, and `race` are untouched, and the error
+  is still `unknown` (read it with `string.from(e)`); a typed task error is a
+  different question. `linkcheck` moved to it, and the difference was measured on
+  two copies of the app differing only in that call, with a throw injected into
+  one of three fetches: `pool_settled` printed all three rows and named the
+  failing URL, `pool` printed nothing and died on an unhandled rejection, losing
+  both surviving results.*
 - **G54. Two formatter defects, both cheap.** The `items.len() <= INLINE_MAX`
   branch short-circuits past both the width check and the newline check, so a
   two-argument call with a nested lambda body is emitted at any length (137

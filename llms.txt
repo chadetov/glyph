@@ -445,14 +445,22 @@ TypeScript `extends` clause).
 ### std/fs
 
 ```
+type ErrorKind = NotFound | IsADirectory | NotADirectory | PermissionDenied | AlreadyExists | Other({ code: string })
 type FsError = { kind: ErrorKind, message: string }
+type FileInfo = { is_dir: bool, is_file: bool, size: int, modified: int }   // size bytes, modified epoch ms
 fs.read_text(path) -> Result<string, FsError>
 fs.write_text(path, contents) -> Result<void, FsError>
 fs.append_text(path, contents) -> Result<void, FsError>   // append, creating the file (append-only logs)
 fs.make_dir(path) -> Result<void, FsError>                // create dir + parents, idempotent (mkdir -p)
 fs.exists(path) -> bool
 fs.remove(path) -> Result<void, FsError>     // ErrorKind.NotFound for a missing file
+fs.read_dir(path) -> Result<Array<string>, FsError>       // entry names, not full paths; not recursive, OS order
+fs.is_dir(path) -> bool                                   // false for a missing or unreadable path
+fs.stat(path) -> Result<FileInfo, FsError>                // follows symlinks
 ```
+
+`match e.kind` is not checked for exhaustiveness, so keep an `else` arm. Walk a
+tree with `read_dir` + `is_dir` + `path.join`; there is no `walk` helper.
 
 ### std/process
 
@@ -834,8 +842,9 @@ is built for.
 - **fail:** return `Result<T, E>`; propagate with `?`, recover with `match`
 - **share state:** module-level `const s = store.create(init)`; `mut s.update(fn(v) { ... })`
 - **run concurrently:** `await task.all([fn() { a() }, fn() { b() }])`
-- **bounded concurrency:** `await task.pool(4, tasks)` runs the thunks with at most 4 in flight
-- **regex:** `regex.matches(pat, text)`, `regex.find_all(pat, text)`
+- **bounded concurrency:** `await task.pool(4, tasks)` runs the thunks with at most 4 in flight (fail-fast); `task.pool_settled(4, tasks)` keeps going past a failure
+- **regex:** `regex.matches(pat, text)`, `regex.find_all(pat, text)`, `regex.captures_all(pat, text)` for the groups of every match
+- **walk a directory:** `let names = fs.read_dir(dir)?` for entry names, `fs.is_dir(path.join([dir, name]))` to recurse, `let info = fs.stat(p)?` for size/mtime
 - **hash / uuid:** `crypto.sha256(s)`, `crypto.random_uuid()`
 - **paths:** `path.join(["a", "b"])`, `path.extname(p)`
 - **cleanup:** `defer handle.close()` (runs on every exit path)

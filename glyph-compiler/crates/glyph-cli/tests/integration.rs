@@ -3207,6 +3207,310 @@ fn fs_make_dir_and_append_text_round_trip() {
 }
 
 #[test]
+fn fs_read_dir_is_dir_and_stat_round_trip() {
+    // G46: a directory could not be enumerated at all, so a CLI that takes a path
+    // had to be handed every file explicitly. This walks one level: make a dir
+    // with a file and a subdir in it, list it, ask which entries are directories,
+    // and stat the file for its size.
+    //
+    // Runs with `check: true` so `FileInfo`'s field names and types are covered by
+    // `tsc --strict`, and parses the two numeric fields through a descriptor whose
+    // fields are `int`. That parse is the regression guard for `modified`: node
+    // reports mtime with sub-millisecond precision, so the raw `mtimeMs` is a
+    // float and `int` rejects it, while the docs promise `int` in four files.
+    if !js_toolchain_available() {
+        eprintln!("skipping fs read_dir run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("fsreaddir");
+    let dir = root.join("tree");
+    let prog = r#"module prog
+
+import std/fs
+import std/array
+import std/path
+
+type Snap = { size: int, modified: int }
+
+fn main(argv: Array<string>) -> number {
+  let dir = "__DIR__"
+  let sub = path.join([dir, "sub"])
+  let file = path.join([dir, "note.txt"])
+  return match fs.make_dir(sub) {
+    Err(_) => 2,
+    Ok(_) => match fs.write_text(file, "hello") {
+      Err(_) => 3,
+      Ok(_) => match fs.read_dir(dir) {
+        Err(_) => 4,
+        Ok(names) => match array.len(names) == 2 && array.contains(names, "sub") && array.contains(names, "note.txt") {
+          false => 5,
+          true => match fs.is_dir(sub) {
+            false => 6,
+            true => match fs.is_dir(file) {
+              true => 7,
+              false => match fs.is_dir(path.join([dir, "missing"])) {
+                true => 8,
+                false => match fs.stat(file) {
+                  Err(_) => 9,
+                  Ok(info) => match info.is_file && info.size == 5 && info.is_dir == false && info.modified > 0 {
+                    false => 10,
+                    true => match Snap.parse({ size: info.size, modified: info.modified }) {
+                      Err(_) => 11,
+                      Ok(_) => 0,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }
+}
+"#
+    .replace("__DIR__", &dir.display().to_string());
+    write_file(&root, "prog.glyph", &prog);
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(
+                code, 0,
+                "a non-zero code names the failing step in the walk; 11 = `modified` \
+                 was not an integer, so the documented `int` is a lie"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping fs read_dir run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping fs read_dir run: `tsc` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("read_dir/is_dir/stat must type-check under tsc --strict:\n{msg}")
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+    }
+}
+
+#[test]
+fn fs_error_kind_is_a_named_closed_taxonomy() {
+    // G47: `ErrorKind` used to be `{ tag: string }` with `NotFound` as the whole
+    // taxonomy, so the only way to tell "that path is a directory" from "that path
+    // is missing" was to compare the raw errno string. Reading a directory now
+    // lands on `IsADirectory` by name, and a missing path still lands on
+    // `NotFound`. Glyph does not check the match for exhaustiveness yet, so the
+    // `else` arm here is load-bearing rather than decorative.
+    //
+    // Runs with `check: true`, and matches `Other({ code })` as well as the bare
+    // kinds: `Other` is the only variant carrying a payload, so it is the only one
+    // whose pattern lowering is non-obvious, and it needs `tsc --strict` over the
+    // emitted destructure rather than a run alone.
+    if !js_toolchain_available() {
+        eprintln!("skipping fs error kind run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("fserrkind");
+    let dir = root.join("adir");
+    let prog = r#"module prog
+
+import std/fs
+import std/path
+import std/string
+
+fn classify(p: string) -> string {
+  return match fs.read_text(p) {
+    Ok(_) => "ok",
+    Err(e) => match e.kind {
+      fs.ErrorKind.NotFound => "notfound",
+      fs.ErrorKind.IsADirectory => "isdir",
+      fs.ErrorKind.PermissionDenied => "perm",
+      fs.ErrorKind.Other({ code }) => "other:" + code,
+      else => "unnamed",
+    },
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let dir = "__DIR__"
+  let too_long = path.join([dir, string.repeat("x", 300)])
+  return match fs.make_dir(dir) {
+    Err(_) => 8,
+    Ok(_) => match classify(dir) == "isdir" {
+      false => 9,
+      true => match classify(path.join([dir, "nope.txt"])) == "notfound" {
+        false => 10,
+        true => match string.starts_with(classify(too_long), "other:")
+          && string.len(classify(too_long)) > 6 {
+          false => 11,
+          true => 0,
+        },
+      },
+    },
+  }
+}
+"#
+    .replace("__DIR__", &dir.display().to_string());
+    write_file(&root, "prog.glyph", &prog);
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(
+                code, 0,
+                "9 = a directory read did not classify as IsADirectory, 10 = a missing \
+                 file did not classify as NotFound, 11 = an unnamed errno did not reach \
+                 `Other` with its raw code bound"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping fs error kind run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping fs error kind run: `tsc` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("the `Other({{ code }})` pattern must type-check under tsc --strict:\n{msg}")
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+    }
+}
+
+#[test]
+fn regex_captures_all_reads_groups_of_every_match() {
+    // G51: `find_all` hands back the whole match and drops the groups, so a
+    // scanner that wanted the capture text had to be hand-rolled character by
+    // character. `captures_all` gives groups 1 onward per match, in order.
+    if !js_toolchain_available() {
+        eprintln!("skipping regex captures_all run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("recapall");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+import std/regex
+import std/array
+
+fn main(argv: Array<string>) -> number {
+  let rows = regex.captures_all("([a-z]+)=([0-9]+)", "a=1, bb=22")
+  let empty = regex.captures_all("([a-z]+)=([0-9]+)", "nothing here")
+  return match array.len(empty) == 0 {
+    false => 1,
+    true => match rows {
+      [first, second] => match first {
+        [k1, v1] => match second {
+          [k2, v2] => match k1 == "a" && v1 == "1" && k2 == "bb" && v2 == "22" {
+            true => 0,
+            false => 2,
+          },
+          else => 3,
+        },
+        else => 4,
+      },
+      else => 5,
+    },
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "captures_all must yield [[\"a\",\"1\"],[\"bb\",\"22\"]]");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping regex captures_all run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
+    }
+}
+
+#[test]
+fn task_pool_settled_keeps_going_past_a_failure() {
+    // G53: `pool` is fail-fast, so one throwing task rejects the whole pool and
+    // every result it had collected is lost (the other workers keep draining the
+    // queue regardless; JS cannot cancel them). `pool_settled` bounds concurrency
+    // the same way but reports one outcome per task, so the failure costs exactly
+    // one result. Task 1 of 4 throws here and the other three still produce values.
+    if !js_toolchain_available() {
+        eprintln!("skipping task.pool_settled run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("poolsettled");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+import std/task
+import std/array
+import std/time
+
+async fn boom() -> number {
+  let _ = extern_ts("(() => { throw new Error('boom') })()")
+  return 0
+}
+
+async fn work(i: number) -> number {
+  let _ = await time.sleep(time.Duration.ms(5))
+  return match i == 1 {
+    true => await boom(),
+    false => i * 10,
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let thunks = array.map([0, 1, 2, 3], fn(i: number) {
+    async fn() -> number { await work(i) }
+  })
+  let results = await task.pool_settled(2, thunks)
+  return match results {
+    [a, b, c, d] => match array.len(results) == 4 && a.ok && c.ok && d.ok {
+      false => 1,
+      true => match b.ok {
+        true => 2,
+        false => match a.value == 0 && c.value == 20 && d.value == 30 {
+          true => 0,
+          false => 3,
+        },
+      },
+    },
+    else => 4,
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "1 = a sibling of the failing task was abandoned, 2 = the failure was reported as ok, 3 = the surviving values are wrong");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping task.pool_settled run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
+        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
+    }
+}
+
+#[test]
 fn string_breadth_helpers_round_trip() {
     // G26/G34/G50: the string basics every app hand-rolled. The stdlib is
     // TypeScript, so it cannot carry `@example`; this run is where the behavior

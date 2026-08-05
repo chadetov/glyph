@@ -1,17 +1,65 @@
-// std/fs — text file I/O returning a `Result`. Errors are values: a missing
-// file yields `Err({ kind: ErrorKind.NotFound, ... })`, which a caller matches
-// on `e.kind` (the `tag` discriminant) to recover. Reads/writes are synchronous
+// std/fs — text file I/O and directory inspection returning a `Result`. Errors
+// are values: a missing file yields `Err({ kind: ErrorKind.NotFound, ... })`,
+// which a caller matches on `e.kind` to recover. Reads/writes are synchronous
 // under the hood; the signatures are sync, and a Glyph caller may still `await`
 // the result (awaiting a non-Promise is a no-op).
+//
+// `ErrorKind` is a closed set: `NotFound`, `IsADirectory`, `NotADirectory`,
+// `PermissionDenied`, `AlreadyExists`, and an `Other({ code })` tail carrying the
+// raw errno for everything else. Every kind is spellable in a pattern, so an fs
+// error can be matched by name instead of by errno string. Glyph does not yet
+// check a `match e.kind` for exhaustiveness (the typechecker models stdlib
+// function returns, not stdlib type shapes, so `e.kind` types as unknown), so
+// keep an `else` arm: an omitted kind is a run-time throw, not an E0200.
 
 import { Result, Ok, Err } from "./result";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 
-export type ErrorKind = { tag: string };
+export type ErrorKind =
+  | { tag: "NotFound" }
+  | { tag: "IsADirectory" }
+  | { tag: "NotADirectory" }
+  | { tag: "PermissionDenied" }
+  | { tag: "AlreadyExists" }
+  | { tag: "Other"; code: string };
 export type FsError = { kind: ErrorKind; message: string };
 
-export const ErrorKind: { readonly NotFound: ErrorKind } = {
+// What `stat` reports about a path. `size` is bytes; `modified` is epoch
+// milliseconds, the same representation `std/time` takes, so
+// `time.format_iso(info.modified)` renders it directly. Node reports mtime with
+// sub-millisecond precision (a float), which `stat` truncates: the docs promise
+// `modified: int` and Glyph's `int` is a checked boundary, so a fractional value
+// would be rejected by any descriptor that parses it.
+export type FileInfo = {
+  readonly is_dir: boolean;
+  readonly is_file: boolean;
+  readonly size: number;
+  readonly modified: number;
+};
+
+// The five kinds that carry no payload. `Other` carries a `code` and is built by
+// `to_fs_error`, so it has no constant form.
+export const ErrorKind: {
+  readonly NotFound: ErrorKind;
+  readonly IsADirectory: ErrorKind;
+  readonly NotADirectory: ErrorKind;
+  readonly PermissionDenied: ErrorKind;
+  readonly AlreadyExists: ErrorKind;
+} = {
   NotFound: { tag: "NotFound" },
+  IsADirectory: { tag: "IsADirectory" },
+  NotADirectory: { tag: "NotADirectory" },
+  PermissionDenied: { tag: "PermissionDenied" },
+  AlreadyExists: { tag: "AlreadyExists" },
 };
 
 export function read_text(path: string): Result<string, FsError> {
@@ -58,6 +106,51 @@ export function exists(path: string): boolean {
   return existsSync(path);
 }
 
+// The entry names directly inside a directory (not full paths, and not
+// recursive): join them with `path.join([dir, name])` to get something you can
+// read. `.` and `..` are not included. The order is whatever the OS gives, which
+// differs between platforms and filesystems, so sort the result yourself when a
+// report has to be reproducible. `read_dir` + `is_dir` + `path.join` compose into
+// a tree walk.
+export function read_dir(path: string): Result<Array<string>, FsError> {
+  try {
+    return Ok(readdirSync(path));
+  } catch (e: unknown) {
+    return Err(to_fs_error(e));
+  }
+}
+
+// Is this path a directory? Like `exists`, this answers a question rather than
+// returning a `Result`, so a missing or unreadable path is simply `false`. Use
+// `stat` when you need to tell "not a directory" from "could not look". Symlinks
+// are followed, so a link to a directory is `true`. There is no `is_file`: the
+// pair would disagree about a path that cannot be read (both `false`), so the
+// question "is this a file" is `let info = stat(p)?` then `info.is_file`, which
+// says why when it fails.
+export function is_dir(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+// Metadata for one path, following symlinks (so this reports the target, not the
+// link). `Err(NotFound)` when nothing is there.
+export function stat(path: string): Result<FileInfo, FsError> {
+  try {
+    const s = statSync(path);
+    return Ok({
+      is_dir: s.isDirectory(),
+      is_file: s.isFile(),
+      size: s.size,
+      modified: Math.trunc(s.mtimeMs),
+    });
+  } catch (e: unknown) {
+    return Err(to_fs_error(e));
+  }
+}
+
 export function remove(path: string): Result<void, FsError> {
   try {
     rmSync(path, { force: false });
@@ -67,9 +160,37 @@ export function remove(path: string): Result<void, FsError> {
   }
 }
 
+// Map a node errno to a named kind. The five names cover what a filesystem
+// program recovers from; anything else keeps its raw errno on the `Other` tail so
+// no information is lost. EACCES and EPERM collapse into `PermissionDenied`
+// (the recovery is the same), which means those two raw codes are the ones you
+// cannot get back: everything the mapping does not name still arrives as
+// `Other({ code })`. A thrown value with no errno at all gets `code: ""`, so
+// `code` is always the raw errno or nothing, never a stand-in name.
 function to_fs_error(e: unknown): FsError {
   const code = (e as { code?: string } | null)?.code;
   const message = (e as { message?: string } | null)?.message ?? String(e);
-  const kind: ErrorKind = code === "ENOENT" ? ErrorKind.NotFound : { tag: code ?? "Other" };
+  let kind: ErrorKind;
+  switch (code) {
+    case "ENOENT":
+      kind = ErrorKind.NotFound;
+      break;
+    case "EISDIR":
+      kind = ErrorKind.IsADirectory;
+      break;
+    case "ENOTDIR":
+      kind = ErrorKind.NotADirectory;
+      break;
+    case "EACCES":
+    case "EPERM":
+      kind = ErrorKind.PermissionDenied;
+      break;
+    case "EEXIST":
+      kind = ErrorKind.AlreadyExists;
+      break;
+    default:
+      kind = { tag: "Other", code: code ?? "" };
+      break;
+  }
   return { kind, message };
 }

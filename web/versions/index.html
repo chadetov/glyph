@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.47</span>
+            <span class="rel-ver">0.1.48</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The link checker stops working around the standard library</h3>
+            <p>One app in this repo walks a directory, scans Markdown for links, and checks them over HTTP. It could not do any of those three things with the standard library alone. It imported node's <code>readdirSync</code> directly, worked out which paths were directories by reading them and inspecting the <code>errno</code>, hand-wrote a 180-line character scanner because <code>regex.find_all</code> drops capture groups, and used a fail-fast pool that threw away every result when one host went down. This release adds the four missing pieces and then rewrites the app until none of the workarounds are left.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>fs.read_dir</code> returns the entry names one level down, <code>fs.is_dir</code> answers with a <code>bool</code> the way <code>fs.exists</code> does, and <code>fs.stat</code> returns a <code>FileInfo</code> of <code>is_dir</code>, <code>is_file</code>, <code>size</code> in bytes, and <code>modified</code> in epoch milliseconds. There is no recursive <code>walk</code> and no glob: a walk is those three plus <code>path.join</code> in about ten lines.</li>
+              <li><span class="tag added">Added</span> <code>FsError.kind</code> was <code>{ tag: string }</code> with <code>NotFound</code> as the entire taxonomy. It is now the closed set <code>NotFound</code>, <code>IsADirectory</code>, <code>NotADirectory</code>, <code>PermissionDenied</code>, <code>AlreadyExists</code>, and <code>Other({ code })</code> carrying the raw errno for anything unnamed. EACCES and EPERM both arrive as <code>PermissionDenied</code>.</li>
+              <li><span class="tag added">Added</span> <code>regex.captures_all(pattern, text)</code> returns the capture groups of every match, one inner array per match. It follows <code>captures</code>: groups start at 1, so the whole match is not in the array, and a group that did not participate is <code>""</code>.</li>
+              <li><span class="tag added">Added</span> <code>task.pool_settled(limit, tasks)</code> is <code>task.pool</code> with <code>all_settled</code>'s failure behaviour. Same bound, one outcome per task in order, never rejects. The docs now also say what fail-fast costs: a <code>pool</code> rejection discards the other workers' results, it does not stop them, so a fail-fast pool over 500 URLs still sends all 500.</li>
+              <li><span class="tag fixed">Fixed</span> The app lost its <code>readdirSync</code> import, both <code>e.kind.tag == "EISDIR"</code> probes, and 97 lines of character scanner, replaced by two regex patterns and a 12-line dispatch. Two behaviour changes came with it, each measured against the app it replaced. On a tree with an unreadable subdirectory the new version prints <code>permission denied</code> and counts the path; the old one dropped it silently. With one of three fetches throwing, <code>pool_settled</code> printed all three rows and named the failing URL, while <code>pool</code> printed nothing and died on an unhandled rejection.</li>
+              <li><span class="tag known">Known</span> Nothing checks a <code>match</code> on <code>FsError.kind</code>. Glyph's typechecker models what a stdlib function returns, not the shape of a stdlib type, so a match that forgets <code>PermissionDenied</code> compiles clean and throws at run time. Write the <code>else</code> arm. <code>read_dir</code> also returns entries in the OS's order, so sort them yourself when the output has to be reproducible.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.47</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

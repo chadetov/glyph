@@ -954,18 +954,47 @@ workaround version produced.
   opinion: default it on, and degrade to a warning when `tsx` is absent rather
   than skipping in silence.
 - **`std/fs` has no `read_dir`, `is_dir`, or `stat`, and `FsError.kind` has one
-  constant** (M). The app discovered directories by reading every path in a tree
+  constant** (M). *Landed in 0.1.48, except for the checking half of the
+  taxonomy.* The app discovered directories by reading every path in a tree
   and inspecting the errno it got back. Blocking for any CLI that takes a path;
-  one change to `fs.ts` covers both.
+  one change to `fs.ts` covers both. `read_dir` (entry names, one level),
+  `is_dir` (a `bool`, like `exists`), and `stat` (a `FileInfo` of
+  `is_dir`/`is_file`/`size`/`modified`) ship, with `read_dir` and `stat` modeled
+  in `stdlib_fn_ty` so `?` decides its error type. `modified` is epoch
+  milliseconds truncated to a whole number: node reports mtime as a float, the
+  docs type it `int`, and `int` is a checked boundary, so passing the raw
+  `mtimeMs` into a descriptor would have failed at run time. `ErrorKind` is now the closed
+  set `NotFound`, `IsADirectory`, `NotADirectory`, `PermissionDenied`,
+  `AlreadyExists`, `Other({ code })`. Still open: nothing checks a `match e.kind`,
+  because the typechecker models stdlib function returns and has no field model
+  for a stdlib named type, so an omitted kind is a run-time throw rather than an
+  E0200. Also open: whether `read_dir` should sort, since node's order differs by
+  platform and a reproducible report currently needs the caller to sort.
 - **`std/http` cannot bound or observe a request** (M). No headers, no final URL,
   so a redirect is invisible; no timeout, no redirect policy, no `head`. The
   `task.race` timeout workaround leaves the loser in flight, the exact thing
   structured concurrency exists to prevent.
-- **`regex.find_all` drops capture groups** (S). It maps each match to `m[0]`, so
+- **`regex.find_all` drops capture groups** (S). *Landed in 0.1.48 as
+  `captures_all`.* It maps each match to `m[0]`, so
   a scanner that needs the capture text is hand-rolled. It turned a 15-line link
-  extractor into a 180-line character scanner.
-- **`task.pool` is fail-fast with no settled variant** (S). One rejection abandons
-  the rest; `all_settled` is unbounded. `pool_settled` is a few lines.
+  extractor into a 180-line character scanner. `regex.captures_all(pattern, text)`
+  returns groups 1 onward per match, following `captures`: the whole match is not
+  included and a non-participating group is `""`. That convention was expected to
+  keep an alternation-based scanner hand-rolled, since an empty capture and an
+  absent one read the same. Rewriting the app showed otherwise: wrap each
+  branch's group around the whole construct instead of its payload and a group
+  that fired cannot be empty. `Option` per group would still help a scanner whose
+  discriminator can legitimately match empty, at the cost of disagreeing with
+  `captures`.
+- **`task.pool` is fail-fast with no settled variant** (S). *Landed in 0.1.48 as
+  `pool_settled`.* One rejection abandons
+  the rest; `all_settled` is unbounded. `pool_settled` is a few lines. It reuses
+  `Settled<T>`, keeps result order, never rejects, and takes the same `limit`
+  clamp. The task error is still `unknown`. What "abandons the rest" means was
+  documented precisely at the same time: a `pool` rejection discards the other
+  workers' results, it does not stop them, because the remaining workers keep
+  draining the queue. So the value of `pool_settled` is the results you keep, not
+  requests you avoid sending.
 - **Stdlib breadth, third sighting** (S). *Landed, except for two pieces.*
   `string.repeat`, `pad_start`, `pad_end`, `slice`, `index_of`, `replace_all`,
   `trim_start`, `trim_end` and `array.fold`, `index_of`, `flat_map` all ship, in
@@ -1212,8 +1241,9 @@ not look inside, and ran as unverified TypeScript wearing Glyph syntax. The stal
 reason to wait is gone. The shim is gone with this release:
 `examples/apps/shortlink.glyph` imports no `extern/*` and no Node builtin, and
 `examples/extern/web.ts` is deleted. 0.1.47 below was picked off this trip's open
-list, and no release carries the Next marker now; the next trip picks from what
-is left of it.
+list. 0.1.48 sits after it in shipping order but belongs to the linkcheck trip
+above, whose four stdlib findings it closes. No release carries the Next marker
+now; the next trip picks from what is left of both lists.
 
 ### 0.1.46 — Shipped · `std/http` can serve a web page
 
@@ -1347,6 +1377,101 @@ rode on the deleted functions; the equivalent assertions are in
   linkcheck list above: a `match` on `index_of` with no `None` arm builds clean
   and throws at run time, and fixing it needs a min/max arity in the table
   because `string.index_of` has an optional third argument.
+
+### 0.1.48 — Shipped · The link checker stops working around the stdlib
+
+The linkcheck trip filed thirteen findings and four of them said the same thing:
+the stdlib cannot do this, so the app does it by hand. This release adds the four
+capabilities and then rewrites `examples/apps/linkcheck.glyph` until none of the
+workarounds are left. Both halves are the release. A function that ships and a
+workaround that survives it are different claims, and the app is what settles the
+second one.
+
+`std/fs` learns about directories. `read_dir` returns the entry names one level
+down, `is_dir` answers with a `bool` the way `exists` does, and `stat` returns a
+`FileInfo` of `is_dir`, `is_file`, `size` in bytes, and `modified` in epoch
+milliseconds, which feeds `time.format_iso` directly. `read_dir` and `stat` are
+modeled in `stdlib_fn_ty`, so `?` on them picks its error type the way
+`read_text` does. `modified` is truncated to a whole number because node reports
+mtime as a float and `int` is a checked boundary, so the raw `mtimeMs` would have
+failed at run time. No recursive `walk` and no glob shipped: a walk is `read_dir`
+plus `is_dir` plus `path.join` in about ten lines, and a walk primitive is
+surface the gap did not ask for.
+
+`FsError.kind` stops being one constant. `ErrorKind` is now the closed set
+`NotFound`, `IsADirectory`, `NotADirectory`, `PermissionDenied`, `AlreadyExists`,
+and `Other({ code })` carrying the raw errno for anything unnamed. EACCES and
+EPERM both arrive as `PermissionDenied`, so those two codes are the ones that do
+not survive.
+
+`regex.captures_all(pattern, text)` returns the capture groups of every match,
+one inner array per match, holding groups 1 onward. It follows `captures` on both
+conventions that differ from JavaScript's `matchAll`: the whole match is not in
+the array, and a group that did not participate is `""` rather than `undefined`.
+
+`task.pool_settled(limit, tasks)` is `pool`'s worker loop with each call guarded.
+One `Settled<T>` per task, in order, never rejecting, with the same clamp of a
+`limit` below 1. `pool`'s doc comment now points at it, and the docs say what
+fail-fast actually costs: a `pool` rejection discards the other workers' results,
+it does not stop them, because the remaining workers keep draining the queue.
+
+Then the app. The only raw-node import in `examples/apps/` is deleted with its
+`readdirSync` call. Both `e.kind.tag == "EISDIR"` probes are gone, replaced by a
+`match` on `fs.ErrorKind` in a new `fs_reason`. The 180-line character scanner is
+gone: `scan_inline`'s stepping loop, `type Step`, `skip_code_span`,
+`autolink_at`, `looks_like_autolink`, `bracket_link_at`, and the `index_of` chain
+in `reference_definition` are 97 deleted lines replaced by two patterns and a
+12-line dispatch. `task.pool` became `task.pool_settled`. 122 deletions against
+114 insertions, and the insertions are not a wash: three of them are new
+capability rather than restored workaround, and about 24 lines are the design
+comment explaining the scanner's group layout.
+
+The alternation problem the `captures_all` design was expected to lose on was
+solved rather than traded away. Write each branch's group around the whole
+construct instead of around its payload and a group that fired can never be
+empty, because it starts with a backtick, `[`, `!`, or `<`. The possibly-empty
+capture, the link target, nests inside a discriminator group and is never asked
+whether it fired, so `[]()` still reports an empty target. Putting the code span
+first in the alternation reproduces the "a link inside backticks is not a link"
+rule without tracking an offset, which is what made the offset unnecessary too.
+
+Three things are proved by running, not by review. Output first: the app's own
+header block and a hostile fixture (two levels of nesting, uppercase `.MD`, code
+spans including an unterminated one, `[]()`, nested brackets, angle-bracketed
+targets, an autolink containing a bracket pair) are byte-identical against a
+rebuilt pre-batch binary. Then the two behaviour changes, each measured against
+the app it replaced. On a tree with a `chmod 000` subdirectory the new app prints
+`permission denied` and counts the path unreadable; the old app dropped that
+directory with no row and no mention. With a throw injected into one of three
+fetches, `pool_settled` printed all three rows and named the failing URL, while
+`pool` printed nothing and died on an unhandled rejection, losing both surviving
+results.
+
+Pillar: verifiability. Every one of these workarounds was a place where the
+program's behaviour was decided by an untyped string comparison, an unhandled
+rejection, or a hand-written scanner that no type could constrain.
+
+### Still open after this release
+
+- **Nothing checks a `match e.kind`** (decision, then M). The typechecker models
+  what a stdlib function returns and has no field model for a stdlib named type,
+  so `e.kind` types as unknown, `required_variants` resolves nothing, and a match
+  missing `PermissionDenied` builds clean, passes `tsc --strict`, and throws at
+  run time. Keep the `else` arm. Fixing it means a stdlib named-type table, which
+  is the general "model the stdlib's types, not just its signatures" question G39
+  and Q21 already own, and the same root as the unmodeled `index_of` returns
+  above.
+- **Whether `read_dir` should sort** (decision, then XS). It returns entries in
+  node's order today, which differs across platforms and filesystems, so a
+  reproducible report sorts them itself and `linkcheck` does. Sorting ascending
+  in the stdlib would make every report deterministic and every `@example` on a
+  directory reproducible, at the cost of deviating from `readdirSync` in a way
+  that has to be documented. Not decided here.
+- **`captures_all` still has no offsets** (S). A scanner whose discriminator can
+  legitimately match empty, or one that needs to know where in the line a match
+  started, wants a `Match` record carrying the offset and the whole match text.
+  `linkcheck` needed neither in the end, so this is no longer blocking an app in
+  the repo.
 
 ## Road to 1.0
 

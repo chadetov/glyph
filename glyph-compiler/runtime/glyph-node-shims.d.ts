@@ -22,6 +22,15 @@ declare module "fs" {
   export function mkdirSync(path: string, options?: { recursive?: boolean }): string | undefined;
   export function readdirSync(path: string): string[];
   export function unlinkSync(path: string): void;
+  // The subset of node's `Stats` that `std/fs.stat` reads. `@types/node` has the
+  // full class and is structurally compatible with this.
+  export interface Stats {
+    isDirectory(): boolean;
+    isFile(): boolean;
+    size: number;
+    mtimeMs: number;
+  }
+  export function statSync(path: string): Stats;
 }
 declare module "node:fs" {
   export * from "fs";

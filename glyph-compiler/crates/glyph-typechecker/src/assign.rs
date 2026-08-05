@@ -1068,6 +1068,18 @@ impl Assigner<'_> {
                 stdlib_named("fs", "FsError"),
                 false,
             ),
+            ("std/fs", "read_dir") => (
+                1,
+                self.stdlib_array_ty(Ty::Prim(Primitive::String))?,
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            ("std/fs", "stat") => (
+                1,
+                stdlib_named("fs", "FileInfo"),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
             _ => return None,
         };
         let return_ty = self.stdlib_result_ty(ok, err)?;

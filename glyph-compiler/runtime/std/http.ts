@@ -10,6 +10,11 @@
 // `Err(message)` on a bind failure. Because `serve` stays pending while the
 // server listens, a Glyph `main` that does `await http.serve(...)` never returns,
 // so the process stays alive without any keep-alive hack.
+//
+// A `Response` carries its headers, so the server is not limited to a JSON API:
+// `html` serves a page, `redirect` sets a `location`, and `with_header` adds
+// anything else. The content type is inferred from the body only when the
+// response does not already name one.
 
 import { Result, Ok, Err } from "./result";
 import { Option, Some, None } from "./option";
@@ -27,7 +32,16 @@ export type Request = {
   raw: string;
 };
 
-export type Response = { status: number; body: unknown };
+/// An HTTP response, on both halves of the module: what a handler returns and
+/// what a client call resolves to. `headers` is required, not optional. A
+/// response always has a header set, and reading `resp.headers` should never
+/// need an absence check. Every constructor below fills it in, so the field is
+/// only ever spelled out when a program builds a `Response` by hand.
+export type Response = {
+  status: number;
+  headers: Record<string, string>;
+  body: unknown;
+};
 
 export type HttpError = { status: number; message: string };
 
@@ -52,8 +66,9 @@ export async function del(url: string): Promise<Result<Response, HttpError>> {
   return request(url, "DELETE", undefined);
 }
 
+/// Build an `application/json` response.
 export function json(status: number, body: unknown): Response {
-  return { status, body };
+  return { status, headers: { "content-type": "application/json" }, body };
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +83,35 @@ export type Handler = (
 
 /// Build a `text/plain` response.
 export function text(status: number, body: string): Response {
-  return { status, body };
+  return { status, headers: { "content-type": "text/plain; charset=utf-8" }, body };
+}
+
+/// Build a `text/html` response, so a browser renders the markup instead of
+/// showing it as source.
+export function html(status: number, body: string): Response {
+  return { status, headers: { "content-type": "text/html; charset=utf-8" }, body };
+}
+
+/// Build a redirect: the given status (302, 301, 303, 307, 308) and a
+/// `location` header pointing at `location`. The body is empty.
+export function redirect(status: number, location: string): Response {
+  return { status, headers: { location }, body: "" };
+}
+
+/// A copy of `resp` with one more header set (replacing any header of the same
+/// name, compared case-insensitively). Returns a new `Response` rather than
+/// mutating: Glyph has no record-field mutation, so the copy is the honest
+/// shape. `http.with_header(http.html(200, page), "cache-control", "no-store")`.
+export function with_header(resp: Response, name: string, value: string): Response {
+  const headers: Record<string, string> = {};
+  const lower = name.toLowerCase();
+  for (const [key, existing] of Object.entries(resp.headers)) {
+    if (key.toLowerCase() !== lower) {
+      headers[key] = existing;
+    }
+  }
+  headers[name] = value;
+  return { status: resp.status, headers, body: resp.body };
 }
 
 /// The URL query string parsed into a record (`/x?a=1&b=2` -> `{ a: "1", b: "2" }`).
@@ -96,6 +139,19 @@ export function path(req: Request): string {
 /// re-serializing a parsed body changes whitespace and key order.
 export function raw(req: Request): string {
   return req.raw;
+}
+
+/// An `application/x-www-form-urlencoded` request body parsed into a record
+/// (`a=1&b=hello+world` -> `{ a: "1", b: "hello world" }`). Decodes `+` as a
+/// space and percent-escapes as their bytes. A key repeated in the body keeps
+/// the last value. Reads `req.raw`, so it is independent of `req.body`: a
+/// program that wants the raw bytes or a JSON body still gets them unchanged.
+export function form(req: Request): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of new URLSearchParams(req.raw)) {
+    out[key] = value;
+  }
+  return out;
 }
 
 /// The request path split into its non-empty segments: `/tasks/5` becomes
@@ -157,13 +213,37 @@ async function respond(
     const message = (e as { message?: string } | null)?.message ?? String(e);
     result = Err(message);
   }
-  const resp: Response =
-    result.tag === "Ok" ? result.value : { status: 500, body: { error: result.value } };
+  const resp: Response = result.tag === "Ok" ? result.value : json(500, { error: result.value });
   const is_text = typeof resp.body === "string";
-  nres.writeHead(resp.status, {
-    "content-type": is_text ? "text/plain; charset=utf-8" : "application/json",
-  });
+  const headers: Record<string, string> = {};
+  for (const [key, value] of Object.entries(resp.headers)) {
+    headers[key] = sanitize_header_value(value);
+  }
+  // The content type is inferred (string body -> text/plain, anything else ->
+  // JSON) only when the response does not already carry one, so a response
+  // built by `json`/`text`/`html` keeps exactly the type it declared.
+  const has_content_type = Object.keys(headers).some(
+    (key) => key.toLowerCase() === "content-type",
+  );
+  if (!has_content_type) {
+    headers["content-type"] = is_text ? "text/plain; charset=utf-8" : "application/json";
+  }
+  nres.writeHead(resp.status, headers);
   nres.end(is_text ? (resp.body as string) : JSON.stringify(resp.body));
+}
+
+/// Drop every character Node refuses to write in a header value, keeping tab
+/// and the printable Latin-1 range. CR and LF are the dangerous case: a newline
+/// in a header is response splitting, and an attacker-controlled value (a
+/// `location` built from a query parameter, say) could otherwise inject headers
+/// or a second response. Anything above U+00FF is rejected too, so a redirect to
+/// a URL containing an emoji would throw. Node's check is
+/// `/[^\t\x20-\x7e\x80-\xff]/`, and it throws `ERR_INVALID_CHAR` from
+/// `writeHead`, where `respond` has no `Result` to put the error in and the
+/// throw would take the process down. The characters are removed instead, so no
+/// header value the server writes can ever be one Node rejects.
+function sanitize_header_value(value: string): string {
+  return value.replace(/[^\t\x20-\x7e\x80-\xff]/g, "");
 }
 
 function read_request(nreq: IncomingMessage): Promise<Request> {
@@ -208,7 +288,11 @@ async function request(
     if (!res.ok) {
       return Err({ status: res.status, message: text });
     }
-    return Ok({ status: res.status, body: parsed });
+    const headers: Record<string, string> = {};
+    res.headers.forEach((value, key) => {
+      headers[key.toLowerCase()] = value;
+    });
+    return Ok({ status: res.status, headers, body: parsed });
   } catch (e: unknown) {
     const message = (e as { message?: string } | null)?.message ?? String(e);
     return Err({ status: 0, message });

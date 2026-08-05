@@ -1087,6 +1087,187 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn http_server_writes_html_redirects_and_custom_headers() {
+    // G52: `std/http` can serve more than a JSON API. A handler built from
+    // `html`/`redirect`/`with_header` must put those bytes on the wire: a 302
+    // with a `location` header, a `text/html` content type, a custom header,
+    // and CR/LF stripped out of a header value (response splitting). The
+    // handler is written in Glyph and compiled; a small TypeScript driver in
+    // the build output starts the server and checks the real responses,
+    // exiting with the number of failed assertions. Needs node/tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping http response-header run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("httpheaders");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/http { serve, path, form, json, text, html, redirect, with_header, Request, Response }
+import std/record
+import std/result { Result, Ok, Err }
+import std/option { Some, None }
+
+pub fn route(req: Request) -> Result<Response, string> {
+  return match path(req) {
+    "/page" => Ok(html(200, "<h1>hello</h1>")),
+    "/go" => Ok(redirect(302, "/page")),
+    "/split" => Ok(redirect(302, "/page\r\nx-injected: yes")),
+    "/astral" => Ok(redirect(302, "/p/\u{1F389}/x")),
+    "/api" => Ok(json(200, { ok: true })),
+    "/plain" => Ok(text(200, "plain body")),
+    "/custom" => Ok(with_header(html(200, "<p>tagged</p>"), "x-glyph", "1")),
+    "/boom" => Err("handler failed"),
+    "/echo" => match record.get(form(req), "name") {
+      Some(v) => Ok(text(200, v)),
+      None => Ok(text(400, "no name")),
+    },
+    else => Ok(text(404, "not found")),
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let outcome = await serve(8080, route)
+  return match outcome {
+    Ok(_) => 0,
+    Err(_) => 1,
+  }
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    let port = free_port();
+    let driver = format!(
+        r#"import "./.glyph-runtime/glyph-bootstrap.ts";
+import {{ route }} from "./main.ts";
+import {{ serve }} from "std/http";
+
+const port = {port};
+const base = "http://127.0.0.1:" + port;
+void serve(port, route);
+
+let failures = 0;
+function check(ok: boolean, what: string): void {{
+  if (!ok) {{
+    failures += 1;
+    console.error("FAIL: " + what);
+  }}
+}}
+
+async function drive(): Promise<void> {{
+  for (let i = 0; i < 200; i++) {{
+    try {{
+      await fetch(base + "/page");
+      break;
+    }} catch {{
+      await new Promise((r) => setTimeout(r, 25));
+    }}
+  }}
+
+  const page = await fetch(base + "/page");
+  check(page.status === 200, "html status " + page.status);
+  check(
+    (page.headers.get("content-type") ?? "").startsWith("text/html"),
+    "html content-type " + page.headers.get("content-type"),
+  );
+  check((await page.text()) === "<h1>hello</h1>", "html body");
+
+  const go = await fetch(base + "/go", {{ redirect: "manual" }});
+  check(go.status === 302, "redirect status " + go.status);
+  check(go.headers.get("location") === "/page", "location " + go.headers.get("location"));
+
+  const split = await fetch(base + "/split", {{ redirect: "manual" }});
+  check(
+    split.headers.get("location") === "/pagex-injected: yes",
+    "CR/LF stripped from a header value, got " + split.headers.get("location"),
+  );
+  check(split.headers.get("x-injected") === null, "no injected header");
+
+  // Node rejects any header byte above U+00FF as well as CR/LF, and it throws
+  // from `writeHead`, outside the handler's try/catch, which would kill the
+  // process. The character is dropped and the server keeps serving.
+  const astral = await fetch(base + "/astral", {{ redirect: "manual" }});
+  check(astral.status === 302, "astral redirect status " + astral.status);
+  check(
+    astral.headers.get("location") === "/p//x",
+    "astral char dropped from a header value, got " + astral.headers.get("location"),
+  );
+  const alive = await fetch(base + "/page");
+  check(alive.status === 200, "server alive after an astral header value");
+
+  const api = await fetch(base + "/api");
+  check(
+    api.headers.get("content-type") === "application/json",
+    "json content-type " + api.headers.get("content-type"),
+  );
+  check((await api.text()) === JSON.stringify({{ ok: true }}), "json body");
+
+  const plain = await fetch(base + "/plain");
+  check(
+    plain.headers.get("content-type") === "text/plain; charset=utf-8",
+    "text content-type " + plain.headers.get("content-type"),
+  );
+
+  const custom = await fetch(base + "/custom");
+  check(custom.headers.get("x-glyph") === "1", "custom header");
+  check(
+    (custom.headers.get("content-type") ?? "").startsWith("text/html"),
+    "with_header keeps the content type",
+  );
+
+  const boom = await fetch(base + "/boom");
+  check(boom.status === 500, "Err status " + boom.status);
+  check(
+    boom.headers.get("content-type") === "application/json",
+    "Err content-type " + boom.headers.get("content-type"),
+  );
+
+  const echo = await fetch(base + "/echo", {{
+    method: "POST",
+    headers: {{ "content-type": "application/x-www-form-urlencoded" }},
+    body: "name=hello+world%21&name=last+wins",
+  }});
+  check((await echo.text()) === "last wins", "form decoding");
+
+  process.exit(failures);
+}}
+
+void drive();
+"#
+    );
+    std::fs::write(out.join("__driver.ts"), driver).expect("write driver");
+
+    let status = std::process::Command::new("tsx")
+        .arg("--tsconfig")
+        .arg(out.join("tsconfig.json"))
+        .arg(out.join("__driver.ts"))
+        .status()
+        .expect("run tsx");
+    assert_eq!(
+        status.code(),
+        Some(0),
+        "std/http response assertions failed (exit code is the failure count)"
+    );
+}
+
+/// An unused localhost port, found by binding one and letting it go. Racy in
+/// principle; in a test process nothing else claims it in between.
+fn free_port() -> u16 {
+    std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("bind ephemeral port")
+        .local_addr()
+        .expect("local addr")
+        .port()
+}
+
+#[test]
 fn value_position_match_type_checks() {
     // A `match` that is the whole value of a `let` or a `mut` assignment lowers
     // to a flat statement `switch`. Before that, an `await` arm landed inside a

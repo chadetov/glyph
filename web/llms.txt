@@ -489,7 +489,7 @@ Property tests are deterministic (sampled by index, no RNG). Run them with
 
 ```
 type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
-type Response = { status: number, body: unknown }
+type Response = { status: number, headers: Record<string, string>, body: unknown }
 type HttpError = { status: number, message: string }
 type Handler  = fn(Request) -> Result<Response, string>   // may be async
 
@@ -498,14 +498,28 @@ http.post(url, body) -> Result<Response, HttpError>   // client; async
 http.serve(port, handler) -> Result<void, string>     // server; async, await keeps process alive
 http.json(status, body) -> Response                   // application/json response
 http.text(status, body) -> Response                   // text/plain response
+http.html(status, body) -> Response                   // text/html response
+http.redirect(status, location) -> Response           // 30x with a `location` header
+http.with_header(resp, name, value) -> Response       // a copy carrying one more header
 http.query(req) -> Record<string, string>             // parse the URL query string
 http.path(req) -> string                              // URL path without the query
+http.form(req) -> Record<string, string>              // parse an x-www-form-urlencoded body
 http.raw(req) -> string                               // unparsed request body, for HMAC signature verification
 ```
 
 `req.body` is the parsed body; `http.raw(req)` is the unparsed bytes as received,
 what an HMAC signature must be verified over (re-serializing the parsed body
 changes whitespace and key order, so a recomputed signature would not match).
+`http.form(req)` parses that raw body as `x-www-form-urlencoded` (`+` is a space,
+percent escapes decode, a repeated key keeps the last value) without touching
+`req.body`.
+
+`Response.headers` is required and every constructor fills it in. The content
+type is inferred from the body only when the headers do not already name one.
+Every character Node refuses to write in a header is stripped from the value
+first, so a `location` built from user input can neither split the response
+(CR/LF) nor crash the server (anything above U+00FF). A client call reports the
+response headers it received, with the names lowercased.
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
 `Err(message)` (sent as a 500). `await http.serve(port, handler)` starts the

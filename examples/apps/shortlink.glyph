@@ -1,4 +1,4 @@
-// shortlink — a URL shortener you can point a browser at.
+// shortlink — a URL shortener you can point a browser at, with no extern shim.
 //
 // POST a long URL from an HTML form, get back a base62 short code. GET the code
 // and the browser is redirected (302 + Location) to the target; the click is
@@ -12,19 +12,21 @@
 //   curl localhost:8138/<code>+
 //   open http://localhost:8138/
 //
-// One workaround lives in examples/extern/web.ts: `std/http`'s `Response` is
-// `{ status, body }` with no headers and its server hard-codes
-// `content-type: text/plain`, so there is no way to send `Location:` (no 302,
-// which is this app's whole point) or `text/html` (a browser would show the
-// page source). That file is a transport shim only; the routing, rendering,
-// validation, and storage below are all Glyph.
+// This version imports no `extern/*` shim and no Node builtin. std/http carries
+// the whole wire: `serve` runs the server, `html` sends a page, `redirect` sets
+// a `Location`, and `form` reads an HTML form POST. A handler returns
+// `Result<Response, string>`, so a 404 is a normal `Ok` and only a real failure
+// is an `Err`.
+//
+// One thing std/http still does not have and this file builds by hand: percent
+// encoding, needed to put an error message into a query string.
 
 module main
 
-import extern/web { serve_web, decode_component, WebResponse }
 import std/array
+import std/encoding
 import std/fs
-import std/http { Request, path, segments, raw }
+import std/http { Request, Response, serve, html, redirect, form, path, segments, query_param }
 import std/io { println }
 import std/json
 import std/option { Option, Some, None }
@@ -37,30 +39,123 @@ import std/string
 import std/time
 
 // ---------------------------------------------------------------------------
+// Percent encoding, not in std
+// ---------------------------------------------------------------------------
+
+fn chars(s: string) -> Array<string> {
+  return string.split(s, "")
+}
+
+fn take(s: string, n: int) -> string {
+  return string.join(array.slice(chars(s), 0, n), "")
+}
+
+fn drop(s: string, n: int) -> string {
+  return string.join(array.slice(chars(s), n), "")
+}
+
+fn is_hex_pair(s: string) -> bool {
+  return regex.matches("^[0-9A-Fa-f][0-9A-Fa-f]$", s)
+}
+
+// Percent-escapes decode to *bytes*, and consecutive escapes are one UTF-8
+// sequence, so they are buffered and handed to `encoding.hex_decode` together.
+fn flush_hex(pending: string) -> string {
+  return match string.len(pending) == 0 {
+    true => "",
+    false => encoding.hex_decode(pending),
+  }
+}
+
+fn percent_decode(input: string) -> string {
+  let parts: Array<string> = string.split(input, "%")
+  let out = parts[0]
+  let pending = ""
+  for part in array.slice(parts, 1) {
+    let head = take(part, 2)
+    let tail = drop(part, 2)
+    match is_hex_pair(head) {
+      true => {
+        mut pending = "${pending}${head}"
+        match string.len(tail) == 0 {
+          true => {},
+          false => {
+            mut out = "${out}${flush_hex(pending)}${tail}"
+            mut pending = ""
+          },
+        }
+      },
+      // A stray `%` is not an escape; keep it as typed.
+      false => {
+        mut out = "${out}${flush_hex(pending)}%${part}"
+        mut pending = ""
+      },
+    }
+  }
+  return "${out}${flush_hex(pending)}"
+}
+
+// The lead nibbles of a byte below 0x80.
+const ASCII_LEAD = "01234567"
+
+fn encode_byte(pair: string, keep: string) -> string {
+  return match string.contains(ASCII_LEAD, take(pair, 1)) {
+    // A continuation byte of a multi-byte character is never a literal.
+    false => "%${pair}",
+    true => {
+      let ch = encoding.hex_decode(pair)
+      match regex.matches(keep, ch) {
+        true => ch,
+        false => "%${pair}",
+      }
+    },
+  }
+}
+
+// Percent-encoding works on *bytes*, so the input is turned into hex once and
+// walked two digits at a time. Doing it per character instead looks right and
+// is wrong: `chars()` splits by UTF-16 unit, so `🎉` arrives as two lone
+// surrogates and encodes to `%EF%BF%BD%EF%BF%BD`. There is no codepoint-aware
+// iteration in std/string.
+fn encode_bytes(input: string, keep: string) -> string {
+  let digits: Array<string> = chars(string.upper(encoding.hex_encode(input)))
+  let out = ""
+  let i = 0
+  loop {
+    match i >= array.len(digits) {
+      true => {
+        return out
+      },
+      false => {},
+    }
+    let pair = "${digits[i]}${digits[i + 1]}"
+    mut out = "${out}${encode_byte(pair, keep)}"
+    mut i = i + 2
+  }
+}
+
+// What `encodeURIComponent` is in JavaScript: everything outside the unreserved
+// set becomes an escape, so the result is safe as a query-string value.
+fn url_encode(input: string) -> string {
+  return encode_bytes(input, "^[A-Za-z0-9._~-]$")
+}
+
+// ---------------------------------------------------------------------------
+// Form fields
+// ---------------------------------------------------------------------------
+
+fn form_field(fields: Record<string, string>, name: string) -> string {
+  return match record.get(fields, name) {
+    Some(value) => value,
+    None => "",
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Domain
 // ---------------------------------------------------------------------------
 
 type Link = { code: string, target: string, created_at: int, clicks: int }
-
-// `WebResponse` is imported from the shim above: it is the shim's wire contract,
-// so it is declared where the wire is. This is `std/http`'s `Response` plus the
-// two things it does not have and this app cannot work without: a content type
-// and a `Location`. See the note at the top of extern/web.ts.
-
-const HTML_TYPE = "text/html; charset=utf-8"
-
-fn html(status: int, body: string) -> WebResponse {
-  return { status: status, content_type: HTML_TYPE, location: "", body: body }
-}
-
-fn redirect(status: int, location: string) -> WebResponse {
-  return {
-    status: status,
-    content_type: "text/plain; charset=utf-8",
-    location: location,
-    body: "Redirecting to ${location}",
-  }
-}
 
 // The on-disk shape. A record (not a bare array) so `Snapshot.parse` validates
 // the whole file at the boundary where untrusted bytes come back in.
@@ -86,8 +181,8 @@ const rng = seeded(time.now())
 // Persistence
 // ---------------------------------------------------------------------------
 
-fn load_links(path: string) -> Array<Link> {
-  return match fs.read_text(path) {
+fn load_links(from_path: string) -> Array<Link> {
+  return match fs.read_text(from_path) {
     Ok(text) => match json.parse<Snapshot>(text) {
       Ok(snapshot) => snapshot.links,
       Err(issues) => [],
@@ -96,9 +191,9 @@ fn load_links(path: string) -> Array<Link> {
   }
 }
 
-fn save_links(path: string, current: Array<Link>) -> Result<void, string> {
+fn save_links(to_path: string, current: Array<Link>) -> Result<void, string> {
   let snapshot: Snapshot = { links: current }
-  return match fs.write_text(path, json.stringify(snapshot, { indent: 2 })) {
+  return match fs.write_text(to_path, json.stringify(snapshot, { indent: 2 })) {
     Ok(nothing) => Ok(nothing),
     Err(e) => Err(e.message),
   }
@@ -109,7 +204,7 @@ fn save_links(path: string, current: Array<Link>) -> Result<void, string> {
 // ---------------------------------------------------------------------------
 
 fn random_code() -> string {
-  let alphabet: Array<string> = string.split(ALPHABET, "")
+  let alphabet: Array<string> = chars(ALPHABET)
   let out = ""
   // No range syntax, so a fixed-length loop is a literal array of indices.
   for _i in [0, 1, 2, 3, 4, 5, 6] {
@@ -161,8 +256,7 @@ fn host_of(url: string) -> string {
   return match array.len(after_scheme) < 2 {
     true => "",
     false => {
-      let rest = after_scheme[1]
-      let authority: Array<string> = string.split(rest, "/")
+      let authority: Array<string> = string.split(after_scheme[1], "/")
       let no_query: Array<string> = string.split(authority[0], "?")
       let no_hash: Array<string> = string.split(no_query[0], "#")
       no_hash[0]
@@ -280,39 +374,6 @@ fn not_found_page(what: string) -> string {
 }
 
 // ---------------------------------------------------------------------------
-// Form decoding
-// ---------------------------------------------------------------------------
-
-fn form_field(form: Record<string, string>, name: string) -> string {
-  return match record.get(form, name) {
-    Some(value) => value,
-    None => "",
-  }
-}
-
-fn parse_form(body: string) -> Record<string, string> {
-  let out: Record<string, string> = {}
-  for pair in string.split(body, "&") {
-    // Split on the *first* `=` only. With no `string.index_of`/`slice` that
-    // means splitting on every `=` and rejoining the tail.
-    let parts: Array<string> = string.split(pair, "=")
-    match array.len(parts) >= 2 {
-      true => {
-        let key = parts[0]
-        let value = string.join(array.slice(parts, 1), "=")
-        mut out = record.set(out, url_decode(key), url_decode(value))
-      },
-      false => {},
-    }
-  }
-  return out
-}
-
-fn url_decode(s: string) -> string {
-  return decode_component(regex.replace_all("\\+", s, " "))
-}
-
-// ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
 
@@ -363,21 +424,25 @@ fn stats_code(segment: string) -> Option<string> {
   }
 }
 
-fn handle_home(req: Request) -> WebResponse {
+fn handle_home(req: Request) -> Response {
   return match req.method {
-    "GET" => html(200, home_page(links.get(), None)),
+    "GET" => html(200, home_page(links.get(), query_param(req, "error"))),
+    // Post/redirect/get: a submit always answers with a redirect, so a browser
+    // reload never re-posts the form. The error, if any, rides back in the
+    // query string, which is why this app needs percent-encoding as well as
+    // decoding.
     "POST" => {
-      let form = parse_form(raw(req))
-      match create_link(form_field(form, "url"), form_field(form, "alias")) {
-        Ok(link) => redirect(302, "/${link.code}+"),
-        Err(message) => html(400, home_page(links.get(), Some(message))),
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) => redirect(303, "/${link.code}+"),
+        Err(message) => redirect(303, "/?error=${url_encode(message)}"),
       }
     },
     else => html(405, page("405", "<h1>405</h1><p>Method not allowed.</p>")),
   }
 }
 
-fn handle_code(code: string) -> WebResponse {
+fn handle_code(code: string) -> Response {
   return match find_link(links.get(), code) {
     Some(link) => {
       count_click(link.code)
@@ -387,21 +452,24 @@ fn handle_code(code: string) -> WebResponse {
   }
 }
 
-fn handle_stats(code: string) -> WebResponse {
+fn handle_stats(code: string) -> Response {
   return match find_link(links.get(), code) {
     Some(link) => html(200, stats_page(link)),
     None => html(404, not_found_page(code)),
   }
 }
 
-fn route(req: Request) -> WebResponse {
+// std/http's `Handler` returns `Result<Response, string>`: every status a user
+// can reach is an `Ok`, and an `Err` is reserved for a failure the app cannot
+// answer, which the server turns into a 500.
+fn route(req: Request) -> Result<Response, string> {
   return match segments(req) {
-    [] => handle_home(req),
-    [one] => match stats_code(one) {
-      Some(code) => handle_stats(code),
-      None => handle_code(one),
+    [] => Ok(handle_home(req)),
+    [one] => match stats_code(percent_decode(one)) {
+      Some(code) => Ok(handle_stats(code)),
+      None => Ok(handle_code(percent_decode(one))),
     },
-    else => html(404, not_found_page(path(req))),
+    else => Ok(html(404, not_found_page(path(req)))),
   }
 }
 
@@ -413,6 +481,14 @@ async fn main(argv: Array<string>) -> number {
   links.set(load_links(DB_PATH))
   println("shortlink listening on http://localhost:${number.to_string(PORT)}")
   println("  ${number.to_string(array.len(links.get()))} link(s) loaded from ${DB_PATH}")
-  let _served = await serve_web(PORT, route)
-  return 0
+  // `serve` stays pending while the server listens, so this keeps the process
+  // alive on its own, and a bind failure comes back as a value to match on.
+  let outcome = await serve(PORT, route)
+  return match outcome {
+    Ok(nothing) => 0,
+    Err(message) => {
+      println("shortlink: ${message}")
+      1
+    },
+  }
 }

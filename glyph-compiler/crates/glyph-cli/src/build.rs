@@ -564,7 +564,7 @@ pub fn source_fingerprint(src: &Path) -> Result<String, BuildError> {
 /// walk passes `false` and keeps `DirEntry::metadata` semantics, where a symlink
 /// is neither a file nor a directory and is therefore skipped. The `extern`
 /// walk passes `true`: a project is likely to symlink a shared shim into
-/// `<src>/extern` (`examples/apps/extern/web.ts` is one today), and a skipped
+/// `<src>/extern` when the same shim serves two build roots, and a skipped
 /// symlink is a hole in the fingerprint of exactly the kind this collector
 /// exists to close. Following reads the target's contents while the caller still
 /// hashes the link's own relative path.
@@ -782,8 +782,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn fingerprint_follows_extern_symlinks() {
-        // `examples/apps/extern/web.ts` is a symlink today. A skipped symlink is
-        // the same stale-green defect through a second door, so the extern walk
+        // A shim shared by two build roots is a symlink in one of them. A
+        // skipped symlink is the same stale-green defect through a second door,
+        // so the extern walk
         // follows the link and hashes the target's contents.
         let root = extern_fixture("symlink");
         let shared = root.join("shared.ts");

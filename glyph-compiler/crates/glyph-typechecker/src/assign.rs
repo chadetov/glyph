@@ -995,6 +995,29 @@ impl Assigner<'_> {
             });
         }
 
+        // Response constructors that do not return a `Result`. Modeled so a
+        // handler's `Ok(http.html(...))` is checked against its declared
+        // `Result<Response, string>` here, rather than only by `tsc` on the
+        // emitted TypeScript.
+        if let Some(arity) = match (module_key, field) {
+            ("std/http", "html") | ("std/http", "redirect") => Some(2),
+            ("std/http", "with_header") => Some(3),
+            _ => None,
+        } {
+            let params = (0..arity)
+                .map(|_| FnParam {
+                    name: None,
+                    owned: false,
+                    ty: Ty::Unknown,
+                })
+                .collect();
+            return Some(Ty::Fn {
+                params,
+                return_ty: Arc::new(stdlib_named("http", "Response")),
+                is_async: false,
+            });
+        }
+
         // (arity, ok, err, is_async)
         let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
             ("std/http", "get") => (
@@ -4030,6 +4053,39 @@ async fn f(url: string) -> Result<http.Response, string> {
             "expected QuestionErrorTypeMismatch string vs http.HttpError; got {:?}",
             errs[0]
         );
+    }
+
+    #[test]
+    fn http_response_constructors_type_as_response() {
+        // `html`/`redirect`/`with_header` build an `http.Response` and do not go
+        // through a `Result`, so they need their own entry in the stdlib table.
+        // Without it they type `Unknown` and a handler's `Ok(http.html(...))` is
+        // checked only by `tsc` on the emitted TypeScript.
+        let src = r#"module x
+import std/http
+fn f() {
+  let a = http.html(200, "<p>hi</p>")
+  let b = http.redirect(302, "/next")
+  let c = http.with_header(a, "cache-control", "no-store")
+}
+"#;
+        let (m, _, tm) = type_map_of(src);
+        let f = match &m.items[1] {
+            Decl::Fn(f) => f,
+            other => panic!("second decl is not a Fn: {other:?}"),
+        };
+        for (idx, name) in ["html", "redirect", "with_header"].iter().enumerate() {
+            let span = match &f.body.stmts[idx] {
+                Stmt::Let(l) => l.value.span(),
+                other => panic!("stmt {idx} is not a Let: {other:?}"),
+            };
+            assert_eq!(
+                ty_display(tm.get(span)),
+                "http.Response",
+                "`http.{name}` should type as http.Response; got {:?}",
+                tm.get(span)
+            );
+        }
     }
 
     #[test]

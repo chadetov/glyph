@@ -61,6 +61,31 @@ async fn main(argv: Array<string>) -> number {
 }
 ```
 
+## Serve an HTML page and redirect
+
+```glyph
+import std/http { serve, path, form, html, redirect, text, Request, Response }
+import std/record
+import std/result { Result, Ok }
+import std/option { Some, None }
+
+fn route(req: Request) -> Result<Response, string> {
+  return match path(req) {
+    "/" => Ok(html(200, "<h1>hello</h1>")),
+    "/new" => match record.get(form(req), "url") {
+      Some(url) => Ok(redirect(302, "/")),
+      None => Ok(html(400, "<p>missing url</p>")),
+    },
+    else => Ok(text(404, "not found")),
+  }
+}
+```
+
+`html`, `redirect`, `text`, and `json` each set their own content type;
+`with_header(resp, name, value)` returns a copy carrying one more header.
+`form(req)` parses an `x-www-form-urlencoded` body (`+` is a space, percent
+escapes decode, a repeated key keeps the last value).
+
 ## Match on a tagged union exhaustively
 
 ```glyph

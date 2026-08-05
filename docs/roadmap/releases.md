@@ -1062,7 +1062,8 @@ not what this release fixes, because the trip also turned up the only false
 *green* in the batch, and a stale-cache lie has to go first: shipping
 `http.redirect` would push people to migrate off the shims they wrote to work
 around it, editing `extern/` on every iteration, straight into the bug below.
-This trip carries the Next marker.
+The Next marker has moved on to the second shortlink trip below, which is where
+the `std/http` response surface is fixed.
 
 ### 0.1.44 — Shipped · A change to an `extern` shim busts the `glyph run` cache
 
@@ -1170,6 +1171,85 @@ as the rest.
   producing different types per arm gives the rest of the compiler nothing, same
   as before. Improving on that means widening or a union type in Glyph's own
   checker, which is a type-system decision rather than a patch.
+
+## shortlink dogfood trip, second pass — a server that could only speak JSON
+
+The loop went back to the URL shortener with the `extern/` shim removed and asked
+for the app in plain Glyph. It could not be written that way. `std/http`'s
+`Response` was `{ status, body }`, `respond` hard-coded the content type from the
+body's shape, and the only constructors were `json` and `text`, so a `location`
+header and a `text/html` page were both unspellable. The app declared its own
+`Response`, hand-wrote a server on `node:http` behind a `.d.ts` the checker does
+not look inside, and ran as unverified TypeScript wearing Glyph syntax. The stale
+`extern/` cache that forced the deferral last time shipped in 0.1.44, so the
+reason to wait is gone. The shim is gone with this release:
+`examples/apps/shortlink.glyph` imports no `extern/*` and no Node builtin, and
+`examples/extern/web.ts` is deleted. No release carries the Next marker right
+now; the next trip picks from the list at the end of this section.
+
+### 0.1.46 — Shipped · `std/http` can serve a web page
+
+`Response` gains a required `headers: Record<string, string>` field. Required
+rather than optional: nothing in the repo builds a `Response` literal (every
+construction goes through `json`), the channel cannot then be forgotten, and
+reading `resp.headers` never needs an absence check. `json` and `text` keep their
+signatures and fill in their own content type. Three constructors join them:
+`html(status, body)` for a `text/html` page, `redirect(status, location)` for a
+30x with a `location` header, and `with_header(resp, name, value)`, which returns
+a new `Response` because Glyph has no record-field mutation.
+
+`respond` stops hard-coding. It writes the response's headers through to
+`writeHead` and infers a content type from the body only when the headers do not
+already carry one, compared case-insensitively, so every program written before
+this release puts the same bytes on the wire. Header values are sanitized on the
+way out: every character Node's `writeHead` rejects, which is everything outside
+`\t`, printable ASCII, and Latin-1, is dropped. CR and LF are the security half,
+since a `location` built from a query parameter is otherwise response splitting.
+The rest is the availability half, and the app found it. `writeHead` throws
+`ERR_INVALID_CHAR` from outside `respond`'s `try`, so redirecting to a target
+with an emoji in it killed the server, and the emoji came from a form field.
+Stripping only CR and LF left that open; stripping the full rejected set closes
+both.
+
+The client half fills `headers` from the fetch response with the names
+lowercased, which closes the observable half of G52. `form(req)` parses an
+`x-www-form-urlencoded` body with `URLSearchParams`, which gets `+`-as-space and
+percent decoding right; it reads `req.raw`, so `req.body` is unchanged for
+programs that already parse it themselves. A key repeated in the body keeps the
+last value.
+
+The typechecker models `html`, `redirect`, and `with_header` as returning
+`http.Response`. Without that they type `Unknown` and a handler's
+`Ok(http.html(...))` is checked only by `tsc` on the emitted TypeScript, which is
+the exact leak the change exists to close. A tsx-driven integration test asserts
+the wire behaviour against a Glyph handler: a 302 with `location: /page`, a
+`text/html` content type, a custom header, `application/json` still exactly that,
+a 500 from `Err`, CR/LF stripped out of an injected `location`, an astral
+character stripped from a `location` with the server still answering afterwards,
+and a form body decoded.
+
+The app is the proof. `examples/apps/shortlink.glyph` went from 615 lines to 494:
+its own `Response` type, its `node:http` server, its form parser, and its
+keep-alive loop are all deleted, and it still serves the 302 and the HTML page it
+was written for. `serve` stays pending while the server listens, so `main` needs
+no loop to stay alive, and a bind failure comes back as an `Err` to match on.
+
+Pillar: abstraction, buying verifiability. An application boundary that had to be
+hand-written TypeScript moves back inside the checker, and a redirect or a content
+type now has one spelling to grep for.
+
+### Still open from this trip
+
+- **The bound half of G52** (M). No request timeout, no redirect policy, no
+  `head`, and no final URL on a response, so a client still cannot tell that it
+  followed a redirect, only where it ended up.
+- **`std/url` percent encoding** (S). Encoding and decoding a URL component is
+  still hand-written in the app.
+- **`std/string` breadth, fifth sighting** (S). `slice` and `index_of` have been
+  reported by five consecutive trips and are still not scheduled.
+- **`string.split(s, "")` splits UTF-16 units** (S). Splitting on the empty string
+  breaks a surrogate pair, so a non-BMP character comes apart. Clean build, clean
+  `tsc`, wrong output.
 
 ## Road to 1.0
 
@@ -1338,7 +1418,9 @@ the version that declares it real, not the version it all lands in.
 - **Real dependencies used directly** (L). Import `react-hook-form` and a Postgres
   client and use their real APIs with no adapter.
 - **Stdlib breadth or a documented "use npm for X"** (M) for crypto, database, and
-  real servers, so the 744-line hand-written stdlib is not the only answer.
+  real servers, so the 744-line hand-written stdlib is not the only answer. The
+  server half moved in 0.1.46: `std/http` sets response headers, so an HTML page
+  and a redirect no longer need a hand-written server. Still open.
 
 **Interop code fixes from Linus review 04** (the verified gaps behind the honesty
 edits; each is real engineering, not a doc tweak):

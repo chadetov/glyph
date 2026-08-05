@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can I serve a web page, or only a JSON API? · Glyph</title>
+    <meta name="description" content="std/http serves HTML, redirects, custom response headers, and form posts: html, redirect, with_header and form, with the response headers modeled by the type checker." />
+    <link rel="canonical" href="https://glyphlang.io/answers/web-serving/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/" class="active"><span class="n">17</span> Serving the web</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">17 &middot; Serving the web</p>
+      <h1 class="q-title">Can I serve a web page, or only a JSON API?</h1>
+
+      <p class="short-answer">
+        A web page. <code>std/http</code> sets response headers, so a
+        <code>text/html</code> page, a 302 redirect, a cache header, and an HTML form post are
+        all ordinary Glyph. No Express, no hand-written TypeScript shim.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Until 0.1.46 a response was <code>{ status, body }</code> and the server picked the
+          content type from the body's shape: a string was <code>text/plain</code>, anything else
+          was JSON. That is fine for an API and useless for anything a browser renders. The way
+          out was to write your own server on <code>node:http</code> in a hand-written
+          <code>.ts</code> file, which puts your whole request path outside the type checker.
+          Two missing constructors were costing an entire application boundary.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          This is the router of <code>examples/apps/shortlink.glyph</code>, a URL shortener that
+          ships in the repo. An HTML form creates a code, a POST answers with a redirect so a
+          browser reload never re-posts, and following a code is a 302 to the target:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">shortlink.glyph: an HTML page, a form post, and the 302</span>
+<pre>fn handle_home(req: Request) -&gt; Response {
+  return match req.method {
+    "GET" =&gt; html(200, home_page(links.get(), query_param(req, "error"))),
+    "POST" =&gt; {
+      let fields = form(req)
+      match create_link(form_field(fields, "url"), form_field(fields, "alias")) {
+        Ok(link) =&gt; redirect(303, "/${link.code}+"),
+        Err(message) =&gt; redirect(303, "/?error=${url_encode(message)}"),
+      }
+    },
+    else =&gt; html(405, page("405", "&lt;h1&gt;405&lt;/h1&gt;")),
+  }
+}
+
+fn route(req: Request) -&gt; Result&lt;Response, string&gt; {
+  return match segments(req) {
+    [] =&gt; Ok(handle_home(req)),
+    [one] =&gt; match stats_code(percent_decode(one)) {
+      Some(code) =&gt; Ok(handle_stats(code)),
+      None =&gt; Ok(handle_code(percent_decode(one))),
+    },
+    else =&gt; Ok(html(404, not_found_page(path(req)))),
+  }
+}
+
+async fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let outcome = await serve(8138, route)
+  return match outcome { Ok(_) =&gt; 0, Err(_) =&gt; 1, }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The same app was in the repo one release ago at 615 lines, 121 of which were a
+          hand-written <code>node:http</code> server in a <code>.ts</code> file next to it, because
+          a <code>Location</code> and a <code>text/html</code> body had no spelling. It is 494 lines
+          now and imports nothing outside <code>std</code>. A handler returns
+          <code>Result&lt;Response, string&gt;</code>, so a 404 is an ordinary <code>Ok</code> and an
+          <code>Err</code> is reserved for what the app cannot answer, which the server turns into a
+          500. <code>serve</code> stays pending while it listens, so nothing has to keep the process
+          alive by hand and a failed bind comes back as a value.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Response</code> carries a required <code>headers: Record&lt;string, string&gt;</code>.
+          Required, not optional: every constructor fills it in, so reading
+          <code>resp.headers</code> never needs an absence check, and the channel cannot be
+          forgotten. <code>with_header(resp, "cache-control", "no-store")</code> returns a new
+          response rather than mutating one, because Glyph has no record-field mutation.
+          The type checker knows all three constructors return a <code>Response</code>, so a
+          handler whose declared return type says <code>Result&lt;Response, string&gt;</code> is
+          checked in Glyph, not by <code>tsc</code> on generated output.
+        </p>
+        <p>
+          Two details you would otherwise get wrong by hand. Any character Node refuses to write
+          in a header is stripped from the value on the way out, so a <code>location</code> built
+          from a query parameter cannot inject a second header or a second response, and an emoji
+          in a shortened URL cannot take the server down. And <code>form(req)</code> decodes
+          <code>+</code> as a space along with percent escapes, the pair that hand-rolled form
+          parsing usually misses; it reads the raw body, so <code>req.body</code> is untouched for
+          handlers that parse it themselves.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>html</code>, <code>redirect</code>, <code>with_header</code>, <code>json</code>, <code>text</code>, and <code>form</code>; response headers on the wire with the content type inferred only when you did not set one; request headers, query parameters, path segments, and the raw body on the way in; the client reports the response headers it received.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>Percent encoding is the gap the snippet above shows: <code>form</code> decodes a form body, but there is no <code>encode_component</code> for building a URL, so the shortener writes its own. Also missing on the client side: a timeout, a redirect policy, <code>head</code>, and the final URL a redirect landed on. There is no static-file server and no template engine, and there is no plan for either.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/finance/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Can I trust it with money and untrusted input?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;&middot;&nbsp; <a href="/hardening/">Hardening</a> &nbsp;&middot;&nbsp; <a href="/versions/">Versions</a> &nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;&middot;&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/web-serving/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

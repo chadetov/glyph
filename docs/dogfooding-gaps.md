@@ -803,13 +803,19 @@ of truth. On the async path it was a preprocessor with opinions.
   `m[0]` and drops the groups, so a scanner that needs the capture text has to be
   hand-rolled. It turned a 15-line link extractor into a 180-line character
   scanner.
-- **G52. `std/http` cannot bound or observe a request.** `Response` is
+- **G52. [HALF FIXED] `std/http` cannot bound or observe a request.** `Response` is
   `{ status, body }` with no headers and no final URL, so a redirect is
   invisible; `RequestInit` is `{ method }` with no timeout and no redirect
   policy; there is no `head`. The app's `task.race` timeout workaround leaves the
   loser in flight, which is the exact thing `task.ts`'s own doc comment says the
   scope exists to prevent. A network client that cannot bound a request is not
-  shippable. One coherent `std/http` round.
+  shippable. One coherent `std/http` round. *The observe half is fixed:
+  `Response` now carries a required `headers` field, the client fills it from the
+  fetch response with the names lowercased, and the server writes it to the wire
+  (`html`, `redirect`, and `with_header` build it; `form` reads a form-encoded
+  request body). The bound half is untouched: still no timeout, no redirect
+  policy, no `head`, and no final URL after a redirect, so a client still cannot
+  see that it was redirected, only that it landed somewhere.*
 - **G53. `task.pool` is fail-fast with no settled variant.** `pool` is
   `Promise.all` over workers, so one rejection abandons the rest, and
   `all_settled` is unbounded. `pool_settled` is a few lines and turns a
@@ -924,3 +930,43 @@ could not be removed.
   arms produce different types gives the rest of the compiler nothing, same as
   before. Doing better means widening or a union type, which Glyph does not have
   in its checker today.
+
+## Round 13 — the URL shortener again, with the shim taken away
+
+Round 11 wrote the shortener with a hand-written `extern/web.ts` because
+`std/http` could not spell a `Location` or a `text/html` page. This trip deleted
+the shim and asked for the same app in plain Glyph. The blocking gap is G52,
+recorded above and fixed by this release. What is new here came out of running
+the fixed version against input a user controls.
+
+- **G59. [FIXED] A header value outside Latin-1 killed the server.** The response
+  header fix stripped CR and LF from every value on the way out, which closes
+  response splitting. Node rejects more than that: `writeHead` throws
+  `ERR_INVALID_CHAR` for any byte outside `/[\t\x20-\x7e\x80-\xff]/`, and it
+  throws from a call site outside `respond`'s `try`, so the rejection was
+  unhandled and the process exited. Shortening a URL with an emoji in it and then
+  following the short link took the whole server down, and the emoji came from a
+  form field, so any visitor could do it. *Fixed: `sanitize_header_value` strips
+  every character Node rejects rather than only CR and LF, so an unencodable
+  character is dropped and the response still goes out. The integration test
+  redirects to a path containing an astral character, asserts the stripped
+  `location`, and then asserts a second request still gets an answer, which is
+  the half that would have caught this.*
+
+### Still open from this trip
+
+- **No percent encoding in the standard library.** The app needs to put an error
+  message into a query string, so it hand-writes `url_encode` and
+  `percent_decode` over `encoding.hex_encode`/`hex_decode`. Both are 60 lines of
+  the kind of code the stdlib exists to own, and encoding a URL component is
+  about as common as string formatting. A `std/url` with `encode_component` and
+  `decode_component` closes it.
+- **`string.split(s, "")` splits UTF-16 units.** Splitting on the empty string is
+  the only way Glyph has to get at characters, and it breaks a surrogate pair, so
+  a non-BMP character comes apart into two lone halves. Encoding `🎉` per
+  character that way yields `%EF%BF%BD%EF%BF%BD`, which builds clean, passes
+  `tsc --strict`, and is the wrong answer. The app works around it by converting
+  to hex first and walking bytes. This is the same root as the `std/string`
+  breadth item: no `slice`, no `index_of`, no codepoint-aware iteration.
+- **`std/string` breadth, fifth sighting.** `slice` and `index_of` have now been
+  reported by five consecutive trips.

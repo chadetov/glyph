@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.45</span>
+            <span class="rel-ver">0.1.46</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3><code>std/http</code> can serve a web page, not just JSON</h3>
+            <p>A response was <code>{ status, body }</code> with nowhere to put a header, and the server chose the content type from the body's shape: a string went out as <code>text/plain</code>, anything else as JSON. So a 302 <code>Location</code> and a <code>text/html</code> page were both unspellable, and the only way to serve a browser was to write your own server on <code>node:http</code> in a hand-written <code>.ts</code> file, which puts your entire request path outside the type checker. A URL shortener in the repo was doing exactly that, in 121 lines it should never have had to write.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>Response</code> carries <code>headers: Record&lt;string, string&gt;</code>, and three constructors build one: <code>html(status, body)</code>, <code>redirect(status, location)</code>, and <code>with_header(resp, name, value)</code>, which returns a new response because Glyph has no record-field mutation. The field is required rather than optional, so reading <code>resp.headers</code> never needs an absence check.</li>
+              <li><span class="tag added">Added</span> <code>form(req)</code> parses an <code>x-www-form-urlencoded</code> body into a <code>Record&lt;string, string&gt;</code>, decoding <code>+</code> as a space along with percent escapes. It reads the raw body, so <code>req.body</code> is unchanged for handlers that parse it themselves.</li>
+              <li><span class="tag fixed">Fixed</span> The server writes your headers to the wire and only infers a content type when you did not set one, compared case-insensitively, so every program written before this release sends the same bytes. Header values are stripped of every character Node refuses to write: CR and LF stop response splitting through a <code>location</code> built from a query parameter, and the rest stops an emoji in a shortened URL from throwing out of a path with no <code>Result</code> and taking the process down.</li>
+              <li><span class="tag fixed">Fixed</span> The type checker knows <code>html</code>, <code>redirect</code>, and <code>with_header</code> return a <code>Response</code>. Without that a handler's <code>Ok(http.html(...))</code> typed as unknown and was checked only by <code>tsc</code> on generated TypeScript, which is the leak the release exists to close.</li>
+              <li><span class="tag known">Known</span> There is no percent encoding for building a URL, so the shortener still hand-writes <code>url_encode</code>. On the client side there is still no request timeout, no redirect policy, no <code>head</code>, and no final URL after a redirect.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/shortlink.glyph</code> is rewritten with the shim deleted: 615 lines to 494, imports nothing outside <code>std</code>, and still serves the form, the HTML, and the 302.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.45</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -188,11 +188,13 @@ impl StdlibStubs {
             ],
         );
         // A `fetch`-based client (`get`/`post`/`put`/`patch`/`del`/`json`) plus a
-        // small server (`serve`/`Handler` and the `text`/`query`/`path` helpers).
+        // small server (`serve`/`Handler`, the `json`/`text`/`html`/`redirect`/
+        // `with_header` response constructors, and the request accessors).
         s.add(
             "std/http",
             &[
-                "get", "post", "put", "patch", "del", "json", "text", "serve", "query", "path",
+                "get", "post", "put", "patch", "del", "json", "text", "html", "redirect",
+                "with_header", "serve", "query", "path", "form",
                 "raw", "header", "query_param", "segments",
                 "Request", "Response", "HttpError", "Handler",
             ],

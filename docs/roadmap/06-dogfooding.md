@@ -15,7 +15,7 @@ step 7. Full session log in `archive/glyph_step6_session.md`.
 
 Dogfooding did not stop there. It is now a standing loop: one app per release,
 each one written to find something. `examples/apps/` holds the apps and
-[`docs/dogfooding-gaps.md`](../dogfooding-gaps.md) is the live list, eleven rounds
+[`docs/dogfooding-gaps.md`](../dogfooding-gaps.md) is the live list, thirteen rounds
 deep. **Read it, not this paragraph, for what is open.** Each round's fix and its
 unfixed findings are written up per release in
 [`releases.md`](releases.md).

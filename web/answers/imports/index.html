@@ -45,6 +45,7 @@
         <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
         <a href="/answers/language/"><span class="n">15</span> The language</a>
         <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
       </div>
     </div>
 
@@ -185,8 +186,8 @@ import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a
         </p>
         <p>
           That is what lets the shim own a type instead of both files declaring their own copy of
-          it. The URL shortener in <code>examples/apps/</code> exports its response shape from the
-          shim and imports it, and the compiler holds the app to it on every run:
+          it. Export the shape from the shim, import it in the Glyph module, and the compiler holds
+          the two together on every run:
         </p>
       </div>
 
@@ -209,7 +210,7 @@ import extern/raw_server { serve_raw }   // typed from the .ts; a wrong arg is a
 <span class="del">[TS2353]</span> Object literal may only specify
 known properties, and 'location' does not
 exist in type 'WebResponse'.
-   ╰─ shortlink:53:3</pre>
+   ╰─ server:53:3</pre>
         </div>
       </div>
 

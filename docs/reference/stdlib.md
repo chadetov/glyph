@@ -432,7 +432,7 @@ A `fetch`-based client and a small server, both errors-as-values.
 
 ```
 type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
-type Response = { status: number, body: unknown }
+type Response = { status: number, headers: Record<string, string>, body: unknown }
 type HttpError = { status: number, message: string }
 type Handler  = fn(Request) -> Result<Response, string>         // may be async
 ```
@@ -441,6 +441,11 @@ type Handler  = fn(Request) -> Result<Response, string>         // may be async
 it with `http.raw(req)`, below), which is what a signature check (HMAC over the
 payload) must run over, since re-serializing a parsed body changes whitespace and
 key order.
+
+`Response.headers` is a required field, on both halves of the module: a
+constructor always fills it in, and a client call reports the response headers it
+received with the names lowercased, so a program never has to check whether the
+header set is there before reading it.
 
 Client (async; `await` them):
 
@@ -458,8 +463,12 @@ Server:
 http.serve(port: number, handler: Handler) -> Result<void, string>   // async; await to keep alive
 http.json(status: number, body) -> Response          // application/json response
 http.text(status: number, body: string) -> Response  // text/plain response
+http.html(status: number, body: string) -> Response  // text/html response
+http.redirect(status: number, location: string) -> Response  // 302/301/303/307/308 with a `location` header
+http.with_header(resp: Response, name: string, value: string) -> Response  // a copy carrying one more header
 http.query(req: Request) -> Record<string, string>   // parse the URL query string
 http.path(req: Request) -> string                    // URL path without the query
+http.form(req: Request) -> Record<string, string>    // parse an x-www-form-urlencoded body
 http.raw(req: Request) -> string                     // the unparsed request body, for signature (HMAC) verification
 http.header(req: Request, name: string) -> Option<string>       // a header (case-insensitive), None if absent
 http.query_param(req: Request, name: string) -> Option<string>  // one query parameter, None if absent
@@ -470,7 +479,26 @@ A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
 `Err(message)` to send a 500. `serve` resolves `Ok(void)` when the server closes
 and `Err(message)` on a bind failure; while it listens it stays pending, so a
 `main` that does `await http.serve(...)` keeps the process alive — no keep-alive
-hack. A minimal server:
+hack.
+
+The content type comes from the constructor: `json` sets `application/json`,
+`text` sets `text/plain; charset=utf-8`, `html` sets `text/html; charset=utf-8`.
+A response whose headers do not name a content type gets one inferred from the
+body (a string is text, anything else is JSON), which is what every response did
+before `headers` existed. `with_header` returns a new `Response` rather than
+mutating one, since Glyph has no record-field mutation, and it replaces a header
+of the same name compared case-insensitively. Every character Node refuses to
+write in a header is removed from the value on the way out, so a `location` built
+from user input cannot inject a second header or a second response (CR and LF),
+and cannot take the server down either (a character above U+00FF makes Node throw
+from inside the response writer, where there is no `Result` to catch it in).
+
+`form` reads `req.raw`, so it does not change what `req.body` holds: a handler
+that wants the raw bytes or a JSON body still gets exactly those. It decodes `+`
+as a space and percent-escapes as their bytes, and a key repeated in the body
+keeps the last value.
+
+A minimal server:
 
 ```glyph
 import std/http { serve, query, text, Request, Response }
@@ -493,6 +521,26 @@ fn multiply(req: Request) -> Result<Response, string> {
 async fn main(argv: Array<string>) -> number {
   let _ = await serve(8080, multiply)
   return 0
+}
+```
+
+A page, a form post, and a redirect:
+
+```glyph
+import std/http { path, form, html, redirect, text, Request, Response }
+import std/record
+import std/result { Result, Ok }
+import std/option { Some, None }
+
+fn route(req: Request) -> Result<Response, string> {
+  return match path(req) {
+    "/" => Ok(html(200, "<form method=\"post\" action=\"/new\"><input name=\"url\"></form>")),
+    "/new" => match record.get(form(req), "url") {
+      Some(url) => Ok(redirect(302, "/")),
+      None => Ok(html(400, "<p>missing url</p>")),
+    },
+    else => Ok(text(404, "not found")),
+  }
 }
 ```
 

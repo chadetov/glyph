@@ -1,0 +1,1670 @@
+// sheet — a terminal spreadsheet with formulas.
+//
+// Loads a fixture sheet and a command script from disk, both through validating
+// record descriptors, then does what a spreadsheet does: parse each formula into
+// an expression tree, work out what depends on what, recalculate in dependency
+// order, and print a grid.
+//
+// The formula language is small on purpose: numbers, quoted text, cell
+// references, ranges (`A1:B3`), `+ - * /` with parentheses, and seven
+// functions (SUM, AVG, MIN, MAX, COUNT, IF, CONCAT). Every failure is a value:
+// a bad reference, a divide by zero, and a circular reference all land in the
+// cell as an error that downstream cells propagate instead of silently
+// computing a wrong number.
+//
+// Usage:
+//
+//   glyph run examples/apps/sheet/main.glyph
+//   glyph run examples/apps/sheet/main.glyph inspect D7
+//   glyph run examples/apps/sheet/main.glyph --dir examples/apps/sheet inspect B13
+//
+// The default fixture directory is `examples/apps/sheet`, so the first form
+// works from the repository root with no arguments and prints the same output
+// every time.
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/math
+import std/option { Option, Some, None }
+import std/path
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+
+// ---------------------------------------------------------------------------
+// Fixture shapes
+// ---------------------------------------------------------------------------
+
+// One entry of the fixture: a reference and the raw text a user typed into it.
+// The text is not interpreted here; `make_cell` decides whether it is a formula,
+// a number, or a label.
+type CellSpec = { ref: string, value: string }
+
+// The sheet as it sits on disk. `rows`/`cols` are the declared extent: a
+// reference outside it is `#REF!` rather than a silently empty cell, which is
+// what makes an off-the-end paste visible.
+type SheetFile = { name: string, rows: int, cols: int, cells: Array<CellSpec> }
+
+// A single edit. `value` is required and ignored on a clear: an optional
+// `value?: string` is declarable but cannot be read back, because `match` does
+// not narrow `string | undefined` down to `string`.
+type CommandSpec = { op: "set" | "clear", ref: string, value: string }
+
+// Commands are grouped so a recalculation happens per batch, not per keystroke.
+type Batch = { label: string, commands: Array<CommandSpec> }
+
+type ScriptFile = { batches: Array<Batch> }
+
+// ---------------------------------------------------------------------------
+// Cell addressing
+// ---------------------------------------------------------------------------
+
+const COLUMN_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+// Zero-based on both axes. A1 is `{ col: 0, row: 0 }`; the 1-based row lives
+// only in the printed form, so no arithmetic in this file has to remember an
+// off-by-one.
+type Addr = { col: int, row: int }
+
+// Every way a reference can be malformed, each carrying the text that failed.
+type RefError =
+  | EmptyRef
+  | MissingColumn({ text: string })
+  | MissingRow({ text: string })
+  | BadCharacter({ text: string, at: int })
+  | ZeroRow({ text: string })
+
+fn describe_ref_error(e: RefError) -> string {
+  return match e {
+    EmptyRef => "empty cell reference",
+    MissingColumn({ text }) => "\"${text}\" has no column letters",
+    MissingRow({ text }) => "\"${text}\" has no row number",
+    BadCharacter({ text, at }) => "\"${text}\" has an unexpected character at ${number.to_string(at + 1)}",
+    ZeroRow({ text }) => "\"${text}\" uses row 0; rows start at 1",
+  }
+}
+
+@example letter_value("A") == Some(1)
+@example letter_value("Z") == Some(26)
+@example letter_value("4") == None
+fn letter_value(ch: string) -> Option<int> {
+  return match string.index_of(COLUMN_LETTERS, ch) {
+    Some(i) => Some(i + 1),
+    None => None,
+  }
+}
+
+@example is_digit("7") == true
+@example is_digit("x") == false
+fn is_digit(c: string) -> bool {
+  return match c {
+    "0" => true,
+    "1" => true,
+    "2" => true,
+    "3" => true,
+    "4" => true,
+    "5" => true,
+    "6" => true,
+    "7" => true,
+    "8" => true,
+    "9" => true,
+    else => false,
+  }
+}
+
+// Column letters are bijective base 26: A..Z, then AA..AZ, BA.., and so on.
+// There is no zero digit, which is why the loop subtracts one from the carry.
+@example column_label(0) == "A"
+@example column_label(25) == "Z"
+@example column_label(26) == "AA"
+@example column_label(27) == "AB"
+@example column_label(701) == "ZZ"
+fn column_label(col: int) -> string {
+  let out = ""
+  let n = col
+  loop {
+    let rest = n % 26
+    mut out = "${string.slice(COLUMN_LETTERS, rest, rest + 1)}${out}"
+    mut n = math.floor(n / 26) - 1
+    match n < 0 {
+      true => { break },
+      false => {},
+    }
+  }
+  return out
+}
+
+@example format_ref({ col: 0, row: 0 }) == "A1"
+@example format_ref({ col: 26, row: 9 }) == "AA10"
+fn format_ref(a: Addr) -> string {
+  return "${column_label(a.col)}${number.to_string(a.row + 1)}"
+}
+
+// Parses `A1`, `aa10`, `ZZ701`. Case is folded and surrounding space is
+// dropped; anything else is a typed error, never a guess.
+@example parse_ref("A1") == Ok({ col: 0, row: 0 })
+@example parse_ref("aa10") == Ok({ col: 26, row: 9 })
+@example parse_ref("12") == Err(MissingColumn({ text: "12" }))
+@example parse_ref("AB") == Err(MissingRow({ text: "AB" }))
+@example parse_ref("A0") == Err(ZeroRow({ text: "A0" }))
+@example parse_ref("A1X") == Err(BadCharacter({ text: "A1X", at: 2 }))
+fn parse_ref(text: string) -> Result<Addr, RefError> {
+  let s = string.upper(string.trim(text))
+  let n = string.len(s)
+  match n == 0 {
+    true => { return Err(EmptyRef) },
+    false => {},
+  }
+
+  let col = 0
+  let i = 0
+  loop {
+    match i >= n {
+      true => { break },
+      false => {},
+    }
+    match letter_value(s[i]) {
+      Some(v) => {
+        mut col = col * 26 + v
+        mut i = i + 1
+      },
+      None => { break },
+    }
+  }
+
+  match i == 0 {
+    true => { return Err(MissingColumn({ text: text })) },
+    false => {},
+  }
+  match i >= n {
+    true => { return Err(MissingRow({ text: text })) },
+    false => {},
+  }
+
+  let digits = string.slice(s, i)
+  for j in array.range(string.len(digits)) {
+    match is_digit(digits[j]) {
+      true => {},
+      false => { return Err(BadCharacter({ text: text, at: i + j })) },
+    }
+  }
+
+  let row = match number.parse(digits) {
+    Ok(v) => v,
+    Err(_) => { return Err(BadCharacter({ text: text, at: i })) },
+  }
+  match row == 0 {
+    true => { return Err(ZeroRow({ text: text })) },
+    false => {},
+  }
+  return Ok({ col: col - 1, row: row - 1 })
+}
+
+// ---------------------------------------------------------------------------
+// Formula tokens
+// ---------------------------------------------------------------------------
+
+// `at` is a byte offset into the cell's raw text, `=` included, so an error
+// message can point at the character the user typed.
+type Token =
+  | TNumber({ value: number, at: int })
+  | TText({ value: string, at: int })
+  | TName({ text: string, at: int })
+  | TSymbol({ text: string, at: int })
+
+type ParseError = { position: int, message: string }
+
+fn token_at(t: Token) -> int {
+  return match t {
+    TNumber({ value, at }) => at,
+    TText({ value, at }) => at,
+    TName({ text, at }) => at,
+    TSymbol({ text, at }) => at,
+  }
+}
+
+fn is_letter(c: string) -> bool {
+  return match letter_value(string.upper(c)) {
+    Some(v) => true,
+    None => false,
+  }
+}
+
+fn is_space(c: string) -> bool {
+  return match c {
+    " " => true,
+    "\t" => true,
+    "\n" => true,
+    "\r" => true,
+    else => false,
+  }
+}
+
+fn is_symbol(c: string) -> bool {
+  return match c {
+    "+" => true,
+    "-" => true,
+    "*" => true,
+    "/" => true,
+    "(" => true,
+    ")" => true,
+    "," => true,
+    ":" => true,
+    else => false,
+  }
+}
+
+// `offset` is added to every reported position; the caller passes 1 when it has
+// already stripped a leading `=`, so positions stay anchored to the raw cell.
+fn tokenize(src: string, offset: int) -> Result<Array<Token>, ParseError> {
+  let out: Array<Token> = []
+  let n = string.len(src)
+  let i = 0
+
+  loop {
+    match i >= n {
+      true => { break },
+      false => {},
+    }
+    let c = src[i]
+
+    match is_space(c) {
+      true => {
+        mut i = i + 1
+        continue
+      },
+      false => {},
+    }
+
+    match is_digit(c) || c == "." {
+      true => {
+        let start = i
+        loop {
+          match i < n && (is_digit(src[i]) || src[i] == ".") {
+            true => { mut i = i + 1 },
+            false => { break },
+          }
+        }
+        let text = string.slice(src, start, i)
+        match number.parse(text) {
+          Ok(v) => { mut out.push(TNumber({ value: v, at: start + offset })) },
+          Err(_) => { return Err({ position: start + offset, message: "\"${text}\" is not a number" }) },
+        }
+        continue
+      },
+      false => {},
+    }
+
+    match c == "\"" {
+      true => {
+        let start = i
+        mut i = i + 1
+        let body = ""
+        let closed = false
+        loop {
+          match i >= n {
+            true => { break },
+            false => {},
+          }
+          match src[i] == "\"" {
+            true => {
+              mut i = i + 1
+              mut closed = true
+              break
+            },
+            false => {
+              mut body = "${body}${src[i]}"
+              mut i = i + 1
+            },
+          }
+        }
+        match closed {
+          true => { mut out.push(TText({ value: body, at: start + offset })) },
+          false => { return Err({ position: start + offset, message: "unterminated text literal" }) },
+        }
+        continue
+      },
+      false => {},
+    }
+
+    match is_letter(c) {
+      true => {
+        let start = i
+        loop {
+          match i < n && (is_letter(src[i]) || is_digit(src[i])) {
+            true => { mut i = i + 1 },
+            false => { break },
+          }
+        }
+        mut out.push(TName({ text: string.slice(src, start, i), at: start + offset }))
+        continue
+      },
+      false => {},
+    }
+
+    match is_symbol(c) {
+      true => {
+        mut out.push(TSymbol({ text: c, at: i + offset }))
+        mut i = i + 1
+        continue
+      },
+      false => {},
+    }
+
+    return Err({ position: i + offset, message: "unexpected character \"${c}\"" })
+  }
+
+  return Ok(out)
+}
+
+// ---------------------------------------------------------------------------
+// Formula syntax
+// ---------------------------------------------------------------------------
+
+// The expression tree a formula parses to. It is recursive: `Binary` holds two
+// `Expr`s, `Call` holds a list of them.
+type Expr =
+  | NumberLit({ value: number })
+  | TextLit({ value: string })
+  | CellRef({ addr: Addr })
+  | RangeRef({ from: Addr, to: Addr })
+  | Negate({ operand: Expr })
+  | Binary({ op: string, left: Expr, right: Expr })
+  | Call({ name: string, args: Array<Expr> })
+
+// A subtree and the token index just past it, so no parser step needs a mutable
+// cursor shared between functions.
+type Parsed = { node: Expr, next: int }
+
+fn peek(ts: Array<Token>, i: int) -> Option<Token> {
+  return match i >= 0 && i < array.len(ts) {
+    true => Some(ts[i]),
+    false => None,
+  }
+}
+
+fn symbol_at(ts: Array<Token>, i: int) -> Option<string> {
+  return match peek(ts, i) {
+    None => None,
+    Some(t) => match t {
+      TSymbol({ text, at }) => Some(text),
+      else => None,
+    },
+  }
+}
+
+fn name_at(ts: Array<Token>, i: int) -> Option<string> {
+  return match peek(ts, i) {
+    None => None,
+    Some(t) => match t {
+      TName({ text, at }) => Some(text),
+      else => None,
+    },
+  }
+}
+
+// The position to blame when the parser runs off the end of the token list.
+fn position_at(ts: Array<Token>, i: int) -> int {
+  return match peek(ts, i) {
+    Some(t) => token_at(t),
+    None => match array.len(ts) == 0 {
+      true => 0,
+      false => token_at(ts[array.len(ts) - 1]),
+    },
+  }
+}
+
+fn symbol_is(ts: Array<Token>, i: int, want: string) -> bool {
+  return match symbol_at(ts, i) {
+    Some(s) => s == want,
+    None => false,
+  }
+}
+
+// A formula's grammar, one function per precedence level:
+//
+//   sum     := product (("+" | "-") product)*
+//   product := unary (("*" | "/") unary)*
+//   unary   := ("-" | "+")* primary
+//   primary := number | text | "(" sum ")" | name "(" args ")" | ref [":" ref]
+fn parse_sum(ts: Array<Token>, i: int) -> Result<Parsed, ParseError> {
+  let head = parse_product(ts, i)?
+  let node = head.node
+  let pos = head.next
+  loop {
+    let op = match symbol_at(ts, pos) {
+      Some(s) => s,
+      None => "",
+    }
+    match op == "+" || op == "-" {
+      false => { break },
+      true => {},
+    }
+    let rhs = parse_product(ts, pos + 1)?
+    mut node = Binary({ op: op, left: node, right: rhs.node })
+    mut pos = rhs.next
+  }
+  return Ok({ node: node, next: pos })
+}
+
+fn parse_product(ts: Array<Token>, i: int) -> Result<Parsed, ParseError> {
+  let head = parse_unary(ts, i)?
+  let node = head.node
+  let pos = head.next
+  loop {
+    let op = match symbol_at(ts, pos) {
+      Some(s) => s,
+      None => "",
+    }
+    match op == "*" || op == "/" {
+      false => { break },
+      true => {},
+    }
+    let rhs = parse_unary(ts, pos + 1)?
+    mut node = Binary({ op: op, left: node, right: rhs.node })
+    mut pos = rhs.next
+  }
+  return Ok({ node: node, next: pos })
+}
+
+fn parse_unary(ts: Array<Token>, i: int) -> Result<Parsed, ParseError> {
+  match symbol_is(ts, i, "-") {
+    true => {
+      let inner = parse_unary(ts, i + 1)?
+      return Ok({ node: Negate({ operand: inner.node }), next: inner.next })
+    },
+    false => {},
+  }
+  match symbol_is(ts, i, "+") {
+    true => { return parse_unary(ts, i + 1) },
+    false => {},
+  }
+  return parse_primary(ts, i)
+}
+
+fn parse_primary(ts: Array<Token>, i: int) -> Result<Parsed, ParseError> {
+  let tok = match peek(ts, i) {
+    Some(t) => t,
+    None => { return Err({ position: position_at(ts, i), message: "the formula ends early" }) },
+  }
+  return match tok {
+    TNumber({ value, at }) => Ok({ node: NumberLit({ value: value }), next: i + 1 }),
+    TText({ value, at }) => Ok({ node: TextLit({ value: value }), next: i + 1 }),
+    TName({ text, at }) => parse_name(ts, i),
+    TSymbol({ text, at }) => match text == "(" {
+      true => {
+        let inner = parse_sum(ts, i + 1)?
+        match symbol_is(ts, inner.next, ")") {
+          true => Ok({ node: inner.node, next: inner.next + 1 }),
+          false => Err(
+            {
+              position: position_at(ts, inner.next),
+              message: "expected \")\" to close the group opened at ${number.to_string(at + 1)}",
+            },
+          ),
+        }
+      },
+      false => Err({ position: at, message: "\"${text}\" cannot start a value" }),
+    },
+  }
+}
+
+// A name is either a function call (`SUM(...)`) or a cell reference, possibly
+// the left half of a range (`A1:B3`). Nothing else looks like a name, so a
+// misspelled function is caught at evaluation, not here.
+fn parse_name(ts: Array<Token>, i: int) -> Result<Parsed, ParseError> {
+  let text = match name_at(ts, i) {
+    Some(s) => s,
+    None => { return Err({ position: position_at(ts, i), message: "expected a name" }) },
+  }
+  let at = position_at(ts, i)
+
+  match symbol_is(ts, i + 1, "(") {
+    true => { return parse_call(ts, i, text, at) },
+    false => {},
+  }
+
+  let first = match parse_ref(text) {
+    Ok(a) => a,
+    Err(e) => { return Err({ position: at, message: describe_ref_error(e) }) },
+  }
+
+  match symbol_is(ts, i + 1, ":") {
+    false => { return Ok({ node: CellRef({ addr: first }), next: i + 1 }) },
+    true => {},
+  }
+
+  let tail = match name_at(ts, i + 2) {
+    Some(s) => s,
+    None => {
+      return Err({ position: position_at(ts, i + 2), message: "a range needs a second reference" })
+    },
+  }
+  let second = match parse_ref(tail) {
+    Ok(a) => a,
+    Err(e) => { return Err({ position: position_at(ts, i + 2), message: describe_ref_error(e) }) },
+  }
+  return Ok({ node: RangeRef({ from: first, to: second }), next: i + 3 })
+}
+
+fn parse_call(ts: Array<Token>, i: int, name: string, at: int) -> Result<Parsed, ParseError> {
+  let args: Array<Expr> = []
+  let pos = i + 2
+
+  match symbol_is(ts, pos, ")") {
+    true => { return Ok({ node: Call({ name: string.upper(name), args: args }), next: pos + 1 }) },
+    false => {},
+  }
+
+  loop {
+    let arg = parse_sum(ts, pos)?
+    mut args.push(arg.node)
+    mut pos = arg.next
+
+    match symbol_is(ts, pos, ",") {
+      true => {
+        mut pos = pos + 1
+        continue
+      },
+      false => {},
+    }
+    match symbol_is(ts, pos, ")") {
+      true => {
+        mut pos = pos + 1
+        break
+      },
+      false => {
+        return Err(
+          {
+            position: position_at(ts, pos),
+            message: "expected \",\" or \")\" inside ${string.upper(name)}(...)",
+          },
+        )
+      },
+    }
+  }
+
+  return Ok({ node: Call({ name: string.upper(name), args: args }), next: pos })
+}
+
+// The entry point: takes the raw cell text, `=` and all.
+@example show_expr(parse_formula("=1+2*3")) == "Ok((+ 1 (* 2 3)))"
+@example show_expr(parse_formula("=(1+2)*3")) == "Ok((* (+ 1 2) 3))"
+@example show_expr(parse_formula("=-A1+2")) == "Ok((+ (neg A1) 2))"
+@example show_expr(parse_formula("=SUM(A1:B3, 4)")) == "Ok(SUM(A1:B3, 4))"
+@example show_expr(parse_formula("=CONCAT(\"a\", B2)")) == "Ok(CONCAT(\"a\", B2))"
+@example show_expr(parse_formula("=1+")) == "Err(2: the formula ends early)"
+@example show_expr(parse_formula("=(1+2")) == "Err(4: expected \")\" to close the group opened at 2)"
+@example show_expr(parse_formula("=1 2")) == "Err(3: unexpected trailing input)"
+@example show_expr(parse_formula("=A0+1")) == "Err(1: \"A0\" uses row 0; rows start at 1)"
+fn parse_formula(source: string) -> Result<Expr, ParseError> {
+  let leading = match string.starts_with(source, "=") {
+    true => 1,
+    false => 0,
+  }
+  let body = string.slice(source, leading)
+  let tokens = tokenize(body, leading)?
+  match array.len(tokens) == 0 {
+    true => { return Err({ position: leading, message: "the formula is empty" }) },
+    false => {},
+  }
+  let parsed = parse_sum(tokens, 0)?
+  match parsed.next < array.len(tokens) {
+    true => {
+      return Err(
+        { position: position_at(tokens, parsed.next), message: "unexpected trailing input" },
+      )
+    },
+    false => {},
+  }
+  return Ok(parsed.node)
+}
+
+// A parenthesised rendering of the tree, used by `inspect` and by the parser's
+// own `@example` lines. Printing the tree is how a test can assert on structure
+// without spelling out every constructor.
+fn show_expr(r: Result<Expr, ParseError>) -> string {
+  return match r {
+    Ok(e) => "Ok(${show_node(e)})",
+    Err(pe) => "Err(${number.to_string(pe.position)}: ${pe.message})",
+  }
+}
+
+fn show_node(e: Expr) -> string {
+  return match e {
+    NumberLit({ value }) => number.to_string(value),
+    TextLit({ value }) => "\"${value}\"",
+    CellRef({ addr }) => format_ref(addr),
+    RangeRef({ from, to }) => "${format_ref(from)}:${format_ref(to)}",
+    Negate({ operand }) => "(neg ${show_node(operand)})",
+    Binary({ op, left, right }) => "(${op} ${show_node(left)} ${show_node(right)})",
+    Call({ name, args }) => {
+      let parts = array.map(args, fn(a: Expr) -> string { show_node(a) })
+      // The separator is bound first: a string literal cannot appear inside a
+      // `${...}` interpolation.
+      let comma = ", "
+      let joined = string.join(parts, comma)
+      "${name}(${joined})"
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Values
+// ---------------------------------------------------------------------------
+
+const DIV_ZERO = "#DIV/0!"
+
+const BAD_REF = "#REF!"
+
+const BAD_VALUE = "#VALUE!"
+
+const BAD_NAME = "#NAME?"
+
+const BAD_SYNTAX = "#SYNTAX!"
+
+const CYCLE = "#CYCLE!"
+
+// What a cell holds after recalculation. `Empty` is a real case rather than a
+// null, and `Cellerr` carries the code every downstream cell propagates.
+//
+// The names are not the ones this wanted. A spreadsheet's value union reads
+// `Number / Text / Empty / Error`, but both `Number` and `Error` are rejected by
+// E0110: a variant constructor emits as a top-level `export function`, and the
+// TypeScript generated from this very module calls `new Error(...)` 139 times
+// and `Number.isInteger` 23 times, so either name would rebind a global the
+// emitter depends on. E0110 is the improvement: it says that at the declaration
+// instead of letting the build go green and mean something else. The rename is
+// still forced.
+type Value =
+  | Num({ value: number })
+  | Text({ value: string })
+  | Empty
+  | Cellerr({ code: string })
+
+// The declared extent of the sheet. A reference outside it is `#REF!`.
+type Grid = { rows: int, cols: int }
+
+fn in_bounds(g: Grid, a: Addr) -> bool {
+  return a.col >= 0 && a.col < g.cols && a.row >= 0 && a.row < g.rows
+}
+
+fn is_error(v: Value) -> bool {
+  return match v {
+    Cellerr({ code }) => true,
+    else => false,
+  }
+}
+
+// Arithmetic reads a number out of a value. Empty counts as zero, text does
+// not coerce, and an error short-circuits by coming back as the `Err` side so
+// the caller propagates the original code rather than inventing one.
+fn as_number(v: Value) -> Result<number, Value> {
+  return match v {
+    Num({ value }) => Ok(value),
+    Empty => Ok(0),
+    Text({ value }) => Err(Cellerr({ code: BAD_VALUE })),
+    Cellerr({ code }) => Err(Cellerr({ code: code })),
+  }
+}
+
+fn is_truthy(v: Value) -> bool {
+  return match v {
+    Num({ value }) => value != 0,
+    Text({ value }) => string.len(value) > 0,
+    Empty => false,
+    Cellerr({ code }) => false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Number formatting
+// ---------------------------------------------------------------------------
+
+const DECIMALS = 2
+
+// Fixed-decimal formatting, built from `math.round` because the standard
+// library has no `to_fixed`. Rounds half away from zero, and prints "0.00"
+// rather than "-0.00" when a small negative rounds to nothing.
+@example format_fixed(3.14159, 2) == "3.14"
+@example format_fixed(2.005, 2) == "2.01"
+@example format_fixed(-1.5, 0) == "-2"
+@example format_fixed(-0.001, 2) == "0.00"
+@example format_fixed(1234, 2) == "1234.00"
+fn format_fixed(x: number, places: int) -> string {
+  let scale = math.pow(10, places)
+  let scaled = math.round(math.abs(x) * scale)
+  let whole = math.floor(scaled / scale)
+  let frac = scaled - whole * scale
+  let sign = match x < 0 && scaled > 0 {
+    true => "-",
+    false => "",
+  }
+  let zero = "0"
+  let fraction = string.pad_start(number.to_string(frac), places, zero)
+  return match places <= 0 {
+    true => "${sign}${number.to_string(whole)}",
+    false => "${sign}${number.to_string(whole)}.${fraction}",
+  }
+}
+
+fn display(v: Value) -> string {
+  return match v {
+    Empty => "",
+    Num({ value }) => format_fixed(value, DECIMALS),
+    Text({ value }) => value,
+    Cellerr({ code }) => code,
+  }
+}
+
+// Numbers and error codes sit on the right of their column, labels on the left,
+// which is the convention every spreadsheet uses.
+fn aligns_right(v: Value) -> bool {
+  return match v {
+    Num({ value }) => true,
+    Cellerr({ code }) => true,
+    else => false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Evaluation
+// ---------------------------------------------------------------------------
+
+fn range_cells(from: Addr, to: Addr) -> Array<Addr> {
+  let out: Array<Addr> = []
+  let c0 = math.min(from.col, to.col)
+  let c1 = math.max(from.col, to.col)
+  let r0 = math.min(from.row, to.row)
+  let r1 = math.max(from.row, to.row)
+  for r in array.range_from(r0, r1 + 1) {
+    for c in array.range_from(c0, c1 + 1) {
+      mut out.push({ col: c, row: r })
+    }
+  }
+  return out
+}
+
+fn cell_value(a: Addr, g: Grid, values: Record<string, Value>) -> Value {
+  return match in_bounds(g, a) {
+    false => Cellerr({ code: BAD_REF }),
+    true => match record.get(values, format_ref(a)) {
+      Some(v) => v,
+      None => Empty,
+    },
+  }
+}
+
+fn evaluate(e: Expr, g: Grid, values: Record<string, Value>) -> Value {
+  return match e {
+    NumberLit({ value }) => Num({ value: value }),
+    TextLit({ value }) => Text({ value: value }),
+    CellRef({ addr }) => cell_value(addr, g, values),
+    // A range is only meaningful as a function argument; on its own it has no
+    // single value.
+    RangeRef({ from, to }) => Cellerr({ code: BAD_VALUE }),
+    Negate({ operand }) => match as_number(evaluate(operand, g, values)) {
+      Ok(n) => Num({ value: 0 - n }),
+      Err(err) => err,
+    },
+    Binary({ op, left, right }) => arithmetic(
+      op,
+      evaluate(left, g, values),
+      evaluate(right, g, values),
+    ),
+    Call({ name, args }) => call_function(name, args, g, values),
+  }
+}
+
+fn arithmetic(op: string, l: Value, r: Value) -> Value {
+  let a = match as_number(l) {
+    Ok(x) => x,
+    Err(err) => { return err },
+  }
+  let b = match as_number(r) {
+    Ok(x) => x,
+    Err(err) => { return err },
+  }
+  return match op {
+    "+" => Num({ value: a + b }),
+    "-" => Num({ value: a - b }),
+    "*" => Num({ value: a * b }),
+    "/" => match b == 0 {
+      true => Cellerr({ code: DIV_ZERO }),
+      false => Num({ value: a / b }),
+    },
+    else => Cellerr({ code: BAD_NAME }),
+  }
+}
+
+// Ranges flatten into their cells, everything else evaluates to one value.
+fn flatten_args(args: Array<Expr>, g: Grid, values: Record<string, Value>) -> Array<Value> {
+  let out: Array<Value> = []
+  for a in args {
+    match a {
+      RangeRef({ from, to }) => {
+        for addr in range_cells(from, to) {
+          mut out.push(cell_value(addr, g, values))
+        }
+      },
+      else => { mut out.push(evaluate(a, g, values)) },
+    }
+  }
+  return out
+}
+
+fn numbers_in(vs: Array<Value>) -> Array<number> {
+  let out: Array<number> = []
+  for v in vs {
+    match v {
+      Num({ value }) => { mut out.push(value) },
+      else => {},
+    }
+  }
+  return out
+}
+
+fn sum_of(ns: Array<number>) -> number {
+  return array.fold(ns, 0, fn(acc: number, n: number) -> number { acc + n })
+}
+
+// IF is the one function whose arguments are not all evaluated: the branch not
+// taken never runs, so `IF(B5, D5/B5, "n/a")` is "n/a" instead of #DIV/0! when
+// B5 is zero.
+fn eval_if(args: Array<Expr>, g: Grid, values: Record<string, Value>) -> Value {
+  match array.len(args) == 3 {
+    false => { return Cellerr({ code: BAD_VALUE }) },
+    true => {},
+  }
+  let test = evaluate(args[0], g, values)
+  return match is_error(test) {
+    true => test,
+    false => match is_truthy(test) {
+      true => evaluate(args[1], g, values),
+      false => evaluate(args[2], g, values),
+    },
+  }
+}
+
+fn call_function(name: string, args: Array<Expr>, g: Grid, values: Record<string, Value>) -> Value {
+  match name == "IF" {
+    true => { return eval_if(args, g, values) },
+    false => {},
+  }
+  let vs = flatten_args(args, g, values)
+  // One error anywhere in the arguments is the whole call's answer; that is
+  // what makes a #DIV/0! visible three cells downstream instead of vanishing
+  // into a sum.
+  return match array.find(vs, is_error) {
+    Some(err) => err,
+    None => apply(name, vs),
+  }
+}
+
+fn apply(name: string, vs: Array<Value>) -> Value {
+  let ns = numbers_in(vs)
+  let count = array.len(ns)
+  return match name {
+    "SUM" => Num({ value: sum_of(ns) }),
+    "COUNT" => Num({ value: count }),
+    "AVG" => match count == 0 {
+      true => Cellerr({ code: DIV_ZERO }),
+      false => Num({ value: sum_of(ns) / count }),
+    },
+    "MIN" => match count == 0 {
+      true => Cellerr({ code: BAD_VALUE }),
+      false => Num(
+        { value: array.fold(ns, ns[0], fn(a: number, b: number) -> number { math.min(a, b) }) },
+      ),
+    },
+    "MAX" => match count == 0 {
+      true => Cellerr({ code: BAD_VALUE }),
+      false => Num(
+        { value: array.fold(ns, ns[0], fn(a: number, b: number) -> number { math.max(a, b) }) },
+      ),
+    },
+    "CONCAT" => Text(
+      { value: string.join(array.map(vs, fn(v: Value) -> string { display(v) }), "") },
+    ),
+    else => Cellerr({ code: BAD_NAME }),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The sheet
+// ---------------------------------------------------------------------------
+
+// A cell is one of three things, and which one is decided once at entry rather
+// than re-sniffed on every recalculation.
+type Cell =
+  | Constant({ input: string, value: Value })
+  | Formula({ input: string, expr: Expr })
+  | Broken({ input: string, error: ParseError })
+
+type Sheet = { name: string, grid: Grid, cells: Record<string, Cell> }
+
+fn cell_input(c: Cell) -> string {
+  return match c {
+    Constant({ input, value }) => input,
+    Formula({ input, expr }) => input,
+    Broken({ input, error }) => input,
+  }
+}
+
+fn parse_literal(input: string) -> Value {
+  let trimmed = string.trim(input)
+  return match string.len(trimmed) == 0 {
+    true => Empty,
+    false => match looks_numeric(trimmed) {
+      false => Text({ value: input }),
+      true => match number.parse(trimmed) {
+        Ok(n) => Num({ value: n }),
+        Err(_) => Text({ value: input }),
+      },
+    },
+  }
+}
+
+// `number.parse` leans on JavaScript's `Number`, which accepts "0x10" and
+// "Infinity". A sheet cell that says `0x10` is a label, so the digits are
+// checked here before the parse is trusted.
+@example looks_numeric("12") == true
+@example looks_numeric("-4.5") == true
+@example looks_numeric("0x10") == false
+@example looks_numeric("") == false
+@example looks_numeric("-") == false
+fn looks_numeric(s: string) -> bool {
+  let n = string.len(s)
+  match n == 0 {
+    true => { return false },
+    false => {},
+  }
+  let digits = 0
+  for i in array.range(n) {
+    let c = s[i]
+    match is_digit(c) {
+      true => { mut digits = digits + 1 },
+      false => match c == "." || (c == "-" || c == "+") && i == 0 {
+        true => {},
+        false => { return false },
+      },
+    }
+  }
+  return digits > 0
+}
+
+fn make_cell(input: string) -> Cell {
+  return match string.starts_with(string.trim(input), "=") {
+    false => Constant({ input: input, value: parse_literal(input) }),
+    true => match parse_formula(string.trim(input)) {
+      Ok(e) => Formula({ input: string.trim(input), expr: e }),
+      Err(pe) => Broken({ input: string.trim(input), error: pe }),
+    },
+  }
+}
+
+// Cells in row-major order. Recalculation and rendering both walk the sheet
+// this way, so the output is the same on every run regardless of the order the
+// fixture listed its cells in.
+fn ordered_keys(s: Sheet) -> Array<string> {
+  let out: Array<string> = []
+  for r in array.range(s.grid.rows) {
+    for c in array.range(s.grid.cols) {
+      let key = format_ref({ col: c, row: r })
+      match record.has(s.cells, key) {
+        true => { mut out.push(key) },
+        false => {},
+      }
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Dependencies and ordering
+// ---------------------------------------------------------------------------
+
+// Every cell a formula reads, ranges expanded. Out-of-bounds references are
+// dropped: they evaluate to #REF! and depend on nothing.
+fn deps_of(e: Expr, g: Grid) -> Array<string> {
+  return match e {
+    NumberLit({ value }) => [],
+    TextLit({ value }) => [],
+    CellRef({ addr }) => match in_bounds(g, addr) {
+      true => [format_ref(addr)],
+      false => [],
+    },
+    RangeRef({ from, to }) => {
+      let inside = array.filter(range_cells(from, to), fn(a: Addr) -> bool { in_bounds(g, a) })
+      array.map(inside, fn(a: Addr) -> string { format_ref(a) })
+    },
+    Negate({ operand }) => deps_of(operand, g),
+    Binary({ op, left, right }) => array.concat(deps_of(left, g), deps_of(right, g)),
+    Call({ name, args }) => {
+      let seed: Array<string> = []
+      array.fold(
+        args,
+        seed,
+        fn(acc: Array<string>, a: Expr) -> Array<string> { array.concat(acc, deps_of(a, g)) },
+      )
+    },
+  }
+}
+
+@example unique(["A1", "B2", "A1"]) == ["A1", "B2"]
+fn unique(xs: Array<string>) -> Array<string> {
+  let out: Array<string> = []
+  let seen: Record<string, bool> = {}
+  for x in xs {
+    match record.has(seen, x) {
+      true => {},
+      false => {
+        mut seen[x] = true
+        mut out.push(x)
+      },
+    }
+  }
+  return out
+}
+
+// `order` is a safe recalculation sequence; `cyclic` is everything left over,
+// which is exactly the cells caught in (or fed by) a circular reference.
+type Plan = { order: Array<string>, cyclic: Array<string> }
+
+// Kahn's algorithm. Cells with nothing left to wait for are drained in
+// row-major order, so the result is deterministic, and whatever cannot be
+// drained is the cycle.
+@example topo_sort(["B1", "A1"], { B1: ["A1"], A1: [] }) == { order: ["A1", "B1"], cyclic: [] }
+@example topo_sort(["A1", "A2"], { A1: ["A2"], A2: ["A1"] }) == { order: [], cyclic: ["A1", "A2"] }
+@example topo_sort(["A1", "A2", "A3"], { A1: [], A2: ["A3"], A3: ["A2"] }) == { order: ["A1"], cyclic: ["A2", "A3"] }
+fn topo_sort(keys: Array<string>, deps: Record<string, Array<string>>) -> Plan {
+  let waiting: Record<string, number> = {}
+  let dependents: Record<string, Array<string>> = {}
+  let known: Record<string, bool> = {}
+
+  for k in keys {
+    mut known[k] = true
+  }
+
+  for k in keys {
+    let raw = match record.get(deps, k) {
+      Some(v) => v,
+      None => [],
+    }
+    let live = array.filter(unique(raw), fn(d: string) -> bool { record.has(known, d) })
+    mut waiting[k] = array.len(live)
+    for d in live {
+      let current = match record.get(dependents, d) {
+        Some(v) => v,
+        None => [],
+      }
+      mut dependents[d] = array.push(current, k)
+    }
+  }
+
+  let order: Array<string> = []
+  let queue: Array<string> = []
+  for k in keys {
+    match count_waiting(waiting, k) == 0 {
+      true => { mut queue.push(k) },
+      false => {},
+    }
+  }
+
+  let head = 0
+  loop {
+    match head >= array.len(queue) {
+      true => { break },
+      false => {},
+    }
+    let k = queue[head]
+    mut head = head + 1
+    mut order.push(k)
+    let fed = match record.get(dependents, k) {
+      Some(v) => v,
+      None => [],
+    }
+    for d in fed {
+      let left = count_waiting(waiting, d) - 1
+      mut waiting[d] = left
+      match left == 0 {
+        true => { mut queue.push(d) },
+        false => {},
+      }
+    }
+  }
+
+  let cyclic = array.filter(keys, fn(k: string) -> bool { !array.contains(order, k) })
+  return { order: order, cyclic: cyclic }
+}
+
+fn count_waiting(waiting: Record<string, number>, k: string) -> number {
+  return match record.get(waiting, k) {
+    Some(n) => n,
+    None => 0,
+  }
+}
+
+fn dependency_map(s: Sheet) -> Record<string, Array<string>> {
+  let out: Record<string, Array<string>> = {}
+  for k in ordered_keys(s) {
+    let ds = match record.get(s.cells, k) {
+      None => [],
+      Some(c) => match c {
+        Formula({ input, expr }) => unique(deps_of(expr, s.grid)),
+        else => [],
+      },
+    }
+    mut out[k] = ds
+  }
+  return out
+}
+
+// One full recalculation. Cells are evaluated in dependency order, so a cell
+// never reads a value computed from a stale input; whatever the ordering could
+// not reach is a circular reference and gets #CYCLE! instead of a stack
+// overflow.
+fn recalculate(s: Sheet) -> Record<string, Value> {
+  let keys = ordered_keys(s)
+  let plan = topo_sort(keys, dependency_map(s))
+  let values: Record<string, Value> = {}
+  for k in plan.cyclic {
+    mut values[k] = Cellerr({ code: CYCLE })
+  }
+  for k in plan.order {
+    let computed = match record.get(s.cells, k) {
+      None => Empty,
+      Some(c) => match c {
+        Constant({ input, value }) => value,
+        Formula({ input, expr }) => evaluate(expr, s.grid, values),
+        Broken({ input, error }) => Cellerr({ code: BAD_SYNTAX }),
+      },
+    }
+    mut values[k] = computed
+  }
+  return values
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+type CommandError = { index: int, message: string }
+
+// Applies one batch, in order, and reports the first edit that could not be
+// addressed. A formula that does not parse is not a command error: it lands in
+// the cell as a #SYNTAX! value, exactly as it would in a real spreadsheet.
+fn apply_batch(s: Sheet, commands: Array<CommandSpec>) -> Result<Sheet, CommandError> {
+  let cells = s.cells
+  for i, bound in commands {
+    // The annotation is load-bearing. A `for` binding carries no element type,
+    // so without it `cmd.op` reads as `string` and the match below stops being
+    // exhaustive over `"set" | "clear"`.
+    let cmd: CommandSpec = bound
+    let addr = match parse_ref(cmd.ref) {
+      Ok(a) => a,
+      Err(e) => { return Err({ index: i, message: describe_ref_error(e) }) },
+    }
+    match in_bounds(s.grid, addr) {
+      false => { return Err({ index: i, message: "${format_ref(addr)} is outside the sheet" }) },
+      true => {},
+    }
+    let key = format_ref(addr)
+    match cmd.op {
+      "clear" => { mut cells = record.remove(cells, key) },
+      "set" => { mut cells = record.set(cells, key, make_cell(cmd.value)) },
+    }
+  }
+  return Ok({ name: s.name, grid: s.grid, cells: cells })
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+const MAX_COLUMN_WIDTH = 14
+
+const MIN_COLUMN_WIDTH = 4
+
+@example fit("abc", 5) == "abc"
+@example fit("abcdefgh", 5) == "abcd…"
+@example fit("abc", 1) == "…"
+@example fit("abc", 0) == ""
+fn fit(text: string, width: int) -> string {
+  return match string.len(text) <= width {
+    true => text,
+    false => match width <= 1 {
+      true => string.slice("…", 0, width),
+      false => "${string.slice(text, 0, width - 1)}…",
+    },
+  }
+}
+
+fn pad_cell(text: string, width: int, right: bool) -> string {
+  let clipped = fit(text, width)
+  return match right {
+    true => string.pad_start(clipped, width),
+    false => string.pad_end(clipped, width),
+  }
+}
+
+fn value_at(values: Record<string, Value>, key: string) -> Value {
+  return match record.get(values, key) {
+    Some(v) => v,
+    None => Empty,
+  }
+}
+
+// Column widths come from the widest thing that will actually be printed,
+// clamped so one long label cannot push the grid off the terminal.
+fn column_widths(s: Sheet, values: Record<string, Value>) -> Array<number> {
+  let widths: Array<number> = []
+  for c in array.range(s.grid.cols) {
+    let width = math.max(MIN_COLUMN_WIDTH, string.len(column_label(c)))
+    let widest = width
+    for r in array.range(s.grid.rows) {
+      let shown = display(value_at(values, format_ref({ col: c, row: r })))
+      mut widest = math.max(widest, math.min(MAX_COLUMN_WIDTH, string.len(shown)))
+    }
+    mut widths.push(widest)
+  }
+  return widths
+}
+
+fn render_row(cells: Array<string>, widths: Array<number>, rights: Array<bool>, gutter: string) -> string {
+  let parts: Array<string> = [gutter]
+  for i, text in cells {
+    mut parts.push(pad_cell(text, widths[i], rights[i]))
+  }
+  return string.join(parts, " | ")
+}
+
+@example render_row(["a", "12"], [4, 6], [false, true], "  1") == "  1 | a    |     12"
+fn render(s: Sheet, values: Record<string, Value>) -> Array<string> {
+  let widths = column_widths(s, values)
+  let gutter_width = math.max(3, string.len(number.to_string(s.grid.rows)))
+  let lines: Array<string> = []
+
+  let headers: Array<string> = []
+  let header_rights: Array<bool> = []
+  for c in array.range(s.grid.cols) {
+    mut headers.push(column_label(c))
+    mut header_rights.push(false)
+  }
+  mut lines.push(render_row(headers, widths, header_rights, string.pad_start("", gutter_width)))
+
+  let rule_cells: Array<string> = []
+  for i, w in widths {
+    mut rule_cells.push(string.repeat("-", w))
+  }
+  mut lines.push(render_row(rule_cells, widths, header_rights, string.repeat("-", gutter_width)))
+
+  for r in array.range(s.grid.rows) {
+    let texts: Array<string> = []
+    let rights: Array<bool> = []
+    for c in array.range(s.grid.cols) {
+      let v = value_at(values, format_ref({ col: c, row: r }))
+      mut texts.push(display(v))
+      mut rights.push(aligns_right(v))
+    }
+    let gutter = string.pad_start(number.to_string(r + 1), gutter_width)
+    mut lines.push(render_row(texts, widths, rights, gutter))
+  }
+
+  return lines
+}
+
+// ---------------------------------------------------------------------------
+// Inspection
+// ---------------------------------------------------------------------------
+
+fn describe_cell(s: Sheet, values: Record<string, Value>, key: string) -> Array<string> {
+  let cell = record.get(s.cells, key)
+  let raw = match cell {
+    Some(c) => cell_input(c),
+    None => "",
+  }
+  let kind = match cell {
+    None => "empty",
+    Some(c) => match c {
+      Constant({ input, value }) => "literal",
+      Formula({ input, expr }) => "formula",
+      Broken({ input, error }) => "unparsed",
+    },
+  }
+  let tree = match cell {
+    None => "-",
+    Some(c) => match c {
+      Constant({ input, value }) => "-",
+      Formula({ input, expr }) => show_node(expr),
+      Broken({ input, error }) => "${number.to_string(error.position)}: ${error.message}",
+    },
+  }
+  let deps = match cell {
+    None => [],
+    Some(c) => match c {
+      Formula({ input, expr }) => unique(deps_of(expr, s.grid)),
+      else => [],
+    },
+  }
+  let edges = dependency_map(s)
+  let dependents = array.filter(
+    ordered_keys(s),
+    fn(other: string) -> bool {
+      let ds = match record.get(edges, other) {
+        Some(v) => v,
+        None => [],
+      }
+      array.contains(ds, key)
+    },
+  )
+
+  let shown_raw = match string.len(raw) == 0 {
+    true => "-",
+    false => raw,
+  }
+
+  return [
+    "cell        ${key}",
+    "kind        ${kind}",
+    "raw         ${shown_raw}",
+    "tree        ${tree}",
+    "depends on  ${label_list(deps)}",
+    "feeds       ${label_list(dependents)}",
+    "value       ${display(value_at(values, key))}",
+  ]
+}
+
+fn label_list(xs: Array<string>) -> string {
+  return match array.len(xs) == 0 {
+    true => "-",
+    false => string.join(xs, ", "),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+type LoadError =
+  | Unreadable({ path: string, message: string })
+  | Invalid({ path: string, issues: Array<Issue> })
+  | BadCellRef({ path: string, ref: string, message: string })
+  | OffSheet({ path: string, ref: string })
+
+fn describe_load_error(e: LoadError) -> string {
+  return match e {
+    Unreadable({ path, message }) => "cannot read ${path}: ${message}",
+    Invalid({ path, issues }) => {
+      let newline = "\n"
+      let lines = array.map(
+        issues,
+        // `Issue.path` is `Array<string | number>`, a mixed element type Glyph
+        // cannot spell, so `string.join` will not take it; `string.from` on the
+        // whole array is the way through.
+        fn(i: Issue) -> string {
+          let at_path = string.from(i.path)
+          "  ${at_path}: ${i.message}"
+        },
+      )
+      let body = string.join(lines, newline)
+      "${path} does not match the fixture shape:\n${body}"
+    },
+    BadCellRef({ path, ref, message }) => "${path}: ${message}",
+    OffSheet({ path, ref }) => "${path}: ${ref} is outside the declared sheet",
+  }
+}
+
+fn read_json_text(p: string) -> Result<string, LoadError> {
+  return match fs.read_text(p) {
+    Ok(t) => Ok(t),
+    Err(e) => Err(Unreadable({ path: p, message: e.message })),
+  }
+}
+
+// The fixture crosses the boundary exactly once, here. `json.parse<SheetFile>`
+// runs the type's descriptor, so a missing field, a string where a number
+// belongs, or a fractional `rows` is an `Err` with the failing path, not a
+// crash three functions later.
+fn load_sheet(p: string) -> Result<Sheet, LoadError> {
+  let text = read_json_text(p)?
+  // Decoded first, then validated by the type's own descriptor. The one-step
+  // `json.parse<SheetFile>(text)` also rejects a bad fixture, but it routes
+  // through `SheetFile.schema`, whose only answer is "expected SheetFile";
+  // `SheetFile.parse` names the field that is wrong.
+  let decoded = match json.parse<unknown>(text) {
+    Ok(v) => v,
+    Err(issues) => { return Err(Invalid({ path: p, issues: issues })) },
+  }
+  let file = match SheetFile.parse(decoded) {
+    Ok(f) => f,
+    Err(issues) => { return Err(Invalid({ path: p, issues: issues })) },
+  }
+  let grid = { rows: file.rows, cols: file.cols }
+  let cells: Record<string, Cell> = {}
+  for spec in file.cells {
+    let addr = match parse_ref(spec.ref) {
+      Ok(a) => a,
+      Err(re) => { return Err(BadCellRef({ path: p, ref: spec.ref, message: describe_ref_error(re) })) },
+    }
+    match in_bounds(grid, addr) {
+      false => { return Err(OffSheet({ path: p, ref: spec.ref })) },
+      true => {},
+    }
+    mut cells[format_ref(addr)] = make_cell(spec.value)
+  }
+  return Ok({ name: file.name, grid: grid, cells: cells })
+}
+
+fn load_script(p: string) -> Result<ScriptFile, LoadError> {
+  let text = read_json_text(p)?
+  let decoded = match json.parse<unknown>(text) {
+    Ok(v) => v,
+    Err(issues) => { return Err(Invalid({ path: p, issues: issues })) },
+  }
+  return match ScriptFile.parse(decoded) {
+    Ok(f) => Ok(f),
+    Err(issues) => Err(Invalid({ path: p, issues: issues })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DIR = "examples/apps/sheet"
+
+const USAGE = "usage: sheet [--dir DIR] [inspect REF]"
+
+type Command =
+  | ShowAll
+  | Inspect({ ref: string })
+
+type Args = { dir: string, command: Command }
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let dir = DEFAULT_DIR
+  let command: Command = ShowAll
+  let i = 0
+  let n = array.len(argv)
+  loop {
+    match i >= n {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg == "--dir" {
+      true => {
+        match i + 1 >= n {
+          true => { return Err("--dir expects a path") },
+          false => {},
+        }
+        mut dir = argv[i + 1]
+        mut i = i + 2
+        continue
+      },
+      false => {},
+    }
+    match arg == "inspect" {
+      true => {
+        match i + 1 >= n {
+          true => { return Err("inspect expects a cell reference") },
+          false => {},
+        }
+        mut command = Inspect({ ref: argv[i + 1] })
+        mut i = i + 2
+        continue
+      },
+      false => {},
+    }
+    return Err("${USAGE}\nunexpected argument \"${arg}\"")
+  }
+  return Ok({ dir: dir, command: command })
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn print_grid(title: string, s: Sheet, values: Record<string, Value>) -> void {
+  io.println(title)
+  for line in render(s, values) {
+    io.println(line)
+  }
+  io.println("")
+}
+
+fn error_summary(s: Sheet, values: Record<string, Value>) -> Array<string> {
+  let out: Array<string> = []
+  for k in ordered_keys(s) {
+    let v = value_at(values, k)
+    match v {
+      Cellerr({ code }) => {
+        let raw = match record.get(s.cells, k) {
+          Some(c) => cell_input(c),
+          None => "",
+        }
+        // A cell whose formula never parsed carries the position and message
+        // the parser reported, so the summary says where to look.
+        let detail = match record.get(s.cells, k) {
+          None => "",
+          Some(c) => match c {
+            Broken({ input, error }) => {
+              let at = number.to_string(error.position + 1)
+              "  (column ${at}: ${error.message})"
+            },
+            else => "",
+          },
+        }
+        mut out.push("  ${string.pad_end(k, 5)} ${string.pad_end(code, 9)} ${raw}${detail}")
+      },
+      else => {},
+    }
+  }
+  return out
+}
+
+fn run_script(start: Sheet, script: ScriptFile) -> Result<Sheet, string> {
+  let current = start
+  for i, batch in script.batches {
+    let updated = match apply_batch(current, batch.commands) {
+      Ok(next) => next,
+      Err(ce) => {
+        return Err(
+          "batch ${number.to_string(i + 1)} command ${number.to_string(ce.index + 1)}: ${ce.message}",
+        )
+      },
+    }
+    mut current = updated
+    let values = recalculate(current)
+    print_grid("after batch ${number.to_string(i + 1)}: ${batch.label}", current, values)
+    let problems = error_summary(current, values)
+    match array.len(problems) == 0 {
+      true => {},
+      false => {
+        io.println("  cells reporting an error:")
+        for line in problems {
+          io.println(line)
+        }
+        io.println("")
+      },
+    }
+  }
+  return Ok(current)
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+
+  let sheet = match load_sheet(path.join([args.dir, "sheet.json"])) {
+    Ok(s) => s,
+    Err(e) => {
+      io.eprintln("error: ${describe_load_error(e)}")
+      return 1
+    },
+  }
+
+  let values = recalculate(sheet)
+
+  return match args.command {
+    Inspect({ ref }) => {
+      let addr = match parse_ref(ref) {
+        Ok(a) => a,
+        Err(re) => {
+          io.eprintln("error: ${describe_ref_error(re)}")
+          return 2
+        },
+      }
+      match in_bounds(sheet.grid, addr) {
+        false => {
+          io.eprintln("error: ${format_ref(addr)} is outside the sheet")
+          return 2
+        },
+        true => {},
+      }
+      for line in describe_cell(sheet, values, format_ref(addr)) {
+        io.println(line)
+      }
+      0
+    },
+    ShowAll => {
+      let script = match load_script(path.join([args.dir, "script.json"])) {
+        Ok(s) => s,
+        Err(e) => {
+          io.eprintln("error: ${describe_load_error(e)}")
+          return 1
+        },
+      }
+
+      print_grid("${sheet.name} (as loaded)", sheet, values)
+      let problems = error_summary(sheet, values)
+      match array.len(problems) == 0 {
+        true => {},
+        false => {
+          io.println("  cells reporting an error:")
+          for line in problems {
+            io.println(line)
+          }
+          io.println("")
+        },
+      }
+
+      match run_script(sheet, script) {
+        Ok(final) => 0,
+        Err(msg) => {
+          io.eprintln("error: ${msg}")
+          1
+        },
+      }
+    },
+  }
+}

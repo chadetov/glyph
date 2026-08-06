@@ -836,6 +836,8 @@ machine-readably. The full catalogue:
 | E0107 | Unused variable (warning) | Remove it, or prefix the name with `_` |
 | E0108 | Unreachable code after return/break/continue (warning) | Remove the dead code |
 | E0109 | Reserved word (class, switch, eval, ...) used as a name | Rename the declaration or binding |
+| E0110 | Declaration shadows a global the emitted module uses (`Error`, `Number`, `Object`, `Array`, `Promise`, `number`, `par`, `print`, `string`, ...) | Rename the declaration |
+| E0111 | `type Key = string \| number` is a tagged union of variants named `string`/`number`, not a union of the two types | Name each case, or `extern_ts("string \| number")` |
 | E0200 | Non-exhaustive match on a tagged union | Handle every variant, or add an `else` |
 | E0201 | `?` outside a Result-returning fn | Return `Result`, or handle with `match` |
 | E0202 | `?` on a non-Result operand | Drop the `?`, or return a `Result` |

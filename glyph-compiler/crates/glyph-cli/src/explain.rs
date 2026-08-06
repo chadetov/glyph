@@ -134,6 +134,39 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `x.new` are fine).\n\n\
             Rename the declaration or binding, e.g. `class` -> `klass`, \
             `new` -> `create`, `switch` -> `select`.",
+        "E0110" => "E0110: declaration shadows a global the emitted module uses\n\n\
+            Some names are already bound in every module Glyph emits: the \
+            JavaScript globals the generated TypeScript refers to (`Error`, \
+            `Number`, `Object`, `Array`, `Promise`, `Date`) and the prelude \
+            names in scope without an import (`number`, `par`, `print`, \
+            `assert`, and the primitive type names `string`, `int`, `bigint`, \
+            `bool`, `void`, `unknown`).\n\n\
+            Unlike E0109 these are legal TypeScript identifiers, so nothing \
+            downstream catches the collision. A tagged union with an `Error` \
+            variant emits `export function Error(...)` at module top level, and \
+            the `new Error(...)` the compiler emits below it then calls the \
+            variant constructor:\n\n\
+            type Value =\n  \
+              | Num(number)\n  \
+              | Error(string)   // E0110\n\n\
+            Rename the declaration: `Error` -> `Failure`, `Number` -> `Num`, \
+            `number` -> `amount`. Record fields, object keys, and local \
+            bindings are unaffected; this checks top-level `fn`, `type`, \
+            `const`, `component`, and variant names.",
+        "E0111" => "E0111: primitive union is a tagged union of variant names\n\n\
+            In Glyph, `A | B` declares a tagged union whose members are variant \
+            *constructors* (D8), not a union of two types. So this:\n\n\
+            type Key = string | number\n\n\
+            declares variants named `string` and `number`, which shadow the \
+            prelude names (E0110's problem) and mean something you did not \
+            write. Glyph has no primitive-union syntax.\n\n\
+            Name each case:\n\n\
+            type Key =\n  \
+              | Text(string)\n  \
+              | Count(number)\n\n\
+            then `match` over it. If you need the raw TypeScript union at a \
+            boundary, `extern_ts(\"string | number\")` spells it verbatim and \
+            leaves the checking to `tsc`.",
 
         // ----- typechecker (E02xx) -----
         "E0200" => "E0200: non-exhaustive match\n\n\
@@ -414,7 +447,8 @@ pub fn explain(code: &str) -> Option<&'static str> {
 pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0100", "E0101",
     "E0102", "E0103", "E0104",
-    "E0105", "E0106", "E0107", "E0108", "E0109", "E0200", "E0201", "E0202", "E0203", "E0204",
+    "E0105", "E0106", "E0107", "E0108", "E0109", "E0110", "E0111", "E0200", "E0201", "E0202",
+    "E0203", "E0204",
     "E0205",
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",

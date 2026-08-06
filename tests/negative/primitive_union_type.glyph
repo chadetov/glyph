@@ -1,0 +1,12 @@
+module neg
+
+// `A | B` is a tagged union of variant names (D8), so this declares variants
+// called `string` and `number` rather than a union of the two primitives.
+type Key = string | number
+
+fn key_name(k: Key) -> string {
+  return match k {
+    string => "string",
+    number => "number",
+  }
+}

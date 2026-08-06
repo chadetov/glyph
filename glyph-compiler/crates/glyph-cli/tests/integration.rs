@@ -5266,3 +5266,90 @@ async fn main(argv: Array<string>) -> number {
         other => panic!("async handler map did not run: {other:?}"),
     }
 }
+
+#[test]
+fn a_variant_named_after_a_js_global_fails_at_its_declaration() {
+    // The gap this pins: `emit_variant_constructor` writes `export function
+    // Error(...)` straight from the Glyph name, so every `new Error(...)` the
+    // emitter writes below it in the same module called the variant instead.
+    // The build used to reach `tsc`, which pointed at the `match` with TS7009 /
+    // TS2345. Glyph now owns the diagnostic, and it lands on the declaration.
+    let root = unique_tmp("shadowglobal");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         type Value =\n\
+         \x20 | Num(number)\n\
+         \x20 | Error(string)\n\
+         \n\
+         fn describe(v: Value) -> string {\n\
+         \x20 return match v {\n\
+         \x20   Num(n) => number.to_string(n),\n\
+         \x20   Error(e) => e,\n\
+         \x20 }\n\
+         }\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 print(describe(Num(1)))\n\
+         \x20 return 0\n\
+         }\n",
+    );
+
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build ran");
+    assert!(report.has_errors(), "diags: {:?}", report.diagnostics);
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|d| d.contains("E0110"))
+        .unwrap_or_else(|| panic!("no E0110; diagnostics were: {:?}", report.diagnostics));
+
+    // The mechanism is named, because misattribution is the whole defect.
+    assert!(
+        diag.contains("shadow") && diag.contains("JavaScript global"),
+        "the diagnostic must explain the shadowing: {diag}"
+    );
+    // The span is the declaration on line 4, not the `match` arm on line 9.
+    assert!(
+        diag.contains("main:4:"),
+        "expected the variant declaration position (line 4): {diag}"
+    );
+    assert!(
+        !diag.contains("main:9:"),
+        "must not point at the match arm: {diag}"
+    );
+    assert!(report.emitted.is_empty(), "emitted: {:?}", report.emitted);
+}
+
+#[test]
+fn a_bare_primitive_union_is_rejected_with_the_misparse_explained() {
+    // `type Key = string | number` built clean, passed `tsc --strict`, and
+    // emitted `export const string` / `export const number` that shadowed the
+    // prelude. It is a D8 tagged union with two badly named variants.
+    let root = unique_tmp("primunion");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         type Key = string | number\n\
+         fn main(argv: Array<string>) -> number { return 0 }\n",
+    );
+
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build ran");
+    assert!(report.has_errors(), "diags: {:?}", report.diagnostics);
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|d| d.contains("E0111"))
+        .unwrap_or_else(|| panic!("no E0111; diagnostics were: {:?}", report.diagnostics));
+    assert!(
+        diag.contains("extern_ts"),
+        "the help must name the escape hatch: {diag}"
+    );
+    assert!(
+        diag.contains("tagged union"),
+        "the help must explain what it actually parsed as: {diag}"
+    );
+    assert!(report.emitted.is_empty(), "emitted: {:?}", report.emitted);
+}

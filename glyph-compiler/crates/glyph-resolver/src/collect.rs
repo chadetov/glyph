@@ -53,6 +53,7 @@ pub fn collect_module_symbols(module: &Module) -> Result<ModuleSymbols, Vec<Reso
         table: &mut table,
         by_name: &mut by_name,
         errors: &mut errors,
+        shadow_suppressed: false,
     };
 
     // D15 barrel-file detection: a module whose only top-level items are
@@ -89,7 +90,20 @@ pub fn collect_module_symbols(module: &Module) -> Result<ModuleSymbols, Vec<Reso
                 // Tagged-union variants hoist into module scope alongside the
                 // type itself so `NetworkError({ ... })` resolves directly; they
                 // share the type's visibility.
-                if let glyph_ast::TypeExpr::Union { variants, .. } = &t.body {
+                if let glyph_ast::TypeExpr::Union { variants, span } = &t.body {
+                    // `type Key = string | number` is not a union of the two
+                    // primitives — D8's `A | B` names variant *constructors*, so
+                    // this declares `string` and `number` at module scope. Report
+                    // the misparse once, with the reason, instead of two opaque
+                    // shadow errors.
+                    let primitive_union = bare_primitive_union(variants);
+                    if let Some(names) = &primitive_union {
+                        ctx.errors.push(ResolveError::PrimitiveUnionType {
+                            names: names.clone(),
+                            span: *span,
+                        });
+                    }
+                    ctx.shadow_suppressed = primitive_union.is_some();
                     for v in variants {
                         ctx.intern_vis(
                             v.name.clone(),
@@ -98,6 +112,7 @@ pub fn collect_module_symbols(module: &Module) -> Result<ModuleSymbols, Vec<Reso
                             t.is_public,
                         );
                     }
+                    ctx.shadow_suppressed = false;
                 }
             }
             Decl::Const(c) => ctx.intern_vis(
@@ -181,6 +196,11 @@ struct CollectCtx<'a> {
     table: &'a mut SymbolTable,
     by_name: &'a mut HashMap<Ident, SymbolId>,
     errors: &'a mut Vec<ResolveError>,
+    /// Set while interning the variants of a bare-primitive union
+    /// (`type Key = string | number`). The whole declaration already produced
+    /// one `PrimitiveUnionType` error that explains the misparse; a per-variant
+    /// `ShadowedGlobalName` on top of it would only repeat the symptom.
+    shadow_suppressed: bool,
 }
 
 impl CollectCtx<'_> {
@@ -200,6 +220,19 @@ impl CollectCtx<'_> {
                 span,
             });
         }
+        // A top-level declaration whose name is already bound in every emitted
+        // module silently rebinds it (E0110). Imports are exempt: `import
+        // std/io` binding `io` is what an import is for, and a declaration that
+        // collides with one is already E0100.
+        if declares_a_binding(&kind) && !self.shadow_suppressed {
+            if let Some(origin) = crate::reserved::shadowed_global(name.as_ref()) {
+                self.errors.push(ResolveError::ShadowedGlobalName {
+                    name: name.to_string(),
+                    origin,
+                    span,
+                });
+            }
+        }
         let id = self.table.intern(Symbol {
             name: name.clone(),
             kind,
@@ -216,6 +249,43 @@ impl CollectCtx<'_> {
             });
         }
     }
+}
+
+/// True for the symbol kinds that become a top-level binding in the emitted
+/// module: `fn`, `type`, `const`, `component`, and a tagged-union variant
+/// constructor. Import symbols are excluded (see the E0110 call site).
+fn declares_a_binding(kind: &SymbolKind) -> bool {
+    matches!(
+        kind,
+        SymbolKind::Function { .. }
+            | SymbolKind::Type { .. }
+            | SymbolKind::Const { .. }
+            | SymbolKind::Component { .. }
+            | SymbolKind::Variant { .. }
+    )
+}
+
+/// `Some("string | number")` when every variant of a union is a bare primitive
+/// type name with no payload, which is the `type Key = string | number`
+/// misparse rather than a D8 tagged union anyone meant to write. `None` for a
+/// real union (any payload, any non-primitive name, or a single variant).
+fn bare_primitive_union(variants: &[glyph_ast::UnionVariant]) -> Option<String> {
+    if variants.len() < 2 {
+        return None;
+    }
+    if !variants
+        .iter()
+        .all(|v| v.payload.is_none() && crate::reserved::is_primitive_type_name(v.name.as_ref()))
+    {
+        return None;
+    }
+    Some(
+        variants
+            .iter()
+            .map(|v| v.name.to_string())
+            .collect::<Vec<_>>()
+            .join(" | "),
+    )
 }
 
 fn path_is_relative(path: &glyph_ast::ModulePath) -> bool {
@@ -362,6 +432,132 @@ fn add(a: number, b: number) -> number { return a + b }
                 "missing reserved-word error for `{bad}`; errors were: {errs:?}"
             );
         }
+    }
+
+    /// Every declaration form that becomes a top-level TS binding is checked
+    /// against the JS globals the emitted module references. The variant case
+    /// is the one that shipped broken: `emit_variant_constructor` writes
+    /// `export function Error(...)` straight from the Glyph name.
+    #[test]
+    fn js_global_names_are_rejected_in_every_declaration_form() {
+        let cases = [
+            ("fn Error() {}", "Error"),
+            ("type Object = { a: number }", "Object"),
+            ("const Promise = 1", "Promise"),
+            ("component Array(props: { a: number }) -> Component {}", "Array"),
+            ("type Value =\n  | Num(number)\n  | Error(string)\n", "Error"),
+        ];
+        for (decl, name) in cases {
+            let src = format!("module x\n{decl}\n");
+            let m = parse(&src).unwrap_or_else(|e| panic!("parse failed for {decl:?}: {e:?}"));
+            let errs = collect_module_symbols(&m)
+                .expect_err(&format!("expected a shadow error for {decl:?}"));
+            assert!(
+                errs.iter().any(|e| matches!(
+                    e,
+                    ResolveError::ShadowedGlobalName { name: n, origin, .. }
+                        if n == name && *origin == crate::reserved::ShadowOrigin::JsGlobal
+                )),
+                "missing E0110 for {decl:?}; errors were: {errs:?}"
+            );
+        }
+    }
+
+    /// The prelude group: names in scope in every module with no import. A
+    /// declaration using one replaces it silently.
+    #[test]
+    fn prelude_global_names_are_rejected() {
+        let cases = [
+            ("fn print() {}", "print"),
+            ("const number = 1", "number"),
+            ("type par = { a: number }", "par"),
+            ("fn assert() {}", "assert"),
+        ];
+        for (decl, name) in cases {
+            let src = format!("module x\n{decl}\n");
+            let m = parse(&src).unwrap_or_else(|e| panic!("parse failed for {decl:?}: {e:?}"));
+            let errs = collect_module_symbols(&m)
+                .expect_err(&format!("expected a shadow error for {decl:?}"));
+            assert!(
+                errs.iter().any(|e| matches!(
+                    e,
+                    ResolveError::ShadowedGlobalName { name: n, origin, .. }
+                        if n == name && *origin == crate::reserved::ShadowOrigin::Prelude
+                )),
+                "missing E0110 for {decl:?}; errors were: {errs:?}"
+            );
+        }
+    }
+
+    /// The span is the declaration. Before this check the only signal was a
+    /// `tsc` error at the downstream `match`, which is the wrong file position
+    /// and the wrong explanation.
+    #[test]
+    fn the_shadow_error_points_at_the_declaration_not_a_use() {
+        let src = "module x\ntype Value =\n  | Num(number)\n  | Error(string)\n\nfn describe(v: Value) -> string {\n  return match v {\n    Num(n) => \"n\",\n    Error(e) => e,\n  }\n}\n";
+        let m = parse(src).unwrap();
+        let errs = collect_module_symbols(&m).expect_err("expected a shadow error");
+        let err = errs
+            .iter()
+            .find(|e| matches!(e, ResolveError::ShadowedGlobalName { name, .. } if name == "Error"))
+            .unwrap_or_else(|| panic!("no E0110; errors were: {errs:?}"));
+        let span = err.span();
+        let declaration = src.find("| Error(string)").unwrap() as u32;
+        let match_arm = src.find("Error(e) => e").unwrap() as u32;
+        assert_eq!(
+            &src[span.start as usize..span.end as usize],
+            "Error(string",
+            "the span must cover the variant declaration"
+        );
+        assert!(span.start > declaration && span.end < match_arm);
+    }
+
+    /// `type Key = string | number` is D8 tagged-union syntax over bare
+    /// primitive names, so it declares variant constructors called `string` and
+    /// `number`. It used to build clean. The diagnostic has to say why, or the
+    /// rejection is just as confusing as the silent success was.
+    #[test]
+    fn a_bare_primitive_union_gets_the_misparse_explanation() {
+        let m = parse("module x\ntype Key = string | number\n").unwrap();
+        let errs = collect_module_symbols(&m).expect_err("expected a primitive-union error");
+        let err = errs
+            .iter()
+            .find(|e| matches!(e, ResolveError::PrimitiveUnionType { .. }))
+            .unwrap_or_else(|| panic!("no E0111; errors were: {errs:?}"));
+        assert_eq!(err.code(), "E0111");
+        let help = err.help().unwrap();
+        assert!(help.contains("extern_ts"), "help: {help}");
+        assert!(help.contains("variant"), "help: {help}");
+        // One explanation, not one bare shadow error per primitive.
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, ResolveError::ShadowedGlobalName { .. })),
+            "the misparse explanation should replace the per-variant shadow errors: {errs:?}"
+        );
+    }
+
+    /// A real tagged union that happens to mention primitives in payloads is
+    /// not the misparse.
+    #[test]
+    fn a_named_union_over_primitives_is_fine() {
+        let s = collect("module x\ntype Key =\n  | Text(string)\n  | Count(number)\n");
+        assert!(s.lookup("Text").is_some());
+        assert!(s.lookup("Count").is_some());
+    }
+
+    /// `import std/io` binds `io`, which is the point of an import; a
+    /// declaration colliding with one is already E0100.
+    #[test]
+    fn imports_are_not_checked_for_shadowing() {
+        let m = parse("module x\nimport std/io\nfn go() {\n  io.print(\"hi\")\n}\n").unwrap();
+        let errs = collect_module_symbols(&m).err().unwrap_or_default();
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, ResolveError::ShadowedGlobalName { .. })),
+            "errors were: {errs:?}"
+        );
     }
 
     #[test]

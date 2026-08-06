@@ -32,7 +32,7 @@ mod resolve;
 mod symbol;
 
 pub use collect::{collect_module_symbols, ModuleSymbols};
-pub use error::{ResolveError, Severity};
+pub use error::{ResolveError, Severity, ShadowOrigin};
 pub use lints::module_lints;
 pub use module_graph::{
     path_key, verify_imports, CompositeGraph, ModuleExports, ModuleGraph, StdlibStubs,

@@ -49,8 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.53</span>
+            <span class="rel-ver">0.1.54</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A declaration can't quietly take a name the module needs</h3>
+            <p>Every top-level name you write reaches the emitted TypeScript verbatim, including the constructors of a tagged union. So a variant named <code>Error</code> emits <code>export function Error(...)</code> at module top level, and the <code>new Error(...)</code> the compiler writes below it calls your variant instead. The name is legal TypeScript, so nothing downstream noticed. You saw it as a <code>tsc</code> error twenty lines away, about something else. This came out of writing a spreadsheet, where a cell is a number, a label, nothing, or an error, and two of those four words are already taken.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>E0110</code> rejects a top-level <code>fn</code>, <code>type</code>, <code>const</code>, <code>component</code>, or variant whose name is already bound in every emitted module: the JavaScript globals the emitter refers to (<code>Object</code>, <code>Array</code>, <code>Promise</code>, <code>Number</code>, <code>Error</code>) and the prelude names in scope without an import (<code>number</code>, <code>par</code>, <code>print</code>, <code>assert</code>, and the primitive type names). The span is your declaration, which is where the rename goes. The list is derived from the emitter rather than from a general list of JavaScript globals, and a test greps the emitter and fails when a new global reference appears without an entry. <code>Number</code> was harmless until <code>int</code> shipped and started emitting <code>Number.isInteger</code>, which is how this reached a release. <code>Date</code>, <code>Math</code> and <code>JSON</code> stay free, because nothing Glyph emits mentions them.</li>
+              <li><span class="tag fixed">Fixed</span> <code>type Key = string | number</code> is <code>E0111</code> instead of a clean build that means something else. In Glyph <code>A | B</code> declares a tagged union whose members are variant <em>constructors</em>, so that line declared variants called <code>string</code> and <code>number</code> and emitted an <code>export const number</code> that shadowed the prelude. It got its own code because rejecting it teaches nothing: the message says what the line parsed as, points at named variants, and names <code>extern_ts("string | number")</code> for a raw TypeScript union at a boundary.</li>
+              <li><span class="tag added">Added</span> A reserved-words reference: the 32 keywords, the 33 TypeScript reserved words behind <code>E0109</code>, and the new shadow list, in one table with the reason each name is taken. A test keeps the page in step with the compiler.</li>
+              <li><span class="tag known">Known</span> You still can't name a type or variant <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code>, or <code>Promise</code>. The error tells you to rename, and renaming is still what you have to do. Making the name usable means mangling Glyph names in the emitted TypeScript, which changes what a stack trace, a <code>grep</code> over <code>dist/</code>, and a hand-written <code>extern/</code> shim see. That is not scheduled.</li>
+              <li><span class="tag known">Known</span> A union of two primitive types has no spelling in Glyph other than <code>extern_ts</code>, whose contents Glyph's own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors, and <code>is</code>, so this is a type-system call rather than a patch.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.53</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

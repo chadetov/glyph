@@ -22,9 +22,20 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the stdlib-modeling batch (G45, G47, G61,
-G50, and phase 1 of G39/G37): of 62 entries, 47 are fixed, 9 are partly fixed, 5
-are decided or resolved, and 1 is open. That batch taught the typechecker the
+Reconciled against the source after the spreadsheet trip, which added eight
+entries (G63–G70) and closed half of two of them with `E0110` and `E0111`: of 70
+entries, 47 are fixed, 11 are partly fixed, 5 are decided or resolved, and 7 are
+open. Six of the seven open ones are new, so the backlog grew for the first time
+in several rounds. That is what a trip into a domain the earlier apps never
+touched does: a spreadsheet wants a value union spelled `Number | Text | Empty |
+Error`, and every name in it is a name the emitted module already owns. The two
+halves that shipped are the silent ones, `E0110` for a top-level declaration that
+would shadow a global the emitted module depends on and `E0111` for `type Key =
+string | number`. What is left on both is expressiveness, not detection.
+
+The reconciliation before it, after the stdlib-modeling batch (G45, G47, G61,
+G50, and phase 1 of G39/G37), read 62 entries, 47 fixed, 9 partly fixed, 5
+decided or resolved, and 1 open. That batch taught the typechecker the
 return types of the fixed-arity half of `std/string` and `std/array` and the
 *shape* of a stdlib named type, so `for i, part in string.split(text, ",")` binds
 a number and a `match e.kind` on an `fs.FsError` is held to E0200; added the
@@ -1602,3 +1613,147 @@ cause.
   multi-line strings: the rewrite that was reverted before is back, the emitted
   `shortlink.ts` is byte-identical to the `\n`-escaped version, and
   `glyph fmt --check` reports the file already formatted.*
+
+## Round 14 — a terminal spreadsheet, and the names a module already owns
+
+The loop pointed at `examples/apps/sheet/`: load a grid from JSON, parse and
+evaluate formulas with cell and range references, detect reference cycles, apply
+scripted edits, and render the result as a terminal table. It is the largest app
+in `examples/` and the first one whose domain vocabulary collides head-on with
+the emitted module's own vocabulary. A spreadsheet cell holds a number, a label,
+nothing, or an error, which in Glyph wants to be spelled
+`Number | Text | Empty | Error`. Two of those four names are already bound in
+every module the compiler emits.
+
+Fourteen frictions came back. Eight are recorded below; the rest were already
+carrying a G-number or were stdlib shape, and those are with the trip in
+[`roadmap/releases.md`](roadmap/releases.md). Two shipped a fix in the same
+release and are half closed. The other six are open, which is the first time in
+several rounds that the backlog grew.
+
+- **G63. [HALF FIXED] A top-level declaration silently shadowed a global the
+  emitted module depends on.** Every top-level Glyph name reaches the emitted
+  module verbatim, including a tagged union's variant constructors, and nothing
+  checked it against the names that module already uses. `type Value = |
+  Num(number) | Error(string)` emits `export function Error(...)` at module top
+  level, so every `new Error(...)` the compiler writes below it (the `?`
+  lowering, `match` fallthrough, the descriptor `parse` throw paths) called the
+  variant instead. The build did not fail there; it failed at an unrelated
+  `match` with a `tsc` type error, in the wrong place and with the wrong
+  explanation. `Number` was harmless until `int` shipped and the boundary check
+  started emitting `Number.isInteger`, which is how the defect reached a release
+  without anyone writing a program that hit it. *Half fixed by `E0110`: a
+  top-level `fn`, `type`, `const`, `component`, or variant whose name is one of
+  the JavaScript globals the emitter references (`Object`, `Array`, `Promise`,
+  `Number`, `Error`) or one of the prelude globals in scope without an import
+  (`par`, `print`, `assert`, `number`, and the primitive type names) is now a
+  Glyph error at the declaration span, which is where the rename goes. The list
+  is derived from `glyph-emit` rather than from a general list of JavaScript
+  globals, and a test greps the emitter and fails when a new global reference
+  appears without a matching entry, so the `Number` mechanism cannot repeat.
+  `Date` is deliberately absent: nothing the emitter writes mentions it, so
+  rejecting `type Date` would make the diagnostic's claim false and would break
+  `examples/corpus/calendar.glyph`.* What remains is the whole reason the entry
+  was filed: you still cannot name a type or variant `Error`, `Number`,
+  `Object`, `Array`, or `Promise`. `E0110` turns a silent miscompile into a
+  clear rename request, which is the verifiability half, and the app still
+  carries `Cellerr` instead of the `Error` its domain wanted. Closing it for
+  real means mangling Glyph names in the emitter, which changes what every
+  emitted identifier looks like and therefore what a stack trace, a `grep` over
+  `dist/`, and a hand-written `extern/` shim see. That is an architecture
+  decision and it has not been made.
+
+- **G64. [HALF FIXED] `type Key = string | number` built clean and meant
+  something else.** D8's `A | B` is a tagged union whose members are variant
+  *names*, so bare primitives on the right-hand side declare variant
+  constructors called `string` and `number`. The line looks like ordinary
+  TypeScript, it passed `glyph build` and `tsc --strict`, and it emitted
+  `export const string` and `export const number` that shadowed the prelude
+  namespaces of the same name. Nothing failed until a later `number.to_string`
+  call resolved to the wrong thing. *Half fixed by `E0111`, which is a separate
+  code from G63 because rejecting the line teaches nothing on its own: the
+  message says what the line actually parsed as, points at named variants
+  (`| Text(string) | Count(number)`), and names `extern_ts("string | number")`
+  as the boundary escape hatch.* What remains is that Glyph still has no way to
+  spell a union of two primitive types except `extern_ts`, which its own checker
+  treats as opaque `unknown`. Adding untagged unions touches exhaustiveness,
+  descriptors, and `is`, and D8's tagged unions exist because a sealed variant
+  set is what makes a `match` verifiable. It is a type-system decision, not a
+  patch.
+
+- **G65. `==` means `deepEqual` in an `@example` and `===` in the program.** The
+  worst finding of the trip. `@example make(1) == { x: 1 }` reports a passing
+  example, because the example harness compiles `==` through its own
+  `deepEqual` (`glyph-cli/src/examples.rs:292`). The same `==` inside a function
+  body emits `===`, so the program compares two record literals by reference and
+  prints NOT EQUAL. Both halves pass `tsc --strict` and nothing warns. A test
+  that passes while the code it tests is wrong is worse than no test: it is the
+  exact "silent green" class this file exists to track, and it undermines
+  `@example` as a verification surface. The emitter's own comment claims value
+  equality, so one of the two spellings is wrong and picking which one is a
+  language decision (structural `==` everywhere, or an explicit
+  `record.equals`/`array.equals`, or `@example` dropping to reference equality
+  and forcing an explicit comparison). Not this release's scope, but it should
+  not sit long.
+
+- **G66. An optional record field is declarable but cannot be read.** `field?:
+  T` parses, and `RecordTypeField::optional` reaches the emitter, which writes
+  `field?: T` into the TypeScript. The two checkers then disagree about what a
+  read of it produces. Glyph's member-access path
+  (`glyph-typechecker/src/assign.rs:508`) propagates `f.ty` and ignores
+  `f.optional`, so the read types as `string`; `tsc --strict` types the same
+  read `string | undefined`, and Glyph has no construct that narrows one to the
+  other, because there is no `if` and a `match` on a string does not consider
+  the `undefined` case. So the field is writable and unreadable. The app worked
+  around it by making the field required and documenting that a `clear` command
+  ignores it (`examples/apps/sheet/main.glyph:50`). Either optional fields get a
+  narrowing story or the parser should stop accepting `?`; accepting a
+  declaration whose values cannot be used is the worst of the three.
+
+- **G67. A `for` binding carries no element type, so D30 exhaustiveness
+  evaporates inside a loop.** `Stmt::For` in the typechecker's assigner
+  (`glyph-typechecker/src/assign.rs:452`) walks the iterand and the body and
+  binds nothing for the loop variable. Iterating `Array<CommandSpec>` where
+  `CommandSpec` has an `op: "set" | "clear"` field, the read of `cmd.op` inside
+  the body types as `string`, the `match` over it is no longer exhaustive over
+  two cases, and `E0218` asks for an `else` arm. Adding that `else` forfeits
+  exactly the guarantee the string-literal-union type was declared to provide:
+  add a third command later and the `match` silently routes it to the catch-all
+  instead of failing to compile. This is a quiet downgrade of a checked property
+  to an unchecked one, with the compiler suggesting the downgrade in its own
+  help text. The app keeps a one-line annotation and a comment saying why it
+  cannot be removed (`examples/apps/sheet/main.glyph:1202`). Same family as G37
+  and G57: a type that stops existing at a boundary takes every check downstream
+  of it with it.
+
+- **G68. `json.parse<T>` reports one issue where `T.parse` reports paths.** The
+  emitter rewrites `json.parse<T>(text)` to `json.parse_with(text, T.schema)`
+  (`glyph-emit/src/lib.rs:3230`), which is what made the call validating in the
+  first place (G3). The cost was never recorded: `T.schema` is a single runtime
+  checker, so every field-level failure collapses to one issue reading
+  `expected T`. The same fixture through `json.parse<unknown>` followed by
+  `T.parse(decoded)` names the field that is wrong and its path. A malformed
+  config is the case where a precise error matters most, and the one-step form
+  is what `docs/guide/typed-apis.md:51` teaches, calling out that it "parses the
+  string *and* validates in one step" without saying what it gives up. The app
+  writes the two-step form with a comment explaining the choice
+  (`examples/apps/sheet/main.glyph:1434`). Either the rewrite threads the
+  descriptor's issues through, or the guide has to say which form to reach for
+  when the error message is going to a human.
+
+- **G69. `glyph run` and `glyph check` never run `@example` blocks.** Both
+  `run_examples` call sites are inside the `Build` arm, the text path and the
+  JSON path (`glyph-cli/src/main.rs:284` and `:344`). So a colocated test that
+  fails turns `glyph build` red and leaves `glyph run` and `glyph check` green
+  on the same source. `docs/guide/getting-started.md` tells a reader the two
+  never disagree. During the trip that meant a fast edit-run loop reported
+  success on code whose own examples were failing, and only the slower `build`
+  found it.
+
+- **G70. `E0109` and `E0110` can report the same declaration twice.**
+  `is_reserved_ts_word` is called from both `collect.rs` and `resolve.rs`, so a
+  reserved name is counted once per pass. The new shadow check runs only in
+  `collect`, and the rendered diagnostic still appears twice for a single-file
+  build because the collect pass itself is reached more than once. Cosmetic: it
+  inflates the reported error count without changing the verdict or the spans,
+  and a reader who trusts the count sees two problems where there is one.

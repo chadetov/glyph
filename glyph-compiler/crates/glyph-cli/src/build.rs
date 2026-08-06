@@ -258,8 +258,17 @@ pub fn build_project_inner(
             report.error_count += 1;
         }
 
+        // When collection failed, `resolve` is skipped and hands back the
+        // collect errors verbatim, so reporting them again doubles every
+        // duplicate-name, reserved-word, and shadowed-global diagnostic and
+        // inflates the error count.
         let r = resolve(&db, *sf);
-        for e in r.errors() {
+        let resolve_errors: &[glyph_resolver::ResolveError] = if syms.errors().is_empty() {
+            r.errors()
+        } else {
+            &[]
+        };
+        for e in resolve_errors {
             report.diagnostics.push(render_resolve_error(
                 module_path,
                 &source,

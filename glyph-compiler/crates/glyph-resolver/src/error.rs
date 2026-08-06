@@ -8,6 +8,8 @@
 
 use glyph_ast::Span;
 
+pub use crate::reserved::ShadowOrigin;
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ResolveError {
     #[error("name `{name}` declared more than once")]
@@ -67,6 +69,33 @@ pub enum ResolveError {
     /// name.
     #[error("`{name}` is a reserved word and cannot be used as a name")]
     ReservedWordName { name: String, span: Span },
+
+    /// A top-level declaration (`fn`, `type`, `const`, `component`, or a
+    /// tagged-union variant constructor) whose name is already bound in every
+    /// emitted module: a JavaScript global the emitted TypeScript refers to
+    /// (`Error`, `Number`, `Object`, `Array`, `Promise`, `Date`) or a Glyph
+    /// prelude global (`number`, `par`, `print`, `assert`, the primitive type
+    /// names). Unlike `ReservedWordName` these emit legal TypeScript, so
+    /// nothing downstream catches them: the module keeps compiling and every
+    /// later reference to the global picks up the declaration instead. `span`
+    /// is the declaration, not the downstream use `tsc` would point at.
+    #[error(
+        "`{name}` cannot name a type, variant, or function: the emitted module references the {} `{name}`, and this declaration would shadow it",
+        .origin.describe()
+    )]
+    ShadowedGlobalName {
+        name: String,
+        origin: ShadowOrigin,
+        span: Span,
+    },
+
+    /// `type Key = string | number` — D8's `A | B` is a *tagged union of named
+    /// variants*, so bare primitive names on the right-hand side declare
+    /// variant constructors called `string` and `number` rather than a
+    /// TypeScript union. It used to build clean and shadow the prelude. `span`
+    /// is the union body.
+    #[error("`{names}` declares a tagged union whose variants are named after Glyph's primitive types, not a union of those types")]
+    PrimitiveUnionType { names: String, span: Span },
 }
 
 /// A diagnostic's severity. Mirrors the typechecker's `Severity`; the resolver
@@ -91,6 +120,8 @@ impl ResolveError {
             ResolveError::UnusedBinding { span, .. } => *span,
             ResolveError::UnreachableCode { span } => *span,
             ResolveError::ReservedWordName { span, .. } => *span,
+            ResolveError::ShadowedGlobalName { span, .. } => *span,
+            ResolveError::PrimitiveUnionType { span, .. } => *span,
         }
     }
 
@@ -118,6 +149,8 @@ impl ResolveError {
             ResolveError::UnusedBinding { .. } => "E0107",
             ResolveError::UnreachableCode { .. } => "E0108",
             ResolveError::ReservedWordName { .. } => "E0109",
+            ResolveError::ShadowedGlobalName { .. } => "E0110",
+            ResolveError::PrimitiveUnionType { .. } => "E0111",
         }
     }
 
@@ -188,6 +221,17 @@ impl ResolveError {
             }
             ResolveError::ReservedWordName { .. } => {
                 "Rename it. Glyph permits this word as an identifier but TypeScript reserves it, so it cannot name a declaration, parameter, or binding (e.g. `class` -> `klass`, `new` -> `create`)."
+            }
+            ResolveError::ShadowedGlobalName { origin, .. } => match origin {
+                ShadowOrigin::JsGlobal => {
+                    "Rename it (e.g. `Error` -> `Failure`, `Number` -> `Num`). The name is legal TypeScript, so nothing downstream catches the rebinding."
+                }
+                ShadowOrigin::Prelude => {
+                    "Rename it. This name is in scope in every Glyph module without an import, so a declaration using it silently replaces the prelude one."
+                }
+            },
+            ResolveError::PrimitiveUnionType { .. } => {
+                "Glyph has no primitive-union syntax: in `A | B` the members are variant *names* (D8 tagged unions), so this declares constructors called `string` and `number`. Give each case a named variant (`| Text(string) | Count(number)`), or use `extern_ts(\"string | number\")` for a raw TypeScript union."
             }
         })
     }

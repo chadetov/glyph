@@ -2016,6 +2016,109 @@ manifesto's no-`any` promise is made.
   `[DECIDED]`. The decision covers the codepoint half only; the note says so, but
   the item has no home of its own.
 
+## spreadsheet dogfood trip — the names a module already owns
+
+Writing a spreadsheet engine turned up fourteen findings, and two of them were
+filed separately as an emitter bug and a parser bug. They are one defect. A
+top-level Glyph name lands in the emitted module verbatim, and nothing checks it
+against the names that module already depends on. `type Value = | Num(number) |
+Error(string)` emits `export function Error(...)`, so the `new Error(...)` the
+compiler writes below it calls the variant; the build fails at the `match` with
+a `tsc` error, in the wrong place and with the wrong explanation. A variant named
+`Number` is fine until some type in the module gains an `int` field, because the
+`int` boundary check emits `Number.isInteger`. And `type Key = string | number`
+built clean, passed `tsc --strict`, and emitted `export const string` /
+`export const number` that shadowed the prelude, which is a silent wrong meaning
+on a green build. The app is `examples/apps/sheet/`, and all fourteen findings
+are written up in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under Round
+14; the eight worth a backlog entry are G63–G70. No release carries the Next
+marker after this one: six of the eight entries are open, and the two biggest
+need a decision before they need code.
+
+### 0.1.54 — Shipped · A declaration cannot quietly take a name the module needs
+
+`E0110` rejects a top-level `fn`, `type`, `const`, `component`, or tagged-union
+variant whose name is already bound in every emitted module: the JavaScript
+globals the emitted TypeScript refers to (`Object`, `Array`, `Promise`, `Number`,
+`Error`) and the prelude names in scope without an import (`number`, `par`,
+`print`, `assert`, and the primitive type names). The variant case is the one
+that shipped broken, because `emit_variant_constructor` writes the Glyph name
+straight into `export function`. The span is the declaration, so the diagnostic
+lands where the fix goes rather than where `tsc` noticed.
+
+The JS list is derived from the emitter, not from a list of JavaScript globals,
+and a test greps `glyph-emit` and fails when a new global reference appears
+without a matching entry. `Number` was harmless right up until `int` shipped,
+which is exactly how this got into a release. `Date` is deliberately absent:
+nothing Glyph emits mentions it, so rejecting `type Date` would make the
+diagnostic's claim false, and `examples/corpus/calendar.glyph` is the real
+program that would have broken. Std namespace names are absent for the same
+reason: they are only in scope in a module that imports them, and that collision
+is already `E0100`.
+
+`E0111` is the `string | number` half. It is a separate code because the
+rejection alone teaches nothing: `A | B` is D8 tagged-union syntax, so bare
+primitives on the right declare variant constructors, and the help says that,
+points at named variants, and names `extern_ts("string | number")` as the escape
+hatch.
+
+`docs/reference/reserved-words.md` tabulates all three lists in one place (the 32
+keywords, the 33 TypeScript reserved words behind `E0109`, and the new shadow
+list), which closes the "what can I not name a thing" question the trip also
+filed. A test keeps the page complete against the compiler.
+
+Pillar: verifiability. Two silent-green cases become loud, and Glyph owns the
+diagnostic instead of handing back a `tsc` error with the wrong span. Greppability
+second, through the reserved-word page.
+
+### Still open from this trip
+
+The release closes the detection half of the two shadow findings and none of the
+expressiveness. Six of the eight backlog entries are untouched.
+
+- **You still cannot name a type or variant `Error`, `Number`, `Object`,
+  `Array`, or `Promise`** (G63, decision then L). This is the finding that
+  started the trip and `E0110` does not close it. A spreadsheet cell is a
+  number, a label, nothing, or an error, and the app ships `Cellerr` because
+  `Error` is taken. Trading a silent miscompile for a clear rename request is
+  worth doing on its own, and it is not the same as being able to write the
+  program. Closing it means mangling Glyph names in the emitter, which changes
+  what a stack trace, a `grep` over `dist/`, and a hand-written `extern/` shim
+  see. That is an architecture decision and it has not been made.
+- **A union of primitive types is rejected but still not expressible** (G64,
+  decision then M). `type Key = string | number` now fails with `E0111` instead
+  of meaning something else, but Glyph still has no way to say it except
+  `extern_ts("string | number")`, which is opaque to Glyph's own checker. Adding
+  real untagged unions is a type-system decision, not a patch: it touches
+  exhaustiveness, descriptors, and `is`, and D8's tagged unions exist because
+  sealed variants are what makes a `match` verifiable.
+- **`==` is `deepEqual` in `@example` and `===` in the program** (G65, decision
+  then M). The worst of the fourteen and not this release's scope: `@example
+  make(1) == { x: 1 }` reports a passing example and clean `tsc`, and the
+  program prints NOT EQUAL. Nothing catches it. The emitter's own comment claims
+  value equality, so one of the two is wrong and picking which is a language
+  decision.
+- **An optional record field is declarable but cannot be read** (G66, M). Member
+  access propagates the field's declared type and ignores `optional`, so Glyph
+  reads `value?: string` as `string` while `tsc --strict` reads it
+  `string | undefined`, and no Glyph construct narrows one to the other. The app
+  made the field required and documented why.
+- **A `for` binding carries no element type** (G67, M), so a D30 string-literal
+  union read inside the loop degrades to `string`, the `match` over it stops
+  being exhaustive, and the `E0218` help asks for the `else` arm that forfeits
+  the guarantee the check exists to sell.
+- **`json.parse<T>` collapses every field issue to one `expected T`** (G68, M)
+  while `T.parse` on the same type reports paths, and `docs/guide/typed-apis.md`
+  teaches the lossy one without saying what it gives up.
+- **`glyph run` and `glyph check` never run `@example` blocks** (G69, S). Only
+  the `Build` arm calls `run_examples`, while `docs/guide/getting-started.md`
+  says run and build never disagree.
+- **`E0109` and `E0110` can report twice** (G70, S). `is_reserved_ts_word` runs
+  in both `collect.rs` and `resolve.rs`, so a reserved name is counted twice;
+  the new shadow check runs only in `collect`, but the collect pass itself is
+  reached more than once for a single-file build, so the rendered diagnostic
+  still appears twice. It inflates the error count without changing the verdict.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

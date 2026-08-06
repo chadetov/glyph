@@ -1,0 +1,15 @@
+module neg
+
+// `Error` names a JavaScript global the emitted module references, so this
+// variant constructor would emit `export function Error(...)` and capture every
+// `new Error(...)` the compiler writes below it.
+type Value =
+  | Num(number)
+  | Error(string)
+
+fn describe(v: Value) -> string {
+  return match v {
+    Num(n) => number.to_string(n),
+    Error(e) => e,
+  }
+}

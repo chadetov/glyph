@@ -1,0 +1,64 @@
+{
+  "name": "Q3 hardware sales",
+  "rows": 16,
+  "cols": 5,
+  "cells": [
+    { "ref": "A1", "value": "Region" },
+    { "ref": "B1", "value": "Units" },
+    { "ref": "C1", "value": "Price" },
+    { "ref": "D1", "value": "Revenue" },
+    { "ref": "E1", "value": "Per unit" },
+
+    { "ref": "A2", "value": "North" },
+    { "ref": "B2", "value": "120" },
+    { "ref": "C2", "value": "4.5" },
+    { "ref": "D2", "value": "=B2*C2" },
+    { "ref": "E2", "value": "=IF(B2, D2/B2, \"n/a\")" },
+
+    { "ref": "A3", "value": "South" },
+    { "ref": "B3", "value": "80" },
+    { "ref": "C3", "value": "4.5" },
+    { "ref": "D3", "value": "=B3*C3" },
+    { "ref": "E3", "value": "=IF(B3, D3/B3, \"n/a\")" },
+
+    { "ref": "A4", "value": "East" },
+    { "ref": "B4", "value": "210" },
+    { "ref": "C4", "value": "3.75" },
+    { "ref": "D4", "value": "=B4*C4" },
+    { "ref": "E4", "value": "=IF(B4, D4/B4, \"n/a\")" },
+
+    { "ref": "A5", "value": "West" },
+    { "ref": "B5", "value": "0" },
+    { "ref": "C5", "value": "6" },
+    { "ref": "D5", "value": "=B5*C5" },
+    { "ref": "E5", "value": "=IF(B5, D5/B5, \"n/a\")" },
+
+    { "ref": "A7", "value": "Total" },
+    { "ref": "B7", "value": "=SUM(B2:B5)" },
+    { "ref": "D7", "value": "=SUM(D2:D5)" },
+
+    { "ref": "A8", "value": "Average" },
+    { "ref": "D8", "value": "=AVG(D2:D5)" },
+
+    { "ref": "A9", "value": "Best" },
+    { "ref": "D9", "value": "=MAX(D2:D5)" },
+
+    { "ref": "A10", "value": "Worst" },
+    { "ref": "D10", "value": "=MIN(D2:D5)" },
+
+    { "ref": "A11", "value": "Regions" },
+    { "ref": "B11", "value": "=COUNT(B2:B5)" },
+
+    { "ref": "A12", "value": "Blended" },
+    { "ref": "D12", "value": "=D7/B7" },
+
+    { "ref": "A13", "value": "Headline" },
+    { "ref": "B13", "value": "=CONCAT(\"Q3 = \", D7, \" over \", B7, \" units\")" },
+
+    { "ref": "A15", "value": "West rate" },
+    { "ref": "D15", "value": "=D5/B5" },
+
+    { "ref": "A16", "value": "Downstream" },
+    { "ref": "D16", "value": "=D15+1" }
+  ]
+}

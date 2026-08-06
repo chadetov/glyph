@@ -6,6 +6,7 @@ Glyph is a TypeScript-family language designed so AI agents can read, write, and
 
 - `guide/` — **task-oriented documentation for people using Glyph:** a five-minute tour, install + first program, a "Glyph for TypeScript developers" delta sheet, and a 30-minute todo-CLI tutorial. Every snippet compiles. Start here if you want to *use* the language rather than read its design history.
 - `reference/stdlib.md` — the full standard-library surface: every module and its exact signatures (drift-guarded against the runtime).
+- `reference/reserved-words.md` — every name Glyph will not let you use: the 32 keywords, the 33 TypeScript reserved words (E0109), and the globals a top-level declaration would shadow (E0110), plus the `string | number` trap (E0111).
 - `../AGENTS.md` (repo root, mirrored to `llms.txt`) — the one-fetch bootstrap for an AI agent: zero to correct, runnable Glyph in a single file.
 - `manifesto.md` — the four pillars and the bet (post-brainstorm: includes one narrow carve-out for `owned` resource discipline)
 - `roadmap/releases.md` — **the live release roadmap and the single source of truth for current status.** The release carrying the **Next** marker is the committed target; everything shipped is marked done with its real scope, on the 0.1.x → 1.0 feature line (compiler shipped; now shipping to npm as `@glyphlang/glyph`). Read this first for "what's done, what's next."

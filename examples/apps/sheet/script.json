@@ -1,0 +1,36 @@
+{
+  "batches": [
+    {
+      "label": "the West number was a typo: 0 units should have been 45",
+      "commands": [
+        { "op": "set", "ref": "B5", "value": "45" }
+      ]
+    },
+    {
+      "label": "someone pastes a formula pointing off the end of the sheet",
+      "commands": [
+        { "op": "set", "ref": "E7", "value": "=A99*2" },
+        { "op": "set", "ref": "E8", "value": "=E7+1" }
+      ]
+    },
+    {
+      "label": "a formula that does not parse stays in the cell as #SYNTAX!",
+      "commands": [
+        { "op": "set", "ref": "E10", "value": "=SUM(B2:B5" }
+      ]
+    },
+    {
+      "label": "and then wires two cells to each other",
+      "commands": [
+        { "op": "set", "ref": "C15", "value": "=C16+1" },
+        { "op": "set", "ref": "C16", "value": "=C15*2" }
+      ]
+    },
+    {
+      "label": "clearing one of them breaks the cycle",
+      "commands": [
+        { "op": "clear", "ref": "C16", "value": "" }
+      ]
+    }
+  ]
+}

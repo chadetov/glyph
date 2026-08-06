@@ -160,15 +160,85 @@ within async functions and at the top levels of modules.</span></pre>
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">The worse case: when tsc is happy too</p>
+        <p>
+          A <code>tsc</code> error in the wrong place is annoying. A clean build on a
+          program that means something else is the real problem, and Glyph had one. Every
+          top-level name you declare goes into the emitted module verbatim, including a
+          tagged union's variant constructors, so a variant named <code>Error</code> emits
+          <code>export function Error(...)</code> at module top level. The
+          <code>new Error(...)</code> the compiler writes below it then calls your variant.
+        </p>
+        <p>
+          <code>type Key = string | number</code> is the same defect with a friendlier
+          face. In Glyph <code>A | B</code> declares a tagged union whose members are
+          variant <em>constructors</em>, so that line declares variants called
+          <code>string</code> and <code>number</code>. It compiled, passed
+          <code>tsc --strict</code>, and emitted an <code>export const number</code> that
+          shadowed the prelude <code>number</code> namespace. Nothing failed until a later
+          <code>number.to_string</code> call did.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, on a union with an `Error` variant</span>
+<pre><span class="del">[E0110] `Error` cannot name a type, variant, or function: the emitted module
+        references the JavaScript global `Error`, and this declaration would
+        shadow it</span>
+ 5 │   | Error(string)
+   │     ──────┬─────
+   ╰─ Rename it (e.g. `Error` -&gt; `Failure`). The name is legal TypeScript, so
+      nothing downstream catches the rebinding.
+
+<span class="cm">// before: no Glyph diagnostic, then, twenty lines later</span>
+<span class="dim">dist/main.ts:31:12 - error TS2345: Argument of type 'string' is not
+assignable to parameter of type ...</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The span is the declaration, which is where the rename goes. The guarded list is
+          derived from the emitter rather than from a general list of JavaScript globals,
+          and a test greps the emitter and fails when a new global reference appears
+          without a matching entry. That test is the point:
+          <code>Number</code> was harmless until <code>int</code> shipped and started
+          emitting <code>Number.isInteger</code>, which is how this reached a release in
+          the first place. <code>Date</code>, <code>Math</code>, and <code>JSON</code> stay
+          free, because nothing Glyph emits mentions them.
+        </p>
+        <p>
+          The primitive-union case gets its own code, <code>E0111</code>, because rejecting
+          it without explaining it teaches nothing. It says what the line actually parsed
+          as, points at named variants, and names
+          <code>extern_ts("string | number")</code> for the boundary where you want the raw
+          TypeScript union. Every name Glyph will not let you use is tabulated in
+          <code>docs/reference/reserved-words.md</code>: the 32 keywords, the 33 TypeScript
+          reserved words behind <code>E0109</code>, and the shadow list, each with the
+          reason the name is taken.
+        </p>
+        <p>
+          Worth being clear about what this does not do. You still cannot name a type or a
+          variant <code>Error</code>, and the spreadsheet that turned this up ships a
+          variant called <code>Cellerr</code> because of it. The program it wanted to be is
+          still not writable; what changed is that the compiler now says so at the
+          declaration instead of letting the build go green and mean something else.
+          Making the name usable means mangling Glyph names on the way into TypeScript,
+          which changes what a stack trace, a <code>grep</code> over <code>dist/</code>, and
+          a hand-written <code>extern/</code> shim see, so it is not a patch we can make
+          quietly.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, and <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, and <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Three edges. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked.</p>
+          <p>Five edges. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled.</p>
         </div>
       </div>
 

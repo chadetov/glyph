@@ -47,6 +47,8 @@ below.
 | `E0107` | Unused variable binding (warning) |
 | `E0108` | Unreachable code after `return`/`break`/`continue` (warning) |
 | `E0109` | A TypeScript reserved word (`class`, `new`, `switch`, `eval`, ...) used as a declaration, parameter, or binding name |
+| `E0110` | A top-level declaration whose name shadows a global the emitted module depends on (`Error`, `Number`, `Object`, `Array`, `Promise`, or a prelude name such as `number`, `par`, `print`, `string`) |
+| `E0111` | `type Key = string \| number`: bare primitive names on the right of `\|` declare tagged-union variants, not a union of those types |
 
 `E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
 build output but never fail the build or block emission. `E0107` exempts names
@@ -57,6 +59,15 @@ Glyph keywords), but they cannot name a binding in the emitted TypeScript, so
 Glyph rejects them at the source instead of letting `tsc` fail on generated
 code. Only binding positions are checked; object keys, record fields, and
 member access (`{ default: v }`, `x.new`) are unaffected.
+
+`E0110` is the other half of the same problem, and the harder half: these names
+are legal TypeScript, so `tsc` accepts the emitted module and the mistake is
+silent. A variant named `Error` emits `export function Error(...)` at module
+top level, and every `new Error(...)` the compiler emits below it resolves to
+the variant instead. The list is in
+`crates/glyph-resolver/src/reserved.rs`; the full set is tabulated in
+[reserved words](reference/reserved-words.md). `E0111` is the case that reads
+most like a TypeScript program and is not one: see the same page.
 
 ### Typechecker — `E02xx`
 

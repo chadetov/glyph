@@ -1,13 +1,15 @@
 //! Glyph CLI — stub for Phase 0.
 //!
 //! Commands (per `docs/implementation-plan.md §Phase 1 week 5`):
-//! - `glyph build src/ --out dist/ [--no-check] [--no-test]`  walk module graph,
+//! - `glyph build src/ --out dist/ [--no-tsc] [--no-test]`  walk module graph,
 //!   typecheck, emit TS, write the bundled runtime + a generated `tsconfig.json`
 //!   (and copy `<src>/.types/` ambient declarations); type-checks the output
-//!   with `tsc` by default (`--no-check` skips it) and runs every `@example` /
+//!   with `tsc` by default (`--no-tsc` skips it) and runs every `@example` /
 //!   `@doc @run` test (D23/D26) by default (`--no-test` skips them)
+//! - `glyph check [path]`            type-check a file or tree without running
+//!   it or writing output (`--no-tsc` for the Glyph stages alone)
 //! - `glyph run path.glyph [args]`   type-check then build and run via node
-//!   (`--no-check` to run without the tsc gate)
+//!   (`--no-tsc` to run without the tsc gate)
 //! - `glyph fmt [path]`              format-in-place (also called by LSP format-on-save)
 //! - `glyph regen [path]`            re-run the `gen` commands recorded in generated files (Q40)
 //! - `glyph gen openapi <spec> --out <dir>`  generate committed Glyph types from an
@@ -19,6 +21,10 @@
 //!   module of zod schemas (needs tsx + zod)
 //! - `glyph publish`                 build, run tests, check audit-currency (Q22), emit npm package
 //! - `glyph --explain E0042`         long-form error documentation
+//!
+//! One stage, one flag name: `--no-tsc` skips the TypeScript stage on `build`,
+//! `check`, and `run`. `--no-check` is the old spelling of it on `build` and
+//! `run`, still accepted and hidden from `--help`.
 //!
 //! Phase 0 ships only the CLI structure; commands return "not yet implemented."
 
@@ -48,6 +54,9 @@ enum Command {
         /// Skip type-checking the emitted output with `tsc`. By default `glyph
         /// build` type-checks (tsc must be on PATH); pass this to emit without it.
         #[arg(long)]
+        no_tsc: bool,
+        /// Deprecated spelling of `--no-tsc`. Accepted for compatibility.
+        #[arg(long, hide = true)]
         no_check: bool,
         /// Deprecated: type-checking is now the default. Accepted for compatibility.
         #[arg(long, hide = true)]
@@ -63,6 +72,30 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Type-check a Glyph file or tree without running it or writing output.
+    ///
+    /// PATH may be a single `.glyph` file or a directory (default: the current
+    /// directory). A file is checked in the context of its own directory, so
+    /// sibling modules resolve and their diagnostics are reported too, exactly
+    /// as `glyph build` and `glyph run` report them on that tree.
+    ///
+    /// Unlike `glyph build`, nothing is written to your tree; unlike `glyph
+    /// run`, nothing is executed, which also means the `@example` and
+    /// `@doc @run` checks do not run here.
+    Check {
+        /// A `.glyph` file or a directory to check (default: the current directory).
+        #[arg(value_name = "PATH")]
+        path: Option<std::path::PathBuf>,
+        /// Stop after the Glyph stages (parse, resolve, typecheck) instead of
+        /// also type-checking the emitted TypeScript with `tsc --strict`.
+        /// Faster, and it needs no toolchain, but it checks less.
+        #[arg(long)]
+        no_tsc: bool,
+        /// Emit diagnostics as a JSON object on stdout (for tools and agents)
+        /// instead of human-readable text. Includes remapped `tsc` errors.
+        #[arg(long)]
+        json: bool,
+    },
     /// Build then run a Glyph program via node.
     Run {
         #[arg(value_name = "FILE")]
@@ -70,8 +103,15 @@ enum Command {
         /// Skip type-checking with `tsc` before running. By default `glyph run`
         /// type-checks first so type errors surface as diagnostics, not crashes.
         #[arg(long)]
+        no_tsc: bool,
+        /// Deprecated spelling of `--no-tsc`. Accepted for compatibility.
+        #[arg(long, hide = true)]
         no_check: bool,
-        #[arg(trailing_var_arg = true)]
+        /// Arguments passed through to the program's `main(argv)`. Hyphenated
+        /// values reach the program intact (`--amount -12.50`); a flag glyph
+        /// itself knows (`--no-tsc`) still binds to glyph wherever it
+        /// appears, so pass `--` before an argument list that collides.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
     /// Format a Glyph file or tree in place.
@@ -216,10 +256,11 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out, no_check, check: _, no_test, test: _, json }) => {
+        Some(Command::Build { src, out, no_tsc, no_check, check: _, no_test, test: _, json }) => {
             // Type-checking is the default (verifiability is the lead pillar);
-            // `--no-check` opts out. The old `--check` flag is now redundant.
-            let do_check = !no_check;
+            // `--no-tsc` opts out, and `--no-check` is its old spelling. The old
+            // `--check` flag is now redundant.
+            let do_check = !(no_tsc || no_check);
             // ariadne's `auto-color` feature isn't enabled in our
             // workspace, so it never auto-detects non-TTY at runtime.
             // We detect explicitly: if stderr (where diagnostics go) is
@@ -259,20 +300,12 @@ fn main() {
                     std::process::exit(1);
                 }
                 let warnings = report.warning_count();
-                eprintln!(
-                    "glyph build: {} module(s) checked, {}; \
-                     {} TypeScript file(s) emitted.",
-                    report.modules.len(),
-                    if warnings == 0 {
-                        "no diagnostics".to_string()
-                    } else {
-                        format!("{warnings} warning(s)")
-                    },
-                    report.emitted.len()
-                );
-                // Held back until the example gate below has had its say: a
-                // build that could not run its own `@example`s must not sign
-                // off with a green line.
+                // Every green line is held back until the gates below have had
+                // their say. The Glyph-stage summary used to print here, above
+                // the `tsc` stage, so a build that failed type-checking opened
+                // with "no diagnostics" and then printed its own errors. One
+                // rule now: nothing signs off until everything that can fail
+                // has run.
                 let mut tsc_passed = false;
                 if do_check {
                     use glyph_cli::runtime::TscOutcome;
@@ -297,7 +330,7 @@ fn main() {
                             eprintln!(
                                 "glyph build: tsc not found on PATH, so the type check can't run. \
                                  Install TypeScript (`npm install -g typescript`), or pass \
-                                 `--no-check` to emit without it."
+                                 `--no-tsc` to emit without it."
                             );
                             std::process::exit(2);
                         }
@@ -353,6 +386,17 @@ fn main() {
                         eprintln!("glyph build: {n} example(s) skipped (--no-test)");
                     }
                 }
+                eprintln!(
+                    "glyph build: {} module(s) checked, {}; \
+                     {} TypeScript file(s) emitted.",
+                    report.modules.len(),
+                    if warnings == 0 {
+                        "no diagnostics".to_string()
+                    } else {
+                        format!("{warnings} warning(s)")
+                    },
+                    report.emitted.len()
+                );
                 if tsc_passed {
                     eprintln!("glyph build: tsc --strict passed.");
                 }
@@ -360,14 +404,84 @@ fn main() {
             }
             Err(e) => {
                 eprintln!("glyph build: {e}");
+                // `glyph build one.glyph` is the first thing everyone types, and
+                // it cannot work: `build` takes a tree and writes output. The
+                // command that answers "does this file compile?" now exists, so
+                // the dead end points at it instead of stopping here.
+                if let glyph_cli::build::BuildError::SrcNotDir(p) = &e {
+                    if p.extension().and_then(|x| x.to_str()) == Some("glyph") {
+                        eprintln!(
+                            "  to type-check a single file without running it, use \
+                             `glyph check {}`",
+                            p.display()
+                        );
+                    }
+                }
                 std::process::exit(2);
             }
             }
         }
-        Some(Command::Run { file, no_check, args }) => {
+        Some(Command::Check { path, no_tsc, json }) => {
+            use std::io::IsTerminal;
+            let with_color = !json && std::io::stderr().is_terminal();
+            let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::check::check_path(&target, with_color, !no_tsc) {
+                Ok(report) => {
+                    if json {
+                        emit_check_json(&report);
+                    }
+                    for diag in &report.diagnostics {
+                        eprintln!("{diag}");
+                    }
+                    if let glyph_cli::runtime::TscOutcome::Failed(msg) = &report.tsc {
+                        eprint!("{msg}");
+                    }
+                    if report.has_errors() {
+                        eprintln!(
+                            "glyph check: {} error(s) across {} module(s)",
+                            report.error_count,
+                            report.modules.len()
+                        );
+                        std::process::exit(1);
+                    }
+                    if matches!(report.tsc, glyph_cli::runtime::TscOutcome::NotFound) {
+                        // Same stance as `build`: a check that could not run its
+                        // TypeScript stage must not report a clean tree.
+                        eprintln!(
+                            "glyph check: tsc not found on PATH, so the type check can't run. \
+                             Install TypeScript (`npm install -g typescript`), or pass \
+                             `--no-tsc` to check the Glyph stages only."
+                        );
+                        std::process::exit(2);
+                    }
+                    // Green lines come last here for the same reason they do in
+                    // `build`: nothing signs off until every stage has run.
+                    let warnings = report.warning_count();
+                    eprintln!(
+                        "glyph check: {} module(s) checked, {}.",
+                        report.modules.len(),
+                        if warnings == 0 {
+                            "no diagnostics".to_string()
+                        } else {
+                            format!("{warnings} warning(s)")
+                        },
+                    );
+                    if report.tsc_ran {
+                        eprintln!("glyph check: tsc --strict passed.");
+                    }
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("glyph check: {e}");
+                    std::process::exit(2);
+                }
+            }
+        }
+        Some(Command::Run { file, no_tsc, no_check, args }) => {
             use std::io::IsTerminal;
             let with_color = std::io::stderr().is_terminal();
-            match glyph_cli::run::run_file(&file, &args, with_color, !no_check) {
+            let do_check = !(no_tsc || no_check);
+            match glyph_cli::run::run_file(&file, &args, with_color, do_check) {
                 Ok(result) => {
                     // Every diagnostic the build computed is printed, whatever
                     // the outcome. `glyph run` used to read only `emitted` from
@@ -396,14 +510,14 @@ fn main() {
                         }
                         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
                             eprint!("{msg}");
-                            eprintln!("glyph run: tsc reported type errors; not running. Pass --no-check to run anyway.");
+                            eprintln!("glyph run: tsc reported type errors; not running. Pass --no-tsc to run anyway.");
                             std::process::exit(1);
                         }
                         glyph_cli::run::RunOutcome::TscMissing => {
                             eprintln!(
                                 "glyph run: tsc not found on PATH, so the type check can't run. \
                                  Install TypeScript (`npm install -g typescript`), or pass \
-                                 `--no-check` to run without it. (`glyph doctor` checks your toolchain.)"
+                                 `--no-tsc` to run without it. (`glyph doctor` checks your toolchain.)"
                             );
                             std::process::exit(2);
                         }
@@ -747,6 +861,36 @@ fn main() {
     }
 }
 
+/// Print a check's diagnostics as a JSON object on stdout and exit.
+///
+/// Deliberately the same key names `glyph build --json` uses (`ok`, `errors`,
+/// `warnings`, `tsc`, `diagnostics`), minus `emitted` and `examples`, which a
+/// check does not produce. One shape, so a tool that reads one reads the other.
+/// Diverges: control never returns to the text path.
+fn emit_check_json(report: &glyph_cli::check::CheckReport) -> ! {
+    let errors = report.error_count;
+    let ok = errors == 0 && !matches!(report.tsc, glyph_cli::runtime::TscOutcome::NotFound);
+    let value = serde_json::json!({
+        "ok": ok,
+        "errors": errors,
+        "warnings": report.warning_count(),
+        "tsc": report.tsc_status(),
+        "diagnostics": report.structured,
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())
+    );
+    // Mirrors the text path: errors exit 1, a stage that could not run exits 2.
+    std::process::exit(if errors > 0 {
+        1
+    } else if ok {
+        0
+    } else {
+        2
+    });
+}
+
 /// What the `@example` / `@doc @run` gate (D23/D26) did on this build, as seen
 /// by the JSON emitter.
 enum ExamplesOutcome {
@@ -788,7 +932,12 @@ fn emit_build_json(
     let (examples_json, example_errors) = examples_to_json(examples);
     let errors = diags.iter().filter(|d| d.severity == "error").count() + example_errors;
     let warnings = diags.iter().filter(|d| d.severity == "warning").count();
-    let ok = errors == 0;
+    // A TypeScript stage that was requested and could not run is not a pass.
+    // The text path already exits 2 there; the JSON path used to report
+    // `ok: true` and exit 0, so a machine without `tsc` read green. Same rule
+    // as `emit_check_json`, so the two shapes really are one shape.
+    let tsc_unavailable = tsc_status == "not-found" || tsc_status == "error";
+    let ok = errors == 0 && !tsc_unavailable;
     let value = serde_json::json!({
         "ok": ok,
         "errors": errors,
@@ -804,11 +953,12 @@ fn emit_build_json(
     );
     // A gate that could not run at all exits 2, the same code the human path
     // uses for a missing `tsx`; a gate that ran and failed exits 1.
-    let gate_unavailable = match examples {
-        ExamplesOutcome::Ran(ex) => !ex.ran && ex.total > 0,
-        ExamplesOutcome::Failed(_) => true,
-        ExamplesOutcome::Skipped => false,
-    };
+    let gate_unavailable = tsc_unavailable
+        || match examples {
+            ExamplesOutcome::Ran(ex) => !ex.ran && ex.total > 0,
+            ExamplesOutcome::Failed(_) => true,
+            ExamplesOutcome::Skipped => false,
+        };
     std::process::exit(match (ok, gate_unavailable) {
         (true, _) => 0,
         (false, true) => 2,

@@ -130,6 +130,29 @@
           the map through its transform. Remapping that stack is next.
         </p>
         <p>
+          <strong>Asking &ldquo;does this compile?&rdquo; without running it:</strong>
+          <code>glyph check path.glyph</code> type-checks one file, or a whole directory, and
+          exits. It writes nothing into your tree and it never starts your program, which
+          <code>glyph run</code> could not promise and <code>glyph build</code> would not do at all
+          (it refused anything that wasn't a directory). It runs the same pipeline a build runs,
+          including <code>tsc --strict</code> over the emitted TypeScript, into a temp directory it
+          deletes on the way out. <code>--no-tsc</code> stops after the Glyph stages when you want the
+          fast answer; <code>--json</code> gives an agent the same diagnostic shape
+          <code>glyph build --json</code> does. A file is checked in the context of its own
+          directory, so a broken sibling still fails the check, and your <code>@example</code> tests
+          don't run here, because running them would run your code.
+        </p>
+        <p>
+          <strong>The transcript doesn't lie to you either.</strong> A failing build used to open
+          with &ldquo;no diagnostics&rdquo; and then print <code>tsc</code> errors underneath it,
+          because the Glyph-stage summary was written before the TypeScript stage ran. The summary
+          now prints after every stage that can turn the build red, so a red build never shows a
+          green line. In the same pass, <code>glyph run app.glyph --min -12.50</code> started
+          working: a leading hyphen used to make clap reject the argument before your
+          <code>main</code> ever saw it. Flags glyph owns still bind to glyph, so put
+          <code>--</code> in front of a program flag that collides with one of them.
+        </p>
+        <p>
           <strong>And for the agent in the loop:</strong> <code>glyph build --json</code> emits every
           diagnostic as structured JSON: a stable code, severity, message, file, and 1-based
           line/column range, plus the help and note, including <code>tsc</code> errors mapped
@@ -163,7 +186,7 @@
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save; an <code>glyph mcp</code> Model Context Protocol server exposing those queries to agents as tools; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics. <code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.</p>
+          <p>A language server (<code>glyph lsp</code> over stdio, any editor; VS Code extension bundled) with highlighting, diagnostics, hover, go-to-def, completion, symbols, workspace-wide find-references and rename, and format-on-save; an <code>glyph mcp</code> Model Context Protocol server exposing those queries to agents as tools; stable error codes, <code>glyph --explain</code>, <code>tsc</code> back-end errors mapped onto <code>.glyph</code> source, a warning tier (unused import/binding, unreachable code), and <code>--json</code> structured diagnostics. <code>glyph check [path]</code> type-checks a single file or a tree without running it or writing output. <code>glyph fmt --check</code> gates formatting in CI: it writes nothing and exits non-zero when a file is not already in the one canonical layout.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

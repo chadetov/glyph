@@ -14,7 +14,7 @@ fail=0
 for g in *.glyph; do
   tmp="$(mktemp -d)"
   cp "$g" "$tmp/"
-  if "$GLYPH" build "$tmp" --out "$tmp/out" --no-check >/dev/null 2>&1; then
+  if "$GLYPH" build "$tmp" --out "$tmp/out" --no-tsc >/dev/null 2>&1; then
     echo "FAIL: $g compiled, but it should be rejected"
     fail=1
   else

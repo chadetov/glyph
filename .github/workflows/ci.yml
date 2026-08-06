@@ -60,5 +60,5 @@ jobs:
       - name: Type-check the examples with tsc --strict
         working-directory: glyph-compiler
         # `glyph build` type-checks with tsc and runs every `@example` / `@doc
-        # @run` by default; --no-check and --no-test would skip them.
+        # @run` by default; --no-tsc and --no-test would skip them.
         run: cargo run -q -- build ../examples --out "$RUNNER_TEMP/dist"

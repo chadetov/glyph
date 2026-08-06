@@ -4,10 +4,14 @@ Every module in the Glyph v1 standard library, with exact signatures. Signatures
 are written in Glyph terms.
 
 **How to call it.** Functions are namespaced: `import std/array` then
-`array.map(xs, f)`. Types and constructors come in through named imports:
+`array.map(xs, f)`. A function can also be named-imported and then called bare:
+`import std/io { println }` gives you `println("hi")`. Types and constructors
+come in through named imports:
 `import std/result { Result, Ok, Err }`, then `Ok(value)` and `Err(e)` are used
-bare. A type's static factory (e.g. `Duration.ms`) is reached through its named
-import (`import std/time { Duration }`).
+bare. A type and its static factory come in either way: `import std/time` gives
+you `time.Duration` and `time.Duration.ms(5)`, `import std/time { Duration }`
+gives you the bare `Duration` and `Duration.ms(5)`. Write both lines when you
+want both spellings.
 
 > This page is kept in step with the runtime by a drift-guard test
 > (`glyph-cli/tests/stdlib_docs.rs`): every exported name in
@@ -208,8 +212,22 @@ record.remove<V>(r, key: string) -> Record<string, V>
 
 ## std/time
 
+Two import lines, and they buy different names:
+
 ```
-type Duration                                   // Duration.ms(n) constructs one
+import std/time                                 // the `time` namespace: time.now(), time.sleep(d),
+                                                // and time.Duration as both a type and a factory
+import std/time { Duration }                    // the bare name `Duration`, as a type and a factory
+```
+
+They are independent. `import std/time` alone gives you `time.Duration.ms(5)`
+and `x: time.Duration`; `import std/time { Duration }` alone gives you
+`Duration.ms(5)` and `x: Duration`, but not `time.sleep`. Code that wants both
+spellings writes both lines, which is why `examples/apps/linkcheck.glyph` has
+them on consecutive lines.
+
+```
+type Duration                                   // Duration.ms(n) or time.Duration.ms(n)
 time.now() -> number                            // epoch milliseconds
 time.sleep(duration: Duration) -> void          // async; await it
 time.debounce<A>(delay: Duration, f: fn(A) -> void) -> fn(A) -> void
@@ -374,8 +392,17 @@ Numeric helpers over JavaScript's `Math`.
 
 ```
 math.PI, math.E                                  // constants
-math.abs / floor / ceil / round / trunc / sqrt / sign (x: number) -> number
-math.min / max / pow / imul (a: number, b: number) -> number   // imul: 32-bit integer multiply
+math.abs(x: number) -> number
+math.floor(x: number) -> number
+math.ceil(x: number) -> number
+math.round(x: number) -> number
+math.trunc(x: number) -> number
+math.sqrt(x: number) -> number
+math.sign(x: number) -> number                   // -1, 0, or 1
+math.min(a: number, b: number) -> number
+math.max(a: number, b: number) -> number
+math.pow(base: number, exponent: number) -> number
+math.imul(a: number, b: number) -> number        // 32-bit integer multiply
 math.clamp(x: number, lo: number, hi: number) -> number
 ```
 
@@ -398,9 +425,12 @@ rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
 base64, base64url, and hex text encodings.
 
 ```
-base64_encode / base64_decode (s: string) -> string
-base64url_encode / base64url_decode (s: string) -> string   // URL-safe, no padding
-hex_encode / hex_decode (s: string) -> string
+encoding.base64_encode(s: string) -> string
+encoding.base64_decode(s: string) -> string
+encoding.base64url_encode(s: string) -> string    // URL-safe alphabet, no padding
+encoding.base64url_decode(s: string) -> string
+encoding.hex_encode(s: string) -> string
+encoding.hex_decode(s: string) -> string
 ```
 
 ## std/log
@@ -410,7 +440,10 @@ Structured (JSON-line) logging. Each call emits one JSON object with `level`,
 
 ```
 type Level                                        // "debug" | "info" | "warn" | "error"
-log.debug / info / warn / error (message: string) -> void
+log.debug(message: string) -> void
+log.info(message: string) -> void
+log.warn(message: string) -> void
+log.error(message: string) -> void
 log.with_fields(level: Level, message: string, fields: Record<string, unknown>) -> void
 ```
 
@@ -422,11 +455,14 @@ queue; ends that may be empty return `Option<T>`.
 ```
 type Deque<T>
 deque<T>(initial?: Array<T>) -> Deque<T>
-dq.push_back / push_front (value: T) -> void      // method
-dq.pop_back / pop_front () -> Option<T>            // method
-dq.peek_front / peek_back () -> Option<T>          // method
-dq.len() -> number                                 // method
-dq.values() -> Array<T>                            // method
+dq.push_back(value: T) -> void                    // method
+dq.push_front(value: T) -> void                   // method
+dq.pop_back() -> Option<T>                        // method
+dq.pop_front() -> Option<T>                       // method
+dq.peek_front() -> Option<T>                      // method
+dq.peek_back() -> Option<T>                       // method
+dq.len() -> number                                // method
+dq.values() -> Array<T>                           // method
 ```
 
 ## std/sqlite

@@ -22,11 +22,20 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the formatter batch (G60, G54, G29): of 60
-entries, 38 are fixed, 9 are partly fixed, 4 are decided or resolved, and 9 are
-open. The batch before it, which added E0008, E0222, and E0223, closed G35 and
-G44 outright and took G24 and G48 to `[HALF FIXED]`: the `?` scrutinee and the
-empty-record spelling are each still open, and `linkcheck` still carries the
+Reconciled against the source after the CLI and docs batch (G28, G42, G36, G55)
+and the adversarial review of it, which added G61 and G62: of 62 entries, 42 are
+fixed, 9 are partly fixed, 4 are decided or resolved, and 7 are open. That batch
+shipped `glyph check`, moved the build's green summary below the stage that can
+turn it red, let hyphenated arguments reach a program through
+`glyph run`, and closed G55 as the docs round it asked for. G62 is the sharp edge
+left on G55: the multi-line string form that round now documents is one
+`glyph fmt` rewrites back into `\n` escapes whenever the string interpolates, so
+the docs are ahead of the formatter until that path is fixed. The reconciliation
+before it, after the formatter batch (G60, G54, G29), read 60 entries, 38 fixed,
+9 partly fixed, 4 decided or resolved, 9 open. The batch before it, which added
+E0008, E0222, and E0223, closed G35 and G44 outright and took G24 and G48 to
+`[HALF FIXED]`: the `?` scrutinee and the empty-record spelling are each still
+open, and `linkcheck` still carries the
 `no_cache()` workaround G48 is about. It also turned up G60, a formatter
 round-trip that breaks a working program, which the formatter batch then closed
 along with G54 and G29.
@@ -609,8 +618,20 @@ on a decision in `docs/roadmap/releases.md`.
   defect. *The path half is fixed: a `tsc` error now remaps onto a relative Glyph
   module path. Member access is still unchecked against the resolver seed, so the
   typo still surfaces as a TS2339 rather than an E-code.*
-- **G28. There is no `glyph check <file>`.** `build` rejects a non-directory
+- **G28. [FIXED] There is no `glyph check <file>`.** `build` rejects a non-directory
   source, so the only door into type checking a single file is running it.
+  *`glyph check [path]` ships. It takes a `.glyph` file or a directory, reuses
+  `build`'s pipeline into a temp dir it deletes on the way out, runs `tsc
+  --strict` over the emitted TypeScript by default (`--no-tsc` stops after the
+  Glyph stages), and exits 0/1/2 the way `build` does. `--json` emits the same
+  keys `build --json` uses, minus `emitted` and `examples`. Nothing is written to
+  your tree and nothing is executed: the regression test asserts an empty stdout
+  and an absent sentinel file for a program whose `main` would have written one.
+  Two consequences are documented rather than hidden. A file is checked in the
+  context of its directory, so a sibling's error is reported and fails the check,
+  exactly as `build` and `run` see that tree. And the `@example` / `@doc @run`
+  gate does not run here, because running it would run your code, so a green
+  `check` promises the types and not the colocated tests.*
 - **G29. [FIXED] Two formatter layout complaints, deliberately not bundled with
   G23.** A one-statement `match` arm body is always exploded to three lines,
   because the parser wraps it in a synthetic block and every block prints
@@ -697,8 +718,18 @@ workaround for the first and is still open.
   before/after. It fires in a block and in a `match` arm, where the old message
   was "expected `,` after match arm". Like E0006 it aborts the parse, so a file
   with several bare assignments reports them one build at a time.*
-- **G36. The clap binding has no `allow_hyphen_values`.** A negative amount as a
-  CLI argument (`--amount -12.50`) cannot be expressed.
+- **G36. [FIXED] The clap binding has no `allow_hyphen_values`.** A negative amount as a
+  CLI argument (`--amount -12.50`) cannot be expressed. *The surface is `glyph
+  run`'s trailing argv passthrough, and only that: a built program run under node
+  was never affected, and no other subcommand takes program arguments, so the
+  original sentence is true of the dev loop rather than of Glyph programs. Before
+  the fix clap rejected `--amount` as an unknown argument and read a bare
+  `-12.50` as a short-flag cluster; `#[arg(trailing_var_arg = true,
+  allow_hyphen_values = true)]` lets both through untouched. clap starts the
+  trailing var-arg on unknown flags only, so a flag glyph itself knows still
+  binds to glyph wherever it appears (`glyph run x.glyph --no-check` is
+  unchanged, and pinned by a test); `--` remains the answer for a program flag
+  that collides with one of glyph's.*
 - **G37. A two-binding `for` over a call's result binds a *string* index, and
   nothing catches it.** With G32 documented, the app could drop its hand-rolled
   line counter, and the natural spelling was wrong:
@@ -814,10 +845,19 @@ the same hole on a second axis, and the two are one defect.
   confirmed; the cookbook recipes that thread `T.parse(x)` into a function
   returning `Result<T, E>` do not compile. Separate from G40 and tracked in
   `docs/roadmap/releases.md`.
-- **G42. `glyph build` prints "no diagnostics" above its own `tsc` errors.** The
+- **G42. [FIXED] `glyph build` prints "no diagnostics" above its own `tsc` errors.** The
   Glyph-stage summary is printed before the TypeScript stage runs, so a red build
   is introduced by a green line. The same "silent green" family as G38, one stage
-  later. Tracked in `docs/roadmap/releases.md`.
+  later. *The summary now prints after the `tsc` gate and the example gate, next
+  to the `tsc --strict passed.` line that was already held back for the same
+  reason: one rule, nothing signs off until every stage has run. A red build
+  never prints it at all. Wording is unchanged, so a green build's transcript
+  still reads summary then `tsc --strict passed.`, and both orders are pinned by
+  tests. The `--json` path was never affected (`emit_build_json` runs `tsc`
+  itself and folds the result into one object before printing). One thing the
+  reorder does not settle: under `--no-check` the line still says "no
+  diagnostics" on a build where no TypeScript stage ran. It is honestly about the
+  Glyph stage, and rewording it is a separate call.*
 
 ## Round 10 — a Markdown link checker, and the emitter as the source of truth
 
@@ -1075,12 +1115,27 @@ of truth. On the async path it was a preprocessor with opinions.
   Formatting the rest of the tree (`examples/corpus` and the numbered examples)
   is a separate reformat that has not landed; those files were not `fmt`-clean
   before this batch either, for unrelated reasons such as redundant parentheses.
-- **G55. Three findings that were not gaps, and what they have in common.**
+- **G55. [FIXED] Three findings that were not gaps, and what they have in common.**
   Multi-line strings work (D12, with a regression test), `math.max` exists, and
   the two-import rule for `std/time` is documented behaviour. In all three cases
   the author reimplemented or routed around something that already shipped. Two
   of the three are discoverability failures, not surface failures, which is a
   docs round of its own: a shipped feature nobody can find is not a feature.
+  *Closed as docs, each at the address where the reader was actually looking.
+  Multi-line strings were described only in the D12 decision line; AGENTS.md's
+  "Template strings" section now says a raw newline inside `"..."` is kept
+  verbatim and means the same as `\n`, with a runnable example, and the
+  TypeScript-developer table row for backtick templates finishes with "newlines
+  included". `math.max` was reachable only through a slash-grouped line
+  (`math.min / max / pow / imul (...)`), so grepping the reference page for it
+  found nothing; every grouped line on the page is now one call per line
+  (`std/math`, `std/encoding`, `std/log`, the `Deque` methods), and `pow`'s
+  parameters are named `(base, exponent)` to match the runtime. The two-import
+  rule was stated once in the page preamble and nowhere in `## std/time`, and the
+  preamble was wrong besides: it claimed a static factory is reached "through its
+  named import", when `import std/time` alone gives you `time.Duration.ms(5)` and
+  `x: time.Duration`. Both spellings were verified against the compiler; both
+  files now show the two import lines and say which name each buys.*
 
 ## Round 11 — a URL shortener, and a green build running yesterday's code
 
@@ -1259,3 +1314,58 @@ are fixed in the same session. The fourth is a defect in its own right.
   would also either preserve redundant parens, so two spellings of one program
   survive `fmt`, or print the node only when needed, in which case it buys
   nothing over the predicate. That option stays open.*
+
+## An adversarial review of the CLI and docs batch
+
+The batch that shipped `glyph check` (G28), moved the build's green summary below
+the stages that can turn it red (G42), let hyphenated arguments through
+`glyph run` (G36), and closed G55 as a docs round was reviewed from outside. Two
+findings were about the batch's own reach and are fixed in the same session:
+`glyph build one.glyph` still ended at "source path is not a directory" without
+naming the command that answers it (it now names `glyph check <file>`), and
+`build --json` reported `ok: true` and exit 0 on a machine with no `tsc` while
+`check --json` reported `ok: false` and exit 2 (`build` now matches `check`, and
+both match their own text paths). The `--no-check` / `--no-tsc` split the batch
+introduced is settled the same way: `--no-tsc` is the one name for the stage on
+`build`, `check`, and `run`, with `--no-check` kept as a hidden alias on `build`
+and `run`. The third finding is a divergence the batch surfaced but did not
+cause.
+
+- **G61. Two string syntaxes, one of them undocumented.** D12 says "One string
+  syntax: `"..."`", and the lexer has two. `lex_string`
+  (`glyph-lexer/src/lexer.rs:114-119`) dispatches `"""` from the general string
+  path, not from an `@doc`-only path, so a triple-quoted literal is reachable
+  from any expression position and arrives at the parser
+  (`glyph-parser/src/expr.rs:417`) as an ordinary `Token::String`. The two forms
+  do not mean the same thing: the triple path does no escape decoding, so
+  `"""a\nb"""` keeps the literal backslash where `"a\nb"` does not, and because
+  the parser cannot tell them apart it still runs `split_template_parts` over the
+  triple's content, so `"""x ${y}"""` interpolates despite the lexer's own
+  comment promising raw content. The formatter already names `"""..."""` in its
+  comments. Two spellings of a string literal that differ only in escape
+  semantics, both written with double quotes, is a greppability and verifiability
+  problem, which is why it is filed rather than left as trivia. Three ways to
+  close it and only the last is wrong: the parser rejects `"""` outside a `@doc`
+  annotation, restoring D12; or D12 and the reference document the second raw
+  form honestly, including what interpolation does inside it; or it stays
+  reachable and undocumented. Which of the first two is a spec call, not a patch.
+- **G62. `glyph fmt` collapses a multi-line string that interpolates.** G55
+  closed by documenting the multi-line form in AGENTS.md, and the formatter
+  undoes it for the case a real program writes. `string_literal`
+  (`glyph-formatter/src/lib.rs:1051`) copies a literal verbatim from source by
+  span, and its comment says so: that is what preserves a D12 multi-line string.
+  A literal that interpolates is not a `Expr::String`, it is a template, and
+  `template` (`:1072`) rebuilds the text through `escape_string` (`:1555`), whose
+  `'\n' => out.push_str("\\n")` arm turns every raw newline back into an escape.
+  Verified on a two-function file: the function whose string has no `${...}`
+  round-trips unchanged, the one beside it comes back as `"hello ${name}\nsecond
+  line\n"`. So the documented spelling survives only until someone saves the
+  file, and under format-on-save it never survives at all. That is why
+  `examples/apps/shortlink.glyph` still writes all five of its HTML builders with
+  `\n` escapes: the multi-line rewrite was made and checked (`glyph check` clean,
+  all five pages byte-identical), then reverted, because `glyph fmt --check`
+  fails on it and shipping a curated example the formatter reformats is worse
+  than the escapes. The fix is to give `template` the same verbatim-by-span path
+  `string_literal` already has, which needs the template's own span to cover the
+  quotes; the alternative, teaching `escape_string` to pass newlines through, is
+  wrong because the same function escapes strings that were written on one line.

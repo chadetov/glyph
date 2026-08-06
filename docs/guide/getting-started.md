@@ -72,12 +72,7 @@ one-line count. A sibling module that failed to compile does not stop the run
 | Command | What it does |
 |---|---|
 | `glyph init [dir]` | Scaffold a runnable starter project (`src/main.glyph`, `.types/`, `package.json`, `.gitignore`) |
-
-The scaffolded `package.json` pins `typescript` and `tsx` in `devDependencies`,
-so after `glyph init` you can run `npm install` in the project to get a
-consistent toolchain locally (instead of, or in addition to, the global install
-above) — everyone on the team then builds against the same TypeScript.
-
+| `glyph check [path]` | Type-check a file or a tree without running it or writing output |
 | `glyph run <file> [args]` | Type-check, compile, and run a program |
 | `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict`, running every `@example` and `@doc @run` test |
 | `glyph build <src> --out <dir> --no-test` | Skip the `@example` and `@doc @run` tests |
@@ -90,9 +85,16 @@ above) — everyone on the team then builds against the same TypeScript.
 | `glyph llms` | Print the agent bootstrap (the `AGENTS.md` reference) offline; alias `glyph docs` |
 | `glyph --explain <code>` | Long-form explanation and fix for an error code |
 
-`glyph build` type-checks and runs your `@example`s by default; `--no-check`
-skips the `tsc` pass and `--no-test` skips the examples. The example runner needs
-`tsx` on `PATH`; if it is missing on a project that has examples, the build fails
+The scaffolded `package.json` pins `typescript` and `tsx` in `devDependencies`,
+so after `glyph init` you can run `npm install` in the project to get a
+consistent toolchain locally (instead of, or in addition to, the global install
+above) — everyone on the team then builds against the same TypeScript.
+
+`glyph build` type-checks and runs your `@example`s by default; `--no-tsc`
+skips the `tsc` pass and `--no-test` skips the examples. `--no-tsc` is the same
+flag on all three of `build`, `check`, and `run` (`--no-check` is its old
+spelling on `build` and `run`, still accepted). The example runner needs `tsx`
+on `PATH`; if it is missing on a project that has examples, the build fails
 rather than reporting a pass it never checked.
 
 ## Editor support

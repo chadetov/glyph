@@ -115,8 +115,17 @@ your `.glyph` source; a runtime stack from `tsx` is not yet remapped. The emitte
 module, not in the file you ran. `glyph run` builds the whole directory and
 reports everything it finds, but a module that failed to compile is only
 unavailable to import; it does not stop a program that never imported it. The
-exit code is whatever `main` returned. Run `glyph build` on the directory if you
-want the tree's health to decide the exit code.
+exit code is whatever `main` returned. Run `glyph check` on the file or the
+directory if you want the tree's health to decide the exit code without
+running anything.
+
+**I want to know whether a file compiles, without running it.** `glyph check
+path.glyph` does exactly that: it type-checks the file in the context of its
+directory, runs `tsc --strict` over the emitted TypeScript, writes nothing, and
+never starts your program. It also accepts a directory. `--no-tsc` stops after
+the Glyph stages when you want the fast answer and no toolchain. The one thing
+it does not do that `glyph build` does is run your `@example` and `@doc @run`
+tests, because running them would run your code.
 
 **`T.parse` accepts a value I expected it to reject.** A field typed by an
 imported `.d.ts` type is checked for presence only until you materialize that

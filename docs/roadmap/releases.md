@@ -584,9 +584,18 @@ Spec: D14 records the guarantee.
   build path, because nothing checks member access against the same seed the
   resolver already holds. Same typo, two experiences, decided by import style.
   The absolute-path leak in TS error remapping is a second, separable defect.
-- **`glyph check <file>`** (S). `build.rs:100-103` rejects a non-directory
-  source and there is no `check` subcommand; the only non-executing door into
-  type checking is running the program.
+- **`glyph check <file>`** (S) — ✅ **done** (G28). `glyph check [path]` takes a
+  file or a directory, reuses `build`'s pipeline into a temp dir it deletes on
+  the way out, and runs `tsc --strict` over the emitted TypeScript unless you
+  pass `--no-tsc`. Nothing is written to your tree and nothing is executed, which
+  is the whole point: the regression test checks a program whose `main` writes a
+  sentinel file and asserts the file is absent. A file is checked in the context
+  of its directory (a sibling's error fails the check, as it does under `build`
+  and `run`), and the `@example` / `@doc @run` gate does not run, because running
+  it would run your code. `glyph build one.glyph`, the command that produced the
+  gap, no longer ends at "source path is not a directory": the refusal now names
+  `glyph check <file>`, since a capability the user cannot find where they are
+  standing is not shipped.
 - **Formatter, layout only** (S each, deliberately not bundled with the
   correctness fix above) — ✅ **done** (G29, G54): a one-statement match-arm body
   was always exploded to three lines because the parser wraps it in a synthetic
@@ -728,8 +737,13 @@ nested string literal, which is a lexer artifact rather than a rule.
 - **No mut-teaching diagnostic for a bare `x = e`** (S). E0006 exists to teach
   the `if` ban; D5 is the second-most-broken rule for a newcomer and gets a parse
   error that names a token instead of the rule.
-- **The clap binding has no `allow_hyphen_values`** (S). A negative number as an
-  option value (`--amount -12.50`) cannot be expressed.
+- **The clap binding has no `allow_hyphen_values`** (S) — ✅ **done** (G36). The
+  surface is `glyph run`'s trailing argv passthrough and nothing else; a built
+  program run under node was never affected. `allow_hyphen_values` on that
+  argument lets `--amount -12.50` and a bare `-12.50` reach the program intact.
+  A flag glyph knows still binds to glyph wherever it appears (clap starts the
+  var-arg on unknown flags only), so `glyph run x.glyph --no-check` is unchanged
+  and `--` is still the answer for a colliding program flag.
 - **`glyph check <file>`, a counted range for `for`, and decimal literals** are
   the same three forks the minesweeper trip left open; they are recorded above
   and are not re-litigated here.
@@ -866,9 +880,14 @@ regression test asserts the value import.
 - **A descriptor's `.parse` result is not assignable to `Result`** (M). Confirmed
   as TS2322; the cookbook recipes that thread `T.parse(x)` into a function
   returning `Result<T, E>` do not compile. Separate from the resolution fix.
-- **`glyph build` prints "no diagnostics" above its own `tsc` errors** (S). The
-  Glyph-stage summary is printed before the TypeScript stage runs, so a red build
-  is introduced by a green line.
+- **`glyph build` prints "no diagnostics" above its own `tsc` errors** (S) —
+  ✅ **done** (G42). The summary now prints after the `tsc` gate and the example
+  gate, beside the `tsc --strict passed.` line that was already held back for the
+  same reason. A red build never prints it; a green build's transcript still
+  reads summary then `tsc --strict passed.`, and both orders have tests. `--json`
+  was never affected. Under `--no-check` the line still reads "no diagnostics"
+  with no TypeScript stage behind it; it is honestly about the Glyph stage, and
+  rewording it is a separate call.
 - **The namespaced form is handled in field position only** (S). A field typed
   `types.Inner` now calls `types.Inner.is`, but `match v { is types.Inner => … }`
   and `json.parse<types.Inner>(s)` still take the two-segment path as unresolved.
@@ -1041,9 +1060,15 @@ workaround version produced.
   length (137 columns observed). And D27 asks for canonical ordering of annotation
   *kinds*, not of repeated arguments within one kind, so sorting `@example`
   arguments costs the author's sequence for nothing.
-- **Three findings that were not gaps** (docs). Multi-line strings, `math.max`,
-  and the two-import rule for `std/time` all already work; the author
-  reimplemented around them. A shipped feature nobody can find is not a feature.
+- **Three findings that were not gaps** (docs) — ✅ **done** (G55). Multi-line
+  strings, `math.max`, and the two-import rule for `std/time` all already work;
+  the author reimplemented around them. Each is now documented where the reader
+  was looking: AGENTS.md's "Template strings" section says a raw newline inside
+  `"..."` is kept verbatim, the stdlib reference lists one call per line instead
+  of slash-grouping them (grepping it for `math.max` used to find nothing), and
+  both AGENTS.md and the reference show the two `std/time` import lines with what
+  each one buys. The reference preamble was wrong about that last one and is
+  corrected: `import std/time` alone gives you `time.Duration.ms(5)`.
 - **`E0300` still says "value-position match arm"** (XS) — ✅ **done.** The
   remaining block-arm rejection fires only for a `match` nested inside a larger
   expression, so the wording pointed at a position that works. It now reads "a
@@ -1625,6 +1650,94 @@ run `build`" an ordering you had to know.
   change under a reformat. They were not clean before this batch either, for
   unrelated reasons such as redundant parentheses. That reformat wants its own
   commit.
+
+### 0.1.51 — Shipped · Ask whether it compiles without running it
+
+Four items off the CLI and docs backlog, and the three findings an adversarial
+read of that batch turned up before it shipped.
+
+`glyph check [path]` is the headline (G28). Every dogfooding trip that wanted a
+type-check answer for one file had the same experience: `glyph build one.glyph`
+stopped at "source path is not a directory", so the only door into the
+typechecker was running the program. `check` takes a `.glyph` file or a
+directory, runs `build`'s pipeline into a temp directory it deletes on the way
+out, and runs `tsc --strict` over the emitted TypeScript unless you pass
+`--no-tsc`. Nothing lands in your tree and nothing executes: the regression test
+checks a program whose `main` writes a sentinel file, then asserts the file is
+absent and stdout is empty. On `examples/apps/expenses.glyph` it reports "10
+module(s) checked, no diagnostics" in about a second and leaves `git status`
+clean. `glyph build one.glyph` still refuses a file, but the refusal now names
+`glyph check <file>`.
+
+Two things about `check` are worth knowing before you wire it into a hook. A file
+is checked in the context of its directory, so a sibling's error fails the check,
+the same way it does under `build` and `run`; that falls out of reusing one
+engine and keeps the three commands from disagreeing about a tree. And `check`
+does not run your `@example` / `@doc @run` tests, because running them runs your
+code, which is the thing it promises not to do. Both are in the command's help
+text and in the troubleshooting guide, and the first has a test pinning it.
+
+`glyph build` no longer prints a green line above its own red one (G42). The
+Glyph-stage summary sat before the `tsc` gate, so a build that failed
+type-checking opened with "no diagnostics". It now prints after both gates,
+beside the `tsc --strict passed.` line that was already held back for the same
+reason. A red build does not print it at all; a green build's transcript is
+unchanged. Both orders have tests.
+
+Hyphenated arguments reach your program through `glyph run` (G36). The wall was
+narrower than the backlog claimed: clap went raw once it had consumed a non-hyphen
+positional, so `glyph run app.glyph data.csv --min -12.50` already worked and
+`glyph run app.glyph --min -12.50` did not. `allow_hyphen_values` on the trailing
+argument closes that. A flag glyph knows still binds to glyph wherever it
+appears, so `glyph run app.glyph --no-tsc` is unchanged and `--` remains the
+answer for a program flag that collides. `examples/apps/expenses.glyph` grew a
+`--min AMOUNT` filter that exercises it with an exact `Decimal` comparison.
+
+G55 was the docs round it asked for: three things the author of a previous app
+reimplemented because they could not find them. `math.max` was reachable only
+through a slash-grouped line, so grepping the reference for it found nothing;
+every grouped line on that page is now one call per line, and
+`examples/apps/linkcheck.glyph` lost its hand-rolled `max_of`. The two-import
+rule for `std/time` was stated once in a page preamble that had it wrong, and is
+now in both AGENTS.md and the reference with what each line buys. Multi-line
+strings are described in AGENTS.md's "Template strings" section, with the caveat
+below.
+
+The review of this batch fixed three more things in the same session. `--no-tsc`
+is now the one name for the TypeScript stage on `build`, `check`, and `run`;
+`--no-check` stays as a hidden alias on `build` and `run` so existing scripts keep
+working. `build --json` reported `ok: true` and exit 0 on a machine with no
+`tsc`, while the same build's text path and `check --json` both reported failure;
+a requested stage that could not run is not a pass, and `build` now agrees. And
+`check` stopped hashing every source file to name a scratch directory it deletes
+immediately.
+
+Pillar: verifiability. The answer to "does this compile" was previously only
+available by running the program, and a build that had failed opened by saying it
+had not.
+
+### Still open after this release
+
+- **`glyph fmt` collapses a multi-line string that interpolates** (S, G62). The
+  form AGENTS.md now documents survives `fmt` only when the string has no
+  `${...}`. A literal without interpolation is copied verbatim from source; one
+  with interpolation is rebuilt through the escaper, so the raw newlines come
+  back as `\n`. That makes the documented spelling a trap under format-on-save,
+  and it is why `examples/apps/shortlink.glyph` still writes its five HTML
+  builders with `\n` escapes.
+- **`check` reports a sibling's error** (S, decided for now). Filtering
+  diagnostics to the named file, or a `--tree` opt-in for today's behaviour, is
+  an open call; `Diagnostic.file` already carries what a filter needs.
+- **`check` has no example gate** and is therefore weaker than `build` on the
+  same tree. Whether that stays acceptable is open.
+- **The `--no-tsc` summary still says "no diagnostics"** on a build where no
+  TypeScript stage ran. The line is honestly about the Glyph stage; rewording it
+  is a separate call.
+- **The stdlib drift guard checks presence, not call form** (S). A name in
+  `stdlib_docs.rs` passes on a bare mention, so the slash-grouped lines this
+  release expanded would have passed either way. Making it require the qualified
+  form (`math.max(`) needs a per-module exception list for methods and prelude
+  names.
 
 ## Road to 1.0
 
@@ -2503,6 +2616,36 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **One name for the TypeScript stage: `--no-tsc`.** ✅ **done.** Shipping
+  `glyph check --no-tsc` next to `build --no-check` and `run --no-check` gave one
+  stage two names, so there was no single string to grep for "the flag that skips
+  `tsc`". `--no-tsc` is now canonical on all three commands; `--no-check` stays
+  on `build` and `run` as a hidden alias, the way `--check` and `--test` are
+  already carried, so existing scripts and CI keep working. The messages that
+  suggest the opt-out name the canonical flag.
+- **`build --json` no longer reports green with no `tsc`.** ✅ **done.**
+  `emit_build_json` computed `ok` from the diagnostic count alone, so a machine
+  without `tsc` on `PATH` got `"tsc": "not-found"`, `ok: true`, and exit 0, while
+  the same build's text path exits 2 and `check --json` reports `ok: false`. A
+  stage that was requested and could not run is not a pass; `build` now agrees
+  with `check` on the object and on the exit code, which is what the docs claimed
+  all along. A test spawns both commands with an empty `PATH` and compares them.
+- **`glyph check` stopped paying for a cache it deletes.** ✅ **done.** The
+  scratch directory was named from `source_fingerprint` (a read and hash of every
+  `.glyph` and `.types/**/*.d.ts` in the tree) plus pid and counter, and then
+  removed on the way out, under the name `glyph-check-cache`. The pid and counter
+  are all the uniqueness a directory nobody keeps needs; the fingerprint is gone,
+  the directory is `glyph-check-scratch`, and the now-empty parent is removed
+  too. Making `check` a real cache (keyed on the fingerprint, kept between runs,
+  skipping emit and `tsc` on an unchanged tree, the way `glyph run` already
+  works) is the other option and stays open: it is a behaviour change with its
+  own invalidation and disk-retention questions, not a cleanup.
+- **Two string syntaxes, one undocumented** (G61). D12 promises one string
+  syntax; the lexer dispatches `"""` from the general string path, so a
+  triple-quoted literal is reachable from any expression position, decodes no
+  escapes, and still interpolates. Either the parser rejects `"""` outside a
+  `@doc` annotation or the spec documents the second form; both are spec calls.
+  Filed in `docs/dogfooding-gaps.md` as G61.
 - **Four silent holes closed: `await` context, valueless match arms, bare
   assignment, `?` in an arm.** ✅ **done.** Four diagnostics that a real app hit
   and the compiler did not: `await` in a non-`async fn` built clean and failed at

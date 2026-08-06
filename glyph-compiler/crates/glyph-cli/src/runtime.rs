@@ -339,6 +339,7 @@ pub fn write_build_support(out: &Path, src: &Path) -> std::io::Result<()> {
 }
 
 /// Result of running `tsc` over a build's generated `tsconfig.json`.
+#[derive(Debug)]
 pub enum TscOutcome {
     /// `tsc` ran and reported no errors.
     Passed,

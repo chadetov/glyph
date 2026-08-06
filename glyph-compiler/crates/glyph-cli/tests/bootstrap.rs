@@ -46,19 +46,21 @@ fn cheatsheet_jsx_example_uses_single_brace_interpolation() {
 }
 
 #[test]
-fn cheatsheet_duration_constructor_is_namespaced() {
-    // Under `import std/time`, imports are namespaced: the bare name `Duration`
-    // is unresolved (E0103) and the constructor must be called as
-    // `time.Duration.ms(n)`. The std/time cheatsheet must show the namespaced
-    // form so the example it advertises actually resolves.
+fn cheatsheet_shows_both_std_time_import_lines() {
+    // The two import lines buy different names, and the cheatsheet used to show
+    // only one. Under `import std/time` everything is namespaced: the bare name
+    // `Duration` is unresolved (E0103) and the constructor is
+    // `time.Duration.ms(n)`. The bare `Duration`, in type position as well as
+    // value position, comes from `import std/time { Duration }`. A reader who
+    // sees only the first line has no answer to "how do I write `x: Duration`?",
+    // so both must be on the page.
     assert!(
         glyph_cli::LLMS_BOOTSTRAP.contains("time.Duration.ms(n)"),
         "std/time cheatsheet lost the namespaced `time.Duration.ms(n)` form"
     );
     assert!(
-        !glyph_cli::LLMS_BOOTSTRAP.contains("// Duration.ms(n)"),
-        "std/time cheatsheet shows bare `Duration.ms(n)`; under a namespaced \
-         `import std/time` that name is unresolved (E0103) \u{2014} use `time.Duration.ms(n)`"
+        glyph_cli::LLMS_BOOTSTRAP.contains("import std/time { Duration }"),
+        "std/time cheatsheet does not say which import buys the bare `Duration`"
     );
 }
 

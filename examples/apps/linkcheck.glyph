@@ -56,6 +56,7 @@ import std/array
 import std/fs
 import std/http
 import std/io
+import std/math
 import std/option { Option, Some, None }
 import std/path
 import std/process
@@ -134,16 +135,8 @@ const LOWER = "abcdefghijklmnopqrstuvwxyz"
 
 const DIGITS = "0123456789"
 
-@example max_of(3, 7) == 7
-fn max_of(a: int, b: int) -> int {
-  return match a > b {
-    true => a,
-    false => b,
-  }
-}
-
 fn widest(values: Array<string>) -> int {
-  return array.fold(values, 0, fn(w: int, v: string) -> int { return max_of(w, string.len(v)) })
+  return array.fold(values, 0, fn(w: int, v: string) -> int { return math.max(w, string.len(v)) })
 }
 
 // `array.sort` takes the comparator, so lexicographic order has to be spelled.
@@ -927,7 +920,7 @@ fn parse_args(argv: Array<string>) -> Result<Args, ArgError> {
               true => { mut failure = Some(MissingValue({ flag: name })) },
               false => {
                 match number.parse(value) {
-                  Ok(v) => { mut limit = max_of(1, v) },
+                  Ok(v) => { mut limit = math.max(1, v) },
                   Err(_) => { mut failure = Some(BadNumber({ flag: name, value: value })) },
                 }
                 mut i = match uses_inline {

@@ -15,12 +15,13 @@ runs, and can import any npm package. You adopt it one file at a time.
 
 ```sh
 npm install -g @glyphlang/glyph     # the compiler (CLI is `glyph`)
-npm install -g tsx typescript       # needed for `glyph run` and `--check`
+npm install -g tsx typescript       # needed for `glyph run` and the `tsc` stage of `build`/`check`
 ```
 
 ```sh
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
-glyph run path.glyph [args...]      # type-check, compile, and run main(argv); reports every diagnostic `glyph build` reports
+glyph check [path]                  # type-check a file or tree without running it or writing output
+glyph run path.glyph [args...]      # type-check, compile, and run main(argv); hyphenated args reach the program, `--` before ones that collide with glyph's own flags
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict and @example/@doc @run by default)
 glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file, line/col, help) for tools/agents
 glyph build src/ --out dist/ --no-test # skip the @example / @doc @run / property tests
@@ -265,6 +266,20 @@ component Greeting(name: string) {
 thing the interior cannot hold is another string literal (`"${f("x")}"`) — bind
 it to a `let` first.
 
+A normal string may also span lines: a raw newline inside `"…"` is kept
+verbatim, and it means the same thing as `\n`.
+
+```
+let usage = "usage: report <file>
+  --json    machine-readable output
+"
+```
+
+One caveat before you reach for it: `glyph fmt` preserves that layout only while
+the string has no `${...}` in it. An interpolating string is reprinted from its
+parts, and the raw newlines come back as `\n`. Write the multi-line form when the
+string is plain text; use `\n` when it interpolates, or `fmt` will do it for you.
+
 ## The standard library (full surface)
 
 Call namespaced functions as `module.fn(...)`. Types and constructors come in via
@@ -484,8 +499,18 @@ record.remove<V>(r, key) -> Record<string, V>
 
 ### std/time
 
+`import std/time` buys the `time` namespace (`time.now()`, `time.sleep(d)`, and
+`time.Duration` as both a type and a factory). `import std/time { Duration }`
+buys the bare name `Duration`, also as both. They are independent, so code that
+writes `time.sleep(d)` and types values as `Duration` needs both lines:
+
 ```
-type Duration                                 // time.Duration.ms(n) constructs one (namespaced)
+import std/time
+import std/time { Duration }
+```
+
+```
+type Duration                                 // Duration.ms(n), or time.Duration.ms(n)
 time.now() -> number                          // epoch milliseconds
 time.sleep(duration) -> void                  // async; await it
 time.debounce(delay, f) -> fn                  // returns a debounced function

@@ -4504,3 +4504,538 @@ fn missing_tsx_refuses_to_look_verified() {
     assert_eq!(v["examples"]["ran"], serde_json::json!(false), "{v}");
     assert_eq!(json.status.code(), Some(2), "--json agrees on the code: {v}");
 }
+
+// ---------------------------------------------------------------------------
+// `glyph check` (G28), the summary-line ordering (G42), and `glyph run`'s
+// hyphenated argv passthrough (G36).
+// ---------------------------------------------------------------------------
+
+#[test]
+fn check_on_a_single_file_reports_its_errors() {
+    // The gap: `glyph build one.glyph` refuses a file ("source path is not a
+    // directory"), so the only way to type-check one was to run it.
+    let root = unique_tmp("check_file_errors");
+    write_file(
+        &root,
+        "broken.glyph",
+        "module broken\nfn f() -> number {\n  return \"nope\"\n}\n",
+    );
+    let path = root.join("broken.glyph");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 1, "a file with a type error fails: {stderr}");
+    assert!(
+        stderr.contains("broken"),
+        "the diagnostic names the file: {stderr}"
+    );
+    assert!(
+        !stderr.contains("not a directory"),
+        "a file is a legal target now: {stderr}"
+    );
+}
+
+#[test]
+fn check_on_a_clean_file_exits_zero() {
+    let root = unique_tmp("check_file_clean");
+    write_file(
+        &root,
+        "ok.glyph",
+        "module ok\npub fn double(n: number) -> number {\n  return n * 2\n}\n",
+    );
+    let path = root.join("ok.glyph");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 0, "a clean file passes: {stderr}");
+    assert!(
+        stderr.contains("no diagnostics"),
+        "and says so: {stderr}"
+    );
+}
+
+#[test]
+fn check_never_executes_the_program() {
+    // This is the gap itself. `glyph run` type-checks a file by running it, so
+    // asking "does this compile?" cost a side effect. `check` must answer the
+    // same question with the program never starting: no stdout, and the file
+    // `main` would have written is absent afterwards.
+    let root = unique_tmp("check_no_exec");
+    let sentinel = root.join("sentinel.txt");
+    write_file(
+        &root,
+        "prog.glyph",
+        &format!(
+            "module prog\n\
+             import std/io\n\
+             import std/fs\n\
+             fn main(argv: Array<string>) -> number {{\n\
+             \x20 io.println(\"SENTINEL-STDOUT\")\n\
+             \x20 let _ = fs.write({:?}, \"ran\")\n\
+             \x20 return 0\n\
+             }}\n",
+            sentinel.to_string_lossy()
+        ),
+    );
+    let path = root.join("prog.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 0, "the program type-checks: {stderr}");
+    assert!(
+        stdout.is_empty(),
+        "check writes nothing to stdout, so the program did not run: {stdout:?}"
+    );
+    assert!(
+        !stdout.contains("SENTINEL-STDOUT") && !stderr.contains("SENTINEL-STDOUT"),
+        "the program's own output must never appear: {stdout:?} {stderr:?}"
+    );
+    assert!(
+        !sentinel.exists(),
+        "the program's side effect must never happen"
+    );
+}
+
+#[test]
+fn check_accepts_a_directory_and_writes_nothing_into_it() {
+    let root = unique_tmp("check_dir");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\npub fn helper() -> number { return 1 }\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\nimport lib { helper }\nfn main() -> number { return helper() }\n",
+    );
+    let before: Vec<_> = std::fs::read_dir(&src)
+        .expect("read src")
+        .map(|e| e.expect("entry").file_name())
+        .collect();
+
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 0, "the tree is clean: {stderr}");
+    assert!(stderr.contains("2 module(s) checked"), "{stderr}");
+
+    let after: Vec<_> = std::fs::read_dir(&src)
+        .expect("read src")
+        .map(|e| e.expect("entry").file_name())
+        .collect();
+    assert_eq!(
+        before.len(),
+        after.len(),
+        "check emits into a temp dir it deletes; the user's tree is untouched"
+    );
+}
+
+#[test]
+fn check_reports_a_sibling_error_when_checking_one_file() {
+    // Scope: a file is checked in the context of its directory, exactly as
+    // `glyph build` and `glyph run` see that tree. A sibling's error is
+    // reported here rather than silently excluded, so the three commands
+    // cannot disagree about whether a tree is clean.
+    let root = unique_tmp("check_sibling");
+    write_file(
+        &root,
+        "solo.glyph",
+        "module solo\nfn main() -> number { return 0 }\n",
+    );
+    write_file(
+        &root,
+        "other.glyph",
+        "module other\nfn broken() -> number {\n  return \"nope\"\n}\n",
+    );
+    let path = root.join("solo.glyph");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 1, "the sibling's error fails the check: {stderr}");
+    assert!(stderr.contains("E0204"), "{stderr}");
+}
+
+#[test]
+fn check_json_uses_the_same_keys_as_build_json() {
+    let root = unique_tmp("check_json");
+    write_file(
+        &root,
+        "broken.glyph",
+        "module broken\nfn f() -> number {\n  return \"nope\"\n}\n",
+    );
+    let path = root.join("broken.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+        std::ffi::OsStr::new("--json"),
+    ]);
+    let v: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("JSON ({e}): {stdout} {stderr}"));
+    assert_eq!(code, 1, "{v}");
+    assert_eq!(v["ok"], serde_json::json!(false), "{v}");
+    assert_eq!(v["errors"], serde_json::json!(1), "{v}");
+    assert_eq!(v["warnings"], serde_json::json!(0), "{v}");
+    assert_eq!(v["tsc"], serde_json::json!("not-run"), "{v}");
+    assert_eq!(v["diagnostics"][0]["code"], serde_json::json!("E0204"), "{v}");
+}
+
+#[test]
+fn check_missing_target_exits_two() {
+    let root = unique_tmp("check_missing");
+    let path = root.join("nope.glyph");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 2, "{stderr}");
+    assert!(stderr.contains("does not exist"), "{stderr}");
+}
+
+/// A Glyph-clean program that `tsc` rejects: `std/taint` brands a `Tainted<T>`
+/// so it cannot reach a `Trusted<T>` sink, and Glyph's own checker is permissive
+/// about opaque imported types. The tsc stage is where this bites, which makes
+/// it the fixture for "the Glyph stage was green and the build is still red."
+const TSC_RED_GLYPH_CLEAN: &str = "module main\n\
+     import std/taint { Tainted, Trusted, taint, expose }\n\
+     import std/io { println }\n\
+     fn run_query(sql: Trusted<string>) -> void {\n\
+     \x20 println(expose(sql))\n\
+     }\n\
+     fn main() -> void {\n\
+     \x20 let user_input: Tainted<string> = taint(\"DROP TABLE users\")\n\
+     \x20 run_query(user_input)\n\
+     }\n";
+
+#[test]
+fn build_prints_no_green_summary_above_its_own_tsc_errors() {
+    // G42: the Glyph-stage summary used to print before the tsc stage ran, so a
+    // red build opened with "no diagnostics" and then listed its type errors.
+    if !tsc_available() {
+        eprintln!("skipping: tsc not found on PATH");
+        return;
+    }
+    let root = unique_tmp("g42_red");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(&src, "main.glyph", TSC_RED_GLYPH_CLEAN);
+
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        std::ffi::OsStr::new("--no-test"),
+    ]);
+    assert_eq!(code, 1, "the build is red: {stderr}");
+    assert!(
+        stderr.contains("tsc reported type errors"),
+        "and tsc is why: {stderr}"
+    );
+    assert!(
+        !stderr.contains("no diagnostics"),
+        "a red build must not open with a green line: {stderr}"
+    );
+}
+
+#[test]
+fn build_summary_precedes_the_tsc_pass_line_on_a_green_build() {
+    // The other half of G42: reordering must not scramble a green build's
+    // transcript, which the docs quote verbatim.
+    if !tsc_available() {
+        eprintln!("skipping: tsc not found on PATH");
+        return;
+    }
+    let root = unique_tmp("g42_green");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn main() -> number { return 0 }\n",
+    );
+
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        std::ffi::OsStr::new("--no-test"),
+    ]);
+    assert_eq!(code, 0, "{stderr}");
+    let summary = stderr.find("no diagnostics").expect("summary line");
+    let passed = stderr.find("tsc --strict passed").expect("tsc line");
+    assert!(summary < passed, "summary then tsc: {stderr}");
+}
+
+#[test]
+fn check_reports_tsc_errors_on_a_glyph_clean_tree() {
+    if !tsc_available() {
+        eprintln!("skipping: tsc not found on PATH");
+        return;
+    }
+    let root = unique_tmp("check_tsc_red");
+    write_file(&root, "main.glyph", TSC_RED_GLYPH_CLEAN);
+    let path = root.join("main.glyph");
+    let (code, _stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("check"), path.as_os_str()]);
+    assert_eq!(code, 1, "the tsc stage fails the check: {stderr}");
+    assert!(stderr.contains("TS2345"), "remapped onto Glyph source: {stderr}");
+    assert!(
+        !stderr.contains("no diagnostics"),
+        "and no green line above it: {stderr}"
+    );
+}
+
+#[test]
+fn run_passes_hyphenated_arguments_through_to_the_program() {
+    // G36: without `allow_hyphen_values` clap rejected `--amount` as an unknown
+    // flag, so a negative number could not be passed at all without `--`.
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not found on PATH");
+        return;
+    }
+    let root = unique_tmp("g36_argv");
+    write_file(
+        &root,
+        "echo.glyph",
+        "module echo\n\
+         import std/io\n\
+         import std/string\n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 io.println(string.join(argv, \"|\"))\n\
+         \x20 return 0\n\
+         }\n",
+    );
+    let path = root.join("echo.glyph");
+
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("run"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-check"),
+        std::ffi::OsStr::new("--amount"),
+        std::ffi::OsStr::new("-12.50"),
+    ]);
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        stdout.contains("--amount|-12.50"),
+        "both arguments arrive intact: {stdout:?} {stderr}"
+    );
+
+    // A bare negative number, which clap previously read as a short-flag cluster.
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("run"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-check"),
+        std::ffi::OsStr::new("-12.50"),
+    ]);
+    assert_eq!(code, 0, "{stderr}");
+    assert!(stdout.contains("-12.50"), "{stdout:?} {stderr}");
+}
+
+#[test]
+fn run_still_binds_its_own_flags_after_the_file() {
+    // The other side of G36: `glyph run x.glyph --no-check` has always bound
+    // `--no-check` to glyph, and it must keep doing so. clap starts the trailing
+    // var-arg on *unknown* flags only, so a known one still belongs to glyph;
+    // pinned here because it is the collision rule the change leaves in place.
+    let root = unique_tmp("g36_known_flag");
+    write_file(
+        &root,
+        "broken.glyph",
+        "module broken\nfn main() -> number {\n  return \"nope\"\n}\n",
+    );
+    let path = root.join("broken.glyph");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("run"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-check"),
+    ]);
+    // `--no-check` bound to glyph, so the build ran without tsc and the Glyph
+    // type error is what stops it — not clap, and not a program argument.
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("E0204"), "{stderr}");
+    assert!(
+        !stderr.contains("unexpected argument"),
+        "clap must still own this flag: {stderr}"
+    );
+}
+
+#[test]
+fn build_on_a_single_file_points_at_check() {
+    // The G28 symptom: `glyph build one.glyph` is what everyone types first, and
+    // it cannot work. The refusal now names the command that does.
+    let root = unique_tmp("build_file_hint");
+    write_file(
+        &root,
+        "one.glyph",
+        "module one\npub fn double(n: number) -> number {\n  return n * 2\n}\n",
+    );
+    let path = root.join("one.glyph");
+    let out = root.join("dist");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+    ]);
+    assert_eq!(code, 2, "{stderr}");
+    assert!(stderr.contains("not a directory"), "{stderr}");
+    assert!(
+        stderr.contains("glyph check") && stderr.contains("one.glyph"),
+        "the dead end points at `glyph check <file>`: {stderr}"
+    );
+}
+
+#[test]
+fn build_refusing_a_non_glyph_path_does_not_suggest_check() {
+    // `glyph check README.md` would only fail differently, so the hint is
+    // limited to the case where it is the answer.
+    let root = unique_tmp("build_nonglyph_hint");
+    write_file(&root, "README.md", "# not source\n");
+    let path = root.join("README.md");
+    let out = root.join("dist");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+    ]);
+    assert_eq!(code, 2, "{stderr}");
+    assert!(!stderr.contains("glyph check"), "{stderr}");
+}
+
+#[test]
+fn check_rejects_a_file_that_is_not_glyph_source() {
+    let root = unique_tmp("check_not_glyph");
+    write_file(&root, "notes.md", "# notes\n");
+    let path = root.join("notes.md");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        path.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 2, "{stderr}");
+    assert!(
+        stderr.contains("not a `.glyph` file"),
+        "and says why: {stderr}"
+    );
+}
+
+#[test]
+fn no_tsc_skips_the_typescript_stage_on_build_and_run() {
+    // One stage, one flag name: `--no-tsc` is the canonical spelling on all
+    // three commands. `--no-check` stays accepted on build and run (pinned by
+    // `run_still_binds_its_own_flags_after_the_file` and the build tests above),
+    // but the greppable name is this one.
+    let root = unique_tmp("no_tsc_flag");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn main() -> number { return 0 }\n",
+    );
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("build"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+        std::ffi::OsStr::new("--no-test"),
+    ]);
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        !stderr.contains("tsc --strict passed"),
+        "the tsc stage did not run: {stderr}"
+    );
+
+    // The same flag on `run`, and it must bind to glyph rather than to the
+    // program's argv.
+    let run_root = unique_tmp("no_tsc_flag_run");
+    write_file(
+        &run_root,
+        "broken.glyph",
+        "module broken\nfn main() -> number {\n  return \"nope\"\n}\n",
+    );
+    let broken = run_root.join("broken.glyph");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("run"),
+        broken.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("E0204"), "{stderr}");
+    assert!(
+        !stderr.contains("unexpected argument"),
+        "clap owns this flag: {stderr}"
+    );
+}
+
+/// Spawn the binary with an empty `PATH`, so `tsc` cannot be found whatever the
+/// machine has installed. The binary itself is invoked by absolute path.
+fn spawn_glyph_without_a_toolchain(args: &[&std::ffi::OsStr]) -> (i32, String, String) {
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
+        .args(args)
+        .env("PATH", "")
+        .output()
+        .expect("spawn glyph");
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+#[test]
+fn build_json_reports_a_missing_tsc_the_way_check_json_does() {
+    // Both commands' text paths exit 2 when the TypeScript stage was requested
+    // and `tsc` is absent. `build --json` used to report `ok: true` and exit 0
+    // on the same machine, so a toolchain-less CI read green.
+    let root = unique_tmp("json_no_tsc");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nfn main() -> number { return 0 }\n",
+    );
+
+    let (code, stdout, stderr) = spawn_glyph_without_a_toolchain(&[
+        std::ffi::OsStr::new("build"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--out"),
+        out.as_os_str(),
+        std::ffi::OsStr::new("--no-test"),
+        std::ffi::OsStr::new("--json"),
+    ]);
+    let v: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("JSON ({e}): {stdout}"));
+    assert_eq!(v["tsc"], serde_json::json!("not-found"), "{v}");
+    assert_eq!(v["ok"], serde_json::json!(false), "{v} {stderr}");
+    assert_eq!(code, 2, "a stage that could not run exits 2: {v}");
+
+    let (code, stdout, stderr) = spawn_glyph_without_a_toolchain(&[
+        std::ffi::OsStr::new("check"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--json"),
+    ]);
+    let w: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("JSON ({e}): {stdout}"));
+    assert_eq!(w["tsc"], v["tsc"], "one shape: {w} vs {v}");
+    assert_eq!(w["ok"], v["ok"], "one shape: {w} vs {v} {stderr}");
+    assert_eq!(code, 2, "and one exit code: {w}");
+}

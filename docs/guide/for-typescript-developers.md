@@ -25,7 +25,7 @@ in the right-hand column.
 | `interface` as a constraint | `interface` (structural, for `<T: Bound>`) | A generic can require capability of its parameter |
 | `export` by default | private by default, `pub` to export | The public API is `grep '^pub'`; a helper stays internal |
 | `try`/`finally` cleanup | `defer expr` | Cleanup runs on every exit path, greppable |
-| backtick templates | `"${expr}"` in normal strings | One string syntax |
+| backtick templates | `"${expr}"` in normal strings, newlines included | One string syntax |
 
 The rest of this page expands each.
 

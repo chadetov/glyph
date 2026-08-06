@@ -6,7 +6,10 @@
 // their source line number and reported all at once, with a nonzero exit.
 //
 // Usage:
-//   expenses <ledger.csv> [--month YYYY-MM]
+//   expenses <ledger.csv> [--month YYYY-MM] [--min AMOUNT]
+//
+// `--min` takes an exact decimal and may be negative (`--min -12.50`), which is
+// how you drop refund rows without dropping small purchases.
 //
 // Rows are split on commas, so a quoted field containing a comma is out of
 // scope; there is no CSV reader in the standard library to lean on.
@@ -21,10 +24,12 @@
 //   2026-01-14,rent,january rent,1450.00
 //   2026-01-19,coffee,two flat whites,9.60
 //   2026-01-22,transit,airport train,18.75
+//   2026-01-25,refunds,returned jacket,-12.50
 //   2026-02-02,groceries,corner store,12.05
 //   2026-02-04,rent,february rent,1450.00
 //   EOF
 //   glyph run examples/apps/expenses.glyph /tmp/ledger.csv --month 2026-01
+//   glyph run examples/apps/expenses.glyph /tmp/ledger.csv --min -12.49
 
 module main
 
@@ -65,7 +70,7 @@ type Group = { category: string, count: int, total: Decimal }
 
 type MonthFilter = { year: int, month: int }
 
-type Args = { path: string, month: Option<MonthFilter> }
+type Args = { path: string, month: Option<MonthFilter>, min: Option<Decimal> }
 
 // ---------------------------------------------------------------------------
 // Text helpers
@@ -170,6 +175,19 @@ fn select_month(rows: Array<Transaction>, month: Option<MonthFilter>) -> Array<T
   return match month {
     None => rows,
     Some(f) => array.filter(rows, fn(t: Transaction) -> bool { return in_month(t, f) }),
+  }
+}
+
+// `--min` compares with `Decimal.cmp`, not `to_number()`, so the floor is exact
+// at the cent. The floor may be negative, which is what makes a refund row
+// (`-12.50`) reachable from the command line at all.
+fn select_min(rows: Array<Transaction>, min: Option<Decimal>) -> Array<Transaction> {
+  return match min {
+    None => rows,
+    Some(floor) => array.filter(
+      rows,
+      fn(t: Transaction) -> bool { return t.amount.cmp(floor) >= 0 },
+    ),
   }
 }
 
@@ -318,7 +336,7 @@ fn print_report(rows: Array<Transaction>, label: string) -> void {
 // Arguments
 // ---------------------------------------------------------------------------
 
-const USAGE = "usage: expenses <ledger.csv> [--month YYYY-MM]"
+const USAGE = "usage: expenses <ledger.csv> [--month YYYY-MM] [--min AMOUNT]"
 
 @example parse_month("2026-02") == Ok({ year: 2026, month: 2 })
 fn parse_month(value: string) -> Result<MonthFilter, string> {
@@ -342,19 +360,57 @@ fn parse_month(value: string) -> Result<MonthFilter, string> {
   return Ok({ year: year, month: month })
 }
 
-fn with_month(path: string, raw: string) -> Result<Args, string> {
-  return match parse_month(raw) {
-    Ok(f) => Ok({ path: path, month: Some(f) }),
-    Err(e) => Err(e),
+@example match parse_min("-12.50") { Ok(d) => d.to_string(), Err(e) => e } == "-12.50"
+@example parse_min("twelve") == Err("--min expects an amount, got \"twelve\"")
+fn parse_min(value: string) -> Result<Decimal, string> {
+  return match decimal(value) {
+    Ok(d) => Ok(d),
+    Err(_) => Err("--min expects an amount, got \"${value}\""),
   }
 }
 
+// Flags and the ledger path may come in any order, and a flag's value is taken
+// positionally, so `--min -12.50` reads `-12.50` as the value even though it
+// starts with a hyphen. That is the program's own rule; glyph passes argv
+// through untouched.
 fn parse_args(argv: Array<string>) -> Result<Args, string> {
-  return match argv {
-    [path] => Ok({ path: path, month: None }),
-    [path, "--month", raw] => with_month(path, raw),
-    ["--month", raw, path] => with_month(path, raw),
-    else => Err(USAGE),
+  let path: Option<string> = None
+  let month: Option<MonthFilter> = None
+  let min: Option<Decimal> = None
+  let i = 0
+  let n = array.len(argv)
+  loop {
+    match i >= n {
+      true => {
+        return match path {
+          None => Err(USAGE),
+          Some(p) => Ok({ path: p, month: month, min: min }),
+        }
+      },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg == "--month" || arg == "--min" {
+      true => {
+        match i + 1 >= n {
+          true => { return Err("${arg} expects a value") },
+          false => {},
+        }
+        let raw = argv[i + 1]
+        match arg == "--month" {
+          true => { mut month = Some(parse_month(raw)?) },
+          false => { mut min = Some(parse_min(raw)?) },
+        }
+        mut i = i + 2
+      },
+      false => {
+        match path {
+          Some(existing) => { return Err(USAGE) },
+          None => { mut path = Some(arg) },
+        }
+        mut i = i + 1
+      },
+    }
   }
 }
 
@@ -362,6 +418,14 @@ fn month_label(month: Option<MonthFilter>) -> string {
   return match month {
     None => "(all months)",
     Some(f) => "(${number.to_string(f.year)}-${two_digits(f.month)})",
+  }
+}
+
+fn scope_label(args: Args) -> string {
+  let months = month_label(args.month)
+  return match args.min {
+    None => months,
+    Some(floor) => "${months} (>= ${floor.to_string()})",
   }
 }
 
@@ -400,6 +464,6 @@ fn main(argv: Array<string>) -> number {
     false => {},
   }
 
-  print_report(select_month(ledger.rows, args.month), month_label(args.month))
+  print_report(select_min(select_month(ledger.rows, args.month), args.min), scope_label(args))
   return 0
 }

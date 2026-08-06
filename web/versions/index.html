@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.50</span>
+            <span class="rel-ver">0.1.51</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Ask whether it compiles without running it</h3>
+            <p>There was no way to type-check a single file. <code>glyph build</code> refused anything that was not a directory, so the only door into the typechecker was <code>glyph run</code>, which starts your program. <code>glyph check</code> is that door.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>glyph check [path]</code> takes a <code>.glyph</code> file or a directory, runs the same pipeline a build runs into a temp directory it deletes on the way out, and type-checks the emitted TypeScript with <code>tsc --strict</code>. Nothing is written into your tree and your program never starts. <code>--no-tsc</code> stops after the Glyph stages; <code>--json</code> gives an agent the same diagnostic shape <code>glyph build --json</code> does. Two things to know: a file is checked in the context of its own directory, so a broken sibling fails the check, and your <code>@example</code> tests do not run here, because running them would run your code.</li>
+              <li><span class="tag fixed">Fixed</span> A failing build no longer opens with a green line. The Glyph-stage summary was printed before the TypeScript stage ran, so &ldquo;no diagnostics&rdquo; could sit directly above a wall of <code>tsc</code> errors. It now prints after every stage that can turn the build red.</li>
+              <li><span class="tag fixed">Fixed</span> Hyphenated arguments reach your program. <code>glyph run app.glyph --min -12.50</code> used to be rejected by the argument parser before <code>main</code> saw anything. Flags glyph owns still bind to glyph, so put <code>--</code> in front of a program flag that collides with one.</li>
+              <li><span class="tag fixed">Fixed</span> <code>--no-tsc</code> is the one name for skipping the TypeScript stage, on <code>build</code>, <code>check</code>, and <code>run</code>. <code>--no-check</code> keeps working as a hidden alias. Separately, <code>glyph build --json</code> reported success on a machine with no <code>tsc</code> installed while the same build's text output reported failure; both now agree that a stage which could not run is not a pass.</li>
+              <li><span class="tag fixed">Fixed</span> Three things that already worked and nobody could find: <code>math.max</code> was buried in a slash-grouped reference line, so grepping for it found nothing; the two <code>std/time</code> import lines were described once, incorrectly; and multi-line strings were only ever mentioned in a spec decision. All three are now documented where you would look for them.</li>
+              <li><span class="tag known">Known</span> <code>glyph fmt</code> preserves a multi-line string only while it has no <code>${...}</code> in it. An interpolating string is reprinted from its parts and the raw newlines come back as <code>\n</code>, so use <code>\n</code> in that case rather than fighting the formatter.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.50</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

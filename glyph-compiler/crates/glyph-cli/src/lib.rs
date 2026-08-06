@@ -8,6 +8,7 @@
 
 pub mod bench;
 pub mod build;
+pub mod check;
 pub mod config;
 pub mod diagnostic;
 pub mod examples;
@@ -26,6 +27,7 @@ pub mod sourcemap;
 pub mod tscmap;
 
 pub use build::{build_project, BuildError, BuildReport};
+pub use check::{check_path, CheckError, CheckReport};
 pub use examples::{count_examples, run_examples, ExampleError, ExampleReport};
 pub use fmt::{format_path, FmtError, FmtReport};
 pub use run::{run_file, RunError, RunOutcome, RunResult};

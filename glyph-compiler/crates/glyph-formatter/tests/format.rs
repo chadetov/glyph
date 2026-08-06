@@ -695,3 +695,13 @@ fn a_chain_inside_an_interpolation_never_breaks() {
     assert!(!once.contains("\n    ||"), "a chain inside `${{...}}` broke:\n{once}");
     assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
 }
+
+#[test]
+fn an_async_fn_type_round_trips() {
+    // D40. The formatter prints the `async` back, so `glyph fmt` is a fixed
+    // point on a signature that returns an async thunk.
+    let src = "module x\n\ntype Fetched = { url: string }\n\nfn task_for(url: string) -> async fn() -> Fetched {\n  return async fn() -> Fetched { return { url: url } }\n}\n";
+    let once = fmt(src);
+    assert!(once.contains("-> async fn() -> Fetched"), "{once}");
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
+}

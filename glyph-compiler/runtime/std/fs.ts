@@ -7,10 +7,12 @@
 // `ErrorKind` is a closed set: `NotFound`, `IsADirectory`, `NotADirectory`,
 // `PermissionDenied`, `AlreadyExists`, and an `Other({ code })` tail carrying the
 // raw errno for everything else. Every kind is spellable in a pattern, so an fs
-// error can be matched by name instead of by errno string. Glyph does not yet
-// check a `match e.kind` for exhaustiveness (the typechecker models stdlib
-// function returns, not stdlib type shapes, so `e.kind` types as unknown), so
-// keep an `else` arm: an omitted kind is a run-time throw, not an E0200.
+// error can be matched by name instead of by errno string. Glyph's typechecker
+// models this shape, so `match e.kind { ... }` is held to the same
+// exhaustiveness bar as a union declared in your own module: omit a kind and you
+// get E0200 rather than a run-time throw. The Glyph-side model lives in
+// `stdlib_type_fields` / `stdlib_union_variants` (glyph-typechecker); a field or
+// a kind added here has to be added there too.
 
 import { Result, Ok, Err } from "./result";
 import {

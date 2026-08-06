@@ -133,9 +133,9 @@ fn parse_ledger(text: string) -> Ledger {
   let errors: Array<RowError> = []
 
   // The header row is dropped before the loop, so index 0 is source line 2.
-  // The annotation is load-bearing: a two-binding `for` only binds a numeric
-  // index when the iterand's type is a visible `Array<T>`, and the type of a
-  // std-module call is not.
+  // The annotation is load-bearing: a two-binding `for` binds a numeric index
+  // only when the iterand's type is a visible `Array<T>`, and `array.slice`
+  // does not report one yet.
   let lines: Array<string> = array.slice(string.split(text, "\n"), 1)
 
   for i, raw in lines {

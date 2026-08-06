@@ -1313,8 +1313,14 @@ impl Printer {
                 self.push(">");
             }
             TypeExpr::Fn {
-                params, return_ty, ..
+                params,
+                return_ty,
+                is_async,
+                ..
             } => {
+                if *is_async {
+                    self.push("async ");
+                }
                 self.push("fn(");
                 for (i, p) in params.iter().enumerate() {
                     if i > 0 {

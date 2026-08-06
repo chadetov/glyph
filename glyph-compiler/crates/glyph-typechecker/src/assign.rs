@@ -24,7 +24,9 @@ use glyph_ast::{
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 
 use crate::lower::Lowerer;
-use crate::ty::{ty_display, FnParam, Primitive, RecordField, SymbolRef, Ty, UnionVariant};
+use crate::ty::{
+    ty_display, FnParam, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant,
+};
 use crate::type_map::TypeMap;
 use crate::TypeError;
 
@@ -1094,6 +1096,13 @@ impl Assigner<'_> {
             });
         }
 
+        if let Some(sig) = self.stdlib_string_fn_ty(module_key, field) {
+            return Some(sig);
+        }
+        if let Some(sig) = self.stdlib_array_fn_ty(module_key, field) {
+            return Some(sig);
+        }
+
         // (arity, ok, err, is_async)
         let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
             ("std/http", "get") => (
@@ -1138,6 +1147,18 @@ impl Assigner<'_> {
                 stdlib_named("fs", "FsError"),
                 false,
             ),
+            ("std/fs", "append_text") => (
+                2,
+                Ty::Prim(Primitive::Void),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            ("std/fs", "make_dir") => (
+                1,
+                Ty::Prim(Primitive::Void),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
             ("std/fs", "remove") => (
                 1,
                 Ty::Prim(Primitive::Void),
@@ -1170,6 +1191,112 @@ impl Assigner<'_> {
             params,
             return_ty: Arc::new(return_ty),
             is_async,
+        })
+    }
+
+    /// The signature of a `std/string` function whose arity is fixed.
+    ///
+    /// Returns only: every parameter stays `Unknown`, matching the invariant the
+    /// rest of this table keeps, so modeling `std/string` introduces no new
+    /// argument-type diagnostic. The value is the return — `string.split(s,
+    /// ",")` is now decidably an `Array<string>`, which is what lets a
+    /// two-binding `for` over it bind a numeric index instead of falling back to
+    /// the record (`Object.entries`) lowering, and what lets a `let` bound to it
+    /// carry an element type forward without a hand-written annotation.
+    ///
+    /// Deliberately absent: `slice`, `index_of`, `pad_start`, `pad_end`. Each
+    /// takes an optional trailing argument, and `Expr::Call` reports E0213
+    /// whenever `params.len() != args.len()`, so modeling them here would report
+    /// a false arity error on every call that omits the last argument. They are
+    /// modeled once that check understands a minimum and a maximum.
+    fn stdlib_string_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        if module_key != "std/string" {
+            return None;
+        }
+        let string = || Ty::Prim(Primitive::String);
+        let (arity, ret): (usize, Ty) = match field {
+            "from" => (1, string()),
+            "join" => (2, string()),
+            "split" => (2, self.stdlib_array_ty(string())?),
+            "len" => (1, Ty::Prim(Primitive::Number)),
+            "trim" | "trim_start" | "trim_end" | "lower" | "upper" => (1, string()),
+            "contains" | "starts_with" | "ends_with" => (2, Ty::Prim(Primitive::Bool)),
+            "repeat" => (2, string()),
+            "replace_all" => (3, string()),
+            _ => return None,
+        };
+        Some(Ty::Fn {
+            params: unknown_params(arity),
+            return_ty: Arc::new(ret),
+            is_async: false,
+        })
+    }
+
+    /// The signature of a `std/array` function whose arity is fixed.
+    ///
+    /// The element type travels as a `Ty::Param("T")`: `collect_type_param_bindings`
+    /// binds it from the argument (`Array<string>` against `Array<T>` gives `T =
+    /// string`) and `substitute_type_params` rewrites the return, so
+    /// `array.filter(names, is_short)` is an `Array<string>` with no new
+    /// machinery. `T` is placed on a parameter only where the *return* needs it;
+    /// every other parameter stays `Unknown`, so this adds no argument-type
+    /// diagnostic beyond "the first argument of an array function is an array".
+    /// An `Unknown` argument leaves `T` unbound, which still leaves the return an
+    /// `Array` — enough for the `for` lowering.
+    ///
+    /// Deliberately absent: `slice` (an optional trailing argument, as in
+    /// `stdlib_string_fn_ty`), and `map`/`flat_map`/`zip`, whose element type
+    /// comes from the callback's return — a position the unifier does not walk.
+    fn stdlib_array_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        if module_key != "std/array" {
+            return None;
+        }
+        let elem = || Ty::Param {
+            name: Ident::from("T"),
+            owner: ParamOwner::Unresolved,
+        };
+        let xs = self.stdlib_array_ty(elem())?;
+        let unknown = || FnParam {
+            name: None,
+            owned: false,
+            ty: Ty::Unknown,
+        };
+        let of = |ty: Ty| FnParam {
+            name: None,
+            owned: false,
+            ty,
+        };
+        let (params, ret): (Vec<FnParam>, Ty) = match field {
+            "len" => (unknown_params(1), Ty::Prim(Primitive::Number)),
+            "any" | "contains" => (unknown_params(2), Ty::Prim(Primitive::Bool)),
+            "index_of" => (
+                unknown_params(2),
+                self.stdlib_option_ty(Ty::Prim(Primitive::Number))?,
+            ),
+            "reverse" => (vec![of(xs.clone())], xs),
+            "push" | "concat" | "filter" | "sort" => (vec![of(xs.clone()), unknown()], xs),
+            "find" => (
+                vec![of(xs.clone()), unknown()],
+                self.stdlib_option_ty(elem())?,
+            ),
+            // `fold(xs, init, f) -> A`: the accumulator type comes from `init`,
+            // not from the element type, so `A` sits on the second parameter.
+            "fold" => {
+                let acc = Ty::Param {
+                    name: Ident::from("A"),
+                    owner: ParamOwner::Unresolved,
+                };
+                (
+                    vec![unknown(), of(acc.clone()), unknown()],
+                    acc,
+                )
+            }
+            _ => return None,
+        };
+        Some(Ty::Fn {
+            params,
+            return_ty: Arc::new(ret),
+            is_async: false,
         })
     }
 
@@ -2200,10 +2327,13 @@ impl Assigner<'_> {
     fn record_fields_of(&self, ty: &Ty) -> Option<Vec<RecordField>> {
         match ty {
             Ty::Record { fields } => Some(fields.clone()),
-            // A `Ty::Named` is a `type` record alias or a structural interface;
-            // both expose a member/field set for access and assignability.
-            Ty::Named { .. } => self
-                .named_record_fields(ty, &[])
+            // A `Ty::Named` is a `type` record alias, a structural interface, or
+            // a stdlib type the runtime ships (`fs.FsError`); all three expose a
+            // member/field set for access and assignability. The stdlib table
+            // goes first: its types carry a sentinel symbol that resolves to
+            // nothing, so the resolver-backed paths below can never see them.
+            Ty::Named { .. } => stdlib_type_fields(ty)
+                .or_else(|| self.named_record_fields(ty, &[]))
                 .or_else(|| self.interface_member_fields(ty)),
             Ty::App { base, args } => self.named_record_fields(base, args),
             _ => None,
@@ -2373,6 +2503,9 @@ impl Assigner<'_> {
     /// a prelude `Result` (`Ok`/`Err`) / `Option` (`Some`/`None`). Returns
     /// the display name and the required variant names. Otherwise None.
     fn required_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+        if let Some(found) = stdlib_union_variants(ty) {
+            return Some(found);
+        }
         if let Some(found) = self.named_union_variants(ty) {
             return Some(found);
         }
@@ -2475,6 +2608,9 @@ impl Assigner<'_> {
     /// substituted here (conservative: no recursion), since `resolve_named_union`
     /// requires a bare `Ty::Named`.
     fn variant_payload(&self, ty: &Ty, variant: &Ident) -> Option<Ty> {
+        if let Some(p) = stdlib_variant_payload(ty, variant) {
+            return Some(p);
+        }
         if let Some(p) = self.union_variant_payload(ty, variant) {
             return Some(p);
         }
@@ -2519,7 +2655,9 @@ fn is_irrefutable_pattern(p: &Pattern) -> bool {
 ///   or function type in either direction (a number is never an object or a
 ///   function); `void` is excluded, its assignability being subtler;
 /// - two function types are incompatible when their return types are (returns
-///   are covariant); parameter variance stays permissive;
+///   are covariant) or when one is `async` and the other is not (D40: an
+///   `async fn` emits `Promise<T>`, which is not the same value a sync `fn`
+///   returns); parameter variance stays permissive;
 /// - two structural records are incompatible when a shared field's types are, or
 ///   when `found` lacks a required field of `expected`; extra fields in `found`
 ///   are fine (width subtyping);
@@ -2554,10 +2692,30 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
         // assignable where a `void`-returning one is expected (callback
         // contravariance), and an un-annotated lambda's return currently infers
         // to the `void` stub, which must not be trusted as a real return type.
-        (Ty::Fn { return_ty: fr, .. }, Ty::Fn { return_ty: er, .. }) => {
+        //
+        // `is_async` is compared under the same guards (D40). An `async fn(A) ->
+        // T` emits `(a: A) => Promise<T>`, so a sync function of the same
+        // parameters and return is a different value, and the annotation is what
+        // says which one a position wants. Without this the distinction D40
+        // introduced would be enforced only by `tsc` (TS2322), never by Glyph.
+        // The `void` guard matters here too: TypeScript lets any function stand
+        // where a `void`-returning one is expected, so an `async` mismatch is not
+        // judged when either side returns `void`.
+        (
+            Ty::Fn {
+                return_ty: fr,
+                is_async: fa,
+                ..
+            },
+            Ty::Fn {
+                return_ty: er,
+                is_async: ea,
+                ..
+            },
+        ) => {
             !matches!(**fr, Ty::Prim(Primitive::Void))
                 && !matches!(**er, Ty::Prim(Primitive::Void))
-                && definitely_incompatible(fr, er)
+                && (fa != ea || definitely_incompatible(fr, er))
         }
         // Structural records: a shared field with incompatible types, or a
         // required field of `expected` that `found` lacks.
@@ -2596,6 +2754,119 @@ fn stdlib_named(module: &str, name: &str) -> Ty {
         symbol: SymbolRef(u32::MAX),
         path: vec![Ident::from(module), Ident::from(name)],
     }
+}
+
+/// The `Ty` for a stdlib type whose *shape* the tables below model, or `None`
+/// for every other stdlib type.
+///
+/// This is what `Lowerer` consults for a written `fs.FsError` annotation, and
+/// the restriction is the point: a stdlib type with no modeled shape keeps
+/// lowering to `Ty::Unknown`, so nothing the checker cannot judge becomes newly
+/// checked by this table growing an entry it has no fields for.
+pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
+    matches!(
+        (module, name),
+        ("fs", "FsError") | ("fs", "FileInfo") | ("fs", "ErrorKind")
+    )
+    .then(|| stdlib_named(module, name))
+}
+
+/// The two lexical segments of a stdlib type name (`fs.FsError` → `("fs",
+/// "FsError")`), or `None` for anything that is not one. Keys the three tables
+/// below off the `path` rather than the symbol, because `stdlib_named` gives
+/// every stdlib type the same `u32::MAX` sentinel.
+fn stdlib_type_path(ty: &Ty) -> Option<(&str, &str)> {
+    let Ty::Named { symbol, path } = ty else {
+        return None;
+    };
+    if symbol.0 != u32::MAX || path.len() != 2 {
+        return None;
+    }
+    Some((path[0].as_ref(), path[1].as_ref()))
+}
+
+/// The field set of a stdlib named type, read off the TypeScript the runtime
+/// ships. Without it a value of a stdlib type is an opaque blob: `e.kind` on an
+/// `fs.FsError` typed `Unknown`, so the `match` over it had an undecidable
+/// scrutinee and needed an `else` arm to be safe.
+///
+/// A field here that `runtime/std/fs.ts` does not declare would be a signature
+/// for a member that is not there, so the two are kept in step by hand — the
+/// same contract `descriptor_member_ty` keeps with the emitter.
+fn stdlib_type_fields(ty: &Ty) -> Option<Vec<RecordField>> {
+    let fields: Vec<(&str, Ty)> = match stdlib_type_path(ty)? {
+        ("fs", "FsError") => vec![
+            ("kind", stdlib_named("fs", "ErrorKind")),
+            ("message", Ty::Prim(Primitive::String)),
+        ],
+        ("fs", "FileInfo") => vec![
+            ("is_dir", Ty::Prim(Primitive::Bool)),
+            ("is_file", Ty::Prim(Primitive::Bool)),
+            ("size", Ty::Prim(Primitive::Number)),
+            ("modified", Ty::Prim(Primitive::Number)),
+        ],
+        _ => return None,
+    };
+    Some(
+        fields
+            .into_iter()
+            .map(|(name, ty)| RecordField {
+                name: Ident::from(name),
+                ty,
+                optional: false,
+            })
+            .collect(),
+    )
+}
+
+/// The variant set of a stdlib tagged union, in declaration order so the E0200
+/// message is reproducible. Feeds `required_variants`, which is what
+/// exhaustiveness (E0200), arm reachability (E0216) and the unknown-variant hint
+/// (E0220) all read, so one entry here makes `match e.kind { ... }` a checked
+/// match instead of a run-time throw.
+fn stdlib_union_variants(ty: &Ty) -> Option<(String, Vec<Ident>)> {
+    match stdlib_type_path(ty)? {
+        ("fs", "ErrorKind") => Some((
+            "fs.ErrorKind".to_string(),
+            vec![
+                "NotFound".into(),
+                "IsADirectory".into(),
+                "NotADirectory".into(),
+                "PermissionDenied".into(),
+                "AlreadyExists".into(),
+                "Other".into(),
+            ],
+        )),
+        _ => None,
+    }
+}
+
+/// The payload of a stdlib union variant. `fs.ErrorKind.Other` carries the raw
+/// errno, so `Other({ code })` binds `code` as a `string`.
+fn stdlib_variant_payload(ty: &Ty, variant: &Ident) -> Option<Ty> {
+    match (stdlib_type_path(ty)?, variant.as_ref()) {
+        (("fs", "ErrorKind"), "Other") => Some(Ty::Record {
+            fields: vec![RecordField {
+                name: Ident::from("code"),
+                ty: Ty::Prim(Primitive::String),
+                optional: false,
+            }],
+        }),
+        _ => None,
+    }
+}
+
+/// `n` parameters of unmodeled type — the arity-only shape most of the stdlib
+/// table uses, so a modeled return never drags a new argument-type diagnostic
+/// in with it.
+fn unknown_params(n: usize) -> Vec<FnParam> {
+    (0..n)
+        .map(|_| FnParam {
+            name: None,
+            owned: false,
+            ty: Ty::Unknown,
+        })
+        .collect()
 }
 
 fn ty_is_decidable(ty: &Ty) -> bool {
@@ -5312,6 +5583,107 @@ fn label(s: Status) -> string {
         assert!(!definitely_incompatible(&rec(num()), &rec(num())));
     }
 
+    #[test]
+    fn an_async_function_type_is_incompatible_with_a_sync_one() {
+        // D40: `async fn() -> T` emits `() => Promise<T>`. Comparing only the
+        // return type let a sync function stand where an async one was declared,
+        // leaving the distinction to `tsc`.
+        let num = || Ty::Prim(Primitive::Number);
+        let void = || Ty::Prim(Primitive::Void);
+        let func = |ret: Ty, is_async: bool| Ty::Fn {
+            params: vec![],
+            return_ty: Arc::new(ret),
+            is_async,
+        };
+
+        assert!(definitely_incompatible(
+            &func(num(), false),
+            &func(num(), true)
+        ));
+        assert!(definitely_incompatible(
+            &func(num(), true),
+            &func(num(), false)
+        ));
+        // Same asyncness, same return: compatible.
+        assert!(!definitely_incompatible(
+            &func(num(), true),
+            &func(num(), true)
+        ));
+        // A `void` return on either side keeps the whole arm permissive, so an
+        // asyncness mismatch is not judged there either.
+        assert!(!definitely_incompatible(
+            &func(void(), false),
+            &func(num(), true)
+        ));
+        assert!(!definitely_incompatible(
+            &func(num(), true),
+            &func(void(), false)
+        ));
+    }
+
+    #[test]
+    fn returning_a_sync_fn_where_an_async_fn_type_is_declared_is_flagged() {
+        let errs = errors_of(
+            "module x\nasync fn slow() -> number { return 1 }\n\
+             fn fast() -> number { return 1 }\n\
+             fn pick() -> async fn() -> number {\n  return fast\n}\n",
+        );
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::TypeMismatch { .. })),
+            "expected a return-type mismatch: {errs:?}"
+        );
+
+        let ok = errors_of(
+            "module x\nasync fn slow() -> number { return 1 }\n\
+             fn pick() -> async fn() -> number {\n  return slow\n}\n",
+        );
+        assert!(ok.is_empty(), "errs: {ok:?}");
+    }
+
+    #[test]
+    fn passing_a_sync_fn_into_an_async_fn_parameter_is_flagged() {
+        // The argument position, which reports E0211 rather than the return's
+        // E0204. Both directions are wrong: an async value does not fit a plain
+        // `fn` parameter either.
+        let src = "module x\nfn fast() -> number { return 1 }\n\
+                   async fn slow() -> number { return 2 }\n\
+                   fn takes_async(f: async fn() -> number) -> string { return \"ok\" }\n\
+                   fn takes_sync(f: fn() -> number) -> string { return \"ok\" }\n";
+        let bad = errors_of(&format!(
+            "{src}fn go() -> string {{\n  return takes_async(fast)\n}}\n"
+        ));
+        assert!(
+            bad.iter()
+                .any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "expected an argument-type mismatch: {bad:?}"
+        );
+        let reverse = errors_of(&format!(
+            "{src}fn go() -> string {{\n  return takes_sync(slow)\n}}\n"
+        ));
+        assert!(
+            reverse
+                .iter()
+                .any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+            "expected an argument-type mismatch: {reverse:?}"
+        );
+        let ok = errors_of(&format!(
+            "{src}fn go() -> string {{\n  return takes_async(slow)\n}}\n"
+        ));
+        assert!(ok.is_empty(), "errs: {ok:?}");
+    }
+
+    #[test]
+    fn an_async_lambda_satisfies_an_async_fn_type() {
+        // A lambda carries its own `async`, so the new comparison must not
+        // report a mismatch on the shape a caller actually writes.
+        let errs = errors_of(
+            "module x\nfn pick() -> async fn() -> number {\n  \
+             return async fn() { return 1 }\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
     // ----- E0222: `await` outside an `async fn` -----
 
     #[test]
@@ -5448,6 +5820,108 @@ fn label(s: Status) -> string {
             errs.iter()
                 .any(|e| matches!(e, TypeError::MatchArmProducesNoValue { .. })),
             "a nested value-position arm inherits the position: {errs:?}"
+        );
+    }
+
+    // ----- stdlib return types and stdlib named-type shapes -----
+
+    #[test]
+    fn string_split_types_as_an_array_of_string() {
+        // The headline of the modeled `std/string` table: without it the call
+        // typed `Unknown`, so a `let` bound to it needed a hand-written
+        // `Array<string>` annotation to iterate with an index.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/string\nfn f(text: string) -> void {\n  let parts = string.split(text, \",\")\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::App { base, args }
+                if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Array"))
+                    && args.first() == Some(&Ty::Prim(Primitive::String))),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn array_filter_carries_the_element_type_through() {
+        // The element type travels as a `Ty::Param` bound from the argument, so
+        // `array.filter(names, ...)` over an `Array<string>` is an
+        // `Array<string>` with no annotation.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/array\nfn short(s: string) -> bool { return true }\n             fn f(names: Array<string>) -> void {\n  let kept = array.filter(names, short)\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::App { args, .. } if args.first() == Some(&Ty::Prim(Primitive::String))),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn an_unmodeled_stdlib_call_still_types_unknown() {
+        // Phase 1 models a table, not the whole stdlib. `array.map`'s element
+        // type comes from the callback's return, which the unifier does not
+        // walk, so it is deliberately absent and stays permissive (G39).
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/array\nfn dup(s: string) -> string { return s }\n             fn f(names: Array<string>) -> void {\n  let out = array.map(names, dup)\n  return void\n}\n",
+        );
+        assert!(
+            matches!(tm.get(first_let_value_span_anywhere(&m)), Ty::Unknown),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    #[test]
+    fn a_modeled_stdlib_call_with_the_wrong_arity_errors() {
+        let errs = errors_of(
+            "module x\nimport std/string\nfn f(text: string) -> void {\n  let n = string.len(text, text)\n  return void\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::ArgumentCountMismatch { .. })),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn fs_error_kind_resolves_to_the_closed_union() {
+        // `e.kind` on a declared `fs.FsError` was `Unknown`, which is why a
+        // `match` over it needed an `else` arm. Covering every kind is now
+        // exhaustive on its own.
+        let errs = errors_of(
+            "module x\nimport std/fs\nfn reason(e: fs.FsError) -> string {\n  return match e.kind {\n             \x20   fs.ErrorKind.NotFound => \"missing\",\n             \x20   fs.ErrorKind.IsADirectory => \"dir\",\n             \x20   fs.ErrorKind.NotADirectory => \"not dir\",\n             \x20   fs.ErrorKind.PermissionDenied => \"denied\",\n             \x20   fs.ErrorKind.AlreadyExists => \"exists\",\n             \x20   fs.ErrorKind.Other({ code }) => code,\n  }\n}\n",
+        );
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn a_match_on_fs_error_kind_missing_a_variant_is_not_exhaustive() {
+        let errs = errors_of(
+            "module x\nimport std/fs\nfn reason(e: fs.FsError) -> string {\n  return match e.kind {\n             \x20   fs.ErrorKind.NotFound => \"missing\",\n             \x20   fs.ErrorKind.IsADirectory => \"dir\",\n             \x20   fs.ErrorKind.NotADirectory => \"not dir\",\n             \x20   fs.ErrorKind.AlreadyExists => \"exists\",\n             \x20   fs.ErrorKind.Other({ code }) => code,\n  }\n}\n",
+        );
+        let missing = errs.iter().find_map(|e| match e {
+            TypeError::NonExhaustiveMatch { type_name, missing, .. } => {
+                Some((type_name.clone(), missing.clone()))
+            }
+            _ => None,
+        });
+        assert_eq!(
+            missing,
+            Some(("fs.ErrorKind".to_string(), "`PermissionDenied`".to_string())),
+            "errs: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_typo_on_an_fs_error_field_is_reported() {
+        // The field model makes member access on a stdlib type checked, instead
+        // of leaving it to `tsc` on the emitted TypeScript.
+        let errs = errors_of(
+            "module x\nimport std/fs\nfn reason(e: fs.FsError) -> string {\n  return e.mesage\n}\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, .. } if field == "mesage")),
+            "errs: {errs:?}"
         );
     }
 }

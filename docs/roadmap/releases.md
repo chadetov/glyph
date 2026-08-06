@@ -1446,15 +1446,17 @@ rode on the deleted functions; the equivalent assertions are in
   means deciding whether `std/string` indexes UTF-16 code units, which is what
   `len` and `split` do today, or codepoints. The two answers disagree on any
   non-BMP string, and shipping both index spaces in one module is worse than
-  either. This is what keeps G50 at `[HALF FIXED]`, and it is the same root as
-  the `string.split(s, "")` bullet above.
+  either. Same root as the `string.split(s, "")` bullet above. *Decided in
+  0.1.53: UTF-16 code units, and no codepoint accessor. G50 reads `[DECIDED]`.*
 - **`iter.take_while`** (decision, then M). There is no `std/iter` module and
   never was. `std/stream` is a test-data generator, not a lazy sequence, so this
   is a design rather than a wrapper. D21's prose no longer cites the function.
 - **Model the two `index_of` returns in `stdlib_fn_ty`** (S). Unchanged from the
   linkcheck list above: a `match` on `index_of` with no `None` arm builds clean
   and throws at run time, and fixing it needs a min/max arity in the table
-  because `string.index_of` has an optional third argument.
+  because `string.index_of` has an optional third argument. *Half done in
+  0.1.53: `array.index_of` is modeled; `string.index_of` still waits on the
+  arity range.*
 
 ### 0.1.48 — Shipped · The link checker stops working around the stdlib
 
@@ -1923,6 +1925,96 @@ that the boundary is checked by the same rules everywhere, and it was not.
   which is the same shape of miss as the width check stopping at the closing
   delimiter. It is what puts the two new `map_err` lambdas in `bracket.glyph`
   over 100 columns.
+
+### 0.1.53 — Shipped · The checker knows what the stdlib returns
+
+Five entries off the backlog, four of them closed. The theme is the same one
+under G39, G37 and G47: the typechecker modeled stdlib function *signatures* and
+nothing about stdlib *types*, so a value that came out of `std/string`,
+`std/array` or `std/fs` was an opaque blob the moment it left the call.
+
+`stdlib_fn_ty` now models the fixed-arity half of `std/string` (14 of its 18
+exports) and `std/array` (11), returns first: `string.split` is an `Array<string>`,
+`string.starts_with` is a `bool`, `array.find` is an `Option<T>`. The element
+type travels on a `Ty::Param` bound from the first argument, which the existing
+unifier already handles, so `array.filter(names, keep)` over an `Array<string>`
+is an `Array<string>`. That closes the half of G37 that was a decision: `for i,
+part in string.split(text, ",")` emits `.entries()` and binds a number with no
+annotation.
+
+The other half is new: a shape model for a stdlib named type. `fs.FsError`,
+`fs.FileInfo` and `fs.ErrorKind` have field sets, a variant set, and a payload,
+hooked into the same `record_fields_of` / `required_variants` /
+`variant_payload` the checker uses for a union you declared yourself, and a
+written `fs.FsError` annotation lowers to that type instead of `Unknown`. So
+`match e.kind` on an fs error is exhaustively checked (E0200 naming
+`fs.ErrorKind`), `fs.ErrorKind.Other({ code })` binds `code` as a `string`, and
+`e.mesage` is E0210 rather than a `tsc` error. That is G47's remaining half.
+
+The exhaustiveness claim only holds for the functions the table carries, and the
+first cut of it carried five of the seven `Result`-returning `std/fs` exports.
+`fs.append_text` and `fs.make_dir` typed `Unknown`, so a one-arm `match e.kind`
+on either built clean, passed `tsc --strict`, and threw `non-exhaustive match` at
+run time. Both are modeled now, and
+`glyph-typechecker/tests/stdlib_model.rs` asserts that every `Result`-returning
+export under `runtime/std/*.ts` is either in the table or on an exclusion list
+carrying its reason, so a doc that generalizes over the table cannot outrun it
+again.
+
+D40 adds the `async fn(A, B) -> T` function type (G45), which emits `(a0: A, a1:
+B) => Promise<T>`. Before it, a handler map or a function returning an async
+thunk could not be annotated at all. Glyph's own checker enforces the
+distinction: `definitely_incompatible` compares `is_async`, so a plain `fn() ->
+T` where an `async fn() -> T` is expected is E0204 at a return and E0211 at a
+call argument, rather than a TS2322 from `tsc` on the emitted TypeScript. The
+diagnostic says `expected async function, found function`. And D12 was rewritten
+to describe both
+string spellings the lexer accepts (G61): `"..."` decodes escapes, `"""..."""`
+does not, both interpolate, and `"""` is legal anywhere a string is. Removing a
+form would break working code, so the spec was what was wrong.
+
+G50's codepoint half closed as a decision, not code. Glyph strings index by
+UTF-16 code unit and will keep doing so; `chars` and `char_at` are not shipping,
+because an accessor that can split a surrogate pair is worse than none. A
+program that needs codepoints encodes to bytes with `encoding.hex_encode` and
+walks pairs, as `examples/apps/shortlink.glyph` does. No workaround comes out of
+any app for that one; the hex walk is now the documented answer.
+
+Pillar: verifiability. Every item above moves a check that `tsc` was doing (or
+that nothing was doing) to Glyph's own checker, at the boundary where the
+manifesto's no-`any` promise is made.
+
+### Still open after this release
+
+- **Phase 2 of G39** — hard-erroring on the `Unknown`s that remain. Member
+  access, call arity and argument types against a receiver that is still
+  `Ty::Unknown` at a stdlib boundary (`s.pusj(x)`, a wrong-arity call into an
+  unmodeled namespace) are all still silent. Includes the decision of whether an
+  unknown-typed iterand is an error or defaults to the array lowering. G39 stays
+  open for exactly this.
+- **Optional-trailing-argument arity in the stdlib table** (S, then unblocks
+  six functions). `Expr::Call` reports E0213 on `params.len() != args.len()`, so
+  `array.slice`, `string.slice`, `string.index_of`, `string.pad_start`,
+  `string.pad_end` and `json.stringify` cannot be modeled without a false error
+  on every call that omits the last argument. Three shapes: an `optional: bool`
+  on `Ty::FnParam`; a min-arity returned alongside the signature so optionality
+  never enters the type representation; or marking stdlib-sourced `Ty::Fn`s
+  arity-unchecked and buying return types only. This is what keeps `for i, raw
+  in array.slice(lines, 1)` needing its annotation in `expenses.glyph`.
+- **The element type of `array.map` / `flat_map` / `zip`**, which comes from the
+  callback's return. `collect_type_param_bindings` walks `Param` positions and
+  `App` arguments, not into `Ty::Fn`. Extending it would resolve `U` for a named
+  callback, but an unannotated lambda's return lowers to `void`, so the walk has
+  to refuse to bind from one or it manufactures false diagnostics. The cheaper
+  answer is modeling these three as returning an `Array` with an unbound element
+  type, which fixes the `for` lowering and asserts nothing false.
+- **Whether modeled stdlib parameters get real scalar types.** Today only
+  `Array<T>` and `T` are typed, keeping the table's "no new argument-type
+  diagnostic" invariant, so `string.len(42)` is still not an E0211. Typing them
+  is the same class of hard error as phase 2 and belongs with it.
+- **Where the `iter.take_while` / `std/iter` question lives** now that G50 reads
+  `[DECIDED]`. The decision covers the codepoint half only; the note says so, but
+  the item has no home of its own.
 
 ## Road to 1.0
 

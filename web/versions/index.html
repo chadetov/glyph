@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.52</span>
+            <span class="rel-ver">0.1.53</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The checker knows what the standard library returns</h3>
+            <p>Glyph's typechecker modeled the standard library's function signatures and nothing about its types, so a value stopped having a type the moment it came out of <code>std/string</code>, <code>std/array</code> or <code>std/fs</code>. You noticed it as a loop index that was a string, or a <code>match</code> on a filesystem error that nothing checked.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> Return types for the fixed-arity half of <code>std/string</code> and <code>std/array</code>. <code>string.split</code> is an <code>Array&lt;string&gt;</code>, <code>string.starts_with</code> is a <code>bool</code>, <code>array.find</code> is an <code>Option&lt;T&gt;</code>, and the element type travels, so <code>array.filter(names, keep)</code> over an <code>Array&lt;string&gt;</code> stays one. The visible payoff is the loop: <code>for i, part in string.split(text, ",")</code> binds <code>i</code> as a number with no annotation, where before it took the record lowering and handed you a string key.</li>
+              <li><span class="tag fixed">Fixed</span> A <code>match e.kind</code> on an <code>fs.FsError</code> is exhaustively checked. <code>fs.ErrorKind</code> is a closed set of six, and the checker now carries its variants and its payload, so covering all six needs no <code>else</code> arm, leaving one out is <code>E0200</code> naming <code>fs.ErrorKind</code>, and <code>fs.ErrorKind.Other({ code })</code> binds <code>code</code> as a string. A typo like <code>e.mesage</code> is <code>E0210</code> against your Glyph source instead of a <code>tsc</code> error against generated TypeScript. <code>fs.FsError</code> and <code>fs.FileInfo</code> have the same treatment.</li>
+              <li><span class="tag added">Added</span> <code>async fn(A, B) -&gt; T</code> is a type you can write, wherever a type goes. It emits <code>(a0: A, a1: B) =&gt; Promise&lt;T&gt;</code>. Before this a function returning an async thunk or a record of async handlers could not be annotated at all, because a plain <code>fn() -&gt; T</code> emits <code>() =&gt; T</code> and an async body does not fit it. The two are held apart by Glyph, not by <code>tsc</code>: a plain function where an async one is expected is <code>E0204</code> at a return and <code>E0211</code> at a call argument.</li>
+              <li><span class="tag fixed">Fixed</span> The spec now describes both string forms the compiler has always accepted. <code>"..."</code> decodes escapes, <code>"""..."""</code> does not, both interpolate, and <code>"""</code> is legal anywhere a string is rather than only after <code>@doc</code>. Nothing about the compiler changed here; the documentation was wrong about the language.</li>
+              <li><span class="tag known">Known</span> Six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) plus <code>array.map</code>, <code>flat_map</code> and <code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. The arity check compares one number against one number and has to learn a range first.</li>
+              <li><span class="tag known">Known</span> Strings index by UTF-16 code unit and will keep doing so. There is no <code>chars</code> or <code>char_at</code> and none is planned, because an accessor that can return half of a surrogate pair is worse than no accessor. To walk codepoints, encode with <code>encoding.hex_encode</code> and read two hex digits at a time.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.52</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

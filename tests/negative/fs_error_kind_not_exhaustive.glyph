@@ -1,0 +1,16 @@
+module neg
+
+import std/fs
+
+// `fs.ErrorKind` is a closed set of six kinds. Covering five of them and no
+// `else` arm is a non-exhaustive match, the same bar a module-local union is
+// held to.
+fn reason(e: fs.FsError) -> string {
+  return match e.kind {
+    fs.ErrorKind.NotFound => "no such file or directory",
+    fs.ErrorKind.PermissionDenied => "permission denied",
+    fs.ErrorKind.IsADirectory => "is a directory",
+    fs.ErrorKind.NotADirectory => "not a directory",
+    fs.ErrorKind.AlreadyExists => "already exists",
+  }
+}

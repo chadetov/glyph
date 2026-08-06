@@ -56,7 +56,7 @@ fn flush_hex(pending: string) -> string {
 }
 
 fn percent_decode(input: string) -> string {
-  let parts: Array<string> = string.split(input, "%")
+  let parts = string.split(input, "%")
   let out = parts[0]
   let pending = ""
   for part in array.slice(parts, 1) {
@@ -236,13 +236,13 @@ fn fresh_code(current: Array<Link>) -> Result<string, string> {
 
 // The host of an absolute http(s) URL, or "" when there isn't one.
 fn host_of(url: string) -> string {
-  let after_scheme: Array<string> = string.split(url, "://")
+  let after_scheme = string.split(url, "://")
   return match array.len(after_scheme) < 2 {
     true => "",
     false => {
-      let authority: Array<string> = string.split(after_scheme[1], "/")
-      let no_query: Array<string> = string.split(authority[0], "?")
-      let no_hash: Array<string> = string.split(no_query[0], "#")
+      let authority = string.split(after_scheme[1], "/")
+      let no_query = string.split(authority[0], "?")
+      let no_hash = string.split(no_query[0], "#")
       no_hash[0]
     },
   }
@@ -442,7 +442,7 @@ fn stats_code(segment: string) -> Option<string> {
   return match string.ends_with(segment, "+") {
     false => None,
     true => {
-      let head: Array<string> = string.split(segment, "+")
+      let head = string.split(segment, "+")
       match string.len(head[0]) == 0 {
         true => None,
         false => Some(head[0]),

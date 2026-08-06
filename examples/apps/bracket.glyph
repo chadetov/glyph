@@ -571,10 +571,7 @@ fn blank_grid(rows: int, cols: int) -> Array<Array<string>> {
 }
 
 fn put(grid: Array<Array<string>>, row: int, col: int, text: string) -> void {
-  // The annotation is load-bearing: `for i, x in` over a binding whose type the
-  // emitter cannot see lowers to `Object.entries`, which makes `i` a string.
-  let chars: Array<string> = string.split(text, "")
-  for i, c in chars {
+  for i, c in string.split(text, "") {
     mut grid[row][col + i] = c
   }
 }

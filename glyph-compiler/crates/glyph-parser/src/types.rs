@@ -130,7 +130,7 @@ pub(crate) fn parse_type_decl_body(p: &mut Cursor) -> Result<TypeExpr, ParseErro
 fn parse_atom_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     match p.peek() {
         Token::LBrace => parse_record_type(p),
-        Token::Fn => parse_fn_type(p),
+        Token::Fn | Token::Async => parse_fn_type(p),
         Token::Identifier(_) | Token::Void => parse_path_type(p),
         // A bare string literal in type position is a one-element string-literal
         // union (`type X = "free"`); `parse_type` merges further `| "..."`.
@@ -291,8 +291,20 @@ fn parse_record_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     })
 }
 
+/// `fn(...) -> T` and, per D40, `async fn(...) -> T`. `async` alone is not a
+/// type: the `fn` after it is required, so `async` in type position that is not
+/// followed by `fn` is a plain "expected `fn`" error rather than a silent
+/// reinterpretation.
 fn parse_fn_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
-    let start = p.expect(&Token::Fn, "`fn`")?;
+    let (is_async, start) = if matches!(p.peek(), Token::Async) {
+        let a = p.peek_span();
+        p.advance();
+        (true, a)
+    } else {
+        (false, p.peek_span())
+    };
+    let fn_kw = p.expect(&Token::Fn, "`fn`")?;
+    let start = if is_async { start } else { fn_kw };
     p.expect(&Token::LParen, "`(` after `fn` in type")?;
     // Each param is `name: T` or bare `T`. Decided by lookahead at `peek_at(1)`.
     let params = p.parse_comma_separated(&Token::RParen, false, |p| {
@@ -323,6 +335,7 @@ fn parse_fn_type(p: &mut Cursor) -> Result<TypeExpr, ParseError> {
     Ok(TypeExpr::Fn {
         params,
         return_ty,
+        is_async,
         span: Span::new(start.start, end),
     })
 }

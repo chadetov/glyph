@@ -116,6 +116,12 @@ string.trim_end(s: string) -> string
 
 Indices are UTF-16 code units, the same space `len` and `split` use, and
 negative `slice` indices count back from the end exactly as `array.slice` does.
+That is the whole model, and it is not going to change: there is no codepoint
+accessor and none is planned, because an accessor that can hand back half of a
+surrogate pair is worse than no accessor at all. A program that has to walk
+codepoints (a percent-encoder, a width calculator) encodes to bytes first with
+`encoding.hex_encode` and reads two hex digits at a time; `examples/apps/shortlink.glyph`
+does exactly that in its slug encoder.
 Two functions diverge from their TypeScript namesakes on purpose: `repeat`
 clamps a negative count to `""` where TS throws, which is what makes
 `repeat(pad, width - len(s))` safe, and `index_of` returns `None` instead of
@@ -123,13 +129,16 @@ clamps a negative count to `""` where TS throws, which is what makes
 `pad_start` and `pad_end` leave a string that is already at least `width` long
 untouched, and default the pad to a single space.
 
-One limit on the two `index_of` functions. The `Option` return is what stops you
-using the result as a number without unwrapping, and `tsc` is what enforces
-that. Glyph's own checker does not model either return yet, so a `match` on
-`index_of` that leaves out the `None` arm is not an E0200: it builds clean and
-throws `non-exhaustive match` at run time. Write the `None` arm. The functions
-whose `Option` the exhaustiveness checker does understand today are
-`http.header`, `http.query_param`, and `json.discriminant`.
+One limit on `string.index_of`. Glyph's checker models the return type of most
+`std/string` and `std/array` functions, so a `match` that leaves out the `None`
+arm is an E0200. The six functions with an optional trailing argument
+(`string.slice`, `string.index_of`, `string.pad_start`, `string.pad_end`,
+`array.slice`, `json.stringify`) are the exception. The arity check compares one
+number against one number, so modeling them would report a false error on every
+call that omits the last argument, and until it learns a range they stay
+untyped. A `match` on `string.index_of` that omits the `None` arm therefore
+builds clean and throws at run time; write the arm. `array.index_of` is modeled
+and does report E0200.
 
 ## std/io
 
@@ -179,10 +188,25 @@ fs.stat(path: string) -> Result<FileInfo, FsError>                        // fol
 
 The five named kinds cover what a filesystem program recovers from. EACCES and
 EPERM both arrive as `PermissionDenied`, so those two raw codes are the ones you
-cannot recover; every other unnamed errno keeps its code on `Other`. Glyph does
-not check a `match e.kind` for exhaustiveness yet (the typechecker models stdlib
-function returns, not stdlib type shapes), so write an `else` arm: an omitted
-kind throws at run time rather than failing the build.
+cannot recover; every other unnamed errno keeps its code on `Other`. The
+typechecker knows this shape, so a `match e.kind` is held to the same
+exhaustiveness bar as a union you declared yourself: cover all six kinds and no
+`else` arm is needed, omit one and the build fails with E0200 on
+`fs.ErrorKind`. `e.kind` and `e.message` are checked members too, so a typo is
+E0210 rather than a `tsc` error.
+
+```
+fn reason(e: fs.FsError) -> string {
+  return match e.kind {
+    fs.ErrorKind.NotFound => "no such file or directory",
+    fs.ErrorKind.PermissionDenied => "permission denied",
+    fs.ErrorKind.IsADirectory => "is a directory",
+    fs.ErrorKind.NotADirectory => "not a directory",
+    fs.ErrorKind.AlreadyExists => "already exists",
+    fs.ErrorKind.Other({ code }) => "unrecognized error ${code}",
+  }
+}
+```
 
 `read_dir` returns names in whatever order the OS gives, which differs across
 platforms and filesystems. Sort them when the output has to be reproducible.

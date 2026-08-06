@@ -62,7 +62,7 @@ member access (`{ default: v }`, `x.new`) are unaffected.
 
 | Code | Meaning |
 |------|---------|
-| `E0200` | Non-exhaustive `match` on a tagged union, or a string-literal union (`"free" \| "pro"`, D30) missing a literal |
+| `E0200` | Non-exhaustive `match` on a tagged union (yours, a prelude `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a string-literal union (`"free" \| "pro"`, D30) missing a literal |
 | `E0201` | `?` used outside a `Result`-returning function |
 | `E0202` | `?` applied to a non-`Result` operand |
 | `E0203` | `?` error type does not match the function's `E` (no `From` in v1) |

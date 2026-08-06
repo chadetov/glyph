@@ -672,10 +672,13 @@ pub enum TypeExpr {
         args: Vec<TypeExpr>,
         span: Span,
     },
-    /// `fn(x: T) -> U` function type. Day 4+ may extend; the v0 shape is final.
+    /// `fn(x: T) -> U` function type, or `async fn(x: T) -> U` (D40). The
+    /// `is_async` flag is `false` for the plain form, so adding it changed no
+    /// existing parse tree.
     Fn {
         params: Vec<FnTypeParam>,
         return_ty: Option<Box<TypeExpr>>,
+        is_async: bool,
         span: Span,
     },
     /// Inline record type literal: `{ field: type, ... }`.

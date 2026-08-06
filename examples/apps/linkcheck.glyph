@@ -190,7 +190,7 @@ fn keeps_in_slug(c: string) -> bool {
 fn heading_slugs(text: string) -> Array<string> {
   let slugs: Array<string> = []
   let in_fence = false
-  let lines: Array<string> = string.split(text, NEWLINE)
+  let lines = string.split(text, NEWLINE)
   for raw in lines {
     let line = string.trim(raw)
     let fence = is_fence(line)
@@ -421,7 +421,7 @@ fn all_letters(s: string) -> bool {
 }
 
 fn relative_kind(target: string) -> LinkKind {
-  let parts: Array<string> = string.split(target, HASH)
+  let parts = string.split(target, HASH)
   let head = string.join(array.slice(parts, 0, 1), EMPTY)
   let tail = string.join(array.slice(parts, 1, array.len(parts)), HASH)
   return match string.contains(head, SPACE) {
@@ -651,9 +651,8 @@ fn load_entry(acc: Loaded, p: string) -> Loaded {
 
 // Why an fs call failed, named by kind. Each arm is a variant of `fs.ErrorKind`,
 // so the reason is recovered from the error's own vocabulary instead of from an
-// errno string. The `else` arm covers `Other({ code })` and is required: Glyph
-// does not yet check a `match e.kind` for exhaustiveness, so an omitted kind
-// would be a run-time throw rather than an E0200.
+// errno string. The match is exhaustive and checked: drop an arm and the build
+// fails with E0200 rather than throwing at run time.
 fn fs_reason(e: fs.FsError) -> string {
   return match e.kind {
     fs.ErrorKind.NotFound => "no such file or directory",
@@ -661,7 +660,7 @@ fn fs_reason(e: fs.FsError) -> string {
     fs.ErrorKind.IsADirectory => "is a directory",
     fs.ErrorKind.NotADirectory => "not a directory",
     fs.ErrorKind.AlreadyExists => "already exists",
-    else => e.message,
+    fs.ErrorKind.Other({ code }) => "${e.message} (${code})",
   }
 }
 
@@ -723,9 +722,7 @@ fn unique_external(links: Array<Link>) -> Array<string> {
   return urls
 }
 
-// No return annotation: a Glyph function type cannot spell an async thunk, and
-// `-> fn() -> Fetched` emits `() => Fetched`, which the async body does not fit.
-fn task_for(url: string) {
+fn task_for(url: string) -> async fn() -> Fetched {
   return async fn() -> Fetched { return { url: url, outcome: await check_external(url) } }
 }
 
@@ -901,7 +898,7 @@ fn parse_args(argv: Array<string>) -> Result<Args, ArgError> {
       false => { break },
       true => {
         let arg = argv[i]
-        let split: Array<string> = string.split(arg, "=")
+        let split = string.split(arg, "=")
         let name = string.join(array.slice(split, 0, 1), EMPTY)
         let inline_value = string.join(array.slice(split, 1, array.len(split)), "=")
         match name {

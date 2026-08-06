@@ -190,6 +190,19 @@ let double = fn(n: number) -> number { n * 2 }   // tail expression is the retur
 let log = fn(s: string) -> void { io.println(s) }
 ```
 
+A function type is written the same way, and `async fn(...) -> T` is the type of
+one you have to await:
+
+```glyph
+fn apply(f: fn(number) -> number, n: number) -> number { return f(n) }
+fn task_for(url: string) -> async fn() -> Fetched {
+  return async fn() -> Fetched { return { url: url, outcome: await check(url) } }
+}
+```
+
+A plain `fn() -> T` emits `() => T`, so an async value does not fit it. Write the
+`async` out.
+
 ### `Result` / `Option` and the `?` operator
 
 ```glyph
@@ -275,10 +288,13 @@ let usage = "usage: report <file>
 "
 ```
 
-One caveat before you reach for it: `glyph fmt` preserves that layout only while
-the string has no `${...}` in it. An interpolating string is reprinted from its
-parts, and the raw newlines come back as `\n`. Write the multi-line form when the
-string is plain text; use `\n` when it interpolates, or `fmt` will do it for you.
+There is a second spelling, `"""..."""`, which is raw: escapes are not decoded,
+so a `\n` inside one stays a backslash and an `n`. Everything else is the same,
+including interpolation — `"""a ${b}"""` interpolates just like `"a ${b}"`. Reach
+for it when the text is full of backslashes or quotes (a regex, a snippet of
+another language, a `@doc` block). `glyph fmt` copies a multi-line `"""` literal
+through verbatim; a single-line one that interpolates comes back in the ordinary
+`"..."` spelling, same content.
 
 ## The standard library (full surface)
 
@@ -365,9 +381,17 @@ Argument order: every module except `std/regex` takes the subject first;
 parameter of all four is a `string`, so a swap compiles and prints the wrong
 thing.
 
-Both `index_of` functions return `Option`, which `tsc` enforces, but Glyph does
-not model their return type yet: a `match` on `index_of` with no `None` arm is
-not an E0200 and throws at run time. Write the `None` arm.
+Indices are UTF-16 code units, and there is no codepoint accessor (no `chars`,
+no `char_at`) by design: one that can split a surrogate pair is worse than none.
+Walk codepoints by encoding to bytes with `encoding.hex_encode` and reading two
+hex digits at a time.
+
+Glyph models the return type of these functions, so `for i, part in string.split(s, ",")`
+binds a numeric index with no annotation. The six with a `?` parameter
+(`string.slice`, `string.index_of`, `string.pad_start`, `string.pad_end`,
+`array.slice`, `json.stringify`) are the exception: the arity check has no range
+yet, so they stay untyped. That means a `match` on `string.index_of` with no
+`None` arm is not an E0200 and throws at run time. Write the `None` arm.
 
 ### std/io
 
@@ -476,8 +500,10 @@ fs.is_dir(path) -> bool                                   // false for a missing
 fs.stat(path) -> Result<FileInfo, FsError>                // follows symlinks
 ```
 
-`match e.kind` is not checked for exhaustiveness, so keep an `else` arm. Walk a
-tree with `read_dir` + `is_dir` + `path.join`; there is no `walk` helper.
+`match e.kind` is checked for exhaustiveness like any union you declared: cover
+all six kinds (including `fs.ErrorKind.Other({ code })`) and you need no `else`
+arm; omit one and the build fails with E0200. Walk a tree with `read_dir` +
+`is_dir` + `path.join`; there is no `walk` helper.
 
 ### std/process
 

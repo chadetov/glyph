@@ -35,7 +35,7 @@ KNOWN = FIXED | PARTIAL | SETTLED
 ENTRY = re.compile(r"\*\*G(\d+)\.\s*(\[[^\]]*\])?")
 COUNTS = re.compile(
     r"of (\d+) entries, (\d+) are fixed, (\d+) are partly fixed, "
-    r"(\d+) are decided or resolved, and (\d+) are open",
+    r"(\d+) are decided or resolved, and (\d+) (?:are|is) open",
 )
 
 

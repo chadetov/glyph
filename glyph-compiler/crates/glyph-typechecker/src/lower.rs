@@ -32,7 +32,15 @@ impl<'a> Lowerer<'a> {
         match te {
             TypeExpr::Path { segments, span } => {
                 if segments.len() != 1 {
-                    return Ty::Unknown;
+                    // A two-segment path through a stdlib namespace import
+                    // (`fs.FsError`) names a type the runtime ships. The checker
+                    // models the shape of a few of them, and lowering those to
+                    // the same synthetic `Ty::Named` the stdlib return-type
+                    // table produces is what makes `e.kind` on a declared
+                    // `fs.FsError` parameter resolve to the closed `ErrorKind`
+                    // union instead of `Unknown`. Everything else stays
+                    // `Unknown`, which is the pre-existing behaviour.
+                    return self.stdlib_path_ty(segments, *span).unwrap_or(Ty::Unknown);
                 }
                 let head = &segments[0];
                 match self.resolved.resolutions.get(*span) {
@@ -70,7 +78,10 @@ impl<'a> Lowerer<'a> {
                 args: args.iter().map(|a| self.lower(a)).collect(),
             },
             TypeExpr::Fn {
-                params, return_ty, ..
+                params,
+                return_ty,
+                is_async,
+                ..
             } => Ty::Fn {
                 params: params
                     .iter()
@@ -88,7 +99,7 @@ impl<'a> Lowerer<'a> {
                         .map(|rt| self.lower(rt))
                         .unwrap_or(Ty::Prim(Primitive::Void)),
                 ),
-                is_async: false,
+                is_async: *is_async,
             },
             TypeExpr::Record { fields, .. } => Ty::Record {
                 fields: fields
@@ -167,6 +178,27 @@ impl<'a> Lowerer<'a> {
             Decl::Component(c) => self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false),
             Decl::Import(_) | Decl::Type(_) | Decl::Const(_) | Decl::Interface(_) => Ty::Unknown,
         }
+    }
+
+    /// The `Ty` for `ns.Name` when `ns` is a namespace import of a stdlib
+    /// module (`import std/fs`, `import std/fs as f`) and `Name` is one of the
+    /// stdlib types the checker models the shape of. The module is read from the
+    /// import's own path, so an alias resolves the same as the plain form.
+    /// `None` for any other two-segment path, which keeps lowering to `Unknown`.
+    fn stdlib_path_ty(&self, segments: &[Ident], span: glyph_ast::Span) -> Option<Ty> {
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let path = match &sym.kind {
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => path,
+            _ => return None,
+        };
+        let key: Vec<&str> = path.segments.iter().map(|s| s.as_ref()).collect();
+        let ["std", module] = key.as_slice() else {
+            return None;
+        };
+        crate::assign::stdlib_modeled_type(module, segments.get(1)?.as_ref())
     }
 
     /// If `name` is a prelude container type (`Result`, `Option`, `Array`,

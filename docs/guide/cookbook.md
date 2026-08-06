@@ -60,16 +60,17 @@ fn reason(e: fs.FsError) -> string {
   return match e.kind {
     fs.ErrorKind.NotFound => "no such path",
     fs.ErrorKind.IsADirectory => "that is a directory",
+    fs.ErrorKind.NotADirectory => "that is not a directory",
     fs.ErrorKind.PermissionDenied => "cannot read it",
+    fs.ErrorKind.AlreadyExists => "it is already there",
     fs.ErrorKind.Other({ code }) => "errno ${code}",
-    else => e.message,
   }
 }
 ```
 
-The `else` arm is not optional. Glyph does not check a `match` on a stdlib type
-for exhaustiveness yet, so a kind you leave out compiles clean and throws at run
-time rather than failing the build.
+No `else` arm, and none is needed: `fs.ErrorKind` is a closed set of six kinds
+and the checker knows it, so leaving one out is E0200 rather than a run-time
+throw.
 
 ## Parse untrusted JSON into a validated type
 
@@ -213,9 +214,41 @@ async fn check_all(urls: Array<string>) -> void {
 
 Outcomes come back in the order the tasks went in, so the nth outcome belongs to
 the nth URL. The counter is hand-rolled rather than `for i, s in outcomes`
-because `outcomes` came out of a stdlib call the checker does not model, which is
-the G37 case in the index-loop recipe below. A failed task's `error` is
-`unknown`; read it with `string.from`.
+because `outcomes` came out of `task.pool_settled`, which the checker does not
+model, and an iterand with no type binds a string index. See the index-loop
+recipe below. A failed task's `error` is `unknown`; read it with `string.from`.
+
+## Give an async callback a type
+
+`fn(A) -> T` emits `(a: A) => T`, which an async body does not fit, so a function
+that hands back a deferred task or a record of async handlers used to go
+unannotated. `async fn(A) -> T` is the type for it: it emits `(a0: A) =>
+Promise<T>`, and `async fn()` with no return type emits `() => Promise<void>`.
+Write it anywhere a type goes.
+
+```glyph
+import std/option { Some, None }
+import std/record
+
+type Handler = async fn(string) -> string
+
+fn task_for(url: string) -> async fn() -> Fetched {
+  return async fn() -> Fetched { return { url: url, body: await fetch_one(url) } }
+}
+
+async fn dispatch(routes: Record<string, Handler>, name: string, arg: string) -> string {
+  return match record.get(routes, name) {
+    Some(h) => await h(arg),
+    None => "no route",
+  }
+}
+```
+
+Glyph checks the distinction itself instead of leaving it to `tsc`: a plain
+`fn() -> T` where an `async fn() -> T` is expected is E0204 at a return and E0211
+at a call argument, and the message says `expected async function, found
+function`. A `void` return is the one case it lets pass in both directions,
+because TypeScript accepts any function there.
 
 ## Pull the capture groups out of every match
 
@@ -292,15 +325,19 @@ fn print_all(items: Array<string>) -> void {
 A second binding gives you the position without a hand-rolled counter. Over an
 array it is the numeric index; over a `Record` it is the string key.
 
-The emitter picks the array lowering from the iterand's type, and there is one
-place it still cannot see one: a call into a stdlib function the checker does not
-model. `for i, x in array.slice(xs, 1)` hands you the *string* `"0"` and nothing
-fails, so bind it first: `let ys: Array<string> = array.slice(xs, 1)`, then loop
-over `ys`. Tracked in `docs/dogfooding-gaps.md` as G37.
+The emitter picks the array lowering from the iterand's type. Most stdlib calls
+carry one, so `for i, part in string.split(text, ",")` and `for i, x in
+array.filter(xs, keep)` bind a number directly. The exceptions are the calls the
+checker still cannot type: `array.slice` and `string.slice` (an optional trailing
+argument the arity check cannot express yet) and `array.map`/`flat_map`/`zip`
+(their element type comes from the callback). `for i, x in array.slice(xs, 1)`
+hands you the *string* `"0"` and nothing fails, so bind it first: `let ys:
+Array<string> = array.slice(xs, 1)`, then loop over `ys`. Tracked in
+`docs/dogfooding-gaps.md` as G37.
 
 You do not need the annotation for a value that came out of a `match` or out of
-`T.parse`. Those carry their type, so `for i, e in ledger.expenses` below binds a
-number.
+`T.parse` either. Those carry their type, so `for i, e in ledger.expenses` below
+binds a number.
 
 ```glyph
 import std/io
@@ -437,9 +474,11 @@ fn after_colon(line: string) -> string {
 }
 ```
 
-Write the `None` arm. Glyph's own checker does not model these two return types
-yet, so a `match` that leaves it out builds clean, passes `tsc --strict`, and
-throws `non-exhaustive match` at run time.
+Write the `None` arm. `string.index_of` is one of the six stdlib functions with
+an optional trailing argument, which the checker cannot model until the arity
+check learns a range, so a `match` that leaves the arm out builds clean, passes
+`tsc --strict`, and throws `non-exhaustive match` at run time. `array.index_of`
+is modeled and does report E0200.
 
 ## Use a generic bound
 

@@ -172,6 +172,10 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
             path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
         }
         Ty::Record { .. } => "record".to_string(),
+        // The `async` half is spelled out: an async/sync mismatch is a real
+        // diagnostic (D40), and "expected `function`, found `function`" would
+        // name nothing.
+        Ty::Fn { is_async: true, .. } => "async function".to_string(),
         Ty::Fn { .. } => "function".to_string(),
         Ty::Union { .. } => "union".to_string(),
         Ty::App { base, .. } => ty_display(base),

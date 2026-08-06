@@ -305,6 +305,16 @@ io.println("${string.<span class="add">pad_end</span>(name, width)}  ${string.<s
           Now the five kinds a program actually recovers from have names, and an
           errno with no name arrives intact on the <code>Other</code> tail.
         </p>
+        <p>
+          The checker knows that taxonomy is closed, so a <code>match</code> on
+          <code>err.kind</code> is held to the same bar as a union you declared
+          yourself: cover the six and you need no <code>else</code>, leave one out
+          and the build fails with <code>E0200</code> naming
+          <code>fs.ErrorKind</code>. <code>fs.FsError</code> and
+          <code>fs.FileInfo</code> have checked fields too, so
+          <code>err.mesage</code> is <code>E0210</code> against your Glyph source
+          rather than a <code>tsc</code> error against generated TypeScript.
+        </p>
       </div>
 
       <div class="code">
@@ -321,12 +331,13 @@ for name in names {
   }
 }
 
-match err.<span class="add">kind</span> {
+match err.<span class="add">kind</span> {                        <span class="cm"># no else arm: E0200 if you miss one</span>
   fs.ErrorKind.<span class="add">NotFound</span>         =&gt; io.eprintln("no such path"),
   fs.ErrorKind.<span class="add">NotADirectory</span>    =&gt; io.eprintln("that is a file"),
+  fs.ErrorKind.<span class="add">IsADirectory</span>     =&gt; io.eprintln("that is a directory"),
+  fs.ErrorKind.<span class="add">AlreadyExists</span>    =&gt; io.eprintln("already there"),
   fs.ErrorKind.<span class="add">PermissionDenied</span> =&gt; io.eprintln("cannot read it"),
   fs.ErrorKind.<span class="add">Other</span>({ code })   =&gt; io.eprintln("errno ${code}"),
-  else =&gt; io.eprintln(err.message),
 }</pre>
       </div>
 
@@ -424,15 +435,51 @@ decimal("9007199254740993")?.add(decimal("2")?)   <span class="cm"># exact past 
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">An async callback finally has a type</p>
+        <p>
+          A function type was <code>fn(A) -&gt; T</code> and nothing else, which
+          emits <code>(a: A) =&gt; T</code>. An async body does not fit that, so a
+          function returning a deferred task, or a record of async handlers, had
+          to go unannotated and the checker stopped looking. <code>async fn(A) -&gt;
+          T</code> is that missing type. It emits <code>(a0: A) =&gt;
+          Promise&lt;T&gt;</code>, and <code>async fn()</code> with no return emits
+          <code>() =&gt; Promise&lt;void&gt;</code>.
+        </p>
+        <p>
+          Glyph holds the two apart itself rather than leaving it to
+          <code>tsc</code>: a plain function where an async one is expected is
+          <code>E0204</code> at a return and <code>E0211</code> at a call argument,
+          and the message names both sides. The one case it doesn't judge is a
+          <code>void</code> return, where TypeScript lets any function stand.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">a deferred task, and a map of handlers</span>
+<pre>fn task_for(url: string) -&gt; <span class="add">async fn() -&gt; Fetched</span> {
+  return async fn() -&gt; Fetched { return { url: url, body: await fetch_one(url) } }
+}
+
+type Handler = <span class="add">async fn(string) -&gt; string</span>
+
+async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: string) -&gt; string {
+  return match record.get(routes, name) {
+    Some(h) =&gt; await h(arg),
+    None    =&gt; "no route",
+  }
+}</pre>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, a named <code>FsError.kind</code> taxonomy, and <code>regex.captures_all</code>.</p>
+          <p><code>pub</code> visibility with import-time enforcement, structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index.</p>
         </div>
         <div class="status-card next">
           <p class="h">The honest edge</p>
-          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. An async callback has no type you can write down yet, so a function taking one can't be given a signature. And the arm join only handles arms that agree: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it, same as an iterand that came from a stdlib call the checker doesn't model, which still binds a string index. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, so there's no codepoint-aware <code>chars</code> or <code>char_at</code> until that choice is settled, and a surrogate pair still comes apart under <code>split(s, "")</code>. The two <code>index_of</code> returns aren't modeled by Glyph's checker either: a <code>match</code> on one with no <code>None</code> arm builds clean and throws at run time, so write the <code>None</code> arm. <code>FsError.kind</code> is the same story: the kinds have names, but nothing checks that your <code>match</code> covers them, so keep the <code>else</code>. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible.</p>
+          <p>A private import reports &ldquo;not exported by M&rdquo;, the same message as a missing name; telling &ldquo;private, mark it <code>pub</code>&rdquo; apart from &ldquo;no such name&rdquo; is a queued refinement. Async context is checked now (<code>E0222</code>) except in one spot: a module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> there is allowed and the emitted ESM runs it. The arm join only handles arms that agree: when they produce different types the result is unknown to Glyph and only <code>tsc</code> checks what you do with it. Nine stdlib functions are in the same position. Six take an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and the arity check compares one number against one number, so modeling them would report a false error on every call that omits the last argument; <code>array.map</code>, <code>flat_map</code> and <code>zip</code> take their element type from a callback the checker doesn't walk into. A value straight out of those nine needs an annotation before you iterate it with an index, and a <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm still builds clean and throws at run time. <code>array.index_of</code> is modeled and does report <code>E0200</code>. Members and call arity against a value the checker couldn't type are still unchecked at that boundary rather than being an error. On the library side, <code>string</code> indexes UTF-16 code units the way <code>len</code> and <code>split</code> always have, and that is settled: there is no <code>chars</code> or <code>char_at</code> and none is planned, because a returned surrogate half looks like a character right up to the point where it's written out. Encode with <code>encoding.hex_encode</code> and read two hex digits at a time. <code>captures_all</code> hands back groups and no offsets, so a scanner that needs to know where in the line a match started still writes its own loop, and <code>fs.read_dir</code> gives you entries in the OS's order, so sort them when the output has to be reproducible.</p>
         </div>
       </div>
 

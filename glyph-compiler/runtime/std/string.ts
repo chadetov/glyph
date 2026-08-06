@@ -4,7 +4,11 @@
 // count instead of throwing (Glyph has no try/catch, so a `RangeError` crossing
 // the boundary would be unrecoverable).
 //
-// Indices are UTF-16 code units, the same space `len` and `split` already use.
+// Indices are UTF-16 code units, the same space `len` and `split` already use,
+// and there is deliberately no codepoint accessor (no `chars`, no `char_at`): an
+// accessor that can return half a surrogate pair is worse than none, because the
+// half reads as a character until it is written out. Walk codepoints by encoding
+// to bytes first (`encoding.hex_encode`, then two hex digits at a time).
 //
 // Argument order: this module is subject-first, so the string being operated on
 // is always the first argument. `std/regex` is the one module that is

@@ -5198,3 +5198,71 @@ fn build_json_reports_a_missing_tsc_the_way_check_json_does() {
     assert_eq!(w["ok"], v["ok"], "one shape: {w} vs {v} {stderr}");
     assert_eq!(code, 2, "and one exit code: {w}");
 }
+
+#[test]
+fn async_fn_type_annotates_a_handler_map() {
+    // G45/D40: `async fn(A) -> T` is spellable, so a map of async handlers and a
+    // parameter that takes an async callback both get a real annotation instead
+    // of an unannotated `let`. The program dispatches through the map, awaits the
+    // handler, and returns 0 only if every route answered.
+    if !js_toolchain_available() {
+        eprintln!("skipping async-fn-type run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("asyncfntype");
+    write_file(
+        &root,
+        "prog.glyph",
+        r#"module prog
+
+import std/record
+import std/option { Some, None }
+
+type Handler = async fn(string) -> string
+
+async fn greet(name: string) -> string {
+  return "hello ${name}"
+}
+
+async fn shout(name: string) -> string {
+  return "HELLO ${name}"
+}
+
+// The parameter type could not be written before D40.
+async fn dispatch(h: async fn(string) -> string, arg: string) -> string {
+  return await h(arg)
+}
+
+async fn route(routes: Record<string, Handler>, name: string, arg: string) -> string {
+  return match record.get(routes, name) {
+    Some(h) => await dispatch(h, arg),
+    None => "no route",
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let routes: Record<string, Handler> = { greet: greet, shout: shout }
+  let a = await route(routes, "greet", "ada")
+  let b = await route(routes, "shout", "ada")
+  let c = await route(routes, "nope", "ada")
+  return match a == "hello ada" && b == "HELLO ada" && c == "no route" {
+    true => 0,
+    false => 1,
+  }
+}
+"#,
+    );
+    let file = root.join("prog.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "async handler map dispatched the wrong answer");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping async-fn-type run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("async handler map failed to build: {:?}", r.diagnostics);
+        }
+        other => panic!("async handler map did not run: {other:?}"),
+    }
+}

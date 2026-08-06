@@ -244,6 +244,7 @@ Module {
                                         },
                                     },
                                 ),
+                                is_async: false,
                                 span: Span {
                                     start: 874,
                                     end: 919,

@@ -22,9 +22,21 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the descriptor, range, and formatter batch
-(G41, G30, G62): of 62 entries, 44 are fixed, 10 are partly fixed, 4 are decided
-or resolved, and 4 are open. That batch made a descriptor's `.parse` return the
+Reconciled against the source after the stdlib-modeling batch (G45, G47, G61,
+G50, and phase 1 of G39/G37): of 62 entries, 47 are fixed, 9 are partly fixed, 5
+are decided or resolved, and 1 is open. That batch taught the typechecker the
+return types of the fixed-arity half of `std/string` and `std/array` and the
+*shape* of a stdlib named type, so `for i, part in string.split(text, ",")` binds
+a number and a `match e.kind` on an `fs.FsError` is held to E0200; added the
+`async fn(...) -> T` function type as D40; rewrote D12 to describe both string
+spellings the lexer actually accepts; and closed the codepoint half of G50 as a
+decision (Glyph indexes UTF-16 code units and ships no codepoint accessor). G39
+is the one entry left open, and it is the phase-2 half of its own claim:
+hard-erroring on the `Unknown`s that remain at the stdlib boundary.
+
+The reconciliation before it, after the descriptor, range, and formatter batch
+(G41, G30, G62), read 62 entries, 44 fixed, 10 partly fixed, 4 decided or
+resolved, and 4 open. That batch made a descriptor's `.parse` return the
 real `Result`, put `array.range` and `array.range_from` in `std/array`, and
 stopped `glyph fmt` from collapsing an interpolating multi-line string back into
 `\n` escapes. The workarounds came out of the apps in the same pass: the three
@@ -787,7 +799,7 @@ workaround for the first and is still open.
   binds to glyph wherever it appears (`glyph run x.glyph --no-check` is
   unchanged, and pinned by a test); `--` remains the answer for a program flag
   that collides with one of glyph's.*
-- **G37. A two-binding `for` over a call's result binds a *string* index, and
+- **G37. [HALF FIXED] A two-binding `for` over a call's result binds a *string* index, and
   nothing catches it.** With G32 documented, the app could drop its hand-rolled
   line counter, and the natural spelling was wrong:
   `for i, raw in array.slice(lines, 1)` emits
@@ -828,6 +840,37 @@ workaround for the first and is still open.
   Closing that means either modeling the stdlib return types or hard-erroring on
   an unknown-typed iterand. See Round 12.
 
+  *The first of those landed, which is what moves this to `[HALF FIXED]`.*
+  `stdlib_fn_ty` now models the fixed-arity half of `std/string` and
+  `std/array`, so `for i, part in string.split(text, ",")` and `for i, x in
+  array.filter(xs, keep)` emit `.entries()` and bind a number with no
+  annotation. The element type rides on a `Ty::Param` bound from the first
+  argument, so `array.filter` over an `Array<string>` is an `Array<string>` and
+  the type survives into whatever reads the loop body.
+
+  What is left is a smaller residue than the entry describes, and it is G39's,
+  not this one's. Two classes of call still have no type. The six stdlib
+  functions with an optional trailing argument (`array.slice`, `string.slice`,
+  `string.index_of`, `string.pad_start`, `string.pad_end`, `json.stringify`) are
+  out because the call-arity check compares one number against one number, so
+  modeling them would report a false E0213 on every call that omits the last
+  argument; that check needs a range first. And `array.map`, `array.flat_map`
+  and `array.zip` are out because their element type comes from the callback's
+  return, which the unifier does not walk. An iterand from either class keeps
+  the record lowering, so `for i, x in array.slice(xs, 1)` still needs its
+  `Array<T>` annotation.
+
+  *Measured on the apps.* Ten `Array<string>` annotations over `string.split`
+  came out of `examples/apps/`: six in `shortlink.glyph`, three in
+  `linkcheck.glyph`, and one in `bracket.glyph`, where the deleted line also
+  carried a two-line comment saying the annotation was load-bearing. `bracket`'s
+  `put` now reads `for i, c in string.split(text, "")` and emits `.entries()`;
+  its ASCII bracket renders byte-identically. `examples/apps/expenses.glyph:139`
+  is the one site that had to keep its annotation, because it slices, and its
+  comment was narrowed from "the type of a std-module call" to `array.slice`
+  specifically. `shortlink.glyph:348` keeps its annotation for the same reason
+  (`array.map`).
+
 ## Round 8 — a text adventure, and the return of "silent green"
 
 The loop pointed at `examples/apps/adventure.glyph`, a text adventure: rooms, an
@@ -866,6 +909,25 @@ One is different in kind, and it is the one fixed here.
   patch (model the stdlib from its own `.d.ts` sources per Q21/Q40, or keep
   growing the hand-written `stdlib_fn_ty` table), so it is recorded in
   `docs/roadmap/releases.md` and not fixed here.
+
+  *Phase 1 landed; the entry stays open for phase 2.* The chosen direction is
+  the hand-written table, grown: `stdlib_fn_ty` now models the fixed-arity half
+  of `std/string` and `std/array` (returns, plus `Array<T>` where the element
+  type has to travel), and there is now a shape model for a stdlib *named* type
+  — `fs.FsError`, `fs.FileInfo`, `fs.ErrorKind` — hooked into `record_fields_of`,
+  `required_variants` and `variant_payload`. So `e.mesage` on an `fs.FsError` is
+  E0210 and a `match e.kind` missing a kind is E0200, where both were silent
+  before. Most `Unknown`s at the stdlib boundary are gone.
+
+  Phase 2 is the hard-erroring half, and it is what this entry still names.
+  Nothing yet rejects member access, call arity, or an argument type against a
+  receiver that is *still* `Ty::Unknown`: `s.pusj(x)` on a `string`, a
+  wrong-arity call into a namespace the table does not model. Deciding that also
+  means deciding whether an iterand whose type is unknown is an error or
+  defaults to the array lowering (the residue of G37), and whether modeled
+  stdlib parameters get real scalar types — today only `Array<T>` and `T` are
+  typed, so `string.len(42)` is still not an E0211. Recorded in
+  `docs/roadmap/releases.md`.
 
 ## Round 9 — a scheduler, and a boundary that was open the whole time
 
@@ -983,12 +1045,31 @@ of truth. On the async path it was a preprocessor with opinions.
   is not reported. Whether Glyph wants implicit async module initialization with
   nothing in the source marking it is a spec question, not a checker bug; it is
   in `docs/roadmap/releases.md`.*
-- **G45. An `async` function type is unspellable.** `parse_atom_type` has exactly
+- **G45. [FIXED] An `async` function type is unspellable.** `parse_atom_type` has exactly
   one function-type entry (`Token::Fn`) and `TypeExpr::Fn` carries no async bit,
   so a parameter that takes an async callback cannot be typed. Closing it is a
   fork — `async fn() -> T` emitting `() => Promise<T>`, versus `fn() -> T`
   emitting `() => T | Promise<T>` — and that is an orchestrator call, not an
   agent's. Deliberately out of scope for the G43 fix.
+  *Fixed by the first form, written down as D40. `TypeExpr::Fn` carries an
+  `is_async` flag, `parse_atom_type` takes a leading `async`, and the emitter
+  renders the return as `Promise<T>` (`async fn()` with no return type becomes
+  `() => Promise<void>`). `glyph fmt` prints the `async` back, so a signature
+  using it is a fixed point. The flag defaults to `false`, so no existing parse
+  tree or emitted type changed. The checker enforces the distinction:
+  `definitely_incompatible` compares `is_async`, so a sync function where an
+  `async fn` type is expected is E0211 at a call argument and E0204 at a return,
+  and the reverse direction is caught the same way. It stays
+  permissive when either side returns `void`, matching the existing return-type
+  guard, because TypeScript lets any function stand where a `void`-returning one
+  is expected. One limit worth knowing: a plain `fn() -> T` still emits `() =>
+  T`, so an async value does not fit one. In the app, `linkcheck`'s `task_for`
+  dropped its "a Glyph function type cannot spell an async thunk" comment and now
+  reads `fn task_for(url: string) -> async fn() -> Fetched`, which emits
+  `function task_for(url: string): () => Promise<Fetched>`; writing a plain
+  `fn()` there instead is E0204. A handler map keyed
+  by route (`type Handler = async fn(string) -> string`) is covered end to end by
+  `async_fn_type_annotates_a_handler_map` in the CLI integration tests.*
 - **G46. [FIXED] `std/fs` has no `read_dir`, `is_dir`, or `stat`.** Six exported
   functions and nothing that enumerates a directory. The app discovered
   directories by reading every path in a tree and inspecting the `errno` it got
@@ -1009,7 +1090,7 @@ of truth. On the async path it was a preprocessor with opinions.
   open. There is no `is_file` either, since that is `let info = stat(p)?`
   followed by `info.is_file` (the `?` operator does not chain into a field
   access, so the binding is not optional).*
-- **G47. [HALF FIXED] `FsError.kind` is `{ tag: string }` with one constant.**
+- **G47. [FIXED] `FsError.kind` is `{ tag: string }` with one constant.**
   `NotFound` is
   the entire taxonomy, so an fs error cannot be matched exhaustively. That is the
   errors-as-values promise leaking. It batches with G46: one change to `fs.ts`
@@ -1037,6 +1118,25 @@ of truth. On the async path it was a preprocessor with opinions.
   directory the rewritten app prints `permission denied` and counts the path as
   unreadable, where the pre-batch app (which could only ask whether the errno was
   `EISDIR`) dropped that directory from the report with no row and no mention.*
+
+  *Now fixed: the checking shipped too.* The typechecker has a shape model for a
+  stdlib named type — `stdlib_type_fields`, `stdlib_union_variants` and
+  `stdlib_variant_payload` in `glyph-typechecker/src/assign.rs`, hooked into
+  `record_fields_of`, `required_variants` and `variant_payload`. A written
+  `fs.FsError` annotation lowers to the same synthetic named type the stdlib
+  return table produces, which is what was missing: two-segment type paths used
+  to lower to `Ty::Unknown` regardless. So `e.kind` resolves to the closed
+  `fs.ErrorKind`, a `match` over it covering all six kinds needs no `else` arm, a
+  match missing one is `E0200: non-exhaustive match on 'fs.ErrorKind'`,
+  `fs.ErrorKind.Other({ code })` binds `code` as a `string`, and a typo'd
+  `e.mesage` is E0210 instead of a `tsc` error. The negative case is pinned in
+  `tests/negative/fs_error_kind_not_exhaustive.glyph`. The model is hand-kept
+  against `runtime/std/fs.ts`; a kind or field added there has to be added to
+  both. The `else` arm and its four-line "required" comment are gone from
+  `examples/apps/linkcheck.glyph`, replaced by
+  `fs.ErrorKind.Other({ code }) => "${e.message} (${code})"`; deleting the
+  `PermissionDenied` arm from that app now fails `glyph build` with
+  `E0200 ... missing variants 'PermissionDenied'`.
 - **G48. [HALF FIXED] `{}` as a match arm is silent green.** `true => {}` parses
   as an empty
   block, emits `case true: { break; }`, and the function falls out of its own
@@ -1084,7 +1184,7 @@ of truth. On the async path it was a preprocessor with opinions.
   `"ok": false`, exit 2, rather than a build that looks verified. A project with
   no examples pays nothing (the runner returns before it copies anything), which
   a test now pins.*
-- **G50. [HALF FIXED] `std/string` and `std/array` are still short of the basics.**
+- **G50. [DECIDED] `std/string` and `std/array` are still short of the basics.**
   `string.slice`, `index_of`, `replace`, `repeat`, `pad_start`, `pad_end`,
   `trim_start`, `trim_end`; `array.fold`, `index_of`, `flat_map`. This is G26's
   third sighting and G34's second, and `array.fold` was already written up as
@@ -1102,6 +1202,25 @@ of truth. On the async path it was a preprocessor with opinions.
   `iter.take_while` is untouched: there is no `std/iter` at all, and the nearest
   module, `std/stream`, is a test-data generator rather than a lazy sequence, so
   it needs a design rather than a wrapper.*
+
+  *Decided, for the codepoint half only.* Glyph strings are sequences of UTF-16
+  code units, and they will stay that way: `len`, `split`, `slice`, `index_of`,
+  `pad_start` and `pad_end` all count and cut in that space today, exactly as
+  TypeScript does. `chars` and `char_at` are not shipping, because an accessor
+  that can hand back half of a surrogate pair is worse than no accessor at all —
+  the half reads as a character right up to the point where it is written out,
+  and the failure lands far from the call. A program that has to walk codepoints
+  converts to bytes first, with `encoding.hex_encode` and two hex digits at a
+  time, which is what `examples/apps/shortlink.glyph` does in its slug encoder.
+  Written down in D12, `docs/reference/stdlib.md`, and the `std/string` runtime
+  header. Be plain about what this decision buys: **no workaround comes out of
+  any app.** The hex walk stays; it is now the documented answer rather than a
+  gap.
+
+  This decision covers the codepoint question and nothing else. The
+  `iter.take_while` / `std/iter` item in the note above is still undecided and
+  still lives here — whether it becomes its own `G` entry or an open question is
+  a call nobody has made.*
 - **G51. [FIXED] `regex` cannot iterate captures.** `regex.find_all` maps
   each match to
   `m[0]` and drops the groups, so a scanner that needs the capture text has to be
@@ -1353,7 +1472,7 @@ the fixed version against input a user controls.
   reported by five consecutive trips. *The stdlib round for G26 and G34 shipped
   both, along with `repeat`, `pad_start`, `pad_end`, `replace_all`, `trim_start`,
   `trim_end`, and `array.fold`/`index_of`/`flat_map`, and the apps now call them.
-  Codepoint-aware iteration is the part left open; see G50.*
+  Codepoint-aware iteration is decided against; see G50.*
 
 ## An adversarial review of the E0222/E0223/E0008 batch
 
@@ -1411,7 +1530,7 @@ introduced is settled the same way: `--no-tsc` is the one name for the stage on
 and `run`. The third finding is a divergence the batch surfaced but did not
 cause.
 
-- **G61. Two string syntaxes, one of them undocumented.** D12 says "One string
+- **G61. [FIXED] Two string syntaxes, one of them undocumented.** D12 says "One string
   syntax: `"..."`", and the lexer has two. `lex_string`
   (`glyph-lexer/src/lexer.rs:114-119`) dispatches `"""` from the general string
   path, not from an `@doc`-only path, so a triple-quoted literal is reachable
@@ -1429,6 +1548,21 @@ cause.
   annotation, restoring D12; or D12 and the reference document the second raw
   form honestly, including what interpolation does inside it; or it stays
   reachable and undocumented. Which of the first two is a spec call, not a patch.
+  *Closed by the second: the spec was what was wrong.* Removing a form would
+  break working code, and the lexer is the normative implementation, so D12 now
+  describes both spellings — `"..."` decodes escapes, `"""..."""` does not, both
+  interpolate, and `"""` is legal in any expression or type position rather than
+  only after `@doc`. D12 also records the formatter's behaviour, which is real
+  and was undocumented: a `"""` literal is copied through verbatim, and a
+  single-line one that interpolates is reprinted in the ordinary `"..."`
+  spelling because the verbatim path is gated on a raw newline. Content and
+  meaning survive that reprint; only the spelling changes. The lexer comments
+  that claimed a `@doc`-only path and inert raw content are corrected, the
+  migration table in `docs/guide/for-typescript-developers.md` no longer says
+  "one string syntax", and AGENTS.md documents the raw form. No compiler
+  behaviour changed. Whether the formatter should also make the triple form a
+  fixed point (gate the verbatim path on the `"""` prefix as well as on a raw
+  newline) is left open beside G62's related call.
 - **G62. [FIXED] `glyph fmt` collapses a multi-line string that interpolates.** G55
   closed by documenting the multi-line form in AGENTS.md, and the formatter
   undoes it for the case a real program writes. `string_literal`

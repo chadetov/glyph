@@ -112,9 +112,11 @@ impl<'a> Lexer<'a> {
     // -- Atoms ----------------------------------------------------------------
 
     fn lex_string(&mut self, start: usize) -> Result<Spanned<Token>, LexError> {
-        // Triple-quoted string (D26 `@doc """ ... """` blocks): raw content,
-        // no escape processing, read verbatim until the closing `"""`. A plain
-        // empty string `""` is not affected — the third `"` must be present.
+        // Triple-quoted string: raw content, no escape processing, read verbatim
+        // until the closing `"""`. Introduced for D26 `@doc """ ... """` blocks
+        // but accepted in ANY string position, which D12 now writes down. A
+        // plain empty string `""` is not affected — the third `"` must be
+        // present.
         if self.peek_at(1) == Some(b'"') && self.peek_at(2) == Some(b'"') {
             return self.lex_triple_string(start);
         }
@@ -438,9 +440,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// Lex a `""" ... """` triple-quoted string. Content is raw (newlines and
-    /// backslashes verbatim), suiting Markdown `@doc` bodies. The token's value
+    /// Lex a `""" ... """` triple-quoted string (D12's raw form). Content is raw
+    /// — newlines and backslashes verbatim — which suits Markdown `@doc` bodies
+    /// and any other text that would otherwise need escaping. The token's value
     /// is the inner text; its span covers both delimiters.
+    ///
+    /// The result is an ordinary `Token::String`, so nothing downstream can tell
+    /// which spelling produced it: `${...}` inside a `"""` literal interpolates
+    /// exactly as it does in the `"..."` form, because the parser runs the same
+    /// interpolation split over both. "Raw" here means escapes are not decoded,
+    /// not that the content is inert.
     fn lex_triple_string(&mut self, start: usize) -> Result<Spanned<Token>, LexError> {
         self.advance();
         self.advance();

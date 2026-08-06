@@ -4062,7 +4062,10 @@ impl<'a> Emitter<'a> {
                 }
             }
             TypeExpr::Fn {
-                params, return_ty, ..
+                params,
+                return_ty,
+                is_async,
+                ..
             } => {
                 let mut ps = Vec::with_capacity(params.len());
                 for (i, p) in params.iter().enumerate() {
@@ -4076,6 +4079,14 @@ impl<'a> Emitter<'a> {
                 let ret = match return_ty {
                     Some(te) => self.ty(te)?,
                     None => "void".to_string(),
+                };
+                // D40: an `async fn(...) -> T` type is a function returning
+                // `Promise<T>`, matching what the declaration path writes for an
+                // `async fn` and what an async lambda's inferred type is.
+                let ret = if *is_async {
+                    format!("Promise<{ret}>")
+                } else {
+                    ret
                 };
                 format!("({}) => {ret}", ps.join(", "))
             }
@@ -5634,6 +5645,49 @@ mod tests {
             "module x\nimport std/http\npub fn id(e: string) -> string { return e }\npub async fn run() -> void {\n  let r = await http.get(\"u\").map_err(id)\n  return void\n}\n",
         );
         assert!(ts.contains("(await http.get(\"u\")).map_err(id)"), "{ts}");
+    }
+
+    #[test]
+    fn async_fn_type_emits_a_promise_returning_function_type() {
+        // D40: `async fn() -> T` is the type of an async thunk. Without it the
+        // only spellable type was `fn() -> T`, which an async value does not fit.
+        let ts = emit(
+            "module x\npub type Fetched = { url: string }\npub fn task_for(u: string) -> async fn() -> Fetched {\n  return async fn() -> Fetched { return { url: u } }\n}\n",
+        );
+        assert!(ts.contains("() => Promise<Fetched>"), "{ts}");
+    }
+
+    #[test]
+    fn async_fn_type_without_a_return_promises_void() {
+        let ts = emit(
+            "module x\npub fn f(cb: async fn(string)) -> void {\n  return void\n}\n",
+        );
+        assert!(ts.contains("(a0: string) => Promise<void>"), "{ts}");
+    }
+
+    #[test]
+    fn plain_fn_type_still_emits_a_bare_return() {
+        // The flag defaults to false, so no existing function type changed.
+        let ts = emit("module x\npub fn f(cb: fn(string) -> number) -> void {\n  return void\n}\n");
+        assert!(ts.contains("(a0: string) => number"), "{ts}");
+        assert!(!ts.contains("Promise"), "{ts}");
+    }
+
+    #[test]
+    fn two_binding_for_over_a_stdlib_call_uses_numeric_entries() {
+        // The G37 shape: iterating a stdlib call's result directly. Before the
+        // call carried a type the iterand was `Unknown` and lowered to
+        // `Object.entries`, which binds a STRING index, so the loop counter was
+        // silently the wrong type unless the call's result was hoisted into an
+        // annotated `let`.
+        let ts = emit(
+            "module x\nimport std/string\npub fn f(text: string) -> void {\n  for i, raw in string.split(text, \",\") {\n    log(i)\n  }\n  return void\n}\n",
+        );
+        assert!(
+            ts.contains("for (const [i, raw] of string.split(text, \",\").entries()) {"),
+            "{ts}"
+        );
+        assert!(!ts.contains("Object.entries"), "{ts}");
     }
 
     #[test]

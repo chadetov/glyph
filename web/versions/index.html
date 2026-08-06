@@ -49,8 +49,28 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.48</span>
+            <span class="rel-ver">0.1.49</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Four things <code>tsc</code> caught and Glyph did not</h3>
+            <p>Four apps in this repo each filed a version of the same complaint: <code>glyph build</code> said ok, and the mistake showed up later, either as a TypeScript error on generated code or as <code>undefined</code> at run time. This release adds four diagnostics, all reported against your own source with your own line numbers.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>E0222</code>: <code>await</code> in a plain <code>fn</code> used to build clean and fail at <code>tsc</code> with TS1308. The innermost enclosing callable decides, the same rule TypeScript uses, so a synchronous lambda inside an <code>async fn</code> is flagged and <code>async fn(x) { ... }</code> is not. An <code>await</code> in a module-level <code>const</code> initializer has no enclosing callable and the emitted module accepts it, so that one case is still allowed.</li>
+              <li><span class="tag added">Added</span> <code>E0223</code>: <code>X =&gt; {}</code> in a <code>match</code> you assign emitted <code>case X: { break; }</code>, so the binding was <code>undefined</code> while its type said otherwise. It now reports wherever the position is decidable: a <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a function with a declared return type. An arm that means nothing where the <code>match</code> is a statement is untouched.</li>
+              <li><span class="tag added">Added</span> <code>E0008</code>: a bare <code>x = e</code> said "unexpected token: Equals". It now says assignment requires <code>mut</code>, points at D5, and <code>glyph --explain E0008</code> shows the before and after. It covers <code>r.field = e</code> and <code>xs[0] = e</code>, and it fires inside a <code>match</code> arm, where the old message was about a missing comma.</li>
+              <li><span class="tag fixed">Fixed</span> <code>?</code> works in an expression-form <code>match</code> arm. <code>None =&gt; lookup(b, name)?</code> was refused as "not implemented yet" while the identical code in a block arm compiled, so one app carried the block form and a comment explaining why. The arm body now hoists its unwrap the way any other statement value does; the app lost eight lines and emits byte-identical TypeScript.</li>
+              <li><span class="tag fixed">Fixed</span> The two positions where <code>?</code> still cannot go say why. <code>E0302</code> is an arm of a <code>match</code> nested inside a larger expression, which compiles to a closure the <code>return</code> would escape. <code>E0303</code> is a position with no statement to hoist into, such as a <code>match</code> scrutinee. Both suggest binding first.</li>
+              <li><span class="tag fixed">Fixed</span> <code>A =&gt; { "Content-Type": "application/json", }</code> parses as an object literal instead of a block, since a block cannot start with a string literal followed by a colon.</li>
+              <li><span class="tag known">Known</span> There is still no way to write an empty record as an arm body. <code>{}</code> is an empty block and stays one, <code>=&gt; ({})</code> builds but <code>glyph fmt</code> reprints it as <code>=&gt; {}</code>, and until that is settled an arm that means "the empty map" needs a named constructor. <code>E0223</code> also needs a decidable position, so a <code>match</code> in the tail of an unannotated lambda is still silent.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.48</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

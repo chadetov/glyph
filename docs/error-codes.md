@@ -29,6 +29,9 @@ below.
 | `E0003` | Unexpected token in this position |
 | `E0004` | Expected end of file (likely an unbalanced brace) |
 | `E0005` | Construct recognized but not implemented |
+| `E0006` | `if`/`else` used where Glyph has none (`match` is the only conditional; D3) |
+| `E0007` | Range or comparison pattern (`500..599 =>`) in a `match` arm; not in v1 |
+| `E0008` | Assignment without `mut` (`x = e` should be `mut x = e`, or `let x = e` for a new binding; D5) |
 
 ### Resolver — `E01xx`
 
@@ -81,10 +84,15 @@ member access (`{ default: v }`, `x.new`) are unaffected.
 | `E0219` | `@redact` names a field the type does not have (D24) |
 | `E0220` | A `match` arm's PascalCase head is not a variant of the scrutinee's union (a typo or wrong-union variant, escalated with a nearest-variant suggestion instead of being read as a silent binding catch-all; covers the bare `Loadign`, payload `Loadign(x)`, and qualified `Feed.Loadign` shapes; D9) |
 | `E0221` | Unknown `@annotation` (D27); the recognized set is `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
+| `E0222` | `await` outside an `async fn` (the innermost enclosing callable decides, so a sync lambda inside an `async fn` is flagged) |
+| `E0223` | A `match` arm produces no value while the `match` is used as a value (an empty block, or a block whose tail is a `let`/`mut`/`for`/`loop`) |
 
 ### Emitter — `E03xx`
 
 | Code | Meaning |
 |------|---------|
 | `E0300` | Construct not supported by the v1 TypeScript emitter |
+| `E0301` | An `<else>` that is not the immediate sibling of its `<if>` (D6) |
+| `E0302` | `?` in an arm of a `match` nested inside a larger expression (bind the match first) |
+| `E0303` | `?` in a position with nothing to hoist the unwrap into, such as a `match` scrutinee (bind the operand first) |
 | `E0310` | `glyph run` on a module with no `fn main` (it's a library — nothing to run) |

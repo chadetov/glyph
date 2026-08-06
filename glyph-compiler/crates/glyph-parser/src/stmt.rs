@@ -74,6 +74,14 @@ fn parse_stmt(p: &mut Cursor) -> Result<Stmt, ParseError> {
         }),
         _ => {
             let e = expr::parse_expr(p)?;
+            // `x = e` with no `mut`. `=` is not an operator, so the expression
+            // stops here and the generic path would report "unexpected token:
+            // Equals" on the next statement. Name the rule instead (D5).
+            if matches!(p.peek(), Token::Equals) {
+                return Err(ParseError::MissingMutOnAssignment {
+                    span: Span::new(e.span().start, p.peek_span().end),
+                });
+            }
             Ok(Stmt::Expr(e))
         }
     }

@@ -58,6 +58,9 @@ struct EnclosingReturn {
     /// The lowered declared return type, or `Ty::Unknown` when there is no
     /// annotation or it could not be resolved.
     ty: Ty,
+    /// Whether the callable was declared `async` (for the `await` rule,
+    /// E0222). A `component` is never async.
+    is_async: bool,
 }
 
 /// Source of per-declaration `Ty` answers. The Assigner queries the resolver
@@ -272,10 +275,17 @@ impl Assigner<'_> {
             Decl::Interface(_) => {}
             Decl::Type(t) => self.check_redact_annotation(t),
             Decl::Fn(f) => {
-                let er = self.enclosing_return(f.return_ty.as_ref());
+                let er = self.enclosing_return(f.return_ty.as_ref(), f.is_async);
+                let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.bind_param_tys(&f.params);
                 self.walk_block(&f.body);
+                // Inside the callable's own return context: the check reads
+                // nothing from the stack today, but it is about this callable,
+                // so it runs before the frame is popped.
+                if wants_value {
+                    self.check_value_match_tail(&f.body);
+                }
                 self.return_stack.pop();
             }
             Decl::Component(c) => {
@@ -289,10 +299,16 @@ impl Assigner<'_> {
                         span: c.params[1].span,
                     });
                 }
-                let er = self.enclosing_return(c.return_ty.as_ref());
+                // A `component` lowers to a React function component; there is
+                // no `async component`, so it is never an async context.
+                let er = self.enclosing_return(c.return_ty.as_ref(), false);
+                let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.bind_param_tys(&c.params);
                 self.walk_block(&c.body);
+                if wants_value {
+                    self.check_value_match_tail(&c.body);
+                }
                 self.return_stack.pop();
             }
             Decl::Const(c) => self.walk_expr(&c.value),
@@ -365,6 +381,9 @@ impl Assigner<'_> {
         match s {
             Stmt::Let(l) => {
                 self.walk_expr(&l.value);
+                if let Expr::Match { arms, .. } = &l.value {
+                    self.check_arms_produce_values(arms);
+                }
                 // Record the binding's type so later references resolve
                 // concretely. An explicit annotation wins; otherwise infer
                 // from the initializer's type (week-2 task 5, local `let`
@@ -402,6 +421,9 @@ impl Assigner<'_> {
                     }
                     self.walk_expr(target);
                     self.walk_expr(value);
+                    if let Expr::Match { arms, .. } = value {
+                        self.check_arms_produce_values(arms);
+                    }
                 }
                 glyph_ast::MutKind::MethodCall { call } => {
                     self.walk_expr(call);
@@ -411,6 +433,18 @@ impl Assigner<'_> {
                 if let Some(v) = &r.value {
                     self.walk_expr(v);
                     self.check_return_type(v);
+                    // `return match ...` in a `void` callable returns nothing
+                    // of consequence, so only a callable that decidably needs a
+                    // value has arms that must produce one.
+                    let wants_value = self
+                        .return_stack
+                        .last()
+                        .is_some_and(|er| ty_requires_value(&er.ty));
+                    if wants_value {
+                        if let Expr::Match { arms, .. } = v {
+                            self.check_arms_produce_values(arms);
+                        }
+                    }
                 }
             }
             Stmt::For(f) => {
@@ -502,6 +536,18 @@ impl Assigner<'_> {
                 self.walk_expr(expr);
                 let ty = self.tm.get(expr.span()).clone();
                 self.tm.insert(*span, ty);
+                // E0222: `await` needs an `async` enclosing callable. The
+                // innermost one decides, so a synchronous lambda inside an
+                // `async fn` is flagged (as it is in TypeScript). An empty
+                // stack is a `const` initializer at module scope; the emitted
+                // module is ESM, where top-level `await` is legal, so that
+                // case stays permissive.
+                if let Some(er) = self.return_stack.last() {
+                    if !er.is_async {
+                        self.errors
+                            .push(TypeError::AwaitOutsideAsyncFn { span: *span });
+                    }
+                }
             }
             Expr::Binary { left, right, span, .. }
             | Expr::Index {
@@ -667,10 +713,14 @@ impl Assigner<'_> {
                 is_async,
                 span,
             } => {
-                let er = self.enclosing_return(return_ty.as_ref());
+                let er = self.enclosing_return(return_ty.as_ref(), *is_async);
+                let wants_value = ty_requires_value(&er.ty);
                 self.return_stack.push(er);
                 self.bind_param_tys(params);
                 self.walk_block(body);
+                if wants_value {
+                    self.check_value_match_tail(body);
+                }
                 self.return_stack.pop();
                 let ty = self
                     .lowerer
@@ -1145,9 +1195,9 @@ impl Assigner<'_> {
     /// missing annotation (legal under D4) or one that can't be resolved
     /// yields `ReturnClass::Unknown` and `Ty::Unknown`, so neither check
     /// fires on a type it can't judge.
-    fn enclosing_return(&self, return_ty: Option<&TypeExpr>) -> EnclosingReturn {
+    fn enclosing_return(&self, return_ty: Option<&TypeExpr>, is_async: bool) -> EnclosingReturn {
         let Some(te) = return_ty else {
-            return EnclosingReturn { class: ReturnClass::Unknown, ty: Ty::Unknown };
+            return EnclosingReturn { class: ReturnClass::Unknown, ty: Ty::Unknown, is_async };
         };
         let ty = self.lowerer.lower(te);
         let class = if self.type_expr_is_result(te) {
@@ -1161,7 +1211,7 @@ impl Assigner<'_> {
         } else {
             ReturnClass::Unknown
         };
-        EnclosingReturn { class, ty }
+        EnclosingReturn { class, ty, is_async }
     }
 
     /// True if `te` names the `Result` type, applied (`Result<T, E>`) or
@@ -1236,7 +1286,7 @@ impl Assigner<'_> {
                 // return is a decidable `Result` and both error types are
                 // decidable, so an undecidable side never produces a false
                 // positive.
-                if let Some(EnclosingReturn { class: ReturnClass::Result, ty }) = &enclosing {
+                if let Some(EnclosingReturn { class: ReturnClass::Result, ty, .. }) = &enclosing {
                     if let Some((_, fn_err)) = self.result_args(ty) {
                         if ty_is_decidable(&err_ty) && ty_is_decidable(&fn_err) && err_ty != fn_err {
                             self.errors.push(TypeError::QuestionErrorTypeMismatch {
@@ -1974,6 +2024,50 @@ impl Assigner<'_> {
         joined.unwrap_or(Ty::Unknown)
     }
 
+    /// E0223: every arm of a `match` that is used as a value must produce one.
+    ///
+    /// The emitter lowers a value-position `match` to a `switch` whose cases
+    /// assign to (or `return`) the matched value. An arm body that yields
+    /// nothing emits `case X: { break; }`, so the binding is never assigned and
+    /// the value is `undefined` at run time — and `tsc` does not catch it,
+    /// because the emitted binding is untyped at that point. This is exactly
+    /// the set `join_match_arms` swallows into `Ty::Unknown`.
+    ///
+    /// An arm diverges (and so needs no value) when its block ends in
+    /// `return`/`break`/`continue`. A nested `match` in tail position inherits
+    /// the value position, mirroring `emit_arm_body`, so its arms are checked
+    /// under the same rule.
+    fn check_arms_produce_values(&mut self, arms: &[MatchArm]) {
+        for arm in arms {
+            match &arm.body {
+                MatchArmBody::Expr(Expr::Match { arms: inner, .. }) => {
+                    self.check_arms_produce_values(inner)
+                }
+                MatchArmBody::Expr(_) => {}
+                MatchArmBody::Block(b) => match b.stmts.last() {
+                    Some(Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_)) => {}
+                    Some(Stmt::Expr(Expr::Match { arms: inner, .. })) => {
+                        self.check_arms_produce_values(inner)
+                    }
+                    Some(Stmt::Expr(_)) => {}
+                    _ => self
+                        .errors
+                        .push(TypeError::MatchArmProducesNoValue { span: arm.span }),
+                },
+            }
+        }
+    }
+
+    /// Run `check_arms_produce_values` over a callable body whose tail is a
+    /// bare `match`. Called only when the callable declares a return type that
+    /// decidably needs a value, so an unannotated callable (D4 makes the
+    /// annotation optional) stays permissive.
+    fn check_value_match_tail(&mut self, body: &Block) {
+        if let Some(Stmt::Expr(Expr::Match { arms, .. })) = body.stmts.last() {
+            self.check_arms_produce_values(arms);
+        }
+    }
+
     /// Recover a module-local tagged union from a `match`'s arm patterns, used
     /// only when the scrutinee's static type is undecidable (see the call site
     /// in the `Expr::Match` handler). An arm whose head names an in-scope union
@@ -2485,6 +2579,14 @@ fn ty_is_decidable(ty: &Ty) -> bool {
         Ty::App { base, .. } => ty_is_decidable(base),
         _ => true,
     }
+}
+
+/// Whether a declared return type decidably requires the body to produce a
+/// value (E0223). `Unknown` (no annotation, or one that could not be resolved)
+/// and `void` both mean "no value is owed", so a body whose tail `match` has a
+/// valueless arm is left alone.
+fn ty_requires_value(ty: &Ty) -> bool {
+    !ty.is_unknown() && !matches!(ty, Ty::Prim(Primitive::Void))
 }
 
 
@@ -5182,5 +5284,144 @@ fn label(s: Status) -> string {
         assert!(!definitely_incompatible(&rec(num()), &empty));
         // Identical records are compatible.
         assert!(!definitely_incompatible(&rec(num()), &rec(num())));
+    }
+
+    // ----- E0222: `await` outside an `async fn` -----
+
+    #[test]
+    fn await_in_a_sync_fn_is_flagged() {
+        let errs = errors_of(
+            "module x\nasync fn slow() -> number { return 1 }\n\
+             fn nope() -> number {\n  return await slow()\n}\n",
+        );
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::AwaitOutsideAsyncFn { .. })),
+            "expected E0222: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn await_in_an_async_fn_is_fine() {
+        let errs = errors_of(
+            "module x\nasync fn slow() -> number { return 1 }\n\
+             async fn ok() -> number {\n  return await slow()\n}\n",
+        );
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, TypeError::AwaitOutsideAsyncFn { .. })),
+            "an `await` in an `async fn` must not be flagged: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn await_in_a_sync_lambda_inside_an_async_fn_is_flagged() {
+        // The innermost enclosing callable decides, as it does in TypeScript.
+        let sync = errors_of(
+            "module x\nasync fn slow(n: number) -> number { return n }\n\
+             async fn run(xs: Array<number>) -> Array<number> {\n  \
+               return array.map(xs, fn(x: number) -> number { return await slow(x) })\n}\n",
+        );
+        assert!(
+            sync.iter()
+                .any(|e| matches!(e, TypeError::AwaitOutsideAsyncFn { .. })),
+            "expected E0222 for the sync lambda: {sync:?}"
+        );
+
+        let asyncy = errors_of(
+            "module x\nasync fn slow(n: number) -> number { return n }\n\
+             async fn run(xs: Array<number>) -> Array<number> {\n  \
+               return array.map(xs, async fn(x: number) -> number { return await slow(x) })\n}\n",
+        );
+        assert!(
+            !asyncy
+                .iter()
+                .any(|e| matches!(e, TypeError::AwaitOutsideAsyncFn { .. })),
+            "an `async fn` lambda may await: {asyncy:?}"
+        );
+    }
+
+    // ----- E0223: a value-position `match` arm that produces no value -----
+
+    #[test]
+    fn empty_arm_in_a_let_bound_match_is_flagged() {
+        let errs = errors_of(
+            "module x\ntype Status = | Loading | Ready(string)\n\
+             fn label(s: Status) -> string {\n  \
+               let out = match s {\n    Loading => {},\n    Ready(v) => v,\n  }\n  \
+               return out\n}\n",
+        );
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::MatchArmProducesNoValue { .. })),
+            "expected E0223: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn empty_arm_in_a_tail_match_of_a_typed_fn_is_flagged() {
+        let errs = errors_of(
+            "module x\ntype Status = | Loading | Ready(string)\n\
+             fn label(s: Status) -> string {\n  \
+               match s {\n    Loading => {},\n    Ready(v) => v,\n  }\n}\n",
+        );
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::MatchArmProducesNoValue { .. })),
+            "expected E0223: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn statement_position_empty_arm_stays_legal() {
+        // `X => {}` as a deliberate no-op is used across the corpus; a `void`
+        // function's tail match is a statement, not a value.
+        let errs = errors_of(
+            "module x\ntype Status = | Loading | Ready(string)\n\
+             fn note(s: Status) -> void {\n  \
+               match s {\n    Loading => {},\n    Ready(v) => {},\n  }\n}\n",
+        );
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, TypeError::MatchArmProducesNoValue { .. })),
+            "a statement-position `=> {{}}` must stay legal: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn diverging_and_block_valued_arms_are_not_flagged() {
+        let errs = errors_of(
+            "module x\ntype Status = | Loading | Ready(string)\n\
+             fn label(s: Status) -> string {\n  \
+               let out = match s {\n    \
+                 Loading => { return \"none\" },\n    \
+                 Ready(v) => { let t = v\n t },\n  }\n  \
+               return out\n}\n",
+        );
+        assert!(
+            !errs
+                .iter()
+                .any(|e| matches!(e, TypeError::MatchArmProducesNoValue { .. })),
+            "a diverging arm and a block ending in an expression both produce values: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_valueless_arm_in_a_nested_tail_match_is_flagged() {
+        let errs = errors_of(
+            "module x\ntype Status = | Loading | Ready(string)\n\
+             fn label(s: Status, n: number) -> string {\n  \
+               let out = match s {\n    \
+                 Loading => \"none\",\n    \
+                 Ready(v) => match n {\n      1 => v,\n      else => {},\n    },\n  }\n  \
+               return out\n}\n",
+        );
+        assert!(
+            errs.iter()
+                .any(|e| matches!(e, TypeError::MatchArmProducesNoValue { .. })),
+            "a nested value-position arm inherits the position: {errs:?}"
+        );
     }
 }

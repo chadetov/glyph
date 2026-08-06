@@ -135,6 +135,22 @@ pub enum EmitError {
     /// element between them breaks it).
     #[error("an `<else>` must immediately follow its `<if>`")]
     MisplacedElse { span: Span },
+    /// A `?` inside an arm of a `match` that is nested in a larger expression.
+    /// That match lowers to an immediately-invoked arrow, and `?` returns from
+    /// the enclosing *function*, which an arrow cannot do. This is a positional
+    /// rule, not a missing feature: the same arm compiles when the match is the
+    /// whole value of a `let`/`mut`/`return` (which is a value-position match,
+    /// and is exactly why this is not named for that position).
+    #[error("`?` cannot propagate out of a `match` used inside a larger expression")]
+    TryInNestedExpressionMatch { span: Span },
+    /// A `?` in a position the emitter never hoists out of: the operand of a
+    /// construct that is rendered through `expr` rather than through a
+    /// statement's value (a `match` scrutinee, for instance). `?` expands to a
+    /// preceding `const` plus an early `return`, so it can only appear where a
+    /// statement can be inserted ahead of it. A positional rule, not a missing
+    /// feature.
+    #[error("`?` cannot be used in this position")]
+    TryInUnhoistablePosition { span: Span },
 }
 
 impl EmitError {
@@ -142,6 +158,8 @@ impl EmitError {
         match self {
             EmitError::Unsupported { span, .. } => *span,
             EmitError::MisplacedElse { span } => *span,
+            EmitError::TryInNestedExpressionMatch { span } => *span,
+            EmitError::TryInUnhoistablePosition { span } => *span,
         }
     }
 
@@ -150,6 +168,8 @@ impl EmitError {
         match self {
             EmitError::Unsupported { .. } => "E0300",
             EmitError::MisplacedElse { .. } => "E0301",
+            EmitError::TryInNestedExpressionMatch { .. } => "E0302",
+            EmitError::TryInUnhoistablePosition { .. } => "E0303",
         }
     }
 
@@ -162,6 +182,12 @@ impl EmitError {
             EmitError::MisplacedElse { .. } => Some(
                 "Move the `<else>` so it is the next sibling after its `<if>`; remove or relocate any element that sits between them.",
             ),
+            EmitError::TryInNestedExpressionMatch { .. } => Some(
+                "Bind the match first (`let x = match ... { ... }`) and use `?` there, or move the `?` out of the arm.",
+            ),
+            EmitError::TryInUnhoistablePosition { .. } => Some(
+                "Bind the operand first (`let r = f(x)?`) and use `r` here.",
+            ),
         }
     }
 
@@ -171,6 +197,12 @@ impl EmitError {
             EmitError::Unsupported { .. } => None,
             EmitError::MisplacedElse { .. } => Some(
                 "`<else>` is paired with its `<if>` only when it is the immediately following sibling; a sibling element (such as a `<p>`) between them breaks the pairing. This is an intentional D6 restriction.",
+            ),
+            EmitError::TryInNestedExpressionMatch { .. } => Some(
+                "A match nested in a larger expression lowers to an arrow, and `?` returns from the enclosing function, which an arrow cannot do. A match that is the whole value of a `let`/`mut`/`return` lowers to a statement `switch`, where `?` works.",
+            ),
+            EmitError::TryInUnhoistablePosition { .. } => Some(
+                "`?` expands to a `const` binding plus an early `return` placed before the statement it appears in, so it is only legal where such a statement can be inserted. A `match` scrutinee is one of the positions that is emitted as a plain expression.",
             ),
         }
     }
@@ -3093,7 +3125,11 @@ impl<'a> Emitter<'a> {
                 }
             }
             MatchArmBody::Expr(e) => {
-                let s = self.expr(e)?;
+                // `emit_value`, not `expr`: an arm body is a statement value
+                // like a `let`/`return` value, so a `?` in it hoists to an
+                // unwrap emitted just above the arm's value line, inside the
+                // `case { ... }` block. `expr` would reject the `?` outright.
+                let s = self.emit_value(e)?;
                 match term {
                     ArmTerm::Return => self.line(&format!("return {s};")),
                     ArmTerm::Break => {
@@ -3465,13 +3501,16 @@ impl<'a> Emitter<'a> {
                 format!("({op}{})", self.expr(operand)?)
             }
             Expr::Postfix { op, operand, span } => match op {
-                // `expr?` lowers to an inlined Result unwrap; a later day.
+                // `?` lowers to a hoisted unwrap: a `const` binding plus an
+                // early `return` emitted BEFORE the statement it appears in.
+                // `emit_value` does that hoisting, so every `?` a statement can
+                // reach is already rewritten by the time it gets here. Landing
+                // here means the `?` sits in a position rendered as a bare
+                // expression, with no statement slot to hoist into (a `match`
+                // scrutinee, for instance). Positional, not unimplemented.
                 PostfixOp::Try => {
                     let _ = operand;
-                    return Err(EmitError::Unsupported {
-                        construct: "the `?` operator",
-                        span: *span,
-                    });
+                    return Err(EmitError::TryInUnhoistablePosition { span: *span });
                 }
             },
             Expr::Call {
@@ -3609,9 +3648,16 @@ impl<'a> Emitter<'a> {
                     _ => None,
                 }) {
                     return Err(EmitError::Unsupported {
-                        construct: "a block body in a value-position match arm",
+                        construct: "a block body in an arm of a match nested inside a larger expression",
                         span: b.span,
                     });
+                }
+                // Same reason, for `?`: the hoisted unwrap ends in `return
+                // Err(...)`, which inside the arrow returns from the arrow
+                // instead of the enclosing function. Rejecting it here keeps
+                // that from becoming a silent miscompile.
+                if let Some(span) = arm_try_span(arms) {
+                    return Err(EmitError::TryInNestedExpressionMatch { span });
                 }
                 let mut sub = self.sub(self.indent + 1);
                 sub.emit_match_dispatch(scrutinee, arms, ArmTerm::Return)?;
@@ -4509,39 +4555,7 @@ fn place_awaits(e: &Expr) -> Expr {
 /// whole-value `?` the same as a nested one). Does not look inside a lambda
 /// body or a nested `match`/JSX — those carry their own statement context.
 fn contains_hoistable_try(e: &Expr) -> bool {
-    match e {
-        Expr::Postfix {
-            op: PostfixOp::Try, ..
-        } => true,
-        Expr::Binary { left, right, .. } => {
-            contains_hoistable_try(left) || contains_hoistable_try(right)
-        }
-        Expr::Index {
-            object: a,
-            index: b,
-            ..
-        } => contains_hoistable_try(a) || contains_hoistable_try(b),
-        Expr::Unary { operand: x, .. } | Expr::Await { expr: x, .. } | Expr::Member { object: x, .. } => {
-            contains_hoistable_try(x)
-        }
-        Expr::Call { callee, args, .. } => {
-            contains_hoistable_try(callee) || args.iter().any(contains_hoistable_try)
-        }
-        Expr::Array { elements, .. } => elements.iter().any(|el| match el {
-            ArrayElem::Expr(e) | ArrayElem::Spread(e) => contains_hoistable_try(e),
-        }),
-        Expr::Object { fields, .. } => fields.iter().any(|f| match f {
-            ObjectField::KeyValue { value, .. } | ObjectField::Spread { value, .. } => {
-                contains_hoistable_try(value)
-            }
-        }),
-        Expr::TemplateString { parts, .. } => parts.iter().any(|p| match p {
-            TemplatePart::Expr { value, .. } => contains_hoistable_try(value),
-            TemplatePart::Text { .. } => false,
-        }),
-        // Leaves and opaque constructs (lambda/match/JSX).
-        _ => false,
-    }
+    try_span(e, false).is_some()
 }
 
 /// Pin an empty array literal that an arm assigns into a lowered `match`'s
@@ -4555,6 +4569,75 @@ fn pin_empty_array(rendered: String, e: &Expr) -> String {
     match e {
         Expr::Array { elements, .. } if elements.is_empty() => format!("{rendered} as never[]"),
         _ => rendered,
+    }
+}
+
+/// The span of a `?` in an arm body of `arms`, if there is one. Used by the
+/// nested-expression (IIFE) match lowering, which cannot host a `?`: the hoisted
+/// unwrap returns from the enclosing function, and the arrow would swallow it.
+///
+/// Descends into a nested `match`'s arm bodies (the way `contains_await` does),
+/// because a nested match is emitted into the same arrow. A lambda body is not
+/// descended into: its `?` belongs to the lambda's own statement context.
+fn arm_try_span(arms: &[MatchArm]) -> Option<Span> {
+    arms.iter().find_map(|a| match &a.body {
+        MatchArmBody::Expr(e) => try_span(e, true),
+        MatchArmBody::Block(_) => None,
+    })
+}
+
+/// The span of the first `?` in `e` in evaluation order, or `None`.
+///
+/// The single walk behind both `?` questions the emitter asks, since two
+/// hand-maintained walks over the same grammar drift (these two did, over
+/// `Expr::New`, before they were a week old):
+///
+/// - `descend_into_match: false` — "is there a `?` the enclosing statement must
+///   hoist?" (`contains_hoistable_try`). A nested `match` is opaque: it carries
+///   its own statement context and hoists its arms' `?` itself.
+/// - `descend_into_match: true` — "is there a `?` anywhere that would end up
+///   inside this IIFE?" (`arm_try_span`). A nested match is emitted into the
+///   same arrow, so its arms count.
+///
+/// A lambda body is never descended into (its `?` is hoisted by the lambda's own
+/// statement emission), and neither is JSX. `hoist_tries` mirrors the
+/// `descend_into_match: false` shape and must be extended alongside this walk;
+/// a `?` this walk finds and `hoist_tries` cannot rewrite (inside a `new`, for
+/// one) reaches `expr` and is reported as E0303 rather than miscompiled.
+fn try_span(e: &Expr, descend_into_match: bool) -> Option<Span> {
+    let go = |x: &Expr| try_span(x, descend_into_match);
+    match e {
+        Expr::Postfix {
+            op: PostfixOp::Try,
+            span,
+            ..
+        } => Some(*span),
+        Expr::Binary { left, right, .. } => go(left).or_else(|| go(right)),
+        Expr::Index {
+            object: a,
+            index: b,
+            ..
+        } => go(a).or_else(|| go(b)),
+        Expr::Unary { operand: x, .. }
+        | Expr::Await { expr: x, .. }
+        | Expr::Member { object: x, .. } => go(x),
+        Expr::Call { callee, args, .. } | Expr::New { callee, args, .. } => {
+            go(callee).or_else(|| args.iter().find_map(go))
+        }
+        Expr::Array { elements, .. } => elements.iter().find_map(|el| match el {
+            ArrayElem::Expr(e) | ArrayElem::Spread(e) => go(e),
+        }),
+        Expr::Object { fields, .. } => fields.iter().find_map(|f| match f {
+            ObjectField::KeyValue { value, .. } | ObjectField::Spread { value, .. } => go(value),
+        }),
+        Expr::TemplateString { parts, .. } => parts.iter().find_map(|p| match p {
+            TemplatePart::Expr { value, .. } => go(value),
+            TemplatePart::Text { .. } => None,
+        }),
+        Expr::Match { arms, .. } if descend_into_match => arm_try_span(arms),
+        // Leaves, lambdas (own statement context), JSX, and — when not
+        // descending — a nested match.
+        _ => None,
     }
 }
 
@@ -4817,6 +4900,68 @@ mod tests {
         let (module, resolved, types, prelude) = pipeline(src);
         emit_module(&module, &resolved, &types, &prelude, EmitContext::single())
             .expect_err("expected emit error")
+    }
+
+    #[test]
+    fn try_in_an_expression_form_arm_hoists_inside_the_case() {
+        // An arm body is a statement value, so a `?` in one hoists to an unwrap
+        // above the arm's value line. Before this, `expr` rejected it outright
+        // with "not implemented yet" while the same `?` in a block arm compiled.
+        let ts = emit(
+            "module x\ntype Id = | None | Some(number)\n\
+             fn f(b: string) -> Result<string, string> { return Ok(b) }\n\
+             fn g(b: string, n: number) -> Result<string, string> { return Ok(b) }\n\
+             fn pick(id: Id, b: string) -> Result<string, string> {\n  \
+               let x = match id {\n    None => f(b)?,\n    Some(n) => g(b, n)?,\n  }\n  \
+               return Ok(x)\n}\n",
+        );
+        assert!(ts.contains("const __r1 = f(b);"), "{ts}");
+        assert!(
+            ts.contains("if (__r1.tag === \"Err\") { return __glyph_err(__r1.value); }"),
+            "{ts}"
+        );
+        assert!(ts.contains("x = __r1.value;"), "{ts}");
+        assert!(ts.contains("const __r2 = g(b, n);"), "{ts}");
+        assert!(ts.contains("x = __r2.value;"), "{ts}");
+    }
+
+    #[test]
+    fn try_in_a_nested_expression_match_is_e0302_not_e0300() {
+        // A match inside a larger expression lowers to an arrow, where the
+        // hoisted `return Err(...)` would return from the arrow. It is rejected
+        // with the rule (E0302), not a false "not implemented yet" (E0300).
+        let err = emit_err(
+            "module x\ntype Id = | None | Some(number)\n\
+             fn f(b: string) -> Result<string, string> { return Ok(b) }\n\
+             fn shout(s: string) -> string { return s }\n\
+             fn pick(id: Id, b: string) -> Result<string, string> {\n  \
+               return Ok(shout(match id {\n    None => f(b)?,\n    Some(n) => b,\n  }))\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::TryInNestedExpressionMatch { .. }),
+            "{err:?}"
+        );
+        assert_eq!(err.code(), "E0302");
+    }
+
+    #[test]
+    fn try_in_a_match_scrutinee_is_e0303_not_a_false_not_implemented() {
+        // The scrutinee is rendered through `expr`, which has no statement slot
+        // to hoist the unwrap into. That is a positional rule, so it reports as
+        // one instead of claiming the `?` operator is unimplemented (E0300).
+        let err = emit_err(
+            "module x\ntype Id = | None | Some(number)\n\
+             fn load(p: string) -> Result<Id, string> { return Ok(None) }\n\
+             fn pick(p: string) -> Result<string, string> {\n  \
+               let x = match load(p)? {\n    None => \"n\",\n    Some(n) => \"s\",\n  }\n  \
+               return Ok(x)\n}\n",
+        );
+        assert!(
+            matches!(err, EmitError::TryInUnhoistablePosition { .. }),
+            "{err:?}"
+        );
+        assert_eq!(err.code(), "E0303");
+        assert!(!err.to_string().contains("not implemented"), "{err}");
     }
 
     #[test]

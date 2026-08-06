@@ -1034,10 +1034,13 @@ workaround version produced.
 - **Three findings that were not gaps** (docs). Multi-line strings, `math.max`,
   and the two-import rule for `std/time` all already work; the author
   reimplemented around them. A shipped feature nobody can find is not a feature.
-- **`E0300` still says "value-position match arm"** (XS). The remaining block-arm
-  rejection now fires only for a `match` nested inside a larger expression, so the
-  wording points at a position that works. The message should name the nested case
-  and say "hoist it into its own `let`", which is the actual fix.
+- **`E0300` still says "value-position match arm"** (XS) — ✅ **done.** The
+  remaining block-arm rejection fires only for a `match` nested inside a larger
+  expression, so the wording pointed at a position that works. It now reads "a
+  block body in an arm of a match nested inside a larger expression", and the
+  sibling `?` rejection is `TryInNestedExpressionMatch` rather than
+  `TryInValuePositionMatch` for the same reason: a value-position match takes
+  both, and the name said otherwise.
 
 ## bracket dogfood trip — the build said ok on a false assertion
 
@@ -1085,12 +1088,12 @@ minimal-image build of a project with examples needs either `tsx` installed or
 
 ### Still open from this trip
 
-- **`?` is rejected in an expression-position `match` arm** (M). `None =>
-  lookup(0)?` fails with E0300 while the block form `None => { lookup(0)? }`
-  compiles and emits correctly. The fix is a pre-check in `expr`'s `Expr::Match`
-  arm, next to the existing block-arm check, so the flat path can use
-  `emit_value` without turning a compile error into a silent miscompile in the
-  nested-IIFE case.
+- **`?` is rejected in an expression-position `match` arm** (M) — ✅ **done.**
+  `None => lookup(0)?` failed with E0300 while the block form `None => {
+  lookup(0)? }` compiled and emitted correctly. The arm body now goes through
+  `emit_value`, and the nested-IIFE case is rejected with the rule it breaks
+  (E0302) rather than a false "not implemented yet". A `?` in the *scrutinee* is
+  still refused (E0303); see the batch item in the rolling lane.
 - **A two-binding `for` picks the record lowering on an unknown iterand** (G37,
   second sighting). Re-scoped by the settle trip below: the case where the
   iterand came out of a `match` (directly or through a field of a match-bound
@@ -1472,6 +1475,81 @@ rejection, or a hand-written scanner that no type could constrain.
   started, wants a `Match` record carrying the offset and the whole match text.
   `linkcheck` needed neither in the end, so this is no longer blocking an app in
   the repo.
+
+### 0.1.49 — Shipped · Four things `tsc` caught and Glyph did not
+
+This one is not a trip's release. It picks off four gaps filed by four different
+apps, and what they have in common is the failure mode: `glyph build` said ok,
+and the mistake surfaced later, either as a `tsc` error on generated TypeScript
+or as `undefined` at run time. Four new diagnostics, all against your own source.
+
+`await` in a plain `fn` used to build clean and fail at `tsc` with TS1308. It is
+now **E0222**, "`await` is only valid inside an `async fn`" (G44). The innermost
+enclosing callable decides, which is TypeScript's rule too, so a synchronous
+lambda inside an `async fn` is flagged and the same lambda written `async fn(...)`
+is not. One case is deliberately permissive: an `await` in a module-level `const`
+initializer has no enclosing callable and the emitted ESM accepts top-level
+`await`, so nothing is reported.
+
+`X => {}` in a `match` you assign used to emit `case X: { break; }`, and the
+binding was `undefined` while the type said otherwise. `tsc` caught it as TS2366
+only when the function had a declared return type. It is now **E0223**, "this
+match arm produces no value, but the match is used as a value" (G48), for an
+empty block or a block whose tail is a `let`, `mut`, `for`, or `loop`. It fires
+where the position is decidable: a `let`, a `mut`, a `return`, or the tail of a
+callable with a declared non-`void` return type, recursing into nested
+value-position arms. A statement-position `X => {}` is untouched, and none of the
+nine such arms across `examples/apps/` fires.
+
+A bare `x = e` used to report "unexpected token: Equals". It is now **E0008**,
+"assignment requires `mut`", with the D5 help line and an `--explain` body
+carrying the before and after (G35). It covers `r.field = e` and `xs[0] = e`, and
+it fires inside a `match` arm, where the old message was "expected `,` after
+match arm".
+
+`?` in an expression-form arm (`None => lookup(b, name)?`) used to be refused as
+"not implemented yet" while the same code in a block arm compiled and emitted
+correctly (G24). The arm body now goes through the same hoisting path as any
+other statement value, so the unwrap and its early `return` land inside the arm's
+own `case`. `examples/apps/bracket.glyph` lost the block-arm workaround and the
+comment explaining it, eight lines for two, and the emitted TypeScript is
+byte-identical. The two positions that stay rejected say why now instead of
+claiming a missing feature: **E0302** for an arm of a `match` nested inside a
+larger expression (that match is a closure, so the `return` would leave it), and
+**E0303** for a position with no statement slot at all, such as a `match`
+scrutinee.
+
+A parser fix came with E0223. `A => { "Content-Type": "application/json", }` now
+parses as an object literal rather than a block, because a block cannot begin
+with a string literal followed by `:`.
+
+Pillar: verifiability. Every one of these was a rule Glyph relies on that Glyph
+itself did not check.
+
+### Still open after this release
+
+- **There is still no way to spell an empty record in an arm** (decision, then
+  S). `{}` is a no-op block in statement position, used nine-plus times across
+  the corpus, so it cannot silently become the empty record. E0223 reports the
+  value-position case rather than answering the question, and
+  `examples/apps/linkcheck.glyph` still carries the `no_cache()` constructor.
+  Four candidates: a named `record.empty<V>()`, a context-sensitive `{}`,
+  rejecting `{}` as an arm body outright, or a grouping node in the AST so
+  `=> ({})` survives `glyph fmt`. The last one is also the fix for G60 below.
+- **Top-level `await` is left permissive** (decision). An `await` in a
+  module-level `const` initializer means a module has implicit async
+  initialization with nothing in the source marking it. The spec has no stance,
+  and flagging it would be a new language restriction, so it is a spec question,
+  not a checker bug.
+- **E0223 cannot judge an unannotated lambda** (S). It needs a decidable
+  position, and a callable with no declared return type gives it none, so
+  `array.map(xs, fn(x) { match x { A => {}, ... } })` is still silent. Closing it
+  means a second backstop in the emitter, driven by arm termination, which is a
+  second diagnostic path for one rule and invisible to the LSP.
+- **`?` in a `match` scrutinee** (S). `match load(p)? { ... }` is rejected as
+  E0303. Supporting it means hoisting the scrutinee's unwrap ahead of the lowered
+  `switch` at four call sites, and extending the IIFE guard to cover the
+  scrutinee.
 
 ## Road to 1.0
 
@@ -2350,6 +2428,48 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **Four silent holes closed: `await` context, valueless match arms, bare
+  assignment, `?` in an arm.** ✅ **done.** Four diagnostics that a real app hit
+  and the compiler did not: `await` in a non-`async fn` built clean and failed at
+  `tsc` (now E0222); `X => {}` in a value-position `match` emitted `case X: {
+  break; }` so the binding stayed `undefined` (now E0223); a bare `x = e` said
+  "unexpected token: Equals" instead of teaching `mut` (now E0008); and `?` in an
+  expression-form arm was refused with a false "not implemented yet" although the
+  same code in a block arm compiled (the arm body now emits through the same
+  hoisting path as a `let`/`return` value). A string-keyed object literal in an
+  arm (`{ "Content-Type": v }`) also parses as a literal now instead of a block.
+  Two of the four gaps it was aimed at (G35, G44) close here; **G24 and G48 are
+  half closed and are marked that way in `docs/dogfooding-gaps.md`.** What stays
+  open. (1) There is still no way to spell an empty record in arm position, so
+  `linkcheck` still needs its `no_cache()` constructor and the comment naming
+  G48: `{}` is a no-op block in statement position (9+ uses across the corpus)
+  and E0223 reports the value-position case rather than resolving the ambiguity.
+  (2) Top-level `await` (a `const` initializer with no enclosing callable) is
+  left permissive; the emitted ESM accepts it and the spec has no stance. It
+  means a module can have implicit async initialization with nothing in the
+  source marking it, which needs a spec answer rather than staying undecided.
+  (3) E0223 can only judge a tail-position match when the callable declares a
+  non-`void` return type, so an unannotated lambda (`array.map(xs, fn(x) { match
+  x { A => {}, ... } })`) is still silent; closing it means a second,
+  emitter-side backstop that the LSP cannot see. (4) `match load(p)? { ... }` (a
+  `?` in the *scrutinee*) is still rejected, now as E0303 ("`?` cannot be used in
+  this position") with a bind-first fix, instead of the old false "not
+  implemented yet". Supporting it means hoisting the scrutinee's unwrap ahead of
+  the lowered `switch`, at four more call sites.
+- **A teaching parse error that hides the rest of the file** (S). E0008 and E0006
+  both abort the parse, so an author with five bare assignments fixes them one
+  build at a time and sees no other diagnostic until the last one is gone. Both
+  exist to teach a rule a newcomer breaks repeatedly, and a diagnostic that
+  reports one instance per build teaches slowly. Recovering to the next statement
+  is the fix; it needs a parser error-recovery point that does not exist yet.
+- **`glyph fmt` breaks a working program at `=> ({})`** (S) — the empty-record
+  arm workaround `=> ({})` builds and passes `tsc --strict`; `glyph fmt` reprints
+  it as `=> {}`, an empty block, and the formatted file fails with E0223.
+  Reproduced end to end. The formatter has no grouping node, so the parentheses
+  never reach the AST it reprints. D14 promises `fmt` round-trips, and this one
+  changes meaning, so it is a formatter correctness bug independent of how G48's
+  spelling question is answered. Tracked as G60. The grouping node is the narrow
+  fix and it also takes `no_cache()` out of `linkcheck` instead of blessing it.
 - **Value-position `match` lowers to a flat switch** — ✅ **done (0.1.42).** The
   emitter picked between its statement `switch` and its value IIFE on the wrong
   condition, which cost three different `tsc` errors on code Glyph called clean.

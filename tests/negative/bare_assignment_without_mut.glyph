@@ -1,0 +1,7 @@
+module neg
+
+fn count() -> number {
+  let total = 0
+  total = total + 1
+  return total
+}

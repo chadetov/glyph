@@ -846,6 +846,61 @@ fn main() {
     }
 
     #[test]
+    fn bare_assignment_points_at_mut() {
+        // Statement position: without the targeted variant this died on the
+        // next statement with "unexpected token: Equals".
+        let err = parse("module x\nfn f() { let total = 0\ntotal = 1\nreturn total }\n").unwrap_err();
+        assert!(
+            matches!(err, ParseError::MissingMutOnAssignment { .. }),
+            "{err:?}"
+        );
+        assert_eq!(err.code(), "E0008");
+
+        // Match-arm position: without it the arm loop reported the unrelated
+        // "expected `,` after match arm (D2)" against the `=`.
+        let arm_err = parse(
+            "module x\nfn f(n: number) -> number { let t = 0\nmatch n { 1 => t = 5, else => t = 0, }\nreturn t }\n",
+        )
+        .unwrap_err();
+        assert!(
+            matches!(arm_err, ParseError::MissingMutOnAssignment { .. }),
+            "{arm_err:?}"
+        );
+
+        // `mut x = e` and `let x = e` still parse.
+        parse("module x\nfn f() { let total = 0\nmut total = 1\nreturn total }\n").unwrap();
+    }
+
+    #[test]
+    fn string_keyed_object_literal_is_a_match_arm_expression() {
+        // `{ "Content-Type": v }` starts with a string key, which the block/
+        // object-literal lookahead used to miss, so the arm parsed as a block.
+        let m = parse(
+            "module x\nfn h(n: string) -> Record<string, string> { return match n { \"json\" => { \"Content-Type\": \"application/json\", }, else => { \"Content-Type\": \"text/plain\", }, } }\n",
+        )
+        .unwrap();
+        let glyph_ast::Decl::Fn(f) = &m.items[0] else {
+            panic!("expected fn")
+        };
+        let glyph_ast::Stmt::Return(r) = &f.body.stmts[0] else {
+            panic!("expected return")
+        };
+        let Some(glyph_ast::Expr::Match { arms, .. }) = &r.value else {
+            panic!("expected match")
+        };
+        for arm in arms {
+            assert!(
+                matches!(
+                    arm.body,
+                    glyph_ast::MatchArmBody::Expr(glyph_ast::Expr::Object { .. })
+                ),
+                "arm body should be an object literal, got {:?}",
+                arm.body
+            );
+        }
+    }
+
+    #[test]
     fn range_pattern_reports_unsupported_not_missing_arrow() {
         let err = parse(
             "module x\nfn f(s: number) -> bool { match s { 429 => true, 500..599 => true, else => false } }\n",

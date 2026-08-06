@@ -347,6 +347,24 @@ pub enum TypeError {
         suggestion: Option<String>,
         span: Span,
     },
+
+    /// `await` written outside an `async fn`. Glyph has no user-visible
+    /// `Promise`, so `await` is only meaningful inside a callable declared
+    /// `async`; anywhere else the emitted TypeScript is rejected by `tsc`
+    /// (TS1308) with no Glyph-level explanation. The innermost enclosing
+    /// callable decides: a synchronous lambda nested inside an `async fn` is
+    /// its own context, matching TypeScript.
+    #[error("`await` is only valid inside an `async fn`")]
+    AwaitOutsideAsyncFn { span: Span },
+
+    /// A `match` arm that yields no value while the `match` itself is used as
+    /// a value (bound by a `let`, assigned with `mut`, returned, or the value
+    /// of a typed callable's body). An arm body that is an empty block, or a
+    /// block whose last statement is not an expression and does not diverge,
+    /// lowers to `case X: { break; }` — the binding is then never assigned and
+    /// the value is `undefined` at run time with no TypeScript error.
+    #[error("this `match` arm produces no value, but the `match` is used as a value")]
+    MatchArmProducesNoValue { span: Span },
 }
 
 /// Diagnostic severity. Most diagnostics are hard `Error`s that fail the build;
@@ -394,6 +412,8 @@ impl TypeError {
             TypeError::UnreachableMatchArm { span } => *span,
             TypeError::UnusedResult { span } => *span,
             TypeError::UnknownVariantPattern { span, .. } => *span,
+            TypeError::AwaitOutsideAsyncFn { span } => *span,
+            TypeError::MatchArmProducesNoValue { span } => *span,
         }
     }
 
@@ -423,6 +443,8 @@ impl TypeError {
             TypeError::UnreachableMatchArm { .. } => "E0216",
             TypeError::UnusedResult { .. } => "E0217",
             TypeError::UnknownVariantPattern { .. } => "E0220",
+            TypeError::AwaitOutsideAsyncFn { .. } => "E0222",
+            TypeError::MatchArmProducesNoValue { .. } => "E0223",
         }
     }
 
@@ -495,6 +517,12 @@ impl TypeError {
             TypeError::UnknownVariantPattern { .. } => {
                 "Check the name for a typo, or add the variant to the union. A lowercase name would be a binding; a PascalCase name is read as a variant."
             }
+            TypeError::AwaitOutsideAsyncFn { .. } => {
+                "Mark the enclosing function `async fn`, or call a non-async function here."
+            }
+            TypeError::MatchArmProducesNoValue { .. } => {
+                "End the arm with an expression, or `return` from it. `X => {}` is a no-op only where the `match` is a statement."
+            }
         })
     }
 
@@ -519,6 +547,12 @@ impl TypeError {
             ),
             TypeError::UnknownVariantPattern { .. } => Some(
                 "A bare PascalCase arm head is a variant reference, not a binding (D9). Treating a non-variant as a binding would hide it as a silent catch-all.",
+            ),
+            TypeError::AwaitOutsideAsyncFn { .. } => Some(
+                "Glyph has no user-visible `Promise`: an `async fn -> T` is awaited to a `T`, and `await` only appears inside one.",
+            ),
+            TypeError::MatchArmProducesNoValue { .. } => Some(
+                "A value-position arm lowers to `case X: { break; }` when it yields nothing, so the value would be `undefined` at run time.",
             ),
             _ => None,
         }

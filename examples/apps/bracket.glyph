@@ -465,15 +465,9 @@ fn deepest_match(ms: Array<Match>) -> Option<Match> {
 // updated in place, which is also how the winner reaches the parent slot: the
 // parent reads through the `Feeder`.
 fn report_result(b: Bracket, name: string, score: Option<string>, id: Option<int>) -> Result<Match, Reject> {
-  // The braces are load-bearing: `?` is rejected in an expression arm
-  // (`None => locate_match(b, name)?`) but accepted in a block arm.
   let target = match id {
-    None => {
-      locate_match(b, name)?
-    },
-    Some(n) => {
-      explicit_match(b, name, n)?
-    },
+    None => locate_match(b, name)?,
+    Some(n) => explicit_match(b, name, n)?,
   }
 
   match is_ready(target) {

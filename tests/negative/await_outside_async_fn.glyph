@@ -1,0 +1,9 @@
+module neg
+
+async fn slow() -> number {
+  return 1
+}
+
+fn nope() -> number {
+  return await slow()
+}

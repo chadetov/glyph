@@ -38,9 +38,13 @@ left a stale build in place; upgrade if you are on an older version.
 
 ## Language errors people hit first
 
-**"unexpected token" on `if` / `else`.** Glyph has no `if` statement. Branch with
-`match` (every branch is a value, every case is checked). See
-[how to think in Glyph](how-to-think.md).
+**E0006: Glyph has no `if` / `else`.** Branch with `match` (every branch is a
+value, every case is checked). See [how to think in Glyph](how-to-think.md).
+
+**E0008: assignment requires `mut`.** A bare `x = e` is not an assignment
+statement. Reassigning an existing binding is `mut x = e`; introducing a new one
+is `let x = e`. The mark is what makes every mutation greppable (D5), and it
+applies to fields and elements too (`mut r.count = 1`, `mut xs[0] = v`).
 
 **"expected `,`" at the end of a list.** Trailing commas are required, including
 on the last element and the last `match` arm. This is what keeps adding an item
@@ -75,16 +79,30 @@ you want to expose `pub` in its own module.
 **E0221: unknown annotation.** An `@name` the compiler doesn't recognize (a typo
 like `@puer`). The recognized set is small and documented in the spec (D27).
 
-**E0300: a block body in a value-position match arm.** Only a `match` nested
-inside a larger expression hits this, because that form compiles to a closure. A
-`match` that is the whole value of a `let` or a `mut` takes block arms, `await`,
-and `break`. Pull the nested one out into its own `let` and the arms can be
-blocks again.
+**E0223: this `match` arm produces no value.** The `match` is used as a value (a
+`let`, a `mut`, a `return`, or the tail of a function with a declared return
+type) and one arm yields nothing, usually `X => {}`. That arm lowers to
+`case X: { break; }`, so the binding would be `undefined` at run time. Give the
+arm a value, or `return` from it. `X => {}` is still a legal no-op where the
+`match` is a statement.
 
-**TS1308: `await` is only allowed within async functions.** Glyph does not check
-async context itself, so `await` inside a plain `fn` compiles and `tsc` reports
-it on the emitted TypeScript, mapped back to your line. Mark the function
-`async fn`.
+**E0300: a block body in an arm of a match nested inside a larger expression.**
+Only the nested form hits this, because it compiles to a closure. A `match` that
+is the whole value of a `let` or a `mut` takes block arms, `await`, and `break`.
+Pull the nested one out into its own `let` and the arms can be blocks again.
+
+**E0302 / E0303: `?` in a position it cannot propagate from.** `?` becomes a
+`const` plus an early `return` placed before the statement it sits in, so it
+needs a statement to hoist into. E0302 is a `?` in an arm of a `match` nested in
+a larger expression (that match is a closure, and the `return` would leave the
+closure); E0303 is a position with no statement slot at all, such as a `match`
+scrutinee. Both are fixed by binding first: `let id = load(p)?`, then match on
+`id`.
+
+**E0222: `await` outside an `async fn`.** Mark the enclosing function `async fn`.
+The innermost callable decides, so a synchronous lambda inside an `async fn` is
+its own context and cannot `await` either; write `async fn(x) { ... }` for the
+lambda or move the `await` out of it.
 
 ## Runtime
 

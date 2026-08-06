@@ -1,0 +1,17 @@
+module neg
+
+type Id =
+  | Missing
+  | Found(number)
+
+fn load(p: string) -> Result<Id, string> {
+  return Ok(Missing)
+}
+
+fn pick(p: string) -> Result<string, string> {
+  let x = match load(p)? {
+    Missing => "none",
+    Found(n) => "some",
+  }
+  return Ok(x)
+}

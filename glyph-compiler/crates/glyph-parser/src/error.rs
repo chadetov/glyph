@@ -37,6 +37,14 @@ pub enum ParseError {
     /// instead of a misleading "expected `=>`" against the `DotDot` token.
     #[error("range patterns (e.g. `500..599`) are not supported in v1")]
     UnsupportedRangePattern { span: Span },
+
+    /// A bare `x = e` assignment with no `mut` (D5). Every mutation in Glyph
+    /// is marked, so the assignment form is `mut x = e`. Carried as its own
+    /// variant because the generic path reports "unexpected token: Equals",
+    /// which names a token instead of the rule the author broke — the same
+    /// reason `NoConditionalKeyword` exists for `if`/`else`.
+    #[error("assignment requires `mut`")]
+    MissingMutOnAssignment { span: Span },
 }
 
 impl ParseError {
@@ -48,7 +56,8 @@ impl ParseError {
             | ParseError::ExpectedEof { span }
             | ParseError::NotImplemented { span }
             | ParseError::NoConditionalKeyword { span, .. }
-            | ParseError::UnsupportedRangePattern { span } => *span,
+            | ParseError::UnsupportedRangePattern { span }
+            | ParseError::MissingMutOnAssignment { span } => *span,
         }
     }
 
@@ -63,6 +72,7 @@ impl ParseError {
             ParseError::NotImplemented { .. } => "E0005",
             ParseError::NoConditionalKeyword { .. } => "E0006",
             ParseError::UnsupportedRangePattern { .. } => "E0007",
+            ParseError::MissingMutOnAssignment { .. } => "E0008",
         }
     }
 
@@ -85,6 +95,9 @@ impl ParseError {
             }
             ParseError::UnsupportedRangePattern { .. } => {
                 "Range and comparison patterns aren't in v1. Enumerate the values as separate arms (`429 => ..., 500 => ...,`) or match a guard-less scrutinee, e.g. a boolean derived from a comparison."
+            }
+            ParseError::MissingMutOnAssignment { .. } => {
+                "Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one."
             }
         })
     }

@@ -22,10 +22,17 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the `std/fs` breadth, `regex.captures_all`,
-and `task.pool_settled` batch and the `linkcheck` rewrite that consumed it: of 59
-entries, 33 are fixed, 7 are partly fixed, 4 are decided or resolved, and 15 are
-open. Three of that batch's four entries are `[FIXED]`, and the fourth stops
+Reconciled against the source after the batch that added E0008, E0222, and E0223:
+of 60 entries, 35 are fixed, 9 are partly fixed, 4 are decided or resolved, and
+12 are open. That batch closed G35 and G44 outright and took G24 and G48 to
+`[HALF FIXED]`: the `?` scrutinee and the empty-record spelling are each still
+open, and `linkcheck` still carries the `no_cache()` workaround G48 is about. It
+also turned up G60, a formatter round-trip that breaks a working program.
+
+The reconciliation before it, after the `std/fs` breadth, `regex.captures_all`,
+and `task.pool_settled` batch and the `linkcheck` rewrite that consumed it, read
+59 entries, 33 fixed, 7 partly fixed, 4 decided or resolved, 15 open. Three of
+that batch's four entries are `[FIXED]`, and the fourth stops
 short: G47's error taxonomy is spellable in a pattern but nothing checks that the
 `match` covers it, so an omitted kind is a run-time throw rather than an E0200.
 G51 spent one release at `[HALF FIXED]` on the belief that `captures_all` could
@@ -528,10 +535,21 @@ on a decision in `docs/roadmap/releases.md`.
   formatter tests; D14 records the guarantee.* The remaining edge is placement,
   not loss: a comment is always emitted on its own line, so one written at the
   end of a code line moves to the line above the next item.
-- **G24. `?` is rejected in an expression-form `match` arm.** `=> f(x)?` fails
-  while `=> { return f(x)? }` and `=> return Ok(f(x)?)` both compile. One call
-  site in the emitter uses `self.expr` where every other statement position uses
-  `self.emit_value`. A missed call site, not a design.
+- **G24. [HALF FIXED] `?` is rejected in an expression-form `match` arm.**
+  `=> f(x)?` fails while `=> { return f(x)? }` and `=> return Ok(f(x)?)` both
+  compile. One call site in the emitter uses `self.expr` where every other
+  statement position uses `self.emit_value`. A missed call site, not a design.
+  *The arm body is fixed: an expression arm of a `match` that is the whole value
+  of a `let`, a `mut`, or a `return` emits through the same hoisting path as any
+  other statement value, so `None => f(b)?` lowers to the unwrap plus the
+  assignment inside its own `case` and passes `tsc --strict`. An arm of a `match`
+  nested inside a larger expression is still rejected, now as E0302 naming the
+  positional rule instead of the old false "not implemented yet". What remains is
+  the scrutinee: `match load(p)? { ... }` is still refused, because the scrutinee
+  is rendered through `expr`, which has no statement slot to hoist the unwrap
+  into. That refusal no longer lies about itself either: it is E0303 ("`?` cannot
+  be used in this position") with a bind-first fix. But the position is not
+  supported, so the gap is half closed, not closed.*
 - **G25. [FIXED] A value-position `match` cannot host block arms.** A `match`
   used as a sub-expression lowers to an IIFE that rejects block arms, and in that
   position G24 has no workaround. Structural and separate from G24. *Fixed in
@@ -634,9 +652,14 @@ workaround for the first and is still open.
   reads like the rest of the module. The callback gets `(acc, x)` and no index.
   The accumulation loops the apps wrote before `fold` existed are folds now, and
   `grep mut` over `examples/apps/` went from 192 sites to 161.*
-- **G35. A bare `x = e` gets no mut-teaching diagnostic.** E0006 exists to teach
-  the `if` ban; D5 is the second-most-broken rule for a newcomer and there is
-  nothing parallel. The parse error names a token, not the rule.
+- **G35. [FIXED] A bare `x = e` gets no mut-teaching diagnostic.** E0006 exists
+  to teach the `if` ban; D5 is the second-most-broken rule for a newcomer and
+  there is nothing parallel. The parse error names a token, not the rule.
+  *Fixed: a bare `x = e` (and `r.field = e`, `xs[0] = e`) is E0008, "assignment
+  requires `mut`", with the D5 help line and an `--explain` body carrying the
+  before/after. It fires in a block and in a `match` arm, where the old message
+  was "expected `,` after match arm". Like E0006 it aborts the parse, so a file
+  with several bare assignments reports them one build at a time.*
 - **G36. The clap binding has no `allow_hyphen_values`.** A negative amount as a
   CLI argument (`--amount -12.50`) cannot be expressed.
 - **G37. A two-binding `for` over a call's result binds a *string* index, and
@@ -790,11 +813,19 @@ of truth. On the async path it was a preprocessor with opinions.
   `switch`), and an empty array literal in an arm is pinned to `never[]`, because
   a bare `[]` assigned to an unannotated `let` starts TypeScript's evolving-array
   inference and every later read becomes an implicit `any[]` (TS7034/TS7005).*
-- **G44. `await` in a non-`async fn` is not checked by Glyph.** `fn nope() -> int
-  { return await slow() }` builds with no diagnostics and fails at `tsc` with
-  TS1308. There is no Glyph-side check of async context anywhere; the whole async
-  story is delegated. Same family as G43 and the reason the async-arrow fallback
-  above is no regression.
+- **G44. [FIXED] `await` in a non-`async fn` is not checked by Glyph.** `fn
+  nope() -> int { return await slow() }` builds with no diagnostics and fails at
+  `tsc` with TS1308. There is no Glyph-side check of async context anywhere; the
+  whole async story is delegated. Same family as G43 and the reason the
+  async-arrow fallback above is no regression. *Fixed: E0222, "`await` is only
+  valid inside an `async fn`". The innermost enclosing callable decides, which
+  matches TypeScript and means a synchronous lambda inside an `async fn` is
+  flagged while the same lambda written `async fn(...)` is not. One thing is
+  deliberately left permissive: an `await` in a module-level `const` initializer
+  has no enclosing callable, and the emitted ESM accepts top-level `await`, so it
+  is not reported. Whether Glyph wants implicit async module initialization with
+  nothing in the source marking it is a spec question, not a checker bug; it is
+  in `docs/roadmap/releases.md`.*
 - **G45. An `async` function type is unspellable.** `parse_atom_type` has exactly
   one function-type entry (`Token::Fn`) and `TypeExpr::Fn` carries no async bit,
   so a parameter that takes an async callback cannot be typed. Closing it is a
@@ -849,7 +880,8 @@ of truth. On the async path it was a preprocessor with opinions.
   directory the rewritten app prints `permission denied` and counts the path as
   unreadable, where the pre-batch app (which could only ask whether the errno was
   `EISDIR`) dropped that directory from the report with no row and no mention.*
-- **G48. `{}` as a match arm is silent green.** `true => {}` parses as an empty
+- **G48. [HALF FIXED] `{}` as a match arm is silent green.** `true => {}` parses
+  as an empty
   block, emits `case true: { break; }`, and the function falls out of its own
   switch returning `undefined` while claiming a record type. No Glyph diagnostic;
   `tsc` catches it as TS2366. Narrower than first reported: an unquoted `{ a: 1 }`
@@ -862,6 +894,22 @@ of truth. On the async path it was a preprocessor with opinions.
   and passes `tsc`, and then `glyph fmt` takes the parentheses back off and the
   formatted file reproduces the error. Until this is decided, an arm that means
   "the empty map" needs a named constructor.
+  *The silent-green half is closed and the spelling half is not. E0223 now
+  reports a value-position arm that produces no value (an empty block, or a block
+  whose tail is a `let`/`mut`/`for`/`loop`) wherever the position is decidable: a
+  `let`, a `mut`, a `return`, or the tail of a callable with a declared non-`void`
+  return type, recursing into nested value-position arms. A statement-position
+  `X => {}` is untouched, and none of the 9+ such arms across `examples/apps/`
+  fires. The string-keyed literal half of the parse is also fixed: `A => {
+  "Content-Type": "application/json", }` now parses as an object literal, since a
+  block cannot begin with `"str" :`. What is not fixed is the thing the gap's
+  last sentence is about. There is still no way to spell an empty record in arm
+  position, so `examples/apps/linkcheck.glyph:738` still carries `fn no_cache()
+  -> Record<string, Outcome> { return {} }` and line 1017 still calls it with a
+  comment naming this gap. E0223 makes the workaround's absence a hard error
+  instead of a runtime `undefined`, which is progress, not closure. The `=>
+  ({})` round-trip is worse than the entry says and is now tracked on its own as
+  G60.*
 - **G49. [FIXED] `@example` execution was opt-in behind `--test`, contradicting
   D23.** D23 is tagged verifiability precisely so an agent rewriting a body
   cannot bypass the examples, and a flag is a bypass by default. The `--json`
@@ -1108,3 +1156,28 @@ the fixed version against input a user controls.
   both, along with `repeat`, `pad_start`, `pad_end`, `replace_all`, `trim_start`,
   `trim_end`, and `array.fold`/`index_of`/`flat_map`, and the apps now call them.
   Codepoint-aware iteration is the part left open; see G50.*
+
+## An adversarial review of the E0222/E0223/E0008 batch
+
+The batch that closed G35 and G44 was reviewed from outside, against a binary
+rebuilt from the working tree. Three findings were bookkeeping (this file said
+all four gaps were open; `docs/error-codes.md` cited D18 for E0222, which is the
+postfix-`?` precedence rule; three catalogued codes had no `--explain` body) and
+are fixed in the same session. The fourth is a defect in its own right.
+
+- **G60. `glyph fmt` turns a building program into a non-building one.** An arm
+  that means "the empty record" is written `=> ({})`, which parses as a
+  parenthesized object literal, builds clean, and passes `tsc --strict`. `glyph
+  fmt` reprints it as `=> {}`, which is an empty *block*, and the formatted file
+  no longer builds: E0223, the arm produces no value. Verified end to end on a
+  three-arm program. The formatter has no grouping node, so the parentheses are
+  not in the AST it reprints and their meaning is lost. That the round-trip
+  changes meaning is G48's problem; that the *formatter* is what changes it is
+  this one, and it is the more serious half. D14 promises `fmt` round-trips, and
+  a formatter a program cannot survive is worse than a missing feature, because
+  it damages code that already worked. The narrow fix is a grouping node in the
+  AST so `({})` reprints as itself; that also removes `linkcheck`'s `no_cache()`
+  workaround rather than blessing it. Whether Glyph instead wants a different
+  spelling for the empty record in arm position is G48 and stays open; this entry
+  is closed by the formatter preserving what it was given, whichever way G48
+  goes.

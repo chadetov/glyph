@@ -770,6 +770,9 @@ machine-readably. The full catalogue:
 | E0003 | Unexpected token here | Remove or relocate it |
 | E0004 | Expected end of file | Balance your braces |
 | E0005 | Construct recognized but not implemented | Use a supported form |
+| E0006 | `if`/`else` used where Glyph has none (D3) | Rewrite as a `match` |
+| E0007 | Range/comparison pattern (`500..599 =>`) in a match arm | Enumerate the values as separate arms |
+| E0008 | Assignment without `mut` (`x = e`) (D5) | Write `mut x = e`, or `let x = e` for a new binding |
 | E0100 | Duplicate top-level name | Rename one; names are unique |
 | E0101 | Relative import | Use an absolute module path (`std/io`, `myapp/x`) |
 | E0102 | Barrel file (only imports) | Add a declaration or remove the file |
@@ -802,7 +805,12 @@ machine-readably. The full catalogue:
 | E0219 | `@redact` names a missing field | Fix the field name |
 | E0220 | A `match` arm's PascalCase head is not a variant of the union (typo or wrong union) | Fix the spelling (a `did you mean` suggestion is offered), or add the variant |
 | E0221 | Unknown `@annotation` (D27) | Use a recognized one: `@example`, `@doc`, `@redact`, `@open`, `@pure`, `@public` |
+| E0222 | `await` outside an `async fn` | Mark the enclosing callable `async fn` (a sync lambda is its own context) |
+| E0223 | A `match` arm produces no value while the match is used as a value | End the arm with an expression, or `return` from it |
 | E0300 | Construct not supported by the emitter | Use a supported form |
+| E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
+| E0302 | `?` in an arm of a match nested inside a larger expression | Bind the match first (`let x = match ...`), then use `?` |
+| E0303 | `?` where the unwrap has nothing to hoist into (a `match` scrutinee) | Bind the operand first (`let r = f(x)?`), then use `r` |
 | E0310 | `glyph run` on a module with no `fn main` | Add `fn main`, or `glyph build` it as a library |
 
 ### A diagnostic in the self-correction loop

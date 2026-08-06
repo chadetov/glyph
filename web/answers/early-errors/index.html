@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Why does Glyph catch what tsc catches, but earlier? · Glyph</title>
+    <meta name="description" content="Glyph reports await outside an async fn, a match arm that produces no value, and an assignment missing mut against your source, with the rule and the fix, instead of leaving them to tsc or to runtime." />
+    <link rel="canonical" href="https://glyphlang.io/answers/early-errors/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
+        <a href="/answers/early-errors/" class="active"><span class="n">18</span> Caught earlier</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">18 &middot; Caught earlier</p>
+      <h1 class="q-title">Why does Glyph catch what tsc catches, but earlier?</h1>
+
+      <p class="short-answer">
+        Because an error against generated TypeScript is an error about code you didn't
+        write. Glyph reports these against your source, with the rule you broke and the
+        edit that fixes it.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Glyph compiles to TypeScript and then type-checks the output with
+          <code>tsc --strict</code>, so a mistake Glyph doesn't model isn't lost. It comes
+          back one stage later, phrased in terms of the emitted file: a
+          <code>TS1308</code> pointing at an <code>await</code> in a function you never
+          spelled, or a <code>TS2366</code> about a <code>switch</code> you didn't write.
+          The line is mapped back to your <code>.glyph</code>, but the explanation isn't.
+        </p>
+        <p>
+          That gap is where the compiler stops teaching. So each rule Glyph can decide
+          for itself moves up: <code>await</code> outside an <code>async fn</code>
+          (<code>E0222</code>), a <code>match</code> arm that produces no value while the
+          <code>match</code> is used as a value (<code>E0223</code>), and an assignment
+          written without <code>mut</code> (<code>E0008</code>). Each names the rule, cites
+          the decision behind it, and shows the before and after.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          The arm case is the one that used to escape entirely. <code>{}</code> in arm
+          position is an empty <em>block</em>, not an empty record, so the arm ran and
+          produced nothing:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">status.glyph: an arm that yields nothing, in a position that needs a value</span>
+<pre>fn label(s: Status) -&gt; string {
+  let text = match s {
+<span class="del">    Loading =&gt; {},          // an empty block: the arm produces no value</span>
+    Ready =&gt; "done",
+    Failed(msg) =&gt; msg,
+  }
+  return text
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build</span>
+<pre><span class="del">[E0223] this `match` arm produces no value, but the `match` is used as a value</span>
+   ╰─ End the arm with an expression, or `return` from it. `X =&gt; {}` is a no-op
+      only where the `match` is a statement.
+   note: A value-position arm lowers to `case X: { break; }` when it yields
+         nothing, so the value would be `undefined` at run time.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Before this, the emitted <code>switch</code> fell out of its own cases and
+          <code>text</code> held <code>undefined</code> while its type said
+          <code>string</code>. <code>tsc</code> catches some shapes of that and misses
+          others. Glyph now decides it wherever the position is decidable: a
+          <code>let</code>, a <code>mut</code>, a <code>return</code>, or the tail of a
+          function that declares a return type. A statement <code>match</code> keeps
+          <code>X =&gt; {}</code> as the deliberate no-op it is.
+        </p>
+        <p>
+          <code>await</code> is the same move. Glyph has no user-visible
+          <code>Promise</code>: an <code>async fn -&gt; T</code> is awaited to a
+          <code>T</code>, so <code>await</code> anywhere else has nothing to suspend. That
+          used to be <code>tsc</code>'s <code>TS1308</code> on the generated file. It is
+          <code>E0222</code> now, and the innermost enclosing callable decides, so a
+          synchronous lambda inside an <code>async fn</code> is its own context, the same
+          rule TypeScript uses.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, on `fn total() -&gt; number { return await fetch_count() }`</span>
+<pre><span class="del">[E0222] `await` is only valid inside an `async fn`</span>
+   ╰─ Mark the enclosing function `async fn`, or call a non-async function here.
+
+<span class="cm">// before: no Glyph diagnostic, then</span>
+<span class="dim">dist/main.ts:14:18 - error TS1308: 'await' expressions are only allowed
+within async functions and at the top levels of modules.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The third one is about a rule people break on day one. Glyph marks every
+          mutation, so reassigning a binding is <code>mut x = e</code> and introducing one
+          is <code>let x = e</code>. A bare <code>x = e</code> used to report "unexpected
+          token: Equals", which names a character rather than the rule. It is
+          <code>E0008</code> now, and <code>glyph --explain E0008</code> spells out why the
+          mark exists: every place a value changes starts with <code>mut</code>, so
+          <code>grep "mut total"</code> finds all of them.
+        </p>
+        <p>
+          The <code>?</code> operator gets the same treatment from the other direction.
+          <code>?</code> expands to a binding plus an early <code>return</code> placed
+          before the statement it sits in, so it needs a statement to expand into. It works
+          in a <code>let</code>, a <code>return</code>, an argument, and now in a
+          <code>match</code> arm body. Where it can't work, the message says which position
+          it is and how to bind out of it (<code>E0302</code> and <code>E0303</code>)
+          instead of claiming the operator isn't implemented.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, and <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>Three edges. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/web-serving/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Can I serve a web page, or only a JSON API?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/early-errors/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

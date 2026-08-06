@@ -593,7 +593,16 @@ fn parse_match_arm(p: &mut Cursor) -> Result<MatchArm, ParseError> {
             }),
         }
     } else {
-        MatchArmBody::Expr(parse_expr(p)?)
+        let e = parse_expr(p)?;
+        // `X => x = 1,` is an assignment with no `mut`. Without this the arm
+        // body parses as the bare expression `x` and the arm loop reports the
+        // unrelated "expected `,` after match arm" against the `=` (D5).
+        if matches!(p.peek(), Token::Equals) {
+            return Err(ParseError::MissingMutOnAssignment {
+                span: Span::new(e.span().start, p.peek_span().end),
+            });
+        }
+        MatchArmBody::Expr(e)
     };
     let end = match &body {
         MatchArmBody::Expr(e) => e.span().end,
@@ -624,9 +633,12 @@ fn is_statement_arm_body_starter(t: &Token) -> bool {
 
 /// Lookahead heuristic: starting at `{`, is the next non-whitespace structure
 /// `key :` (object literal)? Used only to disambiguate match-arm bodies. The
-/// key may be an identifier OR a soft keyword (per `Token::as_field_name`).
+/// key may be an identifier, a soft keyword (per `Token::as_field_name`), or a
+/// quoted string key (`{ "Content-Type": v }`) — no block can start with a
+/// string literal followed by `:`, so the string case is unambiguous.
 fn looks_like_object_literal(p: &Cursor) -> bool {
     let is_keyish = matches!(p.peek_at(1), Some(Token::Identifier(_)))
+        || matches!(p.peek_at(1), Some(Token::String(_)))
         || p.peek_at(1).is_some_and(|t| t.as_field_name().is_some());
     let is_spread = matches!(p.peek_at(1), Some(Token::DotDotDot));
     let next_is_colon = matches!(p.peek_at(2), Some(Token::Colon));

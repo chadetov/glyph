@@ -1,0 +1,13 @@
+module neg
+
+type Status =
+  | Loading
+  | Ready(string)
+
+fn label(s: Status) -> string {
+  let out = match s {
+    Loading => {},
+    Ready(v) => v,
+  }
+  return out
+}

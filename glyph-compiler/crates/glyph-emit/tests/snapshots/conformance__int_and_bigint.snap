@@ -4,6 +4,8 @@ expression: ts
 ---
 import "./.glyph-runtime/glyph-bootstrap";
 
+import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "std/result";
+
 import { schema as __glyph_schema } from "std/schema";
 
 export type Account = { id: bigint; balance: number };
@@ -14,9 +16,9 @@ export const Account = {
       && (typeof (value as Record<string, unknown>).balance === "number" && Number.isInteger((value as Record<string, unknown>).balance))
       && Object.keys(value as object).every((__k: string) => __k === "id" || __k === "balance");
   },
-  parse(value: unknown): { tag: "Ok"; value: Account } | { tag: "Err"; value: Issue[] } {
+  parse(value: unknown): __GlyphResult<Account, Issue[]> {
     if (typeof value !== "object" || value === null) {
-      return { tag: "Err", value: [{ path: [], message: "expected Account (an object)" }] };
+      return __glyph_err([{ path: [], message: "expected Account (an object)" }]);
     }
     const __issues: Issue[] = [];
     if (!(typeof (value as Record<string, unknown>).id === "bigint")) __issues.push({ path: ["id"], message: "field `id` is missing or has the wrong type" });
@@ -24,7 +26,7 @@ export const Account = {
     for (const __k of Object.keys(value as object)) {
       if (!(__k === "id" || __k === "balance")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`" });
     }
-    return __issues.length === 0 ? { tag: "Ok", value: value as Account } : { tag: "Err", value: __issues };
+    return __issues.length === 0 ? __glyph_ok(value as Account) : __glyph_err(__issues);
   },
   schema: __glyph_schema<Account>("Account", (v): v is Account => Account.is(v)),
 };

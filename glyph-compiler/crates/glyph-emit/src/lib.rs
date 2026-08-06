@@ -255,6 +255,19 @@ const RESULT_OK: &str = "Ok";
 /// generated `import { Err as __glyph_err } from "std/result"`.
 const ERR_CTOR: &str = "__glyph_err";
 
+/// The local name a descriptor's `parse` binds the prelude `Ok` constructor to.
+/// A descriptor's `parse` returns a real `Result` (not a bare `{tag,value}`
+/// object), so its success value has to be built by the prelude constructor that
+/// attaches the `map`/`map_err` combinators. Aliased for the same reason
+/// [`ERR_CTOR`] is: it must never collide with a user import of `Ok`.
+const OK_CTOR: &str = "__glyph_ok";
+
+/// The local name the injected `std/result` import binds the prelude `Result`
+/// *type* to, used to annotate a descriptor's `parse` return
+/// (`__GlyphResult<User, Issue[]>`). Aliased like the constructors so a user
+/// type named `Result` is never shadowed.
+const RESULT_TY: &str = "__GlyphResult";
+
 /// The local name a record descriptor binds the prelude `schema` factory to,
 /// for its auto-generated `T.schema` member (`T.schema = __glyph_schema<T>(...)`).
 /// Aliased so it never collides with a user binding; a module that emits any
@@ -461,6 +474,7 @@ pub fn emit_module_mapped(
         tmp_counter: 0,
         used_try: Rc::new(Cell::new(false)),
         used_schema: Rc::new(Cell::new(false)),
+        used_result: Rc::new(Cell::new(false)),
         used_infer_output: Rc::new(Cell::new(false)),
         desc_param_guards: RefCell::new(Vec::new()),
             assign_target: RefCell::new(None),
@@ -496,6 +510,11 @@ struct Emitter<'a> {
     /// Set once any record descriptor is emitted, so the module gets the
     /// generated `schema` factory import its `T.schema` member needs.
     used_schema: Rc<Cell<bool>>,
+    /// Set once any descriptor's `parse` is emitted, so the module gets the
+    /// `Ok`/`Err` constructors and the `Result` type its return needs. Merged
+    /// with `used_try` into one `std/result` import line, since both bind
+    /// `__glyph_err` and two declarations of it would collide.
+    used_result: Rc<Cell<bool>>,
     /// Set once `infer_output<S>` (D28) is rendered anywhere, so the module gets
     /// the one injected mapped-type alias (`__GlyphInferOutput`) it lowers to.
     /// Shared across sub-emitters via the `Rc<Cell>` like the flags above.
@@ -570,6 +589,7 @@ impl<'a> Emitter<'a> {
             tmp_counter: self.tmp_counter,
             used_try: Rc::clone(&self.used_try),
             used_schema: Rc::clone(&self.used_schema),
+            used_result: Rc::clone(&self.used_result),
             used_infer_output: Rc::clone(&self.used_infer_output),
             // Descriptor field checks are generated on the main emitter, never a
             // sub-emitter (lambda/IIFE) body, so a sub starts with no guards.
@@ -680,10 +700,26 @@ impl<'a> Emitter<'a> {
                 &format!("import {{ schema as {SCHEMA_FACTORY} }} from \"std/schema\";\n\n"),
             );
         }
-        if self.used_try.get() {
+        // One `std/result` import covers both consumers: `?` needs `Err` to
+        // re-wrap a propagated failure, and a descriptor's `parse` needs
+        // `Ok`/`Err` plus the `Result` type to return. They share `__glyph_err`,
+        // so emitting two lines would redeclare it; build the alias list from
+        // both flags and emit a single line. The aliases are what let this
+        // coexist with `prelude_import_header`'s unaliased
+        // `import { Ok, Err, Result } from "std/result"` — two imports of the
+        // same specifier with distinct locals are legal TypeScript.
+        if self.used_try.get() || self.used_result.get() {
+            let mut names: Vec<String> = Vec::new();
+            if self.used_result.get() {
+                names.push(format!("{RESULT_OK} as {OK_CTOR}"));
+            }
+            names.push(format!("{RESULT_ERR} as {ERR_CTOR}"));
+            if self.used_result.get() {
+                names.push(format!("type Result as {RESULT_TY}"));
+            }
             self.out.insert_str(
                 0,
-                &format!("import {{ {RESULT_ERR} as {ERR_CTOR} }} from \"std/result\";\n\n"),
+                &format!("import {{ {} }} from \"std/result\";\n\n", names.join(", ")),
             );
         }
         // Every emitted module pulls in the runtime bootstrap for its side
@@ -880,11 +916,18 @@ impl<'a> Emitter<'a> {
     /// `unknown` and returns a `Result` (`Ok` of the value, or an `Err`
     /// describing the failure).
     ///
-    /// `parse` is deliberately self-contained: it inlines the `Result`
-    /// wire-format (the same `tag`/`value` contract the union lowering uses,
-    /// single-sourced via `RESULT_OK`/`RESULT_ERR`) rather than referencing the
-    /// prelude `Ok`/`Err` constructors, so the descriptor compiles even in a
-    /// module that never imports `std/result`. It reaches the sibling `is`
+    /// `parse` returns the real prelude `Result`: it builds its value with the
+    /// aliased `Ok`/`Err` constructors and annotates the return
+    /// `__GlyphResult<T, Issue[]>`. An earlier version inlined the `tag`/`value`
+    /// wire format instead, to avoid a `std/result` dependency, but a bare
+    /// `{tag,value}` union is not assignable to `Result<T, E>` (which intersects
+    /// the `map`/`map_err` combinators), so `return User.parse(v)` from a
+    /// `Result`-returning function was a `tsc` error even though Glyph's own
+    /// typechecker reports `parse` as a `Result`. The dependency is paid for the
+    /// same way `?` and `T.schema` already pay for theirs: `emit_module` injects
+    /// one aliased import when the flag is set. Cost: a `parse` now allocates
+    /// the two combinator closures the constructors build, the same cost every
+    /// other `Ok(...)` in Glyph already pays. `parse` reaches the sibling `is`
     /// guard through `this` rather than by the descriptor's name, so it stays
     /// correct even for a record whose name shadows the `parse` parameter (a
     /// type literally named `value`).
@@ -922,15 +965,16 @@ impl<'a> Emitter<'a> {
         self.line(&format!("return {base_check} && {pred};"));
         self.indent -= 1;
         self.line("},");
-        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
-        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: Issue[] }}");
-        self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
+        self.used_result.set(true);
+        self.line(&format!(
+            "parse(value: unknown): {RESULT_TY}<{name}, Issue[]> {{"
+        ));
         self.indent += 1;
         self.line("return this.is(value)");
         self.indent += 1;
-        self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
+        self.line(&format!("? {OK_CTOR}(value)"));
         self.line(&format!(
-            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: [{{ path: [], message: \"expected {name}\" }}] }};"
+            ": {ERR_CTOR}([{{ path: [], message: \"expected {name}\" }}]);"
         ));
         self.indent -= 1;
         self.indent -= 1;
@@ -1036,14 +1080,15 @@ impl<'a> Emitter<'a> {
         // boundary rejection reports which field is wrong rather than a single
         // "expected T" string. A non-object value fails outright. When no issue is
         // found the value is exactly a `T`, so the `Ok` payload is a checked cast.
-        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {self_ty} }}");
-        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: Issue[] }}");
-        self.line(&format!("parse{decl_generics}({entry_params}): {ok_ty} | {err_ty} {{"));
+        self.used_result.set(true);
+        self.line(&format!(
+            "parse{decl_generics}({entry_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
+        ));
         self.indent += 1;
         self.line("if (typeof value !== \"object\" || value === null) {");
         self.indent += 1;
         self.line(&format!(
-            "return {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: [{{ path: [], message: \"expected {name} (an object)\" }}] }};"
+            "return {ERR_CTOR}([{{ path: [], message: \"expected {name} (an object)\" }}]);"
         ));
         self.indent -= 1;
         self.line("}");
@@ -1065,7 +1110,7 @@ impl<'a> Emitter<'a> {
             self.line("}");
         }
         self.line(&format!(
-            "return __issues.length === 0 ? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value as {self_ty} }} : {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: __issues }};"
+            "return __issues.length === 0 ? {OK_CTOR}(value as {self_ty}) : {ERR_CTOR}(__issues);"
         ));
         self.indent -= 1;
         self.line("},");
@@ -1226,18 +1271,19 @@ impl<'a> Emitter<'a> {
         self.line("}");
         self.indent -= 1;
         self.line("},");
-        // parse(): reuse the guard, wrap the narrowed value in a Result shape.
-        // Inlined wire-format (not the prelude Ok/Err) so the descriptor
-        // compiles without a `std/result` import, exactly like the record one.
-        let ok_ty = format!("{{ {TAG}: \"{RESULT_OK}\"; {PAYLOAD}: {name} }}");
-        let err_ty = format!("{{ {TAG}: \"{RESULT_ERR}\"; {PAYLOAD}: Issue[] }}");
-        self.line(&format!("parse(value: unknown): {ok_ty} | {err_ty} {{"));
+        // parse(): reuse the guard, wrap the narrowed value with the prelude
+        // constructors so the return is a real `Result`, exactly like the record
+        // one.
+        self.used_result.set(true);
+        self.line(&format!(
+            "parse(value: unknown): {RESULT_TY}<{name}, Issue[]> {{"
+        ));
         self.indent += 1;
         self.line("return this.is(value)");
         self.indent += 1;
-        self.line(&format!("? {{ {TAG}: \"{RESULT_OK}\", {PAYLOAD}: value }}"));
+        self.line(&format!("? {OK_CTOR}(value)"));
         self.line(&format!(
-            ": {{ {TAG}: \"{RESULT_ERR}\", {PAYLOAD}: [{{ path: [], message: \"expected {name}\" }}] }};"
+            ": {ERR_CTOR}([{{ path: [], message: \"expected {name}\" }}]);"
         ));
         self.indent -= 1;
         self.indent -= 1;
@@ -5157,14 +5203,12 @@ mod tests {
     }
 
     #[test]
-    fn record_descriptor_emits_a_self_contained_parse() {
+    fn record_descriptor_parse_returns_a_real_result() {
         let ts = emit("module x\npub type User = { id: string }\n");
-        // `parse` returns the inline `Result` shape with an `Issue[]` error (the
-        // documented `Result<T, Array<Issue>>` contract), no `std/result` import.
+        // `parse` returns the prelude `Result` under its aliased type name, with
+        // an `Issue[]` error (the documented `Result<T, Array<Issue>>` contract).
         assert!(
-            ts.contains(
-                "parse(value: unknown): { tag: \"Ok\"; value: User } | { tag: \"Err\"; value: Issue[] } {"
-            ),
+            ts.contains("parse(value: unknown): __GlyphResult<User, Issue[]> {"),
             "{ts}"
         );
         // It validates field by field, naming the offending field in the issue.
@@ -5174,15 +5218,80 @@ mod tests {
             ),
             "{ts}"
         );
-        // The `Ok` payload is a checked cast (issues empty implies a `User`).
+        // Both arms go through the prelude constructors, so the value carries
+        // `map`/`map_err` and is assignable to a declared `Result`.
         assert!(
-            ts.contains("? { tag: \"Ok\", value: value as User }"),
+            ts.contains(
+                "return __issues.length === 0 ? __glyph_ok(value as User) : __glyph_err(__issues);"
+            ),
             "{ts}"
         );
-        // No stale `this.is` reuse or single-string error remains.
+        assert!(
+            ts.contains("return __glyph_err([{ path: [], message: \"expected User (an object)\" }]);"),
+            "{ts}"
+        );
+        // No stale inlined wire format remains.
+        assert!(!ts.contains("{ tag: \"Ok\", value: value as User }"), "{ts}");
         assert!(!ts.contains("value: \"expected User\""), "{ts}");
-        // `parse` itself pulls in no `std/result` import (it inlines the shape).
-        assert!(!ts.contains("from \"std/result\""), "{ts}");
+        // Exactly one aliased `std/result` import, carrying both constructors
+        // and the type.
+        assert!(
+            ts.contains(
+                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"std/result\";"
+            ),
+            "{ts}"
+        );
+        assert_eq!(ts.matches("from \"std/result\"").count(), 1, "{ts}");
+    }
+
+    #[test]
+    fn try_and_a_descriptor_share_one_result_import() {
+        // `?` binds `__glyph_err` and so does a descriptor's `parse`; a second
+        // import line would redeclare it. One merged line covers both.
+        let ts = emit(
+            "module x\npub type User = { id: string }\nfn f(r: Result<int, string>) -> Result<int, string> {\n  let v = r?\n  return Ok(v)\n}\n",
+        );
+        assert_eq!(ts.matches("from \"std/result\";").count(), 2, "{ts}");
+        assert!(
+            ts.contains(
+                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"std/result\";"
+            ),
+            "{ts}"
+        );
+        assert_eq!(ts.matches("__glyph_err").count() > 1, true, "{ts}");
+    }
+
+    #[test]
+    fn try_alone_still_imports_only_err() {
+        let ts = emit(
+            "module x\nfn f(r: Result<int, string>) -> Result<int, string> {\n  let v = r?\n  return Ok(v)\n}\n",
+        );
+        assert!(
+            ts.contains("import { Err as __glyph_err } from \"std/result\";"),
+            "{ts}"
+        );
+        assert!(!ts.contains("__glyph_ok"), "{ts}");
+    }
+
+    #[test]
+    fn refinement_and_union_descriptors_parse_to_a_real_result() {
+        let ts = emit("module x\npub type Amount = int where value >= 0\n");
+        assert!(
+            ts.contains("parse(value: unknown): __GlyphResult<Amount, Issue[]> {"),
+            "{ts}"
+        );
+        assert!(ts.contains("? __glyph_ok(value)"), "{ts}");
+        assert!(
+            ts.contains(": __glyph_err([{ path: [], message: \"expected Amount\" }]);"),
+            "{ts}"
+        );
+
+        let ts = emit("module x\npub type Shape = | Circle(int) | Square(int)\n");
+        assert!(
+            ts.contains("parse(value: unknown): __GlyphResult<Shape, Issue[]> {"),
+            "{ts}"
+        );
+        assert!(ts.contains("? __glyph_ok(value)"), "{ts}");
     }
 
     #[test]

@@ -311,7 +311,19 @@ code { font-family: ui-monospace, monospace; }
 "
 
 fn page(title: string, body: string) -> string {
-  return "<!doctype html>\n<html lang='en'>\n<head>\n<meta charset='utf-8'>\n<meta name='viewport' content='width=device-width, initial-scale=1'>\n<title>${escape_html(title)}</title>\n<style>${STYLE}</style>\n</head>\n<body>\n${body}\n</body>\n</html>\n"
+  return "<!doctype html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>${escape_html(title)}</title>
+<style>${STYLE}</style>
+</head>
+<body>
+${body}
+</body>
+</html>
+"
 }
 
 fn error_banner(message: Option<string>) -> string {
@@ -335,25 +347,46 @@ fn table(current: Array<Link>) -> string {
     false => {
       let rows: Array<string> = array.map(array.reverse(current), row)
       let joined = string.join(rows, "\n")
-      "<table><thead><tr><th>Code</th><th>Target</th><th>Clicks</th><th>Created</th><th></th></tr></thead><tbody>\n${joined}\n</tbody></table>"
+      "<table><thead><tr><th>Code</th><th>Target</th><th>Clicks</th><th>Created</th><th></th></tr></thead><tbody>
+${joined}
+</tbody></table>"
     },
   }
 }
 
 fn home_page(current: Array<Link>, error: Option<string>) -> string {
-  let body = "<h1>shortlink</h1>\n${error_banner(error)}\n<form method='post' action='/'>\n<input name='url' placeholder='https://example.com/a-long-path' autofocus>\n<input name='alias' placeholder='custom alias (optional)'>\n<button type='submit'>Shorten</button>\n</form>\n${table(current)}\n"
+  let body = "<h1>shortlink</h1>
+${error_banner(error)}
+<form method='post' action='/'>
+<input name='url' placeholder='https://example.com/a-long-path' autofocus>
+<input name='alias' placeholder='custom alias (optional)'>
+<button type='submit'>Shorten</button>
+</form>
+${table(current)}
+"
   return page("shortlink", body)
 }
 
 fn stats_page(l: Link) -> string {
   let code = escape_html(l.code)
   let target = escape_html(l.target)
-  let body = "<h1>/${code}</h1>\n<table><tbody>\n<tr><th>Code</th><td><code>${code}</code></td></tr>\n<tr><th>Target</th><td><a href='${target}'>${target}</a></td></tr>\n<tr><th>Created</th><td>${escape_html(time.format_iso(l.created_at))}</td></tr>\n<tr><th>Clicks</th><td>${number.to_string(l.clicks)}</td></tr>\n</tbody></table>\n<p><a href='/'>&larr; all links</a></p>\n"
+  let body = "<h1>/${code}</h1>
+<table><tbody>
+<tr><th>Code</th><td><code>${code}</code></td></tr>
+<tr><th>Target</th><td><a href='${target}'>${target}</a></td></tr>
+<tr><th>Created</th><td>${escape_html(time.format_iso(l.created_at))}</td></tr>
+<tr><th>Clicks</th><td>${number.to_string(l.clicks)}</td></tr>
+</tbody></table>
+<p><a href='/'>&larr; all links</a></p>
+"
   return page("shortlink /${l.code}", body)
 }
 
 fn not_found_page(what: string) -> string {
-  let body = "<h1>404</h1>\n<p>No link with the code <code>${escape_html(what)}</code>.</p>\n<p><a href='/'>&larr; all links</a></p>\n"
+  let body = "<h1>404</h1>
+<p>No link with the code <code>${escape_html(what)}</code>.</p>
+<p><a href='/'>&larr; all links</a></p>
+"
   return page("404", body)
 }
 

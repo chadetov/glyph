@@ -331,6 +331,8 @@ array.sort<T>(xs, compare) -> Array<T>
 array.fold<T, A>(xs, init, f) -> A          // f is (acc, x); no index
 array.index_of<T>(xs, value) -> Option<number>
 array.flat_map<T, U>(xs, f) -> Array<U>     // flattens one level
+array.range(count) -> Array<number>            // [0, 1, ..., count-1]
+array.range_from(start, end) -> Array<number>  // [start, ..., end-1]
 ```
 
 ### std/string

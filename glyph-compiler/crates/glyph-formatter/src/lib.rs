@@ -62,6 +62,7 @@ pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> String {
         comments: sorted,
         cidx: 0,
         source: Some(source.to_string()),
+        in_block: false,
     };
     p.module(m);
     p.out
@@ -81,6 +82,7 @@ pub fn format_expr(e: &Expr) -> String {
         comments: Vec::new(),
         cidx: 0,
         source: None,
+        in_block: false,
     };
     p.expr(e);
     p.out
@@ -116,6 +118,17 @@ struct Printer {
     /// literals are sliced from it verbatim by span; `None` for `format_expr`,
     /// which re-escapes from the decoded value instead.
     source: Option<String>,
+    /// True while printing inside a `{ ... }` block the printer opened itself.
+    ///
+    /// D1 makes a newline a statement terminator at bracket depth zero, so the
+    /// printer may only break a line inside a bracket. This is the conservative
+    /// half of that rule the printer can prove: a block is always `{`-delimited,
+    /// so `in_block` implies bracket depth of at least one. The reverse does not
+    /// hold (a module-level `const` initializer's argument list is bracketed and
+    /// this stays false), which costs a break the parser would have accepted and
+    /// never takes one it would not. `self.indent > 0` is not a usable proxy: a
+    /// multi-line union body is indented with no enclosing bracket at all.
+    in_block: bool,
 }
 
 impl Printer {
@@ -652,6 +665,7 @@ impl Printer {
         }
         self.push("{");
         self.indent += 1;
+        let outer_block = std::mem::replace(&mut self.in_block, true);
         let mut prev_end: Option<u32> = None;
         for s in &b.stmts {
             self.newline();
@@ -679,6 +693,7 @@ impl Printer {
             self.push(&text);
             self.cidx += 1;
         }
+        self.in_block = outer_block;
         self.indent -= 1;
         self.newline();
         self.push("}");
@@ -689,7 +704,12 @@ impl Printer {
     /// multi-line block form so comments are preserved.
     fn lambda_block(&mut self, b: &Block) {
         if b.stmts.len() == 1 && !self.has_comment_before(b.span.end) {
+            // The braces are already decided, so the statement is inside one
+            // either way and may break its own lines. A break here just means
+            // the inline `{ return x }` candidate loses to the block form.
+            let outer_block = std::mem::replace(&mut self.in_block, true);
             let inner = self.capture(|p| p.stmt(&b.stmts[0]));
+            self.in_block = outer_block;
             if !inner.contains('\n') {
                 self.push("{ ");
                 self.push(&inner);
@@ -769,13 +789,16 @@ impl Printer {
         match e {
             Expr::Number { raw, .. } => self.push(raw),
             Expr::String { value, span } => self.string_literal(value, *span),
-            Expr::TemplateString { parts, .. } => self.template(parts),
+            Expr::TemplateString { parts, span } => self.template(parts, *span),
             Expr::Bool { value, .. } => self.push(if *value { "true" } else { "false" }),
             Expr::Void { .. } => self.push("void"),
             Expr::Ident { name, .. } => self.push(name),
             Expr::Binary {
                 op, left, right, ..
             } => {
+                if self.binary_chain(e, *op) {
+                    return;
+                }
                 let prec = bin_prec(*op);
                 self.bin_operand(left, prec, false);
                 self.push(" ");
@@ -1010,6 +1033,77 @@ impl Printer {
         }
     }
 
+    /// A boolean chain (`&&`, `||`, `??`) that does not fit the print width from
+    /// the current column breaks one operand per line, with the operator leading
+    /// each continuation line and indented one level:
+    ///
+    /// ```text
+    /// return item.id == noun
+    ///   || item.name == noun
+    ///   || string.contains(item.name, noun)
+    /// ```
+    ///
+    /// Returns true when it printed the chain. Without this the only breakable
+    /// point in a long condition is an argument list, and the printer takes the
+    /// innermost one, so `a || b || f(x, y)` came back with `f`'s arguments
+    /// exploded across three lines in the middle of the chain.
+    ///
+    /// Leading rather than trailing operators: `||` lands at a fixed column
+    /// where `grep` finds it, matches the leading `|` of Glyph's own union
+    /// syntax, and keeps the last operand's line free of a trailing token, so
+    /// adding an operand touches one line instead of two (diff stability). Both
+    /// forms re-parse identically, so nothing but style rides on it.
+    ///
+    /// Only the top-level run of one operator flattens. `a && b || c && d`
+    /// breaks at `||` and leaves each `&&` group whole, which keeps the printed
+    /// shape a picture of the precedence rather than of the line width.
+    fn binary_chain(&mut self, e: &Expr, op: BinOp) -> bool {
+        if !matches!(op, BinOp::LogicalAnd | BinOp::LogicalOr | BinOp::NullishCoalesce) {
+            return false;
+        }
+        // `flat` is a `${...}` interpolation, where a line break comes back as a
+        // literal `\n`. `in_block` is the D1 bracket-depth guard.
+        if self.flat || !self.in_block {
+            return false;
+        }
+        let mut operands: Vec<&Expr> = Vec::new();
+        flatten_chain(e, op, &mut operands);
+        if operands.len() < 2 {
+            return false;
+        }
+        let col = self.current_column();
+        // The comment cursor is shared with the discarded candidate buffer, so a
+        // flush performed inside it would consume comments into text nobody
+        // keeps. Both branches below re-render from scratch, so rewinding the
+        // cursor after the measurement is always correct.
+        let saved_cidx = self.cidx;
+        let prec = bin_prec(op);
+        let candidate = self.capture(|p| {
+            for (i, operand) in operands.iter().enumerate() {
+                if i > 0 {
+                    p.push(" ");
+                    p.push(bin_sym(op));
+                    p.push(" ");
+                }
+                p.bin_operand(operand, prec, i > 0);
+            }
+        });
+        self.cidx = saved_cidx;
+        if !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH {
+            return false;
+        }
+        self.bin_operand(operands[0], prec, false);
+        self.indent += 1;
+        for operand in &operands[1..] {
+            self.newline();
+            self.push(bin_sym(op));
+            self.push(" ");
+            self.bin_operand(operand, prec, true);
+        }
+        self.indent -= 1;
+        true
+    }
+
     /// Render `e` as the operand of a binary operator at `parent` precedence.
     /// Parenthesize a lower-precedence binary child; for the right operand,
     /// also parenthesize an equal-precedence child (operators are
@@ -1048,6 +1142,18 @@ impl Printer {
         }
     }
 
+    /// The exact source text a span covers, when the printer is formatting a
+    /// whole module (`source` is `Some`) and the span is in range. `None` for
+    /// `format_expr`, which has no module text, and inside a captured `${...}`
+    /// interpolation, where `source` is deliberately cleared because the
+    /// sub-expression's spans are relative to the literal rather than the module.
+    fn verbatim(&self, span: Span) -> Option<String> {
+        self.source
+            .as_deref()
+            .and_then(|src| src.get(span.start as usize..span.end as usize))
+            .map(str::to_string)
+    }
+
     fn string_literal(&mut self, value: &str, span: Span) {
         // Prefer copying the literal verbatim from source: that preserves the
         // exact escapes the user wrote and D12 multi-line strings, neither of
@@ -1055,12 +1161,7 @@ impl Printer {
         // the surrounding quotes (`"..."` or `"""..."""`). Fall back to
         // re-escaping the decoded value when no source is available (format_expr)
         // or the span is somehow out of range.
-        let verbatim = self
-            .source
-            .as_deref()
-            .and_then(|src| src.get(span.start as usize..span.end as usize))
-            .map(str::to_string);
-        if let Some(raw) = verbatim {
+        if let Some(raw) = self.verbatim(span) {
             self.push(&raw);
             return;
         }
@@ -1069,7 +1170,24 @@ impl Printer {
         self.push("\"");
     }
 
-    fn template(&mut self, parts: &[TemplatePart]) {
+    fn template(&mut self, parts: &[TemplatePart], span: Span) {
+        // A D12 multi-line string that interpolates is still a D12 multi-line
+        // string. The rebuild below runs every text run through `escape_string`,
+        // which turns a raw newline into `\n` and so collapses the literal onto
+        // one line: formatting would change what the program prints. Copy the
+        // literal verbatim in exactly that case, the same way `string_literal`
+        // does for a non-interpolating one.
+        //
+        // The gate is "the source slice contains a raw newline", not "always",
+        // so a single-line template still gets its `${...}` interiors normalized
+        // (`"${ a+b }"` becomes `"${a + b}"`). Whether to drop that service and
+        // copy every template verbatim is an open question, not settled here.
+        if let Some(raw) = self.verbatim(span) {
+            if raw.contains('\n') {
+                self.push(&raw);
+                return;
+            }
+        }
         self.push("\"");
         for part in parts {
             match part {
@@ -1483,6 +1601,27 @@ fn is_atom(e: &Expr) -> bool {
             | Expr::Jsx(_)
             | Expr::Extern { .. }
     )
+}
+
+/// Flatten the left spine of one operator into its operands, in source order.
+/// `a || b || c` parses as `((a || b) || c)`, and the chain printer wants
+/// `[a, b, c]`. Recursion stops at any other operator, so a mixed expression
+/// contributes its tighter groups whole.
+fn flatten_chain<'a>(e: &'a Expr, op: BinOp, out: &mut Vec<&'a Expr>) {
+    if let Expr::Binary {
+        op: found,
+        left,
+        right,
+        ..
+    } = e
+    {
+        if *found == op {
+            flatten_chain(left, op, out);
+            out.push(right);
+            return;
+        }
+    }
+    out.push(e);
 }
 
 /// Binary-operator precedence, higher binds tighter. Mirrors the parser's

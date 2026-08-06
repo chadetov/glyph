@@ -4,6 +4,8 @@ expression: ts
 ---
 import "./.glyph-runtime/glyph-bootstrap";
 
+import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "std/result";
+
 import { schema as __glyph_schema } from "std/schema";
 
 export type Tier = "free" | "pro";
@@ -15,16 +17,16 @@ export const Plan = {
       && ((value as Record<string, unknown>).tier === "free" || (value as Record<string, unknown>).tier === "pro")
       && Object.keys(value as object).every((__k: string) => __k === "tier");
   },
-  parse(value: unknown): { tag: "Ok"; value: Plan } | { tag: "Err"; value: Issue[] } {
+  parse(value: unknown): __GlyphResult<Plan, Issue[]> {
     if (typeof value !== "object" || value === null) {
-      return { tag: "Err", value: [{ path: [], message: "expected Plan (an object)" }] };
+      return __glyph_err([{ path: [], message: "expected Plan (an object)" }]);
     }
     const __issues: Issue[] = [];
     if (!(((value as Record<string, unknown>).tier === "free" || (value as Record<string, unknown>).tier === "pro"))) __issues.push({ path: ["tier"], message: "field `tier` is missing or has the wrong type" });
     for (const __k of Object.keys(value as object)) {
       if (!(__k === "tier")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`" });
     }
-    return __issues.length === 0 ? { tag: "Ok", value: value as Plan } : { tag: "Err", value: __issues };
+    return __issues.length === 0 ? __glyph_ok(value as Plan) : __glyph_err(__issues);
   },
   schema: __glyph_schema<Plan>("Plan", (v): v is Plan => Plan.is(v)),
 };

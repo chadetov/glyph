@@ -130,6 +130,76 @@ const NewTask = z.object({
       </div>
 
       <div class="detail">
+        <p class="block-label">The parse result is an ordinary <code>Result</code></p>
+        <p>
+          A validator that gives you back a value in its own private shape is only half
+          useful, because the rest of your error handling can't touch it. In Glyph
+          <code>T.parse</code> returns the same <code>Result</code> every fallible function in
+          the language returns, so you hand it straight back, run it through
+          <code>map_err</code> to turn validation issues into your own error type, or
+          propagate it with <code>?</code>. Nothing about a parse result is special:
+        </p>
+      </div>
+
+      <div class="two-up">
+        <div class="code">
+          <span class="cap">boundary.glyph</span>
+<pre>// Hand it straight back.
+fn read_task(body: unknown)
+  -&gt; Result&lt;NewTask, Array&lt;Issue&gt;&gt; {
+  return NewTask.parse(body)
+}
+
+// Or restate the failure in your own terms.
+fn read_checked(body: unknown)
+  -&gt; Result&lt;NewTask, string&gt; {
+  return NewTask.parse(body).map_err(
+    fn(issues: Array&lt;Issue&gt;) -&gt; string {
+      return "invalid task: ${issue_text(issues)}"
+    },
+  )
+}
+
+// Or propagate it and get on with the work.
+fn create(body: unknown) -&gt; Result&lt;Response, string&gt; {
+  let task = read_checked(body)?
+  return Ok(json(201, save(task)))
+}</pre>
+        </div>
+        <div class="code">
+          <span class="cap">what this replaced</span>
+<pre>// Until 0.1.52 the generated descriptor
+// returned a bare { tag, value } object,
+// so both of the first two shapes were
+// tsc errors (TS2322 and TS2339) even
+// though Glyph's own checker reported
+// Result&lt;T, Array&lt;Issue&gt;&gt;. The workaround
+// was an identity re-wrap:
+
+match NewTask.parse(body) {
+  Ok(t)  =&gt; Ok(t),          // does nothing
+  Err(e) =&gt; Err(reword(e)),
+}
+
+// Four lines to say map_err. bracket.glyph
+// carried this twice until the fix landed.</pre>
+        </div>
+      </div>
+
+      <div class="detail">
+        <p>
+          The reason it was ever otherwise: a descriptor is generated next to your
+          <code>type</code>, and emitting the bare object kept a module that declares a type
+          from depending on <code>std/result</code> at runtime. That trade is now made the
+          other way. A module with a <code>pub type</code> in it carries an import of
+          <code>std/result</code> whether or not it ever writes <code>Result</code>, and a
+          <code>parse</code> call allocates the combinator closures any <code>Ok(...)</code>
+          allocates. What you get for it is that the validated boundary and the rest of your
+          error handling are the same API.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">Composing your own: the output type is derived, not trusted</p>
         <p>
           Sometimes you want a <code>zod</code>-style combinator: build a validator by composing
@@ -504,7 +574,7 @@ if (amount &lt; 0) throw new Error(...);
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>); a <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape; <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other. <code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph. <code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time. The smaller boundary primitives hold the same line: <code>time.parse_iso</code> takes ISO-8601 and returns <code>None</code> for free-form text, an impossible day, and an offset-less datetime that would otherwise be read in the host's local timezone.</p>
+          <p>Every declared <code>type</code>, generic ones included, carries a runtime descriptor (<code>.parse</code>, <code>.is</code>, <code>.schema</code>), and <code>.parse</code> returns the same <code>Result</code> the rest of the language uses, so it composes with <code>map_err</code>, with <code>?</code>, and with any function that returns one; a <code>where</code> refinement (<code>int where value &gt;= 0</code>) validates an invariant at the boundary, not just a shape; <code>json.parse&lt;T&gt;</code> validates JSON; <code>infer_output&lt;Shape&gt;</code> derives a combinator's output type from its shape so the two can't drift; <code>glyph gen openapi</code> / <code>glyph gen dts</code> generate committed, descriptor-bearing types from a spec, a <code>.d.ts</code>, or an installed package by name; and <code>std/sqlite</code> hands back rows as <code>unknown</code> so the database is a validated boundary like any other. <code>http.raw(req)</code> exposes the unparsed request body, so a webhook signature is verified over the exact bytes and a signed-webhook receiver stays entirely in Glyph. <code>std/taint</code>'s <code>Tainted</code>/<code>Trusted</code> types keep untrusted input from reaching a SQL or shell sink without an explicit <code>sanitize</code>, so <code>tsc</code> rejects an injection path at compile time. The smaller boundary primitives hold the same line: <code>time.parse_iso</code> takes ISO-8601 and returns <code>None</code> for free-form text, an impossible day, and an offset-less datetime that would otherwise be read in the host's local timezone.</p>
         </div>
         <div class="status-card next">
           <p class="h">On the way</p>

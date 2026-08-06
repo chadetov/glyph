@@ -130,29 +130,6 @@ const USAGE = "usage: bracket <new|show|report|standings> [args]"
 
 const SPACE = " "
 
-@example upto(0) == []
-@example upto(3) == [0, 1, 2]
-fn upto(n: int) -> Array<int> {
-  let out: Array<int> = []
-  let i = 0
-  loop {
-    match i < n {
-      false => { break },
-      true => {
-        mut out.push(i)
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-@example span(2, 5) == [2, 3, 4]
-@example span(3, 3) == []
-fn span(lo: int, hi: int) -> Array<int> {
-  return array.map(upto(math.max(hi - lo, 0)), fn(i: int) -> int { return lo + i })
-}
-
 @example pow2(0) == 1
 @example pow2(4) == 16
 fn pow2(k: int) -> int {
@@ -236,7 +213,7 @@ fn seed_order(size: int) -> Array<int> {
 fn shuffled(names: Array<string>, seed: int) -> Array<string> {
   let rng = seeded(seed)
   let out = array.slice(names, 0)
-  for i in span(1, array.len(out)) {
+  for i in array.range_from(1, array.len(out)) {
     let j = rng.int(0, array.len(out) - i)
     let k = array.len(out) - i
     let tmp = out[k]
@@ -561,17 +538,17 @@ fn measure_slot(s: Slot, widths: Array<int>) -> void {
 
 fn layout_of(b: Bracket) -> Layout {
   let rounds = log2_exact(b.size)
-  let widths = array.map(upto(rounds + 1), fn(_r: int) -> int { return 0 })
+  let widths = array.map(array.range(rounds + 1), fn(_r: int) -> int { return 0 })
   measure(b.root, widths)
 
   // The header names sit above their column, so a long round name widens it.
   mut widths[0] = math.max(widths[0], string.len("Seeds"))
-  for r in span(1, rounds + 1) {
+  for r in array.range_from(1, rounds + 1) {
     mut widths[r] = math.max(widths[r], string.len(round_name(b.size / pow2(r))))
   }
 
   let starts: Array<int> = [0]
-  for r in span(1, rounds + 1) {
+  for r in array.range_from(1, rounds + 1) {
     mut starts.push(starts[r - 1] + widths[r - 1] + GAP)
   }
 
@@ -586,9 +563,9 @@ fn layout_of(b: Bracket) -> Layout {
 
 fn blank_grid(rows: int, cols: int) -> Array<Array<string>> {
   return array.map(
-    upto(rows),
+    array.range(rows),
     fn(_r: int) -> Array<string> {
-      return array.map(upto(cols), fn(_c: int) -> string { return SPACE })
+      return array.map(array.range(cols), fn(_c: int) -> string { return SPACE })
     },
   )
 }
@@ -622,7 +599,7 @@ fn draw_match(grid: Array<Array<string>>, lay: Layout, m: Match, start: int) -> 
   let right_row = node_row(start + half, half)
   let vx = lay.starts[child] + lay.widths[child] + 3
 
-  for r in span(left_row + 1, right_row) {
+  for r in array.range_from(left_row + 1, right_row) {
     put(grid, r, vx, "|")
   }
   put(grid, left_row, vx - 2, "--+")
@@ -658,7 +635,7 @@ fn render(b: Bracket) -> string {
 
   let header = blank_grid(1, lay.width + 4)
   put(header, 0, lay.starts[0], "Seeds")
-  for r in span(1, lay.rounds + 1) {
+  for r in array.range_from(1, lay.rounds + 1) {
     put(header, 0, lay.starts[r], round_name(b.size / pow2(r)))
   }
 
@@ -667,7 +644,7 @@ fn render(b: Bracket) -> string {
 }
 
 fn divider(width: int) -> Array<string> {
-  return array.map(upto(width), fn(_c: int) -> string { return "-" })
+  return array.map(array.range(width), fn(_c: int) -> string { return "-" })
 }
 
 // ---------------------------------------------------------------------------
@@ -838,10 +815,9 @@ fn load(path: string) -> Result<Bracket, string> {
     Ok(v) => v,
     Err(issues) => { return Err("${path} is not JSON: ${issue_text(issues)}") },
   }
-  return match Bracket.parse(raw) {
-    Ok(b) => Ok(b),
-    Err(issues) => Err("${path} is not a valid bracket: ${issue_text(issues)}"),
-  }
+  return Bracket.parse(raw).map_err(
+    fn(issues: Array<Issue>) -> string { return "${path} is not a valid bracket: ${issue_text(issues)}" },
+  )
 }
 
 fn issue_text(issues: Array<Issue>) -> string {
@@ -883,10 +859,9 @@ fn read_seed_file(path: string) -> Result<SeedFile, string> {
     Ok(v) => v,
     Err(issues) => { return Err("${path} is not JSON: ${issue_text(issues)}") },
   }
-  return match SeedFile.parse(raw) {
-    Ok(s) => Ok(s),
-    Err(issues) => Err("${path} is not a valid seeds file: ${issue_text(issues)}"),
-  }
+  return SeedFile.parse(raw).map_err(
+    fn(issues: Array<Issue>) -> string { return "${path} is not a valid seeds file: ${issue_text(issues)}" },
+  )
 }
 
 fn check_entrants(names: Array<string>) -> Result<Array<string>, string> {

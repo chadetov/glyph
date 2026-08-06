@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.51</span>
+            <span class="rel-ver">0.1.52</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A parsed value is a real <code>Result</code></h3>
+            <p>Glyph's typechecker said <code>T.parse</code> returned <code>Result&lt;T, Array&lt;Issue&gt;&gt;</code>. The generated TypeScript said something narrower, so passing a parse result straight back from a function returning a <code>Result</code> was a <code>tsc</code> error. Two checkers, two answers.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>T.parse</code> returns the prelude <code>Result</code>, so it composes with everything else that takes one. <code>return User.parse(req.body)</code> from a function returning <code>Result&lt;User, Array&lt;Issue&gt;&gt;</code> compiles, and <code>User.parse(body).map_err(to_http_error)</code> works instead of failing with TS2339. The old emission was a bare <code>{ tag, value }</code> object, written that way so a module holding a <code>type</code> would not depend on <code>std/result</code>; the cost of that was the whole combinator API. A module with a <code>pub type</code> in it now imports <code>std/result</code> at runtime even if it never writes <code>Result</code>, which is the price of the fix.</li>
+              <li><span class="tag added">Added</span> <code>array.range(count)</code> and <code>array.range_from(start, end)</code>. A counted loop had no source in the language, so apps kept hand-rolling one: <code>for i in array.range(rows)</code> replaces it. <code>range</code> clamps like <code>string.repeat</code>, so <code>range(-1)</code> is <code>[]</code> and a fractional count truncates. The second argument to <code>range_from</code> is an exclusive end bound, the same reading <code>array.slice</code> gives one, so <code>range_from(2, 5)</code> is <code>[2, 3, 4]</code>.</li>
+              <li><span class="tag fixed">Fixed</span> <code>glyph fmt</code> keeps a multi-line string that interpolates. A literal with no <code>${...}</code> was copied verbatim; one with interpolation was rebuilt from its parts, so the real newlines came back as <code>\n</code> and the string collapsed onto one line. The documented multi-line form was unusable under format-on-save. Both kinds are copied verbatim now.</li>
+              <li><span class="tag known">Known</span> The formatter still has no layout rule for a <code>.</code>-chain that does not fit. The <code>&amp;&amp;</code> / <code>||</code> / <code>??</code> half landed in 0.1.51; the chain half is waiting on a call about whether breaking <code>array.map(...).filter(...)</code> at its first dot is acceptable, since that would put <code>array</code> and <code>.map</code> on separate lines and <code>grep "array.map("</code> would stop finding it.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.51</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

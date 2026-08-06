@@ -401,7 +401,12 @@ fn verb_of(word: string) -> Option<string> {
 
 // Words that carry no meaning in a noun phrase.
 fn is_filler(word: string) -> bool {
-  return word == "the" || word == "a" || word == "an" || word == "at" || word == "to" || word == "up"
+  return word == "the"
+    || word == "a"
+    || word == "an"
+    || word == "at"
+    || word == "to"
+    || word == "up"
 }
 
 fn noun_phrase(rest: Array<string>) -> string {
@@ -518,10 +523,10 @@ type Resolved =
   | Ambiguous({ noun: string, names: Array<string> })
 
 fn item_matches(item: Item, noun: string) -> bool {
-  return item.id == noun || item.name == noun || string.contains(item.name, noun) || string.contains(
-    item.id,
-    noun,
-  )
+  return item.id == noun
+    || item.name == noun
+    || string.contains(item.name, noun)
+    || string.contains(item.id, noun)
 }
 
 // Everything the player can refer to: the room's items plus the inventory.
@@ -583,10 +588,11 @@ fn name_of(world: World, id: string) -> string {
 // `std/string` has no way to read one character, so the article is chosen with
 // five `starts_with` calls instead of looking at `name[0]`.
 fn starts_with_vowel(name: string) -> bool {
-  return string.starts_with(name, "a") || string.starts_with(name, "e") || string.starts_with(
-    name,
-    "i",
-  ) || string.starts_with(name, "o") || string.starts_with(name, "u")
+  return string.starts_with(name, "a")
+    || string.starts_with(name, "e")
+    || string.starts_with(name, "i")
+    || string.starts_with(name, "o")
+    || string.starts_with(name, "u")
 }
 
 fn a_name_of(world: World, id: string) -> string {
@@ -996,10 +1002,10 @@ fn counts_as_move(command: Command) -> bool {
 
 // `won` short-circuits so the ending can only fire once.
 fn check_win(world: World) -> bool {
-  return !world.won && world.player.location == WIN_ROOM && carrying(world, WIN_ITEM) && flag(
-    world,
-    "altar open",
-  )
+  return !world.won
+    && world.player.location == WIN_ROOM
+    && carrying(world, WIN_ITEM)
+    && flag(world, "altar open")
 }
 
 fn final_summary(world: World) -> string {

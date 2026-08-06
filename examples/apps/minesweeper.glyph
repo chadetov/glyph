@@ -79,27 +79,6 @@ const OFFSETS: Array<Offset> = [
 ]
 
 // ---------------------------------------------------------------------------
-// Small helpers the stdlib does not have
-// ---------------------------------------------------------------------------
-
-// `0..n` as an array, because there is no numeric range and no `while`.
-@example upto(3) == [0, 1, 2]
-fn upto(n: int) -> Array<int> {
-  let out: Array<int> = []
-  let i = 0
-  loop {
-    match i < n {
-      false => { break },
-      true => {
-        mut out.push(i)
-        mut i = i + 1
-      },
-    }
-  }
-  return out
-}
-
-// ---------------------------------------------------------------------------
 // Board construction and absence-aware reads
 // ---------------------------------------------------------------------------
 
@@ -115,9 +94,9 @@ fn new_board(rows: int, cols: int, mines: int) -> Board {
     // Every cell starts blank. Mines land on the first reveal, not here, so a
     // fresh board is the same for every seed.
     cells: array.map(
-      upto(rows),
+      array.range(rows),
       fn(_r: int) -> Array<Cell> {
-        return array.map(upto(cols), fn(_c: int) -> Cell { return blank_cell() })
+        return array.map(array.range(cols), fn(_c: int) -> Cell { return blank_cell() })
       },
     ),
   }
@@ -153,8 +132,8 @@ fn neighbors(board: Board, at: Coord) -> Array<Coord> {
 
 fn all_coords(board: Board) -> Array<Coord> {
   let out: Array<Coord> = []
-  for r in upto(board.rows) {
-    for c in upto(board.cols) {
+  for r in array.range(board.rows) {
+    for c in array.range(board.cols) {
       mut out.push({ row: r, col: c })
     }
   }
@@ -412,11 +391,12 @@ fn hidden_safe_cells(board: Board) -> int {
   return count_cells(
     board,
     fn(cell: Cell) -> bool {
-      return !cell.mine && match cell.visibility {
-        Revealed => false,
-        Hidden => true,
-        Flagged => true,
-      }
+      return !cell.mine
+        && match cell.visibility {
+          Revealed => false,
+          Hidden => true,
+          Flagged => true,
+        }
     },
   )
 }
@@ -425,11 +405,12 @@ fn revealed_a_mine(board: Board) -> bool {
   return count_cells(
     board,
     fn(cell: Cell) -> bool {
-      return cell.mine && match cell.visibility {
-        Revealed => true,
-        Hidden => false,
-        Flagged => false,
-      }
+      return cell.mine
+        && match cell.visibility {
+          Revealed => true,
+          Hidden => false,
+          Flagged => false,
+        }
     },
   ) > 0
 }
@@ -536,16 +517,16 @@ fn render_board(board: Board, expose_mines: bool) -> string {
   let label_width = string.len(number.to_string(board.rows - 1))
   let corner = string.repeat(" ", label_width)
   let heads = array.map(
-    upto(board.cols),
+    array.range(board.cols),
     fn(c: int) -> string { return string.pad_start(number.to_string(c), 2) },
   )
   let head_row = string.join(heads, "")
   let header = "${corner} ${head_row}"
   let lines = array.map(
-    upto(board.rows),
+    array.range(board.rows),
     fn(r: int) -> string {
       let cells = array.map(
-        upto(board.cols),
+        array.range(board.cols),
         fn(c: int) -> string {
           return match cell_at(board, { row: r, col: c }) {
             None => " ?",

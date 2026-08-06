@@ -412,6 +412,36 @@ fn multiline_d12_string_is_kept_verbatim() {
 }
 
 #[test]
+fn multiline_string_that_interpolates_is_kept_verbatim() {
+    // G62: the interpolating path rebuilt the literal through `escape_string`,
+    // which turns a raw newline into `\n` and collapsed the whole D12 string
+    // onto one line. That changes what the program prints, so the formatter is
+    // not allowed to do it.
+    let src = "module x\nfn f(name: string) -> string {\n  return \"line1\n${name}\nline3\"\n}\n";
+    let once = fmt(src);
+    assert!(
+        once.contains("\"line1\n${name}\nline3\""),
+        "interpolating multi-line string must stay multi-line; got:\n{once:?}"
+    );
+    assert!(
+        !once.contains("\\n"),
+        "no raw newline may be re-escaped; got:\n{once:?}"
+    );
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once:?}");
+}
+
+#[test]
+fn single_line_template_still_normalizes_its_interpolation() {
+    // The verbatim path is gated on a raw newline, so a single-line template
+    // keeps the spacing normalization the formatter has always done inside
+    // `${...}`.
+    let src = "module x\nfn f(a: number, b: number) -> string {\n  return \"sum ${ a+b }\"\n}\n";
+    let once = fmt(src);
+    assert!(once.contains("\"sum ${a + b}\""), "{once:?}");
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once:?}");
+}
+
+#[test]
 fn format_is_idempotent_on_a_reformatted_snippet() {
     // A deliberately badly-spaced source normalizes, then is stable.
     let src = "module x\nfn   f(a:number,b:number,c:number)->number{return a+b+c}\n";
@@ -598,4 +628,70 @@ fn blank_lines_are_preserved_collapsed_to_one() {
     assert!(once.contains("type A = number\n\nfn f"), "decl->decl blank:\n{once}");
     assert!(once.contains("let a = 1\n\n  let b = 2"), "stmt->stmt blank:\n{once}");
     assert_eq!(fmt(&once), once, "blank-line formatting is not idempotent:\n{once}");
+}
+
+#[test]
+fn an_overlong_operator_chain_breaks_with_the_operator_leading() {
+    // G18, operator half. Before this, the only breakable point in a long
+    // condition was an argument list and the printer took the innermost one, so
+    // a `||` chain came back with one call's arguments exploded across three
+    // lines in the middle of it. The chain itself is what breaks now: one
+    // operand per line, operator first, indented one level.
+    let src = "module x\n\nimport std/string\n\nfn item_matches(item_id: string, item_name: string, noun: string) -> bool {\n  return item_id == noun || item_name == noun || string.contains(item_name, noun) || string.contains(item_id, noun)\n}\n";
+    let once = fmt(src);
+    assert!(
+        once.contains("  return item_id == noun\n    || item_name == noun\n    || string.contains(item_name, noun)\n    || string.contains(item_id, noun)\n"),
+        "chain did not break with leading operators:\n{once}"
+    );
+    assert!(
+        !once.contains("string.contains(\n"),
+        "an argument list broke instead of the chain:\n{once}"
+    );
+    assert_eq!(fmt(&once), once, "chain break is not idempotent:\n{once}");
+}
+
+#[test]
+fn a_chain_that_fits_stays_on_one_line() {
+    let src = "module x\n\nfn f(a: bool, b: bool, c: bool) -> bool {\n  return a || b && c\n}\n";
+    let once = fmt(src);
+    assert!(once.contains("  return a || b && c\n"), "short chain broke:\n{once}");
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
+}
+
+#[test]
+fn a_mixed_chain_breaks_only_its_top_operator() {
+    // `a && x || b && y || c` breaks at `||` and keeps each `&&` group whole, so
+    // the printed shape shows the precedence rather than the line width.
+    let src = "module x\n\nimport std/string\n\nfn f(a: bool, b: bool, c: bool, name: string) -> bool {\n  return a && string.starts_with(name, \"aaaaaaaaaaaaaaaaaaaaaaa\") || b && string.starts_with(name, \"bbbbbbbbbbbbbbbbbb\") || c\n}\n";
+    let once = fmt(src);
+    assert!(
+        once.contains("    || b && string.starts_with(name, \"bbbbbbbbbbbbbbbbbb\")\n    || c\n"),
+        "the `&&` groups did not stay whole:\n{once}"
+    );
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
+}
+
+#[test]
+fn a_module_level_chain_never_breaks() {
+    // D1: a newline is a statement terminator at bracket depth zero, so a
+    // module-level `const` initializer stays on one line whatever it measures.
+    // Breaking it would produce a different program, not a different layout.
+    let src = "module x\n\npub const WIDE = \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" == \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\" || \"cccccccccccccccccccccccc\" == \"dddddddddddddd\"\n";
+    let once = fmt(src);
+    assert!(!once.contains("\n  ||"), "a depth-zero chain broke:\n{once}");
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
+    assert_eq!(
+        type_error_codes(&once),
+        type_error_codes(src),
+        "formatting changed the program:\n{once}"
+    );
+}
+
+#[test]
+fn a_chain_inside_an_interpolation_never_breaks() {
+    // Inside `${...}` a line break comes back as a literal `\n` in the string.
+    let src = "module x\n\nfn f(alpha: bool, beta: bool, gamma: bool, delta: bool) -> string {\n  return \"v ${alpha || beta || gamma || delta || alpha || beta || gamma || delta || alpha || beta}\"\n}\n";
+    let once = fmt(src);
+    assert!(!once.contains("\n    ||"), "a chain inside `${{...}}` broke:\n{once}");
+    assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
 }

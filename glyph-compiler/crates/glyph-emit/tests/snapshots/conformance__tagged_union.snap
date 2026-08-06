@@ -4,6 +4,8 @@ expression: ts
 ---
 import "./.glyph-runtime/glyph-bootstrap";
 
+import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from "std/result";
+
 import { schema as __glyph_schema } from "std/schema";
 
 export type Shape =
@@ -23,10 +25,10 @@ export const Shape = {
       default: return false;
     }
   },
-  parse(value: unknown): { tag: "Ok"; value: Shape } | { tag: "Err"; value: Issue[] } {
+  parse(value: unknown): __GlyphResult<Shape, Issue[]> {
     return this.is(value)
-      ? { tag: "Ok", value: value }
-      : { tag: "Err", value: [{ path: [], message: "expected Shape" }] };
+      ? __glyph_ok(value)
+      : __glyph_err([{ path: [], message: "expected Shape" }]);
   },
   schema: __glyph_schema<Shape>("Shape", (v): v is Shape => Shape.is(v)),
 };

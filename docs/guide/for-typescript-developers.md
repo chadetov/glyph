@@ -313,6 +313,23 @@ element touches one line. What it does cost you is the threshold itself: rename
 a binding so a call crosses 100 columns and the call expands to one argument per
 line, which is a four-line diff from a one-token edit.
 
+A long `&&`, `||`, or `??` condition breaks the same way, one operand per line
+with the operator leading:
+
+```
+fn item_matches(item: Item, noun: string) -> bool {
+  return item.id == noun
+    || item.name == noun
+    || string.contains(item.name, noun)
+}
+```
+
+The operator goes first so it stays at a fixed column, and only the loosest
+operator in the expression breaks: `a && b || c && d` breaks at `||` and leaves
+each `&&` pair on its line. A condition that is not inside a `{ ... }` block
+stays on one line however long it is, because D1 ends a statement at a newline
+outside brackets, so breaking a module-level `const` would change the program.
+
 Comments stay where you put them. A `//` written inside a record body, a union
 variant list, an array or object literal, an argument list, or above a `match`
 arm is re-emitted above the same item, and a construct holding an interior

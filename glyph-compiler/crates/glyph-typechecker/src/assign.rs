@@ -1045,6 +1045,32 @@ impl Assigner<'_> {
             });
         }
 
+        // `range(count)` / `range_from(start, end) -> Array<number>`: the
+        // counted loop. Modeled so `for i in array.range(n)` binds `i` as a
+        // `number` instead of falling back to `Unknown` — a hand-rolled `upto(n)
+        // -> Array<int>` is typed today, so without this the stdlib replacement
+        // would be a typing regression. `int` lowers to `Primitive::Number`, so
+        // `Array<number>` also satisfies an `Array<int>` annotation.
+        if let Some(arity) = match (module_key, field) {
+            ("std/array", "range") => Some(1),
+            ("std/array", "range_from") => Some(2),
+            _ => None,
+        } {
+            let return_ty = self.stdlib_array_ty(Ty::Prim(Primitive::Number))?;
+            let params = (0..arity)
+                .map(|_| FnParam {
+                    name: None,
+                    owned: false,
+                    ty: Ty::Prim(Primitive::Number),
+                })
+                .collect();
+            return Some(Ty::Fn {
+                params,
+                return_ty: Arc::new(return_ty),
+                is_async: false,
+            });
+        }
+
         // Response constructors that do not return a `Result`. Modeled so a
         // handler's `Ok(http.html(...))` is checked against its declared
         // `Result<Response, string>` here, rather than only by `tsc` on the

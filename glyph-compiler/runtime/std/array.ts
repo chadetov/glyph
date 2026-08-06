@@ -92,3 +92,30 @@ export function index_of<T>(xs: ReadonlyArray<T>, value: T): Option<number> {
 export function flat_map<T, U>(xs: ReadonlyArray<T>, f: (x: T) => Array<U>): Array<U> {
   return xs.flatMap(f);
 }
+
+// `range`/`range_from` are the counted loops `for` has no other source for:
+// `for i in range(n)` walks `0..n-1`. `range` clamps like `string.repeat` does,
+// so a negative or fractional `count` becomes `Math.max(0, Math.trunc(count))`
+// and `range(-1)` is `[]` rather than a throw.
+export function range(count: number): Array<number> {
+  const n = Math.max(0, Math.trunc(count));
+  const out: Array<number> = [];
+  for (let i = 0; i < n; i++) {
+    out.push(i);
+  }
+  return out;
+}
+
+// `range_from(start, end)` walks `start..end-1`. The second argument is an
+// exclusive end bound, the same reading `array.slice` and `string.slice` give a
+// second numeric argument, so `range_from(2, 5)` is `[2, 3, 4]`. An end at or
+// below `start` gives `[]`.
+export function range_from(start: number, end: number): Array<number> {
+  const lo = Math.trunc(start);
+  const hi = Math.trunc(end);
+  const out: Array<number> = [];
+  for (let i = lo; i < hi; i++) {
+    out.push(i);
+  }
+  return out;
+}

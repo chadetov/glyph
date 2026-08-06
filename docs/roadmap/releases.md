@@ -629,6 +629,29 @@ The options:
   emitter's `for...of` lowering, and defines a protocol we then have to keep.
 - `0..n` range syntax — a grammar change and a new D-decision.
 
+✅ **Resolved: the stdlib function.** `array.range(count)` and
+`array.range_from(start, end)` are in `std/array`. Range syntax was rejected
+because it is language surface that costs grammar and forecloses later choices,
+while a function costs neither and is forward-compatible with adding syntax over
+it if that ever earns its keep. `range` takes a count and clamps it the way
+`string.repeat` does (`range(-1)` is `[]`, a fractional count truncates).
+`range_from`'s second argument is an exclusive end bound, the reading
+`array.slice` and `string.slice` already give a second numeric argument and the
+one the hand-rolled `span(lo, hi)` in `bracket.glyph` has, so
+`range_from(2, 5)` is `[2, 3, 4]` and the port is textual. It was written first as
+`(start, count)`, which meant the same call returned a different array than the
+function it replaces with no type error to catch it; the review caught that
+before it left the working tree. The
+typechecker models both as `Array<number>` so `for i in array.range(n)` binds `i`
+as a number rather than `Unknown` — otherwise replacing the typed hand-rolled
+`upto(n) -> Array<int>` would have been a typing regression. The lazy-iterable
+option stays unbuilt; it is an optimization, not a capability, and nothing has
+asked for it yet. The apps are ported: `upto` and `span` are deleted from
+`bracket.glyph` and `minesweeper.glyph`, all 16 call sites read `array.range` or
+`array.range_from`, and both apps emit byte-identical TypeScript to what the
+hand-rolled helpers produced. G30 stays `[HALF FIXED]` only for its index-safety
+half, which is untouched and belongs with G39.
+
 **What `xs[i]` means.** The checker types `Expr::Index` as `Ty::Unknown`
 (`glyph-typechecker/src/assign.rs:501-510`), the generated tsconfig omits
 `noUncheckedIndexedAccess` (`glyph-cli/src/runtime.rs:174-194`), and there is no
@@ -877,9 +900,26 @@ regression test asserts the value import.
 
 ### Still open from this trip
 
-- **A descriptor's `.parse` result is not assignable to `Result`** (M). Confirmed
-  as TS2322; the cookbook recipes that thread `T.parse(x)` into a function
-  returning `Result<T, E>` do not compile. Separate from the resolution fix.
+- **A descriptor's `.parse` result is not assignable to `Result`** (M) —
+  ✅ **done** (G41). The emitter wrote `parse` as a bare `{ tag, value }` union to
+  keep a descriptor free of a `std/result` dependency, but `Result<T, E>`
+  intersects the `map`/`map_err` combinators, so the bare union was not
+  assignable to it: `return User.parse(v)` was TS2322 and
+  `User.parse(v).map_err(f)` was TS2339, while Glyph's own checker reported
+  `parse` as `Result<T, Array<Issue>>`. All three descriptor kinds now annotate
+  `parse` as the real `Result` and build both arms with the prelude constructors,
+  under one injected aliased `std/result` import shared with the `?` lowering
+  (two lines would redeclare `__glyph_err`). Two costs, stated exactly: the
+  import is a value import, so every module with a `pub type` now carries a
+  runtime edge to `std/result` even if it never mentions `Result`, where `?` and
+  `T.schema` are paid only by the modules using them; and every `T.parse`
+  allocates the two combinator closures the constructors build, which is what an
+  `Ok(...)` costs per call but lands on the per-request boundary path rather
+  than on a function return. `?` on a parse result and `infer_output<S>` both
+  still work. `bracket.glyph` was the app holding the workaround: the two
+  identity re-wrap `match`es around `Bracket.parse` and `SeedFile.parse`
+  (`Ok(b) => Ok(b)` beside an `Err` arm that only rewords the message) are now
+  `.map_err(...)`, and both rejection paths were run against a malformed file.
 - **`glyph build` prints "no diagnostics" above its own `tsc` errors** (S) —
   ✅ **done** (G42). The summary now prints after the `tsc` gate and the example
   gate, beside the `tsc --strict passed.` line that was already held back for the
@@ -1639,10 +1679,58 @@ run `build`" an ordering you had to know.
   rather than less: three sites in `examples/apps` now break an inner argument
   list in the middle of a `||` chain instead of sitting on one over-wide line.
   The layout rule is an undecided fork, in the polish lane below.
+
+  Half the rule is now decided: when a chain does not fit, break before every
+  link, one link per line, indented one level under the receiver. A partial break
+  is what makes the diff unstable when a later edit changes the width, and diff
+  stability is the pillar this serves. `await` and `?` stay attached to the
+  expression they apply to. Of the two questions that followed, the operator one
+  is answered and shipped; the receiver one still blocks the `.`-chain path:
+
+  - **What counts as the receiver.** Glyph's stdlib is namespaced-function style,
+    so a literal every-link break turns `array.map(...).filter(...)` into
+    `array\n  .map(...)\n  .filter(...)` and `grep "array.map("` misses it.
+    Greppability is a wedge pillar, so this is the one place the layout rule
+    collides with one. Either the literal rule (uniform, one less thing to know,
+    costs the `namespace.fn(` grep) or a syntactic first-group rule the formatter
+    can evaluate without a symbol table ("a bare-identifier receiver keeps its
+    first `.`-link; all later links break"), which keeps `array.map(` greppable
+    and matches how every example already reads. The minimum for a chain to be
+    breakable at all (two `.`-links, so `string.repeat(s, n)` never explodes) and
+    whether a call-free member path like `world.player.location.name` breaks are
+    part of the same question.
+  - **Operator-chain break style** — ✅ **done, leading operator.** A `&&`,
+    `||`, or `??` chain that does not fit breaks one operand per line with the
+    operator leading the continuation line, indented one level, which is what
+    the three damaged `||` sites needed. Leading because the operator lands at a
+    fixed column where `grep` finds it, it matches Glyph's own leading-`|` union
+    form, and adding an operand touches one line instead of two. Trailing (what
+    Prettier and rustfmt do) re-parses identically, so nothing but style rode on
+    it. Only the top-level run of one operator flattens: `a && b || c && d`
+    breaks at `||` and keeps each `&&` group whole, so the shape shows the
+    precedence rather than the width. The D1 guard is a printer flag set only
+    under a `{ ... }` the printer opened, which implies bracket depth of at
+    least one; it is one-sided on purpose, so a bracketed expression outside any
+    block loses a break the parser would have taken rather than risking one it
+    would not. `examples/apps` is reformatted: the three damaged `||` sites read
+    as chain breaks, every emitted `.ts` in the tree is byte-identical to the
+    pre-reformat build, and a second `glyph fmt` pass changes no byte.
+
+  The verified constraint either answer has to respect: newlines are tokens only
+  at bracket depth zero, so a break before a `.` or an operator is invisible to
+  the parser inside any `(`/`[`/`{` (which includes every function body), and ends
+  the statement outside one. A module-level `const` initializer, a `where`
+  predicate, and an annotation's raw args therefore need a depth guard rather than
+  a workaround, and mirroring the lexer's own bracket-depth rule is what makes
+  that guard verifiable instead of a heuristic (`self.indent > 0` is not a safe
+  proxy: a multi-line union body is indented with no enclosing bracket).
 - **The width check stops at the closing delimiter** (S). It measures a list up
   to its own `)` and misses any suffix printed after it, so a `fn` signature
-  whose ` -> T {` tail crosses 100 columns reads as fitting. Three of the five
-  over-wide code lines left in `examples/apps` are that shape.
+  whose ` -> T {` tail crosses 100 columns reads as fitting. Three of the six
+  over-wide code lines left in `examples/apps` are that shape. `lambda_block`
+  misses the same way on a different shape: it inlines a one-statement body
+  whenever the captured statement holds no newline, without checking the column,
+  which is what puts the two `map_err` lambdas in `bracket.glyph` over 100.
 - **A list whose inline candidate is intrinsically multi-line explodes one
   argument per line** (S) rather than letting a trailing lambda keep hugging the
   call, which is more vertical than Prettier's rule for the same shape.
@@ -1718,13 +1806,21 @@ had not.
 
 ### Still open after this release
 
-- **`glyph fmt` collapses a multi-line string that interpolates** (S, G62). The
-  form AGENTS.md now documents survives `fmt` only when the string has no
-  `${...}`. A literal without interpolation is copied verbatim from source; one
-  with interpolation is rebuilt through the escaper, so the raw newlines come
-  back as `\n`. That makes the documented spelling a trap under format-on-save,
-  and it is why `examples/apps/shortlink.glyph` still writes its five HTML
-  builders with `\n` escapes.
+- **`glyph fmt` collapses a multi-line string that interpolates** (S, G62) —
+  ✅ **done**. A literal without interpolation was
+  copied verbatim from source;
+  one with interpolation was rebuilt through the escaper, so its raw newlines
+  came back as `\n` and the whole string collapsed onto one line. Same family as
+  G60: formatting must not change how a program prints. `template` now takes its
+  own span (already correct in the parser, no change needed there) and copies the
+  literal verbatim, sharing one helper with `string_literal`. The verbatim path is
+  gated on the slice containing a raw newline, so a single-line template still
+  gets its `${...}` interiors normalized. Whether to drop that normalization and
+  copy every template verbatim, as `Expr::String` does, is still open.
+  `examples/apps/shortlink.glyph` writes all five HTML builders as real
+  multi-line strings now: the rewrite that had to be reverted before is back, the
+  emitted `shortlink.ts` is byte-identical to the `\n`-escaped version, and
+  `glyph fmt --check` reports the file already formatted.
 - **`check` reports a sibling's error** (S, decided for now). Filtering
   diagnostics to the named file, or a `--tree` opt-in for today's behaviour, is
   an open call; `Diagnostic.file` already carries what a filter needs.
@@ -1738,6 +1834,95 @@ had not.
   release expanded would have passed either way. Making it require the qualified
   form (`math.max(`) needs a per-module exception list for methods and prelude
   names.
+
+### 0.1.52 — Shipped · A parsed value is a real `Result`
+
+Three backlog items, and the one that mattered had been wrong since descriptors
+first shipped.
+
+A descriptor's `.parse` returns the prelude `Result` (G41). It used to return a
+bare `{ tag, value }` object, written that way so a module with a `type` in it
+did not have to depend on `std/result`. But `Result<T, E>` is that object
+intersected with the `map`/`map_err` combinators, so the bare form was not
+assignable to it. `return User.parse(v)` from a function returning
+`Result<User, Array<Issue>>` was TS2322, and `User.parse(v).map_err(f)` was
+TS2339, while Glyph's own typechecker had always reported `parse` as
+`Result<T, Array<Issue>>`. That is the shape of disagreement the compiler exists
+to prevent: two checkers, two answers, and the one you read in the editor was
+the wrong one. All three descriptor kinds now annotate `parse` as the real
+`Result` and build both arms with the prelude constructors, through one injected
+aliased `std/result` import shared with the `?` lowering (`?` binds
+`__glyph_err` too, and two import lines would redeclare it).
+
+Two costs, stated exactly. The import is a value import, so a module with a
+`pub type` in it now carries a runtime edge to `std/result` whether or not it
+mentions `Result`; `?` and `T.schema` are paid only by the modules that use
+them. And a `T.parse` call allocates the two combinator closures the
+constructors build, which is what any `Ok(...)` costs, except that this one sits
+on the per-request boundary path rather than on a function return. `?` applied
+to a parse result and `infer_output<S>` both still work.
+`examples/apps/bracket.glyph` was the app carrying the workaround: two identity
+re-wrap `match`es around `Bracket.parse` and `SeedFile.parse`, each an
+`Ok(b) => Ok(b)` arm beside an `Err` arm that only reworded the message. Both
+are `.map_err(...)` now, and both rejection paths were run against a malformed
+file.
+
+`array.range(count)` and `array.range_from(start, end)` are in `std/array`
+(the first half of G30). Two apps had hand-rolled the counted loop three times
+between them, under two names, because `for` had no source for one. `range`
+clamps its count the way `string.repeat` does, so `range(-1)` is `[]` and a
+fractional count
+truncates. `range_from`'s second argument is an exclusive end bound, which is
+what `array.slice` and `string.slice` already mean by a second numeric argument,
+so `range_from(2, 5)` is `[2, 3, 4]`. It was written first as `(start, count)`,
+which would have made the same call return a different array than the
+hand-rolled function it replaced with no type error anywhere to catch it; the
+review of this batch caught that before it left the working tree. Range syntax
+(`0..n`) was considered and rejected: it is grammar and a new D-decision for
+something a function does at no cost, and a function stays forward-compatible
+with adding syntax over it later. The typechecker models both as
+`Array<number>`, so `for i in array.range(n)` binds `i` as a number rather than
+`Unknown`. `upto` and `span` are deleted from `bracket.glyph` and
+`minesweeper.glyph` and all 16 call sites read `array.range` or
+`array.range_from`, with both apps emitting byte-identical TypeScript to what
+the helpers produced.
+
+`glyph fmt` no longer collapses a multi-line string that interpolates (G62). A
+literal with no `${...}` was copied verbatim from source; one with interpolation
+was rebuilt through the escaper, so its raw newlines came back as `\n` and the
+whole string landed on one line. The documented multi-line form was a trap under
+format-on-save, which is the same family as G60: formatting must not change what
+a program prints. `template` now copies the literal verbatim through the helper
+`string_literal` already used, gated on the slice containing a raw newline so a
+single-line template still gets its `${...}` interiors normalized.
+`examples/apps/shortlink.glyph` writes all five HTML builders as real multi-line
+strings now, the emitted `shortlink.ts` is byte-identical to the `\n`-escaped
+version, and `glyph fmt --check` reports the file already formatted.
+
+Pillar: verifiability for the parse fix, since the point of the descriptor is
+that the boundary is checked by the same rules everywhere, and it was not.
+
+### Still open after this release
+
+- **The `.`-chain layout rule** (M, G18). The `&&`/`||`/`??` half shipped in
+  0.1.51 and the `.`-chain half is still blocked on one question nobody has
+  answered: whether the first link of `array.map(xs, f).filter(g)` counts as a
+  breakable link. Glyph's stdlib is namespaced-function style, so the literal
+  every-link rule turns that into `array\n  .map(...)` and `grep "array.map("`
+  stops finding it. Greppability is a wedge pillar, so this is the one place the
+  layout rule collides with one, and picking the answer is a decision, not an
+  implementation detail. The alternative is a syntactic first-group rule the
+  formatter can evaluate with no symbol table: a bare-identifier receiver keeps
+  its first `.`-link and every later link breaks.
+- **`xs[i]` is typed `Unknown`** (the other half of G30), which is untouched and
+  belongs with G39 rather than with the range functions.
+- **A single-line template still gets its `${...}` interiors normalized** by
+  `fmt`, where `Expr::String` is copied verbatim in every case. Dropping the
+  normalization so every template takes the verbatim path is an open call.
+- **`lambda_block` inlines a one-statement body without checking the column**,
+  which is the same shape of miss as the width check stopping at the closing
+  delimiter. It is what puts the two new `map_err` lambdas in `bracket.glyph`
+  over 100 columns.
 
 ## Road to 1.0
 
@@ -2772,7 +2957,15 @@ land here until they're assigned a release.
   the checker when generating a descriptor), so the gap is only the explicit
   top-level `Imported.parse<T>(v)` call across a module boundary.
 
-- **A layout rule for chains** (M, formatter). The printer has no chain-aware
+- **A layout rule for chains** (M, formatter). The `&&`/`||`/`??` half is done:
+  an operator chain that does not fit breaks one operand per line with the
+  operator leading, under a bracket-depth guard for D1, which is what the three
+  damaged `||` sites needed (they get the new layout the next time
+  `examples/apps` is reformatted). What is left is the `.`-chain, and it is
+  blocked on one question: whether `array.` counts as a link, since breaking it
+  costs `grep "array.map("` and greppability is a wedge pillar.
+
+  The printer has no chain-aware
   path, so when a long expression has to break, the only breakable point it can
   find is an argument list, and it takes the innermost one. Removing the
   `INLINE_MAX` exemption (G54) made that visible: three sites in the reformatted

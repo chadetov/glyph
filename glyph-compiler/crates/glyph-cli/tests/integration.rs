@@ -3143,6 +3143,80 @@ fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn descriptor_parse_is_assignable_to_result() {
+    // G41: a descriptor's `.parse` used to emit a bare `{tag,value}` union, which
+    // is not assignable to `Result<T, E>` (that type intersects the `map`/
+    // `map_err` combinators). Returning `T.parse(v)` from a `Result`-returning
+    // function was TS2322 and `T.parse(v).map_err(f)` was TS2339, even though
+    // Glyph's own checker reports `parse` as a `Result`. All three descriptor
+    // kinds (record, refined alias, union) now return the real `Result`.
+    if !tsc_available() {
+        eprintln!("skipping descriptor-parse-Result tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("parseresult");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+type User = { id: string, name: string }
+type Amount = int where value >= 0
+type Shape =
+  | Circle(int)
+  | Square(int)
+
+pub fn parse_user(value: unknown) -> Result<User, Array<Issue>> {
+  return User.parse(value)
+}
+
+pub fn parse_amount(value: unknown) -> Result<Amount, Array<Issue>> {
+  return Amount.parse(value)
+}
+
+pub fn parse_shape(value: unknown) -> Result<Shape, Array<Issue>> {
+  return Shape.parse(value)
+}
+
+pub fn user_or_message(value: unknown) -> Result<User, string> {
+  return User.parse(value).map_err(fn(issues: Array<Issue>) -> string { return "bad" })
+}
+
+pub fn user_name(value: unknown) -> Result<string, Array<Issue>> {
+  let u = User.parse(value)?
+  return Ok(u.name)
+}
+
+fn main(argv: Array<string>) -> number {
+  return 0
+}
+"#,
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    // The `?` lowering and the descriptors share one aliased `std/result`
+    // import; two lines would redeclare `__glyph_err`.
+    let emitted = std::fs::read_to_string(out.join("main.ts")).expect("emitted main.ts");
+    assert_eq!(
+        emitted
+            .matches(
+                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"std/result\";"
+            )
+            .count(),
+        1,
+        "{emitted}"
+    );
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("descriptor .parse as Result failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn fs_make_dir_and_append_text_round_trip() {
     // F10: make_dir creates the directory (mkdir -p, idempotent) and append_text
     // adds lines without a read-modify-write. The program returns 0 only if two
@@ -3632,6 +3706,91 @@ fn array_fold_index_of_and_flat_map() {
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping array fold run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("unexpected type-check failure: {msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a main; got NoMain: {exports:?}");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check");
+        }
+    }
+}
+
+#[test]
+fn array_range_and_range_from_drive_counted_loops() {
+    // G30: Glyph has no `..` and no `while`, so every counted loop used to be a
+    // hand-rolled `upto(n)` built from `loop`/`break`. `range`/`range_from` are
+    // that array; `range_from(start, end)` takes an exclusive end bound, the
+    // same reading `slice` gives its second numeric argument, so
+    // `range_from(2, 5)` is `[2, 3, 4]`. `for i in array.range(n)` must bind
+    // `i` as a `number`,
+    // not `Unknown`, or the stdlib version would be a typing regression against
+    // the hand-rolled `upto(n) -> Array<int>` it replaces.
+    if !js_toolchain_available() {
+        eprintln!("skipping array range run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("arrrange");
+    let prog = "module main\n\
+         import std/array\n\
+         import std/array { range, range_from, len }\n\
+         \n\
+         fn sum(xs: Array<number>) -> number {\n\
+         \x20 let total = 0\n\
+         \x20 for x in xs {\n\
+         \x20\x20\x20 mut total = total + x\n\
+         \x20 }\n\
+         \x20 return total\n\
+         }\n\
+         \n\
+         fn double_each(n: int) -> Array<int> {\n\
+         \x20 let out: Array<int> = []\n\
+         \x20 for i in array.range(n) {\n\
+         \x20\x20\x20 mut out.push(i * 2)\n\
+         \x20 }\n\
+         \x20 return out\n\
+         }\n\
+         \n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let empty = len(range(0)) == 0 && len(range(0 - 2)) == 0\n\
+         \x20 let three = range(3)\n\
+         \x20 let counted = len(three) == 3 && three[0] == 0 && three[1] == 1 && three[2] == 2\n\
+         \x20 let from = range_from(2, 5)\n\
+         \x20 let offset = len(from) == 3 && from[0] == 2 && from[1] == 3 && from[2] == 4\n\
+         \x20 let backwards = len(range_from(3, 3)) == 0 && len(range_from(5, 3)) == 0\n\
+         \x20 let doubled = double_each(4)\n\
+         \x20 let looped = sum(range(4)) == 6 && len(doubled) == 4 && doubled[3] == 6\n\
+         \x20 return match empty {\n\
+         \x20\x20\x20 false => 1,\n\
+         \x20\x20\x20 true => match counted {\n\
+         \x20\x20\x20\x20\x20 false => 2,\n\
+         \x20\x20\x20\x20\x20 true => match offset && backwards {\n\
+         \x20\x20\x20\x20\x20\x20\x20 false => 3,\n\
+         \x20\x20\x20\x20\x20\x20\x20 true => match looped {\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20 false => 4,\n\
+         \x20\x20\x20\x20\x20\x20\x20\x20\x20 true => 0,\n\
+         \x20\x20\x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20\x20\x20 },\n\
+         \x20\x20\x20 },\n\
+         \x20 }\n\
+         }\n";
+    write_file(&root, "rangeprog.glyph", prog);
+    let file_glyph = root.join("rangeprog.glyph");
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "a non-zero code names the failing assertion group");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping array range run: `tsx` not found on PATH");
         }
         glyph_cli::run::RunOutcome::BuildFailed(r) => {
             panic!("unexpected build failure: {:?}", r.diagnostics);

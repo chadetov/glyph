@@ -392,10 +392,11 @@ fn bare_scheme(target: string) -> Option<string> {
   return match string.index_of(target, ":") {
     None => None,
     Some(colon) => {
-      let before_slash = colon > 0 && match string.index_of(target, "/") {
-        None => true,
-        Some(slash) => colon < slash,
-      }
+      let before_slash = colon > 0
+        && match string.index_of(target, "/") {
+          None => true,
+          Some(slash) => colon < slash,
+        }
       match before_slash {
         false => None,
         true => {
@@ -411,11 +412,12 @@ fn bare_scheme(target: string) -> Option<string> {
 }
 
 fn all_letters(s: string) -> bool {
-  return string.len(s) > 0 && array.fold(
-    string.split(s, EMPTY),
-    true,
-    fn(ok: bool, c: string) -> bool { return ok && string.contains(LOWER, c) },
-  )
+  return string.len(s) > 0
+    && array.fold(
+      string.split(s, EMPTY),
+      true,
+      fn(ok: bool, c: string) -> bool { return ok && string.contains(LOWER, c) },
+    )
 }
 
 fn relative_kind(target: string) -> LinkKind {

@@ -75,13 +75,21 @@ array.sort<T>(xs, compare: fn(T, T) -> number) -> Array<T>
 array.fold<T, A>(xs, init: A, f: fn(A, T) -> A) -> A
 array.index_of<T>(xs, value: T) -> Option<number>
 array.flat_map<T, U>(xs, f: fn(T) -> Array<U>) -> Array<U>
+array.range(count: number) -> Array<number>                    // [0, 1, ..., count-1]
+array.range_from(start: number, end: number) -> Array<number>  // [start, ..., end-1]
 ```
 
 `fold` takes the callback last, so it reads like the rest of the module; the
 callback gets `(acc, x)` and no index. `index_of` compares with `===`, like
 `contains`, so for records use `find` with an explicit comparison, and it returns
 an `Option` whose missing-`None`-arm case Glyph does not yet catch (see the note
-at the end of `std/string`). `flat_map` flattens one level.
+at the end of `std/string`). `flat_map` flattens one level. `range`/`range_from`
+are the counted loop `for` has no other source for (`for i in array.range(n)`).
+`range` clamps its count the way `string.repeat` does, so a negative count gives
+`[]` and a fractional one truncates. `range_from`'s second argument is an
+exclusive end bound, the same reading `array.slice` and `string.slice` give a
+second numeric argument: `range_from(2, 5)` is `[2, 3, 4]`, and an end at or
+below `start` gives `[]`.
 
 ## std/string
 

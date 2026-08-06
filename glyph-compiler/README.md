@@ -13,7 +13,7 @@ The Rust workspace for the Glyph compiler. It is a complete transpile-to-TypeScr
 | `glyph-db` | Salsa-backed incremental query pipeline (parse → collect → resolve → typecheck), per-decl input slicing, cross-file auto-invalidation. |
 | `glyph-typechecker` | Match exhaustiveness (tagged unions, arrays, bool, number/string, and string-literal unions), the `?` operator rule, call/`await` synthesis, generic instantiation, `owned` single-consumption (D25), runtime descriptors. |
 | `glyph-emit` | AST→TS visitor: emits every declaration/statement/expression, lowers `match`/`?`/JSX, and generates runtime descriptors (`is`/`parse`/`schema`) with deep, generic, membership, and integer validation. |
-| `glyph-formatter` | Canonical reprinter behind `glyph fmt`: one layout, round-trips, idempotent, keeps every comment where it was written (including inside a record, literal, argument list, or match). |
+| `glyph-formatter` | Canonical reprinter behind `glyph fmt`: one layout, round-trips, idempotent, keeps every comment where it was written (including inside a record, literal, argument list, or match). A list is inline while it fits the 100-column print width from its starting column and one element per line otherwise, at every element count. |
 | `glyph-lsp` | The language server and the MCP server, both over stdio, sharing one pure `analysis` layer (diagnostics, hover, definition, references, rename, symbols). |
 | `glyph-cli` | The `glyph` binary: `build [--no-check] [--no-test] [--json]`, `run`, `fmt`, `regen`, `gen` (openapi/dts/zod), `init`, `publish`, `lsp`, `mcp`, and `--explain`. |
 | `glyph-wasm` | WebAssembly bindings: compile a Glyph source string to TypeScript + diagnostics in memory (powers the web playground). |
@@ -26,7 +26,7 @@ cd glyph-compiler
 cargo test --workspace
 ```
 
-795 tests pass. `glyph build src/ --out dist/` walks a directory of `.glyph` files, emits TypeScript into `--out`, type-checks it with `tsc` (unless `--no-check`), and runs every `@example` / `@doc @run` test (unless `--no-test`). The toolchain-dependent paths (`glyph run`, the `glyph build` example gate, `gen`) need `node`/`tsx`/`tsc` on `PATH`. A **spec conformance corpus** (`glyph-emit/tests/conformance/`, one program per language feature keyed to its D-decision) pins the exact emitted TypeScript as a committed snapshot, so any change to what a feature means fails the build until the diff is reviewed; regenerate with `INSTA_UPDATE=always cargo test -p glyph-emit --test conformance`.
+801 tests pass. `glyph build src/ --out dist/` walks a directory of `.glyph` files, emits TypeScript into `--out`, type-checks it with `tsc` (unless `--no-check`), and runs every `@example` / `@doc @run` test (unless `--no-test`). The toolchain-dependent paths (`glyph run`, the `glyph build` example gate, `gen`) need `node`/`tsx`/`tsc` on `PATH`. A **spec conformance corpus** (`glyph-emit/tests/conformance/`, one program per language feature keyed to its D-decision) pins the exact emitted TypeScript as a committed snapshot, so any change to what a feature means fails the build until the diff is reviewed; regenerate with `INSTA_UPDATE=always cargo test -p glyph-emit --test conformance`.
 
 ## Library versions (P5)
 

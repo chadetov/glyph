@@ -4,9 +4,9 @@
 //! - two-space indentation;
 //! - trailing commas on every multi-line list (D17/D2);
 //! - a list (call args, params, array/object/record fields, generics excepted)
-//!   with one or two elements is always inline; above that it stays inline only
-//!   while its rendered form fits `PRINT_WIDTH` from the current column, and
-//!   otherwise goes one-element-per-line;
+//!   stays inline while its rendered form has no intrinsic line break and fits
+//!   `PRINT_WIDTH` from the current column, and otherwise goes
+//!   one-element-per-line;
 //! - a list holding an interior `//` comment is always one-element-per-line, so
 //!   the comment stays above the item it documents (D14 leaves `//` as the only
 //!   way to document a record field, a union variant, or a match arm);
@@ -30,17 +30,17 @@ use glyph_ast::{
     RecordTypeField, Span, Stmt, TemplatePart, TypeDecl, TypeExpr, UnaryOp, UnionVariant,
 };
 
-/// A list with more than this many elements stays inline only if it fits the
-/// print width; at or below it, a list is always inline (a one- or two-element
-/// call never breaks, keeping small calls compact regardless of width).
-const INLINE_MAX: usize = 2;
-
-/// The print width a list is kept inline within. A list of more than
-/// `INLINE_MAX` elements whose inline rendering fits the line within this column
-/// stays inline; otherwise it goes one-element-per-line. A fixed width keeps the
-/// layout a deterministic function of content and column, so it round-trips and
-/// is idempotent (the diff-stability pillar) while not exploding every short
-/// three-argument call.
+/// The print width a list is kept inline within. A list whose inline rendering
+/// fits the line within this column stays inline; otherwise it goes
+/// one-element-per-line. A fixed width keeps the layout a deterministic function
+/// of content and column, so it round-trips and is idempotent (the
+/// diff-stability pillar).
+///
+/// The width test applies at every element count. An earlier cut exempted lists
+/// of one or two elements from it entirely, which is how the formatter's own
+/// fixed-point output came to hold 142-column lines: a two-argument
+/// `array.map(xs, fn(x) { ... })` short-circuited past both the width check and
+/// the intrinsic-newline check.
 const PRINT_WIDTH: usize = 100;
 
 /// Format a whole module to canonical Glyph source. `comments` are the `//`
@@ -57,6 +57,8 @@ pub fn format_module(m: &Module, comments: &[Comment], source: &str) -> String {
     let mut p = Printer {
         out: String::new(),
         indent: 0,
+        col_base: 0,
+        flat: false,
         comments: sorted,
         cidx: 0,
         source: Some(source.to_string()),
@@ -74,6 +76,8 @@ pub fn format_expr(e: &Expr) -> String {
     let mut p = Printer {
         out: String::new(),
         indent: 0,
+        col_base: 0,
+        flat: false,
         comments: Vec::new(),
         cidx: 0,
         source: None,
@@ -85,6 +89,25 @@ pub fn format_expr(e: &Expr) -> String {
 struct Printer {
     out: String,
     indent: usize,
+    /// The real output column that the buffer in `out` starts at. Zero outside
+    /// any `capture`; inside one it holds the column the captured render began
+    /// at. `capture` swaps `out` for an empty buffer, so without this every
+    /// width decision taken *inside* a captured render measured from column
+    /// zero and systematically under-measured, keeping overlong nested lists
+    /// inline.
+    col_base: usize,
+    /// While true, a list never takes its multi-line form. Set only while
+    /// rendering a `${...}` interpolation, whose captured text is re-escaped
+    /// into a single string literal: a line break there comes back as a literal
+    /// `\n` inside the interpolation.
+    ///
+    /// This covers lists only. A multi-statement block (a lambda body inside an
+    /// interpolation) still renders multi-line and lands in the literal as
+    /// escaped `\n` text. That output round-trips, builds, and passes
+    /// `tsc --strict` — it reads badly, it is not corrupt. Blocks cannot join
+    /// the guard as-is: Glyph has no statement separator (D1 ends a statement at
+    /// the line break), so a multi-statement block has no legal one-line form.
+    flat: bool,
     /// Comments in source order, and a cursor into them. Comments are flushed
     /// (emitted) when the walk reaches a node whose span begins after them.
     comments: Vec<Comment>,
@@ -147,17 +170,27 @@ impl Printer {
             .map(|c| c.span.start)
     }
 
-    /// Render `f` into a detached buffer at the current indent and return it,
-    /// leaving the main output untouched. Used to decide a lambda body's layout
-    /// by inspecting whether its content is intrinsically multi-line.
+    /// Render `f` into a detached buffer at the current indent and column, and
+    /// return it, leaving the main output untouched. Used to decide a lambda
+    /// body's layout by inspecting whether its content is intrinsically
+    /// multi-line, and to measure a list's inline candidate.
+    ///
+    /// `col_base` carries the real starting column into the detached buffer so
+    /// `current_column` keeps answering in absolute columns while the capture
+    /// runs — a nested list measuring its own width inside a captured render
+    /// would otherwise measure from zero.
     fn capture(&mut self, f: impl FnOnce(&mut Self)) -> String {
+        let base = self.current_column();
+        let saved_base = std::mem::replace(&mut self.col_base, base);
         let saved = std::mem::take(&mut self.out);
         f(self);
+        self.col_base = saved_base;
         std::mem::replace(&mut self.out, saved)
     }
 
-    /// A comma-separated list that is inline (`open a, b close`) at or below
-    /// `INLINE_MAX` elements and one-per-line (with a trailing comma) above it.
+    /// A comma-separated list, inline (`open a, b close`) while its inline
+    /// rendering has no intrinsic line break and fits `PRINT_WIDTH` from the
+    /// current column, and one-per-line (with a trailing comma) otherwise.
     /// `empty` is the rendering for zero elements.
     ///
     /// `end` is the source offset just past the construct's closing delimiter and
@@ -201,26 +234,30 @@ impl Printer {
             self.push(ml_close);
             return;
         }
-        // Two or fewer elements are always inline. Above that, render the inline
-        // candidate and keep it inline when it has no intrinsic line break and
-        // fits the print width from the current column; otherwise go one-per-line.
+        // Render the inline candidate and keep it inline when it has no
+        // intrinsic line break and fits the print width from the current column;
+        // otherwise go one-per-line. The test runs at every element count: the
+        // old `items.len() <= 2` exemption short-circuited past both halves of
+        // it, so a two-argument call carrying a multi-line lambda stayed
+        // "inline" and produced lines well past the print width.
         // An interior comment vetoes the inline path outright, at any count and
         // any width — the same rule `lambda_block` already applies to a body.
-        let inline_fits = !has_interior_comment
-            && (items.len() <= INLINE_MAX || {
-                let col = self.current_column();
-                let candidate = self.capture(|s| {
-                    s.push(inline_open);
-                    for (i, it) in items.iter().enumerate() {
-                        if i > 0 {
-                            s.push(", ");
-                        }
-                        render(s, it);
+        let inline_fits = !has_interior_comment && {
+            let col = self.current_column();
+            let candidate = self.capture(|s| {
+                s.push(inline_open);
+                for (i, it) in items.iter().enumerate() {
+                    if i > 0 {
+                        s.push(", ");
                     }
-                    s.push(inline_close);
-                });
-                !candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH
+                    render(s, it);
+                }
+                s.push(inline_close);
             });
+            // Inside a `${...}` interpolation there is no legal place for a line
+            // break, so the candidate is used whatever it measures.
+            self.flat || (!candidate.contains('\n') && col + candidate.len() <= PRINT_WIDTH)
+        };
         if inline_fits {
             self.push(inline_open);
             for (i, it) in items.iter().enumerate() {
@@ -265,7 +302,7 @@ impl Printer {
     fn current_column(&self) -> usize {
         match self.out.rfind('\n') {
             Some(i) => self.out.len() - i - 1,
-            None => self.out.len(),
+            None => self.col_base + self.out.len(),
         }
     }
 
@@ -398,10 +435,14 @@ impl Printer {
     }
 
     fn annotations(&mut self, anns: &[Annotation]) {
-        // D27: canonical sort. Order by name, then by argument text so repeated
-        // annotations (e.g. several `@example`s) are themselves stable.
+        // D27 fixes the order of annotation *kinds*, not the order of repeated
+        // annotations of one kind. `sort_by` is stable, so several `@example`s
+        // keep the order the author wrote them in — which is the order they read
+        // in (`f(7)` before `f(12)`), and the order a reader of the doc expects.
+        // Sorting them by argument text as a tiebreaker reordered documentation
+        // behind the author's back.
         let mut sorted: Vec<&Annotation> = anns.iter().collect();
-        sorted.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.raw_args.cmp(&b.raw_args)));
+        sorted.sort_by(|a, b| a.name.cmp(&b.name));
         for a in sorted {
             self.push("@");
             self.push(&a.name);
@@ -952,8 +993,20 @@ impl Printer {
         self.pattern(&arm.pattern);
         self.push(" => ");
         match &arm.body {
+            // An arm body that would re-parse as a block has to be
+            // parenthesized; see `arm_body_needs_parens`.
+            MatchArmBody::Expr(e) if arm_body_needs_parens(e) => {
+                self.push("(");
+                self.expr(e);
+                self.push(")");
+            }
             MatchArmBody::Expr(e) => self.expr(e),
-            MatchArmBody::Block(b) => self.block(b),
+            // A one-statement arm body (the parser's synthetic block around
+            // `return x` / `break` / `mut xs[k] = v`) prints on one line, the
+            // same rule a one-statement lambda body already uses. Exploding it
+            // to three lines cost three lines per arm across every `match` that
+            // mutates or breaks.
+            MatchArmBody::Block(b) => self.lambda_block(b),
         }
     }
 
@@ -1039,7 +1092,13 @@ impl Printer {
                     // buffer that is re-escaped into the string, destroying the
                     // comment rather than moving it.
                     let saved_cidx = std::mem::replace(&mut self.cidx, self.comments.len());
+                    // The captured text is re-escaped into a single literal, so a
+                    // line break inside it would become a literal `\n` and corrupt
+                    // the interpolation. Lists render inline here regardless of
+                    // width.
+                    let saved_flat = std::mem::replace(&mut self.flat, true);
                     let code = self.capture(|p| p.expr(value));
+                    self.flat = saved_flat;
                     self.cidx = saved_cidx;
                     self.source = saved;
                     self.push("${");
@@ -1367,6 +1426,39 @@ fn decl_start(d: &Decl) -> u32 {
 /// lambda parameter.
 fn is_unknown_ty(t: &TypeExpr) -> bool {
     matches!(t, TypeExpr::Path { segments, .. } if segments.len() == 1 && segments[0].as_ref() == "unknown")
+}
+
+/// True when an expression printed as a match-arm body would re-parse as a
+/// *block* instead of that expression, so the printer must wrap it in
+/// parentheses.
+///
+/// Arm-body position is the only place in the grammar where a leading `{` is
+/// ambiguous (`=>` occurs nowhere else), and the parser resolves it with a
+/// lookahead that requires `key :` or `...` right after the `{`. An empty
+/// object literal has neither, so an unparenthesized `X => {}` comes back as an
+/// empty *block* and the program stops building (E0223: a block arm produces no
+/// value). `X => ({})` re-parses to the same `Expr::Object`, so the printer is
+/// idempotent and the emitted TypeScript is unchanged. Every other object shape
+/// (`{ a: 1 }`, `{ "k": v }`, `{ ...x }`, and the multi-line one-per-line form)
+/// satisfies the lookahead and needs no parentheses.
+///
+/// The ambiguity is about the *leftmost printed token*, not the top node, so
+/// this descends the left spine: `X => ({}).a` prints its object bare
+/// (`Expr::Object` is an atom, and an object is never parenthesized as a binary
+/// left operand either), so the arm reads `X => {}.a` and the file stops
+/// parsing. Descending covers member object, index base, call callee, postfix
+/// operand, and binary left operand — every position whose child is printed
+/// first with nothing in front of it. `await`, `new`, and unary all print a
+/// keyword or operator first, so they end the walk.
+fn arm_body_needs_parens(e: &Expr) -> bool {
+    match e {
+        Expr::Object { fields, .. } => fields.is_empty(),
+        Expr::Member { object, .. } | Expr::Index { object, .. } => arm_body_needs_parens(object),
+        Expr::Call { callee, .. } => arm_body_needs_parens(callee),
+        Expr::Postfix { operand, .. } => arm_body_needs_parens(operand),
+        Expr::Binary { left, .. } => arm_body_needs_parens(left),
+        _ => false,
+    }
 }
 
 /// An expression that needs no parentheses as a primary/postfix base.

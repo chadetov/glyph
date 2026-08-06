@@ -226,12 +226,8 @@ fn strip_hashes(line: string) -> string {
   let i = 0
   loop {
     match i < n && string.slice(line, i, i + 1) == HASH {
-      false => {
-        break
-      },
-      true => {
-        mut i = i + 1
-      },
+      false => { break },
+      true => { mut i = i + 1 },
     }
   }
   return string.trim(string.slice(line, i))
@@ -246,7 +242,10 @@ type RawLink = { line: int, target: string, is_image: bool }
 // Pull every link out of a markdown document. Fenced blocks are skipped whole;
 // inline code spans are skipped as the scanner walks a line.
 fn extract(text: string) -> Array<RawLink> {
-  return array.flat_map(prose_lines(text), fn(l: NumberedLine) -> Array<RawLink> { return scan_line(l.text, l.lineno) })
+  return array.flat_map(
+    prose_lines(text),
+    fn(l: NumberedLine) -> Array<RawLink> { return scan_line(l.text, l.lineno) },
+  )
 }
 
 // A source line and its 1-based number.
@@ -267,9 +266,7 @@ fn prose_lines(text: string) -> Array<NumberedLine> {
     }
     match in_fence || fence {
       true => {},
-      false => {
-        mut out.push({ lineno: lineno, text: raw })
-      },
+      false => { mut out.push({ lineno: lineno, text: raw }) },
     }
   }
   return out
@@ -317,16 +314,21 @@ fn reference_definition(line: string, lineno: int) -> Option<RawLink> {
 // One regex pass per line. `captures_all` hands back the groups of every match
 // in source order, and which group is non-empty says which shape fired.
 fn scan_inline(line: string, lineno: int) -> Array<RawLink> {
-  return array.flat_map(regex.captures_all(INLINE_LINK, line), fn(groups: Array<string>) -> Array<RawLink> { return link_of(groups, lineno) })
+  return array.flat_map(
+    regex.captures_all(INLINE_LINK, line),
+    fn(groups: Array<string>) -> Array<RawLink> { return link_of(groups, lineno) },
+  )
 }
 
 fn link_of(groups: Array<string>, lineno: int) -> Array<RawLink> {
   return match groups[1] != EMPTY {
-    true => [{
-      line: lineno,
-      target: clean_target(groups[2]),
-      is_image: string.starts_with(groups[1], "!"),
-    }],
+    true => [
+      {
+        line: lineno,
+        target: clean_target(groups[2]),
+        is_image: string.starts_with(groups[1], "!"),
+      },
+    ],
     false => match groups[3] != EMPTY {
       true => [{ line: lineno, target: unwrap_angles(groups[3]), is_image: false }],
       // Group 1 fired: an inline code span, which contributes no links.
@@ -677,15 +679,18 @@ fn with_error(acc: Loaded, p: string, message: string) -> Loaded {
 }
 
 fn links_of(doc: Document) -> Array<Link> {
-  return array.map(extract(doc.text), fn(raw: RawLink) -> Link {
-    return {
-      file: doc.path,
-      line: raw.line,
-      target: raw.target,
-      is_image: raw.is_image,
-      kind: classify(raw.target),
-    }
-  })
+  return array.map(
+    extract(doc.text),
+    fn(raw: RawLink) -> Link {
+      return {
+        file: doc.path,
+        line: raw.line,
+        target: raw.target,
+        is_image: raw.is_image,
+        kind: classify(raw.target),
+      }
+    },
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -723,20 +728,10 @@ fn unique_external(links: Array<Link>) -> Array<string> {
   return urls
 }
 
-// A thunk the pool can run. Written as a named function because the formatter
-// collapses a lambda-returning-a-lambda onto one very long line.
-async fn fetch_task(url: string) -> Fetched {
-  return { url: url, outcome: await check_external(url) }
-}
-
 // No return annotation: a Glyph function type cannot spell an async thunk, and
 // `-> fn() -> Fetched` emits `() => Fetched`, which the async body does not fit.
 fn task_for(url: string) {
-  return fn() { fetch_task(url) }
-}
-
-fn no_cache() -> Record<string, Outcome> {
-  return {}
+  return async fn() -> Fetched { return { url: url, outcome: await check_external(url) } }
 }
 
 // `pool_settled`, not `pool`: `pool` is fail-fast, so one thunk that throws
@@ -781,11 +776,10 @@ fn check_links(
         seen
       },
     }
-    mut out = array.push(out, {
-      link: link,
-      outcome: outcome_for(link, docs, cache, offline),
-      cached: from_cache,
-    })
+    mut out = array.push(
+      out,
+      { link: link, outcome: outcome_for(link, docs, cache, offline), cached: from_cache },
+    )
   }
   return out
 }
@@ -909,9 +903,7 @@ fn parse_args(argv: Array<string>) -> Result<Args, ArgError> {
   let n = array.len(argv)
   loop {
     match i < n && failure == None {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let arg = argv[i]
         let split: Array<string> = string.split(arg, "=")
@@ -932,17 +924,11 @@ fn parse_args(argv: Array<string>) -> Result<Args, ArgError> {
               },
             }
             match value == EMPTY {
-              true => {
-                mut failure = Some(MissingValue({ flag: name }))
-              },
+              true => { mut failure = Some(MissingValue({ flag: name })) },
               false => {
                 match number.parse(value) {
-                  Ok(v) => {
-                    mut limit = max_of(1, v)
-                  },
-                  Err(_) => {
-                    mut failure = Some(BadNumber({ flag: name, value: value }))
-                  },
+                  Ok(v) => { mut limit = max_of(1, v) },
+                  Err(_) => { mut failure = Some(BadNumber({ flag: name, value: value })) },
                 }
                 mut i = match uses_inline {
                   true => i + 1,
@@ -953,9 +939,7 @@ fn parse_args(argv: Array<string>) -> Result<Args, ArgError> {
           },
           else => {
             match string.starts_with(arg, "--") {
-              true => {
-                mut failure = Some(UnknownFlag({ flag: arg }))
-              },
+              true => { mut failure = Some(UnknownFlag({ flag: arg })) },
               false => {
                 mut paths = array.push(paths, arg)
                 mut i = i + 1
@@ -1008,13 +992,14 @@ async fn run(args: Args) -> number {
   let docs = array.fold(
     loaded.documents,
     no_docs,
-    fn(acc: Record<string, string>, doc: Document) -> Record<string, string> { return record.set(acc, doc.path, doc.text) },
+    fn(acc: Record<string, string>, doc: Document) -> Record<string, string> {
+      return record.set(acc, doc.path, doc.text)
+    },
   )
   let all_links = array.flat_map(loaded.documents, links_of)
 
   let cache = match args.offline {
-    // `no_cache()` rather than `{}`, which in arm position is an empty block.
-    true => no_cache(),
+    true => ({}),
     false => await fetch_unique(unique_external(all_links), args.max_concurrency),
   }
 

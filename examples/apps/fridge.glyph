@@ -18,16 +18,9 @@ import std/string
 // Domain
 // ---------------------------------------------------------------------------
 
-type Item = {
-  name: string,
-  quantity: Option<number>,
-  category: Option<string>,
-  checked: bool,
-}
+type Item = { name: string, quantity: Option<number>, category: Option<string>, checked: bool }
 
-type Fridge = {
-  items: Array<Item>,
-}
+type Fridge = { items: Array<Item> }
 
 type LoadError =
   | NotReadable({ path: string, reason: string })
@@ -96,12 +89,15 @@ fn empty_fridge() -> Fridge {
 fn add_item(fridge: Fridge, item: Item) -> Fridge {
   return match contains_name(fridge, item.name) {
     true => {
-      items: array.map(fridge.items, fn(existing) {
-        return match existing.name == item.name {
-          true => { ...existing, quantity: item.quantity },
-          false => existing,
-        }
-      }),
+      items: array.map(
+        fridge.items,
+        fn(existing) {
+          return match existing.name == item.name {
+            true => { ...existing, quantity: item.quantity },
+            false => existing,
+          }
+        },
+      ),
     },
     false => { items: [...fridge.items, item] },
   }
@@ -126,12 +122,15 @@ fn summary(fridge: Fridge) -> string {
 
 fn set_checked(fridge: Fridge, name: string, checked: bool) -> Fridge {
   return {
-    items: array.map(fridge.items, fn(item) {
-      return match item.name == name {
-        true => { ...item, checked: checked },
-        false => item,
-      }
-    }),
+    items: array.map(
+      fridge.items,
+      fn(item) {
+        return match item.name == name {
+          true => { ...item, checked: checked },
+          false => item,
+        }
+      },
+    ),
   }
 }
 
@@ -297,7 +296,7 @@ async fn main(argv: Array<string>) -> number {
       return 2
     },
     Ok(command) => match await run(command) {
-      Ok(_) => return 0,
+      Ok(_) => { return 0 },
       Err(msg) => {
         io.eprintln("error: ${msg}")
         return 1

@@ -22,12 +22,14 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the batch that added E0008, E0222, and E0223:
-of 60 entries, 35 are fixed, 9 are partly fixed, 4 are decided or resolved, and
-12 are open. That batch closed G35 and G44 outright and took G24 and G48 to
-`[HALF FIXED]`: the `?` scrutinee and the empty-record spelling are each still
-open, and `linkcheck` still carries the `no_cache()` workaround G48 is about. It
-also turned up G60, a formatter round-trip that breaks a working program.
+Reconciled against the source after the formatter batch (G60, G54, G29): of 60
+entries, 38 are fixed, 9 are partly fixed, 4 are decided or resolved, and 9 are
+open. The batch before it, which added E0008, E0222, and E0223, closed G35 and
+G44 outright and took G24 and G48 to `[HALF FIXED]`: the `?` scrutinee and the
+empty-record spelling are each still open, and `linkcheck` still carries the
+`no_cache()` workaround G48 is about. It also turned up G60, a formatter
+round-trip that breaks a working program, which the formatter batch then closed
+along with G54 and G29.
 
 The reconciliation before it, after the `std/fs` breadth, `regex.captures_all`,
 and `task.pool_settled` batch and the `linkcheck` rewrite that consumed it, read
@@ -229,7 +231,39 @@ class is that "verified through `glyph build`" is not the same as verified.
 - **G18. [HALF FIXED] `glyph fmt` layout nits.** Deletes the blank line between a
   section comment and its declaration; wraps the innermost call's args instead of
   the long method chain. *The blank line is now preserved, with a test. A long
-  method chain still wraps the innermost call's arguments.*
+  method chain still wraps the innermost call's arguments: there is no
+  chain-aware path in the printer at all, so the only breakable point in
+  `a.b(x).c(y).d(z)` is one of the argument lists and the innermost is reached
+  first. Adding one needs the layout rule decided first (break before every `.`
+  once the chain overflows, or break only as many links as it takes), plus a
+  guard for D1: a break outside `()`/`[]`/`{}` ends the statement, so a chain in
+  a top-level `const` initializer must stay on one line whatever the rule.*
+
+  The G54 width fix makes this worse to look at, not better. While the
+  `INLINE_MAX` exemption stood, a long chain simply sat on one over-wide line and
+  the eye read it as one thing. Now the width test runs at every element count,
+  so the chain still does not break but the innermost argument list inside it
+  does, and the result is a break in the middle of a chain that continues after
+  the closing paren. Three sites in the reformatted `examples/apps` are that
+  shape, all `||` chains: `adventure.glyph:521`, `:586`, and `:999`, where
+  `string.contains(` or `string.starts_with(` is the last thing on the line and
+  the rest of the chain resumes two lines down. It is not only method chains:
+  any parent expression that has no break of its own hands the decision to its
+  innermost child, so a binary operand or a JSX attribute value does the same
+  thing.
+
+  A narrower guard was considered and not taken (a list does not take its
+  multi-line form when its immediate parent is an expression that cannot itself
+  break). That is a new layout rule with its own edge cases and it belongs with
+  the chain decision, not ahead of it.
+
+  Five code lines in `examples/apps` are still over 100 columns after the
+  reformat, and three of them are `fn` signatures: `minesweeper.glyph:310`,
+  `expenses.glyph:263`, `bracket.glyph:457`. Those are a different residual, not
+  the chain one. The width check measures the parameter list up to its closing
+  `)` and never sees the ` -> Result<Command, CommandError> {` tail, so a
+  signature whose return type pushes it over reads as fitting. The other two are
+  `adventure.glyph:521` (the chain break above) and `schedule.glyph:461`.
 
 ## Low — expected / cosmetic
 
@@ -577,11 +611,14 @@ on a decision in `docs/roadmap/releases.md`.
   typo still surfaces as a TS2339 rather than an E-code.*
 - **G28. There is no `glyph check <file>`.** `build` rejects a non-directory
   source, so the only door into type checking a single file is running it.
-- **G29. Two formatter layout complaints, deliberately not bundled with G23.** A
-  one-statement `match` arm body is always exploded to three lines, because the
-  parser wraps it in a synthetic block and every block prints multi-line; and the
-  `INLINE_MAX` check short-circuits the width test, flattening every
-  two-argument `array.map(xs, fn(...) { ... })`.
+- **G29. [FIXED] Two formatter layout complaints, deliberately not bundled with
+  G23.** A one-statement `match` arm body is always exploded to three lines,
+  because the parser wraps it in a synthetic block and every block prints
+  multi-line; and the `INLINE_MAX` check short-circuits the width test,
+  flattening every two-argument `array.map(xs, fn(...) { ... })`. *Both fixed. An
+  arm body that is a synthetic one-statement block now prints as `X => { break }`
+  through the same helper a one-statement lambda body already used, and the
+  `INLINE_MAX` exemption is gone (see G54).*
 - **G30. Two decisions the trip surfaced, both open.** `for` has nothing in the
   stdlib that produces a counted range, so the most common bounded loop cannot
   use the keyword D21 built for bounded loops and gets hand-rolled from
@@ -1003,15 +1040,41 @@ of truth. On the async path it was a preprocessor with opinions.
   one of three fetches: `pool_settled` printed all three rows and named the
   failing URL, `pool` printed nothing and died on an unhandled rejection, losing
   both surviving results.*
-- **G54. Two formatter defects, both cheap.** The `items.len() <= INLINE_MAX`
-  branch short-circuits past both the width check and the newline check, so a
-  two-argument call with a nested lambda body is emitted at any length (137
-  columns observed). And D27 asks for canonical ordering of annotation *kinds*,
-  not of repeated arguments within one kind, so the `raw_args` tiebreaker sorts
-  `@example` arguments and costs the author's sequence for nothing. Note the
-  reflow complaint underneath this is doc-versus-doc, not doc-versus-code: the
-  formatter's own module comment says it keeps a list inline while it fits
-  `PRINT_WIDTH`, and the guide is the document that overpromises.
+- **G54. [FIXED] Two formatter defects, both cheap.** The `items.len() <=
+  INLINE_MAX` branch short-circuits past both the width check and the newline
+  check, so a two-argument call with a nested lambda body is emitted at any
+  length (137 columns observed). And D27 asks for canonical ordering of
+  annotation *kinds*, not of repeated arguments within one kind, so the
+  `raw_args` tiebreaker sorts `@example` arguments and costs the author's
+  sequence for nothing. Note the reflow complaint underneath this is
+  doc-versus-doc, not doc-versus-code: the formatter's own module comment says it
+  keeps a list inline while it fits `PRINT_WIDTH`, and the guide is the document
+  that overpromises. *Both fixed. `INLINE_MAX` is deleted and the width test runs
+  at every element count, so the formatter's own fixed-point output no longer
+  holds 142-column lines. The `raw_args` tiebreaker is gone; `sort_by` is stable,
+  so repeated `@example`s keep the order they were written in. A prerequisite bug
+  came with it: the inline candidate is rendered into a detached buffer, and the
+  buffer used to start at column zero, so any list nested inside a candidate
+  measured its own width from the wrong column. The printer now carries the real
+  starting column into the capture.*
+
+  Two residuals stay open. The width test measures only up to the list's closing
+  delimiter, so a suffix printed after it (`?` on a `try`, ` -> Result<T, E> {`
+  on a signature) does not count and a line can still land a few columns over.
+  And a list whose inline candidate is intrinsically multi-line now explodes
+  one-argument-per-line rather than letting a trailing lambda keep hugging the
+  call, which is more vertical than Prettier's rule for the same shape.
+
+  "No line exceeds 100 columns" is still not true, and the number belongs here.
+  `examples/apps` is reformatted and `glyph fmt --check` is clean on it, and it
+  holds 62 lines past 100 columns. Fifty-seven of them carry a string literal:
+  `@example` raw argument text, which is copied verbatim and unformattable by
+  design, and long interpolated messages, which the formatter does not reflow.
+  The five that do not are three `fn` signatures the ` -> T {` residual above
+  explains, one chain break, and one `match` arm. They are listed under G18.
+  Formatting the rest of the tree (`examples/corpus` and the numbered examples)
+  is a separate reformat that has not landed; those files were not `fmt`-clean
+  before this batch either, for unrelated reasons such as redundant parentheses.
 - **G55. Three findings that were not gaps, and what they have in common.**
   Multi-line strings work (D12, with a regression test), `math.max` exists, and
   the two-import rule for `std/time` is documented behaviour. In all three cases
@@ -1165,8 +1228,8 @@ all four gaps were open; `docs/error-codes.md` cited D18 for E0222, which is the
 postfix-`?` precedence rule; three catalogued codes had no `--explain` body) and
 are fixed in the same session. The fourth is a defect in its own right.
 
-- **G60. `glyph fmt` turns a building program into a non-building one.** An arm
-  that means "the empty record" is written `=> ({})`, which parses as a
+- **G60. [FIXED] `glyph fmt` turns a building program into a non-building one.**
+  An arm that means "the empty record" is written `=> ({})`, which parses as a
   parenthesized object literal, builds clean, and passes `tsc --strict`. `glyph
   fmt` reprints it as `=> {}`, which is an empty *block*, and the formatted file
   no longer builds: E0223, the arm produces no value. Verified end to end on a
@@ -1181,3 +1244,18 @@ are fixed in the same session. The fourth is a defect in its own right.
   spelling for the empty record in arm position is G48 and stays open; this entry
   is closed by the formatter preserving what it was given, whichever way G48
   goes.
+
+  *Fixed in the printer rather than in the AST. Arm-body position is the only
+  place in the grammar where a leading `{` is ambiguous (`=>` occurs nowhere
+  else), and the parser resolves it by requiring `key :` or `...` right after the
+  brace, so the empty object literal is the only shape that loses its meaning.
+  The printer wraps exactly that shape: `X => ({})` reprints as `X => ({})`,
+  which re-parses to the same object, is a fixed point, and emits identical
+  TypeScript. A general `Expr::Paren` node was considered and not taken: about
+  fifteen structural `matches!` sites across the emitter, typechecker, and
+  formatter test on `Expr` shape (arm-body `match` flattening, `contains_await`,
+  `try_span`, `expr_has_captured_jump`, `is_atom`), and a wrapper each one failed
+  to see through would be a silent miscompile rather than a compile error. It
+  would also either preserve redundant parens, so two spellings of one program
+  survive `fmt`, or print the node only when needed, in which case it buys
+  nothing over the predicate. That option stays open.*

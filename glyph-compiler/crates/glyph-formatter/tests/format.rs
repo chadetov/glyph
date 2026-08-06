@@ -42,6 +42,22 @@ fn emit_ts(src: &str) -> Option<String> {
     glyph_emit::emit_module(&m, &resolved, &tm, &prelude, glyph_emit::EmitContext::single()).ok()
 }
 
+/// Parse → resolve → assign-types, returning the type-error codes. `None` if the
+/// source does not parse. This is the "does it still build" oracle: G60 was a
+/// formatter bug that left the emitted shape *parseable* but not *checkable*
+/// (`X => ({})` reprinted as `X => {}` is an empty block, E0223), so emit
+/// equality alone is not the whole property.
+fn type_error_codes(src: &str) -> Option<Vec<String>> {
+    let m = glyph_parser::parse(src).ok()?;
+    let syms = glyph_resolver::collect_module_symbols(&m).ok()?;
+    let prelude = glyph_resolver::build_prelude();
+    let (resolved, _re) = glyph_resolver::resolve_module(&m, syms, &prelude);
+    let (_tm, te) = glyph_typechecker::assign_types(&m, &resolved, &prelude);
+    let mut codes: Vec<String> = te.iter().map(|e| e.code().to_string()).collect();
+    codes.sort();
+    Some(codes)
+}
+
 fn fmt(src: &str) -> String {
     let m = glyph_parser::parse(src).expect("parse");
     format_module(&m, &glyph_lexer::comments(src), src)
@@ -77,6 +93,20 @@ fn examples_format_is_stable_and_semantics_preserving() {
             );
         }
 
+        // Still builds: a file that type-checks clean must type-check clean after
+        // formatting. G60 slipped past every other property here — `X => ({})`
+        // reprinted as `X => {}` re-parses fine and is a different program, and a
+        // formatter that turns a building program into E0223 is the one bug a
+        // formatter must never have.
+        let before_codes = type_error_codes(&src)
+            .unwrap_or_else(|| panic!("{label}: source did not parse"));
+        let after_codes = type_error_codes(&once)
+            .unwrap_or_else(|| panic!("{label}: formatted source did not parse"));
+        assert_eq!(
+            before_codes, after_codes,
+            "{label}: formatting changed the type errors\n--- output ---\n{once}"
+        );
+
         // Semantics-preserving via the emit oracle.
         if let Some(before) = emit_ts(&src) {
             let after = emit_ts(&once)
@@ -89,6 +119,143 @@ fn examples_format_is_stable_and_semantics_preserving() {
         oracle_ran >= 4,
         "expected the emit oracle to run on at least the four hard-case examples, ran on {oracle_ran}"
     );
+}
+
+#[test]
+fn a_two_element_list_is_width_checked_like_any_other() {
+    // G54/G29: the old rule exempted lists of one or two elements from the width
+    // and intrinsic-newline tests outright, so a two-argument call carrying a
+    // multi-line lambda printed as one very long "inline" line. Both halves of
+    // the test now run at every element count.
+    let src = "module x\nfn f(xs: Array<int>) -> Array<int> {\n  return array.map(xs, fn(v) {\n    let doubled = v * 2\n    return doubled\n  })\n}\n";
+    let out = fmt(src);
+    assert!(
+        out.contains("array.map(\n"),
+        "a two-argument call with a multi-line lambda must break:\n{out}"
+    );
+    assert_eq!(fmt(&out), out, "not idempotent:\n{out}");
+
+    // A short two-argument call still stays inline — the change is a width rule,
+    // not a blanket explosion.
+    let short = fmt("module x\nfn f() -> int {\n  return add(1, 2)\n}\n");
+    assert!(short.contains("return add(1, 2)"), "{short}");
+
+    // And a two-argument call that is merely long breaks too.
+    let wide = fmt(
+        "module x\nfn f() -> int {\n  return combine(alpha_beta_gamma_delta_epsilon_zeta_value, eta_theta_iota_kappa_lambda_mu_nu_xi_value)\n}\n",
+    );
+    assert!(wide.contains("combine(\n"), "a 100+ column two-argument call must break:\n{wide}");
+    assert_eq!(fmt(&wide), wide, "not idempotent:\n{wide}");
+}
+
+#[test]
+fn a_nested_list_is_measured_from_its_real_column() {
+    // The inline candidate is rendered into a detached buffer. Before `col_base`
+    // the detached buffer started at column zero, so a list nested inside a
+    // candidate measured its own width from zero and stayed inline however far
+    // right it actually sat.
+    let src = "module x\nfn f() -> int {\n  return outer(inner(aaaaaaaaaaaaaaaa, bbbbbbbbbbbbbbbb, cccccccccccccccc, dddddddddddddddd))\n}\n";
+    let out = fmt(src);
+    for line in out.lines() {
+        assert!(
+            line.chars().count() <= 100,
+            "nested list measured from the wrong column:\n{out}"
+        );
+    }
+    assert_eq!(fmt(&out), out, "not idempotent:\n{out}");
+}
+
+#[test]
+fn repeated_annotations_of_one_kind_keep_source_order() {
+    // G54: D27 fixes the order of annotation *kinds*, not of repeated
+    // annotations of one kind. A tiebreaker on argument text sorted `@example
+    // f(12)` above `@example f(7)`, silently reordering documentation the author
+    // wrote in a deliberate order.
+    let src = "module x\n@pure\n@example pad(7) == \"07\"\n@example pad(12) == \"12\"\npub fn pad(n: int) -> string {\n  return \"x\"\n}\n";
+    let out = fmt(src);
+    let seven = out.find("pad(7)").expect("first example kept");
+    let twelve = out.find("pad(12)").expect("second example kept");
+    assert!(seven < twelve, "source order of repeated @example lost:\n{out}");
+    // Kinds still sort: `@example` precedes `@pure`.
+    assert!(
+        out.find("@example").unwrap() < out.find("@pure").unwrap(),
+        "annotation kinds must still sort (D27):\n{out}"
+    );
+    assert_eq!(fmt(&out), out, "annotation order is not idempotent:\n{out}");
+}
+
+#[test]
+fn a_one_statement_match_arm_body_stays_on_one_line() {
+    // G29: the parser wraps a bare `break`/`return`/`mut` arm body in a
+    // synthetic one-statement block, and the printer exploded every one of them
+    // to three lines.
+    let src = "module x\nfn f(xs: Array<int>) -> int {\n  loop {\n    match true {\n      true => break,\n      false => return 1,\n    }\n  }\n  return 0\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("true => { break },"), "one-line arm body:\n{out}");
+    assert!(out.contains("false => { return 1 },"), "one-line arm body:\n{out}");
+    assert_eq!(fmt(&out), out, "arm-body layout is not idempotent:\n{out}");
+    assert_eq!(
+        emit_ts(src),
+        emit_ts(&out),
+        "arm-body layout changed the emitted TypeScript"
+    );
+
+    // A genuinely multi-statement arm body still uses the block form.
+    let multi = fmt("module x\nfn f() -> int {\n  match true {\n    else => {\n      let a = 1\n      return a\n    },\n  }\n}\n");
+    assert!(multi.contains("else => {\n      let a = 1"), "{multi}");
+}
+
+#[test]
+fn an_empty_object_match_arm_body_keeps_its_parentheses() {
+    // G60: `X => ({})` is an empty *object literal* arm body. The parser
+    // disambiguates a leading `{` in arm position by requiring `key :` or `...`
+    // right after it, which `{}` has neither of — so reprinting the arm as
+    // `X => {}` turned it into an empty block and the program stopped building
+    // (E0223). A formatter that breaks a building program is the worst kind of
+    // formatter bug.
+    let src = "module x\ntype Opts = { }\nfn f(flag: bool) -> Opts {\n  return match flag {\n    true => ({}),\n    false => ({}),\n  }\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("true => ({})"), "empty object arm body kept its parens:\n{out}");
+    assert!(!out.contains("true => {}"), "arm body became an empty block:\n{out}");
+    assert_eq!(fmt(&out), out, "parenthesized arm body is not idempotent:\n{out}");
+    assert_eq!(
+        emit_ts(src),
+        emit_ts(&out),
+        "the reprinted arm changed the emitted TypeScript"
+    );
+    // The parens are added only where the grammar needs them: a non-empty object
+    // arm body satisfies the parser's lookahead and stays bare.
+    let nonempty = fmt("module x\nfn f(flag: bool) -> unknown {\n  return match flag {\n    else => { a: 1 },\n  }\n}\n");
+    assert!(nonempty.contains("else => { a: 1 }"), "{nonempty}");
+    assert!(!nonempty.contains("({ a: 1 })"), "no gratuitous parens:\n{nonempty}");
+    // The ambiguity is about the leftmost printed token, not the top node: an
+    // empty object under a member access prints bare too, so `({}).a` reprinted
+    // as `{}.a` and the file stopped parsing (E0002). The predicate walks the
+    // left spine.
+    let spine = "module x\nfn f(flag: bool) -> unknown {\n  return match flag {\n    else => ({}).a,\n  }\n}\n";
+    let spine_out = fmt(spine);
+    assert!(
+        spine_out.contains("else => ({}.a)") || spine_out.contains("else => (({}).a)"),
+        "member on an empty object arm body stayed parenthesized:\n{spine_out}"
+    );
+    assert_eq!(fmt(&spine_out), spine_out, "left-spine arm body is not idempotent:\n{spine_out}");
+    assert_eq!(
+        emit_ts(spine),
+        emit_ts(&spine_out),
+        "the reprinted left-spine arm changed the emitted TypeScript"
+    );
+}
+
+#[test]
+fn an_empty_object_arm_body_holding_a_comment_still_reparses() {
+    // Same shape, comment variant: the empty-list branch prints the multi-line
+    // form to hold the comment, which is just as ambiguous in arm position.
+    let src = "module x\nfn f(flag: bool) -> unknown {\n  return match flag {\n    else => ({\n      // no options yet\n    }),\n  }\n}\n";
+    let out = fmt(src);
+    assert!(out.contains("// no options yet"), "comment kept:\n{out}");
+    assert!(out.contains("else => ({"), "parens kept around the commented object:\n{out}");
+    assert_eq!(fmt(&out), out, "not idempotent:\n{out}");
+    assert_eq!(emit_ts(src), emit_ts(&out), "emitted TypeScript changed");
 }
 
 #[test]

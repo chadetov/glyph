@@ -456,13 +456,15 @@ normal closure, and short calls stop exploding to one argument per line.
   type on an async closure wraps in `Promise<T>` (an async arrow returns a
   Promise), exactly like an async `fn`, so `par.all(array.map(xs, async fn(n) {
   await work(n) }))` type-checks in both the annotated and bare forms and runs.
-- **Width-aware formatter** (M, F6) — ✅ **done.** A list of more than two
-  elements stays inline when its rendered form fits the print width (100 columns)
-  from the current column, otherwise it goes one-per-line with a trailing comma;
-  one or two elements are always inline. `leaf("body.type", Equals, "push")` now
-  stays on one line. The decision is a pure function of content and column, so the
-  layout still round-trips and is idempotent. Little snapshot churn (formatter
-  output is not snapshotted; two formatting-shape tests updated).
+- **Width-aware formatter** (M, F6) — ✅ **done.** A list stays inline when its
+  rendered form fits the print width (100 columns) from the current column,
+  otherwise it goes one-per-line with a trailing comma. `leaf("body.type",
+  Equals, "push")` now stays on one line. The decision is a pure function of
+  content and column, so the layout still round-trips and is idempotent. Little
+  snapshot churn (formatter output is not snapshotted; two formatting-shape tests
+  updated). *This shipped with a one-or-two-element exemption that skipped the
+  width test entirely; that exemption was removed later (G54/G29), because it let
+  the formatter's own fixed-point output hold 142-column lines.*
 
 ### 0.1.35 — Landed on main · Interop & concurrency (the design-heavy set)
 
@@ -586,12 +588,20 @@ Spec: D14 records the guarantee.
   source and there is no `check` subcommand; the only non-executing door into
   type checking is running the program.
 - **Formatter, layout only** (S each, deliberately not bundled with the
-  correctness fix above): a one-statement match-arm body is always exploded to
-  three lines because the parser wraps it in a synthetic block and the formatter
-  prints every block multi-line; and `items.len() <= INLINE_MAX` short-circuits
-  the width test, flattening every two-argument `array.map(xs, fn(...) {...})`.
-- **`llms.txt`** (XS). It does not say annotations are canonically sorted (D27),
-  and it does not mention the expression-arm `?` restriction while that exists.
+  correctness fix above) — ✅ **done** (G29, G54): a one-statement match-arm body
+  was always exploded to three lines because the parser wraps it in a synthetic
+  block and the formatter prints every block multi-line; and
+  `items.len() <= INLINE_MAX` short-circuited the width test, flattening every
+  two-argument `array.map(xs, fn(...) {...})`. An arm body that is a synthetic
+  one-statement block now prints as `X => { break }`, and `INLINE_MAX` is deleted
+  so the width test runs at every element count. Shipped in 0.1.50 below, with
+  G60. Removing the exemption turns the still-open G18 pathology (no chain-aware
+  path in the printer, so the innermost argument list is the only breakable
+  point) from theoretical into visible; recorded under G18 in
+  [`../dogfooding-gaps.md`](../dogfooding-gaps.md).
+- **`llms.txt`** (XS). It does not say annotations are sorted by kind, with
+  repeats of one kind keeping source order (D27), and it does not mention the
+  expression-arm `?` restriction while that exists.
 
 ### Two forks for the orchestrator
 
@@ -1550,6 +1560,71 @@ itself did not check.
   E0303. Supporting it means hoisting the scrutinee's unwrap ahead of the lowered
   `switch` at four call sites, and extending the IIFE guard to cover the
   scrutinee.
+
+### 0.1.50 — Shipped · `glyph fmt` stops being the thing that breaks your build
+
+Three formatter gaps, one of them a correctness bug and the other two the layout
+complaints that had been sitting behind it since G23.
+
+The correctness one is G60. An arm that means "the empty record" is written
+`=> ({})`. That parses as a parenthesized object literal, builds, and passes
+`tsc --strict`. `glyph fmt` reprinted it as `=> {}`, which is an empty *block*,
+and the formatted file no longer built: it failed the E0223 check the previous
+release added. A formatter that turns a green program red is the worst thing a
+formatter can be, because you run it without reading the output. Arm-body
+position is the only place in the grammar where a leading `{` is ambiguous, so
+the printer now parenthesizes exactly the shape that would reparse as a block.
+`X => ({})` reprints as `X => ({})`, is a fixed point, and emits the same
+TypeScript. The AST is unchanged; a general `Expr::Paren` node was considered
+and the reasoning against it is under G60 in
+[`../dogfooding-gaps.md`](../dogfooding-gaps.md).
+
+G54 is the width bug. The width-aware formatter shipped in 0.1.34 with an
+exemption: a list of one or two elements skipped the width test entirely. That
+exemption short-circuited the newline test too, so `array.map(xs, fn(...) {
+... })` stayed on one line at any length, and the formatter's own fixed-point
+output held 142-column lines while the guide said it wrapped at 100. `INLINE_MAX`
+is deleted and the test runs at every element count. A second bug had to go
+first: the inline candidate is rendered into a detached buffer that started at
+column zero, so a list nested inside a candidate measured its width from the
+wrong column and thought it fit. The printer now carries the real starting
+column into the capture. The same entry's second half is annotation ordering.
+D27 orders annotation *kinds*; a `raw_args` tiebreaker was also sorting the
+arguments of repeated annotations of one kind, so three `@example` lines came
+back in an order the author did not write. That tiebreaker is gone and `sort_by`
+is stable, so repeats keep source order.
+
+G29 is the arm body. A one-statement arm body was always exploded to three lines,
+because the parser wraps it in a synthetic block and every block printed
+multi-line. It now prints as `X => { break }` through the helper a one-statement
+lambda body already used.
+
+`examples/apps` is reformatted under the new rules and `glyph fmt --check` is
+clean and idempotent on it. All 116 examples build and pass `tsc --strict`.
+
+Pillar: diff stability, with verifiability underneath it. A formatter you cannot
+run without reading the diff is not a formatter, and G60 made "run `fmt`, then
+run `build`" an ordering you had to know.
+
+### Still open after this release
+
+- **The printer has no chain-aware path** (M, decision first). G18. A long
+  `a.b(x).c(y).d(z)` still never breaks at a `.`; the only breakable point is an
+  argument list and it takes the innermost. The width fix makes this more visible
+  rather than less: three sites in `examples/apps` now break an inner argument
+  list in the middle of a `||` chain instead of sitting on one over-wide line.
+  The layout rule is an undecided fork, in the polish lane below.
+- **The width check stops at the closing delimiter** (S). It measures a list up
+  to its own `)` and misses any suffix printed after it, so a `fn` signature
+  whose ` -> T {` tail crosses 100 columns reads as fitting. Three of the five
+  over-wide code lines left in `examples/apps` are that shape.
+- **A list whose inline candidate is intrinsically multi-line explodes one
+  argument per line** (S) rather than letting a trailing lambda keep hugging the
+  call, which is more vertical than Prettier's rule for the same shape.
+- **`examples/corpus` and the numbered examples are not `fmt`-clean** and would
+  change under a reformat. They were not clean before this batch either, for
+  unrelated reasons such as redundant parentheses. That reformat wants its own
+  commit.
 
 ## Road to 1.0
 
@@ -2553,6 +2628,27 @@ land here until they're assigned a release.
   the interop work. Nested generic fields validate correctly (the emitter threads
   the checker when generating a descriptor), so the gap is only the explicit
   top-level `Imported.parse<T>(v)` call across a module boundary.
+
+- **A layout rule for chains** (M, formatter). The printer has no chain-aware
+  path, so when a long expression has to break, the only breakable point it can
+  find is an argument list, and it takes the innermost one. Removing the
+  `INLINE_MAX` exemption (G54) made that visible: three sites in the reformatted
+  `examples/apps` break an innermost argument list in the middle of a `||` chain,
+  listed under G18 in [`../dogfooding-gaps.md`](../dogfooding-gaps.md). Two
+  candidate rules (break before every `.` once the chain overflows, or break only
+  as many links as it takes), plus a narrower option that is not the chain rule
+  itself: refuse the multi-line form when the list's immediate parent is an
+  expression that cannot break either (a binary operand, a JSX attribute value).
+  D1 constrains all of them: a break outside `()`/`[]`/`{}` ends the statement,
+  so a chain in a top-level `const` initializer stays on one line whatever we
+  pick.
+
+- **The width check stops at the closing delimiter** (S, formatter). It measures
+  a list up to its own `)` or `]` and never sees what is printed after it, so a
+  `fn` signature whose ` -> Result<T, E> {` tail pushes it past 100 columns reads
+  as fitting. Three of the five over-wide code lines in `examples/apps` are that
+  shape. Also outstanding: `examples/corpus` and the numbered examples are not
+  `fmt`-clean and would change under a reformat, which wants its own commit.
 
 ## Parked (v2 / later)
 

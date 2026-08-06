@@ -166,9 +166,7 @@ fn ones(count: int) -> Array<int> {
   let i = 0
   loop {
     match i < count {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         mut out.push(1)
         mut i = i + 1
@@ -224,9 +222,7 @@ fn allocate(total: Cents, weights: Array<int>) -> Array<Cents> {
   let i = 0
   loop {
     match i < leftover {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let target = order[i]
         mut parts[target] = parts[target] + 1
@@ -243,12 +239,15 @@ fn by_largest_remainder(remainders: Array<int>) -> Array<int> {
   for i, _r in remainders {
     mut indices.push(i)
   }
-  return array.sort(indices, fn(a: int, b: int) -> number {
-    return match remainders[a] == remainders[b] {
-      true => a - b,
-      false => remainders[b] - remainders[a],
-    }
-  })
+  return array.sort(
+    indices,
+    fn(a: int, b: int) -> number {
+      return match remainders[a] == remainders[b] {
+        true => a - b,
+        false => remainders[b] - remainders[a],
+      }
+    },
+  )
 }
 
 // Weighted division plus the invariant that makes the whole thing trustworthy.
@@ -338,9 +337,7 @@ fn shares_of(
 @example validate_split(100, Weighted({ weights: [{ who: "alice", units: 0 }] })) == Err("weight for alice must be positive")
 fn validate_split(amount: Cents, split: Split) -> Result<Split, string> {
   match amount < 0 {
-    true => {
-      return Err("an expense cannot be negative")
-    },
+    true => { return Err("an expense cannot be negative") },
     false => {},
   }
 
@@ -352,11 +349,15 @@ fn validate_split(amount: Cents, split: Split) -> Result<Split, string> {
     Exact({ shares }) => match check_people(names_of(shares)) {
       Err(m) => Err(m),
       Ok(_) => match total_of(shares) == amount {
-        false => Err("exact shares total ${format_money(total_of(shares))}, but the expense is ${format_money(amount)}"),
+        false => Err(
+          "exact shares total ${format_money(total_of(shares))}, but the expense is ${format_money(amount)}",
+        ),
         true => Ok(Exact({ shares: shares })),
       },
     },
-    Weighted({ weights }) => match check_people(array.map(weights, fn(w: Weight) -> string { return w.who })) {
+    Weighted({ weights }) => match check_people(
+      array.map(weights, fn(w: Weight) -> string { return w.who }),
+    ) {
       Err(m) => Err(m),
       Ok(_) => match array.find(weights, fn(w: Weight) -> bool { return w.units <= 0 }) {
         Some(bad) => Err("weight for ${bad.who} must be positive"),
@@ -368,15 +369,11 @@ fn validate_split(amount: Cents, split: Split) -> Result<Split, string> {
 
 fn check_people(names: Array<string>) -> Result<void, string> {
   match array.len(names) == 0 {
-    true => {
-      return Err("a split needs at least one participant")
-    },
+    true => { return Err("a split needs at least one participant") },
     false => {},
   }
   match array.any(names, fn(n: string) -> bool { return string.len(n) == 0 }) {
-    true => {
-      return Err("a participant name cannot be empty")
-    },
+    true => { return Err("a participant name cannot be empty") },
     false => {},
   }
   return match first_duplicate(names) {
@@ -391,12 +388,8 @@ fn first_duplicate(names: Array<string>) -> Option<string> {
   let seen: Array<string> = []
   for n in names {
     match array.contains(seen, n) {
-      true => {
-        return Some(n)
-      },
-      false => {
-        mut seen.push(n)
-      },
+      true => { return Some(n) },
+      false => { mut seen.push(n) },
     }
   }
   return None
@@ -425,7 +418,9 @@ fn net_balances(expenses: Array<Expense>) -> Array<Portion> {
       return array.fold(
         shares_of(e),
         bump(so_far, e.payer, e.amount),
-        fn(with_payer: Record<string, int>, p: Portion) -> Record<string, int> { return bump(with_payer, p.who, 0 - p.cents) },
+        fn(with_payer: Record<string, int>, p: Portion) -> Record<string, int> {
+          return bump(with_payer, p.who, 0 - p.cents)
+        },
       )
     },
   )
@@ -454,9 +449,7 @@ fn largest_creditor(ledger: Array<Portion>) -> Option<int> {
       false => p.cents > ledger[best].cents,
     }
     match better {
-      true => {
-        mut best = i
-      },
+      true => { mut best = i },
       false => {},
     }
   }
@@ -474,9 +467,7 @@ fn largest_debtor(ledger: Array<Portion>) -> Option<int> {
       false => p.cents < ledger[best].cents,
     }
     match better {
-      true => {
-        mut best = i
-      },
+      true => { mut best = i },
       false => {},
     }
   }
@@ -509,13 +500,9 @@ fn plan(nets: Array<Portion>) -> Array<Transfer> {
     let creditor = largest_creditor(ledger)
     let debtor = largest_debtor(ledger)
     match creditor {
-      None => {
-        break
-      },
+      None => { break },
       Some(c) => match debtor {
-        None => {
-          break
-        },
+        None => { break },
         Some(d) => {
           let amount = min_int(ledger[c].cents, 0 - ledger[d].cents)
           mut transfers.push({ debtor: ledger[d].who, creditor: ledger[c].who, cents: amount })
@@ -599,12 +586,18 @@ fn split_to_wire(s: Split) -> WireSplit {
     Exact({ shares }) => {
       kind: "shares",
       among: [],
-      entries: array.map(shares, fn(p: Portion) -> WireEntry { return { who: p.who, value: format_money(p.cents) } }),
+      entries: array.map(
+        shares,
+        fn(p: Portion) -> WireEntry { return { who: p.who, value: format_money(p.cents) } },
+      ),
     },
     Weighted({ weights }) => {
       kind: "weights",
       among: [],
-      entries: array.map(weights, fn(w: Weight) -> WireEntry { return { who: w.who, value: format_money(w.units) } }),
+      entries: array.map(
+        weights,
+        fn(w: Weight) -> WireEntry { return { who: w.who, value: format_money(w.units) } },
+      ),
     },
   }
 }
@@ -658,37 +651,27 @@ fn expense_to_wire(e: Expense) -> WireExpense {
 fn expense_from_wire(w: WireExpense) -> Result<Expense, string> {
   let date = match time.parse_iso(w.date) {
     Some(ms) => ms,
-    None => {
-      return Err("bad date \"${w.date}\"")
-    },
+    None => { return Err("bad date \"${w.date}\"") },
   }
   let amount = parse_money(w.amount)?
   let split = split_from_wire(w.split)?
   let checked = validate_split(amount, split)?
-  return Ok({
-    date: date,
-    description: w.description,
-    payer: w.payer,
-    amount: amount,
-    split: checked,
-  })
+  return Ok(
+    { date: date, description: w.description, payer: w.payer, amount: amount, split: checked },
+  )
 }
 
 fn load_ledger(path: string) -> Result<Array<Expense>, Fail> {
   // A ledger that does not exist yet is an empty ledger, not an error: the first
   // `add` creates it.
   match fs.exists(path) {
-    false => {
-      return Ok([])
-    },
+    false => { return Ok([]) },
     true => {},
   }
 
   let text = match fs.read_text(path) {
     Ok(t) => t,
-    Err(e) => {
-      return Err(BadInput({ message: "cannot read ${path}: ${e.message}" }))
-    },
+    Err(e) => { return Err(BadInput({ message: "cannot read ${path}: ${e.message}" })) },
   }
 
   // Decode first, validate second. `json.parse<WireLedger>` would do both in one
@@ -705,13 +688,21 @@ fn load_ledger(path: string) -> Result<Array<Expense>, Fail> {
   let wire = match WireLedger.parse(decoded) {
     Ok(w) => w,
     Err(issues) => {
-      return Err(BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }))
+      return Err(
+        BadInput({ message: "${path} is not a settle ledger: ${describe_issues(issues)}" }),
+      )
     },
   }
 
   match wire.version == LEDGER_VERSION {
     false => {
-      return Err(BadInput({ message: "${path} is version ${number.to_string(wire.version)}, this build reads version ${number.to_string(LEDGER_VERSION)}" }))
+      return Err(
+        BadInput(
+          {
+            message: "${path} is version ${number.to_string(wire.version)}, this build reads version ${number.to_string(LEDGER_VERSION)}",
+          },
+        ),
+      )
     },
     true => {},
   }
@@ -719,9 +710,7 @@ fn load_ledger(path: string) -> Result<Array<Expense>, Fail> {
   let out: Array<Expense> = []
   for i, w in wire.expenses {
     match expense_from_wire(w) {
-      Ok(e) => {
-        mut out.push(e)
-      },
+      Ok(e) => { mut out.push(e) },
       Err(m) => {
         return Err(BadInput({ message: "${path}, expense ${number.to_string(i + 1)}: ${m}" }))
       },
@@ -753,9 +742,7 @@ fn parse_flags(argv: Array<string>) -> Result<Flags, string> {
 
   loop {
     match i < array.len(argv) {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let token = argv[i]
         match string.starts_with(token, "--") {
@@ -769,9 +756,7 @@ fn parse_flags(argv: Array<string>) -> Result<Flags, string> {
               mut i = i + 1
             },
             false => match i + 1 < array.len(argv) {
-              false => {
-                return Err("${token} needs a value")
-              },
+              false => { return Err("${token} needs a value") },
               true => {
                 mut named = record.set(named, token, argv[i + 1])
                 mut i = i + 2
@@ -804,17 +789,13 @@ fn parse_pairs(raw: string) -> Result<Array<WireEntry>, string> {
   for chunk in string.split(raw, ",") {
     let parts = string.split(string.trim(chunk), "=")
     match array.len(parts) == 2 {
-      false => {
-        return Err("expected name=value, got \"${chunk}\"")
-      },
+      false => { return Err("expected name=value, got \"${chunk}\"") },
       true => {},
     }
     let who = string.trim(parts[0])
     let value = string.trim(parts[1])
     match string.len(who) == 0 || string.len(value) == 0 {
-      true => {
-        return Err("expected name=value, got \"${chunk}\"")
-      },
+      true => { return Err("expected name=value, got \"${chunk}\"") },
       false => {},
     }
     mut out.push({ who: who, value: value })
@@ -840,7 +821,13 @@ fn split_from_flags(f: Flags) -> Result<Split, Fail> {
 
   match given == 1 {
     false => {
-      return Err(BadInput({ message: "give exactly one of --among, --shares, --weights (got ${number.to_string(given)})" }))
+      return Err(
+        BadInput(
+          {
+            message: "give exactly one of --among, --shares, --weights (got ${number.to_string(given)})",
+          },
+        ),
+      )
     },
     true => {},
   }
@@ -936,9 +923,7 @@ fn cmd_add(f: Flags, description: string) -> Result<int, Fail> {
 
   let amount = match parse_money(raw_amount) {
     Ok(c) => c,
-    Err(m) => {
-      return Err(BadInput({ message: "--amount: ${m}" }))
-    },
+    Err(m) => { return Err(BadInput({ message: "--amount: ${m}" })) },
   }
 
   let date = day_flag(f, "--date", time.now())?
@@ -948,9 +933,7 @@ fn cmd_add(f: Flags, description: string) -> Result<int, Fail> {
   // line: the user said something we understood and will not do.
   let checked = match validate_split(amount, split) {
     Ok(s) => s,
-    Err(m) => {
-      return Err(Rejected({ message: m }))
-    },
+    Err(m) => { return Err(Rejected({ message: m })) },
   }
 
   let expense: Expense = {
@@ -990,7 +973,9 @@ fn cmd_balances(f: Flags) -> Result<int, Fail> {
   let rule = string.repeat(DASH, width + 14)
   // A string literal cannot appear inside `${...}`, so header rows are joined
   // rather than interpolated.
-  io.println(string.join([string.pad_end("person", width), "  ", string.pad_start("balance", 12)], ""))
+  io.println(
+    string.join([string.pad_end("person", width), "  ", string.pad_start("balance", 12)], ""),
+  )
   io.println(rule)
   for p in nets {
     io.println("${string.pad_end(p.who, width)}  ${string.pad_start(format_signed(p.cents), 12)}")
@@ -998,11 +983,12 @@ fn cmd_balances(f: Flags) -> Result<int, Fail> {
   io.println(rule)
   // net_balances asserts this, and the table prints it, so the invariant is
   // visible to the reader too.
-  io.println(string.join([
-    string.pad_end("total", width),
-    "  ",
-    string.pad_start(format_money(total_of(nets)), 12),
-  ], ""))
+  io.println(
+    string.join(
+      [string.pad_end("total", width), "  ", string.pad_start(format_money(total_of(nets)), 12)],
+      "",
+    ),
+  )
   return Ok(0)
 }
 
@@ -1022,7 +1008,9 @@ fn cmd_up(f: Flags) -> Result<int, Fail> {
   let width = widest(payers, 6)
   io.println("${number.to_string(array.len(transfers))} payment(s) settle the group:")
   for t in transfers {
-    io.println("  ${string.pad_end(t.debtor, width)}  pays  ${string.pad_end(t.creditor, width)}  ${string.pad_start(format_money(t.cents), 10)}")
+    io.println(
+      "  ${string.pad_end(t.debtor, width)}  pays  ${string.pad_end(t.creditor, width)}  ${string.pad_start(format_money(t.cents), 10)}",
+    )
   }
   return Ok(0)
 }
@@ -1045,8 +1033,14 @@ fn cmd_log(f: Flags) -> Result<int, Fail> {
   let since = optional_day_flag(f, "--since")?
   let who = flag(f, "--who")
 
-  let selected = array.filter(expenses, fn(e: Expense) -> bool { return matches_filters(e, since, who) })
-  let ordered = array.sort(selected, fn(a: Expense, b: Expense) -> number { return a.date - b.date })
+  let selected = array.filter(
+    expenses,
+    fn(e: Expense) -> bool { return matches_filters(e, since, who) },
+  )
+  let ordered = array.sort(
+    selected,
+    fn(a: Expense, b: Expense) -> number { return a.date - b.date },
+  )
 
   match array.len(ordered) == 0 {
     true => {
@@ -1059,19 +1053,26 @@ fn cmd_log(f: Flags) -> Result<int, Fail> {
   let payer_width = widest(array.map(ordered, fn(e: Expense) -> string { return e.payer }), 5)
   let desc_width = widest(array.map(ordered, fn(e: Expense) -> string { return e.description }), 11)
 
-  io.println(string.join([
-    string.pad_end("date", 10),
-    "  ",
-    string.pad_end("payer", payer_width),
-    "  ",
-    string.pad_start("amount", 10),
-    "  ",
-    string.pad_end("description", desc_width),
-    "  participants",
-  ], ""))
+  io.println(
+    string.join(
+      [
+        string.pad_end("date", 10),
+        "  ",
+        string.pad_end("payer", payer_width),
+        "  ",
+        string.pad_start("amount", 10),
+        "  ",
+        string.pad_end("description", desc_width),
+        "  participants",
+      ],
+      "",
+    ),
+  )
   for e in ordered {
     let people = string.join(names_of(shares_of(e)), ", ")
-    io.println("${string.pad_end(day_of(e.date), 10)}  ${string.pad_end(e.payer, payer_width)}  ${string.pad_start(format_money(e.amount), 10)}  ${string.pad_end(e.description, desc_width)}  ${people}")
+    io.println(
+      "${string.pad_end(day_of(e.date), 10)}  ${string.pad_end(e.payer, payer_width)}  ${string.pad_start(format_money(e.amount), 10)}  ${string.pad_end(e.description, desc_width)}  ${people}",
+    )
   }
   return Ok(0)
 }
@@ -1085,7 +1086,9 @@ fn print_usage() -> void {
   io.println("")
   io.println("usage:")
   io.println("  settle [--file F] add \"<description>\" --payer <who> --amount <n> \\")
-  io.println("           (--among a,b,c | --shares a=40.00,b=44.30 | --weights a=2,b=1) [--date YYYY-MM-DD]")
+  io.println(
+    "           (--among a,b,c | --shares a=40.00,b=44.30 | --weights a=2,b=1) [--date YYYY-MM-DD]",
+  )
   io.println("  settle [--file F] balances")
   io.println("  settle [--file F] up")
   io.println("  settle [--file F] log [--since YYYY-MM-DD] [--who alice]")
@@ -1098,9 +1101,7 @@ fn print_usage() -> void {
 fn run(argv: Array<string>) -> Result<int, Fail> {
   let flags = match parse_flags(argv) {
     Ok(f) => f,
-    Err(m) => {
-      return Err(BadInput({ message: m }))
-    },
+    Err(m) => { return Err(BadInput({ message: m })) },
   }
 
   match record.has(flags.named, "--help") {

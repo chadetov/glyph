@@ -71,8 +71,8 @@ type Args = { path: string, month: Option<MonthFilter> }
 // Text helpers
 // ---------------------------------------------------------------------------
 
-@example two_digits(12) == "12"
 @example two_digits(7) == "07"
+@example two_digits(12) == "12"
 fn two_digits(n: int) -> string {
   let s = number.to_string(n)
   return match string.len(s) < 2 {
@@ -106,18 +106,14 @@ fn parse_amount(line: int, value: string) -> Result<Decimal, RowError> {
 fn parse_row(line: int, raw: string) -> Result<Transaction, RowError> {
   let columns = array.map(string.split(raw, ","), fn(c: string) -> string { return string.trim(c) })
   match array.len(columns) < 4 {
-    true => {
-      return Err(MissingColumn({ line: line, found: array.len(columns) }))
-    },
+    true => { return Err(MissingColumn({ line: line, found: array.len(columns) })) },
     false => {},
   }
 
   let date = parse_date(line, columns[0])?
   let category = columns[1]
   match string.len(category) == 0 {
-    true => {
-      return Err(EmptyCategory({ line: line }))
-    },
+    true => { return Err(EmptyCategory({ line: line })) },
     false => {},
   }
   let amount = parse_amount(line, columns[3])?
@@ -142,12 +138,8 @@ fn parse_ledger(text: string) -> Ledger {
     match string.len(string.trim(raw)) == 0 {
       true => {},
       false => match parse_row(line, raw) {
-        Ok(t) => {
-          mut rows.push(t)
-        },
-        Err(e) => {
-          mut errors.push(e)
-        },
+        Ok(t) => { mut rows.push(t) },
+        Err(e) => { mut errors.push(e) },
       },
     }
   }
@@ -207,7 +199,10 @@ fn group_by_category(rows: Array<Transaction>) -> Array<Group> {
       )
     },
   )
-  return array.sort(record.values(grouped), fn(a: Group, b: Group) -> number { return b.total.cmp(a.total) })
+  return array.sort(
+    record.values(grouped),
+    fn(a: Group, b: Group) -> number { return b.total.cmp(a.total) },
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -266,14 +261,17 @@ fn bar_for(part: Decimal, largest: Decimal) -> string {
 // One line of the table. Column widths live here only, so the header and the
 // body can never drift apart.
 fn table_row(category: string, count: string, total: string, share: string, chart: string) -> string {
-  return string.join([
-    string.pad_end(category, 14),
-    string.pad_start(count, 6),
-    string.pad_start(total, 12),
-    string.pad_start(share, 8),
-    "  ",
-    chart,
-  ], "")
+  return string.join(
+    [
+      string.pad_end(category, 14),
+      string.pad_start(count, 6),
+      string.pad_start(total, 12),
+      string.pad_start(share, 8),
+      "  ",
+      chart,
+    ],
+    "",
+  )
 }
 
 fn print_report(rows: Array<Transaction>, label: string) -> void {
@@ -291,13 +289,15 @@ fn print_report(rows: Array<Transaction>, label: string) -> void {
   io.println(rule)
 
   for g in groups {
-    io.println(table_row(
-      g.category,
-      number.to_string(g.count),
-      g.total.to_string(),
-      share_label(g.total, grand),
-      bar_for(g.total, largest),
-    ))
+    io.println(
+      table_row(
+        g.category,
+        number.to_string(g.count),
+        g.total.to_string(),
+        share_label(g.total, grand),
+        bar_for(g.total, largest),
+      ),
+    )
   }
 
   let count = array.len(rows)
@@ -307,13 +307,9 @@ fn print_report(rows: Array<Transaction>, label: string) -> void {
   }
 
   io.println(rule)
-  io.println(table_row(
-    "all",
-    number.to_string(count),
-    grand.to_string(),
-    share_label(grand, grand),
-    "",
-  ))
+  io.println(
+    table_row("all", number.to_string(count), grand.to_string(), share_label(grand, grand), ""),
+  )
   io.println("")
   io.println("mean per transaction: ${mean.to_string()}")
 }
@@ -328,27 +324,19 @@ const USAGE = "usage: expenses <ledger.csv> [--month YYYY-MM]"
 fn parse_month(value: string) -> Result<MonthFilter, string> {
   let parts = string.split(value, "-")
   match array.len(parts) == 2 {
-    false => {
-      return Err("--month expects YYYY-MM, got \"${value}\"")
-    },
+    false => { return Err("--month expects YYYY-MM, got \"${value}\"") },
     true => {},
   }
   let year = match number.parse(parts[0]) {
     Ok(y) => y,
-    Err(_) => {
-      return Err("--month expects YYYY-MM, got \"${value}\"")
-    },
+    Err(_) => { return Err("--month expects YYYY-MM, got \"${value}\"") },
   }
   let month = match number.parse(parts[1]) {
     Ok(m) => m,
-    Err(_) => {
-      return Err("--month expects YYYY-MM, got \"${value}\"")
-    },
+    Err(_) => { return Err("--month expects YYYY-MM, got \"${value}\"") },
   }
   match month < 1 || month > 12 {
-    true => {
-      return Err("--month: ${number.to_string(month)} is not a month")
-    },
+    true => { return Err("--month: ${number.to_string(month)} is not a month") },
     false => {},
   }
   return Ok({ year: year, month: month })
@@ -401,7 +389,9 @@ fn main(argv: Array<string>) -> number {
   let ledger = parse_ledger(text)
   match array.len(ledger.errors) > 0 {
     true => {
-      io.eprintln("error: ${number.to_string(array.len(ledger.errors))} invalid row(s) in ${args.path}")
+      io.eprintln(
+        "error: ${number.to_string(array.len(ledger.errors))} invalid row(s) in ${args.path}",
+      )
       for e in ledger.errors {
         io.eprintln("  ${format_row_error(e)}")
       }

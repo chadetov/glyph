@@ -98,9 +98,11 @@
 
       <div class="detail">
         <p>
-          Trailing commas are <strong>required</strong> and lists past two items go
-          one-per-line, so inserting, removing, or reordering an entry never disturbs its
-          neighbors. The same holds for record fields, parameters, match arms, and imports.
+          Trailing commas are <strong>required</strong>, and a list that doesn't fit on one line
+          goes one element per line rather than being repacked, so inserting, removing, or
+          reordering an entry never disturbs its neighbors. The same holds for record fields,
+          parameters, match arms, and imports. The threshold has a cost: a rename that pushes a
+          call past 100 columns expands the whole argument list to one per line.
         </p>
 
         <p class="block-label">Example 2: one canonical layout</p>
@@ -195,6 +197,27 @@ type Cell = {
           something false. That is the same class of failure Glyph exists to remove, just in the
           formatter rather than the type system.
         </p>
+
+        <p class="block-label">Can <code>glyph fmt</code> break a program that builds?</p>
+        <p>
+          It could, in exactly one shape, and that is fixed. An arm meaning &ldquo;the empty
+          record&rdquo; is written <code>true =&gt; ({})</code>. Arm-body position is the only place
+          in the grammar where a leading <code>{</code> is ambiguous, and the parser settles it by
+          requiring <code>key:</code> or <code>...</code> right after the brace. An empty object has
+          neither, so when the formatter dropped the parentheses and reprinted
+          <code>true =&gt; {}</code>, the arm came back as an empty <em>block</em> and the file
+          stopped building: <code>E0223</code>, the arm produces no value. You ran a formatter on
+          working code and got code that no longer compiled.
+        </p>
+        <p>
+          The printer now parenthesizes an arm body whose leftmost token is a <code>{</code> that
+          would reparse as a block, which is the empty object and anything built on it
+          (<code>({}).size</code> comes back as <code>({}.size)</code>). An arm body that already
+          reads unambiguously, like <code>false =&gt; { a: "x" }</code>, stays bare, so there is no
+          new punctuation to read anywhere else. <code>fmt</code> is a fixed point on the result and
+          the emitted TypeScript is unchanged. A formatter your program has to survive is worse than
+          a missing feature, because it damages code that already worked.
+        </p>
       </div>
 
       <p class="block-label">Where it stands</p>
@@ -205,7 +228,7 @@ type Cell = {
         </div>
         <div class="status-card next">
           <p class="h">The edge, and what's next</p>
-          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
+          <p>A comment is always emitted on its own line, so one written at the end of a code line (<code>w: int, // width in cells</code>) moves to the line above the next item. It no longer crosses a declaration boundary, but it does move; keeping it trailing needs the printer to track which line a comment shares. The printer also has no rule for breaking a long method or <code>+</code> chain yet, so an overlong chain breaks the innermost argument list instead, which is the wrong place. We're also building a diff-size benchmark against the same edits in TypeScript, so this pillar is a number you can check.</p>
         </div>
       </div>
 

@@ -112,9 +112,7 @@ fn encode_bytes(input: string, keep: string) -> string {
   let i = 0
   loop {
     match i >= n {
-      true => {
-        return out
-      },
+      true => { return out },
       false => {},
     }
     mut out = "${out}${encode_byte(string.slice(hex, i, i + 2), keep)}"
@@ -221,16 +219,12 @@ fn fresh_code(current: Array<Link>) -> Result<string, string> {
   loop {
     let candidate = random_code()
     match is_taken(current, candidate) {
-      false => {
-        return Ok(candidate)
-      },
+      false => { return Ok(candidate) },
       true => {},
     }
     mut attempts = attempts + 1
     match attempts >= MAX_ATTEMPTS {
-      true => {
-        return Err("Could not find a free code. Try again.")
-      },
+      true => { return Err("Could not find a free code. Try again.") },
       false => {},
     }
   }
@@ -385,14 +379,24 @@ fn create_link(url_input: string, alias_input: string) -> Result<Link, string> {
 }
 
 fn count_click(code: string) -> void {
-  links.update(fn(current: Array<Link>) -> Array<Link> {
-    return array.map(current, fn(l: Link) -> Link {
-      return match l.code == code {
-        true => { code: l.code, target: l.target, created_at: l.created_at, clicks: l.clicks + 1 },
-        false => l,
-      }
-    })
-  })
+  links.update(
+    fn(current: Array<Link>) -> Array<Link> {
+      return array.map(
+        current,
+        fn(l: Link) -> Link {
+          return match l.code == code {
+            true => {
+              code: l.code,
+              target: l.target,
+              created_at: l.created_at,
+              clicks: l.clicks + 1,
+            },
+            false => l,
+          }
+        },
+      )
+    },
+  )
   let _saved = save_links(DB_PATH, links.get())
 }
 

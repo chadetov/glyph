@@ -23,28 +23,16 @@ import std/io { println }
 // ---------------------------------------------------------------------------
 
 // The domain record: `done` is a real boolean here.
-type Task = {
-  id: int,
-  title: string,
-  done: bool,
-}
+type Task = { id: int, title: string, done: bool }
 
 // The storage shape. SQLite has no boolean type, so `done` comes back as an
 // integer 0/1 on the wire out of the database. That is the untrusted boundary:
 // a row is validated into `TaskRow`, then mapped to the domain `Task`. Glyph
 // won't let the two be confused, so a `0`-where-a-bool-belongs bug is impossible.
-type TaskRow = {
-  id: int,
-  title: string,
-  done: int,
-}
+type TaskRow = { id: int, title: string, done: int }
 
 fn row_to_task(r: TaskRow) -> Task {
-  return {
-    id: r.id,
-    title: r.title,
-    done: r.done != 0,
-  }
+  return { id: r.id, title: r.title, done: r.done != 0 }
 }
 
 // ---------------------------------------------------------------------------
@@ -53,7 +41,9 @@ fn row_to_task(r: TaskRow) -> Task {
 
 fn connect(path: string) -> Db {
   let db = open(path)
-  db.exec("CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0)")
+  db.exec(
+    "CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0)",
+  )
   return db
 }
 
@@ -86,7 +76,7 @@ fn list_tasks(db: Db) -> Array<Task> {
   let out: Array<Task> = []
   for row in rows {
     match TaskRow.parse(row) {
-      Ok(r) => mut out.push(row_to_task(r)),
+      Ok(r) => { mut out.push(row_to_task(r)) },
       Err(issues) => {},
     }
   }
@@ -97,14 +87,9 @@ fn list_tasks(db: Db) -> Array<Task> {
 // Wire DTOs
 // ---------------------------------------------------------------------------
 
-type NewTask = {
-  title: string,
-}
+type NewTask = { title: string }
 
-type Toggle = {
-  id: int,
-  done: bool,
-}
+type Toggle = { id: int, done: bool }
 
 // ---------------------------------------------------------------------------
 // HTTP

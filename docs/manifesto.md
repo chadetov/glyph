@@ -33,7 +33,11 @@ Express intent at the level the writer is thinking. Pattern matching over switch
 Anything the type system claims must be true at runtime. No `any`. No structural-typing surprises. No type erasure — every Glyph type has a runtime descriptor available when needed. The compiler is the source of truth, and the source of truth is enforceable.
 
 ### 3. Diff stability
-A one-line change produces a one-line diff. Fixed-width, single-element-per-line formatting — never line-length-based reflow. Explicit, full-path imports. No barrel files. Trailing commas everywhere. Sorted imports.
+A one-line change produces a one-line diff. One canonical layout, no options: a list stays on one line while it fits the print width, and otherwise goes one element per line with a trailing comma. Glyph never repacks a list to fill the line the way a wrapping formatter does, so inserting or removing an element touches only that element's line.
+
+The print width is the one place a change to a line can still move the lines around it: a rename that pushes a call past the limit expands it to one argument per line, and shortening it collapses the list back. That is what the rule costs. What it buys is a layout that is a function of the code and the column it starts at, nothing else, so two agents editing the same file land on the same text and neither one's diff carries the other's reflow.
+
+Explicit, full-path imports. No barrel files. Trailing commas everywhere. Sorted imports.
 
 ### 4. Greppability
 Every symbol has exactly one syntactic form at its declaration site. No method overloads, no decorators that rename, no implicit `this`, no namespace merging. `grep -n "fn parseUser"` finds the definition. Always.

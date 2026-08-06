@@ -49,8 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.49</span>
+            <span class="rel-ver">0.1.50</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3><code>glyph fmt</code> stops being the thing that breaks your build</h3>
+            <p>Three formatter problems, one of which was a correctness bug: running <code>glyph fmt</code> on a file that built could leave you with a file that did not. You run a formatter without reading its output, so that is the worst thing it can do.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>X =&gt; ({})</code> in a <code>match</code> arm means the empty record. It parses, builds, and passes <code>tsc --strict</code>. <code>glyph fmt</code> used to reprint it as <code>X =&gt; {}</code>, which is an empty <em>block</em>, and the formatted file failed to build. The printer now keeps the parentheses on the one shape that would change meaning without them, so the output reparses to the same program and emits the same TypeScript.</li>
+              <li><span class="tag fixed">Fixed</span> The 100-column print width now applies at every element count. A list of one or two elements used to skip the width test entirely, so <code>array.map(xs, fn(item) { ... })</code> stayed on one line however long it got, and the formatter's own output held 142-column lines while the guide said it wrapped at 100. A nested list also measured its width from column zero instead of where it actually starts, which is fixed with it.</li>
+              <li><span class="tag fixed">Fixed</span> Repeated annotations of one kind keep the order you wrote them. Several <code>@example</code> lines above a function used to come back sorted by their argument text. The formatter sorts annotations by kind, which is what D27 asks for; the sequence within a kind is yours.</li>
+              <li><span class="tag fixed">Fixed</span> A one-statement <code>match</code> arm body prints on one line. <code>X =&gt; { break }</code> used to expand to three lines, because the parser wraps a bare arm body in a block and every block printed multi-line.</li>
+              <li><span class="tag known">Known</span> The formatter still has no rule for breaking a long method or operator chain, so it breaks the innermost argument list instead. The width fix makes that easier to spot: a long <code>||</code> chain now breaks a call's arguments in the middle of the chain rather than sitting on one over-wide line. Separately, the width check measures a list up to its closing bracket and does not see what follows, so a <code>fn</code> signature whose <code>-&gt; T {</code> tail crosses 100 columns reads as fitting.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.49</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

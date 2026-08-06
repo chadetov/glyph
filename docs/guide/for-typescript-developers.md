@@ -301,10 +301,17 @@ async fn load(url: string) -> Result<string, string> {
 
 ## Formatting is fixed, not configurable
 
-`glyph fmt` has one layout: two-space indent, trailing commas, one element per
-line once a list has more than two elements, no line-length reflow. There are no
-options. The point is diff stability — everyone's files look identical, so a
-semantic one-line change is a one-line diff. The LSP runs it on save.
+`glyph fmt` has one layout: two-space indent, trailing commas, and a list that
+stays on one line while it fits inside 100 columns and goes one element per line
+when it doesn't. There are no options. The point is diff stability: everyone's
+files look identical, so a semantic one-line change is a one-line diff. The LSP
+runs it on save.
+
+The width rule is all-or-nothing. Glyph never repacks a list to fill the line,
+so a list is either entirely inline or entirely one-per-line, and inserting an
+element touches one line. What it does cost you is the threshold itself: rename
+a binding so a call crosses 100 columns and the call expands to one argument per
+line, which is a four-line diff from a one-token edit.
 
 Comments stay where you put them. A `//` written inside a record body, a union
 variant list, an array or object literal, an argument list, or above a `match`

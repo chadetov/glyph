@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Diff stability · a one-line change is a one-line diff · Glyph</title>
-    <meta name="description" content="Glyph's third pillar: one canonical format, one element per line, trailing commas, no reflow, no barrel files, idempotent codegen. The diff shows the change, not the churn." />
+    <meta name="description" content="Glyph's third pillar: one canonical format, trailing commas, lists inline or one element per line and never repacked, no barrel files, idempotent codegen. The diff shows the change, not the churn." />
     <link rel="canonical" href="https://glyphlang.io/pillars/diff-stability/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -41,9 +41,9 @@
       <h1 class="q-title">Diff stability</h1>
 
       <p class="short-answer">
-        A one-line change is a <strong>one-line diff</strong>. One canonical format, one element per
-        line, trailing commas, no reflow, so a review shows the change that was made, not the
-        churn around it.
+        A one-line change is a <strong>one-line diff</strong>. One canonical format, trailing
+        commas, and a list that is either entirely inline or entirely one element per line, never
+        repacked, so a review shows the change that was made, not the churn around it.
       </p>
 
       <div class="detail">
@@ -65,11 +65,19 @@
 
         <p class="block-label"><span class="ex-label">01</span> One canonical layout, no choices</p>
         <p>
-          <code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, one
-          element per line once there's more than a couple, a trailing comma on every multi-line list,
-          and <strong>no reflow</strong>: the formatter never repacks your elements to fit a
-          line width. Because there's exactly one legal shape, there's nothing to argue about and
-          nothing for a tool to "fix" on the side. Adding a field is a single added line.
+          <code>glyph fmt</code> reprints every file in a single fixed layout: two-space indent, a
+          trailing comma on every multi-line list, and a list that stays on one line while it fits
+          inside 100 columns and goes one element per line when it doesn't. The choice is
+          all-or-nothing. The formatter never repacks your elements to fill a line, so a list is
+          never partly on one row and partly on the next, and adding a field is a single added line.
+          Because there's exactly one legal shape, there's nothing to argue about and nothing for a
+          tool to "fix" on the side.
+        </p>
+        <p>
+          The width threshold is what this costs. Rename a binding so a call crosses 100 columns and
+          the call expands to one argument per line: a one-token edit, a four-line diff. The trade is
+          that the layout depends on the code and the column it starts at and nothing else, so two
+          agents editing the same file converge on the same bytes.
         </p>
       </div>
 

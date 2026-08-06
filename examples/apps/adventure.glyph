@@ -291,16 +291,12 @@ fn wrap(text: string, width: int) -> Array<string> {
         mut out.push(line)
         mut line = w
       },
-      false => {
-        mut line = candidate
-      },
+      false => { mut line = candidate },
     }
   }
   match line == "" {
     true => {},
-    false => {
-      mut out.push(line)
-    },
+    false => { mut out.push(line) },
   }
   return out
 }
@@ -419,16 +415,10 @@ fn split_with(rest: Array<string>) -> Array<Array<string>> {
   let seen = false
   for w in rest {
     match w == "with" || w == "using" {
-      true => {
-        mut seen = true
-      },
+      true => { mut seen = true },
       false => match seen {
-        true => {
-          mut right.push(w)
-        },
-        false => {
-          mut left.push(w)
-        },
+        true => { mut right.push(w) },
+        false => { mut left.push(w) },
       },
     }
   }
@@ -528,7 +518,10 @@ type Resolved =
   | Ambiguous({ noun: string, names: Array<string> })
 
 fn item_matches(item: Item, noun: string) -> bool {
-  return item.id == noun || item.name == noun || string.contains(item.name, noun) || string.contains(item.id, noun)
+  return item.id == noun || item.name == noun || string.contains(item.name, noun) || string.contains(
+    item.id,
+    noun,
+  )
 }
 
 // Everything the player can refer to: the room's items plus the inventory.
@@ -561,9 +554,7 @@ fn resolve(world: World, noun: string) -> Resolved {
       None => {},
       Some(item) => match item_matches(item, noun) {
         false => {},
-        true => {
-          mut hits.push(id)
-        },
+        true => { mut hits.push(id) },
       },
     }
   }
@@ -572,7 +563,12 @@ fn resolve(world: World, noun: string) -> Resolved {
     [only] => Found({ id: only }),
     [first, ...rest] => match array.any(rest, fn(id: string) -> bool { return id != first }) {
       false => Found({ id: first }),
-      true => Ambiguous({ noun: noun, names: array.map(hits, fn(id: string) -> string { return name_of(world, id) }) }),
+      true => Ambiguous(
+        {
+          noun: noun,
+          names: array.map(hits, fn(id: string) -> string { return name_of(world, id) }),
+        },
+      ),
     },
   }
 }
@@ -587,7 +583,10 @@ fn name_of(world: World, id: string) -> string {
 // `std/string` has no way to read one character, so the article is chosen with
 // five `starts_with` calls instead of looking at `name[0]`.
 fn starts_with_vowel(name: string) -> bool {
-  return string.starts_with(name, "a") || string.starts_with(name, "e") || string.starts_with(name, "i") || string.starts_with(name, "o") || string.starts_with(name, "u")
+  return string.starts_with(name, "a") || string.starts_with(name, "e") || string.starts_with(
+    name,
+    "i",
+  ) || string.starts_with(name, "o") || string.starts_with(name, "u")
 }
 
 fn a_name_of(world: World, id: string) -> string {
@@ -611,18 +610,24 @@ fn describe_resolution_failure(world: World, r: Resolved) -> string {
 // ---------------------------------------------------------------------------
 
 fn exits_line(room: Room) -> string {
-  let names = array.sort(record.keys(room.exits), fn(a: string, b: string) -> number {
-    return match a < b {
-      true => -1,
-      false => 1,
-    }
-  })
-  let labelled = array.map(names, fn(dir: string) -> string {
-    return match record.get(room.locks, dir) {
-      None => dir,
-      Some(_) => "${dir} (locked)",
-    }
-  })
+  let names = array.sort(
+    record.keys(room.exits),
+    fn(a: string, b: string) -> number {
+      return match a < b {
+        true => -1,
+        false => 1,
+      }
+    },
+  )
+  let labelled = array.map(
+    names,
+    fn(dir: string) -> string {
+      return match record.get(room.locks, dir) {
+        None => dir,
+        Some(_) => "${dir} (locked)",
+      }
+    },
+  )
   // The separator is hoisted because a string literal cannot appear inside `${...}`.
   let separator = ", "
   let list = string.join(labelled, separator)
@@ -674,19 +679,22 @@ fn inventory_line(world: World) -> string {
 }
 
 fn help_text() -> string {
-  return string.join([
-    "Verbs I understand:",
-    "  go <direction>      (or just `north`, `n`, `in`, `out`)",
-    "  take <noun>         (get, grab, pick up)",
-    "  drop <noun>         (put)",
-    "  examine <noun>      (x, inspect, look at)",
-    "  unlock <noun> with <item>   (open)",
-    "  look                (l) describe the room again",
-    "  inventory           (i) list what you carry",
-    "  save / load         write or read ${SAVE_PATH}",
-    "  help                (h) this list",
-    "  quit                (q) stop playing",
-  ], "\n")
+  return string.join(
+    [
+      "Verbs I understand:",
+      "  go <direction>      (or just `north`, `n`, `in`, `out`)",
+      "  take <noun>         (get, grab, pick up)",
+      "  drop <noun>         (put)",
+      "  examine <noun>      (x, inspect, look at)",
+      "  unlock <noun> with <item>   (open)",
+      "  look                (l) describe the room again",
+      "  inventory           (i) list what you carry",
+      "  save / load         write or read ${SAVE_PATH}",
+      "  help                (h) this list",
+      "  quit                (q) stop playing",
+    ],
+    "\n",
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -700,7 +708,10 @@ fn take_item(world: World, room: Room, id: string) -> void {
 }
 
 fn drop_item(world: World, room: Room, id: string) -> void {
-  mut world.player.inventory = array.filter(world.player.inventory, fn(other: string) -> bool { return other != id })
+  mut world.player.inventory = array.filter(
+    world.player.inventory,
+    fn(other: string) -> bool { return other != id },
+  )
   mut room.items = array.push(room.items, id)
 }
 
@@ -784,15 +795,11 @@ fn save_world(world: World) -> string {
 
 fn load_world() -> Result<World, LoadError> {
   match fs.exists(SAVE_PATH) {
-    false => {
-      return Err(Missing)
-    },
+    false => { return Err(Missing) },
     true => {},
   }
   let text = match fs.read_text(SAVE_PATH) {
-    Err(e) => {
-      return Err(Unreadable({ message: e.message }))
-    },
+    Err(e) => { return Err(Unreadable({ message: e.message })) },
     Ok(contents) => contents,
   }
   return match json.parse<World>(text) {
@@ -807,7 +814,10 @@ fn describe_issues(issues: Array<Issue>) -> string {
     [first, ..._] => {
       // Hoisted out of the interpolation: a string literal cannot appear inside `${...}`.
       let dot = "."
-      let where_it_is = string.join(array.map(first.path, fn(p: string | number) -> string { return string.from(p) }), dot)
+      let where_it_is = string.join(
+        array.map(first.path, fn(p: string | number) -> string { return string.from(p) }),
+        dot,
+      )
       match first.path {
         [] => first.message,
         else => "${where_it_is}: ${first.message}",
@@ -840,7 +850,10 @@ fn turn_take(world: World, noun: string) -> string {
     None => "You are nowhere at all. That is a bug.",
     Some(room) => match resolve(world, noun) {
       NotHere({ noun: missing }) => describe_resolution_failure(world, NotHere({ noun: missing })),
-      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(
+        world,
+        Ambiguous({ noun: unclear, names: names }),
+      ),
       Found({ id }) => match carrying(world, id) {
         true => "You are already carrying the ${name_of(world, id)}.",
         false => match item_of(world, id) {
@@ -863,7 +876,10 @@ fn turn_drop(world: World, noun: string) -> string {
     None => "You are nowhere at all. That is a bug.",
     Some(room) => match resolve(world, noun) {
       NotHere({ noun: missing }) => "You are not carrying any ${missing}.",
-      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(
+        world,
+        Ambiguous({ noun: unclear, names: names }),
+      ),
       Found({ id }) => match carrying(world, id) {
         false => "You are not carrying the ${name_of(world, id)}.",
         true => {
@@ -878,7 +894,10 @@ fn turn_drop(world: World, noun: string) -> string {
 fn turn_examine(world: World, noun: string) -> string {
   return match resolve(world, noun) {
     NotHere({ noun: missing }) => describe_resolution_failure(world, NotHere({ noun: missing })),
-    Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+    Ambiguous({ noun: unclear, names }) => describe_resolution_failure(
+      world,
+      Ambiguous({ noun: unclear, names: names }),
+    ),
     Found({ id }) => match item_of(world, id) {
       None => "That is a bug: ${id} has no item record.",
       Some(item) => item.description,
@@ -889,10 +908,16 @@ fn turn_examine(world: World, noun: string) -> string {
 fn turn_unlock(world: World, noun: string, key: string) -> string {
   return match resolve(world, noun) {
     NotHere({ noun: missing }) => describe_resolution_failure(world, NotHere({ noun: missing })),
-    Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+    Ambiguous({ noun: unclear, names }) => describe_resolution_failure(
+      world,
+      Ambiguous({ noun: unclear, names: names }),
+    ),
     Found({ id }) => match resolve(world, key) {
       NotHere({ noun: missing }) => "You are not carrying any ${missing}.",
-      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(world, Ambiguous({ noun: unclear, names: names })),
+      Ambiguous({ noun: unclear, names }) => describe_resolution_failure(
+        world,
+        Ambiguous({ noun: unclear, names: names }),
+      ),
       Found({ id: key_id }) => match carrying(world, key_id) {
         false => "You would have to be holding the ${name_of(world, key_id)} first.",
         true => unlock_with(world, id, key_id),
@@ -971,18 +996,24 @@ fn counts_as_move(command: Command) -> bool {
 
 // `won` short-circuits so the ending can only fire once.
 fn check_win(world: World) -> bool {
-  return !world.won && world.player.location == WIN_ROOM && carrying(world, WIN_ITEM) && flag(world, "altar open")
+  return !world.won && world.player.location == WIN_ROOM && carrying(world, WIN_ITEM) && flag(
+    world,
+    "altar open",
+  )
 }
 
 fn final_summary(world: World) -> string {
-  return string.join([
-    "",
-    "You set the idol in the hollow. The stone closes over it and the room goes quiet.",
-    "",
-    "*** You have won ***",
-    "Moves taken: ${number.to_string(world.moves)}",
-    "Items collected: ${number.to_string(world.collected)}",
-  ], "\n")
+  return string.join(
+    [
+      "",
+      "You set the idol in the hollow. The stone closes over it and the room goes quiet.",
+      "",
+      "*** You have won ***",
+      "Moves taken: ${number.to_string(world.moves)}",
+      "Items collected: ${number.to_string(world.collected)}",
+    ],
+    "\n",
+  )
 }
 
 fn play(world: World) -> int {
@@ -1002,17 +1033,13 @@ fn play(world: World) -> int {
   loop {
     io.println("")
     match io.read_line() {
-      None => {
-        break
-      },
+      None => { break },
       Some(line) => match parse_command(line) {
         Err(e) => say("${describe_parse_error(e)}"),
         Ok(command) => {
           match counts_as_move(command) {
             false => {},
-            true => {
-              mut current.moves = current.moves + 1
-            },
+            true => { mut current.moves = current.moves + 1 },
           }
           let outcome = apply(current, command)
           match outcome {

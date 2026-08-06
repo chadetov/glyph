@@ -46,7 +46,7 @@ standalone-library bundling. Full notes in `archive/glyph-day-0-parser.md §Part
 
 ### What's kept from the original strategy
 
-- **Fixed-width, one-element-per-line-above-two-elements, no config.** Follows directly from the diff-stability pillar; Example 3 of the manifesto is its strongest argument. Ship as described. The formatter implementation is straightforward — recursive AST walk printing to a string, ~600 lines, no Prettier-style document model needed (because no line-length reflow).
+- **Fixed-width, one-element-per-line-above-two-elements, no config.** Follows directly from the diff-stability pillar; Example 3 of the manifesto is its strongest argument. Ship as described. The formatter implementation is straightforward — recursive AST walk printing to a string, ~600 lines, no Prettier-style document model needed (because no line-length reflow). *What shipped is narrower than "no reflow": a list is measured against a 100-column print width at every element count (the above-two exemption was removed with G54), so a list is inline or one-per-line, and the width decides which. Glyph still never repacks a list to fill a line, which is what the document model would have been for.*
 - **npm piggyback.** Zero ecosystem to bootstrap, instant access to the largest package registry. Don't build a Glyph-specific registry — five-year distraction masquerading as a two-week task.
 
 ### What's revised

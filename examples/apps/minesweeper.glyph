@@ -89,9 +89,7 @@ fn upto(n: int) -> Array<int> {
   let i = 0
   loop {
     match i < n {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         mut out.push(i)
         mut i = i + 1
@@ -116,7 +114,12 @@ fn new_board(rows: int, cols: int, mines: int) -> Board {
     mines: mines,
     // Every cell starts blank. Mines land on the first reveal, not here, so a
     // fresh board is the same for every seed.
-    cells: array.map(upto(rows), fn(_r: int) -> Array<Cell> { return array.map(upto(cols), fn(_c: int) -> Cell { return blank_cell() }) }),
+    cells: array.map(
+      upto(rows),
+      fn(_r: int) -> Array<Cell> {
+        return array.map(upto(cols), fn(_c: int) -> Cell { return blank_cell() })
+      },
+    ),
   }
 }
 
@@ -142,9 +145,7 @@ fn neighbors(board: Board, at: Coord) -> Array<Coord> {
     let candidate = { row: at.row + off.dr, col: at.col + off.dc }
     match in_bounds(board, candidate) {
       false => {},
-      true => {
-        mut out.push(candidate)
-      },
+      true => { mut out.push(candidate) },
     }
   }
   return out
@@ -184,9 +185,7 @@ fn sample(pool: Array<Coord>, count: int, rng: Rng) -> Array<Coord> {
   let i = 0
   loop {
     match i < count && i < bag.length {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let j = rng.int(i, bag.length)
         let chosen = bag[j]
@@ -219,7 +218,10 @@ fn count_adjacent(board: Board, at: Coord) -> int {
 fn place_mines(game: Game, first: Coord) -> void {
   let board = game.board
   let zone = safe_zone(board, first)
-  let candidates = array.filter(all_coords(board), fn(at: Coord) -> bool { return !is_in(zone, at) })
+  let candidates = array.filter(
+    all_coords(board),
+    fn(at: Coord) -> bool { return !is_in(zone, at) },
+  )
   let rng = seeded(game.seed)
   for at in sample(candidates, board.mines, rng) {
     match cell_at(board, at) {
@@ -259,7 +261,10 @@ type CommandError =
 
 @example words("  reveal   3 4 ") == ["reveal", "3", "4"]
 fn words(line: string) -> Array<string> {
-  return array.filter(string.split(string.trim(line), " "), fn(w: string) -> bool { return w != "" })
+  return array.filter(
+    string.split(string.trim(line), " "),
+    fn(w: string) -> bool { return w != "" },
+  )
 }
 
 fn parse_index(text: string) -> Result<int, CommandError> {
@@ -307,11 +312,13 @@ fn coord_command(board: Board, name: string, r: string, c: string) -> Result<Com
     None => Err(UnknownCommand({ name: name })),
     Some(verb) => match parse_coord(board, r, c) {
       Err(e) => Err(e),
-      Ok(at) => Ok(match verb {
-        RevealVerb => Reveal({ at: at }),
-        FlagVerb => Flag({ at: at }),
-        UnflagVerb => Unflag({ at: at }),
-      }),
+      Ok(at) => Ok(
+        match verb {
+          RevealVerb => Reveal({ at: at }),
+          FlagVerb => Flag({ at: at }),
+          UnflagVerb => Unflag({ at: at }),
+        },
+      ),
     },
   }
 }
@@ -389,44 +396,49 @@ fn count_cells(board: Board, keep: fn(Cell) -> bool) -> int {
 }
 
 fn flags_placed(board: Board) -> int {
-  return count_cells(board, fn(cell: Cell) -> bool {
-    return match cell.visibility {
-      Flagged => true,
-      Hidden => false,
-      Revealed => false,
-    }
-  })
+  return count_cells(
+    board,
+    fn(cell: Cell) -> bool {
+      return match cell.visibility {
+        Flagged => true,
+        Hidden => false,
+        Revealed => false,
+      }
+    },
+  )
 }
 
 fn hidden_safe_cells(board: Board) -> int {
-  return count_cells(board, fn(cell: Cell) -> bool {
-    return !cell.mine && match cell.visibility {
-      Revealed => false,
-      Hidden => true,
-      Flagged => true,
-    }
-  })
+  return count_cells(
+    board,
+    fn(cell: Cell) -> bool {
+      return !cell.mine && match cell.visibility {
+        Revealed => false,
+        Hidden => true,
+        Flagged => true,
+      }
+    },
+  )
 }
 
 fn revealed_a_mine(board: Board) -> bool {
-  return count_cells(board, fn(cell: Cell) -> bool {
-    return cell.mine && match cell.visibility {
-      Revealed => true,
-      Hidden => false,
-      Flagged => false,
-    }
-  }) > 0
+  return count_cells(
+    board,
+    fn(cell: Cell) -> bool {
+      return cell.mine && match cell.visibility {
+        Revealed => true,
+        Hidden => false,
+        Flagged => false,
+      }
+    },
+  ) > 0
 }
 
 fn settle_phase(game: Game) -> void {
   match revealed_a_mine(game.board) {
-    true => {
-      mut game.phase = Lost
-    },
+    true => { mut game.phase = Lost },
     false => match hidden_safe_cells(game.board) == 0 {
-      true => {
-        mut game.phase = Won
-      },
+      true => { mut game.phase = Won },
       false => {},
     },
   }
@@ -523,20 +535,29 @@ fn cell_glyph(cell: Cell, expose_mines: bool) -> string {
 fn render_board(board: Board, expose_mines: bool) -> string {
   let label_width = string.len(number.to_string(board.rows - 1))
   let corner = string.repeat(" ", label_width)
-  let heads = array.map(upto(board.cols), fn(c: int) -> string { return string.pad_start(number.to_string(c), 2) })
+  let heads = array.map(
+    upto(board.cols),
+    fn(c: int) -> string { return string.pad_start(number.to_string(c), 2) },
+  )
   let head_row = string.join(heads, "")
   let header = "${corner} ${head_row}"
-  let lines = array.map(upto(board.rows), fn(r: int) -> string {
-    let cells = array.map(upto(board.cols), fn(c: int) -> string {
-      return match cell_at(board, { row: r, col: c }) {
-        None => " ?",
-        Some(cell) => string.pad_start(cell_glyph(cell, expose_mines), 2),
-      }
-    })
-    let label = string.pad_start(number.to_string(r), label_width)
-    let body = string.join(cells, "")
-    return "${label} ${body}"
-  })
+  let lines = array.map(
+    upto(board.rows),
+    fn(r: int) -> string {
+      let cells = array.map(
+        upto(board.cols),
+        fn(c: int) -> string {
+          return match cell_at(board, { row: r, col: c }) {
+            None => " ?",
+            Some(cell) => string.pad_start(cell_glyph(cell, expose_mines), 2),
+          }
+        },
+      )
+      let label = string.pad_start(number.to_string(r), label_width)
+      let body = string.join(cells, "")
+      return "${label} ${body}"
+    },
+  )
   return string.join([header, ...lines], "\n")
 }
 
@@ -569,14 +590,17 @@ fn render(game: Game) -> string {
 }
 
 fn help_text() -> string {
-  return string.join([
-    "commands:",
-    "  reveal <row> <col>   (r) uncover a cell",
-    "  flag <row> <col>     (f) mark a suspected mine",
-    "  unflag <row> <col>   (u) remove a mark",
-    "  help                 (h) this list",
-    "  quit                 (q) give up and exit",
-  ], "\n")
+  return string.join(
+    [
+      "commands:",
+      "  reveal <row> <col>   (r) uncover a cell",
+      "  flag <row> <col>     (f) mark a suspected mine",
+      "  unflag <row> <col>   (u) remove a mark",
+      "  help                 (h) this list",
+      "  quit                 (q) give up and exit",
+    ],
+    "\n",
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -634,7 +658,9 @@ fn validate(cfg: Config) -> Result<Config, string> {
     true => match cfg.rows <= 40 && cfg.cols <= 60 {
       false => Err("the board must be at most 40x60"),
       true => match cfg.mines >= 1 && cfg.mines <= cfg.rows * cfg.cols - 9 {
-        false => Err("mines must be between 1 and rows*cols-9 (${number.to_string(cfg.rows * cfg.cols - 9)} here)"),
+        false => Err(
+          "mines must be between 1 and rows*cols-9 (${number.to_string(cfg.rows * cfg.cols - 9)} here)",
+        ),
         true => Ok(cfg),
       },
     },
@@ -653,12 +679,15 @@ fn parse_config(argv: Array<string>) -> Result<Config, string> {
 }
 
 fn usage() -> string {
-  return string.join([
-    "usage: minesweeper [beginner|intermediate|expert] [--rows N] [--cols N] [--mines N] [--seed N]",
-    "",
-    "  presets: beginner 9x9/10, intermediate 16x16/40, expert 16x30/99",
-    "  the same --seed always produces the same board",
-  ], "\n")
+  return string.join(
+    [
+      "usage: minesweeper [beginner|intermediate|expert] [--rows N] [--cols N] [--mines N] [--seed N]",
+      "",
+      "  presets: beginner 9x9/10, intermediate 16x16/40, expert 16x30/99",
+      "  the same --seed always produces the same board",
+    ],
+    "\n",
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -677,16 +706,16 @@ fn new_game(cfg: Config) -> Game {
 
 fn play(cfg: Config) -> int {
   let game = new_game(cfg)
-  io.println("minesweeper ${number.to_string(cfg.rows)}x${number.to_string(cfg.cols)}, ${number.to_string(cfg.mines)} mines, seed ${number.to_string(cfg.seed)}")
+  io.println(
+    "minesweeper ${number.to_string(cfg.rows)}x${number.to_string(cfg.cols)}, ${number.to_string(cfg.mines)} mines, seed ${number.to_string(cfg.seed)}",
+  )
   io.println(help_text())
   io.println(render(game))
 
   let exit_code = 0
   loop {
     match io.read_line() {
-      None => {
-        break
-      },
+      None => { break },
       Some(line) => match parse_command(game.board, line) {
         Err(e) => io.println("! ${describe_command_error(e)}"),
         Ok(command) => match command {

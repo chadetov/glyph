@@ -131,8 +131,9 @@ Lambdas are `fn(params) { body }`; the last expression is the return value.
   untyped data enters (`json.parse` validates against a schema).
 - **One name, one form.** Every symbol has a single declaration syntax, so
   search is exact.
-- **Stable diffs.** Fixed-width, one-element-per-line formatting (`glyph fmt`):
-  a one-line change is a one-line diff.
+- **Stable diffs.** One canonical layout (`glyph fmt`): a list is inline while it
+  fits 100 columns and one element per line when it doesn't, never repacked to
+  fill the line. A one-line change is a one-line diff.
 - **Real TypeScript out.** `glyph build` emits `.ts`, type-checked with `tsc
   --strict`. It runs anywhere TS runs and uses any npm package.
 

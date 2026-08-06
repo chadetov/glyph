@@ -137,9 +137,7 @@ fn upto(n: int) -> Array<int> {
   let i = 0
   loop {
     match i < n {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         mut out.push(i)
         mut i = i + 1
@@ -162,9 +160,7 @@ fn pow2(k: int) -> int {
   let i = 0
   loop {
     match i < k {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         mut out = out * 2
         mut i = i + 1
@@ -183,12 +179,8 @@ fn bracket_size(n: int) -> int {
   let size = 2
   loop {
     match size >= n {
-      true => {
-        break
-      },
-      false => {
-        mut size = size * 2
-      },
+      true => { break },
+      false => { mut size = size * 2 },
     }
   }
   return size
@@ -200,9 +192,7 @@ fn log2_exact(n: int) -> int {
   let v = 1
   loop {
     match v >= n {
-      true => {
-        break
-      },
+      true => { break },
       false => {
         mut v = v * 2
         mut k = k + 1
@@ -226,9 +216,7 @@ fn seed_order(size: int) -> Array<int> {
   let order: Array<int> = [1]
   loop {
     match array.len(order) >= size {
-      true => {
-        break
-      },
+      true => { break },
       false => {
         let n = array.len(order) * 2
         let next: Array<int> = []
@@ -407,24 +395,26 @@ fn match_round_name(b: Bracket, m: Match) -> string {
 // the caller can print.
 fn locate_match(b: Bracket, name: string) -> Result<Match, Reject> {
   match array.contains(b.entrants, name) {
-    false => {
-      return Err(UnknownName({ name: name }))
-    },
+    false => { return Err(UnknownName({ name: name })) },
     true => {},
   }
 
-  let mine = array.filter(all_matches(b.root), fn(m: Match) -> bool { return is_competitor(m, name) })
-  let open = array.filter(mine, fn(m: Match) -> bool {
-    return match match_winner(m) {
-      Some(_) => false,
-      None => true,
-    }
-  })
+  let mine = array.filter(
+    all_matches(b.root),
+    fn(m: Match) -> bool { return is_competitor(m, name) },
+  )
+  let open = array.filter(
+    mine,
+    fn(m: Match) -> bool {
+      return match match_winner(m) {
+        Some(_) => false,
+        None => true,
+      }
+    },
+  )
 
   match array.len(open) > 0 {
-    true => {
-      return Ok(open[0])
-    },
+    true => { return Ok(open[0]) },
     false => {},
   }
 
@@ -471,9 +461,7 @@ fn report_result(b: Bracket, name: string, score: Option<string>, id: Option<int
   }
 
   match is_ready(target) {
-    false => {
-      return Err(NotReady({ id: target.id }))
-    },
+    false => { return Err(NotReady({ id: target.id })) },
     true => {},
   }
 
@@ -483,30 +471,22 @@ fn report_result(b: Bracket, name: string, score: Option<string>, id: Option<int
 
 fn explicit_match(b: Bracket, name: string, id: int) -> Result<Match, Reject> {
   match array.contains(b.entrants, name) {
-    false => {
-      return Err(UnknownName({ name: name }))
-    },
+    false => { return Err(UnknownName({ name: name })) },
     true => {},
   }
 
   let found = match find_match(b, id) {
-    None => {
-      return Err(NoSuchMatch({ id: id }))
-    },
+    None => { return Err(NoSuchMatch({ id: id })) },
     Some(m) => m,
   }
 
   match match_winner(found) {
-    Some(w) => {
-      return Err(AlreadyDecided({ id: found.id, winner: w }))
-    },
+    Some(w) => { return Err(AlreadyDecided({ id: found.id, winner: w })) },
     None => {},
   }
 
   match is_competitor(found, name) {
-    false => {
-      return Err(NotInMatch({ id: id, name: name }))
-    },
+    false => { return Err(NotInMatch({ id: id, name: name })) },
     true => {},
   }
 
@@ -574,12 +554,8 @@ fn measure(m: Match, widths: Array<int>) -> void {
 
 fn measure_slot(s: Slot, widths: Array<int>) -> void {
   match s {
-    Feeder(f) => {
-      measure(f.source, widths)
-    },
-    else => {
-      mut widths[0] = math.max(widths[0], string.len(slot_label(s)))
-    },
+    Feeder(f) => { measure(f.source, widths) },
+    else => { mut widths[0] = math.max(widths[0], string.len(slot_label(s))) },
   }
 }
 
@@ -609,7 +585,12 @@ fn layout_of(b: Bracket) -> Layout {
 }
 
 fn blank_grid(rows: int, cols: int) -> Array<Array<string>> {
-  return array.map(upto(rows), fn(_r: int) -> Array<string> { return array.map(upto(cols), fn(_c: int) -> string { return SPACE }) })
+  return array.map(
+    upto(rows),
+    fn(_r: int) -> Array<string> {
+      return array.map(upto(cols), fn(_c: int) -> string { return SPACE })
+    },
+  )
 }
 
 fn put(grid: Array<Array<string>>, row: int, col: int, text: string) -> void {
@@ -654,12 +635,8 @@ fn draw_match(grid: Array<Array<string>>, lay: Layout, m: Match, start: int) -> 
 
 fn draw_slot(grid: Array<Array<string>>, lay: Layout, s: Slot, start: int, count: int) -> void {
   match s {
-    Feeder(f) => {
-      draw_match(grid, lay, f.source, start)
-    },
-    else => {
-      put(grid, node_row(start, count), lay.starts[0], slot_label(s))
-    },
+    Feeder(f) => { draw_match(grid, lay, f.source, start) },
+    else => { put(grid, node_row(start, count), lay.starts[0], slot_label(s)) },
   }
 }
 
@@ -698,17 +675,23 @@ fn divider(width: int) -> Array<string> {
 // ---------------------------------------------------------------------------
 
 fn wins_of(b: Bracket, name: string) -> int {
-  let played = array.filter(all_matches(b.root), fn(m: Match) -> bool {
-    return match m.outcome {
-      Some(o) => o.winner == name,
-      None => false,
-    }
-  })
+  let played = array.filter(
+    all_matches(b.root),
+    fn(m: Match) -> bool {
+      return match m.outcome {
+        Some(o) => o.winner == name,
+        None => false,
+      }
+    },
+  )
   return array.len(played)
 }
 
 fn eliminated_by(b: Bracket, name: string) -> Option<string> {
-  let lost = array.find(all_matches(b.root), fn(m: Match) -> bool { return is_competitor(m, name) && beaten_in(m, name) })
+  let lost = array.find(
+    all_matches(b.root),
+    fn(m: Match) -> bool { return is_competitor(m, name) && beaten_in(m, name) },
+  )
   return match lost {
     None => None,
     Some(m) => match_winner(m),
@@ -735,14 +718,19 @@ fn competitor_label(s: Slot) -> string {
 fn print_matches(b: Bracket) -> void {
   io.println("")
   io.println("Matches")
-  let ms = array.sort(all_matches(b.root), fn(a: Match, c: Match) -> number { return match_order(a, c) })
+  let ms = array.sort(
+    all_matches(b.root),
+    fn(a: Match, c: Match) -> number { return match_order(a, c) },
+  )
   for m in ms {
     let pairing = "${competitor_label(m.left)} vs ${competitor_label(m.right)}"
     let state = match m.outcome {
       Some(o) => "won by ${decided_label(o)}",
       None => pending_state(m),
     }
-    io.println("  ${string.pad_end(match_id_label(m), 5)}${string.pad_end(match_round_name(b, m), 14)}${string.pad_end(pairing, 30)}${state}")
+    io.println(
+      "  ${string.pad_end(match_id_label(m), 5)}${string.pad_end(match_round_name(b, m), 14)}${string.pad_end(pairing, 30)}${state}",
+    )
   }
 }
 
@@ -771,16 +759,19 @@ fn match_order(a: Match, c: Match) -> number {
 fn print_standings(b: Bracket) -> void {
   io.println(header_line(b))
 
-  let ready = array.sort(array.filter(all_matches(b.root), is_ready), fn(a: Match, c: Match) -> number { return match_order(a, c) })
+  let ready = array.sort(
+    array.filter(all_matches(b.root), is_ready),
+    fn(a: Match, c: Match) -> number { return match_order(a, c) },
+  )
   io.println("")
   io.println("Ready to play")
   match array.len(ready) {
-    0 => {
-      io.println("  (none)")
-    },
+    0 => { io.println("  (none)") },
     else => {
       for m in ready {
-        io.println("  ${string.pad_end(match_id_label(m), 5)}${string.pad_end(match_round_name(b, m), 14)}${competitor_label(m.left)} vs ${competitor_label(m.right)}")
+        io.println(
+          "  ${string.pad_end(match_id_label(m), 5)}${string.pad_end(match_round_name(b, m), 14)}${competitor_label(m.left)} vs ${competitor_label(m.right)}",
+        )
       }
     },
   }
@@ -837,9 +828,7 @@ fn champion_line(b: Bracket) -> string {
 fn load(path: string) -> Result<Bracket, string> {
   let text = match fs.read_text(path) {
     Ok(t) => t,
-    Err(e) => {
-      return Err("cannot read ${path}: ${e.message}")
-    },
+    Err(e) => { return Err("cannot read ${path}: ${e.message}") },
   }
   // Decode first, then validate with the type's own descriptor. `json.parse<Bracket>`
   // would validate too, but it routes through `Bracket.schema`, which collapses
@@ -847,9 +836,7 @@ fn load(path: string) -> Result<Bracket, string> {
   // the field that is actually wrong.
   let raw = match json.parse<unknown>(text) {
     Ok(v) => v,
-    Err(issues) => {
-      return Err("${path} is not JSON: ${issue_text(issues)}")
-    },
+    Err(issues) => { return Err("${path} is not JSON: ${issue_text(issues)}") },
   }
   return match Bracket.parse(raw) {
     Ok(b) => Ok(b),
@@ -858,10 +845,13 @@ fn load(path: string) -> Result<Bracket, string> {
 }
 
 fn issue_text(issues: Array<Issue>) -> string {
-  let parts = array.map(issues, fn(i: Issue) -> string {
-    let where_at = string.join(array.map(i.path, string.from), ".")
-    return "${where_at}: ${i.message}"
-  })
+  let parts = array.map(
+    issues,
+    fn(i: Issue) -> string {
+      let where_at = string.join(array.map(i.path, string.from), ".")
+      return "${where_at}: ${i.message}"
+    },
+  )
   return string.join(parts, "; ")
 }
 
@@ -875,26 +865,23 @@ fn save(path: string, b: Bracket) -> Result<void, string> {
 fn read_entrant_lines(path: string) -> Result<Array<string>, string> {
   let text = match fs.read_text(path) {
     Ok(t) => t,
-    Err(e) => {
-      return Err("cannot read ${path}: ${e.message}")
-    },
+    Err(e) => { return Err("cannot read ${path}: ${e.message}") },
   }
-  let names = array.filter(array.map(string.split(text, "\n"), string.trim), fn(l: string) -> bool { return string.len(l) > 0 && !string.starts_with(l, "#") })
+  let names = array.filter(
+    array.map(string.split(text, "\n"), string.trim),
+    fn(l: string) -> bool { return string.len(l) > 0 && !string.starts_with(l, "#") },
+  )
   return Ok(names)
 }
 
 fn read_seed_file(path: string) -> Result<SeedFile, string> {
   let text = match fs.read_text(path) {
     Ok(t) => t,
-    Err(e) => {
-      return Err("cannot read ${path}: ${e.message}")
-    },
+    Err(e) => { return Err("cannot read ${path}: ${e.message}") },
   }
   let raw = match json.parse<unknown>(text) {
     Ok(v) => v,
-    Err(issues) => {
-      return Err("${path} is not JSON: ${issue_text(issues)}")
-    },
+    Err(issues) => { return Err("${path} is not JSON: ${issue_text(issues)}") },
   }
   return match SeedFile.parse(raw) {
     Ok(s) => Ok(s),
@@ -904,20 +891,14 @@ fn read_seed_file(path: string) -> Result<SeedFile, string> {
 
 fn check_entrants(names: Array<string>) -> Result<Array<string>, string> {
   match array.len(names) < 2 {
-    true => {
-      return Err("a bracket needs at least 2 entrants")
-    },
+    true => { return Err("a bracket needs at least 2 entrants") },
     false => {},
   }
   let seen: Record<string, bool> = {}
   for n in names {
     match record.has(seen, n) {
-      true => {
-        return Err("duplicate entrant: ${n}")
-      },
-      false => {
-        mut seen[n] = true
-      },
+      true => { return Err("duplicate entrant: ${n}") },
+      false => { mut seen[n] = true },
     }
   }
   return Ok(names)
@@ -936,23 +917,17 @@ fn split_args(rest: Array<string>) -> Result<Parsed, string> {
   let i = 0
   loop {
     match i < array.len(rest) {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let a = rest[i]
         let is_value = array.contains(VALUE_FLAGS, a)
         let is_bool = array.contains(BOOL_FLAGS, a)
         match !is_value && !is_bool && string.starts_with(a, "--") {
-          true => {
-            return Err("unknown option ${a}")
-          },
+          true => { return Err("unknown option ${a}") },
           false => {},
         }
         match is_value && i + 1 >= array.len(rest) {
-          true => {
-            return Err("${a} needs a value")
-          },
+          true => { return Err("${a} needs a value") },
           false => {},
         }
         match is_value {
@@ -962,12 +937,8 @@ fn split_args(rest: Array<string>) -> Result<Parsed, string> {
           },
           false => {
             match is_bool {
-              true => {
-                mut bools.push(a)
-              },
-              false => {
-                mut positional.push(a)
-              },
+              true => { mut bools.push(a) },
+              false => { mut positional.push(a) },
             }
             mut i = i + 1
           },
@@ -1011,12 +982,8 @@ fn check_score(raw: Option<string>) -> Result<Option<string>, string> {
 fn validate_score(s: string) -> Result<Option<string>, string> {
   let parts = string.split(s, "-")
   match array.len(parts) == 2 && is_digits(parts[0]) && is_digits(parts[1]) {
-    true => {
-      return Ok(Some(s))
-    },
-    false => {
-      return Err("--score must look like 3-1, got ${s}")
-    },
+    true => { return Ok(Some(s)) },
+    false => { return Err("--score must look like 3-1, got ${s}") },
   }
 }
 
@@ -1025,9 +992,7 @@ fn validate_score(s: string) -> Result<Option<string>, string> {
 @example is_digits("3a") == false
 fn is_digits(s: string) -> bool {
   match string.len(s) == 0 {
-    true => {
-      return false
-    },
+    true => { return false },
     false => {},
   }
   let ok = true
@@ -1041,9 +1006,7 @@ const DIGITS: Array<string> = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 fn parse_args(argv: Array<string>) -> Result<Command, string> {
   match array.len(argv) == 0 {
-    true => {
-      return Err(USAGE)
-    },
+    true => { return Err(USAGE) },
     false => {},
   }
   let name = argv[0]
@@ -1066,18 +1029,15 @@ fn parse_new(p: Parsed, file: string) -> Result<Command, string> {
     None => LinesFile({ path: first_positional(p) }),
   }
   match source_path(source) == "" {
-    true => {
-      return Err("new needs an entrants file or --seeds <file.json>")
-    },
+    true => { return Err("new needs an entrants file or --seeds <file.json>") },
     false => {},
   }
   let shuffle = int_flag(p, "--shuffle")?
-  return Ok(New({
-    source: source,
-    title: flag_or(p, "--title", "Tournament"),
-    file: file,
-    shuffle: shuffle,
-  }))
+  return Ok(
+    New(
+      { source: source, title: flag_or(p, "--title", "Tournament"), file: file, shuffle: shuffle },
+    ),
+  )
 }
 
 fn source_path(s: Source) -> string {
@@ -1097,9 +1057,7 @@ fn first_positional(p: Parsed) -> string {
 fn parse_report(p: Parsed, file: string) -> Result<Command, string> {
   let winner = first_positional(p)
   match winner == "" {
-    true => {
-      return Err("report needs a winner name")
-    },
+    true => { return Err("report needs a winner name") },
     false => {},
   }
   let score = check_score(flag_of(p, "--score"))?

@@ -95,12 +95,7 @@ type Person = {
   conflicts: Array<Conflict>,
 }
 
-type Day = {
-  start: number,
-  window: Interval,
-  free: Array<Interval>,
-  candidates: Array<Interval>,
-}
+type Day = { start: number, window: Interval, free: Array<Interval>, candidates: Array<Interval> }
 
 type Args = {
   path: string,
@@ -179,7 +174,7 @@ fn midnight_of(ms: number) -> number {
 @example clock_label(0) == "00:00"
 @example clock_label(45296000) == "12:34"
 fn clock_label(ms: number) -> string {
-  let minute_of_day = math.floor((ms % MS_PER_DAY) / MS_PER_MINUTE)
+  let minute_of_day = math.floor(ms % MS_PER_DAY / MS_PER_MINUTE)
   let h = math.floor(minute_of_day / 60)
   let m = minute_of_day % 60
   return "${two_digits(h)}:${two_digits(m)}"
@@ -222,18 +217,12 @@ fn merge(xs: Array<Interval>) -> Array<Interval> {
   for iv in by_start(xs) {
     let n = array.len(out)
     match n == 0 {
-      true => {
-        mut out.push(iv)
-      },
+      true => { mut out.push(iv) },
       false => {
         let last = out[n - 1]
         match iv.start > last.end {
-          true => {
-            mut out.push(iv)
-          },
-          false => {
-            mut out[n - 1] = { start: last.start, end: math.max(last.end, iv.end) }
-          },
+          true => { mut out.push(iv) },
+          false => { mut out[n - 1] = { start: last.start, end: math.max(last.end, iv.end) } },
         }
       },
     }
@@ -251,9 +240,7 @@ fn double_bookings(xs: Array<Interval>) -> Array<Conflict> {
   for i, a in sorted {
     for j, b in sorted {
       match j > i && b.start < a.end {
-        true => {
-          mut out.push({ first: a, second: b })
-        },
+        true => { mut out.push({ first: a, second: b }) },
         false => {},
       }
     }
@@ -275,9 +262,7 @@ fn clip_all(xs: Array<Interval>, window: Interval) -> Array<Interval> {
   let out: Array<Interval> = []
   for iv in xs {
     match intersect(iv, window) {
-      Some(cut) => {
-        mut out.push(cut)
-      },
+      Some(cut) => { mut out.push(cut) },
       None => {},
     }
   }
@@ -296,17 +281,13 @@ fn subtract(window: Interval, busy: Array<Interval>) -> Array<Interval> {
   let cursor = window.start
   for b in merge(clip_all(busy, window)) {
     match b.start > cursor {
-      true => {
-        mut free.push({ start: cursor, end: b.start })
-      },
+      true => { mut free.push({ start: cursor, end: b.start }) },
       false => {},
     }
     mut cursor = math.max(cursor, b.end)
   }
   match cursor < window.end {
-    true => {
-      mut free.push({ start: cursor, end: window.end })
-    },
+    true => { mut free.push({ start: cursor, end: window.end }) },
     false => {},
   }
   return free
@@ -322,9 +303,10 @@ fn clip_to_duration(free: Array<Interval>, minimum: number) -> Array<Interval> {
 }
 
 fn overlaps_any(xs: Array<Interval>, probe: Interval) -> bool {
-  return array.any(xs, fn(iv: Interval) -> bool {
-    return iv.start < probe.end && probe.start < iv.end
-  })
+  return array.any(
+    xs,
+    fn(iv: Interval) -> bool { return iv.start < probe.end && probe.start < iv.end },
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -346,9 +328,7 @@ fn load_block(who: string, raw: WireBlock) -> Result<Interval, string> {
   let start = instant_ms(raw.start)
   let end = instant_ms(raw.end)
   match end <= start {
-    true => {
-      return Err("${who}: block ${raw.start} ends before it starts")
-    },
+    true => { return Err("${who}: block ${raw.start} ends before it starts") },
     false => {},
   }
   return Ok({ start: start, end: end })
@@ -359,30 +339,20 @@ fn load_participant(raw: WireParticipant) -> Result<Person, string> {
   for b in raw.busy {
     mut blocks.push(load_block(raw.name, b)?)
   }
-  return Ok({
-    name: raw.name,
-    busy: merge(blocks),
-    conflicts: double_bookings(blocks),
-  })
+  return Ok({ name: raw.name, busy: merge(blocks), conflicts: double_bookings(blocks) })
 }
 
 fn select_people(people: Array<Person>, who: Array<string>) -> Result<Array<Person>, string> {
   match array.len(who) == 0 {
-    true => {
-      return Ok(people)
-    },
+    true => { return Ok(people) },
     false => {},
   }
   let chosen: Array<Person> = []
   for name in who {
     let found = array.find(people, fn(p: Person) -> bool { return p.name == name })
     match found {
-      Some(p) => {
-        mut chosen.push(p)
-      },
-      None => {
-        return Err("--who: no participant named \"${name}\" in the calendar")
-      },
+      Some(p) => { mut chosen.push(p) },
+      None => { return Err("--who: no participant named \"${name}\" in the calendar") },
     }
   }
   return Ok(chosen)
@@ -397,9 +367,10 @@ fn load_calendar(text: string, who: Array<string>) -> Result<Array<Person>, stri
     Err(issues) => {
       let parts: Array<string> = []
       for issue in issues {
-        let path = string.join(array.map(issue.path, fn(p: unknown) -> string {
-          return string.from(p)
-        }), DOT)
+        let path = string.join(
+          array.map(issue.path, fn(p) -> string { return string.from(p) }),
+          DOT,
+        )
         mut parts.push("${path}: ${issue.message}")
       }
       return Err("calendar is corrupt: ${string.join(parts, COMMA)}")
@@ -432,15 +403,11 @@ fn day_starts(from_ms: number, days: int, weekends: bool) -> Array<number> {
   let d = 0
   loop {
     match d < days {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let ms = time.add_days(from_ms, d)
         match weekends || is_working_day(ms) {
-          true => {
-            mut out.push(ms)
-          },
+          true => { mut out.push(ms) },
           false => {},
         }
         mut d = d + 1
@@ -502,9 +469,7 @@ fn availability_bar(window: Interval, busy: Array<Interval>) -> string {
   let t = window.start
   loop {
     match t < window.end {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let slot = { start: t, end: math.min(t + HALF_HOUR, window.end) }
         let mark = match overlaps_any(busy, slot) {
@@ -525,11 +490,9 @@ fn bar_ruler(window: Interval) -> string {
   let t = window.start
   loop {
     match t < window.end {
-      false => {
-        break
-      },
+      false => { break },
       true => {
-        mut out = "${out}${two_digits(math.floor((t % MS_PER_DAY) / MS_PER_HOUR))}"
+        mut out = "${out}${two_digits(math.floor(t % MS_PER_DAY / MS_PER_HOUR))}"
         mut t = t + MS_PER_HOUR
       },
     }
@@ -562,7 +525,9 @@ fn print_day(day: Day, people: Array<Person>, busy: Array<Interval>) -> void {
 fn print_conflicts(people: Array<Person>) -> void {
   for p in people {
     for c in p.conflicts {
-      io.eprintln("warning: ${p.name} is double-booked: ${stamp_label(c.first.start)}-${clock_label(c.first.end)} overlaps ${stamp_label(c.second.start)}-${clock_label(c.second.end)}")
+      io.eprintln(
+        "warning: ${p.name} is double-booked: ${stamp_label(c.first.start)}-${clock_label(c.first.end)} overlaps ${stamp_label(c.second.start)}-${clock_label(c.second.end)}",
+      )
     }
   }
 }
@@ -570,7 +535,9 @@ fn print_conflicts(people: Array<Person>) -> void {
 fn print_candidates(days: Array<Day>) -> int {
   let slots = array.flat_map(days, fn(day: Day) -> Array<Interval> { return day.candidates })
   for slot in slots {
-    io.println("  ${date_label(slot.start)} ${weekday_name(slot.start)}  ${clock_label(slot.start)} - ${clock_label(slot.end)}  (${number.to_string(minutes_of(slot))} min)")
+    io.println(
+      "  ${date_label(slot.start)} ${weekday_name(slot.start)}  ${clock_label(slot.start)} - ${clock_label(slot.end)}  (${number.to_string(minutes_of(slot))} min)",
+    )
   }
   return array.len(slots)
 }
@@ -594,27 +561,19 @@ fn parse_clock(value: string) -> Result<int, string> {
   let bad = "expected HH:MM, got \"${value}\""
   let parts = string.split(value, ":")
   match array.len(parts) == 2 {
-    false => {
-      return Err(bad)
-    },
+    false => { return Err(bad) },
     true => {},
   }
   let hours = match number.parse(parts[0]) {
     Ok(h) => h,
-    Err(_) => {
-      return Err(bad)
-    },
+    Err(_) => { return Err(bad) },
   }
   let minutes = match number.parse(parts[1]) {
     Ok(m) => m,
-    Err(_) => {
-      return Err(bad)
-    },
+    Err(_) => { return Err(bad) },
   }
   match hours < 0 || hours > 23 || minutes < 0 || minutes > 59 {
-    true => {
-      return Err(bad)
-    },
+    true => { return Err(bad) },
     false => {},
   }
   return Ok(hours * 60 + minutes)
@@ -625,17 +584,13 @@ fn parse_clock(value: string) -> Result<int, string> {
 fn parse_window(value: string) -> Result<Interval, string> {
   let parts = string.split(value, "-")
   match array.len(parts) == 2 {
-    false => {
-      return Err("--hours expects HH:MM-HH:MM, got \"${value}\"")
-    },
+    false => { return Err("--hours expects HH:MM-HH:MM, got \"${value}\"") },
     true => {},
   }
   let start = parse_clock(parts[0]).map_err(fn(e: string) -> string { return "--hours: ${e}" })?
   let end = parse_clock(parts[1]).map_err(fn(e: string) -> string { return "--hours: ${e}" })?
   match end <= start {
-    true => {
-      return Err("--hours: the window ends before it starts")
-    },
+    true => { return Err("--hours: the window ends before it starts") },
     false => {},
   }
   return Ok({ start: start, end: end })
@@ -644,14 +599,10 @@ fn parse_window(value: string) -> Result<Interval, string> {
 fn parse_count(flag: string, value: string) -> Result<int, string> {
   let n = match number.parse(value) {
     Ok(v) => v,
-    Err(_) => {
-      return Err("${flag} expects a whole number, got \"${value}\"")
-    },
+    Err(_) => { return Err("${flag} expects a whole number, got \"${value}\"") },
   }
   match n < 1 || n != math.floor(n) {
-    true => {
-      return Err("${flag} expects a whole number of at least 1, got \"${value}\"")
-    },
+    true => { return Err("${flag} expects a whole number of at least 1, got \"${value}\"") },
     false => {},
   }
   return Ok(n)
@@ -677,20 +628,14 @@ fn parse_args(argv: Array<string>) -> Result<Args, string> {
   let i = 0
   loop {
     match i < array.len(argv) {
-      false => {
-        break
-      },
+      false => { break },
       true => {
         let flag = argv[i]
         match string.starts_with(flag, "--") {
           false => {
             match string.len(path) == 0 {
-              true => {
-                mut path = flag
-              },
-              false => {
-                return Err("unexpected argument \"${flag}\"")
-              },
+              true => { mut path = flag },
+              false => { return Err("unexpected argument \"${flag}\"") },
             }
             mut i = i + 1
           },
@@ -703,33 +648,24 @@ fn parse_args(argv: Array<string>) -> Result<Args, string> {
               false => {
                 let value = match arg_at(argv, i + 1) {
                   Some(v) => v,
-                  None => {
-                    return Err("${flag} needs a value")
-                  },
+                  None => { return Err("${flag} needs a value") },
                 }
                 match flag {
-                  "--duration" => {
-                    mut duration_minutes = parse_count("--duration", value)?
-                  },
-                  "--days" => {
-                    mut days = parse_count("--days", value)?
-                  },
-                  "--from" => {
-                    mut from_ms = parse_from(value)?
-                  },
+                  "--duration" => { mut duration_minutes = parse_count("--duration", value)? },
+                  "--days" => { mut days = parse_count("--days", value)? },
+                  "--from" => { mut from_ms = parse_from(value)? },
                   "--hours" => {
                     let w = parse_window(value)?
                     mut window_start = w.start
                     mut window_end = w.end
                   },
                   "--who" => {
-                    mut who = array.map(string.split(value, ","), fn(s: string) -> string {
-                      return string.trim(s)
-                    })
+                    mut who = array.map(
+                      string.split(value, ","),
+                      fn(s: string) -> string { return string.trim(s) },
+                    )
                   },
-                  else => {
-                    return Err("unknown flag \"${flag}\"")
-                  },
+                  else => { return Err("unknown flag \"${flag}\"") },
                 }
                 mut i = i + 2
               },
@@ -741,22 +677,22 @@ fn parse_args(argv: Array<string>) -> Result<Args, string> {
   }
 
   match string.len(path) == 0 {
-    true => {
-      return Err(USAGE)
-    },
+    true => { return Err(USAGE) },
     false => {},
   }
 
-  return Ok({
-    path: path,
-    duration_minutes: duration_minutes,
-    from_ms: from_ms,
-    days: days,
-    window_start: window_start,
-    window_end: window_end,
-    who: who,
-    weekends: weekends,
-  })
+  return Ok(
+    {
+      path: path,
+      duration_minutes: duration_minutes,
+      from_ms: from_ms,
+      days: days,
+      window_start: window_start,
+      window_end: window_end,
+      who: who,
+      weekends: weekends,
+    },
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -774,7 +710,9 @@ fn run(args: Args, people: Array<Person>) -> number {
 
   let names = string.join(array.map(people, fn(p: Person) -> string { return p.name }), COMMA)
   io.println("schedule for ${names}")
-  io.println("range ${date_label(args.from_ms)} + ${number.to_string(args.days)} day(s), meeting of ${number.to_string(args.duration_minutes)} min")
+  io.println(
+    "range ${date_label(args.from_ms)} + ${number.to_string(args.days)} day(s), meeting of ${number.to_string(args.duration_minutes)} min",
+  )
   io.println("")
 
   for day in days {
@@ -786,7 +724,9 @@ fn run(args: Args, people: Array<Person>) -> number {
 
   match found == 0 {
     true => {
-      io.eprintln("error: no common ${number.to_string(args.duration_minutes)}-minute slot in the requested range")
+      io.eprintln(
+        "error: no common ${number.to_string(args.duration_minutes)}-minute slot in the requested range",
+      )
       return 1
     },
     false => {},

@@ -2031,9 +2031,9 @@ built clean, passed `tsc --strict`, and emitted `export const string` /
 `export const number` that shadowed the prelude, which is a silent wrong meaning
 on a green build. The app is `examples/apps/sheet/`, and all fourteen findings
 are written up in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under Round
-14; the eight worth a backlog entry are G63–G70. No release carries the Next
-marker after this one: six of the eight entries are open, and the two biggest
-need a decision before they need code.
+14; the eight worth a backlog entry are G63–G70. Six of the eight entries are
+open, and the two biggest need a decision before they need code. The depsolve
+trip below came next.
 
 ### 0.1.54 — Shipped · A declaration cannot quietly take a name the module needs
 
@@ -2118,6 +2118,66 @@ expressiveness. Six of the eight backlog entries are untouched.
   the new shadow check runs only in `collect`, but the collect pass itself is
   reached more than once for a single-file build, so the rendered diagnostic
   still appears twice. It inflates the error count without changing the verdict.
+
+## depsolve dogfood trip — the loop index that was a string
+
+Writing a dependency resolver (`examples/apps/depsolve/`) put the two most
+ordinary things in the language next to each other: read a `Record`, `match` the
+`Option` it gives back, iterate the array inside with an index. That chain
+miscompiled. `glyph build` reported no diagnostics, `tsc --strict` passed, and
+the program printed `01:x` and `11:y` where it should print `1:x` and `2:y`,
+because the two-binding `for` took the `Object.entries` lowering and bound the
+index as a string key. The app carried a `let path: Array<string>` annotation
+and a three-line comment saying the annotation was load-bearing, which is what a
+workaround for an unfiled defect looks like.
+
+### 0.1.55 — Shipped · `record.get` into a `match` into a `for` binds a number
+
+Two independent causes, and each one reproduced the miscompile on its own, so
+both had to go.
+
+`std/record` was not modeled anywhere in the typechecker. `record.get(t, k)`
+typed `Unknown`, so the `Some(p)` arm bound nothing and everything downstream of
+it was untyped. `stdlib_record_fn_ty` now models all six functions, with the
+value type riding a `Ty::Param("V")` on the record parameter the same way
+`std/array` carries `T`, so `record.get` over a `Record<string, Array<string>>`
+is an `Option<Array<string>>`. The key is always `string`, so it is not a
+parameter, and every parameter slot that is not `V` stays `Unknown`, which is
+the rule the rest of that table keeps. The knock-on is the ordered walk:
+`array.sort(record.keys(t), cmp)` was binding `sort`'s element type from
+`Unknown`, and now keeps `string`.
+
+The other cause was the arm join. `join_match_arms` compared arm types by
+equality, and an empty array literal is `Array<Unknown>`, so `None => []` read
+as disagreeing with `Some(p) => p`'s `Array<string>` and sank the match. The
+join now goes argument-wise underneath an already-agreeing head, with `Unknown`
+absorbing the other side. Two different heads still join to `Unknown`, and an
+arm whose value is entirely undecidable still sinks the match: projecting one
+arm's type onto an arm nothing is known about would be a guess, and the join is
+feeding a lowering choice, not a hint.
+
+The annotation and its comment came out of the resolver and the output is
+byte-identical. A conformance snapshot pins the emitted `for` for both shapes
+alongside the record case that should stay `Object.entries`, and an integration
+test runs the program, because the point is that the emitted TypeScript
+type-checks either way.
+
+Pillar: verifiability. The `for` lowering is real semantics with no `tsc`
+backstop behind it, chosen from the inference lattice, so a hole in the lattice
+is a wrong program on a green build. Abstraction second: `record.get` plus
+`match` plus `for` is the idiom the stdlib was built around.
+
+### Still open from this trip
+
+`iter_is_array` falling back to the record lowering for an iterand whose type is
+honestly unknown is untouched, and stays a decision rather than a patch (the
+residue of G37). The trip's other finding is G72, which predates it: `glyph
+check` on a single file compiles every `.glyph` under that file's directory, so
+checking one app in `examples/apps/` reports a `TS2307` about a different app's
+import and the cost of checking one file scales with the directory it lives in.
+Both are written up in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under
+Round 15. No release carries the Next marker now; the next trip picks from what
+is left of this list and Round 14's.
 
 ## Road to 1.0
 

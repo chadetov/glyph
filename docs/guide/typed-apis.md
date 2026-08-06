@@ -142,6 +142,26 @@ array lowering with no `Array<T>` annotation to remember. Before 0.1.45 every
 that produce *different* types still leave the result unknown to Glyph's checker;
 `tsc` is what checks uses of it then.
 
+The commonest shape this covers is a lookup with an empty fallback:
+
+```glyph
+let path = match record.get(reached, name) {
+  Some(p) => p,
+  None => [],
+}
+
+for i, hop in path {               // `i` is a number
+  let indent = string.repeat(STEP, i + 1)
+  print("${indent}${hop}")
+}
+```
+
+`record.get` on a `Record<string, Array<string>>` is an `Option<Array<string>>`,
+and `[]` is an array of nothing in particular, so the two arms agree on `Array`
+and the element type comes from the arm that has one. Before 0.1.55 the arms were
+compared for equality, `[]` counted as a disagreement, and the loop below bound
+`i` as a string key on a build that reported nothing.
+
 ## How deep the check goes
 
 A descriptor validates the type as declared, not just its top level. If a field

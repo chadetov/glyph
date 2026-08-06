@@ -1,0 +1,1098 @@
+// depsolve — a dependency resolver over a small package registry.
+//
+// It reads a project manifest and a registry of published versions from JSON
+// fixtures, parses every version and constraint string into a typed value, and
+// then does what a package manager does: expand each requirement, pick the
+// highest published version that satisfies every constraint gathered on that
+// package so far, and backtrack when a later requirement invalidates a choice
+// made earlier.
+//
+// Nothing throws. An unknown package, a set of constraints no published version
+// satisfies, and a cycle in the resolved graph are all values of one error
+// union, each carrying the requirement path that reached it.
+//
+// Usage:
+//
+//   glyph run examples/apps/depsolve/main.glyph
+//   glyph run examples/apps/depsolve/main.glyph why http
+//   glyph run examples/apps/depsolve/main.glyph explain
+//   glyph run examples/apps/depsolve/main.glyph --manifest conflict.json
+//
+// The default fixture directory is `examples/apps/depsolve`, so the first form
+// works from the repository root and prints the same output every time.
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/option { Option, Some, None }
+import std/path
+import std/record
+import std/result { Result, Ok, Err }
+import std/set
+import std/string
+import wire { ManifestFile, RegistryFile }
+
+// ---------------------------------------------------------------------------
+// Versions
+// ---------------------------------------------------------------------------
+
+// A semantic version. `prerelease` holds the dot-separated identifiers after a
+// `-` and is empty for a release, because precedence has to rank `2.0.0-rc.1`
+// below `2.0.0` and that only works if the identifiers survive parsing.
+type Version = { major: int, minor: int, patch: int, prerelease: Array<string> }
+
+// The common case: a released version with no prerelease tag.
+fn release(major: int, minor: int, patch: int) -> Version {
+  return { major: major, minor: minor, patch: patch, prerelease: [] }
+}
+
+@example format_version(release(1, 2, 3)) == "1.2.3"
+@example format_version({ major: 2, minor: 0, patch: 0, prerelease: ["rc", "1"] }) == "2.0.0-rc.1"
+fn format_version(v: Version) -> string {
+  let core = "${number.to_string(v.major)}.${number.to_string(v.minor)}.${number.to_string(v.patch)}"
+  // The separator is bound first because a string literal cannot appear inside
+  // a `${...}` interpolation (v1 lexer limit), and `string.join` needs one.
+  let dot = "."
+  let tag = string.join(v.prerelease, dot)
+  return match array.len(v.prerelease) == 0 {
+    true => core,
+    false => "${core}-${tag}",
+  }
+}
+
+@example is_digits("120") == true
+@example is_digits("1a") == false
+@example is_digits("") == false
+fn is_digits(text: string) -> bool {
+  match string.len(text) == 0 {
+    true => { return false },
+    false => {},
+  }
+  for i in array.range(string.len(text)) {
+    let c = text[i]
+    match c >= "0" && c <= "9" {
+      true => {},
+      false => { return false },
+    }
+  }
+  return true
+}
+
+fn digits_value(text: string) -> number {
+  return match number.parse(text) {
+    Ok(n) => n,
+    Err(_) => 0,
+  }
+}
+
+fn parse_component(text: string) -> Result<int, string> {
+  return match is_digits(text) {
+    true => Ok(digits_value(text)),
+    false => Err("\"${text}\" is not a whole number"),
+  }
+}
+
+@example parse_version("1.2.3") == Ok(release(1, 2, 3))
+@example parse_version("2.0.0-rc.1") == Ok({ major: 2, minor: 0, patch: 0, prerelease: ["rc", "1"] })
+@example parse_version("1.2") == Err("expected three dot-separated numbers, got \"1.2\"")
+@example parse_version("1.2.x") == Err("\"x\" is not a whole number")
+fn parse_version(text: string) -> Result<Version, string> {
+  let trimmed = string.trim(text)
+  let dash = string.index_of(trimmed, "-")
+  let core = match dash {
+    Some(i) => string.slice(trimmed, 0, i),
+    None => trimmed,
+  }
+  let tag = match dash {
+    Some(i) => string.slice(trimmed, i + 1),
+    None => "",
+  }
+  let parts = string.split(core, ".")
+  match array.len(parts) == 3 {
+    true => {},
+    false => { return Err("expected three dot-separated numbers, got \"${text}\"") },
+  }
+  let major = parse_component(parts[0])?
+  let minor = parse_component(parts[1])?
+  let patch = parse_component(parts[2])?
+  let identifiers = match tag == "" {
+    true => [],
+    false => string.split(tag, "."),
+  }
+  return Ok({ major: major, minor: minor, patch: patch, prerelease: identifiers })
+}
+
+fn cmp_number(a: number, b: number) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+fn cmp_text(a: string, b: string) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// One prerelease identifier against another: two numeric identifiers compare
+// numerically, a numeric identifier ranks below an alphanumeric one, and two
+// alphanumeric identifiers compare as text.
+fn compare_identifiers(a: string, b: string) -> number {
+  return match is_digits(a) {
+    true => match is_digits(b) {
+      true => cmp_number(digits_value(a), digits_value(b)),
+      false => -1,
+    },
+    false => match is_digits(b) {
+      true => 1,
+      false => cmp_text(a, b),
+    },
+  }
+}
+
+// A release outranks any prerelease of the same core version, and between two
+// prereleases the one with more identifiers wins when the shared prefix ties.
+fn compare_prerelease(a: Array<string>, b: Array<string>) -> number {
+  let na = array.len(a)
+  let nb = array.len(b)
+  match na == 0 && nb == 0 {
+    true => { return 0 },
+    false => {},
+  }
+  match na == 0 {
+    true => { return 1 },
+    false => {},
+  }
+  match nb == 0 {
+    true => { return -1 },
+    false => {},
+  }
+  let i = 0
+  loop {
+    match i >= na || i >= nb {
+      true => { break },
+      false => {},
+    }
+    let c = compare_identifiers(a[i], b[i])
+    match c == 0 {
+      true => {},
+      false => { return c },
+    }
+    mut i = i + 1
+  }
+  return cmp_number(na, nb)
+}
+
+// -1, 0, or 1 by semantic-version precedence.
+@example compare_versions(release(1, 2, 3), release(1, 10, 0)) == -1
+@example compare_versions(release(2, 0, 0), release(2, 0, 0)) == 0
+@example compare_versions(release(1, 0, 1), release(1, 0, 0)) == 1
+@example compare_versions(release(2, 0, 0), { major: 2, minor: 0, patch: 0, prerelease: ["rc", "1"] }) == 1
+@example compare_versions({ major: 1, minor: 0, patch: 0, prerelease: ["alpha"] }, { major: 1, minor: 0, patch: 0, prerelease: ["alpha", "1"] }) == -1
+@example compare_versions({ major: 1, minor: 0, patch: 0, prerelease: ["2"] }, { major: 1, minor: 0, patch: 0, prerelease: ["10"] }) == -1
+fn compare_versions(a: Version, b: Version) -> number {
+  let by_major = cmp_number(a.major, b.major)
+  match by_major == 0 {
+    true => {},
+    false => { return by_major },
+  }
+  let by_minor = cmp_number(a.minor, b.minor)
+  match by_minor == 0 {
+    true => {},
+    false => { return by_minor },
+  }
+  let by_patch = cmp_number(a.patch, b.patch)
+  match by_patch == 0 {
+    true => {},
+    false => { return by_patch },
+  }
+  return compare_prerelease(a.prerelease, b.prerelease)
+}
+
+// ---------------------------------------------------------------------------
+// Constraints
+// ---------------------------------------------------------------------------
+
+// Every form the fixtures may write. `Bounded` is the two-clause form
+// (`>=1.0.0 <2.0.0`); `Any` is `*` or an empty string.
+type Constraint =
+  | Exact({ version: Version })
+  | Caret({ base: Version })
+  | Tilde({ base: Version })
+  | AtLeast({ base: Version })
+  | Bounded({ lower: Version, upper: Version })
+  | Any
+
+@example format_constraint(Caret({ base: release(1, 2, 0) })) == "^1.2.0"
+@example format_constraint(Any) == "*"
+fn format_constraint(c: Constraint) -> string {
+  return match c {
+    Any => "*",
+    Exact({ version }) => format_version(version),
+    Caret({ base }) => "^${format_version(base)}",
+    Tilde({ base }) => "~${format_version(base)}",
+    AtLeast({ base }) => ">=${format_version(base)}",
+    Bounded({ lower, upper }) => ">=${format_version(lower)} <${format_version(upper)}",
+  }
+}
+
+fn parse_single(word: string) -> Result<Constraint, string> {
+  match string.starts_with(word, "^") {
+    true => { return Ok(Caret({ base: parse_version(string.slice(word, 1))? })) },
+    false => {},
+  }
+  match string.starts_with(word, "~") {
+    true => { return Ok(Tilde({ base: parse_version(string.slice(word, 1))? })) },
+    false => {},
+  }
+  match string.starts_with(word, ">=") {
+    true => { return Ok(AtLeast({ base: parse_version(string.slice(word, 2))? })) },
+    false => {},
+  }
+  return Ok(Exact({ version: parse_version(word)? }))
+}
+
+fn parse_bounded(low: string, high: string) -> Result<Constraint, string> {
+  match string.starts_with(low, ">=") {
+    true => {},
+    false => { return Err("a two-clause range starts with >=, got \"${low}\"") },
+  }
+  match string.starts_with(high, "<") && !string.starts_with(high, "<=") {
+    true => {},
+    false => { return Err("a two-clause range ends with <, got \"${high}\"") },
+  }
+  let lower = parse_version(string.slice(low, 2))?
+  let upper = parse_version(string.slice(high, 1))?
+  return Ok(Bounded({ lower: lower, upper: upper }))
+}
+
+@example parse_constraint("*") == Ok(Any)
+@example parse_constraint("^1.2.0") == Ok(Caret({ base: release(1, 2, 0) }))
+@example parse_constraint("~0.4.1") == Ok(Tilde({ base: release(0, 4, 1) }))
+@example parse_constraint(">=1.0.0") == Ok(AtLeast({ base: release(1, 0, 0) }))
+@example parse_constraint(">=1.0.0 <2.0.0") == Ok(Bounded({ lower: release(1, 0, 0), upper: release(2, 0, 0) }))
+@example parse_constraint("1.3.0") == Ok(Exact({ version: release(1, 3, 0) }))
+fn parse_constraint(text: string) -> Result<Constraint, string> {
+  let trimmed = string.trim(text)
+  match trimmed == "" || trimmed == "*" {
+    true => { return Ok(Any) },
+    false => {},
+  }
+  let words = array.filter(string.split(trimmed, " "), fn(w: string) -> bool { return w != "" })
+  return match array.len(words) {
+    1 => parse_single(words[0]),
+    2 => parse_bounded(words[0], words[1]),
+    else => Err("expected one or two clauses, got \"${text}\""),
+  }
+}
+
+// The version a constraint is anchored at, if it names one at all.
+fn constraint_anchor(c: Constraint) -> Option<Version> {
+  return match c {
+    Any => None,
+    Exact({ version }) => Some(version),
+    Caret({ base }) => Some(base),
+    Tilde({ base }) => Some(base),
+    AtLeast({ base }) => Some(base),
+    Bounded({ lower }) => Some(lower),
+  }
+}
+
+// `^1.2.0` allows 1.x, `^0.4.1` allows 0.4.x, `^0.0.3` allows only 0.0.3: below
+// 1.0.0 each leading zero shifts which component is the breaking one.
+fn caret_upper(base: Version) -> Version {
+  return match base.major > 0 {
+    true => release(base.major + 1, 0, 0),
+    false => match base.minor > 0 {
+      true => release(0, base.minor + 1, 0),
+      false => release(0, 0, base.patch + 1),
+    },
+  }
+}
+
+fn tilde_upper(base: Version) -> Version {
+  return release(base.major, base.minor + 1, 0)
+}
+
+// A prerelease is never picked up by a range that did not ask for one. Without
+// this, `2.0.0-rc.1` sneaks past `^1.2.0` (it does sort below `2.0.0`) and a
+// resolver quietly installs a release candidate.
+fn prerelease_allowed(v: Version, c: Constraint) -> bool {
+  match array.len(v.prerelease) == 0 {
+    true => { return true },
+    false => {},
+  }
+  return match constraint_anchor(c) {
+    None => false,
+    Some(anchor) => array.len(anchor.prerelease) > 0
+      && anchor.major == v.major
+      && anchor.minor == v.minor
+      && anchor.patch == v.patch,
+  }
+}
+
+@example satisfies(release(1, 9, 0), Caret({ base: release(1, 2, 0) })) == true
+@example satisfies(release(1, 1, 0), Caret({ base: release(1, 2, 0) })) == false
+@example satisfies(release(2, 0, 0), Caret({ base: release(1, 2, 0) })) == false
+@example satisfies(release(0, 4, 9), Tilde({ base: release(0, 4, 1) })) == true
+@example satisfies(release(0, 5, 0), Tilde({ base: release(0, 4, 1) })) == false
+@example satisfies(release(1, 3, 0), Exact({ version: release(1, 3, 0) })) == true
+@example satisfies(release(1, 3, 1), Exact({ version: release(1, 3, 0) })) == false
+@example satisfies(release(1, 5, 0), Bounded({ lower: release(1, 0, 0), upper: release(2, 0, 0) })) == true
+@example satisfies(release(2, 0, 0), Bounded({ lower: release(1, 0, 0), upper: release(2, 0, 0) })) == false
+@example satisfies(release(9, 9, 9), Any) == true
+@example satisfies({ major: 2, minor: 0, patch: 0, prerelease: ["rc", "1"] }, Caret({ base: release(1, 2, 0) })) == false
+@example satisfies({ major: 2, minor: 0, patch: 0, prerelease: ["rc", "1"] }, AtLeast({ base: { major: 2, minor: 0, patch: 0, prerelease: ["rc", "1"] } })) == true
+fn satisfies(v: Version, c: Constraint) -> bool {
+  match prerelease_allowed(v, c) {
+    true => {},
+    false => { return false },
+  }
+  return match c {
+    Any => true,
+    Exact({ version }) => compare_versions(v, version) == 0,
+    Caret({ base }) => compare_versions(v, base) >= 0 && compare_versions(v, caret_upper(base)) < 0,
+    Tilde({ base }) => compare_versions(v, base) >= 0 && compare_versions(v, tilde_upper(base)) < 0,
+    AtLeast({ base }) => compare_versions(v, base) >= 0,
+    Bounded({ lower, upper }) => compare_versions(v, lower) >= 0 && compare_versions(v, upper) < 0,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The registry, indexed
+// ---------------------------------------------------------------------------
+
+// One edge as published: the name asked for, the text that asked, and the text
+// parsed. The text is kept so a diagnostic can quote the fixture verbatim.
+type Dependency = { name: string, text: string, constraint: Constraint }
+
+type Release = { version: Version, dependencies: Array<Dependency> }
+
+// Package name -> its published releases, highest precedence first.
+type Registry = Record<string, Array<Release>>
+
+fn dep_name(d: Dependency) -> string {
+  return d.name
+}
+
+fn read_dependencies(owner: string, table: Record<string, string>) -> Result<Array<Dependency>, ResolveError> {
+  let out: Array<Dependency> = []
+  for name in array.sort(record.keys(table), cmp_text) {
+    let text = match record.get(table, name) {
+      Some(t) => t,
+      None => "",
+    }
+    let parsed = match parse_constraint(text) {
+      Ok(c) => c,
+      Err(reason) => {
+        return Err(MalformedConstraint({ owner: owner, name: name, text: text, reason: reason }))
+      },
+    }
+    mut out = array.push(out, { name: name, text: text, constraint: parsed })
+  }
+  return Ok(out)
+}
+
+fn build_registry(file: RegistryFile) -> Result<Registry, ResolveError> {
+  let out: Registry = {}
+  for spec in file.packages {
+    let releases: Array<Release> = []
+    for entry in spec.versions {
+      let v = match parse_version(entry.version) {
+        Ok(parsed) => parsed,
+        Err(reason) => {
+          return Err(MalformedVersion({ owner: spec.name, text: entry.version, reason: reason }))
+        },
+      }
+      let deps = read_dependencies("${spec.name}@${entry.version}", entry.dependencies)?
+      mut releases = array.push(releases, { version: v, dependencies: deps })
+    }
+    mut out[spec.name] = array.sort(
+      releases,
+      fn(a: Release, b: Release) -> number { return compare_versions(b.version, a.version) },
+    )
+  }
+  return Ok(out)
+}
+
+fn find_release(reg: Registry, name: string, v: Version) -> Option<Release> {
+  return match record.get(reg, name) {
+    None => None,
+    Some(releases) => array.find(
+      releases,
+      fn(r: Release) -> bool { return compare_versions(r.version, v) == 0 },
+    ),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Failure
+// ---------------------------------------------------------------------------
+
+// One constraint on one package, and who asked for it.
+type Imposed = { by: string, text: string, constraint: Constraint }
+
+// Every way resolution fails. The three resolution failures carry `path`, the
+// chain of `name@version` labels that reached the requirement, so a report can
+// say how the program got there and not only what went wrong.
+type ResolveError =
+  | UnknownPackage({ name: string, requested_by: string, path: Array<string> })
+  | NoSatisfyingVersion({
+    name: string,
+    imposed: Array<Imposed>,
+    available: Array<string>,
+    path: Array<string>,
+  })
+  | DependencyCycle({ cycle: Array<string>, path: Array<string> })
+  | MalformedVersion({ owner: string, text: string, reason: string })
+  | MalformedConstraint({ owner: string, name: string, text: string, reason: string })
+
+// ---------------------------------------------------------------------------
+// Resolution
+// ---------------------------------------------------------------------------
+
+// One thing still to satisfy: `name` must accept `constraint`, `by` asked for
+// it, and `path` is how the resolver arrived at `by`.
+type Requirement = {
+  name: string,
+  text: string,
+  constraint: Constraint,
+  by: string,
+  path: Array<string>,
+}
+
+// The search state, carried by value so a failed branch is discarded simply by
+// returning from it. `reached` remembers the path that first pulled a package
+// in, which is what `why` prints.
+type Resolution = {
+  chosen: Record<string, Version>,
+  gathered: Record<string, Array<Imposed>>,
+  reached: Record<string, Array<string>>,
+}
+
+fn imposed_for(gathered: Record<string, Array<Imposed>>, name: string) -> Array<Imposed> {
+  return match record.get(gathered, name) {
+    Some(all) => all,
+    None => [],
+  }
+}
+
+fn satisfies_all(v: Version, imposed: Array<Imposed>) -> bool {
+  return array.fold(
+    imposed,
+    true,
+    fn(acc: bool, one: Imposed) -> bool { return acc && satisfies(v, one.constraint) },
+  )
+}
+
+// Try each candidate in precedence order. A candidate fails when the subtree
+// under it cannot be resolved, and the next one down is tried; `last` carries
+// the most recent failure so an exhausted list reports something specific
+// rather than "no candidate worked".
+fn try_candidates(
+  reg: Registry,
+  req: Requirement,
+  candidates: Array<Release>,
+  index: number,
+  rest: Array<Requirement>,
+  state: Resolution,
+  last: ResolveError,
+) -> Result<Resolution, ResolveError> {
+  match index >= array.len(candidates) {
+    true => { return Err(last) },
+    false => {},
+  }
+  let pick = candidates[index]
+  let label = "${req.name}@${format_version(pick.version)}"
+  let next_path = array.push(req.path, label)
+  let attempt = {
+    chosen: record.set(state.chosen, req.name, pick.version),
+    gathered: state.gathered,
+    reached: record.set(state.reached, req.name, req.path),
+  }
+  let extra = array.map(
+    pick.dependencies,
+    fn(d: Dependency) -> Requirement {
+      return { name: d.name, text: d.text, constraint: d.constraint, by: label, path: next_path }
+    },
+  )
+  return match solve(reg, array.concat(rest, extra), attempt) {
+    Ok(done) => Ok(done),
+    Err(e) => try_candidates(reg, req, candidates, index + 1, rest, state, e),
+  }
+}
+
+// Depth-first with backtracking. The head of `pending` is satisfied first; its
+// constraint joins everything already gathered for that package, so a package
+// chosen earlier is re-checked against the new constraint and, when it no
+// longer fits, the failure travels back to whichever frame chose it.
+fn solve(reg: Registry, pending: Array<Requirement>, state: Resolution) -> Result<Resolution, ResolveError> {
+  match array.len(pending) == 0 {
+    true => { return Ok(state) },
+    false => {},
+  }
+  let req = pending[0]
+  let rest: Array<Requirement> = array.slice(pending, 1)
+  let all = array.push(
+    imposed_for(state.gathered, req.name),
+    { by: req.by, text: req.text, constraint: req.constraint },
+  )
+  let next = {
+    chosen: state.chosen,
+    gathered: record.set(state.gathered, req.name, all),
+    reached: state.reached,
+  }
+  let releases = match record.get(reg, req.name) {
+    Some(rs) => rs,
+    None => { return Err(UnknownPackage({ name: req.name, requested_by: req.by, path: req.path })) },
+  }
+  let stuck = NoSatisfyingVersion(
+    {
+      name: req.name,
+      imposed: all,
+      available: array.map(releases, fn(r: Release) -> string { return format_version(r.version) }),
+      path: req.path,
+    },
+  )
+  return match record.get(state.chosen, req.name) {
+    Some(picked) => match satisfies_all(picked, all) {
+      true => solve(reg, rest, next),
+      false => Err(stuck),
+    },
+    None => {
+      let candidates = array.filter(
+        releases,
+        fn(r: Release) -> bool { return satisfies_all(r.version, all) },
+      )
+      try_candidates(reg, req, candidates, 0, rest, next, stuck)
+    },
+  }
+}
+
+fn resolve(reg: Registry, root: ManifestFile) -> Result<Resolution, ResolveError> {
+  let label = "${root.name}@${root.version}"
+  let deps = read_dependencies(label, root.dependencies)?
+  let reqs = array.map(
+    deps,
+    fn(d: Dependency) -> Requirement {
+      return { name: d.name, text: d.text, constraint: d.constraint, by: label, path: [label] }
+    },
+  )
+  let empty: Resolution = { chosen: {}, gathered: {}, reached: {} }
+  return solve(reg, reqs, empty)
+}
+
+// ---------------------------------------------------------------------------
+// The resolved graph
+// ---------------------------------------------------------------------------
+
+// Ordering is a question about names and edges only, so it does not carry the
+// versions: a cycle and an install order are the same shape whatever is
+// installed.
+type GraphNode = { name: string, deps: Array<string> }
+
+fn deps_of(nodes: Array<GraphNode>, name: string) -> Array<string> {
+  return match array.find(nodes, fn(n: GraphNode) -> bool { return n.name == name }) {
+    Some(n) => n.deps,
+    None => [],
+  }
+}
+
+fn is_known(nodes: Array<GraphNode>, name: string) -> bool {
+  return array.any(nodes, fn(n: GraphNode) -> bool { return n.name == name })
+}
+
+// Walk the remaining nodes until a name repeats: whatever is left after Kahn's
+// algorithm stalls is exactly the part of the graph that cannot be ordered.
+fn extract_cycle(nodes: Array<GraphNode>, remaining: Array<string>) -> Array<string> {
+  let walk: Array<string> = []
+  let current = remaining[0]
+  loop {
+    match array.contains(walk, current) {
+      true => { break },
+      false => {},
+    }
+    mut walk = array.push(walk, current)
+    let onward = array.find(
+      array.sort(deps_of(nodes, current), cmp_text),
+      fn(d: string) -> bool { return array.contains(remaining, d) },
+    )
+    match onward {
+      Some(d) => { mut current = d },
+      None => { break },
+    }
+  }
+  let start = match array.index_of(walk, current) {
+    Some(i) => i,
+    None => 0,
+  }
+  let cycle: Array<string> = array.slice(walk, start)
+  return cycle
+}
+
+// Dependencies first, alphabetical among everything that is ready, so the order
+// is the same on every run. `Err` carries the cycle that stopped it.
+@example install_order([{ name: "a", deps: ["b"] }, { name: "b", deps: [] }]) == Ok(["b", "a"])
+@example install_order([{ name: "z", deps: [] }, { name: "a", deps: [] }]) == Ok(["a", "z"])
+@example install_order([{ name: "a", deps: ["b"] }, { name: "b", deps: ["a"] }]) == Err(["a", "b"])
+@example install_order([{ name: "app", deps: ["x", "y"] }, { name: "x", deps: ["y"] }, { name: "y", deps: [] }]) == Ok(["y", "x", "app"])
+fn install_order(nodes: Array<GraphNode>) -> Result<Array<string>, Array<string>> {
+  let installed: Array<string> = []
+  let remaining = array.sort(
+    array.map(nodes, fn(n: GraphNode) -> string { return n.name }),
+    cmp_text,
+  )
+  loop {
+    match array.len(remaining) == 0 {
+      true => { break },
+      false => {},
+    }
+    let ready = array.find(
+      remaining,
+      fn(name: string) -> bool {
+        return array.fold(
+          deps_of(nodes, name),
+          true,
+          fn(acc: bool, d: string) -> bool {
+            return acc && (array.contains(installed, d) || !is_known(nodes, d))
+          },
+        )
+      },
+    )
+    match ready {
+      None => { return Err(extract_cycle(nodes, remaining)) },
+      Some(name) => {
+        mut installed = array.push(installed, name)
+        mut remaining = array.filter(remaining, fn(other: string) -> bool { return other != name })
+      },
+    }
+  }
+  return Ok(installed)
+}
+
+// The resolved graph: the root plus every chosen package, each with the names
+// its chosen version depends on.
+fn resolved_nodes(reg: Registry, root: ManifestFile, res: Resolution) -> Result<Array<GraphNode>, ResolveError> {
+  let root_label = "${root.name}@${root.version}"
+  let root_deps = read_dependencies(root_label, root.dependencies)?
+  let nodes: Array<GraphNode> = []
+  mut nodes = array.push(nodes, { name: root.name, deps: array.map(root_deps, dep_name) })
+  // Sorted keys and then a lookup per key, because a record has no sorted
+  // key/value walk: the `None` arm below can never run (the key came out of
+  // `record.keys`) but a value still has to be written for it.
+  for name in array.sort(record.keys(res.chosen), cmp_text) {
+    let picked = match record.get(res.chosen, name) {
+      Some(v) => v,
+      None => release(0, 0, 0),
+    }
+    let edges = match find_release(reg, name, picked) {
+      Some(r) => array.map(r.dependencies, dep_name),
+      None => [],
+    }
+    mut nodes = array.push(nodes, { name: name, deps: edges })
+  }
+  return Ok(nodes)
+}
+
+// ---------------------------------------------------------------------------
+// Reporting
+// ---------------------------------------------------------------------------
+
+// One level of indentation, as a name rather than a literal, because a literal
+// cannot be written inside a `${...}` interpolation.
+const STEP = "  "
+
+fn label_of(root: ManifestFile, res: Resolution, name: string) -> string {
+  return match name == root.name {
+    true => "${root.name}@${root.version}",
+    false => match record.get(res.chosen, name) {
+      Some(v) => "${name}@${format_version(v)}",
+      None => "${name}@?",
+    },
+  }
+}
+
+// The lockfile: every resolved package on its own line, followed by the edges
+// it resolved to, so a reader can reconstruct the graph from the file alone.
+fn lockfile_lines(root: ManifestFile, res: Resolution, nodes: Array<GraphNode>) -> Array<string> {
+  let out: Array<string> = []
+  mut out = array.push(out, "# depsolve lockfile for ${root.name}@${root.version}")
+  for node in array.sort(
+    nodes,
+    fn(a: GraphNode, b: GraphNode) -> number { return cmp_text(a.name, b.name) },
+  ) {
+    mut out = array.push(out, label_of(root, res, node.name))
+    for edge in array.sort(node.deps, cmp_text) {
+      mut out = array.push(out, "  -> ${label_of(root, res, edge)}")
+    }
+  }
+  return out
+}
+
+fn tree_lines(
+  root: ManifestFile,
+  res: Resolution,
+  nodes: Array<GraphNode>,
+  name: string,
+  depth: number,
+  seen: set.Set<string>,
+  stack: Array<string>,
+) -> Array<string> {
+  let indent = string.repeat(STEP, depth)
+  let label = label_of(root, res, name)
+  match array.contains(stack, name) {
+    true => { return ["${indent}${label} (cycle)"] },
+    false => {},
+  }
+  match seen.has(name) && array.len(deps_of(nodes, name)) > 0 {
+    true => { return ["${indent}${label} (*)"] },
+    false => {},
+  }
+  seen.add(name)
+  let out: Array<string> = []
+  mut out = array.push(out, "${indent}${label}")
+  for edge in array.sort(deps_of(nodes, name), cmp_text) {
+    for line in tree_lines(root, res, nodes, edge, depth + 1, seen, array.push(stack, name)) {
+      mut out = array.push(out, line)
+    }
+  }
+  return out
+}
+
+fn why_lines(root: ManifestFile, res: Resolution, name: string) -> Array<string> {
+  match record.get(res.chosen, name) {
+    None => { return ["${name} is not in the resolved tree"] },
+    Some(_) => {},
+  }
+  let path = match record.get(res.reached, name) {
+    Some(p) => p,
+    None => [],
+  }
+  let out: Array<string> = []
+  mut out = array.push(out, "${label_of(root, res, name)} is here because:")
+  for i, hop in path {
+    let indent = string.repeat(STEP, i + 1)
+    mut out = array.push(out, "${indent}${hop}")
+  }
+  let asked_by = match array.len(path) == 0 {
+    true => "",
+    false => path[array.len(path) - 1],
+  }
+  let reason = array.find(
+    imposed_for(res.gathered, name),
+    fn(one: Imposed) -> bool { return one.by == asked_by },
+  )
+  let tail = match reason {
+    Some(one) => "${label_of(root, res, name)}  (asked for ${one.text})",
+    None => label_of(root, res, name),
+  }
+  let last_indent = string.repeat(STEP, array.len(path) + 1)
+  mut out = array.push(out, "${last_indent}${tail}")
+  return out
+}
+
+fn explain_lines(root: ManifestFile, res: Resolution) -> Array<string> {
+  let out: Array<string> = []
+  mut out = array.push(out, "constraints gathered per package")
+  for name in array.sort(record.keys(res.gathered), cmp_text) {
+    mut out = array.push(out, "${name} -> ${label_of(root, res, name)}")
+    for one in imposed_for(res.gathered, name) {
+      mut out = array.push(
+        out,
+        "  ${string.pad_end(format_constraint(one.constraint), 16)} from ${one.by}",
+      )
+    }
+  }
+  return out
+}
+
+fn path_lines(path: Array<string>) -> Array<string> {
+  let out: Array<string> = []
+  for i, hop in path {
+    let indent = string.repeat(STEP, i)
+    mut out = array.push(out, "  ${indent}${hop}")
+  }
+  return out
+}
+
+fn error_lines(e: ResolveError) -> Array<string> {
+  return match e {
+    UnknownPackage({ name, requested_by, path }) => {
+      let head = [
+        "cannot resolve: no package named \"${name}\" in the registry",
+        "  ${requested_by} asked for it, reached by:",
+      ]
+      array.concat(head, path_lines(path))
+    },
+    NoSatisfyingVersion({ name, imposed, available, path }) => {
+      let head: Array<string> = [
+        "cannot resolve: no published version of \"${name}\" satisfies every constraint on it",
+      ]
+      let asks = array.map(
+        imposed,
+        fn(one: Imposed) -> string { return "  ${string.pad_end(one.text, 16)} imposed by ${one.by}" },
+      )
+      let published = string.join(available, ", ")
+      let stock = ["  published: ${published}", "  reached by:"]
+      array.concat(array.concat(array.concat(head, asks), stock), path_lines(path))
+    },
+    DependencyCycle({ cycle, path }) => {
+      let arrow = " -> "
+      let loop_text = string.join(array.push(cycle, cycle[0]), arrow)
+      let head = [
+        "cannot resolve: the dependency graph has a cycle",
+        "  ${loop_text}",
+        "  reached by:",
+      ]
+      array.concat(head, path_lines(path))
+    },
+    MalformedVersion({ owner, text, reason }) => {
+      [
+        "cannot read the registry: ${owner} publishes \"${text}\", which is not a version",
+        "  ${reason}",
+      ]
+    },
+    MalformedConstraint({ owner, name, text, reason }) => {
+      [
+        "cannot read a dependency: ${owner} requires ${name} \"${text}\", which is not a constraint",
+        "  ${reason}",
+      ]
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+type LoadError =
+  | Unreadable({ path: string, message: string })
+  | Invalid({ path: string, issues: Array<Issue> })
+
+fn load_error_lines(e: LoadError) -> Array<string> {
+  return match e {
+    Unreadable({ path, message }) => ["cannot read ${path}: ${message}"],
+    Invalid({ path, issues }) => {
+      let head = ["${path} does not match the fixture shape:"]
+      let detail = array.map(
+        issues,
+        fn(i: Issue) -> string {
+          let at = string.from(i.path)
+          return "  ${at}: ${i.message}"
+        },
+      )
+      array.concat(head, detail)
+    },
+  }
+}
+
+fn read_json(p: string) -> Result<unknown, LoadError> {
+  let text = match fs.read_text(p) {
+    Ok(t) => t,
+    Err(e) => { return Err(Unreadable({ path: p, message: e.message })) },
+  }
+  return match json.parse<unknown>(text) {
+    Ok(v) => Ok(v),
+    Err(issues) => Err(Invalid({ path: p, issues: issues })),
+  }
+}
+
+// The fixtures cross the boundary here and nowhere else. The descriptors come
+// from `wire`, so this module never restates the shape it is validating.
+fn load_manifest(p: string) -> Result<ManifestFile, LoadError> {
+  let decoded = read_json(p)?
+  return match ManifestFile.parse(decoded) {
+    Ok(m) => Ok(m),
+    Err(issues) => Err(Invalid({ path: p, issues: issues })),
+  }
+}
+
+fn load_registry(p: string) -> Result<RegistryFile, LoadError> {
+  let decoded = read_json(p)?
+  return match RegistryFile.parse(decoded) {
+    Ok(r) => Ok(r),
+    Err(issues) => Err(Invalid({ path: p, issues: issues })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DIR = "examples/apps/depsolve"
+
+const DEFAULT_MANIFEST = "app.json"
+
+const USAGE = "usage: depsolve [--dir DIR] [--manifest FILE] [resolve | why PKG | explain]"
+
+type Command =
+  | Resolve
+  | Why({ name: string })
+  | Explain
+
+type Args = { dir: string, manifest: string, command: Command }
+
+fn parse_command(positional: Array<string>) -> Result<Command, string> {
+  return match array.len(positional) {
+    0 => Ok(Resolve),
+    1 => match positional[0] {
+      "resolve" => Ok(Resolve),
+      "explain" => Ok(Explain),
+      "why" => Err("why expects a package name"),
+      else => Err("unknown command \"${positional[0]}\""),
+    },
+    2 => match positional[0] {
+      "why" => Ok(Why({ name: positional[1] })),
+      else => Err("unknown command \"${positional[0]}\""),
+    },
+    else => Err(USAGE),
+  }
+}
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let dir = DEFAULT_DIR
+  let file = DEFAULT_MANIFEST
+  let positional: Array<string> = []
+  let i = 0
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg == "--dir" || arg == "--manifest" {
+      true => {
+        match i + 1 >= array.len(argv) {
+          true => { return Err("${arg} expects a value") },
+          false => {},
+        }
+        match arg == "--dir" {
+          true => { mut dir = argv[i + 1] },
+          false => { mut file = argv[i + 1] },
+        }
+        mut i = i + 2
+      },
+      false => {
+        mut positional = array.push(positional, arg)
+        mut i = i + 1
+      },
+    }
+  }
+  let command = parse_command(positional)?
+  return Ok({ dir: dir, manifest: file, command: command })
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn report(lines: Array<string>) -> void {
+  for line in lines {
+    io.eprintln(line)
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      io.eprintln(USAGE)
+      return 2
+    },
+  }
+
+  let root = match load_manifest(path.join([args.dir, args.manifest])) {
+    Ok(m) => m,
+    Err(e) => {
+      report(load_error_lines(e))
+      return 1
+    },
+  }
+
+  let registry_file = match load_registry(path.join([args.dir, "registry.json"])) {
+    Ok(r) => r,
+    Err(e) => {
+      report(load_error_lines(e))
+      return 1
+    },
+  }
+
+  let reg = match build_registry(registry_file) {
+    Ok(r) => r,
+    Err(e) => {
+      report(error_lines(e))
+      return 1
+    },
+  }
+
+  let res = match resolve(reg, root) {
+    Ok(r) => r,
+    Err(e) => {
+      report(error_lines(e))
+      return 1
+    },
+  }
+
+  let nodes = match resolved_nodes(reg, root, res) {
+    Ok(n) => n,
+    Err(e) => {
+      report(error_lines(e))
+      return 1
+    },
+  }
+
+  let order = match install_order(nodes) {
+    Ok(o) => o,
+    Err(cycle) => {
+      let path = match record.get(res.reached, cycle[0]) {
+        Some(p) => p,
+        None => ["${root.name}@${root.version}"],
+      }
+      report(error_lines(DependencyCycle({ cycle: cycle, path: path })))
+      return 1
+    },
+  }
+
+  return match args.command {
+    Explain => {
+      for line in explain_lines(root, res) {
+        io.println(line)
+      }
+      0
+    },
+    Why({ name }) => {
+      for line in why_lines(root, res, name) {
+        io.println(line)
+      }
+      0
+    },
+    Resolve => {
+      for line in lockfile_lines(root, res, nodes) {
+        io.println(line)
+      }
+      io.println("")
+      io.println("# dependency tree")
+      let seen = set.create<string>()
+      for line in tree_lines(root, res, nodes, root.name, 0, seen, []) {
+        io.println(line)
+      }
+      io.println("")
+      io.println("# install order")
+      for i, name in order {
+        io.println("  ${number.to_string(i + 1)}. ${label_of(root, res, name)}")
+      }
+      0
+    },
+  }
+}

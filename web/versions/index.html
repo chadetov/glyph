@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.54</span>
+            <span class="rel-ver">0.1.55</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A loop index that was a string</h3>
+            <p>Read a <code>Record</code>, <code>match</code> the <code>Option</code> it hands back, walk the array inside it with an index. Three ordinary things, and the chain miscompiled: the two-binding <code>for</code> took the record lowering, so the index bound the string key <code>"0"</code> instead of the number <code>0</code>, and the program printed <code>01:x</code> where it should print <code>1:x</code>. No diagnostics, and <code>tsc --strict</code> passed. This came out of writing a dependency resolver, where the fix for it had been a <code>let path: Array&lt;string&gt;</code> annotation with a comment saying the annotation was load-bearing.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>std/record</code> is modeled in the checker. All six of <code>get</code>, <code>has</code>, <code>keys</code>, <code>values</code>, <code>set</code> and <code>remove</code> carry their return type, and the value type is read off the record you pass, so <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code> and the <code>Some(p)</code> arm binds an <code>Array&lt;string&gt;</code>. It was the last of the three core modules with no types at all: <code>record.get</code> used to be <code>Unknown</code>, which meant everything downstream of it was too. The ordered walk gets it as well, since <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code> and <code>array.sort(record.keys(t), cmp)</code> now keeps its element type.</li>
+              <li><span class="tag fixed">Fixed</span> An empty array arm no longer sinks the <code>match</code>. The arm join compared types by equality, and <code>[]</code> is an <code>Array&lt;Unknown&gt;</code>, so <code>None =&gt; []</code> read as disagreeing with an <code>Array&lt;string&gt;</code> arm and left the whole expression untyped. The join now goes one level in: with the same head and the same arity, arguments join pairwise and <code>Unknown</code> takes the other side, so those two arms agree on <code>Array</code> and the loop after them binds a number.</li>
+              <li><span class="tag known">Known</span> Two arms with different heads still join to unknown, and so does a <code>match</code> where one arm's type is undecidable. Projecting a known arm's type onto an arm nothing is known about would be a guess, and this join decides how a <code>for</code> lowers, so a guess there is a wrong program rather than a missing hint.</li>
+              <li><span class="tag known">Known</span> An iterand whose type is honestly unknown, such as a call into one of the nine stdlib functions still outside the modeled table, keeps the record lowering and binds a string index. Annotate it <code>Array&lt;T&gt;</code>. Whether that case should be an error instead is an open call.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.54</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

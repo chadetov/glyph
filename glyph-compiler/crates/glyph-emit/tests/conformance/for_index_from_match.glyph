@@ -1,0 +1,40 @@
+// D21 two-binding `for`: over an array it is `xs.entries()` (a numeric index);
+// over a record it is `Object.entries(r)` (a string key). The choice is a real
+// semantic difference with no `tsc` backstop, so it is pinned here for the two
+// shapes that used to fall through to the record form on a fully green build:
+// a `match` over `record.get` (std/record was unmodeled) and a `match` whose
+// other arm is an empty array literal (`Array<Unknown>` disagreed with
+// `Array<string>` under an equality-only arm join).
+module x
+
+import std/io
+import std/record
+
+pub fn from_record(t: Record<string, Array<string>>, k: string) -> void {
+  let path = match record.get(t, k) {
+    Some(p) => p,
+    None => ["z",],
+  }
+  for i, hop in path {
+    io.println("${i + 1}:${hop}")
+  }
+  return void
+}
+
+pub fn from_empty_literal(o: Option<Array<string>>) -> void {
+  let path = match o {
+    Some(p) => p,
+    None => [],
+  }
+  for i, hop in path {
+    io.println("${i + 1}:${hop}")
+  }
+  return void
+}
+
+pub fn over_a_record(r: Record<string, number>) -> void {
+  for k, v in r {
+    io.println("${k}=${v}")
+  }
+  return void
+}

@@ -3723,6 +3723,90 @@ fn array_fold_index_of_and_flat_map() {
 }
 
 #[test]
+fn a_two_binding_for_over_a_match_result_binds_a_numeric_index() {
+    // G37: `record.get` -> `match` -> two-binding `for` took the record
+    // (`Object.entries`) lowering, so `i` bound the string `"0"` and the loop
+    // printed `01:x` / `11:y` on a build that reported no diagnostics and
+    // passed `tsc --strict`. Two independent causes, both needed: `std/record`
+    // was unmodeled, so the scrutinee was `Unknown`; and the arm join treated
+    // the `None => []` arm's `Array<Unknown>` as disagreeing with the other
+    // arm's `Array<string>`. This runs the shape, because the whole point is
+    // that the emitted TypeScript type-checks either way.
+    if !js_toolchain_available() {
+        eprintln!("skipping for-index run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("foridx");
+    let prog = "module main\n\
+         import std/record\n\
+         import std/string\n\
+         \n\
+         fn from_record(t: Record<string, Array<string>>, k: string) -> string {\n\
+         \x20 let path = match record.get(t, k) {\n\
+         \x20\x20\x20 Some(p) => p,\n\
+         \x20\x20\x20 None => [\"z\",],\n\
+         \x20 }\n\
+         \x20 let out: Array<string> = []\n\
+         \x20 for i, hop in path {\n\
+         \x20\x20\x20 mut out.push(\"${i + 1}:${hop}\")\n\
+         \x20 }\n\
+         \x20 return string.join(out, \"|\")\n\
+         }\n\
+         \n\
+         fn from_empty_literal(o: Option<Array<string>>) -> string {\n\
+         \x20 let path = match o {\n\
+         \x20\x20\x20 Some(p) => p,\n\
+         \x20\x20\x20 None => [],\n\
+         \x20 }\n\
+         \x20 let out: Array<string> = []\n\
+         \x20 for i, hop in path {\n\
+         \x20\x20\x20 mut out.push(\"${i + 1}:${hop}\")\n\
+         \x20 }\n\
+         \x20 return string.join(out, \"|\")\n\
+         }\n\
+         \n\
+         fn main(argv: Array<string>) -> number {\n\
+         \x20 let t: Record<string, Array<string>> = { \"a\": [\"x\", \"y\",], }\n\
+         \x20 return match from_record(t, \"a\") == \"1:x|2:y\" {\n\
+         \x20\x20\x20 false => 1,\n\
+         \x20\x20\x20 true => match from_empty_literal(Some([\"x\", \"y\",])) == \"1:x|2:y\" {\n\
+         \x20\x20\x20\x20\x20 false => 2,\n\
+         \x20\x20\x20\x20\x20 true => 0,\n\
+         \x20\x20\x20 },\n\
+         \x20 }\n\
+         }\n";
+    write_file(&root, "foridx.glyph", prog);
+    let file_glyph = root.join("foridx.glyph");
+    match glyph_cli::run::run_file(&file_glyph, &[], false, false)
+        .expect("run_file ok")
+        .outcome
+    {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(
+                code, 0,
+                "1 = the record.get shape kept the string-key lowering; \
+                 2 = the empty-array-literal arm did"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping for-index run: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("unexpected build failure: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("unexpected type-check failure: {msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports } => {
+            panic!("program has a main; got NoMain: {exports:?}");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            unreachable!("run was --no-check");
+        }
+    }
+}
+
+#[test]
 fn array_range_and_range_from_drive_counted_loops() {
     // G30: Glyph has no `..` and no `while`, so every counted loop used to be a
     // hand-rolled `upto(n)` built from `loop`/`break`. `range`/`range_from` are

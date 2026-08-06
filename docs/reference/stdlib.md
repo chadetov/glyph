@@ -242,6 +242,13 @@ record.set<V>(r, key: string, value: V) -> Record<string, V>
 record.remove<V>(r, key: string) -> Record<string, V>
 ```
 
+All six are modeled in the checker, and `V` is read off the record you pass. So
+`record.get(t, k)` over a `Record<string, Array<string>>` is an
+`Option<Array<string>>`, the `Some(p)` arm of a `match` over it binds an
+`Array<string>`, and `for i, hop in p` binds `i` as a number without an
+annotation. `record.keys(t)` is an `Array<string>`, which is what lets
+`array.sort(record.keys(t), cmp)` keep its element type.
+
 ## std/time
 
 Two import lines, and they buy different names:

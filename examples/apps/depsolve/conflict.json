@@ -1,0 +1,9 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "dependencies": {
+    "web": "^1.2.0",
+    "cli": "~0.4.1",
+    "log": "1.0.0"
+  }
+}

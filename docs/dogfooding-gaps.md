@@ -22,11 +22,18 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the spreadsheet trip, which added eight
-entries (G63–G70) and closed half of two of them with `E0110` and `E0111`: of 70
-entries, 47 are fixed, 11 are partly fixed, 5 are decided or resolved, and 7 are
-open. Six of the seven open ones are new, so the backlog grew for the first time
-in several rounds. That is what a trip into a domain the earlier apps never
+Reconciled against the source after the dependency-resolver trip, which added two
+entries and closed one of them in the same release: of 72 entries, 48 are fixed,
+11 are partly fixed, 5 are decided or resolved, and 8 are open. G71 is the
+`record.get` into `match` into `for` miscompile, fixed by modeling `std/record`
+and by joining `match` arms one level into their type arguments. G72 is open and
+is a `glyph check` scoping behaviour that predates the trip.
+
+The reconciliation before it, after the spreadsheet trip, which added eight
+entries (G63–G70) and closed half of two of them with `E0110` and `E0111`, read
+70 entries, 47 fixed, 11 partly fixed, 5 decided or resolved, and 7 open. Six of
+the seven open ones were new, so the backlog grew for the first time in several
+rounds. That is what a trip into a domain the earlier apps never
 touched does: a spreadsheet wants a value union spelled `Number | Text | Empty |
 Error`, and every name in it is a name the emitted module already owns. The two
 halves that shipped are the silent ones, `E0110` for a top-level declaration that
@@ -881,6 +888,33 @@ workaround for the first and is still open.
   comment was narrowed from "the type of a std-module call" to `array.slice`
   specifically. `shortlink.glyph:348` keeps its annotation for the same reason
   (`array.map`).
+
+  *Two more holes in the same lattice, found by a dependency resolver.* The
+  chain `record.get` into a `match` into a two-binding `for` printed `01:x` and
+  `11:y` where it should print `1:x` and `2:y`, on a build with no diagnostics
+  that `tsc --strict` passed. There were two independent causes and each one
+  reproduced the bug on its own. First, `std/record` was not in `stdlib_fn_ty`
+  at all (the string `"std/record"` did not appear anywhere in
+  `glyph-typechecker/src`), so `record.get(t, k)` typed `Unknown`, the `Some(p)`
+  arm bound nothing, and the arm join never got as far as comparing anything.
+  Second, `join_match_arms` compared arm types by equality, and an empty array
+  literal is `Array<Unknown>` (`infer_array_elem_ty`), so `None => []` was read
+  as disagreeing with `Some(p) => p`'s `Array<string>` and sank the whole match
+  to `Unknown`.
+
+  Both are fixed. `stdlib_record_fn_ty` models all six of `get`, `has`, `keys`,
+  `values`, `set` and `remove`, with the value type riding a `Ty::Param("V")` on
+  the record parameter the same way `std/array` carries `T`; the key is always
+  `string`, so it is not a parameter. That also types the ordered-walk idiom:
+  `array.sort(record.keys(t), cmp)` no longer binds `sort`'s `T` from `Unknown`.
+  And the arm join now joins argument-wise underneath an already-agreeing head,
+  with `Unknown` absorbing the other side, so `Array<Unknown>` and
+  `Array<string>` agree on the container head. The head is the only part
+  `iter_is_array` reads. Heads that differ still join to `Unknown`, and an arm
+  whose value type is entirely undecidable still sinks the match, because
+  projecting one arm's type onto an arm nothing is known about would be a guess.
+  The load-bearing `let path: Array<string>` and its three-line comment came out
+  of the resolver's `why_lines` and the output is byte-identical.
 
 ## Round 8 — a text adventure, and the return of "silent green"
 
@@ -1757,3 +1791,71 @@ several rounds that the backlog grew.
   build because the collect pass itself is reached more than once. Cosmetic: it
   inflates the reported error count without changing the verdict or the spans,
   and a reader who trusts the count sees two problems where there is one.
+
+## Round 15 — a dependency resolver, and a loop index that was a string
+
+The loop pointed at `examples/apps/depsolve/`: read a project manifest and a
+registry of published versions from JSON fixtures, parse every version and
+constraint string into a typed value, then expand requirements, pick the highest
+published version satisfying every constraint gathered on a package so far, and
+backtrack when a later requirement invalidates an earlier choice. An unknown
+package, an unsatisfiable constraint set, and a cycle are all values of one error
+union carrying the requirement path that reached them. Two modules, 1,122 lines,
+and a domain where a `Record` keyed by package name is the central data
+structure.
+
+That last part is what made the trip worth taking. Every earlier app used
+`std/record` incidentally. This one leans on it, and the three most ordinary
+things in the language sit next to each other in `why_lines`: read a `Record`,
+`match` the `Option` it hands back, walk the array inside with an index. The
+chain miscompiled, silently, on a build with no diagnostics that `tsc --strict`
+passed. The app had already worked around it before the round started: the
+resolver carried a `let path: Array<string>` with a three-line comment saying the
+annotation was load-bearing, which is the shape of a workaround for a defect
+nobody had filed.
+
+Two findings came back. The miscompile is fixed in this release and is G71. The
+second is a `glyph check` scoping behaviour, unrelated to the fix and confirmed
+pre-existing on a stashed build; it is G72 and it is open. The app also hit G20
+twice, once in `format_version` and once at line 712, both of them the same
+hoist: a string literal cannot appear inside a `${...}` interpolation, so the
+separator gets its own `let`. That is a known and already-numbered limit and it
+did not need a new entry.
+
+- **G71. [FIXED] `record.get` into a `match` into a two-binding `for` bound the
+  index as a string.** The program printed `01:x` and `11:y` where it should
+  print `1:x` and `2:y`, because the `for` took the `Object.entries` lowering and
+  bound `i` as a record key. Nothing reported anything: the emitted TypeScript is
+  well typed either way, which is what makes the D21 lowering choice a place
+  where the checker's inference is load-bearing semantics with no `tsc` backstop
+  behind it. There were two independent causes and each one reproduced the bug on
+  its own. First, `std/record` was not modeled anywhere in the typechecker (the
+  string `"std/record"` did not appear in `glyph-typechecker/src` at all), so
+  `record.get(t, k)` typed `Unknown` and the `Some(p)` arm bound nothing. Second,
+  `join_match_arms` compared arm types by equality and an empty array literal is
+  `Array<Unknown>`, so `None => []` read as disagreeing with an `Array<string>`
+  arm and sank the whole `match`. *Both closed in 0.1.55.
+  `stdlib_record_fn_ty` models all six of `get`, `has`, `keys`, `values`, `set`
+  and `remove`, with the value type riding a `Ty::Param("V")` on the record
+  parameter the way `std/array` carries `T`; the key is always `string`, so it is
+  not a parameter. The arm join now goes argument-wise underneath an
+  already-agreeing head, with `Unknown` taking the other side. The knock-on is
+  the ordered-walk idiom: `array.sort(record.keys(t), cmp)` was binding `sort`'s
+  element type from `Unknown` and now keeps `string`. The annotation and its
+  comment came out of the resolver and every emitted `.ts` line is otherwise
+  identical.* What this does not close is G37's residue, which is the iterand
+  whose type is honestly unknown; that one is a decision, not a patch.
+
+- **G72. `glyph check` on one file compiles every `.glyph` under that file's
+  directory.** `glyph check examples/apps/bracket.glyph` reports "13 module(s)",
+  and `glyph check examples/corpus/calendar.glyph` reports 57: the walk is
+  recursive from the file's directory rather than the file plus what it imports.
+  The visible cost is a diagnostic about a program you did not ask about. Because
+  the module root stays at the top of that walk, `depsolve/main.glyph`'s
+  `import wire` has nothing to resolve against, so checking any single file in
+  `examples/apps/` reports `TS2307 Cannot find module 'wire'` pointing into a
+  different app. Checking `examples/apps/depsolve` directly is clean, and so is
+  `examples/apps/sheet/main.glyph`, whose directory holds one module. Confirmed
+  identical on a build with this release's changes stashed, so it predates them.
+  It also means the cost of checking one file scales with the directory it
+  happens to live in.

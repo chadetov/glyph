@@ -1,0 +1,59 @@
+{
+  "packages": [
+    {
+      "name": "web",
+      "versions": [
+        { "version": "1.0.0", "dependencies": { "http": "^2.0.0", "log": "^1.0.0" } },
+        { "version": "1.2.0", "dependencies": { "http": "^2.1.0", "log": "^1.2.0" } },
+        { "version": "1.3.0", "dependencies": { "http": "^3.0.0", "log": "^1.2.0" } }
+      ]
+    },
+    {
+      "name": "cli",
+      "versions": [
+        { "version": "0.4.1", "dependencies": { "log": "^1.0.0", "parse": "^0.9.0" } },
+        { "version": "0.4.5", "dependencies": { "log": "^1.3.0", "parse": "^0.9.2" } },
+        { "version": "0.5.0", "dependencies": { "log": "^2.0.0", "parse": "^1.0.0" } }
+      ]
+    },
+    {
+      "name": "http",
+      "versions": [
+        { "version": "2.0.0", "dependencies": { "log": "^1.0.0" } },
+        { "version": "2.1.0", "dependencies": { "log": "^1.2.0" } },
+        { "version": "3.0.0", "dependencies": { "log": "^2.0.0" } }
+      ]
+    },
+    {
+      "name": "parse",
+      "versions": [
+        { "version": "0.9.0", "dependencies": { "log": "^1.0.0" } },
+        { "version": "0.9.2", "dependencies": { "log": "^1.2.0" } },
+        { "version": "1.0.0", "dependencies": { "log": "^2.0.0" } }
+      ]
+    },
+    {
+      "name": "alpha",
+      "versions": [
+        { "version": "1.0.0", "dependencies": { "beta": "^1.0.0" } }
+      ]
+    },
+    {
+      "name": "beta",
+      "versions": [
+        { "version": "1.0.0", "dependencies": { "alpha": "^1.0.0" } }
+      ]
+    },
+    {
+      "name": "log",
+      "versions": [
+        { "version": "1.0.0", "dependencies": {} },
+        { "version": "1.2.0", "dependencies": {} },
+        { "version": "1.3.0", "dependencies": {} },
+        { "version": "1.4.0", "dependencies": {} },
+        { "version": "2.0.0-rc.1", "dependencies": {} },
+        { "version": "2.0.0", "dependencies": {} }
+      ]
+    }
+  ]
+}

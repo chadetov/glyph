@@ -1,0 +1,60 @@
+---
+source: crates/glyph-emit/tests/conformance.rs
+expression: ts
+---
+import "./.glyph-runtime/glyph-bootstrap";
+
+import { None, Option, Some } from "std/option";
+
+import * as io from "std/io";
+
+import * as record from "std/record";
+
+export function from_record(t: Record<string, Array<string>>, k: string): void {
+  let path;
+  const __m0 = record.get(t, k);
+  switch (__m0.tag) {
+    case "Some": {
+      const p = __m0.value;
+      path = p;
+      break;
+    }
+    case "None": {
+      path = ["z"];
+      break;
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+  for (const [i, hop] of path.entries()) {
+    io.println(`${(i + 1)}:${hop}`);
+  }
+  return undefined;
+}
+
+export function from_empty_literal(o: Option<Array<string>>): void {
+  let path;
+  const __m1 = o;
+  switch (__m1.tag) {
+    case "Some": {
+      const p = __m1.value;
+      path = p;
+      break;
+    }
+    case "None": {
+      path = [] as never[];
+      break;
+    }
+    default: throw new Error("non-exhaustive match");
+  }
+  for (const [i, hop] of path.entries()) {
+    io.println(`${(i + 1)}:${hop}`);
+  }
+  return undefined;
+}
+
+export function over_a_record(r: Record<string, number>): void {
+  for (const [k, v] of Object.entries(r)) {
+    io.println(`${k}=${v}`);
+  }
+  return undefined;
+}

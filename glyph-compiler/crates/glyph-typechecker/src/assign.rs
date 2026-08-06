@@ -1102,6 +1102,9 @@ impl Assigner<'_> {
         if let Some(sig) = self.stdlib_array_fn_ty(module_key, field) {
             return Some(sig);
         }
+        if let Some(sig) = self.stdlib_record_fn_ty(module_key, field) {
+            return Some(sig);
+        }
 
         // (arity, ok, err, is_async)
         let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
@@ -1300,6 +1303,63 @@ impl Assigner<'_> {
         })
     }
 
+    /// The signature of a `std/record` function. All six are fixed-arity.
+    ///
+    /// The value type travels as a `Ty::Param("V")` on parameter 0, the same
+    /// mechanism `stdlib_array_fn_ty` uses for `T`: the argument's
+    /// `Record<string, Array<string>>` binds `V = Array<string>`, so
+    /// `record.get(t, k)` is decidably an `Option<Array<string>>` and the
+    /// `Some(p)` binding of a `match` over it carries an element type. Without
+    /// that, a `for i, hop in p` reads an `Unknown` iterable and silently takes
+    /// the `Object.entries` lowering, binding `i` to the string `"0"`.
+    ///
+    /// The key is always `string`, so it is not a parameter. Every parameter
+    /// slot that is not `V` stays `Unknown`, per this table's rule, so modeling
+    /// `std/record` introduces no new argument-type diagnostic.
+    fn stdlib_record_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        if module_key != "std/record" {
+            return None;
+        }
+        let value = || Ty::Param {
+            name: Ident::from("V"),
+            owner: ParamOwner::Unresolved,
+        };
+        let rec = self.stdlib_record_ty(Ty::Prim(Primitive::String), value())?;
+        let unknown = || FnParam {
+            name: None,
+            owned: false,
+            ty: Ty::Unknown,
+        };
+        let of = |ty: Ty| FnParam {
+            name: None,
+            owned: false,
+            ty,
+        };
+        let (params, ret): (Vec<FnParam>, Ty) = match field {
+            "get" => (
+                vec![of(rec), unknown()],
+                self.stdlib_option_ty(value())?,
+            ),
+            "has" => (unknown_params(2), Ty::Prim(Primitive::Bool)),
+            "keys" => (
+                unknown_params(1),
+                self.stdlib_array_ty(Ty::Prim(Primitive::String))?,
+            ),
+            "values" => (
+                vec![of(rec)],
+                self.stdlib_array_ty(value())?,
+            ),
+            "set" => (vec![of(rec.clone()), unknown(), unknown()], rec),
+            "remove" => (vec![of(rec.clone()), unknown()], rec),
+            _ => return None,
+        };
+        Some(Ty::Fn {
+            params,
+            return_ty: Arc::new(ret),
+            is_async: false,
+        })
+    }
+
     /// Build `Result<ok, err>` as a prelude `App` the `?` checker recognizes
     /// (`prelude_app` keys off the prelude `Result` symbol id). Returns `None`
     /// only if the prelude somehow lacks `Result`, which never happens.
@@ -1337,6 +1397,18 @@ impl Assigner<'_> {
                 path: vec![Ident::from("Array")],
             }),
             args: vec![inner],
+        })
+    }
+
+    /// Build `Record<key, value>` as a prelude `App`. Mirrors `stdlib_array_ty`.
+    fn stdlib_record_ty(&self, key: Ty, value: Ty) -> Option<Ty> {
+        let record_id = self.lowerer.prelude.lookup("Record")?;
+        Some(Ty::App {
+            base: Arc::new(Ty::Named {
+                symbol: SymbolRef(record_id.0),
+                path: vec![Ident::from("Record")],
+            }),
+            args: vec![key, value],
         })
     }
 
@@ -2151,9 +2223,15 @@ impl Assigner<'_> {
     /// A block ending in anything other than an expression (a `let`, a `mut`,
     /// an empty block) has no value type and stops the join.
     ///
-    /// The join is equality only: no widening, no union, no subtyping. If the
-    /// contributing arms disagree, or any of them is undecidable, or all of
-    /// them diverge, the result is `Ty::Unknown` — exactly the old behavior.
+    /// The join is equality at the head: no widening, no union, no subtyping.
+    /// An arm whose value type is entirely undecidable, or all arms diverging,
+    /// still yields `Ty::Unknown`. Underneath an already-agreeing head,
+    /// `join_ty` joins type arguments with `Unknown ∨ T = T`, which is what
+    /// lets `None => []` (an `Array<Unknown>`, per `infer_array_elem_ty`) agree
+    /// with `Some(p) => p`'s `Array<string>` on the container head. The head is
+    /// what the emitter's `iter_is_array` reads to pick the `for` lowering, so
+    /// leaving a hole there ships a wrong program; the element type stays
+    /// best-effort with `tsc --strict` as the backstop.
     fn join_match_arms(&self, arms: &[MatchArm]) -> Ty {
         let mut joined: Option<Ty> = None;
         for arm in arms {
@@ -2170,8 +2248,7 @@ impl Assigner<'_> {
             }
             match &joined {
                 None => joined = Some(ty),
-                Some(prev) if *prev == ty => {}
-                Some(_) => return Ty::Unknown,
+                Some(prev) => joined = Some(join_ty(prev, &ty)),
             }
         }
         joined.unwrap_or(Ty::Unknown)
@@ -2886,6 +2963,49 @@ fn ty_requires_value(ty: &Ty) -> bool {
     !ty.is_unknown() && !matches!(ty, Ty::Prim(Primitive::Void))
 }
 
+
+/// The least upper bound of two types, used to join `match` arms.
+///
+/// Equal types join to themselves. Two `Ty::App`s over the same base with the
+/// same arity join argument-wise, where `Unknown ∨ T = T`; everything else
+/// joins to `Unknown`. The `Unknown ∨ T` rule is what makes an empty array
+/// literal (`Array<Unknown>`) agree with an `Array<string>` on the container
+/// head, which is the only part of the result the emitter's lowering choice
+/// reads. Nothing here promotes an entirely-`Unknown` arm: that case is
+/// rejected by the caller before this runs.
+fn join_ty(a: &Ty, b: &Ty) -> Ty {
+    if a == b {
+        return a.clone();
+    }
+    if let (
+        Ty::App { base: abase, args: aargs },
+        Ty::App { base: bbase, args: bargs },
+    ) = (a, b)
+    {
+        if abase == bbase && aargs.len() == bargs.len() {
+            let args = aargs
+                .iter()
+                .zip(bargs.iter())
+                .map(|(x, y)| {
+                    if x == y {
+                        x.clone()
+                    } else if x.is_unknown() {
+                        y.clone()
+                    } else if y.is_unknown() {
+                        x.clone()
+                    } else {
+                        Ty::Unknown
+                    }
+                })
+                .collect();
+            return Ty::App {
+                base: abase.clone(),
+                args,
+            };
+        }
+    }
+    Ty::Unknown
+}
 
 // ----- day-20: generic instantiation (a minimal unifier) -----
 
@@ -5864,6 +5984,96 @@ fn label(s: Status) -> string {
         // walk, so it is deliberately absent and stays permissive (G39).
         let (m, _, tm) = type_map_of(
             "module x\nimport std/array\nfn dup(s: string) -> string { return s }\n             fn f(names: Array<string>) -> void {\n  let out = array.map(names, dup)\n  return void\n}\n",
+        );
+        assert!(
+            matches!(tm.get(first_let_value_span_anywhere(&m)), Ty::Unknown),
+            "got {:?}",
+            tm.get(first_let_value_span_anywhere(&m))
+        );
+    }
+
+    #[test]
+    fn record_get_carries_the_value_type_through() {
+        // `std/record` was entirely unmodeled, so `record.get(t, k)` typed
+        // `Unknown`, the `Some(p)` binding of a `match` over it bound nothing,
+        // and a two-binding `for` over the result took the `Object.entries`
+        // lowering: `i` bound the string `"0"` on a build `tsc --strict`
+        // passed. `V` binds off the argument, so this is `Option<Array<string>>`.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/record\nfn f(t: Record<string, Array<string>>, k: string) -> void {\n  let hit = record.get(t, k)\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        let inner = match ty {
+            Ty::App { base, args }
+                if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Option")) =>
+            {
+                args.first().cloned()
+            }
+            _ => None,
+        };
+        assert!(
+            matches!(inner, Some(Ty::App { ref base, ref args })
+                if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Array"))
+                    && args.first() == Some(&Ty::Prim(Primitive::String))),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn record_keys_types_as_an_array_of_string() {
+        // The ordered-walk idiom is `array.sort(record.keys(t), cmp)`. With
+        // `keys` unmodeled, `sort` bound its `T` from `Unknown` and the whole
+        // walk was untyped.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/record\nfn f(t: Record<string, number>) -> void {\n  let ks = record.keys(t)\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::App { base, args }
+                if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Array"))
+                    && args.first() == Some(&Ty::Prim(Primitive::String))),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn record_set_returns_the_record_type() {
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/record\nfn f(t: Record<string, number>) -> void {\n  let next = record.set(t, \"a\", 1)\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::App { base, args }
+                if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Record"))
+                    && args.as_slice() == [Ty::Prim(Primitive::String), Ty::Prim(Primitive::Number)]),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn a_match_arm_returning_an_empty_array_keeps_the_array_head() {
+        // `[]` is `Array<Unknown>` (`infer_array_elem_ty`), which under a plain
+        // equality join disagreed with the other arm's `Array<string>` and sank
+        // the whole `match` to `Unknown`. The emitter reads only the head to
+        // pick the `for` lowering, so that hole shipped a wrong program.
+        let (m, _, tm) = type_map_of(
+            "module x\nfn f(o: Option<Array<string>>) -> void {\n  let path = match o {\n    Some(p) => p,\n    None => [],\n  }\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::App { base, args }
+                if matches!(&**base, Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Array"))
+                    && args.first() == Some(&Ty::Prim(Primitive::String))),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn a_match_over_two_different_heads_still_joins_to_unknown() {
+        // The join is still equality at the head: only type *arguments* under an
+        // already-agreeing head absorb `Unknown`.
+        let (m, _, tm) = type_map_of(
+            "module x\nfn f(o: Option<Array<string>>) -> void {\n  let v = match o {\n    Some(p) => p,\n    None => 0,\n  }\n  return void\n}\n",
         );
         assert!(
             matches!(tm.get(first_let_value_span_anywhere(&m)), Ty::Unknown),

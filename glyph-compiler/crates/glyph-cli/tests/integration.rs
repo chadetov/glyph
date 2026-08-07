@@ -4297,6 +4297,16 @@ fn non_exhaustive_imported_union_match_is_caught() {
         "diags: {:?}",
         report.diagnostics
     );
+    // G74: the imported path renders the missing variants exactly like the
+    // module-local one — backticked. One rule, one diagnostic shape.
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("`NotANumber`")),
+        "missing variants must be backticked on the imported path: {:?}",
+        report.diagnostics
+    );
 }
 
 /// A three-variant union in a sibling module, for the namespace-import

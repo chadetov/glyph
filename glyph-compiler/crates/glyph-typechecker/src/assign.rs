@@ -1850,10 +1850,14 @@ impl Assigner<'_> {
         if has_catch_all {
             return;
         }
-        let missing: Vec<&str> = required
+        // Backticked, exactly like the module-local path in
+        // `check_patterns_exhaustive`: E0200 has one shape whether the union was
+        // declared here or imported (greppability — one rule, one rendering).
+        let missing: Vec<String> = required
             .iter()
             .map(|v| v.as_ref())
             .filter(|v| !covered.contains(v))
+            .map(|v| format!("`{v}`"))
             .collect();
         if !missing.is_empty() {
             self.errors.push(TypeError::NonExhaustiveMatch {

@@ -1520,11 +1520,35 @@ impl<'a> Emitter<'a> {
                     // `default: throw` on an exhaustive switch keeps `tsc`'s
                     // definite-assignment happy.
                     Expr::Match { scrutinee, arms, .. } => {
-                        self.line(&format!("let {}{ty};", l.name));
-                        let prev = self.assign_target.borrow_mut().replace(l.name.to_string());
-                        let res = self.emit_match_dispatch(scrutinee, arms, ArmTerm::Assign);
+                        // When an arm also binds `l.name` (a destructured field
+                        // of the same name, or a `let` in a block arm), the
+                        // arm's `const` would shadow the declaration this
+                        // statement is assigning, emitting `const x = __m0.x;
+                        // x = x;`. Route the assignment through a synthesized
+                        // temporary in that case and copy it out afterward. The
+                        // non-colliding case — every program that has ever
+                        // compiled — emits byte-identical TS.
+                        let target = if match_binds_name(arms, l.name.as_ref()) {
+                            let t = self.fresh_temp("__a");
+                            self.line(&format!("let {t}{ty};"));
+                            Some(t)
+                        } else {
+                            self.line(&format!("let {}{ty};", l.name));
+                            None
+                        };
+                        let assign = target.clone().unwrap_or_else(|| l.name.to_string());
+                        let prev = self.assign_target.borrow_mut().replace(assign);
+                        let res = self.emit_scoped_match(
+                            scrutinee,
+                            arms,
+                            ArmTerm::Assign,
+                            target.is_some(),
+                        );
                         *self.assign_target.borrow_mut() = prev;
                         res?;
+                        if let Some(t) = target {
+                            self.line(&format!("let {}{ty} = {t};", l.name));
+                        }
                     }
                     _ => {
                         // `emit_value` hoists any `?` in the initializer first, so
@@ -1546,10 +1570,25 @@ impl<'a> Emitter<'a> {
                     value: Expr::Match { scrutinee, arms, .. },
                 } => {
                     let t = self.expr(target)?;
-                    let prev = self.assign_target.borrow_mut().replace(t);
-                    let res = self.emit_match_dispatch(scrutinee, arms, ArmTerm::Assign);
+                    // Same shadowing guard as the `let` case: an arm binding
+                    // that shares a name with the lvalue would make the arm's
+                    // `const` the thing assigned.
+                    let tmp = if lvalue_mentions_match_binding(arms, &t) {
+                        let tmp = self.fresh_temp("__a");
+                        self.line(&format!("let {tmp};"));
+                        Some(tmp)
+                    } else {
+                        None
+                    };
+                    let assign = tmp.clone().unwrap_or_else(|| t.clone());
+                    let prev = self.assign_target.borrow_mut().replace(assign);
+                    let res =
+                        self.emit_scoped_match(scrutinee, arms, ArmTerm::Assign, tmp.is_some());
                     *self.assign_target.borrow_mut() = prev;
                     res?;
+                    if let Some(tmp) = tmp {
+                        self.line(&format!("{t} = {tmp};"));
+                    }
                 }
                 MutKind::Assign { target, value } => {
                     // `emit_value` hoists any `?` in the RHS (like `let`),
@@ -2161,6 +2200,35 @@ impl<'a> Emitter<'a> {
             }
         }
         out
+    }
+
+    /// `emit_match_dispatch`, optionally wrapped in a plain block so the arm
+    /// bindings get a scope of their own.
+    ///
+    /// Needed when the statement around the match declares a name an arm also
+    /// binds. The `switch` and `is`-chain lowerings already put their bindings
+    /// inside a nested block, but the single-arm lowering (a `match` whose only
+    /// arm is a binding) emits `const <name> = <scrutinee>;` at the statement's
+    /// own level, where it collides with the declaration outright (TS2451). A
+    /// `{ ... }` around the whole dispatch fixes every path at once and costs
+    /// nothing: `break`, `continue` and `return` all pass through a plain block,
+    /// and it is emitted only in the colliding case.
+    fn emit_scoped_match(
+        &mut self,
+        scrutinee: &Expr,
+        arms: &[MatchArm],
+        term: ArmTerm,
+        scoped: bool,
+    ) -> Result<(), EmitError> {
+        if !scoped {
+            return self.emit_match_dispatch(scrutinee, arms, term);
+        }
+        self.line("{");
+        self.indent += 1;
+        let res = self.emit_match_dispatch(scrutinee, arms, term);
+        self.indent -= 1;
+        self.line("}");
+        res
     }
 
     fn emit_match_dispatch(
@@ -4388,6 +4456,77 @@ fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
     )
 }
 
+/// Whether any binder this pattern lowers to inside a `switch` case is called
+/// `name`. Covers every shape that emits a `const <binder> = ...` line:
+/// `Pattern::Ident` (the payload binding and the binding catch-all), the args of
+/// a constructor pattern, object-pattern fields (exactly the one name each field
+/// binds, mirroring `emit_arm_binds`: the renamed binding when there is one, the
+/// key otherwise — a renamed field never binds its key, so checking the key
+/// would report a collision that cannot happen), and array-pattern elements plus
+/// `...rest`. Wildcards, `else`, literals and `is T` bind nothing.
+fn pattern_binds_name(p: &Pattern, name: &str) -> bool {
+    match p {
+        Pattern::Ident { name: n, .. } => n.as_ref() == name,
+        Pattern::Constructor { args, .. } => args.iter().any(|a| pattern_binds_name(a, name)),
+        Pattern::Object { fields, .. } => fields
+            .iter()
+            .any(|f| f.binding.as_ref().unwrap_or(&f.key).as_ref() == name),
+        Pattern::Array { elements, rest, .. } => {
+            elements.iter().any(|e| pattern_binds_name(e, name))
+                || rest.as_deref().is_some_and(|r| pattern_binds_name(r, name))
+        }
+        Pattern::Wildcard { .. }
+        | Pattern::Else { .. }
+        | Pattern::Literal { .. }
+        | Pattern::IsType { .. } => false,
+    }
+}
+
+/// Whether lowering `arms` declares anything called `name` in a scope that
+/// encloses the arm's own assignment statement.
+///
+/// This is the guard for the shadowing hazard in `let x = match ... { }`: the
+/// statement form declares `x` outside the `switch` and each arm assigns it, so
+/// an arm that *also* binds `x` (a destructured field of the same name, say)
+/// would emit `const x = __m0.x; x = x;` — an assignment to a `const`, and, in
+/// the shapes TypeScript accepts, a value dropped on the floor.
+///
+/// Three sources of binders are walked: the arm patterns, a top-level `let` in a
+/// block arm body (the same collision through a different door), and a nested
+/// `match` that *is* the arm body, since that one lowers into the same case block
+/// rather than a nested scope. A `for` binder is not a source: it lowers to
+/// `for (const i of ...)`, whose binding is scoped to the loop head and cannot
+/// reach the case block the assignment sits in.
+fn match_binds_name(arms: &[MatchArm], name: &str) -> bool {
+    arms.iter().any(|a| {
+        pattern_binds_name(&a.pattern, name)
+            || match &a.body {
+                MatchArmBody::Expr(Expr::Match { arms, .. }) => match_binds_name(arms, name),
+                MatchArmBody::Expr(_) => false,
+                MatchArmBody::Block(b) => b
+                    .stmts
+                    .iter()
+                    .any(|s| matches!(s, Stmt::Let(l) if l.name.as_ref() == name)),
+            }
+    })
+}
+
+/// Whether a `mut <lvalue> = match ... { }` needs the assignment routed through
+/// a temporary because an arm binds a name the rendered lvalue mentions.
+///
+/// The lvalue is already rendered TypeScript here (`x`, `a.b`, `a[i]`), so its
+/// identifiers are recovered by splitting on everything that cannot appear in
+/// one. That over-approximates (`a.text` counts as mentioning `text`, which is
+/// harmless — it costs a temporary, never correctness) and cannot under-report,
+/// which is the direction that matters: `mut a.b = match { X({ a }) => ... }`
+/// would otherwise assign through the arm's `a`, not the outer one.
+fn lvalue_mentions_match_binding(arms: &[MatchArm], lvalue: &str) -> bool {
+    lvalue
+        .split(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$'))
+        .filter(|s| !s.is_empty())
+        .any(|ident| match_binds_name(arms, ident))
+}
+
 /// Whether an `await` over `e` should apply to the *whole chain* (JavaScript
 /// semantics) rather than to the innermost call of its receiver spine.
 ///
@@ -6389,6 +6528,112 @@ mod tests {
         );
         assert!(ts.contains("out = [] as never[];"), "{ts}");
         assert!(ts.contains("out = rest;"), "{ts}");
+    }
+
+    // Round-18 shadowing: an arm binder that shares a name with the binding the
+    // match assigns to.
+    const TOK_UNION: &str = "module x\npub type Tok =\n  | TPunct({ text: string })\n  | TWord({ word: string })\n";
+
+    #[test]
+    fn destructured_arm_binding_does_not_shadow_the_let_it_assigns() {
+        // `const text = __m0.text; text = text;` assigned a `const` to itself and
+        // dropped the value. The declaration moves to a synthesized temporary.
+        let ts = emit(&format!(
+            "{TOK_UNION}pub fn f(t: Tok) -> string {{\n  let text = match t {{\n    TPunct({{ text }}) => text,\n    TWord({{ word }}) => word,\n  }}\n  return text\n}}\n"
+        ));
+        assert!(!ts.contains("text = text;"), "{ts}");
+        assert!(ts.contains("let __a0;"), "{ts}");
+        assert!(ts.contains("const text = __m1.text;"), "{ts}");
+        assert!(ts.contains("__a0 = text;"), "{ts}");
+        assert!(ts.contains("let text = __a0;"), "{ts}");
+    }
+
+    #[test]
+    fn destructured_arm_binding_does_not_shadow_the_mut_target() {
+        let ts = emit(&format!(
+            "{TOK_UNION}pub fn f(t: Tok) -> string {{\n  let text = \"\"\n  mut text = match t {{\n    TPunct({{ text }}) => text,\n    TWord({{ word }}) => word,\n  }}\n  return text\n}}\n"
+        ));
+        assert!(!ts.contains("text = text;"), "{ts}");
+        assert!(ts.contains("let __a0;"), "{ts}");
+        assert!(ts.contains("__a0 = text;"), "{ts}");
+        assert!(ts.contains("text = __a0;"), "{ts}");
+    }
+
+    #[test]
+    fn block_arm_let_does_not_shadow_the_binding_the_match_assigns() {
+        // The same collision through a different door: the arm's own `let` is
+        // declared in the case block and would swallow the assignment.
+        let ts = emit(&format!(
+            "{TOK_UNION}pub fn f(t: Tok) -> string {{\n  let text = match t {{\n    TPunct({{ text: p }}) => p,\n    TWord({{ word }}) => {{\n      let text = word\n      text\n    }},\n  }}\n  return text\n}}\n"
+        ));
+        assert!(!ts.contains("text = text;"), "{ts}");
+        assert!(ts.contains("let __a0;"), "{ts}");
+        assert!(ts.contains("let text = __a0;"), "{ts}");
+    }
+
+    #[test]
+    fn a_non_colliding_let_match_emits_the_unchanged_shape() {
+        // Diff stability: only a real collision changes the output. Rebuilding
+        // `examples/apps/` against the 0.1.57 binary emits byte-identical TS.
+        let ts = emit(&format!(
+            "{TOK_UNION}pub fn f(t: Tok) -> string {{\n  let out = match t {{\n    TPunct({{ text }}) => text,\n    TWord({{ word }}) => word,\n  }}\n  return out\n}}\n"
+        ));
+        assert!(ts.contains("let out;"), "{ts}");
+        assert!(ts.contains("out = text;"), "{ts}");
+        assert!(!ts.contains("__a0"), "{ts}");
+    }
+
+    #[test]
+    fn a_renamed_object_field_does_not_count_as_binding_its_key() {
+        // `TPunct({ text: p })` binds `p` and never `text`, so a `let text`
+        // outside it is not a collision. Checking the key too was a false
+        // positive that cost a temporary and, because the temp counter shifts,
+        // renumbered every later temporary in the file.
+        let ts = emit(&format!(
+            "{TOK_UNION}pub fn f(t: Tok) -> string {{\n  let text = match t {{\n    TPunct({{ text: p }}) => p,\n    TWord({{ word }}) => word,\n  }}\n  return text\n}}\n"
+        ));
+        assert!(ts.contains("let text;"), "{ts}");
+        assert!(ts.contains("const p = __m0.text;"), "{ts}");
+        assert!(!ts.contains("__a0"), "{ts}");
+    }
+
+    #[test]
+    fn a_for_binder_in_a_block_arm_is_not_a_collision() {
+        // `for i in ...` lowers to `for (const i of ...)`, whose binding is
+        // scoped to the loop and cannot reach the case block the assignment sits
+        // in. Treating it as a collision cost a needless temporary and block.
+        let ts = emit(&format!(
+            "{TOK_UNION}pub fn f(t: Tok) -> string {{\n  let i = match t {{\n    TPunct({{ text }}) => text,\n    TWord({{ word }}) => {{\n      for i in [1, 2] {{\n        log(i)\n      }}\n      word\n    }},\n  }}\n  return i\n}}\n"
+        ));
+        assert!(ts.contains("let i;"), "{ts}");
+        assert!(ts.contains("for (const i of [1, 2])"), "{ts}");
+        assert!(!ts.contains("__a0"), "{ts}");
+    }
+
+    #[test]
+    fn a_lone_binding_arm_named_like_the_let_gets_its_own_scope() {
+        // The single-arm lowering emits `const <name> = <scrut>;` at the
+        // statement's own level, so a temporary alone still leaves two
+        // declarations of `text` in one scope (TS2451). The block is what
+        // separates them.
+        let ts = emit(
+            "module x\npub fn f(t: string) -> string {\n  let text = match t {\n    text => text,\n  }\n  return text\n}\n",
+        );
+        assert!(ts.contains("let __a0;"), "{ts}");
+        assert!(ts.contains("  {\n"), "expected a scoping block:\n{ts}");
+        assert!(ts.contains("const text = t;"), "{ts}");
+        assert!(ts.contains("let text = __a0;"), "{ts}");
+    }
+
+    #[test]
+    fn an_arm_binding_named_like_the_mut_lvalue_root_is_routed_through_a_temp() {
+        // `mut s.count = match ... { Ok(s) => ... }` would assign through the
+        // arm's `s`, not the outer one.
+        let ts = emit(
+            "module x\npub type S = { count: number }\npub fn f(s: S, r: Result<number, string>) -> void {\n  mut s.count = match r {\n    Ok(s) => s,\n    Err(e) => 0,\n  }\n  return void\n}\n",
+        );
+        assert!(ts.contains("let __a0;"), "{ts}");
+        assert!(ts.contains("s.count = __a0;"), "{ts}");
     }
 
     #[test]

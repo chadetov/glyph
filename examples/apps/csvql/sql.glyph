@@ -514,10 +514,7 @@ fn parse_operand() -> Result<Operand, QueryFail> {
 
 fn parse_op() -> Result<CompareOp, QueryFail> {
   let t = peek()
-  // The binding is `symbol`, not `text`: a `let` whose name also appears as a
-  // destructured arm binding emits `const text = ...; text = text;` and the
-  // assignment lands on the arm's own constant.
-  let symbol = match t {
+  let text = match t {
     TPunct({ text, at }) => text,
     TWord({ text, at }) => "",
     TString({ text, at }) => "",
@@ -527,7 +524,7 @@ fn parse_op() -> Result<CompareOp, QueryFail> {
   // The annotation is load-bearing: `Some("eq")` on its own is an
   // `Option<string>`, which `tsc` will not accept where an `Option<CompareOp>`
   // is wanted, even though Glyph's own checker allows it.
-  let op: Option<CompareOp> = match symbol {
+  let op: Option<CompareOp> = match text {
     "=" => Some("eq"),
     "<>" => Some("ne"),
     "!=" => Some("ne"),

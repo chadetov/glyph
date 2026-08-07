@@ -2320,8 +2320,75 @@ it had been checked.
   (build each app at its own root) is a call, not a bug.
 
 Both are written up in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under
-Round 17. No release carries the Next marker now; the next trip picks from what
-is left of this list, Round 16's, and Round 15's.
+Round 17.
+
+### 0.1.58 — Next · A match arm cannot swallow the value it produces
+
+Two fixes from the adversarial review of the csvql round, both contained.
+
+`let text = match t { TPunct({ text }) => text, ... }` emitted `let text;`, then
+`const text = __m0.text;` inside the case, then `text = text;` — an assignment to
+a `const`, and, in any collision TypeScript happened to accept, a value dropped on
+the floor. The statement form of `let x = match` declares `x` outside the switch
+and has each arm assign it, while the arm binder emits a `const` inside the case;
+neither consulted the other, and the emitter had no uniquing at all. The
+assignment now routes through a synthesized `__aN` temporary, but only when an arm
+really does bind the name: rebuilding every app in `examples/apps/` emits
+byte-identical TypeScript to the 0.1.57 binary, all 65 files. The collision test
+walks arm patterns (identifier, constructor args, object fields, array elements
+and rest) and asks each one for exactly the name it binds, which for a renamed
+field `{ text: p }` is `p` and never `text`. It also walks a top-level `let` in a
+block arm body and a nested `match` that is the whole arm body, since that one
+lowers into the same case block. A `for` binder is not walked: it lowers to
+`for (const i of ...)` and is scoped to the loop. The `mut <lvalue> = match` twin is
+guarded against every identifier the rendered lvalue mentions, so
+`mut s.count = match r { Ok(s) => s, ... }` no longer assigns through the arm's
+`s`. G77.
+
+E0200 now backticks the missing variant names on the imported-union path, which
+is what the module-local path already did. One rule, one diagnostic shape. G74.
+
+Pillar: verifiability for the emitter bug (the lowering has to preserve the
+program's meaning, and this one did not), greppability for the diagnostic.
+
+### Still open from this trip
+
+- **G75 is unchanged and needs a decision before it can be written.** An imported
+  record type still lowers to `Ty::Unknown`, so a typo'd field on it draws no
+  error and `for i, x` over one of its array fields binds a string index. The fix
+  is a cross-module `imported_record_fields` query on the source side, mirroring
+  the string-literal one, and it is blocked on what an imported record's *identity*
+  should be: a structural `Ty::Record` (smallest change, but then the boundary is
+  structural on one side and nominal on the other, and E0210 says "type `record`"
+  instead of naming the type), a `Ty::Named` re-anchored on the consumer's own
+  import symbol (keeps the name, but the two import spellings of one type produce
+  two different paths that assignability would call incompatible), or a new
+  `Ty::Imported { module, name }` variant (uniform, and what a later cross-module
+  union or interface fix would also want, at the cost of revisiting every `match`
+  on `Ty` in three crates). A second question rides along: how deep the source-side
+  lowering goes for a *field's* type, when that field names another type of the
+  sibling module. Neither is a bug to fix; both are calls to make.
+
+- **A sibling import only works when the sibling sits at the build root, and
+  everything downstream of that is silently wrong.** A module path is derived
+  root-relative (`derive_module_path`), while an `import` is matched by the path
+  as written. Put `shape.glyph` and `main.glyph` in `sub/` and build `sub/`: green.
+  Build the parent directory instead, same bytes, and the module paths become
+  `sub/shape` and `sub/main`, the import `shape` matches nothing, and three things
+  go wrong at once. The emitter stops recognising it as a project module and writes
+  a bare specifier, so `tsc` says `Cannot find module 'shape'`. The tagged-union
+  coverage check (0.1.56) stops firing, so a `match` missing a variant compiles.
+  The string-literal-union check (0.1.57) reports a false E0218 on a match that
+  covers every literal. This predates both fixes: `glyph build examples` has been
+  failing since the first multi-file app landed under `examples/apps/`, which is
+  the command CI runs to type-check the examples, and csvql inherited it. The fork
+  is whether an import resolves relative to the importing module's directory or
+  stays root-relative and each app is its own project root (in which case CI has to
+  build each app separately and the compiler should say so instead of emitting a
+  bare specifier).
+
+0.1.58 carries the Next marker; the trip after it picks from what is left of this
+list, Round 16's, and Round 15's.
 
 ## Road to 1.0
 

@@ -61,4 +61,30 @@ jobs:
         working-directory: glyph-compiler
         # `glyph build` type-checks with tsc and runs every `@example` / `@doc
         # @run` by default; --no-tsc and --no-test would skip them.
-        run: cargo run -q -- build ../examples --out "$RUNNER_TEMP/dist"
+        #
+        # Each app under examples/apps/<name>/ is built as its OWN root, because
+        # D15 resolves a local import from the module root: an app writing
+        # `import catalog` finds its sibling only when its own directory is the
+        # root. Building the whole tree at once looks for `examples/catalog.glyph`
+        # and fails. That is how the app is really consumed, and it is what
+        # `glyph run examples/apps/<name>/main.glyph` does.
+        run: |
+          set -e
+          cargo build -q
+          BIN="$(pwd)/target/debug/glyph"
+          # Each app is its own root. A multi-module app writing `import catalog`
+          # finds its sibling only when its own directory is the root, which is
+          # also how `glyph run examples/apps/<name>/main.glyph` builds it.
+          for dir in ../examples/apps/*/; do
+            echo "=== $(basename "$dir") ==="
+            "$BIN" build "$dir" --out "$RUNNER_TEMP/dist/$(basename "$dir")"
+          done
+          # Everything else still builds as one tree. The copy lives inside the
+          # repo so the react example resolves node_modules by walking up, and it
+          # excludes apps/ because those roots are built above.
+          echo "=== examples (numbered + corpus) ==="
+          rm -rf ../.ci-examples
+          mkdir -p ../.ci-examples
+          ( cd ../examples && tar cf - --exclude=apps . ) | ( cd ../.ci-examples && tar xf - )
+          "$BIN" build ../.ci-examples --out "$RUNNER_TEMP/dist/tree"
+          rm -rf ../.ci-examples

@@ -22,13 +22,19 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the csvql trip, which added two entries and
-closed one of them in the same release: of 76 entries, 50 are fixed, 11 are
-partly fixed, 5 are decided or resolved, and 10 are open. G76 is the imported
-string-literal union that lost D30's exhaustiveness guarantee, fixed by giving
-`DeclTyResolver` the query that reads a sibling module's literal set. G75 is
-open: an imported record type still lowers to `Ty::Unknown`, so field checking
-and the `for i, x` index type are both wrong across an import.
+Reconciled again after the adversarial review of the csvql round, which added one
+entry (G77, the match-arm binding that shadowed the `let` it assigned to) and
+closed it along with G74 in the same release: of 78 entries, 52 are fixed, 11 are
+partly fixed, 5 are decided or resolved, and 10 are open. G75 is the largest thing
+still open: an imported record type lowers to `Ty::Unknown`, so field checking and
+the `for i, x` index type are both wrong across an import.
+
+The reconciliation before it, after the csvql trip, which added two entries and
+closed one of them in the same release, read 76 entries, 50 fixed, 11 partly
+fixed, 5 decided or resolved, and 10 open. G76 is the imported string-literal
+union that lost D30's exhaustiveness guarantee, fixed by giving `DeclTyResolver`
+the query that reads a sibling module's literal set. G75 is the other one it
+added, and it is the entry still open above.
 
 The reconciliation before it, after the statechart trip, which added two entries
 and closed one of them in the same release, read 74 entries, 49 fixed, 11 partly
@@ -1944,13 +1950,16 @@ fix is a call about the walk or about the gate, not about the apps.
   two ways the check could over-fire, an eighth pins the `?` regression, and there
   was no coverage for any of it before.*
 
-- **G74. E0200 quotes the missing variant names for some unions and not
+- **G74. [FIXED] E0200 quotes the missing variant names for some unions and not
   others.** A module-local union reports ``missing variants `B` `` and so do the
   prelude unions, but a union imported from another Glyph module reports `missing
   variants Maybe` with the names bare. The two lists are built in different places
   and only one of them quotes. Cosmetic, and it splits by where the union is defined
   rather than by how it was imported, so it is not a residue of G73; confirmed on
-  the named-import spelling as well.
+  the named-import spelling as well. *Fixed in `check_imported_union_coverage`,
+  which now backticks each missing name the way `check_patterns_exhaustive`
+  already did, so E0200 has one shape for one rule. The string-literal path keeps
+  its double quotes: those are the literal values, not identifiers.*
 
 ## Round 17 — csvql, and the module boundary that eats types
 
@@ -2017,3 +2026,65 @@ salsa-memoized. Nobody had written the second query.
   Five integration tests pin them, plus two unit tests holding the trait default
   at today's behaviour so it cannot become load-bearing. The E0218 help text was
   left alone: it is correct once the scrutinee is typed.*
+
+- **G77. [FIXED] A destructured match-arm binding shadowed the `let` the match
+  assigns to, and the value was dropped.** `let text = match t { TPunct({ text })
+  => text, ... }` emitted
+
+      let text;
+      const __m0 = t;
+      switch (__m0.tag) {
+        case "TPunct": {
+          const text = __m0.text;
+          text = text;
+
+  an assignment to a `const`. `tsc` rejects this exact shape (TS2588, once per
+  arm, every one pointing at the `let` line rather than the arm), but a collision
+  TypeScript happened to accept would drop the value silently. The statement form
+  of `let x = match` declares `x` outside the `switch` and has each arm assign it,
+  while `emit_arm_binds` emits `const <binder> = ...` inside the case; neither
+  consulted the other and the emitter had no uniquing at all. The adversarial
+  review of the csvql round named the emitter, but the app had already hit it: at
+  `sql.glyph:518` the natural binding for the punctuation text of a token is
+  `text`, the same name `TPunct({ text, at })` destructures, and the author
+  renamed it to `symbol` with three lines of comment recording why. That rename
+  and its comment came out with the fix; `parse_op` reads the way it wanted to,
+  the app builds and passes `tsc --strict`, and all twelve queries plus `--explain`
+  print byte-identically. *Fixed by routing
+  the assignment through a synthesized `__aN` temporary, but only when an arm
+  actually binds the name: `match_binds_name` walks the arm patterns (identifier,
+  constructor args, object fields, array elements and rest), a top-level `let` in
+  a block arm body, and a nested `match` that is the whole arm body, since that
+  one lowers into the same case block. Each pattern reports exactly the name it
+  binds, so a renamed field `{ text: p }` binds `p` and never `text`; a `for`
+  binder is not a source at all, since it lowers to `for (const i of ...)` and is
+  scoped to the loop. The `mut <lvalue> = match` twin is guarded the same way
+  against every identifier the rendered lvalue mentions, so
+  `mut s.count = match r { Ok(s) => s, ... }` no longer assigns through the arm's
+  `s`. Rebuilding every app in `examples/apps/` emits byte-identical TypeScript to
+  the 0.1.57 binary, all 65 files, which is what keeps the fix off every existing
+  program's diff.*
+
+- **G78. A multi-module app cannot be built as part of an enclosing tree.** Glyph
+  resolves a local import from the module root (D15: no relative imports, paths
+  are slash-separated from the root), so an app at `examples/apps/csvql/` writing
+  `import catalog` resolves only when its *own* directory is the build root.
+  Building the enclosing `examples/` tree looks for `examples/catalog.glyph`,
+  fails to resolve it, and then reports something that points away from the
+  cause: the imported type degrades to a primitive and the build fails
+  `[E0218] non-exhaustive match on \`string\`` in a match that covers every value
+  of an imported string-literal union, or, with a catch-all present,
+  `[TS2307] Cannot find module 'catalog'`. Neither error mentions the build
+  layout. Every app in `examples/apps/` builds and passes `tsc --strict` on its
+  own; only the whole-tree build fails. This turned CI red the moment the first
+  multi-module app landed (depsolve, 0.1.55) and it stayed red through 0.1.57,
+  because the repo-wide example gate ran exactly the build that cannot work.
+  Worked around in `.github/workflows/ci.yml`: each app directory is built as its
+  own root, and everything else is built from a copy of `examples/` that excludes
+  `apps/` (kept inside the repo so the react example still resolves
+  `node_modules` by walking up). The real question is a design decision and is
+  not made here: either nested apps move out of the tree that gets built as a
+  unit, or Glyph grows a way for a directory to be its own resolution root. A
+  third option, writing the imports root-relative as `import apps/csvql/catalog`,
+  is worse: it would fix the tree build and break building the app on its own,
+  which is how the app is actually used.

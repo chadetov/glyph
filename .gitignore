@@ -69,3 +69,6 @@ playground/pkg/
 # Local working notes (research, drafts, scratch analysis). Never committed —
 # like CLAUDE.md and feedbacks/, this is a private working channel.
 /notes/
+
+# CI builds examples-minus-apps here (see .github/workflows/ci.yml)
+/.ci-examples/

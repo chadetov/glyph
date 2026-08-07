@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.57</span>
+            <span class="rel-ver">0.1.58</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An imported record arrived without its fields, and the loop over it counted in strings</h3>
+            <p>Splitting a program into modules used to cost you two checks. A record type declared in one file and used in another arrived with nothing known about it, so <code>sheet.rowz</code> on an imported <code>Sheet</code> drew no Glyph error at all, and <code>for i, r in sheet.rows</code> emitted <code>Object.entries(sheet.rows)</code> instead of <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string <code>"0"</code>, so <code>i + 1</code> concatenates: a row labelled <code>line 01</code> where it should read <code>line 1</code>, and <code>line 11</code> for row 2. <code>tsc</code> catches the arithmetic uses of that index and reports them against a variable Glyph bound for you. It cannot catch the ones where a string works and is wrong, which is interpolation, concatenation, and <code>record.get</code> keys. The query engine in <code>examples/apps/csvql</code> carried three <code>let</code> hoists and a four-line comment whose only job was to tell the emitter what an imported field's type was.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> An imported type keeps its identity. It lowers to a new <code>Ty::Imported { module, name }</code> keyed on the declaring module and the name that module declares, so <code>import catalog { Sheet }</code>, <code>import catalog</code> with <code>catalog.Sheet</code>, and <code>import catalog as c</code> with <code>c.Sheet</code> all mean the same type. A typo'd field is now <code>E0210</code> saying <code>type `Sheet` has no field `rowz`</code>, naming the record rather than saying <code>record</code>, and <code>for i, r in sheet.rows</code> binds a number with no annotation. The declaration is fetched on demand and lowered on the declaring module's side, which is the part a consumer cannot do, so a self-referential type and a two-module cycle both terminate with no cycle guard.</li>
+              <li><span class="tag fixed">Fixed</span> The three hoists in csvql are gone, along with the comment explaining them. <code>table.build</code> loops straight over <code>sheet.rows</code> and <code>spec.columns</code>, <code>bind.fields_of</code> over <code>spec.columns</code>, and the app prints byte-identical output for all twelve queries. Emitted TypeScript for every other app under <code>examples/apps/</code> is unchanged.</li>
+              <li><span class="tag fixed">Fixed</span> Visibility answers the same way whichever spelling names the type. <code>import lib { Secret }</code> on a non-<code>pub</code> type was always <code>E0105</code>; <code>import lib</code> plus a <code>lib.Secret</code> annotation reported nothing, and once an imported type had a field set that silence would have handed out a private type's fields. Both report <code>E0105</code> now.</li>
+              <li><span class="tag known">Known</span> Assignability does not cross yet. Passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is still a <code>tsc</code> error rather than a Glyph one, because whether the cross-file rule should be nominal or structural is an open language question. An <code>interface</code>'s member list does not cross either, for the same reason: giving it the shape a record's field set gets would quietly redefine what structural satisfaction means.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.57</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

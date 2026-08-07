@@ -2322,9 +2322,10 @@ it had been checked.
 Both are written up in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under
 Round 17.
 
-### 0.1.58 — Next · A match arm cannot swallow the value it produces
+### 0.1.58 — Shipped · A match arm cannot swallow the value it produces, and an imported type keeps its name
 
-Two fixes from the adversarial review of the csvql round, both contained.
+Four fixes from the adversarial review of the csvql round: three it named, plus a
+visibility hole the third one exposed on the way in.
 
 `let text = match t { TPunct({ text }) => text, ... }` emitted `let text;`, then
 `const text = __m0.text;` inside the case, then `text = text;` — an assignment to
@@ -2348,26 +2349,81 @@ guarded against every identifier the rendered lvalue mentions, so
 E0200 now backticks the missing variant names on the imported-union path, which
 is what the module-local path already did. One rule, one diagnostic shape. G74.
 
+An imported type now has an identity. `Ty` gained an `Imported { module, name }`
+variant keyed on the source module's registry path and the name that module
+declares, so `import catalog { Sheet }`, `import catalog` with `catalog.Sheet`,
+and `import catalog as c` with `c.Sheet` all produce the same type. It carries no
+symbol id, because a foreign module's ids index an unrelated symbol in the
+consumer's table. Lowering emits it without asking any cross-module query, which
+is why `type Node = { next: Option<Node> }` and a two-module cycle terminate with
+no cycle guard. One general query answers it, `imported_type_decl(module_path,
+type_name)`, backed by a tracked `exported_type(db, file, decl_idx)` that lowers
+the declaration on the *source* side. A consumer cannot do that, because
+`Lowerer::lower` resolves paths through spans that belong to the declaring file.
+Keying it on the source declaration means one lowering is shared by every
+consumer and every spelling. So `s.rowz` on an imported record is now E0210 and
+says `Sheet` rather than `record`; `for i, r in sheet.rows` lowers to
+`.entries()` and binds a number; a sibling type named inside another sibling type
+resolves on demand; a generic sibling record substitutes its arguments; and a
+`match` on an imported record's string-literal-union field is exhaustive without
+an `else`. The three `let` hoists csvql carried to tell the emitter what an
+imported field's type was are deleted, along with the comment that explained
+them: `table.build` loops straight over `sheet.rows` and `spec.columns`, and
+`bind.fields_of` over `spec.columns`. The app builds with no diagnostics, passes
+`tsc --strict`, and prints byte-identical output for all twelve queries. Emitted
+TypeScript for every other app in `examples/apps/` is byte-identical. G75.
+
+Visibility now works the same way under both spellings. `import lib { Secret }`
+on a non-`pub` type has always been E0105; `import lib` plus `lib.Secret`
+reported nothing, and once an imported type had a field set that silence started
+handing out a private type's fields. The resolver's type walk records every
+`ns.Name` annotation it passes and `import_diagnostics` runs the same export
+check over them, so the same declaration gets the same answer whichever way you
+name it.
+
+Deliberately not in it: cross-module assignability stays permissive
+(`ty_is_decidable` is false for the new variant); a sibling `interface` still has
+no cross-module member set; and the two per-shape queries
+`imported_string_literal_union` and `imported_union_of_variant` were left as they
+are, so the release carried one risk instead of two.
+
 Pillar: verifiability for the emitter bug (the lowering has to preserve the
-program's meaning, and this one did not), greppability for the diagnostic.
+program's meaning, and this one did not) and for the module boundary
+(a guarantee that stops at a file edge is not a guarantee), greppability for the
+diagnostic and for E0210 naming the real type.
 
 ### Still open from this trip
 
-- **G75 is unchanged and needs a decision before it can be written.** An imported
-  record type still lowers to `Ty::Unknown`, so a typo'd field on it draws no
-  error and `for i, x` over one of its array fields binds a string index. The fix
-  is a cross-module `imported_record_fields` query on the source side, mirroring
-  the string-literal one, and it is blocked on what an imported record's *identity*
-  should be: a structural `Ty::Record` (smallest change, but then the boundary is
-  structural on one side and nominal on the other, and E0210 says "type `record`"
-  instead of naming the type), a `Ty::Named` re-anchored on the consumer's own
-  import symbol (keeps the name, but the two import spellings of one type produce
-  two different paths that assignability would call incompatible), or a new
-  `Ty::Imported { module, name }` variant (uniform, and what a later cross-module
-  union or interface fix would also want, at the cost of revisiting every `match`
-  on `Ty` in three crates). A second question rides along: how deep the source-side
-  lowering goes for a *field's* type, when that field names another type of the
-  sibling module. Neither is a bug to fix; both are calls to make.
+- **Three things the G75 fix left for later.** Cross-module *assignability* is
+  still permissive: an imported type now has an identity, so passing a
+  `catalog.Sheet` where a `table.Row` is expected could be a Glyph error instead
+  of a `tsc` one. Applying the existing local rule uniformly across a file edge
+  is mechanical, and the fork decision's own tiebreaker says to do it; what is
+  actually open underneath is whether that rule should be nominal or structural,
+  which is Q15. A sibling `interface` (D34) is the one that really is a language
+  decision: giving its members the same cross-module shape a record's get would
+  silently redefine D34's structural satisfaction rule. And a `for` binder is
+  still untyped, so `col.kind` inside `for j, col in spec.columns` remains
+  unchecked; that is separate from G75, since the `for` lowering reads the
+  *iterand's* type.
+
+- **Folding the two per-shape cross-module queries onto the general one.**
+  `imported_string_literal_union` and `imported_union_of_variant` answer questions
+  `imported_type_decl` could also answer. They were left untouched so the release
+  that introduced the general query carried one risk instead of two. Polish lane.
+
+- **The cross-module queries still do not check `pub`; the use site does.** None
+  of the three queries looks at visibility, so on a non-`pub` sibling type Glyph
+  will happily resolve the field set and pick the array lowering. What stops you
+  is one stage earlier, and it now covers both spellings: `import lib { Secret }`
+  reports E0105 at the import, and `import lib` plus `lib.Secret` reports the
+  same E0105 at the annotation. Before 0.1.58 the second one reported nothing at
+  all and only `tsc`'s TS2694 caught it, which meant Glyph's answer to "can I see
+  this type" depended on how you spelled the import. Two things are still open:
+  the namespace check covers type annotations, not `lib.helper()` in value
+  position (that remains a `tsc` error), and pushing `pub` down into the queries
+  themselves has to be done to all three at once, since one query checking and
+  two not would put the inconsistency back where it was.
 
 - **A sibling import only works when the sibling sits at the build root, and
   everything downstream of that is silently wrong.** A module path is derived

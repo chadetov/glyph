@@ -42,7 +42,7 @@ below.
 | `E0102` | Barrel file: only imports, no declarations (D15) |
 | `E0103` | Unresolved name |
 | `E0104` | Unresolved module path |
-| `E0105` | Name not exported by the imported module |
+| `E0105` | Name not exported by the imported module (reported for a named import, `import lib { Secret }`, and for a type written through a namespace import, `import lib` plus a `lib.Secret` annotation; a value read through a namespace is still a `tsc` error) |
 | `E0106` | Unused import (warning) |
 | `E0107` | Unused variable binding (warning) |
 | `E0108` | Unreachable code after `return`/`break`/`continue` (warning) |
@@ -83,7 +83,7 @@ most like a TypeScript program and is not one: see the same page.
 | `E0207` | `owned` resource used after it was consumed (D25) |
 | `E0208` | Non-exhaustive `match` on an array (length not covered) |
 | `E0209` | Non-exhaustive `match` on a `bool` |
-| `E0210` | Field access on a record type that has no such field |
+| `E0210` | Field access on a record type that has no such field, including a record declared in a sibling module under any import spelling, where the message names that record's own type |
 | `E0211` | Call argument type does not match the parameter type |
 | `E0212` | `mut` reassigns a `const` binding (D20) |
 | `E0213` | Wrong number of call arguments |

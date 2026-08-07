@@ -100,9 +100,13 @@ pub fn explain(code: &str) -> Option<&'static str> {
             standard library.\n\n\
             Check the path and that the module is present.",
         "E0105" => "E0105: unknown exported name\n\n\
-            The module exists but does not export the name you imported.\n\n\
+            The module exists but does not export the name you imported. A name \
+            is exported only if it is declared `pub`.\n\n\
             Before:  import std/result { Maybe }\n\
-            After:   import std/result { Result }   // a name the module exports",
+            After:   import std/result { Result }   // a name the module exports\n\n\
+            The same check runs on a type written through a namespace import, so \
+            `import lib` plus `lib.Secret` reports this too when `Secret` is not \
+            `pub`. Which spelling you use does not change what you can see.",
         "E0106" => "E0106: unused import (warning)\n\n\
             An imported name is never referenced in this module, so the import \
             does nothing. A dead import is greppability noise: a reader searching \
@@ -236,7 +240,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
             field.\n\n\
             Check the field name, or add the field to the type. Only a value whose \
             type resolves to a concrete record is checked; access on an \
-            unknown-typed or non-record value is left alone.",
+            unknown-typed or non-record value is left alone. A record declared in \
+            a sibling module counts, under every import spelling, and the message \
+            names that record's own type.",
         "E0211" => "E0211: argument type mismatch\n\n\
             A call argument's type is incompatible with the parameter it is passed \
             to. v1 reports this only when both types are fully known and provably \

@@ -35,10 +35,13 @@ pub use collect::{collect_module_symbols, ModuleSymbols};
 pub use error::{ResolveError, Severity, ShadowOrigin};
 pub use lints::module_lints;
 pub use module_graph::{
-    path_key, verify_imports, CompositeGraph, ModuleExports, ModuleGraph, StdlibStubs,
+    path_key, verify_imports, verify_qualified_type_refs, CompositeGraph, ModuleExports,
+    ModuleGraph, StdlibStubs,
 };
 pub use prelude::{build_prelude, Prelude};
-pub use resolve::{resolve_module, ResolutionMap, ResolvedModule, ResolvedRef};
+pub use resolve::{
+    resolve_module, QualifiedTypeRef, ResolutionMap, ResolvedModule, ResolvedRef,
+};
 pub use symbol::{PreludeKind, Symbol, SymbolId, SymbolKind, SymbolTable};
 
 #[cfg(test)]

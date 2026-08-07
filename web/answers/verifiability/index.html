@@ -211,6 +211,90 @@ pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;b
 
       <div class="detail">
         <p>
+          Records cross now too, and until 0.1.58 they did not. A type declared in one
+          file and used in another arrived with nothing known about it, which cost two
+          separate checks. A misspelled field on it drew no Glyph error at all, so
+          <code>sheet.rowz</code> fell through to <code>tsc</code> and came back as a
+          TypeScript message about a shape you never wrote. And <code>for i, r in
+          sheet.rows</code> could not tell that <code>rows</code> was an array, so it
+          emitted <code>Object.entries(sheet.rows)</code> rather than
+          <code>sheet.rows.entries()</code>. That binds <code>i</code> to the string
+          <code>"0"</code>. <code>i + 1</code> then concatenates instead of adding, and a
+          row that should be reported as <code>line 2</code> reports as
+          <code>line 11</code>.
+        </p>
+        <p>
+          The part worth knowing is which half <code>tsc</code> catches. Arithmetic on
+          that index it does catch, though it reports the error against generated
+          TypeScript for a variable Glyph bound on your behalf. What it cannot catch is
+          every place a string is accepted where a number was meant: string
+          interpolation, concatenation, a <code>record.get</code> key. Those compile
+          clean under both checkers and print the wrong number. That is the shape of bug
+          this project exists to remove, so a module boundary that reintroduces it is not
+          a boundary Glyph can leave alone.
+        </p>
+        <p>
+          An imported type now carries an identity across the boundary, keyed on the
+          module that declares it and the name it declares, so all three import spellings
+          resolve to the same type. The declaration itself is fetched on demand and
+          lowered on the declaring module's side, which is the half a consumer cannot do:
+          resolution runs over spans, and an imported declaration's spans belong to
+          another file. A record therefore keeps its field set, and a bad field is
+          <code>E0210</code> naming the record rather than a <code>tsc</code> error about
+          an anonymous shape.
+        </p>
+        <p>
+          The query engine in <code>examples/apps/csvql</code> is where this surfaced.
+          It carried three <code>let</code> hoists
+          whose only job was to restate an imported field's type for the emitter, under a
+          four-line comment explaining that without them the row and column numbers in an
+          error message come out wrong. All three are deleted and the app prints
+          byte-identical output for all twelve queries.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">table.glyph: the hoists and the comment explaining them are gone</span>
+<pre><span class="del">// Both annotations are load-bearing. `for i, x in &lt;record field&gt;` picks its</span>
+<span class="del">// lowering from the iterand's type as the checker knows it, and a field</span>
+<span class="del">// access is not enough: without the `let`, `i` and `j` come out as strings</span>
+<span class="del">// and the row/column numbers in a `BadCell` are wrong.</span>
+<span class="del">let raw_rows: Array&lt;Array&lt;string&gt;&gt; = sheet.rows</span>
+<span class="del">for i, raw_row in raw_rows {</span>
+<span class="add">for i, raw_row in sheet.rows {</span>
+  let typed: Array&lt;Value&gt; = []
+<span class="del">  let cols: Array&lt;ColumnSpec&gt; = spec.columns</span>
+<span class="del">  for j, col in cols {</span>
+<span class="add">  for j, col in spec.columns {</span>
+    …
+  }
+}
+
+<span class="cm">// sheet: Sheet, declared in catalog.glyph and imported here.</span>
+<span class="cm">// Emitted TypeScript: sheet.rows.entries(), not Object.entries(sheet.rows).</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, on a typo'd field of an imported record</span>
+<pre><span class="del">[E0210] type `Sheet` has no field `rowz`</span>
+<span class="cm">// Before 0.1.58: no Glyph diagnostic at all, only a tsc error downstream.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Two things still stop at the boundary, and it is worth knowing which. Passing a
+          <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is a
+          <code>tsc</code> error rather than a Glyph one, because the cross-file
+          assignability rule waits on an unsettled question about whether type identity
+          across a module edge should be nominal or structural. An
+          <code>interface</code>'s member list does not cross either. Giving it the
+          treatment a record's field set gets would quietly change what structural
+          satisfaction means, which is a language decision rather than a fix.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
           That import list is where this came from. It was written by hand in every module of a
           statechart engine, with a comment above it saying a union's constructors don't arrive
           with its type. The comment was right about the syntax and wrong about the reason: the
@@ -320,7 +404,7 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike; a misspelled bare arm trips <code>E0103</code> as well, one stage earlier, so you get both lines for the same name. When <code>E0200</code> lists what you missed it quotes the names for a module-local union and leaves them bare for an imported one, which is a formatting split between two code paths and nothing more. Unions cross a module boundary with their exhaustiveness intact, tagged and string-literal alike; record types do not yet carry their field set across, so a typo'd field on a record imported from a sibling module reaches <code>tsc</code> rather than stopping at Glyph, and <code>for i, x</code> over such a record's array field needs the field hoisted into an annotated <code>let</code> to bind <code>i</code> as a number. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
+          <p>Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike; a misspelled bare arm trips <code>E0103</code> as well, one stage earlier, so you get both lines for the same name. When <code>E0200</code> lists what you missed it quotes the names for a module-local union and leaves them bare for an imported one, which is a formatting split between two code paths and nothing more. Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is assignability (passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is still a <code>tsc</code> error, not a Glyph one) and an <code>interface</code>'s member list. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
         </div>
       </div>
 

@@ -21,13 +21,13 @@ use std::collections::HashMap;
 
 use glyph_ast::{
     ArrayElem, Block, Decl, Expr, GenericParam, Ident, JsxAttr, JsxChild, JsxElement, MatchArmBody,
-    Module, ObjectField, Param, Pattern, Span, Stmt, TemplatePart, TypeExpr,
+    Module, ModulePath, ObjectField, Param, Pattern, Span, Stmt, TemplatePart, TypeExpr,
 };
 
 use crate::collect::ModuleSymbols;
 use crate::error::ResolveError;
 use crate::prelude::Prelude;
-use crate::symbol::SymbolId;
+use crate::symbol::{SymbolId, SymbolKind};
 
 /// What a name resolved to. Stored once per ident reference (keyed by the
 /// reference span, not the definition span).
@@ -43,17 +43,38 @@ pub enum ResolvedRef {
     Local(u32),
 }
 
+/// A type written as `ns.Name`, where `ns` is a namespace import
+/// (`import catalog`) or an aliased one (`import catalog as c`). Collected
+/// during the walk because this is the only pass that visits every type
+/// annotation in a module; the export check itself needs a `ModuleGraph`, which
+/// lives a stage later (`verify_qualified_type_refs`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QualifiedTypeRef {
+    /// The path of the module `ns` was imported from.
+    pub module: ModulePath,
+    /// The second segment: the name being read out of that module.
+    pub name: Ident,
+    /// The whole `ns.Name` path, for the diagnostic.
+    pub span: Span,
+}
+
 /// The output of `resolve_module`: the symbol table + a span-indexed
 /// resolution map.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedModule {
     pub symbols: ModuleSymbols,
     pub resolutions: ResolutionMap,
+    /// Every `ns.Name` type annotation reached through a namespace import, in
+    /// source order. Checked against the target module's export set by
+    /// `verify_qualified_type_refs`, so `import catalog` + `catalog.Secret` on a
+    /// non-`pub` type reports the same E0105 the named spelling reports.
+    pub qualified_type_refs: Vec<QualifiedTypeRef>,
 }
 
 impl ResolvedModule {
     /// Return a new `ResolvedModule` with the same symbols but the
-    /// `resolutions` map restricted to entries whose span passes `keep`.
+    /// `resolutions` map and the `qualified_type_refs` list restricted to
+    /// entries whose span passes `keep`.
     /// Used by `glyph-db` to produce a per-declaration resolution slice —
     /// when a file edit doesn't change a particular decl's spans, the
     /// slice is content-equal across the edit and salsa can backdate
@@ -79,6 +100,12 @@ impl ResolvedModule {
         ResolvedModule {
             symbols: self.symbols.clone(),
             resolutions: out,
+            qualified_type_refs: self
+                .qualified_type_refs
+                .iter()
+                .filter(|r| keep(r.span))
+                .cloned()
+                .collect(),
         }
     }
 }
@@ -133,6 +160,7 @@ pub fn resolve_module(
         scopes: Vec::new(),
         resolutions: ResolutionMap::new(),
         errors: Vec::new(),
+        qualified_type_refs: Vec::new(),
     };
 
     for item in &module.items {
@@ -140,12 +168,16 @@ pub fn resolve_module(
     }
 
     let Resolver {
-        resolutions, errors, ..
+        resolutions,
+        errors,
+        qualified_type_refs,
+        ..
     } = walker;
     (
         ResolvedModule {
             symbols,
             resolutions,
+            qualified_type_refs,
         },
         errors,
     )
@@ -238,6 +270,7 @@ struct Resolver<'a> {
     scopes: Vec<HashMap<Ident, u32>>,
     resolutions: ResolutionMap,
     errors: Vec<ResolveError>,
+    qualified_type_refs: Vec<QualifiedTypeRef>,
 }
 
 impl Resolver<'_> {
@@ -711,6 +744,7 @@ impl Resolver<'_> {
                     // the typechecker.
                     self.resolve_name_ref(first, *span);
                 }
+                self.note_qualified_type_ref(segments, *span);
             }
             TypeExpr::Generic { base, args, .. } => {
                 self.walk_type_expr(base);
@@ -753,6 +787,33 @@ impl Resolver<'_> {
                 }
             }
         }
+    }
+
+    /// Record a `ns.Name` type annotation whose head is a namespace import, so
+    /// the export check a stage later can hold it to the same rule
+    /// `import ns { Name }` is held to. Called from `walk_type_expr`, the one
+    /// traversal that reaches every annotation in a module, which is why the
+    /// two spellings cannot end up covering different sets of positions.
+    fn note_qualified_type_ref(&mut self, segments: &[Ident], span: Span) {
+        if segments.len() != 2 {
+            return;
+        }
+        let Some(ResolvedRef::Module(id)) = self.resolutions.get(span) else {
+            return;
+        };
+        let Some(sym) = self.symbols.table.get(id) else {
+            return;
+        };
+        let (SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. }) =
+            &sym.kind
+        else {
+            return;
+        };
+        self.qualified_type_refs.push(QualifiedTypeRef {
+            module: path.clone(),
+            name: segments[1].clone(),
+            span,
+        });
     }
 }
 

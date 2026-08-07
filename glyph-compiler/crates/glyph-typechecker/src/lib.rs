@@ -36,8 +36,11 @@ pub mod type_map;
 pub use assign::{
     assign_types, assign_types_with_resolver, DeclTyResolver, LocalDeclTy,
 };
-pub use lower::{lower_type_expr, Lowerer};
-pub use ty::{FnParam, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant};
+pub use lower::{lower_type_expr, ExportLowerer, Lowerer};
+pub use ty::{
+    FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, SymbolRef, Ty,
+    UnionVariant,
+};
 pub use type_map::TypeMap;
 
 use glyph_ast::Span;
@@ -99,6 +102,9 @@ pub fn display_ty(ty: &Ty) -> String {
             .map(|v| format!("\"{v}\""))
             .collect::<Vec<_>>()
             .join(" | "),
+        // The bare name: the same declaration hovers identically whether it is
+        // read locally or through any of the three import spellings.
+        Ty::Imported { name, .. } => name.to_string(),
     }
 }
 

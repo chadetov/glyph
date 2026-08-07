@@ -25,7 +25,8 @@ use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind}
 
 use crate::lower::Lowerer;
 use crate::ty::{
-    ty_display, FnParam, ParamOwner, Primitive, RecordField, SymbolRef, Ty, UnionVariant,
+    ty_display, FnParam, ImportedTypeDecl, ParamOwner, Primitive, RecordField, SymbolRef, Ty,
+    UnionVariant,
 };
 use crate::type_map::TypeMap;
 use crate::TypeError;
@@ -115,6 +116,32 @@ pub trait DeclTyResolver {
         _module_path: &str,
         _type_name: &str,
     ) -> Option<Vec<String>> {
+        None
+    }
+
+    /// The general cross-module type query: for the project module at
+    /// `module_path`, return the `type <type_name> = ...` declaration lowered on
+    /// the *source* side, so its body names types that resolve against the
+    /// declaring module rather than the consumer. `None` with no cross-module
+    /// context (db-less callers), for a module that is not a project sibling
+    /// (`std/fs`), or for a name that module does not declare as a `type`.
+    ///
+    /// This is what gives an imported record a field set, so `s.rowz` is an
+    /// `UnknownField` and `for i, r in s.rows` lowers as an array loop. The two
+    /// per-shape queries above (`imported_union_of_variant`,
+    /// `imported_string_literal_union`) answer questions this one could also
+    /// answer; folding them in is the natural follow-up, deliberately not done
+    /// in the same change that introduces this one.
+    ///
+    /// Answered by `glyph_db::exported_type`, which lowers the declaration on
+    /// the source side and wraps it in an `ExportedTypeDecl`. One declaration,
+    /// two names: `exported_type` / `ExportedTypeDecl` is the producing side,
+    /// `imported_type_decl` / `ImportedTypeDecl` the consuming one.
+    fn imported_type_decl(
+        &self,
+        _module_path: &str,
+        _type_name: &str,
+    ) -> Option<ImportedTypeDecl> {
         None
     }
 }
@@ -1505,6 +1532,12 @@ impl Assigner<'_> {
     fn is_decidably_non_result(&self, ty: &Ty) -> bool {
         match ty {
             Ty::Unknown => false,
+            // A sibling's `pub type Res = Result<A, B>` *is* a `Result`, and
+            // this module cannot see through the alias to know it. Judging it
+            // non-`Result` here would reject every `?` in a function declared
+            // with that return type. Same reasoning as `ty_is_decidable`:
+            // having an identity is not the same as having a definition.
+            Ty::Imported { .. } => false,
             Ty::App { base, .. } => !matches!(base.as_ref(), Ty::Unknown),
             Ty::Param { .. } => false,
             _ => true,
@@ -1699,13 +1732,15 @@ impl Assigner<'_> {
             self.check_value_exhaustiveness(kind, arms, match_span);
             return;
         }
-        // Imported union: the scrutinee's type is `Unknown` here (its union decl
-        // lives in another module), so every local resolution above found
-        // nothing. If an arm names an imported variant, resolve the union's full
-        // variant set cross-module and hold the match to the same exhaustiveness
-        // bar as a module-local one. (Reachability, above, already treats a
-        // PascalCase bare ident as a refutable variant rather than a catch-all.)
-        if matches!(scrutinee_ty, Ty::Unknown) {
+        // Imported union: the scrutinee's union decl lives in another module, so
+        // every local resolution above found nothing — it is either `Unknown`
+        // (no annotation to lower) or an imported type whose declaration this
+        // module never sees. If an arm names an imported variant, resolve the
+        // union's full variant set cross-module and hold the match to the same
+        // exhaustiveness bar as a module-local one. (Reachability, above,
+        // already treats a PascalCase bare ident as a refutable variant rather
+        // than a catch-all.)
+        if matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. }) {
             if let Some((type_name, required)) = self.imported_union_variants_from_arms(arms) {
                 self.check_imported_union_coverage(&type_name, &required, arms, match_span);
                 return;
@@ -1756,15 +1791,10 @@ impl Assigner<'_> {
             let SymbolKind::ImportNamed { path, original } = &sym.kind else {
                 continue;
             };
-            let module_path: String = path
-                .segments
-                .iter()
-                .map(|s| s.as_ref())
-                .collect::<Vec<_>>()
-                .join("/");
+            let module_path = crate::lower::module_key(path);
             if let Some(found) = self
                 .decl_ty_resolver
-                .imported_union_of_variant(&module_path, original)
+                .imported_union_of_variant(module_path.as_str(), original)
             {
                 return Some(found);
             }
@@ -1788,14 +1818,9 @@ impl Assigner<'_> {
             SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => path,
             _ => return None,
         };
-        let module_path: String = import_path
-            .segments
-            .iter()
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
-            .join("/");
+        let module_path = crate::lower::module_key(import_path);
         self.decl_ty_resolver
-            .imported_union_of_variant(&module_path, variant)
+            .imported_union_of_variant(module_path.as_str(), variant)
     }
 
     /// Coverage check for a `match` on an imported union: every required variant
@@ -2474,6 +2499,19 @@ impl Assigner<'_> {
         if let Ty::StringLiteralUnion(values) = ty {
             return Some(values.clone());
         }
+        // A string-literal union reached through an imported record's *field*
+        // (`match sheet.kind { ... }`). The direct spelling is already answered
+        // by `imported_string_literal_union` at lowering; the field type comes
+        // from the sibling's own lowering, so it arrives as a `Ty::Imported`
+        // and needs the same resolution D30 promises for the direct case.
+        if let Ty::Imported { module, name } = ty {
+            let mut seen: HashSet<(String, String)> = HashSet::new();
+            let decl = self.imported_type_body(module.as_str(), name, &mut seen)?;
+            let Ty::StringLiteralUnion(values) = decl.body else {
+                return None;
+            };
+            return Some(values);
+        }
         let Ty::Named { symbol, .. } = ty else { return None };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
         let SymbolKind::Type { decl_idx } = sym.kind else { return None };
@@ -2503,9 +2541,84 @@ impl Assigner<'_> {
             Ty::Named { .. } => stdlib_type_fields(ty)
                 .or_else(|| self.named_record_fields(ty, &[]))
                 .or_else(|| self.interface_member_fields(ty)),
-            Ty::App { base, args } => self.named_record_fields(base, args),
+            // A type declared in a sibling module. Resolving it here, rather
+            // than at lowering, is what keeps the representation free of cycle
+            // guards: nothing expands until a field set is actually asked for.
+            Ty::Imported { module, name } => {
+                self.imported_record_fields(module.as_str(), name, &[])
+            }
+            // Dispatch on the base so a generic sibling record
+            // (`type Box<T> = { value: T }` used as `Box<string>`) substitutes
+            // its arguments the same way a local one does.
+            Ty::App { base, args } => match base.as_ref() {
+                Ty::Imported { module, name } => {
+                    self.imported_record_fields(module.as_str(), name, args)
+                }
+                _ => self.named_record_fields(base, args),
+            },
             _ => None,
         }
+    }
+
+    /// The field set of an imported record type, with the declaration's generic
+    /// parameters substituted by `args`. `None` when the sibling declares the
+    /// name as something other than a record, or when it cannot be resolved at
+    /// all (no cross-module context, a stdlib module, a cyclic alias chain) —
+    /// which leaves member access exactly as permissive as it is today.
+    fn imported_record_fields(
+        &self,
+        module: &str,
+        name: &str,
+        args: &[Ty],
+    ) -> Option<Vec<RecordField>> {
+        let mut seen: HashSet<(String, String)> = HashSet::new();
+        let decl = self.imported_type_body(module, name, &mut seen)?;
+        let Ty::Record { fields } = decl.body else {
+            return None;
+        };
+        if decl.generics.is_empty() || args.is_empty() {
+            return Some(fields);
+        }
+        let mut subst: HashMap<Ident, Ty> = HashMap::new();
+        for (g, a) in decl.generics.iter().zip(args.iter()) {
+            subst.insert(g.clone(), a.clone());
+        }
+        Some(
+            fields
+                .into_iter()
+                .map(|f| RecordField {
+                    name: f.name,
+                    ty: substitute_type_params(&f.ty, &subst),
+                    optional: f.optional,
+                })
+                .collect(),
+        )
+    }
+
+    /// Resolve `(module, name)` to the sibling's lowered `type` declaration,
+    /// following a cross-module alias chain (`pub type Rows = Sheet` in the
+    /// sibling lowers to a `Ty::Imported` body, which is another hop). The one
+    /// place cross-module type resolution happens. A cycle returns `None`
+    /// rather than looping: permissive, never a hang.
+    fn imported_type_body(
+        &self,
+        module: &str,
+        name: &str,
+        seen: &mut HashSet<(String, String)>,
+    ) -> Option<ImportedTypeDecl> {
+        if !seen.insert((module.to_string(), name.to_string())) {
+            return None;
+        }
+        let decl = self.decl_ty_resolver.imported_type_decl(module, name)?;
+        if let Ty::Imported {
+            module: next_module,
+            name: next_name,
+        } = &decl.body
+        {
+            let (next_module, next_name) = (next_module.clone(), next_name.clone());
+            return self.imported_type_body(next_module.as_str(), &next_name, seen);
+        }
+        Some(decl)
     }
 
     /// The field set of a `Ty::Named` record declaration, with any generic
@@ -3041,6 +3154,14 @@ fn ty_is_decidable(ty: &Ty) -> bool {
     match ty {
         Ty::Unknown => false,
         Ty::Param { .. } => false,
+        // Cross-module assignability stays exactly as permissive as it was when
+        // an imported type was `Ty::Unknown`. The identity is now available, so
+        // `definitely_incompatible` *could* decide it, but that would be a new
+        // error class at a module boundary — language surface, not
+        // implementation, and it is not part of this change. Without this arm
+        // the `_ => true` fallback would draw a false `QuestionOnNonResult` on
+        // `g()?` where `g` returns an imported `type Res = Result<A, B>`.
+        Ty::Imported { .. } => false,
         Ty::App { base, .. } => ty_is_decidable(base),
         _ => true,
     }

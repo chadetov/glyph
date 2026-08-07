@@ -133,15 +133,9 @@ pub fn build(spec: TableSpec, sheet: Sheet) -> Result<Table, QueryFail> {
     false => { return Err(HeaderMismatch({ table: spec.name, expected: declared, found: found })) },
   }
   let rows: Array<Array<Value>> = []
-  // Both annotations are load-bearing. `for i, x in <record field>` picks its
-  // lowering from the iterand's type as the checker knows it, and a field
-  // access is not enough: without the `let`, `i` and `j` come out as strings
-  // and the row/column numbers in a `BadCell` are wrong.
-  let raw_rows: Array<Array<string>> = sheet.rows
-  for i, raw_row in raw_rows {
+  for i, raw_row in sheet.rows {
     let typed: Array<Value> = []
-    let cols: Array<ColumnSpec> = spec.columns
-    for j, col in cols {
+    for j, col in spec.columns {
       let cell = match coerce_cell(col.kind, raw_row[j]) {
         Some(v) => v,
         None => {

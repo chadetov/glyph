@@ -77,7 +77,9 @@ one stage earlier as an unresolved name (E0103) and again here.
 
 **E0105: `N` is not exported by `M`.** The name you imported is either
 misspelled or private. Declarations are module-private by default; mark the one
-you want to expose `pub` in its own module.
+you want to expose `pub` in its own module. A type written through a namespace
+import gets the same check at the annotation, so `import lib` plus a `lib.Secret`
+parameter reports this too.
 
 **E0221: unknown annotation.** An `@name` the compiler doesn't recognize (a typo
 like `@puer`). The recognized set is small and documented in the spec (D27).

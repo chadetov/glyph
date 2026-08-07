@@ -24,17 +24,19 @@ open.
 
 Reconciled again after the adversarial review of the csvql round, which added one
 entry (G77, the match-arm binding that shadowed the `let` it assigned to) and
-closed it along with G74 in the same release: of 78 entries, 52 are fixed, 11 are
-partly fixed, 5 are decided or resolved, and 10 are open. G75 is the largest thing
-still open: an imported record type lowers to `Ty::Unknown`, so field checking and
-the `for i, x` index type are both wrong across an import.
+closed it along with G74 in the same release, then again after G75: of 78 entries,
+53 are fixed, 11 are partly fixed, 5 are decided or resolved, and 9 are open. G75
+was the largest thing still open: an imported record type lowered to `Ty::Unknown`,
+so field checking and the `for i, x` index type were both wrong across an import.
+It carried an identity across the boundary from that release on.
 
 The reconciliation before it, after the csvql trip, which added two entries and
 closed one of them in the same release, read 76 entries, 50 fixed, 11 partly
 fixed, 5 decided or resolved, and 10 open. G76 is the imported string-literal
 union that lost D30's exhaustiveness guarantee, fixed by giving `DeclTyResolver`
 the query that reads a sibling module's literal set. G75 is the other one it
-added, and it is the entry still open above.
+added, and it is fixed too, by the general cross-module type query described
+above.
 
 The reconciliation before it, after the statechart trip, which added two entries
 and closed one of them in the same release, read 74 entries, 49 fixed, 11 partly
@@ -1986,8 +1988,8 @@ guarantee already crosses a module boundary through
 `DeclTyResolver::imported_union_of_variant`, so the seam was built, proven, and
 salsa-memoized. Nobody had written the second query.
 
-- **G75. Imported record fields lower to `Ty::Unknown`, so field checking and
-  `for i, x` are both wrong across an import.** `record_fields_of` and
+- **G75. [FIXED] Imported record fields lowered to `Ty::Unknown`, so field
+  checking and `for i, x` were both wrong across an import.** `record_fields_of` and
   `named_record_fields` resolve a `Ty::Named` only against `self.module.items`,
   which is module-local, and an imported type never becomes `Ty::Named` in the
   first place. Three consequences, all silent: a typo'd field on an imported
@@ -1998,13 +2000,61 @@ salsa-memoized. Nobody had written the second query.
   numeric consumers of that index (`total + i`, `i > 9`, passing it to a `number`
   parameter) and reports them against a variable Glyph bound for the author; it
   is silent where a string works where a number was meant, which is string
-  interpolation, concatenation, and `record.get` keys. csvql works around it with
-  a `let raw_rows: Array<Array<string>> = sheet.rows` hoist before each such
-  loop. *Not fixed with G76, and not the same shape of fix. Lowering a foreign
-  `TypeExpr` needs the source module's resolver: `Lowerer::lower` resolves paths
-  through `self.resolved.resolutions.get(span)`, and an imported declaration's
-  spans belong to another file, so the lowering has to move to the source side of
-  the query rather than being reached from the consumer's `Lowerer`.*
+  interpolation, concatenation, and `record.get` keys. csvql worked around it
+  with a `let` hoist before each such loop, three of them: `raw_rows` and `cols`
+  in `table.build`, and `cols` again in `bind.fields_of`. All three are deleted
+  now, along with the four-line comment that explained why they had to be there.
+  `table.build` loops straight over `sheet.rows` and `spec.columns`, `fields_of`
+  over `spec.columns`, and the app builds with no diagnostics, passes `tsc
+  --strict`, and prints byte-identical output for all twelve queries plus
+  `--explain` and `--limit`. The old binary cannot compile the hoist-free
+  version: it emits `Object.entries` for both loops and `tsc` rejects `i + 1`,
+  and with `--no-tsc` the `BadCell` reads `row 11` where it should read `row 2`.
+  *Fixed by giving an imported type an identity. `Ty` grew an `Imported { module,
+  name }` variant, keyed on the source module's registry path and the name that
+  module declares, so the named, namespace-qualified and aliased spellings all
+  produce the same type. It deliberately carries no `SymbolRef`: a foreign
+  module's ids index an unrelated symbol in the consumer's table. Lowering emits
+  it without consulting any query, which is why `type Node = { next: Option<Node>
+  }` and a two-module type cycle both terminate with no cycle guard. Resolution
+  happens in one place, `record_fields_of`, through a single general
+  `DeclTyResolver::imported_type_decl(module_path, type_name)` with a `None`
+  default; `SalsaDeclTy` answers it from a new tracked `exported_type(db, file,
+  decl_idx)` query, which lowers the declaration on the source side. That is the
+  part the consumer cannot do: `Lowerer::lower` resolves paths through
+  `self.resolved.resolutions.get(span)`, and an imported declaration's spans
+  belong to another file. Keying the query on the source declaration rather than
+  on the consumer means one lowering is shared by every consumer and every import
+  spelling. A sibling type named inside another sibling type is itself a
+  `Ty::Imported`, resolved on demand, so nesting costs nothing extra; a generic
+  sibling record substitutes its type arguments the way a local one does; and a
+  string-literal union reached through an imported record's field keeps D30's
+  exhaustiveness. Ten integration tests pin the three spellings, the E0210 that
+  now names `Sheet` rather than `record`, the nested and self-referential and
+  generic cases, and a stdlib type as the negative; seven unit tests hold the
+  export view, the stdlib fall-through, and the trait default. Emitted TypeScript
+  for every app under `examples/apps/` is byte-identical.*
+
+  Giving an imported type a field set exposed a hole on the way in, so the same
+  release closed it. `import lib { Secret }` on a non-`pub` type had always been
+  E0105; `import lib` plus a `lib.Secret` annotation reported nothing, and once
+  the checker could resolve the declaration that silence started handing out a
+  private type's fields and its array lowering, with only `tsc`'s TS2694 left to
+  object. The resolver's type walk now records every `ns.Name` annotation it
+  passes, and `import_diagnostics` runs the same export check over that list, so
+  a declaration answers the same way whichever spelling names it. Value access
+  through a namespace (`lib.helper()`) is unchanged and still a `tsc` error.
+
+  Three things this deliberately did not do. Cross-module assignability stays
+  permissive (`ty_is_decidable` returns false for `Ty::Imported`); applying the
+  local rule across a file edge is mechanical, but whether that rule is nominal
+  or structural is Q15. A sibling `interface` (D34) still has no cross-module
+  member set, and that one really is a language decision: giving its members the
+  shape a record's get would redefine D34's structural satisfaction rule. And the
+  two per-shape queries, `imported_string_literal_union` and
+  `imported_union_of_variant`, were left exactly as they are: folding them onto
+  `imported_type_decl` is the natural follow-up, kept out of the release that
+  introduced the general query so it carried one risk instead of two.
 
 - **G76. [FIXED] An imported string-literal union lost D30's exhaustiveness
   guarantee, and the compiler's help text told the author to delete it.** A

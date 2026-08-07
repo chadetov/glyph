@@ -31,6 +31,7 @@ use std::collections::{BTreeSet, HashMap};
 use glyph_ast::{Decl, Ident, ImportKind, Module, ModulePath};
 
 use crate::error::ResolveError;
+use crate::resolve::QualifiedTypeRef;
 
 /// Exports surface for a single module. The `names` set is the union of
 /// every top-level decl name and every imported-and-re-exported name; for the
@@ -310,6 +311,38 @@ pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveEr
                     });
                 }
             }
+        }
+    }
+    errors
+}
+
+/// Hold every `ns.Name` type annotation to the same export rule
+/// `import ns { Name }` is held to, and emit `ResolveError::UnknownExportedName`
+/// where it fails.
+///
+/// Without this, which spelling brought a type into scope decided whether
+/// visibility applied: `import catalog { Secret }` on a non-`pub` type was
+/// E0105, while `import catalog` plus `catalog.Secret` reported nothing and the
+/// checker went on to resolve the private type's field set. The refs come from
+/// the resolver's own type walk, so the two spellings cover the same positions.
+///
+/// Permissive on unknown modules for the same reason `verify_imports` is: an
+/// npm package or a module outside the project answers `None` and is skipped.
+pub fn verify_qualified_type_refs(
+    refs: &[QualifiedTypeRef],
+    graph: &dyn ModuleGraph,
+) -> Vec<ResolveError> {
+    let mut errors = Vec::new();
+    for r in refs {
+        let Some(exports) = graph.exports_of(&r.module) else {
+            continue;
+        };
+        if !exports.contains(&r.name) {
+            errors.push(ResolveError::UnknownExportedName {
+                name: r.name.to_string(),
+                module: path_key(&r.module),
+                span: r.span,
+            });
         }
     }
     errors

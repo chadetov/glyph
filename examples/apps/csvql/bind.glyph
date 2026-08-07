@@ -19,7 +19,7 @@ import std/option { Option, Some, None }
 import std/result { Result, Ok, Err }
 import std/string
 import catalog
-import catalog { CatalogFile, ColType, ColumnSpec, TableSpec }
+import catalog { CatalogFile, ColType, TableSpec }
 import fail { QueryFail, AmbiguousColumn, BadAggregate, SyntaxError, TypeMismatch, UngroupedColumn, UnknownColumn, UnknownTable }
 import sql
 import sql { Agg, And, Call, Column, Compare, CompareOp, Const, Item, Operand, Or, Plain, Pred, Query, Ref, Star }
@@ -73,8 +73,7 @@ pub type Bound = {
 
 fn fields_of(spec: TableSpec, offset: int) -> Array<Field> {
   let out: Array<Field> = []
-  let cols: Array<ColumnSpec> = spec.columns
-  for i, c in cols {
+  for i, c in spec.columns {
     mut out = array.push(out, { table: spec.name, name: c.name, kind: c.kind, slot: offset + i })
   }
   return out

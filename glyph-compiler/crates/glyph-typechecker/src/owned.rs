@@ -478,6 +478,12 @@ impl OwnedChecker<'_> {
                 Ty::Named { symbol, path } => self.named_is_resource(symbol.0, path),
                 _ => ResourceKind::Unknown,
             },
+            // Whether a sibling module marked the declaration `resource` is not
+            // read across a module boundary, so an imported type is undecided,
+            // not decidably-not. Without this arm `let owned h: catalog.Conn`
+            // would start drawing a false `OwnedRequiresResourceType`; it was
+            // silent when the type lowered to `Unknown` and it stays silent.
+            Ty::Imported { .. } => ResourceKind::Unknown,
             // Primitives, anonymous records, function and union types are all
             // decidably not `resource`-marked declarations.
             _ => ResourceKind::NotResource,

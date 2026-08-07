@@ -5944,3 +5944,368 @@ fn a_bare_primitive_union_is_rejected_with_the_misparse_explained() {
     );
     assert!(report.emitted.is_empty(), "emitted: {:?}", report.emitted);
 }
+
+// ---------------------------------------------------------------------------
+// G75: an imported record keeps its identity across a module boundary
+// ---------------------------------------------------------------------------
+
+/// A record type in a sibling module, for the cross-module record tests below.
+/// Written once so every import spelling is checked against the same
+/// declaration.
+const SHEET_MODULE: &str = "module catalog\npub type Sheet = { rows: Array<Array<string>> }\n";
+
+#[test]
+fn named_imported_record_field_loops_numerically() {
+    // `for i, x` over an `Array` binds a number. An imported record's field used
+    // to type as `Ty::Unknown`, so the emitter could not tell an array from a
+    // record and fell back to `Object.entries`, binding the string `"0"`. The
+    // build stayed green, which is what made it a silent miscompile.
+    let root = unique_tmp("g75named");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", SHEET_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io\n\
+         import catalog { Sheet }\n\
+         pub fn show(s: Sheet) -> void {\n\
+         \x20 for i, r in s.rows {\n\
+         \x20\x20\x20 io.println(\"row\")\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(root.join("dist").join("main.ts")).unwrap();
+    assert!(ts.contains("s.rows.entries()"), "array loop expected: {ts}");
+    assert!(!ts.contains("Object.entries"), "record loop emitted: {ts}");
+}
+
+#[test]
+fn namespace_qualified_imported_record_field_loops_numerically() {
+    // `import catalog` + `catalog.Sheet`. The guarantee must not depend on
+    // which legal spelling brought the type into scope.
+    let root = unique_tmp("g75ns");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", SHEET_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io\n\
+         import catalog\n\
+         pub fn show(s: catalog.Sheet) -> void {\n\
+         \x20 for i, r in s.rows {\n\
+         \x20\x20\x20 io.println(\"row\")\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(root.join("dist").join("main.ts")).unwrap();
+    assert!(ts.contains("s.rows.entries()"), "array loop expected: {ts}");
+    assert!(!ts.contains("Object.entries"), "record loop emitted: {ts}");
+}
+
+#[test]
+fn aliased_imported_record_field_loops_numerically() {
+    // `import catalog as c` + `c.Sheet`, the third spelling.
+    let root = unique_tmp("g75alias");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", SHEET_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io\n\
+         import catalog as c\n\
+         pub fn show(s: c.Sheet) -> void {\n\
+         \x20 for i, r in s.rows {\n\
+         \x20\x20\x20 io.println(\"row\")\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(root.join("dist").join("main.ts")).unwrap();
+    assert!(ts.contains("s.rows.entries()"), "array loop expected: {ts}");
+    assert!(!ts.contains("Object.entries"), "record loop emitted: {ts}");
+}
+
+#[test]
+fn unknown_field_on_an_imported_record_is_e0210_naming_the_type() {
+    // Field checking used to be entirely off across a module boundary: a typo
+    // drew nothing from Glyph. The diagnostic has to name `Sheet`, not
+    // `record`: naming the type is why an imported type carries its own
+    // identity rather than being flattened to a structural shape.
+    let root = unique_tmp("g75field");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", SHEET_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io\n\
+         import catalog { Sheet }\n\
+         pub fn show(s: Sheet) -> void {\n\
+         \x20 io.println(s.rowz)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|d| d.contains("E0210"))
+        .unwrap_or_else(|| panic!("no E0210; diagnostics were: {:?}", report.diagnostics));
+    assert!(diag.contains("Sheet"), "must name the type: {diag}");
+    assert!(diag.contains("rowz"), "must name the field: {diag}");
+}
+
+#[test]
+fn nested_sibling_type_resolves_one_level_down() {
+    // A sibling type named inside another sibling type is itself an imported
+    // type, resolved when a field set is asked for. Nothing is expanded at
+    // lowering, so this costs no cycle guard.
+    let root = unique_tmp("g75nested");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\n\
+         pub type Sheet = { rows: Array<Array<string>> }\n\
+         pub type Book = { sheet: Sheet }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io\n\
+         import catalog { Book }\n\
+         pub fn show(b: Book) -> void {\n\
+         \x20 for i, r in b.sheet.rows {\n\
+         \x20\x20\x20 io.println(\"row\")\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(root.join("dist").join("main.ts")).unwrap();
+    assert!(
+        ts.contains("b.sheet.rows.entries()"),
+        "array loop expected through a nested sibling type: {ts}"
+    );
+
+    // And the field check reaches the same level down.
+    let root = unique_tmp("g75nestedfield");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\n\
+         pub type Sheet = { rows: Array<Array<string>> }\n\
+         pub type Book = { sheet: Sheet }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io\n\
+         import catalog { Book }\n\
+         pub fn show(b: Book) -> void {\n\
+         \x20 io.println(b.sheet.rowz)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|d| d.contains("E0210"))
+        .unwrap_or_else(|| panic!("no E0210; diagnostics were: {:?}", report.diagnostics));
+    assert!(diag.contains("Sheet"), "must name the nested type: {diag}");
+}
+
+#[test]
+fn self_referential_sibling_type_terminates() {
+    // `type Node = { next: Option<Node> }` imported and used. Lowering emits an
+    // imported type unconditionally and never consults the cross-module query,
+    // so nothing expands and this terminates by construction. The test exists
+    // to keep it that way: a representation that expanded eagerly would hang
+    // here instead of failing.
+    let root = unique_tmp("g75cycle");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\npub type Node = { label: string, next: Option<Node> }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Node }\n\
+         pub fn label_of(n: Node) -> string {\n\
+         \x20 return n.label\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+}
+
+#[test]
+fn generic_sibling_record_substitutes_its_type_argument() {
+    // `type Box<T> = { value: T }` used as `Box<string>` across the boundary
+    // gets the same argument substitution a local generic record gets.
+    let root = unique_tmp("g75generic");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", "module catalog\npub type Box<T> = { value: T }\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Box }\n\
+         pub fn unwrap(b: Box<string>) -> string {\n\
+         \x20 return b.value\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    // The field set is real, so a typo on the generic record is caught too.
+    let root = unique_tmp("g75genericfield");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", "module catalog\npub type Box<T> = { value: T }\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Box }\n\
+         pub fn unwrap(b: Box<string>) -> string {\n\
+         \x20 return b.valu\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0210") && d.contains("Box")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn match_on_an_imported_records_literal_union_field_is_exhaustive_without_else() {
+    // D30 through an imported record *field*. The field's type is lowered on
+    // the source side, so it arrives as an imported type and needs the same
+    // resolution the direct spelling already got.
+    let root = unique_tmp("g75fieldunion");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\n\
+         pub type Kind = \"csv\" | \"tsv\"\n\
+         pub type Sheet = { kind: Kind }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Sheet }\n\
+         pub fn label(s: Sheet) -> string {\n\
+         \x20 return match s.kind {\n\
+         \x20\x20\x20 \"csv\" => \"comma\",\n\
+         \x20\x20\x20 \"tsv\" => \"tab\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    // And a missing literal is E0200, not the E0218 that coaches an `else`.
+    let root = unique_tmp("g75fieldunionmissing");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\n\
+         pub type Kind = \"csv\" | \"tsv\"\n\
+         pub type Sheet = { kind: Kind }\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Sheet }\n\
+         pub fn label(s: Sheet) -> string {\n\
+         \x20 return match s.kind {\n\
+         \x20\x20\x20 \"csv\" => \"comma\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0218")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn a_stdlib_type_used_as_an_annotation_draws_no_new_diagnostics() {
+    // A name whose module is not a project sibling still has an identity, but
+    // nothing can resolve it, so member access falls through to the stdlib
+    // tables exactly as before. The negative that pins "no new errors".
+    //
+    // `http.Response` on purpose, not `fs.FsError`: the latter is in
+    // `stdlib_modeled_type`, so `stdlib_path_ty` answers first and the
+    // `qualified_imported_ty` fall-through this test exists to pin is never
+    // entered.
+    let root = unique_tmp("g75stdlib");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/http\n\
+         pub fn code(r: http.Response) -> number {\n\
+         \x20 return r.status\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+}
+
+#[test]
+fn a_question_operator_under_an_imported_result_alias_is_not_flagged() {
+    // `pub type Res = Result<string, string>` in a sibling: this module cannot
+    // see through the alias, so it cannot judge whether the return type is a
+    // `Result`. Giving an imported type an identity must not turn "cannot judge"
+    // into "decidably not a Result" — that would reject every `?` in a function
+    // declared with that return type.
+    let root = unique_tmp("g75resalias");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "catalog.glyph",
+        "module catalog\npub type Res = Result<string, string>\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/result { Result, Ok, Err }\n\
+         import catalog { Res }\n\
+         fn g() -> Res { return Ok(\"x\") }\n\
+         pub fn f() -> Res {\n\
+         \x20 let v = g()?\n\
+         \x20 return Ok(v)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+}

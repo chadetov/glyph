@@ -5,8 +5,10 @@
 //! - typing function signatures (params + return type)
 //! - typing `type X = ...` declarations and `const NAME: T = ...` annotations
 //!
-//! Multi-segment paths (`http.Response`) lower to `Ty::Unknown` for now —
-//! resolving them needs the cross-module pass deferred to week 2 day 3+.
+//! A type declared in another module lowers to `Ty::Imported { module, name }`
+//! under every legal import spelling. Nothing is expanded here: the declaration
+//! is fetched on demand through `DeclTyResolver::imported_type_decl`, which is
+//! why a self-referential sibling type needs no cycle guard.
 
 use std::sync::Arc;
 
@@ -14,7 +16,9 @@ use glyph_ast::{Decl, Ident, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
 use crate::assign::DeclTyResolver;
-use crate::ty::{FnParam, ParamOwner, Primitive, RecordField, Ty, UnionVariant};
+use crate::ty::{
+    FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField, Ty, UnionVariant,
+};
 
 /// Holds the resolver-side context a `TypeExpr → Ty` recursion needs. Cheap
 /// to construct (two references); avoids threading `(resolved, prelude)`
@@ -26,6 +30,11 @@ pub struct Lowerer<'a> {
     /// module. `None` for callers with no project context (every db-less
     /// caller), which keeps those at module-local lowering.
     imports: Option<&'a dyn DeclTyResolver>,
+    /// Set only on a `for_export` lowerer: the module path of the file being
+    /// lowered, used to render a *module-local* type as a `Ty::Imported`
+    /// anchored on this module. That is what keeps this module's `SymbolId`s
+    /// out of a consumer's `Ty`, where they would index unrelated symbols.
+    export_module: Option<&'a str>,
 }
 
 impl<'a> Lowerer<'a> {
@@ -34,6 +43,7 @@ impl<'a> Lowerer<'a> {
             resolved,
             prelude,
             imports: None,
+            export_module: None,
         }
     }
 
@@ -50,7 +60,36 @@ impl<'a> Lowerer<'a> {
             resolved,
             prelude,
             imports: Some(imports),
+            export_module: None,
         }
+    }
+
+    /// The **export view** of a module: lowering a declaration as another
+    /// module will see it. Identical to `with_imports` except that a
+    /// module-local `type` name lowers to `Ty::Imported { module_path, name }`
+    /// instead of a `Ty::Named` carrying this module's `SymbolId` — a foreign
+    /// id would index an unrelated symbol in the consumer's table.
+    ///
+    /// `module_path` is the slash-joined registry path of the module being
+    /// lowered (`"catalog"`, `"db/catalog"`), the same spelling
+    /// `DeclTyResolver`'s keys use, so a `Ty::Imported` and a query key can
+    /// never disagree.
+    ///
+    /// Returns an `ExportLowerer`, not a `Lowerer`: `lower_exported_type` is
+    /// only sound on the export view, and that is expressed as a type rather
+    /// than as an assertion.
+    pub fn for_export(
+        resolved: &'a ResolvedModule,
+        prelude: &'a Prelude,
+        imports: &'a dyn DeclTyResolver,
+        module_path: &'a str,
+    ) -> ExportLowerer<'a> {
+        ExportLowerer(Self {
+            resolved,
+            prelude,
+            imports: Some(imports),
+            export_module: Some(module_path),
+        })
     }
 
     pub fn lower(&self, te: &TypeExpr) -> Ty {
@@ -75,6 +114,7 @@ impl<'a> Lowerer<'a> {
                     return self
                         .stdlib_path_ty(segments, *span)
                         .or_else(|| self.qualified_string_literal_union(segments, *span))
+                        .or_else(|| self.qualified_imported_ty(segments, *span))
                         .unwrap_or(Ty::Unknown);
                 }
                 let head = &segments[0];
@@ -83,6 +123,22 @@ impl<'a> Lowerer<'a> {
                     Some(ResolvedRef::Module(id)) => {
                         let sym = self.resolved.symbols.table.get(id).expect("symbol id valid");
                         match &sym.kind {
+                            // Under the export view a module-local `type` name
+                            // is rendered as the consumer will see it: by
+                            // (module, name), never by this module's SymbolId.
+                            // A `Variant` in type position is not a valid Glyph
+                            // type and has no honest cross-module rendering, so
+                            // it sanitizes to `Unknown` rather than widening.
+                            SymbolKind::Type { .. } if self.export_module.is_some() => {
+                                let module = self.export_module.expect("export view");
+                                Ty::Imported {
+                                    module: module.into(),
+                                    name: sym.name.clone(),
+                                }
+                            }
+                            SymbolKind::Variant { .. } if self.export_module.is_some() => {
+                                Ty::Unknown
+                            }
                             SymbolKind::Type { .. } | SymbolKind::Variant { .. } => Ty::Named {
                                 symbol: id.into(),
                                 path: segments.clone(),
@@ -95,12 +151,20 @@ impl<'a> Lowerer<'a> {
                             // would produce, so `Result`/`Option` are
                             // recognizable regardless of how they were brought
                             // into scope.
+                            //
+                            // Anything else keeps its identity across the
+                            // boundary as a `Ty::Imported`, keyed on the source
+                            // module and the name that module declares, so the
+                            // three legal import spellings agree.
                             SymbolKind::ImportNamed { original, path } => self
                                 .imported_prelude_container(original)
                                 .or_else(|| {
                                     self.imported_string_literal_union(path, original)
                                 })
-                                .unwrap_or(Ty::Unknown),
+                                .unwrap_or_else(|| Ty::Imported {
+                                    module: module_key(path),
+                                    name: original.clone(),
+                                }),
                             _ => Ty::Unknown,
                         }
                     }
@@ -289,15 +353,32 @@ impl<'a> Lowerer<'a> {
         path: &glyph_ast::ModulePath,
         name: &Ident,
     ) -> Option<Ty> {
-        let module_path: String = path
-            .segments
-            .iter()
-            .map(|s| s.as_ref())
-            .collect::<Vec<_>>()
-            .join("/");
+        let module = module_key(path);
         self.imports?
-            .imported_string_literal_union(&module_path, name.as_ref())
+            .imported_string_literal_union(module.as_str(), name.as_ref())
             .map(Ty::StringLiteralUnion)
+    }
+
+    /// The `Ty` for `ns.Name` when `ns` is a namespace import (`import catalog`)
+    /// or an aliased one (`import catalog as c`). Produces the same
+    /// `Ty::Imported` the named spelling produces for the same declaration:
+    /// which of the three legal spellings brought a type into scope must not
+    /// change what the checker knows about it.
+    ///
+    /// A name whose module is not a project sibling (`http.Response`) is fine
+    /// here: `imported_type_decl` answers `None` for it, so member access falls
+    /// through to the stdlib tables exactly as before. (`fs.FsError` never
+    /// reaches this method at all — `stdlib_path_ty` models its shape and
+    /// answers first.)
+    fn qualified_imported_ty(&self, segments: &[Ident], span: glyph_ast::Span) -> Option<Ty> {
+        if segments.len() != 2 {
+            return None;
+        }
+        let path = self.namespace_import_path(span)?;
+        Some(Ty::Imported {
+            module: module_key(path),
+            name: segments.get(1)?.clone(),
+        })
     }
 
     /// If `name` is a prelude container type (`Result`, `Option`, `Array`,
@@ -367,6 +448,41 @@ impl<'a> Lowerer<'a> {
             | PreludeKind::InferOutput => Ty::Unknown,
         }
     }
+}
+
+/// A `Lowerer` restricted to the export view of one module, obtained only from
+/// `Lowerer::for_export`. It is the sole holder of `lower_exported_type`,
+/// because that method is sound only when a module-local `type` name lowers to
+/// `Ty::Imported`: off the export view the body would carry the declaring
+/// module's `SymbolId`s into a consumer's table, where they index unrelated
+/// symbols. That failure is silent, cross-module, and was previously guarded by
+/// a `debug_assert!` — a no-op in release. Now it does not compile.
+pub struct ExportLowerer<'a>(Lowerer<'a>);
+
+impl ExportLowerer<'_> {
+    /// Lower a `type` declaration as another module sees it: its name, its
+    /// generic parameter names, and its body lowered against the *declaring*
+    /// module's resolutions.
+    pub fn lower_exported_type(&self, td: &glyph_ast::TypeDecl) -> ImportedTypeDecl {
+        ImportedTypeDecl {
+            name: td.name.clone(),
+            generics: td.generics.iter().map(|g| g.name.clone()).collect(),
+            body: self.0.lower(&td.body),
+        }
+    }
+}
+
+/// The registry key for a module path: its segments joined with `/`
+/// (`["db", "catalog"]` → `"db/catalog"`). The single spelling of the key every
+/// cross-module query is looked up by, so a `Ty::Imported`'s `module` and a
+/// `DeclTyResolver` argument can never disagree.
+pub(crate) fn module_key(path: &glyph_ast::ModulePath) -> ModuleKey {
+    path.segments
+        .iter()
+        .map(|s| s.as_ref())
+        .collect::<Vec<_>>()
+        .join("/")
+        .into()
 }
 
 /// Convenience free function over `Lowerer::lower`. Useful at call sites that
@@ -525,13 +641,11 @@ type T = { f: Result<User, FeedError> }
     }
 
     #[test]
-    fn imported_type_stays_unknown_without_import_context() {
-        // `Lowerer::new` carries no `DeclTyResolver`, so an imported user-defined
-        // type still lowers to `Ty::Unknown` — the db-less path is unchanged by
-        // the cross-module string-literal-union lookup. Pinned so the trait's
-        // `None` default does not quietly become load-bearing: a db-less caller
-        // that starts depending on cross-module answers would need
-        // `with_imports`, not a changed default.
+    fn imported_type_lowers_to_an_imported_ty_without_import_context() {
+        // Lowering emits `Ty::Imported` from the import's own path and the
+        // original name, with no cross-module query involved. That is what makes
+        // a self-referential or mutually-referential sibling type terminate: no
+        // declaration is expanded here, so there is nothing to recurse into.
         let src = "module x\nimport catalog { Kind }\nfn label(k: Kind) -> string { return \"a\" }\n";
         let m = glyph_parser::parse(src).unwrap();
         let syms = collect_module_symbols(&m).unwrap();
@@ -542,7 +656,75 @@ type T = { f: Result<User, FeedError> }
             other => panic!("expected Fn, got {other:?}"),
         };
         let ty = Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty);
-        assert!(matches!(ty, Ty::Unknown), "got {ty:?}");
+        match &ty {
+            Ty::Imported { module, name } => {
+                assert_eq!(module.as_str(), "catalog");
+                assert_eq!(name.as_ref(), "Kind");
+            }
+            other => panic!("expected Imported, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_namespace_spelling_lowers_to_the_same_ty_as_the_named_one() {
+        // The three legal spellings are the named import, `import catalog` +
+        // `catalog.Sheet`, and `import catalog as c` + `c.Sheet`. All three must
+        // produce the same `Ty` for the same declaration, or a guarantee starts
+        // depending on how a type was brought into scope. (Glyph has no
+        // per-name import alias, so `original` is always the declared name.)
+        fn param_ty(src: &str) -> Ty {
+            let m = glyph_parser::parse(src).unwrap();
+            let syms = collect_module_symbols(&m).unwrap();
+            let prelude = build_prelude();
+            let (resolved, _) = resolve_module(&m, syms, &prelude);
+            let f = match &m.items[1] {
+                glyph_ast::Decl::Fn(f) => f,
+                other => panic!("expected Fn, got {other:?}"),
+            };
+            Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty)
+        }
+        let expected = Ty::Imported {
+            module: "catalog".into(),
+            name: "Sheet".into(),
+        };
+        assert_eq!(
+            param_ty("module x\nimport catalog { Sheet }\nfn f(s: Sheet) -> string { return \"a\" }\n"),
+            expected
+        );
+        assert_eq!(
+            param_ty("module x\nimport catalog\nfn f(s: catalog.Sheet) -> string { return \"a\" }\n"),
+            expected
+        );
+        assert_eq!(
+            param_ty("module x\nimport catalog as c\nfn f(s: c.Sheet) -> string { return \"a\" }\n"),
+            expected
+        );
+    }
+
+    #[test]
+    fn a_stdlib_type_the_tables_do_not_model_takes_the_imported_fall_through() {
+        // `stdlib_path_ty` answers first for the handful of stdlib types whose
+        // shape the checker models (`fs.FsError`), so those never reach
+        // `qualified_imported_ty`. Everything else does, and gets an identity
+        // nothing can resolve — which is what leaves member access on it exactly
+        // as permissive as before. Pinned because the negative test in
+        // `glyph-cli` used to pick a modeled type and so never entered here.
+        let src = "module x\nimport std/http\nfn f(r: http.Response) -> number { return 1 }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _) = resolve_module(&m, syms, &prelude);
+        let f = match &m.items[1] {
+            glyph_ast::Decl::Fn(f) => f,
+            other => panic!("expected Fn, got {other:?}"),
+        };
+        assert_eq!(
+            Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty),
+            Ty::Imported {
+                module: "std/http".into(),
+                name: "Response".into(),
+            }
+        );
     }
 
     /// A `DeclTyResolver` with no overrides: every method takes the trait's
@@ -557,7 +739,7 @@ type T = { f: Result<User, FeedError> }
     }
 
     #[test]
-    fn trait_default_yields_the_same_unknown_as_no_import_context() {
+    fn trait_default_yields_the_same_ty_as_no_import_context() {
         let src = "module x\nimport catalog { Kind }\nfn label(k: Kind) -> string { return \"a\" }\n";
         let m = glyph_parser::parse(src).unwrap();
         let syms = collect_module_symbols(&m).unwrap();
@@ -568,7 +750,79 @@ type T = { f: Result<User, FeedError> }
             other => panic!("expected Fn, got {other:?}"),
         };
         let imports = NoImports;
-        let ty = Lowerer::with_imports(&resolved, &prelude, &imports).lower(&f.params[0].ty);
-        assert!(matches!(ty, Ty::Unknown), "got {ty:?}");
+        let with = Lowerer::with_imports(&resolved, &prelude, &imports).lower(&f.params[0].ty);
+        let without = Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty);
+        assert_eq!(with, without, "the trait default must not be load-bearing");
+    }
+
+    #[test]
+    fn a_db_less_caller_never_checks_a_field_on_an_imported_type() {
+        // The identity is available to every caller; the *declaration* is not,
+        // because resolving it needs the cross-module query only a project-aware
+        // resolver implements. So a db-less walk stays exactly as permissive as
+        // it was when an imported type lowered to `Ty::Unknown` — a typo'd field
+        // draws nothing rather than a false `UnknownField`.
+        let src = "module x\nimport catalog { Sheet }\nfn f(s: Sheet) -> string { return s.rowz }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _) = resolve_module(&m, syms, &prelude);
+        let (_tm, errs) = crate::assign::assign_types(&m, &resolved, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn the_export_view_never_carries_a_local_symbol_id() {
+        // A module-local record named inside another declaration's body renders
+        // as `Ty::Imported` under the export view. A `Ty::Named` here would ship
+        // this module's `SymbolId` into a consumer's table, where it indexes an
+        // unrelated symbol.
+        let src = "module catalog\ntype Sheet = { rows: Array<string> }\ntype Book = { sheet: Sheet }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let td = match &m.items[1] {
+            glyph_ast::Decl::Type(td) => td,
+            other => panic!("expected Type, got {other:?}"),
+        };
+        let imports = NoImports;
+        let decl = Lowerer::for_export(&resolved, &prelude, &imports, "catalog")
+            .lower_exported_type(td);
+        assert_eq!(decl.name.as_ref(), "Book");
+        let Ty::Record { fields } = &decl.body else {
+            panic!("expected a record body, got {:?}", decl.body)
+        };
+        assert_eq!(
+            fields[0].ty,
+            Ty::Imported {
+                module: "catalog".into(),
+                name: "Sheet".into(),
+            },
+            "got {:?}",
+            fields[0].ty
+        );
+    }
+
+    #[test]
+    fn the_export_view_keeps_generic_parameter_names() {
+        let src = "module catalog\ntype Box<T> = { value: T }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, errs) = resolve_module(&m, syms, &prelude);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let td = match &m.items[0] {
+            glyph_ast::Decl::Type(td) => td,
+            other => panic!("expected Type, got {other:?}"),
+        };
+        let imports = NoImports;
+        let decl = Lowerer::for_export(&resolved, &prelude, &imports, "catalog")
+            .lower_exported_type(td);
+        assert_eq!(
+            decl.generics.iter().map(|g| g.as_ref()).collect::<Vec<_>>(),
+            vec!["T"]
+        );
     }
 }

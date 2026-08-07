@@ -66,7 +66,7 @@ use glyph_resolver::{
     StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types_with_resolver, DeclTyResolver, Lowerer, Ty, TypeError, TypeMap,
+    assign_types_with_resolver, DeclTyResolver, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
 };
 
 // ============================================================================
@@ -508,6 +508,35 @@ impl DeclTy {
 }
 
 impl_wrapper_update!(DeclTy);
+
+/// The export view of one `type` declaration: the declaration lowered as
+/// another module sees it, or `None` when the declaration at that index is not
+/// a `type`. Wrapped the same way `DeclTy` is so salsa can compare answers and
+/// backdate an unchanged one.
+///
+/// The payload is a `glyph_typechecker::ImportedTypeDecl` — one declaration
+/// under two names, `Exported…` on the producing side and `Imported…` on the
+/// consuming side. See `DeclTyResolver::imported_type_decl`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExportedTypeDecl {
+    inner: Arc<Option<ImportedTypeDecl>>,
+}
+
+impl ExportedTypeDecl {
+    pub fn new(decl: Option<ImportedTypeDecl>) -> Self {
+        Self {
+            inner: Arc::new(decl),
+        }
+    }
+
+    /// The lowered declaration, or `None` for a non-`type` decl. Cheap (one
+    /// Arc deref).
+    pub fn decl(&self) -> Option<&ImportedTypeDecl> {
+        self.inner.as_ref().as_ref()
+    }
+}
+
+impl_wrapper_update!(ExportedTypeDecl);
 
 // ============================================================================
 // Stage 7 wrappers: DeclAst and ResolvedDecl (per-declaration input slices)
@@ -990,10 +1019,14 @@ pub fn project_exports(db: &dyn Db, project: ProjectFiles) -> ProjectExports {
     ProjectExports::new(by_path)
 }
 
-/// Cross-module verification (`import M { N }` checks). Composes the
-/// static stdlib `module_graph` with the salsa-tracked
+/// Cross-module verification: `import M { N }` checks, plus the same export
+/// check on every `ns.Name` type annotation reached through a namespace import.
+/// Composes the static stdlib `module_graph` with the salsa-tracked
 /// `project_exports`, so editing a project file's exports auto-invalidates
 /// the dependent file's diagnostics — no manual graph rebuild needed.
+///
+/// Both spellings run against one graph here so visibility cannot depend on how
+/// a name was brought into scope.
 #[salsa::tracked]
 pub fn import_diagnostics(db: &dyn Db, file: SourceFile) -> Diagnostics {
     let parsed = parse_module(db, file);
@@ -1005,7 +1038,13 @@ pub fn import_diagnostics(db: &dyn Db, file: SourceFile) -> Diagnostics {
         first: db.module_graph(),
         second: &project,
     };
-    let errs = verify_imports(module, &composite);
+    let mut errs = verify_imports(module, &composite);
+    if let Some(resolved) = resolve(db, file).resolved() {
+        errs.extend(glyph_resolver::verify_qualified_type_refs(
+            &resolved.qualified_type_refs,
+            &composite,
+        ));
+    }
     Diagnostics::new(errs)
 }
 
@@ -1135,6 +1174,35 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         }
         None
     }
+
+    fn imported_type_decl(
+        &self,
+        module_path: &str,
+        type_name: &str,
+    ) -> Option<ImportedTypeDecl> {
+        // Same three steps as the two per-shape queries above — find the
+        // project sibling, parse it, locate the declaration — but the answer is
+        // produced by the tracked `exported_type(db, file, idx)` query, keyed on
+        // the source declaration rather than on the consumer, so one lowering
+        // serves every consumer and every import spelling.
+        //
+        // `Decl::Interface` is not covered: an imported interface keeps today's
+        // empty member set, because what an interface *is* across a file edge
+        // (D34's structural satisfaction rule) is a language decision, not an
+        // implementation one.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let parsed = parse_module(self.db, file);
+        let module = parsed.module()?;
+        let idx = module.items.iter().position(|item| {
+            matches!(item, glyph_ast::Decl::Type(td) if td.name.as_ref() == type_name)
+        })?;
+        exported_type(self.db, file, idx as u32).decl().cloned()
+    }
 }
 
 /// Extract the `decl_idx`-th top-level declaration from the parsed
@@ -1212,6 +1280,53 @@ pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
     let imports = SalsaDeclTy { db, file };
     let lowerer = Lowerer::with_imports(resolved_module, db.prelude(), &imports);
     DeclTy::new(lowerer.lower_decl_signature(decl))
+}
+
+/// Lower the `decl_idx`-th declaration of `file` as **another module sees it**.
+///
+/// The lowering has to happen on the source side: `Lowerer::lower` resolves a
+/// path through `resolved.resolutions.get(span)`, and this declaration's spans
+/// belong to *this* file, so a consuming module's `Lowerer` cannot do it. The
+/// export view renders a module-local `type` name as `Ty::Imported`, which is
+/// also what makes the answer independent of the consumer: it is memoized once
+/// per source declaration and shared by every consumer and every import
+/// spelling.
+///
+/// A type this module itself imported from a third module lowers to a
+/// `Ty::Imported` anchored on that third module, so the representation
+/// composes across a chain of files.
+///
+/// This query answers `DeclTyResolver::imported_type_decl` — same declaration,
+/// producing side.
+#[salsa::tracked]
+pub fn exported_type(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ExportedTypeDecl {
+    let parsed = parse_module(db, file);
+    let Some(module) = parsed.module() else {
+        return ExportedTypeDecl::new(None);
+    };
+    let Some(Decl::Type(td)) = module.items.get(decl_idx as usize) else {
+        return ExportedTypeDecl::new(None);
+    };
+    let resolved = resolve(db, file);
+    let Some(resolved_module) = resolved.resolved() else {
+        return ExportedTypeDecl::new(None);
+    };
+    // The registry path this file is known by, which is the key every
+    // cross-module query uses. Reverse lookup over the project file list keeps
+    // the `Ty::Imported` this produces spelled exactly like the query key a
+    // consumer will ask with.
+    let project = db.project_files_input();
+    let Some(module_path) = project
+        .entries(db)
+        .iter()
+        .find(|(_, f)| *f == file)
+        .map(|(p, _)| p.clone())
+    else {
+        return ExportedTypeDecl::new(None);
+    };
+    let imports = SalsaDeclTy { db, file };
+    let lowerer = Lowerer::for_export(resolved_module, db.prelude(), &imports, &module_path);
+    ExportedTypeDecl::new(Some(lowerer.lower_exported_type(td)))
 }
 
 /// Collect every span the `Lowerer` will query from the resolution map
@@ -2000,6 +2115,58 @@ fn use_helper(x: number) -> number { return helper(x) }
             )),
             Some(_)
         ), "expected UnknownExportedName(bogus); got: {:?}", diags.errors());
+    }
+
+    #[test]
+    fn the_namespace_spelling_of_a_non_pub_type_is_the_same_e0105() {
+        // `import lib { Secret }` on a non-`pub` type has always been E0105.
+        // `import lib` plus `lib.Secret` used to report nothing, and once an
+        // imported type had an identity that silence also handed out the private
+        // type's field set. Visibility must not depend on the spelling.
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\ntype Secret = { hidden: string }\npub type Open = { shown: string }\n",
+        );
+        let app = new_file(
+            &db,
+            "app.glyph",
+            "module app\nimport lib\npub fn f(s: lib.Secret) -> string { return s.hidden }\n",
+        );
+        db.set_project(vec![("lib".to_string(), lib)]);
+        let diags = import_diagnostics(&db, app);
+        assert!(
+            diags.errors().iter().any(|e| matches!(
+                e,
+                ResolveError::UnknownExportedName { name, module, .. }
+                    if name == "Secret" && module == "lib"
+            )),
+            "expected UnknownExportedName(Secret); got: {:?}",
+            diags.errors()
+        );
+    }
+
+    #[test]
+    fn the_namespace_spelling_of_a_pub_type_stays_clean() {
+        // The other half of the pair: the check must not fire on an exported
+        // sibling type, through either the plain namespace or the alias, and must
+        // stay permissive on a stdlib namespace type.
+        let mut db = CompilerDb::with_default_stdlib();
+        let lib = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\npub type Open = { shown: string }\n",
+        );
+        let app = new_file(
+            &db,
+            "app.glyph",
+            "module app\nimport lib\nimport lib as l\nimport std/http\n\
+             pub fn f(a: lib.Open, b: l.Open, r: http.Response) -> string { return a.shown }\n",
+        );
+        db.set_project(vec![("lib".to_string(), lib)]);
+        let diags = import_diagnostics(&db, app);
+        assert!(diags.errors().is_empty(), "errors: {:?}", diags.errors());
     }
 
     #[test]

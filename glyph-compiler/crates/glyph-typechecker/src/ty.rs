@@ -76,6 +76,71 @@ pub enum Ty {
     /// only so a `match` over this type can be exhaustive without an `else` when
     /// every literal is covered.
     StringLiteralUnion(Vec<String>),
+
+    /// A type whose declaration lives in another module (`import catalog { Sheet }`,
+    /// `catalog.Sheet`, or `c.Sheet` through an alias). Identified by the
+    /// *source* module's path and the type's own name, never by a `SymbolRef`:
+    /// a foreign module's symbol ids index an unrelated symbol in the
+    /// consumer's table, so carrying one would be a live mis-resolution bug.
+    ///
+    /// The same declaration produces the same `Ty::Imported` under all three
+    /// import spellings, which is what keeps a guarantee from depending on how
+    /// a type was brought into scope. The declaration itself is resolved lazily
+    /// (`DeclTyResolver::imported_type_decl`) at the one place that needs it,
+    /// so nothing here expands and a self-referential type terminates.
+    Imported { module: ModuleKey, name: Ident },
+}
+
+/// The key a module is known by inside one project: its path segments joined
+/// with `/` (`["db", "catalog"]` → `"db/catalog"`). Built by
+/// `lower::module_key`, and the single spelling every cross-module query is
+/// looked up by, so a `Ty::Imported`'s `module` and a `DeclTyResolver` argument
+/// cannot disagree.
+///
+/// Deliberately not an `Ident`: `"db/catalog"` is not an identifier, and while
+/// the two shared a type nothing stopped a symbol name being passed where a
+/// registry key was wanted.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ModuleKey(Arc<str>);
+
+impl ModuleKey {
+    /// The slash-joined path, the form every `DeclTyResolver` method takes.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&str> for ModuleKey {
+    fn from(s: &str) -> Self {
+        ModuleKey(Arc::from(s))
+    }
+}
+
+impl From<String> for ModuleKey {
+    fn from(s: String) -> Self {
+        ModuleKey(Arc::from(s.as_str()))
+    }
+}
+
+impl std::fmt::Display for ModuleKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+/// The lowered form of a `type` declaration as seen from *another* module: its
+/// name, its generic parameter names, and its body lowered on the source side
+/// (so any type the body names is resolved against the declaring module).
+/// A sibling type named inside the body is itself a `Ty::Imported`.
+///
+/// Produced by `glyph_db::exported_type` and handed across through
+/// `DeclTyResolver::imported_type_decl`; the export/import split in the naming
+/// is source side versus consumer side of the same declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportedTypeDecl {
+    pub name: Ident,
+    pub generics: Vec<Ident>,
+    pub body: Ty,
 }
 
 /// Stable handle for a named type or value. Mirrors `glyph_resolver::SymbolId`
@@ -178,6 +243,11 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
         Ty::Fn { is_async: true, .. } => "async function".to_string(),
         Ty::Fn { .. } => "function".to_string(),
         Ty::Union { .. } => "union".to_string(),
+        // The bare name, not `catalog.Sheet`: it is identical under all three
+        // import spellings and identical to what the same declaration renders
+        // as when it lives in the consuming file, so a type's diagnostics do
+        // not change when it moves files.
+        Ty::Imported { name, .. } => name.to_string(),
         Ty::App { base, .. } => ty_display(base),
         _ => "?".to_string(),
     }

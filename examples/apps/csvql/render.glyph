@@ -1,0 +1,313 @@
+// Everything the program prints.
+//
+// Three renderers: a result table, a plan tree, and a failure. Keeping them in
+// one module is what makes "one error union rendered in one place" true rather
+// than aspirational: every `QueryFail` from every stage passes through
+// `fail_lines` below.
+module render
+
+import std/array
+import std/option { Some, None }
+import std/string
+import bind { AggSpec, Both, BoundOperand, BoundPred, Cmp, Either, Field, Lit, Slot }
+import catalog { ColType }
+import fail { AmbiguousColumn, BadAggregate, BadCatalog, BadCell, BadLimit, EmptyFile, HeaderMismatch, InCell, InQuery, InRow, Nowhere, NoSuchFile, QueryFail, RaggedRow, SyntaxError, TypeMismatch, UngroupedColumn, UnknownColumn, UnknownTable, Unreadable, UnterminatedQuote }
+import fail
+import plan
+import plan { Filter, Group, HashJoin, Limit, Plan, Project, Scan, Sort }
+import sql
+import value
+import value { Text, Value }
+
+const SPACE = " "
+
+const DASH = "-"
+
+const GAP = " | "
+
+const RULE_GAP = "-+-"
+
+const COMMA = ", "
+
+const STEP = "  "
+
+const NEWLINE = "\n"
+
+const ESCAPED_NEWLINE = "\\n"
+
+// ---------------------------------------------------------------------------
+// The result table
+// ---------------------------------------------------------------------------
+
+fn right_aligned(k: ColType) -> bool {
+  return match k {
+    "int" => true,
+    "real" => true,
+    "text" => false,
+    "bool" => false,
+    else => false,
+  }
+}
+
+// A cell holding an embedded newline would otherwise tear the table apart, so
+// it is shown the way the CSV wrote it.
+fn flatten(cell: string) -> string {
+  return string.replace_all(cell, NEWLINE, ESCAPED_NEWLINE)
+}
+
+fn widest(header: string, column: Array<string>) -> number {
+  let w = string.len(header)
+  for cell in column {
+    mut w = match string.len(cell) > w {
+      true => string.len(cell),
+      false => w,
+    }
+  }
+  return w
+}
+
+pub fn result_lines(fields: Array<Field>, rows: Array<Array<Value>>) -> Array<string> {
+  match array.len(fields) == 0 {
+    true => { return ["(no columns)"] },
+    false => {},
+  }
+  let texts: Array<Array<string>> = []
+  for row in rows {
+    mut texts = array.push(
+      texts,
+      array.map(row, fn(v: Value) -> string { return flatten(value.render(v)) }),
+    )
+  }
+  let widths: Array<number> = []
+  for i, f in fields {
+    let column: Array<string> = []
+    let sized = array.fold(
+      texts,
+      column,
+      fn(acc: Array<string>, r: Array<string>) -> Array<string> { return array.push(acc, r[i]) },
+    )
+    mut widths = array.push(widths, widest(f.name, sized))
+  }
+
+  let heads: Array<string> = []
+  let rules: Array<string> = []
+  for i, f in fields {
+    mut heads = array.push(heads, string.pad_end(f.name, widths[i]))
+    mut rules = array.push(rules, string.repeat(DASH, widths[i]))
+  }
+  let out: Array<string> = []
+  mut out = array.push(out, string.join(heads, GAP))
+  mut out = array.push(out, string.join(rules, RULE_GAP))
+
+  for r in texts {
+    let cells: Array<string> = []
+    for i, f in fields {
+      mut cells = array.push(
+        cells,
+        match right_aligned(f.kind) {
+          true => string.pad_start(r[i], widths[i]),
+          false => string.pad_end(r[i], widths[i]),
+        },
+      )
+    }
+    mut out = array.push(out, string.join(cells, GAP))
+  }
+  let counted = match array.len(rows) {
+    1 => "(1 row)",
+    else => "(${number.to_string(array.len(rows))} rows)",
+  }
+  mut out = array.push(out, "")
+  mut out = array.push(out, counted)
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// The plan tree
+// ---------------------------------------------------------------------------
+
+fn literal_text(v: Value) -> string {
+  return match v {
+    Text({ text }) => "'${text}'",
+    else => value.render(v),
+  }
+}
+
+fn operand_text(o: BoundOperand) -> string {
+  return match o {
+    Slot({ f }) => "${f.table}.${f.name}",
+    Lit({ v }) => literal_text(v),
+  }
+}
+
+pub fn pred_text(p: BoundPred) -> string {
+  return match p {
+    Cmp({ left, op, right }) => "${operand_text(left)} ${sql.op_text(op)} ${operand_text(right)}",
+    Both({ left, right }) => "(${pred_text(left)} AND ${pred_text(right)})",
+    Either({ left, right }) => "(${pred_text(left)} OR ${pred_text(right)})",
+  }
+}
+
+// A projected field has no table, a scanned one does; qualifying the scanned
+// ones is what keeps a join's schema readable when both sides have an `id`.
+fn field_name(f: Field) -> string {
+  return match f.table == "" {
+    true => f.name,
+    false => "${f.table}.${f.name}",
+  }
+}
+
+fn field_text(f: Field) -> string {
+  return "${field_name(f)}:${f.kind}"
+}
+
+fn schema_text(p: Plan) -> string {
+  let parts = array.map(plan.schema(p), field_text)
+  return string.join(parts, COMMA)
+}
+
+fn slot_name(p: Plan, slot: int) -> string {
+  let fields = plan.schema(p)
+  return match array.len(fields) > slot {
+    true => field_name(fields[slot]),
+    false => "slot ${number.to_string(slot)}",
+  }
+}
+
+fn node_text(p: Plan) -> string {
+  return match p {
+    Scan({ table, out }) => "Scan ${table}",
+    HashJoin({ left, right, left_slot, right_slot, out }) => "HashJoin on ${slot_name(left, left_slot)} = ${slot_name(right, right_slot)}",
+    Filter({ input, pred, out }) => "Filter ${pred_text(pred)}",
+    Group({ input, keys, aggs, out }) => {
+      let names = array.map(keys, fn(k: int) -> string { return slot_name(input, k) })
+      let labels = array.map(aggs, fn(a: AggSpec) -> string { return a.label })
+      let by = string.join(names, COMMA)
+      let calls = string.join(labels, COMMA)
+      match array.len(keys) == 0 {
+        true => "Group all rows -> ${calls}",
+        false => "Group by ${by} -> ${calls}",
+      }
+    },
+    Project({ input, sources, out }) => {
+      let names = array.map(out, fn(f: Field) -> string { return f.name })
+      let list = string.join(names, COMMA)
+      "Project ${list}"
+    },
+    Sort({ input, slot, desc, out }) => {
+      let direction = match desc {
+        true => "DESC",
+        false => "ASC",
+      }
+      "Sort by ${slot_name(input, slot)} ${direction}"
+    },
+    Limit({ input, count, out }) => "Limit ${number.to_string(count)}",
+  }
+}
+
+fn children(p: Plan) -> Array<Plan> {
+  return match p {
+    Scan({ table, out }) => [],
+    HashJoin({ left, right, left_slot, right_slot, out }) => [left, right],
+    Filter({ input, pred, out }) => [input],
+    Group({ input, keys, aggs, out }) => [input],
+    Project({ input, sources, out }) => [input],
+    Sort({ input, slot, desc, out }) => [input],
+    Limit({ input, count, out }) => [input],
+  }
+}
+
+pub fn plan_lines(p: Plan, depth: int) -> Array<string> {
+  let indent = string.repeat(STEP, depth)
+  let out: Array<string> = []
+  mut out = array.push(out, "${indent}${node_text(p)}")
+  mut out = array.push(out, "${indent}  schema: ${schema_text(p)}")
+  for kid in children(p) {
+    for line in plan_lines(kid, depth + 1) {
+      mut out = array.push(out, line)
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Failures
+// ---------------------------------------------------------------------------
+
+fn quoted_list(names: Array<string>) -> string {
+  return string.join(names, COMMA)
+}
+
+// The offending line of the query with a caret under the column.
+fn caret_lines(query: string, offset: int) -> Array<string> {
+  let start = 0
+  for i in array.range(offset) {
+    mut start = match query[i] == NEWLINE {
+      true => i + 1,
+      false => start,
+    }
+  }
+  let end = match string.index_of(query, NEWLINE, offset) {
+    Some(i) => i,
+    None => string.len(query),
+  }
+  let line = string.slice(query, start, end)
+  let pad = string.repeat(SPACE, offset - start)
+  return ["  ${line}", "  ${pad}^"]
+}
+
+fn headline(e: QueryFail) -> Array<string> {
+  return match e {
+    Unreadable({ path, message }) => ["cannot read ${path}: ${message}"],
+    BadCatalog({ path, detail }) => ["${path} is not a valid catalog:", "  ${detail}"],
+    UnterminatedQuote({ table, row }) => [
+      "malformed CSV in ${table}: a quoted field is never closed",
+      "  the field opens at data row ${number.to_string(row)} and runs to end of file",
+    ],
+    RaggedRow({ table, row, expected, found }) => [
+      "malformed CSV in ${table}: row ${number.to_string(row)} has ${number.to_string(found)} fields, the header declares ${number.to_string(expected)}",
+    ],
+    EmptyFile({ table, path }) => ["${table} has no header row"],
+    HeaderMismatch({ table, expected, found }) => [
+      "${table}'s header does not match the catalog",
+      "  catalog: ${quoted_list(expected)}",
+      "  file:    ${quoted_list(found)}",
+    ],
+    BadCell({ table, row, column, raw, expected }) => [
+      "${table} row ${number.to_string(row)}, column ${column}: \"${raw}\" does not read as ${expected}",
+    ],
+    SyntaxError({ offset, found, expected }) => [
+      "syntax error: expected ${expected}, found ${found}",
+    ],
+    UnknownTable({ offset, name, known }) => [
+      "no table named ${name}",
+      "  the catalog has: ${quoted_list(known)}",
+    ],
+    UnknownColumn({ offset, name, known }) => [
+      "no column named ${name}",
+      "  in scope: ${quoted_list(known)}",
+    ],
+    AmbiguousColumn({ offset, name, tables }) => [
+      "${name} is ambiguous: it exists in ${quoted_list(tables)}",
+      "  qualify it, as in ${tables[0]}.${name}",
+    ],
+    TypeMismatch({ offset, left, right, op }) => ["cannot compare ${left} ${op} ${right}"],
+    BadAggregate({ offset, func, column, ctype }) => [
+      "${func} needs a number, but ${column} is declared ${ctype}",
+    ],
+    UngroupedColumn({ offset, name }) => [
+      "${name} is selected alongside an aggregate but is not in GROUP BY",
+    ],
+    BadLimit({ offset, text }) => ["LIMIT needs a whole number that is not negative, got ${text}"],
+    NoSuchFile({ table, path }) => ["the plan reads ${table}, which was never loaded"],
+  }
+}
+
+pub fn fail_lines(e: QueryFail, query: string) -> Array<string> {
+  let head = headline(e)
+  return match fail.locus(e) {
+    InQuery({ offset }) => array.concat(head, caret_lines(query, offset)),
+    InCell({ table, row, column }) => head,
+    InRow({ table, row }) => head,
+    Nowhere => head,
+  }
+}

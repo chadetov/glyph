@@ -13,6 +13,7 @@ use std::sync::Arc;
 use glyph_ast::{Decl, Ident, Param, TypeExpr};
 use glyph_resolver::{Prelude, PreludeKind, ResolvedModule, ResolvedRef, SymbolKind};
 
+use crate::assign::DeclTyResolver;
 use crate::ty::{FnParam, ParamOwner, Primitive, RecordField, Ty, UnionVariant};
 
 /// Holds the resolver-side context a `TypeExpr → Ty` recursion needs. Cheap
@@ -21,11 +22,35 @@ use crate::ty::{FnParam, ParamOwner, Primitive, RecordField, Ty, UnionVariant};
 pub struct Lowerer<'a> {
     pub resolved: &'a ResolvedModule,
     pub prelude: &'a Prelude,
+    /// Cross-module lookup for types whose declaration lives in a sibling
+    /// module. `None` for callers with no project context (every db-less
+    /// caller), which keeps those at module-local lowering.
+    imports: Option<&'a dyn DeclTyResolver>,
 }
 
 impl<'a> Lowerer<'a> {
     pub fn new(resolved: &'a ResolvedModule, prelude: &'a Prelude) -> Self {
-        Self { resolved, prelude }
+        Self {
+            resolved,
+            prelude,
+            imports: None,
+        }
+    }
+
+    /// A `Lowerer` that can reach across a module boundary through the
+    /// supplied `DeclTyResolver`. Used where an annotation's lowered `Ty` has
+    /// to be right for an imported type: the Assigner's walk (param and `let`
+    /// annotations) and the `decl_ty` query (fn signatures).
+    pub fn with_imports(
+        resolved: &'a ResolvedModule,
+        prelude: &'a Prelude,
+        imports: &'a dyn DeclTyResolver,
+    ) -> Self {
+        Self {
+            resolved,
+            prelude,
+            imports: Some(imports),
+        }
     }
 
     pub fn lower(&self, te: &TypeExpr) -> Ty {
@@ -40,7 +65,17 @@ impl<'a> Lowerer<'a> {
                     // `fs.FsError` parameter resolve to the closed `ErrorKind`
                     // union instead of `Unknown`. Everything else stays
                     // `Unknown`, which is the pre-existing behaviour.
-                    return self.stdlib_path_ty(segments, *span).unwrap_or(Ty::Unknown);
+                    //
+                    // A two-segment path through a *project* namespace import
+                    // (`catalog.ColType`, or `c.ColType` through
+                    // `import catalog as c`) gets the same D30 treatment as the
+                    // named-import spelling below: the sibling module's
+                    // string-literal union keeps its literal set, so a `match`
+                    // over it stays exhaustive without an `else`.
+                    return self
+                        .stdlib_path_ty(segments, *span)
+                        .or_else(|| self.qualified_string_literal_union(segments, *span))
+                        .unwrap_or(Ty::Unknown);
                 }
                 let head = &segments[0];
                 match self.resolved.resolutions.get(*span) {
@@ -60,9 +95,12 @@ impl<'a> Lowerer<'a> {
                             // would produce, so `Result`/`Option` are
                             // recognizable regardless of how they were brought
                             // into scope.
-                            SymbolKind::ImportNamed { original, .. } => {
-                                self.imported_prelude_container(original).unwrap_or(Ty::Unknown)
-                            }
+                            SymbolKind::ImportNamed { original, path } => self
+                                .imported_prelude_container(original)
+                                .or_else(|| {
+                                    self.imported_string_literal_union(path, original)
+                                })
+                                .unwrap_or(Ty::Unknown),
                             _ => Ty::Unknown,
                         }
                     }
@@ -194,14 +232,7 @@ impl<'a> Lowerer<'a> {
     /// never reported (verifiability: D9 sealed unions must hold regardless of
     /// which legal import spelling brought the type into scope).
     fn stdlib_path_ty(&self, segments: &[Ident], span: glyph_ast::Span) -> Option<Ty> {
-        let ResolvedRef::Module(id) = self.resolved.resolutions.get(span)? else {
-            return None;
-        };
-        let sym = self.resolved.symbols.table.get(id)?;
-        let path = match &sym.kind {
-            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => path,
-            _ => return None,
-        };
+        let path = self.namespace_import_path(span)?;
         let key: Vec<&str> = path.segments.iter().map(|s| s.as_ref()).collect();
         let ["std", module] = key.as_slice() else {
             return None;
@@ -209,6 +240,64 @@ impl<'a> Lowerer<'a> {
         let name = segments.get(1)?;
         crate::assign::stdlib_modeled_type(module, name.as_ref())
             .or_else(|| self.imported_prelude_container(name))
+    }
+
+    /// The module path a two-segment type path's *head* was imported from, when
+    /// that head is a namespace import (`import catalog`) or an aliased one
+    /// (`import catalog as c`). `None` for any other head. Shared by
+    /// `stdlib_path_ty` and `qualified_string_literal_union` so the two agree on
+    /// what "reached through a namespace import" means.
+    fn namespace_import_path(
+        &self,
+        span: glyph_ast::Span,
+    ) -> Option<&'a glyph_ast::ModulePath> {
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        match &sym.kind {
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => {
+                Some(path)
+            }
+            _ => None,
+        }
+    }
+
+    /// The `Ty` for `ns.Name` when `ns` is a namespace import of a project
+    /// sibling and `Name` is a string-literal union declared there. Keeps D30's
+    /// exhaustiveness guarantee alive across the two namespace spellings, the
+    /// same way `imported_string_literal_union` does for the named spelling.
+    fn qualified_string_literal_union(
+        &self,
+        segments: &[Ident],
+        span: glyph_ast::Span,
+    ) -> Option<Ty> {
+        if segments.len() != 2 {
+            return None;
+        }
+        let path = self.namespace_import_path(span)?;
+        self.imported_string_literal_union(path, segments.get(1)?)
+    }
+
+    /// The `Ty` for an imported name that a project sibling declares as a
+    /// string-literal union (`pub type Kind = "a" | "b"`). Returning the same
+    /// `Ty::StringLiteralUnion` the local declaration lowers to is what makes
+    /// the match-exhaustiveness check work unchanged across the boundary:
+    /// verifiability does not get to stop at a file edge.
+    fn imported_string_literal_union(
+        &self,
+        path: &glyph_ast::ModulePath,
+        name: &Ident,
+    ) -> Option<Ty> {
+        let module_path: String = path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        self.imports?
+            .imported_string_literal_union(&module_path, name.as_ref())
+            .map(Ty::StringLiteralUnion)
     }
 
     /// If `name` is a prelude container type (`Result`, `Option`, `Array`,
@@ -433,5 +522,53 @@ type T = { f: Result<User, FeedError> }
             }
             other => panic!("expected Param, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn imported_type_stays_unknown_without_import_context() {
+        // `Lowerer::new` carries no `DeclTyResolver`, so an imported user-defined
+        // type still lowers to `Ty::Unknown` — the db-less path is unchanged by
+        // the cross-module string-literal-union lookup. Pinned so the trait's
+        // `None` default does not quietly become load-bearing: a db-less caller
+        // that starts depending on cross-module answers would need
+        // `with_imports`, not a changed default.
+        let src = "module x\nimport catalog { Kind }\nfn label(k: Kind) -> string { return \"a\" }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _) = resolve_module(&m, syms, &prelude);
+        let f = match &m.items[1] {
+            glyph_ast::Decl::Fn(f) => f,
+            other => panic!("expected Fn, got {other:?}"),
+        };
+        let ty = Lowerer::new(&resolved, &prelude).lower(&f.params[0].ty);
+        assert!(matches!(ty, Ty::Unknown), "got {ty:?}");
+    }
+
+    /// A `DeclTyResolver` with no overrides: every method takes the trait's
+    /// default. Proves `with_imports` over such a resolver is identical to
+    /// `new` — the cross-module answers come from the impl, never the default.
+    struct NoImports;
+
+    impl DeclTyResolver for NoImports {
+        fn decl_ty(&self, _decl_idx: u32) -> Ty {
+            Ty::Unknown
+        }
+    }
+
+    #[test]
+    fn trait_default_yields_the_same_unknown_as_no_import_context() {
+        let src = "module x\nimport catalog { Kind }\nfn label(k: Kind) -> string { return \"a\" }\n";
+        let m = glyph_parser::parse(src).unwrap();
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _) = resolve_module(&m, syms, &prelude);
+        let f = match &m.items[1] {
+            glyph_ast::Decl::Fn(f) => f,
+            other => panic!("expected Fn, got {other:?}"),
+        };
+        let imports = NoImports;
+        let ty = Lowerer::with_imports(&resolved, &prelude, &imports).lower(&f.params[0].ty);
+        assert!(matches!(ty, Ty::Unknown), "got {ty:?}");
     }
 }

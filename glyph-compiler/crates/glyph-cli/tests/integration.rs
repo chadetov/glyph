@@ -30,6 +30,23 @@ fn unique_tmp(prefix: &str) -> PathBuf {
     dir
 }
 
+/// Recursively copy `src` into `dst`, creating `dst`. Used by the examples
+/// gate, which stages a copy of the tree so the nested multi-module apps can be
+/// removed from the single-root pass and built at their own roots instead.
+fn copy_dir(src: &Path, dst: &Path) {
+    std::fs::create_dir_all(dst).expect("create dir");
+    for entry in std::fs::read_dir(src).expect("read dir") {
+        let entry = entry.expect("dir entry");
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if from.is_dir() {
+            copy_dir(&from, &to);
+        } else {
+            std::fs::copy(&from, &to).expect("copy file");
+        }
+    }
+}
+
 /// Write a file with `text` at `dir/relpath`, creating parent dirs.
 fn write_file(dir: &Path, relpath: &str, text: &str) {
     let p = dir.join(relpath);
@@ -879,9 +896,40 @@ fn repo_examples_emit_typescript_without_diagnostics() {
         examples.is_dir(),
         "examples dir not found at {examples:?}"
     );
-    let out = unique_tmp("examples").join("dist");
+    // A sibling import resolves against the build root, so a multi-module app in
+    // its own directory under `examples/apps/` is a project only when that
+    // directory *is* the root. Rolling them into one root does not merely fail
+    // to link them, it turns off every check that needs a sibling's declaration
+    // (G72). So the single-root pass runs over a staged copy with those app
+    // directories removed, and each of them is built at its own root below.
+    let root = unique_tmp("examples");
+    let staged = root.join("tree");
+    copy_dir(examples, &staged);
+    let mut apps: Vec<PathBuf> = Vec::new();
+    for entry in std::fs::read_dir(examples.join("apps")).expect("read apps dir") {
+        let path = entry.expect("dir entry").path();
+        if !path.is_dir() {
+            continue;
+        }
+        let name = path.file_name().expect("app dir name").to_owned();
+        std::fs::remove_dir_all(staged.join("apps").join(&name)).expect("unstage app");
+        apps.push(path);
+    }
+    assert!(!apps.is_empty(), "no multi-module apps found under examples/apps");
 
-    let report = build_project_inner(examples, &out, false).expect("build examples ok");
+    for app in &apps {
+        let app_out = unique_tmp("exampleapp").join("dist");
+        let report = build_project_inner(app, &app_out, false).expect("build app ok");
+        assert!(
+            !report.has_errors(),
+            "{app:?} produced diagnostics: {:?}",
+            report.diagnostics
+        );
+    }
+
+    let out = root.join("dist");
+
+    let report = build_project_inner(&staged, &out, false).expect("build examples ok");
     assert!(
         !report.has_errors(),
         "examples produced diagnostics: {:?}",
@@ -4320,6 +4368,210 @@ fn aliased_namespace_match_on_imported_union_is_exhaustiveness_checked() {
             .iter()
             .any(|d| d.contains("E0200") && d.contains("No") && d.contains("Maybe")),
         "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+/// A string-literal union in a sibling module, for the D30 cross-module tests
+/// below. Written once so every import spelling is checked against the same
+/// declaration.
+const KIND_MODULE: &str = "module catalog\npub type Kind = \"a\" | \"b\"\n";
+
+#[test]
+fn imported_string_literal_union_match_is_exhaustive_without_else() {
+    // D30 promises a match over a string-literal union is exhaustive without an
+    // `else`. Importing the type used to lower it to `Ty::Unknown`, so the same
+    // match drew E0218 with help text telling the author to add the `else` that
+    // destroys the guarantee. The named-import spelling.
+    let root = unique_tmp("d30named");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", KIND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Kind }\n\
+         pub fn label(k: Kind) -> string {\n\
+         \x20 return match k {\n\
+         \x20\x20\x20 \"a\" => \"first\",\n\
+         \x20\x20\x20 \"b\" => \"second\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.has_errors(),
+        "an exhaustive match on an imported string-literal union must build \
+         with no `else`: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn imported_string_literal_union_missing_literal_is_e0200() {
+    // The other half: omitting a literal is a *missing value* error (E0200), not
+    // a "needs a catch-all" error (E0218). E0218 would be the compiler telling
+    // the author to delete the guarantee.
+    let root = unique_tmp("d30missing");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", KIND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Kind }\n\
+         pub fn label(k: Kind) -> string {\n\
+         \x20 return match k {\n\
+         \x20\x20\x20 \"a\" => \"first\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains('b')),
+        "a missing literal must be E0200: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0218")),
+        "E0218 would coach the author into adding the `else` that destroys \
+         D30's guarantee: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn namespace_qualified_imported_string_literal_union_is_exhaustiveness_checked() {
+    // `import catalog` + `catalog.Kind` is the spelling csvql actually used.
+    // D30 must not depend on which legal import spelling brought the type in.
+    let root = unique_tmp("d30ns");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", KIND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog\n\
+         pub fn label(k: catalog.Kind) -> string {\n\
+         \x20 return match k {\n\
+         \x20\x20\x20 \"a\" => \"first\",\n\
+         \x20\x20\x20 \"b\" => \"second\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.has_errors(),
+        "namespace-qualified spelling must be exhaustive without an `else`: {:?}",
+        report.diagnostics
+    );
+
+    let root = unique_tmp("d30nsmissing");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", KIND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog\n\
+         pub fn label(k: catalog.Kind) -> string {\n\
+         \x20 return match k {\n\
+         \x20\x20\x20 \"a\" => \"first\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "a missing literal must be E0200 under the namespace spelling: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0218")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn aliased_namespace_imported_string_literal_union_is_exhaustiveness_checked() {
+    // `import catalog as c` interns an `ImportAlias`; both namespace forms
+    // resolve through the import's own path, so they are held to the same bar.
+    let root = unique_tmp("d30alias");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", KIND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog as c\n\
+         pub fn label(k: c.Kind) -> string {\n\
+         \x20 return match k {\n\
+         \x20\x20\x20 \"a\" => \"first\",\n\
+         \x20\x20\x20 \"b\" => \"second\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.has_errors(),
+        "aliased spelling must be exhaustive without an `else`: {:?}",
+        report.diagnostics
+    );
+
+    let root = unique_tmp("d30aliasmissing");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", KIND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog as c\n\
+         pub fn label(k: c.Kind) -> string {\n\
+         \x20 return match k {\n\
+         \x20\x20\x20 \"b\" => \"second\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "a missing literal must be E0200 under the alias spelling: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("E0218")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn imported_string_literal_union_in_let_annotation_is_exhaustiveness_checked() {
+    // The Assigner's own lowerer (not just the `decl_ty` query) has to reach
+    // across, or a `let` annotation naming the imported type stays Unknown.
+    let root = unique_tmp("d30let");
+    let src = root.join("src");
+    write_file(&src, "catalog.glyph", KIND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import catalog { Kind }\n\
+         pub fn label() -> string {\n\
+         \x20 let k: Kind = \"a\"\n\
+         \x20 return match k {\n\
+         \x20\x20\x20 \"a\" => \"first\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "a `let`-annotated imported union must be checked: {:?}",
         report.diagnostics
     );
 }

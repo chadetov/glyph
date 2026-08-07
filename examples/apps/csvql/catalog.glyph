@@ -1,0 +1,48 @@
+// The shape of `catalog.json`, and nothing else.
+//
+// The descriptor lives here; the module that reads the file (`load`) imports it
+// and calls `CatalogFile.parse`, so the side doing the I/O never restates the
+// shape it is validating.
+module catalog
+
+import std/array
+import std/option { Option }
+
+// What a column's text means. A string-literal union, so the boundary rejects
+// a catalog that declares `"date"` instead of quietly widening it to `string`.
+pub type ColType = "text" | "int" | "real" | "bool"
+
+// The declared type is spelled `kind`, not `type`. A record type may *declare*
+// a field named `type` (a keyword is a legal field name), but `col.type` does
+// not parse, so the field would be unreadable.
+pub type ColumnSpec = { name: string, kind: ColType }
+
+pub type TableSpec = { name: string, file: string, columns: Array<ColumnSpec> }
+
+pub type CatalogFile = { tables: Array<TableSpec> }
+
+pub fn table_named(cat: CatalogFile, name: string) -> Option<TableSpec> {
+  return array.find(cat.tables, fn(t: TableSpec) -> bool { return t.name == name })
+}
+
+pub fn column_named(spec: TableSpec, name: string) -> Option<ColumnSpec> {
+  return array.find(spec.columns, fn(c: ColumnSpec) -> bool { return c.name == name })
+}
+
+pub fn column_index(spec: TableSpec, name: string) -> Option<number> {
+  return array.index_of(column_names(spec), name)
+}
+
+pub fn column_names(spec: TableSpec) -> Array<string> {
+  return array.map(spec.columns, fn(c: ColumnSpec) -> string { return c.name })
+}
+
+// Whether arithmetic and ordering against a number literal make sense.
+pub fn is_numeric(t: ColType) -> bool {
+  return match t {
+    "int" => true,
+    "real" => true,
+    "text" => false,
+    "bool" => false,
+  }
+}

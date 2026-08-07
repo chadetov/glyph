@@ -100,6 +100,23 @@ pub trait DeclTyResolver {
     ) -> Option<(String, Vec<Ident>)> {
         None
     }
+
+    /// Cross-module string-literal-union resolution: for the project module at
+    /// `module_path`, if `type_name` is declared as `type X = "a" | "b"`, return
+    /// its literal set. `None` with no cross-module context (db-less callers) or
+    /// when the module is not a project sibling / declares no such type.
+    ///
+    /// The D30 counterpart of `imported_union_of_variant`. Without it an
+    /// imported string-literal union lowers to `Ty::Unknown` in the consuming
+    /// module, so an exhaustive `match` over it is reported as needing an
+    /// `else` — the exact catch-all that destroys the guarantee D30 sells.
+    fn imported_string_literal_union(
+        &self,
+        _module_path: &str,
+        _type_name: &str,
+    ) -> Option<Vec<String>> {
+        None
+    }
 }
 
 /// Default `DeclTyResolver` for callers that don't have a salsa `Db`. Owns
@@ -181,7 +198,7 @@ pub fn assign_types_with_resolver(
     {
         let mut assigner = Assigner {
             module,
-            lowerer: Lowerer::new(resolved, prelude),
+            lowerer: Lowerer::with_imports(resolved, prelude, decl_ty_resolver),
             resolved,
             tm: &mut tm,
             errors: &mut errors,

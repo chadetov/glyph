@@ -1,0 +1,94 @@
+{
+  "tables": [
+    {
+      "name": "employees",
+      "file": "employees.csv",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "int"
+        },
+        {
+          "name": "name",
+          "kind": "text"
+        },
+        {
+          "name": "dept_id",
+          "kind": "int"
+        },
+        {
+          "name": "salary",
+          "kind": "real"
+        },
+        {
+          "name": "active",
+          "kind": "bool"
+        },
+        {
+          "name": "note",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "name": "departments",
+      "file": "departments.csv",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "int"
+        },
+        {
+          "name": "name",
+          "kind": "text"
+        },
+        {
+          "name": "floor",
+          "kind": "int"
+        }
+      ]
+    },
+    {
+      "name": "broken",
+      "file": "broken.csv",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "int"
+        },
+        {
+          "name": "label",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "name": "mistyped",
+      "file": "mistyped.csv",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "int"
+        },
+        {
+          "name": "score",
+          "kind": "int"
+        }
+      ]
+    },
+    {
+      "name": "unterminated",
+      "file": "unterminated.csv",
+      "columns": [
+        {
+          "name": "id",
+          "kind": "int"
+        },
+        {
+          "name": "label",
+          "kind": "text"
+        }
+      ]
+    }
+  ]
+}

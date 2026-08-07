@@ -1,0 +1,720 @@
+// The query language: a scanner, an AST, and a recursive-descent parser.
+//
+//   SELECT <cols|aggregates>
+//   FROM <table>
+//   [JOIN <table> ON <a.x> = <b.y>]
+//   [WHERE <predicate>]
+//   [GROUP BY <cols>]
+//   [ORDER BY <col|aggregate> [DESC|ASC]]
+//   [LIMIT <n>]
+//
+// Keywords are case-insensitive; identifiers are not. Every node carries the
+// byte offset it started at, so a binder failure two stages later can still
+// point a caret at the right word.
+//
+// The parser's cursor is a `std/store`, so the parse functions take no cursor
+// argument and return only what they built. That makes `parse` single-use per
+// call, which is all a one-query-per-run CLI needs.
+module sql
+
+import std/array
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/store
+import std/string
+import fail { QueryFail, SyntaxError, BadLimit }
+import value { Value, Text, Num, Bool, Null }
+
+// ---------------------------------------------------------------------------
+// Tokens
+// ---------------------------------------------------------------------------
+
+pub type Tok =
+  | TWord({ text: string, at: int })
+  | TString({ text: string, at: int })
+  | TNumber({ n: number, at: int })
+  | TPunct({ text: string, at: int })
+  | TEnd({ at: int })
+
+pub fn tok_at(t: Tok) -> int {
+  return match t {
+    TWord({ text, at }) => at,
+    TString({ text, at }) => at,
+    TNumber({ n, at }) => at,
+    TPunct({ text, at }) => at,
+    TEnd({ at }) => at,
+  }
+}
+
+pub fn tok_text(t: Tok) -> string {
+  return match t {
+    TWord({ text, at }) => text,
+    TString({ text, at }) => "'${text}'",
+    TNumber({ n, at }) => number.to_string(n),
+    TPunct({ text, at }) => text,
+    TEnd({ at }) => "end of query",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The abstract syntax tree
+// ---------------------------------------------------------------------------
+
+pub type CompareOp = "eq" | "ne" | "lt" | "le" | "gt" | "ge"
+
+pub type Agg = "count" | "sum" | "min" | "max" | "avg"
+
+// `qualifier` is the table part of `employees.dept`, absent when the name was
+// written bare and the binder has to work out which table owns it.
+pub type Ref = { qualifier: Option<string>, name: string, at: int }
+
+pub type Operand =
+  | Column({ col: Ref })
+  | Const({ v: Value, at: int })
+
+pub type Pred =
+  | Compare({ left: Operand, op: CompareOp, right: Operand, at: int })
+  | And({ left: Pred, right: Pred })
+  | Or({ left: Pred, right: Pred })
+
+// A select-list entry. `Call` with `arg: None` is `count(*)`.
+pub type Item =
+  | Star({ at: int })
+  | Plain({ col: Ref })
+  | Call({ func: Agg, arg: Option<Ref>, at: int })
+
+pub type JoinClause = { table: string, left: Ref, right: Ref, at: int }
+
+pub type Order = { item: Item, desc: bool, at: int }
+
+pub type Query = {
+  items: Array<Item>,
+  from: string,
+  from_at: int,
+  join: Option<JoinClause>,
+  filter: Option<Pred>,
+  group: Array<Ref>,
+  order: Option<Order>,
+  limit: Option<int>,
+  limit_at: int,
+}
+
+pub fn item_at(i: Item) -> int {
+  return match i {
+    Star({ at }) => at,
+    Plain({ col }) => col.at,
+    Call({ func, arg, at }) => at,
+  }
+}
+
+// The name a select item takes in the output header.
+pub fn item_label(i: Item) -> string {
+  return match i {
+    Star({ at }) => "*",
+    Plain({ col }) => ref_text(col),
+    Call({ func, arg, at }) => match arg {
+      Some(r) => "${func}(${ref_text(r)})",
+      None => "${func}(*)",
+    },
+  }
+}
+
+pub fn ref_text(r: Ref) -> string {
+  return match r.qualifier {
+    Some(q) => "${q}.${r.name}",
+    None => r.name,
+  }
+}
+
+pub fn op_text(op: CompareOp) -> string {
+  return match op {
+    "eq" => "=",
+    "ne" => "<>",
+    "lt" => "<",
+    "le" => "<=",
+    "gt" => ">",
+    "ge" => ">=",
+    else => "?",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Scanning
+// ---------------------------------------------------------------------------
+
+fn is_space(c: string) -> bool {
+  return c == " " || c == "\t" || c == "\n" || c == "\r"
+}
+
+fn is_digit(c: string) -> bool {
+  return c >= "0" && c <= "9"
+}
+
+fn is_word_start(c: string) -> bool {
+  return c >= "a" && c <= "z" || c >= "A" && c <= "Z" || c == "_"
+}
+
+fn is_word_part(c: string) -> bool {
+  return is_word_start(c) || is_digit(c)
+}
+
+fn scan_word(text: string, start: int) -> int {
+  let i = start
+  loop {
+    match i < string.len(text) && is_word_part(text[i]) {
+      true => { mut i = i + 1 },
+      false => { break },
+    }
+  }
+  return i
+}
+
+fn scan_number(text: string, start: int) -> int {
+  let i = start
+  loop {
+    match i < string.len(text) && (is_digit(text[i]) || text[i] == ".") {
+      true => { mut i = i + 1 },
+      false => { break },
+    }
+  }
+  return i
+}
+
+// A single-quoted literal; `''` inside stands for one quote.
+fn scan_string(text: string, start: int) -> Result<{ body: string, next: int }, QueryFail> {
+  let i = start + 1
+  let out = ""
+  loop {
+    match i >= string.len(text) {
+      true => {
+        return Err(SyntaxError({ offset: start, found: "end of query", expected: "a closing '" }))
+      },
+      false => {},
+    }
+    let c = text[i]
+    let next = match i + 1 < string.len(text) {
+      true => text[i + 1],
+      false => "",
+    }
+    match c == "'" {
+      true => {
+        match next == "'" {
+          true => {
+            mut out = "${out}'"
+            mut i = i + 2
+          },
+          false => {
+            mut i = i + 1
+            break
+          },
+        }
+      },
+      false => {
+        mut out = "${out}${c}"
+        mut i = i + 1
+      },
+    }
+  }
+  return Ok({ body: out, next: i })
+}
+
+const TWO_CHAR_OPS = ["<>", "<=", ">=", "!="]
+
+const ONE_CHAR_OPS = ["=", "<", ">", "*", ",", "(", ")", "."]
+
+pub fn scan(text: string) -> Result<Array<Tok>, QueryFail> {
+  let out: Array<Tok> = []
+  let i = 0
+  let n = string.len(text)
+  loop {
+    match i >= n {
+      true => { break },
+      false => {},
+    }
+    let c = text[i]
+    match is_space(c) {
+      true => {
+        mut i = i + 1
+        continue
+      },
+      false => {},
+    }
+    match is_word_start(c) {
+      true => {
+        let end = scan_word(text, i)
+        mut out = array.push(out, TWord({ text: string.slice(text, i, end), at: i }))
+        mut i = end
+        continue
+      },
+      false => {},
+    }
+    let signed = c == "-" && i + 1 < n && is_digit(text[i + 1])
+    match is_digit(c) || signed {
+      true => {
+        let end = scan_number(
+          text,
+          match signed {
+            true => i + 1,
+            false => i,
+          },
+        )
+        let body = string.slice(text, i, end)
+        let parsed = match number.parse(body) {
+          Ok(v) => v,
+          Err(_) => { return Err(SyntaxError({ offset: i, found: body, expected: "a number" })) },
+        }
+        mut out = array.push(out, TNumber({ n: parsed, at: i }))
+        mut i = end
+        continue
+      },
+      false => {},
+    }
+    match c == "'" {
+      true => {
+        let lit = scan_string(text, i)?
+        mut out = array.push(out, TString({ text: lit.body, at: i }))
+        mut i = lit.next
+        continue
+      },
+      false => {},
+    }
+    let two = string.slice(text, i, i + 2)
+    match array.contains(TWO_CHAR_OPS, two) {
+      true => {
+        mut out = array.push(out, TPunct({ text: two, at: i }))
+        mut i = i + 2
+        continue
+      },
+      false => {},
+    }
+    match array.contains(ONE_CHAR_OPS, c) {
+      true => {
+        mut out = array.push(out, TPunct({ text: c, at: i }))
+        mut i = i + 1
+        continue
+      },
+      false => {},
+    }
+    return Err(SyntaxError({ offset: i, found: c, expected: "a name, a literal, or an operator" }))
+  }
+  mut out = array.push(out, TEnd({ at: n }))
+  return Ok(out)
+}
+
+// ---------------------------------------------------------------------------
+// The cursor
+// ---------------------------------------------------------------------------
+
+const tokens = store.create<Array<Tok>>([])
+
+const cursor = store.create(0)
+
+fn peek() -> Tok {
+  let ts = tokens.get()
+  let i = cursor.get()
+  return match i < array.len(ts) {
+    true => ts[i],
+    false => TEnd({ at: 0 }),
+  }
+}
+
+fn bump() -> Tok {
+  let t = peek()
+  cursor.set(cursor.get() + 1)
+  return t
+}
+
+fn word_is(t: Tok, kw: string) -> bool {
+  return match t {
+    TWord({ text, at }) => string.lower(text) == kw,
+    TString({ text, at }) => false,
+    TNumber({ n, at }) => false,
+    TPunct({ text, at }) => false,
+    TEnd({ at }) => false,
+  }
+}
+
+fn punct_is(t: Tok, p: string) -> bool {
+  return match t {
+    TPunct({ text, at }) => text == p,
+    TWord({ text, at }) => false,
+    TString({ text, at }) => false,
+    TNumber({ n, at }) => false,
+    TEnd({ at }) => false,
+  }
+}
+
+fn at_word(kw: string) -> bool {
+  return word_is(peek(), kw)
+}
+
+fn at_punct(p: string) -> bool {
+  return punct_is(peek(), p)
+}
+
+fn eat_word(kw: string) -> bool {
+  return match at_word(kw) {
+    true => {
+      cursor.set(cursor.get() + 1)
+      true
+    },
+    false => false,
+  }
+}
+
+fn eat_punct(p: string) -> bool {
+  return match at_punct(p) {
+    true => {
+      cursor.set(cursor.get() + 1)
+      true
+    },
+    false => false,
+  }
+}
+
+fn fail_here(expected: string) -> QueryFail {
+  let t = peek()
+  return SyntaxError({ offset: tok_at(t), found: tok_text(t), expected: expected })
+}
+
+fn expect_word(kw: string) -> Result<void, QueryFail> {
+  return match eat_word(kw) {
+    true => Ok(void),
+    false => Err(fail_here(string.upper(kw))),
+  }
+}
+
+fn expect_punct(p: string) -> Result<void, QueryFail> {
+  return match eat_punct(p) {
+    true => Ok(void),
+    false => Err(fail_here(p)),
+  }
+}
+
+fn expect_name(what: string) -> Result<{ text: string, at: int }, QueryFail> {
+  let t = peek()
+  return match t {
+    TWord({ text, at }) => {
+      cursor.set(cursor.get() + 1)
+      Ok({ text: text, at: at })
+    },
+    TString({ text, at }) => Err(fail_here(what)),
+    TNumber({ n, at }) => Err(fail_here(what)),
+    TPunct({ text, at }) => Err(fail_here(what)),
+    TEnd({ at }) => Err(fail_here(what)),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Parsing
+// ---------------------------------------------------------------------------
+
+const AGG_NAMES = ["count", "sum", "min", "max", "avg"]
+
+fn parse_ref() -> Result<Ref, QueryFail> {
+  let head = expect_name("a column name")?
+  return match eat_punct(".") {
+    true => {
+      let tail = expect_name("a column name after `.`")?
+      Ok({ qualifier: Some(head.text), name: tail.text, at: head.at })
+    },
+    false => Ok({ qualifier: None, name: head.text, at: head.at }),
+  }
+}
+
+fn agg_of(name: string) -> Agg {
+  return match name {
+    "sum" => "sum",
+    "min" => "min",
+    "max" => "max",
+    "avg" => "avg",
+    else => "count",
+  }
+}
+
+fn parse_item() -> Result<Item, QueryFail> {
+  let t = peek()
+  match at_punct("*") {
+    true => {
+      cursor.set(cursor.get() + 1)
+      return Ok(Star({ at: tok_at(t) }))
+    },
+    false => {},
+  }
+  let head = expect_name("a column name or an aggregate")?
+  let lowered = string.lower(head.text)
+  let is_agg = array.contains(AGG_NAMES, lowered) && at_punct("(")
+  match is_agg {
+    false => {
+      return match eat_punct(".") {
+        true => {
+          let tail = expect_name("a column name after `.`")?
+          Ok(Plain({ col: { qualifier: Some(head.text), name: tail.text, at: head.at } }))
+        },
+        false => Ok(Plain({ col: { qualifier: None, name: head.text, at: head.at } })),
+      }
+    },
+    true => {},
+  }
+  expect_punct("(")?
+  let arg = match eat_punct("*") {
+    true => None,
+    false => Some(parse_ref()?),
+  }
+  expect_punct(")")?
+  match arg {
+    None => match lowered == "count" {
+      true => {},
+      false => {
+        return Err(
+          SyntaxError(
+            { offset: head.at, found: "${lowered}(*)", expected: "only count may take *" },
+          ),
+        )
+      },
+    },
+    Some(_) => {},
+  }
+  return Ok(Call({ func: agg_of(lowered), arg: arg, at: head.at }))
+}
+
+fn parse_operand() -> Result<Operand, QueryFail> {
+  let t = peek()
+  return match t {
+    TString({ text, at }) => {
+      cursor.set(cursor.get() + 1)
+      Ok(Const({ v: Text({ text: text }), at: at }))
+    },
+    TNumber({ n, at }) => {
+      cursor.set(cursor.get() + 1)
+      Ok(Const({ v: Num({ n: n }), at: at }))
+    },
+    TWord({ text, at }) => match string.lower(text) {
+      "true" => {
+        cursor.set(cursor.get() + 1)
+        Ok(Const({ v: Bool({ flag: true }), at: at }))
+      },
+      "false" => {
+        cursor.set(cursor.get() + 1)
+        Ok(Const({ v: Bool({ flag: false }), at: at }))
+      },
+      "null" => {
+        cursor.set(cursor.get() + 1)
+        Ok(Const({ v: Null, at: at }))
+      },
+      else => {
+        let r = parse_ref()?
+        Ok(Column({ col: r }))
+      },
+    },
+    TPunct({ text, at }) => Err(fail_here("a column or a literal")),
+    TEnd({ at }) => Err(fail_here("a column or a literal")),
+  }
+}
+
+fn parse_op() -> Result<CompareOp, QueryFail> {
+  let t = peek()
+  // The binding is `symbol`, not `text`: a `let` whose name also appears as a
+  // destructured arm binding emits `const text = ...; text = text;` and the
+  // assignment lands on the arm's own constant.
+  let symbol = match t {
+    TPunct({ text, at }) => text,
+    TWord({ text, at }) => "",
+    TString({ text, at }) => "",
+    TNumber({ n, at }) => "",
+    TEnd({ at }) => "",
+  }
+  // The annotation is load-bearing: `Some("eq")` on its own is an
+  // `Option<string>`, which `tsc` will not accept where an `Option<CompareOp>`
+  // is wanted, even though Glyph's own checker allows it.
+  let op: Option<CompareOp> = match symbol {
+    "=" => Some("eq"),
+    "<>" => Some("ne"),
+    "!=" => Some("ne"),
+    "<" => Some("lt"),
+    "<=" => Some("le"),
+    ">" => Some("gt"),
+    ">=" => Some("ge"),
+    else => None,
+  }
+  return match op {
+    Some(o) => {
+      cursor.set(cursor.get() + 1)
+      Ok(o)
+    },
+    None => Err(fail_here("a comparison operator")),
+  }
+}
+
+fn parse_compare() -> Result<Pred, QueryFail> {
+  match eat_punct("(") {
+    true => {
+      let inner = parse_pred()?
+      expect_punct(")")?
+      return Ok(inner)
+    },
+    false => {},
+  }
+  let at = tok_at(peek())
+  let left = parse_operand()?
+  let op = parse_op()?
+  let right = parse_operand()?
+  return Ok(Compare({ left: left, op: op, right: right, at: at }))
+}
+
+fn parse_and() -> Result<Pred, QueryFail> {
+  let left = parse_compare()?
+  loop {
+    match eat_word("and") {
+      true => {
+        let right = parse_compare()?
+        mut left = And({ left: left, right: right })
+      },
+      false => { break },
+    }
+  }
+  return Ok(left)
+}
+
+fn parse_pred() -> Result<Pred, QueryFail> {
+  let left = parse_and()?
+  loop {
+    match eat_word("or") {
+      true => {
+        let right = parse_and()?
+        mut left = Or({ left: left, right: right })
+      },
+      false => { break },
+    }
+  }
+  return Ok(left)
+}
+
+fn parse_items() -> Result<Array<Item>, QueryFail> {
+  let items: Array<Item> = []
+  loop {
+    let one = parse_item()?
+    mut items = array.push(items, one)
+    match eat_punct(",") {
+      true => {},
+      false => { break },
+    }
+  }
+  return Ok(items)
+}
+
+fn parse_group() -> Result<Array<Ref>, QueryFail> {
+  let refs: Array<Ref> = []
+  loop {
+    let one = parse_ref()?
+    mut refs = array.push(refs, one)
+    match eat_punct(",") {
+      true => {},
+      false => { break },
+    }
+  }
+  return Ok(refs)
+}
+
+fn parse_join() -> Result<JoinClause, QueryFail> {
+  let name = expect_name("a table name")?
+  expect_word("on")?
+  let left = parse_ref()?
+  expect_punct("=")?
+  let right = parse_ref()?
+  return Ok({ table: name.text, left: left, right: right, at: name.at })
+}
+
+fn parse_limit() -> Result<{ n: int, at: int }, QueryFail> {
+  let t = peek()
+  return match t {
+    TNumber({ n, at }) => {
+      cursor.set(cursor.get() + 1)
+      match n >= 0 && n == math_trunc(n) {
+        true => Ok({ n: n, at: at }),
+        false => Err(BadLimit({ offset: at, text: number.to_string(n) })),
+      }
+    },
+    TWord({ text, at }) => Err(BadLimit({ offset: at, text: text })),
+    TString({ text, at }) => Err(BadLimit({ offset: at, text: text })),
+    TPunct({ text, at }) => Err(BadLimit({ offset: at, text: text })),
+    TEnd({ at }) => Err(BadLimit({ offset: at, text: "end of query" })),
+  }
+}
+
+fn math_trunc(n: number) -> number {
+  return n - n % 1
+}
+
+pub fn parse(text: string) -> Result<Query, QueryFail> {
+  let toks = scan(text)?
+  tokens.set(toks)
+  cursor.set(0)
+
+  expect_word("select")?
+  let items = parse_items()?
+  expect_word("from")?
+  let from = expect_name("a table name")?
+
+  let join = match eat_word("join") {
+    true => Some(parse_join()?),
+    false => None,
+  }
+  let filter = match eat_word("where") {
+    true => Some(parse_pred()?),
+    false => None,
+  }
+  let group = match eat_word("group") {
+    true => {
+      expect_word("by")?
+      parse_group()?
+    },
+    false => [],
+  }
+  let order = match eat_word("order") {
+    true => {
+      expect_word("by")?
+      let key = parse_item()?
+      let desc = match eat_word("desc") {
+        true => true,
+        false => {
+          let _ignored = eat_word("asc")
+          false
+        },
+      }
+      Some({ item: key, desc: desc, at: item_at(key) })
+    },
+    false => None,
+  }
+  let limited = match eat_word("limit") {
+    true => Some(parse_limit()?),
+    false => None,
+  }
+  let limit = match limited {
+    Some(l) => Some(l.n),
+    None => None,
+  }
+  let limit_at = match limited {
+    Some(l) => l.at,
+    None => 0,
+  }
+
+  match peek() {
+    TEnd({ at }) => {},
+    else => { return Err(fail_here("end of query")) },
+  }
+
+  return Ok(
+    {
+      items: items,
+      from: from.text,
+      from_at: from.at,
+      join: join,
+      filter: filter,
+      group: group,
+      order: order,
+      limit: limit,
+      limit_at: limit_at,
+    },
+  )
+}

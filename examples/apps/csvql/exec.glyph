@@ -1,0 +1,303 @@
+// Executing a plan.
+//
+// One recursive function over the plan tree; every node produces `Rows` and
+// hands them to its parent. There is no iterator protocol and no streaming: a
+// CSV small enough to hold in memory is the premise of the whole program.
+//
+// The semantics that are choices rather than obligations, stated once:
+//
+//   - A comparison where either side is NULL is false. That is two-valued
+//     logic, not SQL's three-valued logic, so `WHERE x <> 'a'` does not return
+//     rows whose `x` is NULL.
+//   - A NULL join key matches nothing, not even another NULL.
+//   - `count(*)` counts rows. Every other aggregate ignores NULL inputs.
+//   - An aggregate over zero non-NULL inputs is NULL, except `count`, which is
+//     0. So `sum` of an all-NULL column is NULL rather than 0.
+//   - GROUP BY produces one row per key that at least one input row carried, so
+//     an "empty group" cannot arise. Aggregates with no GROUP BY are the one
+//     case that can see zero rows, and they produce exactly one row: `count` is
+//     0 and the rest are NULL.
+module exec
+
+import std/array
+import std/option { Some, None }
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+import bind { AggSpec, Both, BoundOperand, BoundPred, Cmp, Either, Lit, Slot }
+import fail { QueryFail, NoSuchFile }
+import plan { Filter, Group, HashJoin, Limit, Plan, Project, Scan, Sort }
+import table { Tables }
+import value
+import value { Null, Num, Value }
+
+pub type Rows = Array<Array<Value>>
+
+// ---------------------------------------------------------------------------
+// Predicates
+// ---------------------------------------------------------------------------
+
+fn read(o: BoundOperand, row: Array<Value>) -> Value {
+  return match o {
+    Slot({ f }) => row[f.slot],
+    Lit({ v }) => v,
+  }
+}
+
+fn holds(p: BoundPred, row: Array<Value>) -> bool {
+  return match p {
+    Cmp({ left, op, right }) => {
+      let a = read(left, row)
+      let b = read(right, row)
+      match value.is_null(a) || value.is_null(b) {
+        true => false,
+        false => {
+          let c = value.cmp(a, b)
+          match op {
+            "eq" => c == 0,
+            "ne" => c != 0,
+            "lt" => c < 0,
+            "le" => c <= 0,
+            "gt" => c > 0,
+            "ge" => c >= 0,
+            else => false,
+          }
+        },
+      }
+    },
+    Both({ left, right }) => holds(left, row) && holds(right, row),
+    Either({ left, right }) => holds(left, row) || holds(right, row),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Join
+// ---------------------------------------------------------------------------
+
+fn hash_join(left: Rows, right: Rows, left_slot: int, right_slot: int) -> Rows {
+  let buckets: Record<string, Rows> = {}
+  for r in right {
+    let k = r[right_slot]
+    match value.is_null(k) {
+      true => {},
+      false => {
+        let bucket = match record.get(buckets, value.key(k)) {
+          Some(existing) => existing,
+          None => [],
+        }
+        mut buckets = record.set(buckets, value.key(k), array.push(bucket, r))
+      },
+    }
+  }
+  let out: Rows = []
+  for l in left {
+    let k = l[left_slot]
+    match value.is_null(k) {
+      true => {},
+      false => {
+        let hits: Rows = match record.get(buckets, value.key(k)) {
+          Some(found) => found,
+          None => [],
+        }
+        for r in hits {
+          mut out = array.push(out, array.concat(l, r))
+        }
+      },
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Aggregation
+// ---------------------------------------------------------------------------
+
+fn column_of(rows: Rows, slot: int) -> Array<Value> {
+  let out: Array<Value> = []
+  for row in rows {
+    mut out = match value.is_null(row[slot]) {
+      true => out,
+      false => array.push(out, row[slot]),
+    }
+  }
+  return out
+}
+
+fn total(vals: Array<Value>) -> number {
+  return array.fold(
+    vals,
+    0,
+    fn(acc: number, v: Value) -> number {
+      return acc + match v {
+        Num({ n }) => n,
+        else => 0,
+      }
+    },
+  )
+}
+
+fn extreme(vals: Array<Value>, want: number) -> Value {
+  let best = vals[0]
+  for v in vals {
+    mut best = match value.cmp(v, best) == want {
+      true => v,
+      false => best,
+    }
+  }
+  return best
+}
+
+fn aggregate(a: AggSpec, rows: Rows) -> Value {
+  match a.star {
+    true => { return Num({ n: array.len(rows) }) },
+    false => {},
+  }
+  let vals = column_of(rows, a.slot)
+  let n = array.len(vals)
+  return match a.func {
+    "count" => Num({ n: n }),
+    "sum" => match n == 0 {
+      true => Null,
+      false => Num({ n: total(vals) }),
+    },
+    "avg" => match n == 0 {
+      true => Null,
+      false => Num({ n: total(vals) / n }),
+    },
+    "min" => match n == 0 {
+      true => Null,
+      false => extreme(vals, -1),
+    },
+    "max" => match n == 0 {
+      true => Null,
+      false => extreme(vals, 1),
+    },
+    else => Null,
+  }
+}
+
+fn group_key(row: Array<Value>, keys: Array<int>) -> string {
+  let parts: Array<string> = []
+  for k in keys {
+    mut parts = array.push(parts, value.key(row[k]))
+  }
+  let bar = "|"
+  return string.join(parts, bar)
+}
+
+fn grouped_rows(rows: Rows, keys: Array<int>, aggs: Array<AggSpec>) -> Rows {
+  // No GROUP BY: one group over everything, present even when nothing arrived.
+  match array.len(keys) == 0 {
+    true => {
+      let only: Array<Value> = []
+      let filled = array.fold(
+        aggs,
+        only,
+        fn(acc: Array<Value>, a: AggSpec) -> Array<Value> { return array.push(acc, aggregate(a, rows)) },
+      )
+      return [filled]
+    },
+    false => {},
+  }
+  let order: Array<string> = []
+  let members: Record<string, Rows> = {}
+  for row in rows {
+    let k = group_key(row, keys)
+    mut order = match record.has(members, k) {
+      true => order,
+      false => array.push(order, k),
+    }
+    let bucket: Rows = match record.get(members, k) {
+      Some(existing) => existing,
+      None => [],
+    }
+    mut members = record.set(members, k, array.push(bucket, row))
+  }
+  let out: Rows = []
+  for k in order {
+    let bucket: Rows = match record.get(members, k) {
+      Some(found) => found,
+      None => [],
+    }
+    let head = bucket[0]
+    let row: Array<Value> = []
+    for slot in keys {
+      mut row = array.push(row, head[slot])
+    }
+    for a in aggs {
+      mut row = array.push(row, aggregate(a, bucket))
+    }
+    mut out = array.push(out, row)
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// The walk
+// ---------------------------------------------------------------------------
+
+pub fn run(p: Plan, tables: Tables) -> Result<Rows, QueryFail> {
+  return match p {
+    Scan({ table, out }) => match record.get(tables, table) {
+      Some(t) => Ok(t.rows),
+      None => Err(NoSuchFile({ table: table, path: "" })),
+    },
+    HashJoin({ left, right, left_slot, right_slot, out }) => {
+      let l = run(left, tables)?
+      let r = run(right, tables)?
+      Ok(hash_join(l, r, left_slot, right_slot))
+    },
+    Filter({ input, pred, out }) => {
+      let rows = run(input, tables)?
+      Ok(array.filter(rows, fn(row: Array<Value>) -> bool { return holds(pred, row) }))
+    },
+    Group({ input, keys, aggs, out }) => {
+      let rows = run(input, tables)?
+      Ok(grouped_rows(rows, keys, aggs))
+    },
+    Project({ input, sources, out }) => {
+      let rows = run(input, tables)?
+      Ok(
+        array.map(
+          rows,
+          fn(row: Array<Value>) -> Array<Value> {
+            return array.map(sources, fn(s: int) -> Value { return row[s] })
+          },
+        ),
+      )
+    },
+    Sort({ input, slot, desc, out }) => {
+      let rows = run(input, tables)?
+      let direction = match desc {
+        true => -1,
+        false => 1,
+      }
+      Ok(
+        array.sort(
+          rows,
+          fn(a: Array<Value>, b: Array<Value>) -> number { return value.cmp(a[slot], b[slot]) * direction },
+        ),
+      )
+    },
+    Limit({ input, count, out }) => {
+      let rows = run(input, tables)?
+      Ok(array.slice(rows, 0, count))
+    },
+  }
+}
+
+// Which tables a plan reads, so the caller loads only those CSV files.
+pub fn sources(p: Plan) -> Array<string> {
+  return match p {
+    Scan({ table, out }) => [table],
+    HashJoin({ left, right, left_slot, right_slot, out }) => array.concat(
+      sources(left),
+      sources(right),
+    ),
+    Filter({ input, pred, out }) => sources(input),
+    Group({ input, keys, aggs, out }) => sources(input),
+    Project({ input, sources: cols, out }) => sources(input),
+    Sort({ input, slot, desc, out }) => sources(input),
+    Limit({ input, count, out }) => sources(input),
+  }
+}

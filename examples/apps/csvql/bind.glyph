@@ -1,0 +1,513 @@
+// Binding: the AST against the catalog.
+//
+// Every identifier becomes a `Field` — a (table, column, declared type, slot)
+// quadruple — or a failure that names what was in scope. Slots are positions in
+// the executor's row layout: a scan's row is that table's columns in order, and
+// a join's row is the left table's columns followed by the right table's, which
+// is why the binder is the only place that has to know about layout at all.
+//
+// It also does the type checking a query engine owes you: comparing a `text`
+// column to a number is rejected here, not turned into `false` at run time, and
+// `sum` over a `text` column is rejected rather than producing NaN.
+//
+// One documented restriction: ORDER BY must name something that appears in the
+// select list, because the sort runs on the projected rows.
+module bind
+
+import std/array
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+import catalog
+import catalog { CatalogFile, ColType, ColumnSpec, TableSpec }
+import fail { QueryFail, AmbiguousColumn, BadAggregate, SyntaxError, TypeMismatch, UngroupedColumn, UnknownColumn, UnknownTable }
+import sql
+import sql { Agg, And, Call, Column, Compare, CompareOp, Const, Item, Operand, Or, Plain, Pred, Query, Ref, Star }
+import value { Bool, Null, Num, Text, Value }
+
+// A resolved column reference. `slot` is an index into the row shape its
+// producing plan node emits.
+pub type Field = { table: string, name: string, kind: ColType, slot: int }
+
+pub type BoundOperand =
+  | Slot({ f: Field })
+  | Lit({ v: Value })
+
+pub type BoundPred =
+  | Cmp({ left: BoundOperand, op: CompareOp, right: BoundOperand })
+  | Both({ left: BoundPred, right: BoundPred })
+  | Either({ left: BoundPred, right: BoundPred })
+
+// `slot` is -1 for `count(*)`, which reads no column at all.
+pub type AggSpec = { func: Agg, slot: int, star: bool, label: string, kind: ColType }
+
+pub type BoundItem =
+  | Direct({ f: Field, label: string, at: int })
+  | Rolled({ a: AggSpec })
+
+// `left_width` is where the right table's columns start in the joined layout,
+// which is what lets the executor turn a base slot back into an index into one
+// side's own rows.
+pub type BoundJoin = { table: string, left_slot: int, right_slot: int, left_width: int }
+
+pub type BoundOrder = { slot: int, desc: bool }
+
+pub type Bound = {
+  from: string,
+  join: Option<BoundJoin>,
+  base: Array<Field>,
+  filter: Option<BoundPred>,
+  keys: Array<Field>,
+  grouped: bool,
+  items: Array<BoundItem>,
+  group_out: Array<Field>,
+  sources: Array<int>,
+  out: Array<Field>,
+  order: Option<BoundOrder>,
+  limit: Option<int>,
+}
+
+// ---------------------------------------------------------------------------
+// Scope
+// ---------------------------------------------------------------------------
+
+fn fields_of(spec: TableSpec, offset: int) -> Array<Field> {
+  let out: Array<Field> = []
+  let cols: Array<ColumnSpec> = spec.columns
+  for i, c in cols {
+    mut out = array.push(out, { table: spec.name, name: c.name, kind: c.kind, slot: offset + i })
+  }
+  return out
+}
+
+fn scope_names(scope: Array<Field>) -> Array<string> {
+  return array.map(scope, fn(f: Field) -> string { return "${f.table}.${f.name}" })
+}
+
+fn table_names(scope: Array<Field>) -> Array<string> {
+  let out: Array<string> = []
+  for f in scope {
+    mut out = match array.contains(out, f.table) {
+      true => out,
+      false => array.push(out, f.table),
+    }
+  }
+  return out
+}
+
+// Resolve one identifier. A qualified name must name a table in scope; a bare
+// name must match exactly one column across every table in scope.
+pub fn resolve(scope: Array<Field>, r: Ref) -> Result<Field, QueryFail> {
+  return match r.qualifier {
+    Some(q) => {
+      match array.contains(table_names(scope), q) {
+        true => {},
+        false => { return Err(UnknownTable({ offset: r.at, name: q, known: table_names(scope) })) },
+      }
+      match array.find(scope, fn(f: Field) -> bool { return f.table == q && f.name == r.name }) {
+        Some(f) => Ok(f),
+        None => Err(
+          UnknownColumn({ offset: r.at, name: sql.ref_text(r), known: scope_names(scope) }),
+        ),
+      }
+    },
+    None => {
+      let hits = array.filter(scope, fn(f: Field) -> bool { return f.name == r.name })
+      match array.len(hits) {
+        0 => Err(UnknownColumn({ offset: r.at, name: r.name, known: scope_names(scope) })),
+        1 => Ok(hits[0]),
+        else => Err(
+          AmbiguousColumn(
+            {
+              offset: r.at,
+              name: r.name,
+              tables: array.map(hits, fn(f: Field) -> string { return f.table }),
+            },
+          ),
+        ),
+      }
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+fn is_numeric(k: ColType) -> bool {
+  return match k {
+    "int" => true,
+    "real" => true,
+    "text" => false,
+    "bool" => false,
+    else => false,
+  }
+}
+
+// The declared type of a literal, or "null" for the one literal that fits
+// anywhere.
+fn literal_kind(v: Value) -> string {
+  return match v {
+    Text({ text }) => "text",
+    Num({ n }) => "real",
+    Bool({ flag }) => "bool",
+    Null => "null",
+  }
+}
+
+fn operand_kind(o: BoundOperand) -> string {
+  return match o {
+    Slot({ f }) => f.kind,
+    Lit({ v }) => literal_kind(v),
+  }
+}
+
+fn family(kind: string) -> string {
+  return match kind {
+    "int" => "number",
+    "real" => "number",
+    "text" => "text",
+    "bool" => "bool",
+    else => "null",
+  }
+}
+
+fn comparable(a: string, b: string) -> bool {
+  return family(a) == "null" || family(b) == "null" || family(a) == family(b)
+}
+
+// ---------------------------------------------------------------------------
+// Predicates
+// ---------------------------------------------------------------------------
+
+fn bind_operand(scope: Array<Field>, o: Operand) -> Result<BoundOperand, QueryFail> {
+  return match o {
+    Column({ col }) => Ok(Slot({ f: resolve(scope, col)? })),
+    Const({ v, at }) => Ok(Lit({ v: v })),
+  }
+}
+
+fn bind_pred(scope: Array<Field>, p: Pred) -> Result<BoundPred, QueryFail> {
+  return match p {
+    Compare({ left, op, right, at }) => {
+      let l = bind_operand(scope, left)?
+      let r = bind_operand(scope, right)?
+      match comparable(operand_kind(l), operand_kind(r)) {
+        true => {},
+        false => {
+          return Err(
+            TypeMismatch(
+              { offset: at, left: operand_kind(l), right: operand_kind(r), op: sql.op_text(op) },
+            ),
+          )
+        },
+      }
+      Ok(Cmp({ left: l, op: op, right: r }))
+    },
+    And({ left, right }) => Ok(
+      Both({ left: bind_pred(scope, left)?, right: bind_pred(scope, right)? }),
+    ),
+    Or({ left, right }) => Ok(
+      Either({ left: bind_pred(scope, left)?, right: bind_pred(scope, right)? }),
+    ),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Aggregates
+// ---------------------------------------------------------------------------
+
+fn agg_result_kind(func: Agg, source: ColType) -> ColType {
+  return match func {
+    "count" => "int",
+    "avg" => "real",
+    "sum" => source,
+    "min" => source,
+    "max" => source,
+    else => "real",
+  }
+}
+
+fn needs_numbers(func: Agg) -> bool {
+  return match func {
+    "sum" => true,
+    "avg" => true,
+    "count" => false,
+    "min" => false,
+    "max" => false,
+    else => false,
+  }
+}
+
+fn bind_agg(scope: Array<Field>, func: Agg, arg: Option<Ref>, at: int) -> Result<AggSpec, QueryFail> {
+  return match arg {
+    None => Ok({ func: func, slot: -1, star: true, label: "${func}(*)", kind: "int" }),
+    Some(r) => {
+      let f = resolve(scope, r)?
+      match needs_numbers(func) && !is_numeric(f.kind) {
+        true => {
+          return Err(
+            BadAggregate({ offset: at, func: func, column: sql.ref_text(r), ctype: f.kind }),
+          )
+        },
+        false => {},
+      }
+      Ok(
+        {
+          func: func,
+          slot: f.slot,
+          star: false,
+          label: "${func}(${sql.ref_text(r)})",
+          kind: agg_result_kind(func, f.kind),
+        },
+      )
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The select list
+// ---------------------------------------------------------------------------
+
+fn direct_label(qualify: bool, f: Field) -> string {
+  return match qualify {
+    true => "${f.table}.${f.name}",
+    false => f.name,
+  }
+}
+
+fn expand_items(scope: Array<Field>, qualify: bool, items: Array<Item>) -> Result<Array<BoundItem>, QueryFail> {
+  let out: Array<BoundItem> = []
+  for it in items {
+    match it {
+      Star({ at }) => {
+        for f in scope {
+          mut out = array.push(out, Direct({ f: f, label: direct_label(qualify, f), at: at }))
+        }
+      },
+      Plain({ col }) => {
+        let f = resolve(scope, col)?
+        mut out = array.push(out, Direct({ f: f, label: direct_label(qualify, f), at: col.at }))
+      },
+      Call({ func, arg, at }) => {
+        let a = bind_agg(scope, func, arg, at)?
+        mut out = array.push(out, Rolled({ a: a }))
+      },
+    }
+  }
+  return Ok(out)
+}
+
+fn has_aggregate(items: Array<BoundItem>) -> bool {
+  return array.any(
+    items,
+    fn(i: BoundItem) -> bool {
+      return match i {
+        Rolled({ a }) => true,
+        Direct({ f, label, at }) => false,
+      }
+    },
+  )
+}
+
+fn item_label(i: BoundItem) -> string {
+  return match i {
+    Direct({ f, label, at }) => label,
+    Rolled({ a }) => a.label,
+  }
+}
+
+fn item_kind(i: BoundItem) -> ColType {
+  return match i {
+    Direct({ f, label, at }) => f.kind,
+    Rolled({ a }) => a.kind,
+  }
+}
+
+fn key_position(keys: Array<Field>, f: Field) -> Option<number> {
+  return array.index_of(array.map(keys, fn(k: Field) -> int { return k.slot }), f.slot)
+}
+
+// ---------------------------------------------------------------------------
+// Binding a whole query
+// ---------------------------------------------------------------------------
+
+pub fn bind(cat: CatalogFile, q: Query) -> Result<Bound, QueryFail> {
+  let known = array.map(cat.tables, fn(t: TableSpec) -> string { return t.name })
+
+  let left_spec = match catalog.table_named(cat, q.from) {
+    Some(t) => t,
+    None => { return Err(UnknownTable({ offset: q.from_at, name: q.from, known: known })) },
+  }
+  let base_left = fields_of(left_spec, 0)
+
+  let joined = match q.join {
+    None => { { scope: base_left, bound: None, qualify: false } },
+    Some(j) => {
+      let right_spec = match catalog.table_named(cat, j.table) {
+        Some(t) => t,
+        None => { return Err(UnknownTable({ offset: j.at, name: j.table, known: known })) },
+      }
+      let wide = array.concat(base_left, fields_of(right_spec, array.len(base_left)))
+      let a = resolve(wide, j.left)?
+      let b = resolve(wide, j.right)?
+      match comparable(a.kind, b.kind) {
+        true => {},
+        false => { return Err(TypeMismatch({ offset: j.at, left: a.kind, right: b.kind, op: "=" })) },
+      }
+      // The engine builds its hash table over the right input, so the two sides
+      // are ordered by which table they came from, not by how they were written.
+      let from_left = match a.table == left_spec.name {
+        true => a,
+        false => b,
+      }
+      let from_right = match a.table == left_spec.name {
+        true => b,
+        false => a,
+      }
+      {
+        scope: wide,
+        bound: Some(
+          {
+            table: right_spec.name,
+            left_slot: from_left.slot,
+            right_slot: from_right.slot,
+            left_width: array.len(base_left),
+          },
+        ),
+        qualify: true,
+      }
+    },
+  }
+  let scope: Array<Field> = joined.scope
+  let qualify: bool = joined.qualify
+
+  let filter = match q.filter {
+    Some(p) => Some(bind_pred(scope, p)?),
+    None => None,
+  }
+
+  let keys: Array<Field> = []
+  for r in q.group {
+    mut keys = array.push(keys, resolve(scope, r)?)
+  }
+
+  let items = expand_items(scope, qualify, q.items)?
+  let grouped = has_aggregate(items) || array.len(keys) > 0
+
+  // With aggregates in play, a plain column has to be a grouping key: there is
+  // otherwise no answer to "which of the rows in this group did you mean?".
+  match grouped {
+    true => {
+      for it in items {
+        match it {
+          Direct({ f, label, at }) => {
+            match key_position(keys, f) {
+              Some(_) => {},
+              None => { return Err(UngroupedColumn({ offset: at, name: label })) },
+            }
+          },
+          Rolled({ a }) => {},
+        }
+      }
+    },
+    false => {},
+  }
+
+  // What `Group` emits: the keys in GROUP BY order, then the aggregates in
+  // select order.
+  let group_out: Array<Field> = []
+  for i, k in keys {
+    mut group_out = array.push(group_out, { table: k.table, name: k.name, kind: k.kind, slot: i })
+  }
+  let aggs: Array<AggSpec> = []
+  for it in items {
+    match it {
+      Rolled({ a }) => {
+        mut group_out = array.push(
+          group_out,
+          { table: "", name: a.label, kind: a.kind, slot: array.len(group_out) },
+        )
+        mut aggs = array.push(aggs, a)
+      },
+      Direct({ f, label, at }) => {},
+    }
+  }
+
+  // What `Project` reads from, per output column.
+  let sources: Array<int> = []
+  let agg_seen = 0
+  for it in items {
+    let source = match it {
+      Direct({ f, label, at }) => match grouped {
+        true => match key_position(keys, f) {
+          Some(p) => p,
+          None => 0,
+        },
+        false => f.slot,
+      },
+      Rolled({ a }) => {
+        mut agg_seen = agg_seen + 1
+        array.len(keys) + agg_seen - 1
+      },
+    }
+    mut sources = array.push(sources, source)
+  }
+
+  let out: Array<Field> = []
+  for i, it in items {
+    mut out = array.push(out, { table: "", name: item_label(it), kind: item_kind(it), slot: i })
+  }
+
+  let order = match q.order {
+    None => None,
+    Some(o) => {
+      let wanted = match o.item {
+        Star({ at }) => {
+          return Err(SyntaxError({ offset: at, found: "*", expected: "a column or an aggregate" }))
+        },
+        Plain({ col }) => direct_label(qualify, resolve(scope, col)?),
+        Call({ func, arg, at }) => {
+          // `bind_agg(...)?.label` cannot be written: `?.` lexes as optional
+          // chaining, so the `?` never propagates and the member lands on the
+          // `Result`. Bind first, then read the field.
+          let spec = bind_agg(scope, func, arg, at)?
+          spec.label
+        },
+      }
+      let labels = array.map(out, fn(f: Field) -> string { return f.name })
+      match array.index_of(labels, wanted) {
+        Some(slot) => Some({ slot: slot, desc: o.desc }),
+        None => { return Err(UnknownColumn({ offset: o.at, name: wanted, known: labels })) },
+      }
+    },
+  }
+
+  return Ok(
+    {
+      from: left_spec.name,
+      join: joined.bound,
+      base: scope,
+      filter: filter,
+      keys: keys,
+      grouped: grouped,
+      items: items,
+      group_out: group_out,
+      sources: sources,
+      out: out,
+      order: order,
+      limit: q.limit,
+    },
+  )
+}
+
+pub fn aggs_of(b: Bound) -> Array<AggSpec> {
+  let out: Array<AggSpec> = []
+  for it in b.items {
+    match it {
+      Rolled({ a }) => { mut out = array.push(out, a) },
+      Direct({ f, label, at }) => {},
+    }
+  }
+  return out
+}

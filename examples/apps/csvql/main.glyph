@@ -1,0 +1,245 @@
+// csvql — a relational query engine over CSV files.
+//
+// A JSON catalog says which files exist and what each column means. A small
+// SQL-ish query is scanned, parsed, bound against that catalog, turned into a
+// plan tree, and executed over the coerced rows.
+//
+// Nothing throws. A missing file, a malformed CSV, a cell that does not match
+// its declared type, a syntax error, an unknown column, a comparison between a
+// number and a name, and an out-of-range LIMIT are all values of one union
+// (`fail.QueryFail`), rendered in one place (`render.fail_lines`).
+//
+// Usage:
+//
+//   glyph run examples/apps/csvql/main.glyph
+//   glyph run examples/apps/csvql/main.glyph -- --explain
+//   glyph run examples/apps/csvql/main.glyph -- --query queries/join.sql
+//   glyph run examples/apps/csvql/main.glyph -- --limit 2
+//   glyph run examples/apps/csvql/main.glyph -- --dir examples/apps/csvql
+//
+// The default directory is `examples/apps/csvql`, so the bare form works from
+// the repository root and prints the same thing every time.
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/option { Option, Some, None }
+import std/path
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+import bind
+import catalog
+import catalog { CatalogFile, TableSpec }
+import csv
+import exec
+import fail { QueryFail, BadCatalog, NoSuchFile, Unreadable }
+import plan
+import render
+import sql
+import table
+import table { Table, Tables }
+
+const DEFAULT_DIR = "examples/apps/csvql"
+
+const DEFAULT_QUERY = """SELECT departments.name, count(*), avg(employees.salary)
+FROM employees
+JOIN departments ON employees.dept_id = departments.id
+WHERE employees.active = true
+GROUP BY departments.name
+ORDER BY avg(employees.salary) DESC"""
+
+const USAGE = "usage: csvql [--dir DIR] [--query FILE] [--limit N] [--explain]"
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+// The descriptor comes from `catalog`; this is the one place untrusted JSON
+// becomes a typed value.
+fn load_catalog(p: string) -> Result<CatalogFile, QueryFail> {
+  let text = match fs.read_text(p) {
+    Ok(t) => t,
+    Err(e) => { return Err(Unreadable({ path: p, message: e.message })) },
+  }
+  let decoded = match json.parse<unknown>(text) {
+    Ok(v) => v,
+    Err(issues) => { return Err(BadCatalog({ path: p, detail: issue_text(issues) })) },
+  }
+  return match CatalogFile.parse(decoded) {
+    Ok(c) => Ok(c),
+    Err(issues) => Err(BadCatalog({ path: p, detail: issue_text(issues) })),
+  }
+}
+
+fn issue_text(issues: Array<Issue>) -> string {
+  let parts = array.map(
+    issues,
+    fn(i: Issue) -> string {
+      let at = string.from(i.path)
+      return "${at}: ${i.message}"
+    },
+  )
+  let joiner = "; "
+  return string.join(parts, joiner)
+}
+
+fn load_table(dir: string, spec: TableSpec) -> Result<Table, QueryFail> {
+  let p = path.join([dir, spec.file])
+  let text = match fs.read_text(p) {
+    Ok(t) => t,
+    Err(e) => { return Err(Unreadable({ path: p, message: e.message })) },
+  }
+  let sheet = csv.read(spec.name, text)?
+  return table.build(spec, sheet)
+}
+
+// Only the tables the plan actually scans are read off disk, so a catalog may
+// list a file that no query touches.
+fn load_tables(dir: string, cat: CatalogFile, names: Array<string>) -> Result<Tables, QueryFail> {
+  let out: Tables = {}
+  for name in names {
+    match record.has(out, name) {
+      true => {},
+      false => {
+        let spec = match catalog.table_named(cat, name) {
+          Some(s) => s,
+          None => { return Err(NoSuchFile({ table: name, path: dir })) },
+        }
+        let loaded = load_table(dir, spec)?
+        mut out = record.set(out, name, loaded)
+      },
+    }
+  }
+  return Ok(out)
+}
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+type Args = { dir: string, query_file: Option<string>, limit: Option<int>, explain: bool }
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let dir = DEFAULT_DIR
+  let query_file: Option<string> = None
+  let limit: Option<int> = None
+  let explain = false
+  let i = 0
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg {
+      "--explain" => {
+        mut explain = true
+        mut i = i + 1
+      },
+      "--dir" => {
+        mut dir = value_of(argv, i)?
+        mut i = i + 2
+      },
+      "--query" => {
+        mut query_file = Some(value_of(argv, i)?)
+        mut i = i + 2
+      },
+      "--limit" => {
+        let text = value_of(argv, i)?
+        let n = match number.parse(text) {
+          Ok(v) => v,
+          Err(_) => { return Err("--limit expects a number, got ${text}") },
+        }
+        match n >= 0 {
+          true => {},
+          false => { return Err("--limit cannot be negative") },
+        }
+        mut limit = Some(n)
+        mut i = i + 2
+      },
+      else => { return Err("unknown argument ${arg}") },
+    }
+  }
+  return Ok({ dir: dir, query_file: query_file, limit: limit, explain: explain })
+}
+
+fn value_of(argv: Array<string>, i: int) -> Result<string, string> {
+  return match i + 1 < array.len(argv) {
+    true => Ok(argv[i + 1]),
+    false => Err("${argv[i]} expects a value"),
+  }
+}
+
+fn read_query(args: Args) -> Result<string, QueryFail> {
+  return match args.query_file {
+    None => Ok(DEFAULT_QUERY),
+    Some(name) => {
+      let p = path.join([args.dir, name])
+      match fs.read_text(p) {
+        Ok(t) => Ok(string.trim(t)),
+        Err(e) => Err(Unreadable({ path: p, message: e.message })),
+      }
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Running one query
+// ---------------------------------------------------------------------------
+
+fn answer(args: Args, query: string) -> Result<Array<string>, QueryFail> {
+  let cat = load_catalog(path.join([args.dir, "catalog.json"]))?
+  let parsed = sql.parse(query)?
+  let bound = bind.bind(cat, parsed)?
+  // `--limit` overrides whatever the query said, which is what makes it useful
+  // for looking at the head of a long result.
+  let capped = match args.limit {
+    None => bound,
+    Some(n) => { ...bound, limit: Some(n) },
+  }
+  let tree = plan.build(capped)
+  match args.explain {
+    true => { return Ok(render.plan_lines(tree, 0)) },
+    false => {},
+  }
+  let tables = load_tables(args.dir, cat, exec.sources(tree))?
+  let rows = exec.run(tree, tables)?
+  return Ok(render.result_lines(plan.schema(tree), rows))
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      io.eprintln(USAGE)
+      return 2
+    },
+  }
+  let query = match read_query(args) {
+    Ok(q) => q,
+    Err(e) => {
+      for line in render.fail_lines(e, "") {
+        io.eprintln(line)
+      }
+      return 1
+    },
+  }
+  return match answer(args, query) {
+    Ok(lines) => {
+      for line in lines {
+        io.println(line)
+      }
+      0
+    },
+    Err(e) => {
+      for line in render.fail_lines(e, query) {
+        io.eprintln(line)
+      }
+      1
+    },
+  }
+}

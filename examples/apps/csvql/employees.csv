@@ -1,0 +1,10 @@
+id,name,dept_id,salary,active,note
+1,"Ada Lovelace",10,145000,true,"first, and still ahead"
+2,"Grace Hopper",10,152000,true,"said ""it is easier to ask forgiveness"""
+3,"Alan Turing",20,138000,false,"on leave
+since March"
+4,"Katherine Johnson",20,141500,true,
+5,"Radia Perlman",30,129000,true,"spanning tree"
+6,"Barbara Liskov",10,161000,true,"substitution"
+7,"Margaret Hamilton",30,133500,false,"apollo"
+8,"Karen Uhlenbeck",99,127000,true,"no such department"

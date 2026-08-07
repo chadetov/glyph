@@ -22,13 +22,21 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the statechart trip, which added two entries
-and closed one of them in the same release: of 74 entries, 49 are fixed, 11 are
-partly fixed, 5 are decided or resolved, and 9 are open. G73 is the
-namespace-qualified `match` that got no exhaustiveness check, fixed by lowering
-`option.Option<T>` to the same prelude type the named import produces and by
-resolving a qualified arm through its head symbol. G74 is open and is cosmetic:
-E0200 quotes the missing variant names for some unions and not others.
+Reconciled against the source after the csvql trip, which added two entries and
+closed one of them in the same release: of 76 entries, 50 are fixed, 11 are
+partly fixed, 5 are decided or resolved, and 10 are open. G76 is the imported
+string-literal union that lost D30's exhaustiveness guarantee, fixed by giving
+`DeclTyResolver` the query that reads a sibling module's literal set. G75 is
+open: an imported record type still lowers to `Ty::Unknown`, so field checking
+and the `for i, x` index type are both wrong across an import.
+
+The reconciliation before it, after the statechart trip, which added two entries
+and closed one of them in the same release, read 74 entries, 49 fixed, 11 partly
+fixed, 5 decided or resolved, and 9 open. G73 is the namespace-qualified `match`
+that got no exhaustiveness check, fixed by lowering `option.Option<T>` to the
+same prelude type the named import produces and by resolving a qualified arm
+through its head symbol. G74 is open and is cosmetic: E0200 quotes the missing
+variant names for some unions and not others.
 
 The reconciliation before it, after the dependency-resolver trip, which added two
 entries and closed one of them in the same release, read 72 entries, 48 fixed,
@@ -1943,3 +1951,69 @@ fix is a call about the walk or about the gate, not about the apps.
   and only one of them quotes. Cosmetic, and it splits by where the union is defined
   rather than by how it was imported, so it is not a residue of G73; confirmed on
   the named-import spelling as well.
+
+## Round 17 — csvql, and the module boundary that eats types
+
+The loop pointed at `examples/apps/csvql/`: a relational query engine over CSV.
+A catalog of table specs, a CSV reader, a SQL parser, a binder that resolves
+column references against the catalog, a planner, an executor with grouping and
+aggregation, and a renderer. Eleven modules, and that count is the whole story.
+This is the first app in the loop where the interesting types are declared in one
+file and consumed in another, and three guarantees turned off the moment it
+split.
+
+The one that reached the shipped source was D30. `catalog.glyph` declares
+`pub type ColType = "text" | "int" | "real" | "bool"`; `table.glyph` imports it
+and matches on all four literals; the compiler answered E0218 with
+
+    Help: Add an `else` arm. A `number`/`string` match with only literal arms
+    can never be exhaustive.
+
+That help is false about the code in front of it, and following it converts a
+compile error into a runtime fallthrough. The author followed it, and the dead
+`else => None` shipped with a comment explaining what it cost. The asymmetry is
+what makes it indefensible rather than merely incomplete: D8's half of the same
+guarantee already crosses a module boundary through
+`DeclTyResolver::imported_union_of_variant`, so the seam was built, proven, and
+salsa-memoized. Nobody had written the second query.
+
+- **G75. Imported record fields lower to `Ty::Unknown`, so field checking and
+  `for i, x` are both wrong across an import.** `record_fields_of` and
+  `named_record_fields` resolve a `Ty::Named` only against `self.module.items`,
+  which is module-local, and an imported type never becomes `Ty::Named` in the
+  first place. Three consequences, all silent: a typo'd field on an imported
+  record draws no `UnknownField` error at all, member access is permissive
+  because the field set is `None`, and `for i, x in s.rows` on an imported record
+  field emits `Object.entries(...)` because `iter_is_array` cannot decide, which
+  binds `i` to the string `"0"` rather than the number `0`. `tsc` catches most
+  numeric consumers of that index (`total + i`, `i > 9`, passing it to a `number`
+  parameter) and reports them against a variable Glyph bound for the author; it
+  is silent where a string works where a number was meant, which is string
+  interpolation, concatenation, and `record.get` keys. csvql works around it with
+  a `let raw_rows: Array<Array<string>> = sheet.rows` hoist before each such
+  loop. *Not fixed with G76, and not the same shape of fix. Lowering a foreign
+  `TypeExpr` needs the source module's resolver: `Lowerer::lower` resolves paths
+  through `self.resolved.resolutions.get(span)`, and an imported declaration's
+  spans belong to another file, so the lowering has to move to the source side of
+  the query rather than being reached from the consumer's `Lowerer`.*
+
+- **G76. [FIXED] An imported string-literal union lost D30's exhaustiveness
+  guarantee, and the compiler's help text told the author to delete it.** A
+  `match` covering every literal of an imported union was E0218 "no catch-all for
+  the other values", with help advising an `else` arm. The identical `type`
+  declaration moved into the consuming module compiled clean with no `else`.
+  *Fixed by mirroring the seam G22/G73 already built for tagged unions.
+  `DeclTyResolver` grew `imported_string_literal_union(module_path, type_name)`
+  with a `None` default, so db-less callers are unchanged, and `SalsaDeclTy`
+  implements it by finding the sibling in `project_files_input`, parsing it, and
+  reading the `TypeExpr::StringLiteralUnion` body. `Lowerer` grew `with_imports`,
+  used at the two construction sites where an annotation's type has to be right
+  for an imported name (the Assigner's walk, which lowers param and `let`
+  annotations, and the `decl_ty` query, so a `fn f(k: ColType)` signature carries
+  the union); the other seven sites keep `new`. It returns the ordinary
+  `Ty::StringLiteralUnion`, not a `Ty::Named` pointing into a foreign module, so
+  `string_literal_union_values` handles it on its first line and the
+  exhaustiveness check needed no change. All three import spellings are covered.
+  Five integration tests pin them, plus two unit tests holding the trait default
+  at today's behaviour so it cannot become load-bearing. The E0218 help text was
+  left alone: it is correct once the scrutinee is typed.*

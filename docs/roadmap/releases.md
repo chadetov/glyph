@@ -2246,6 +2246,83 @@ in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under Round 16, and it is th
 only finding this trip left open. No release carries the Next marker now; the
 next trip picks from what is left of this list, Round 15's, and Round 14's.
 
+## csvql dogfood trip — the type system stopped at the module boundary
+
+`examples/apps/csvql` is a relational query engine over CSV: a catalog, a CSV
+reader, a SQL parser, a binder, a planner, an executor, a renderer. Eleven
+modules, which is why it found what it found. It is the first app in this loop
+big enough that the interesting types are declared in one file and consumed in
+another, and three separate guarantees turned off the moment it split.
+
+The one that shipped a bug into the app: a string-literal union (D30) lost its
+exhaustiveness guarantee across an import. `type ColType = "text" | "int" |
+"real" | "bool"` in `catalog.glyph`, matched on all four literals in
+`table.glyph`, was E0218 with help text reading "Add an `else` arm. A
+`number`/`string` match with only literal arms can never be exhaustive." That is
+false about the code in front of it, and taking the advice turns a compile error
+into a runtime fallthrough. The author took it. The dead `else => None` was in
+the shipped app until this fix removed it.
+
+### 0.1.57 — Shipped · D30 exhaustiveness survives an import
+
+`DeclTyResolver` grew `imported_string_literal_union(module_path, type_name)`
+alongside the `imported_union_of_variant` that carries D8's half of the same
+guarantee, with the same `None` default for db-less callers and the same salsa
+impl reading the sibling module out of `project_files_input`. `Lowerer` grew
+`with_imports`, used at the two sites where an annotation's type has to be right
+for an imported name (the Assigner's walk and the `decl_ty` query), and returns
+the ordinary `Ty::StringLiteralUnion` rather than a foreign `Ty::Named`, so the
+existing exhaustiveness check works unchanged. All three import spellings are
+covered: `import catalog { ColType }`, `import catalog` with `catalog.ColType`,
+and `import catalog as c` with `c.ColType`. A match covering every literal
+compiles with no `else`; one that omits a literal is E0200, not E0218.
+
+Five integration tests pin the three spellings plus a `let` annotation, each
+asserting both halves: the covering match builds clean, and dropping a literal is
+E0200 rather than E0218. Two unit tests hold the trait default at today's
+behaviour so the `None` a db-less caller gets cannot quietly become the thing the
+guarantee rests on. The E0218 help text was left as it is; it is correct about an
+unbounded `string`, and no path reaches it with an imported literal union now.
+
+Pillar: verifiability. A guarantee that depends on which file a type is declared
+in is not a guarantee, and this one failed in the worst direction: the compiler
+asked the author to delete it, and the author complied. Greppability second, on
+the same argument as D9's half: nothing in the text of the `match` said whether
+it had been checked.
+
+### Still open from this trip
+
+- **Imported record fields are still `Ty::Unknown`.** A field read on a record
+  type imported from a sibling has no field set, so `s.rowz` draws no
+  `UnknownField` error, and `for i, x in s.rows` emits `Object.entries` and binds
+  `i` to the string `"0"` instead of the number `0`. It is the same hole this
+  release closed for string-literal unions, but it does not have the same shape
+  of fix: lowering a foreign `TypeExpr` needs the *source* module's resolver,
+  because `Lowerer::lower` resolves paths through
+  `self.resolved.resolutions.get(span)` and an imported declaration's spans
+  belong to another file. So the work belongs on the source side of the query,
+  not in the consumer's `Lowerer`. Bundled with it: imported-record member
+  checking and the `for i, x` `Object.entries` lowering, which are consequences
+  of the same missing field set. G75 in
+  [`../dogfooding-gaps.md`](../dogfooding-gaps.md).
+
+- **The `examples/` gate needs a decision about roots (G72, still).** A sibling
+  import resolves against the build root, so a multi-module app under
+  `examples/apps/<name>/` is only a project when its own directory is the root.
+  Rolling the whole tree into one root does not merely fail to link the modules,
+  it silently turns off every check that needs a sibling's declaration. The
+  integration gate now stages a copy with those app directories removed and
+  builds each of them at its own root; the CI step at
+  `.github/workflows/ci.yml` still runs `glyph build ../examples` over one root
+  and is red there (`TS2307` on `apps/workflow/wire`, and now E0218 on
+  `apps/csvql/table` because the check that used to be off is on). Whether the
+  fix is the walk (make `glyph build` recognize a nested project) or the gate
+  (build each app at its own root) is a call, not a bug.
+
+Both are written up in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under
+Round 17. No release carries the Next marker now; the next trip picks from what
+is left of this list, Round 16's, and Round 15's.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

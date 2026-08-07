@@ -49,8 +49,23 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.56</span>
+            <span class="rel-ver">0.1.57</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The compiler asked you to delete an exhaustive match</h3>
+            <p>A string enum is one of the few places TypeScript already does well, and Glyph adds the part it is missing: <code>match</code> every value and you need no <code>else</code>, drop one and the build fails. That stopped at the file boundary. <code>type ColType = "text" | "int" | "real" | "bool"</code> declared in one module and imported into another lost its four values on the way across, so a <code>match</code> covering all four came back <code>E0218</code>, with help text reading "Add an <code>else</code> arm. A <code>number</code>/<code>string</code> match with only literal arms can never be exhaustive." That was false about the code in front of it, and doing what it said turns a compile error into a silent runtime fallthrough. This came out of writing a query engine over CSV, where the author did what it said: a dead <code>else =&gt; None</code> shipped in the app, with a comment recording what it cost.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> An imported string-literal union keeps its literals. A <code>match</code> covering every one of them compiles with no <code>else</code>, and omitting one is <code>E0200</code> naming what you left out, the same as if you had declared the type in the file you are matching in. All three spellings work: <code>import catalog { ColType }</code>, <code>import catalog</code> with a <code>catalog.ColType</code> annotation, and <code>import catalog as c</code> with <code>c.ColType</code>.</li>
+              <li><span class="tag known">Known</span> Record types do not cross yet. A record imported from a sibling module arrives without its field set, so a typo'd field on it reaches <code>tsc</code> instead of stopping at Glyph, and <code>for i, x</code> over one of its array fields binds <code>i</code> as a string. Hoisting the field into an annotated <code>let</code> is the workaround. It is the same hole this release closed for unions, but the fix has to live on the declaring module's side, so it is separate work.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.56</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -1104,6 +1104,37 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         }
         None
     }
+
+    fn imported_string_literal_union(
+        &self,
+        module_path: &str,
+        type_name: &str,
+    ) -> Option<Vec<String>> {
+        // The D30 half of the same seam: find the project sibling module at
+        // `module_path`, parse it, and return the literal set of
+        // `type <type_name> = "a" | "b"`. Salsa memoizes both the project file
+        // list and each module's parse, so this is a cheap lookup on a warm
+        // build.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let parsed = parse_module(self.db, file);
+        let module = parsed.module()?;
+        for item in &module.items {
+            if let glyph_ast::Decl::Type(td) = item {
+                if td.name.as_ref() != type_name {
+                    continue;
+                }
+                if let glyph_ast::TypeExpr::StringLiteralUnion { values, .. } = &td.body {
+                    return Some(values.clone());
+                }
+            }
+        }
+        None
+    }
 }
 
 /// Extract the `decl_idx`-th top-level declaration from the parsed
@@ -1174,7 +1205,12 @@ pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
     let Some(resolved_module) = rd.resolved() else {
         return DeclTy::new(Ty::Unknown);
     };
-    let lowerer = Lowerer::new(resolved_module, db.prelude());
+    // `with_imports` so a signature naming an imported string-literal union
+    // (`fn f(k: catalog.ColType)`) carries the union's literal set instead of
+    // `Ty::Unknown`; without it the param type reaching a `match` is opaque and
+    // D30's exhaustiveness guarantee dies at the module boundary.
+    let imports = SalsaDeclTy { db, file };
+    let lowerer = Lowerer::with_imports(resolved_module, db.prelude(), &imports);
     DeclTy::new(lowerer.lower_decl_signature(decl))
 }
 

@@ -268,11 +268,12 @@ for POST/PUT/PATCH) and wire it up with `await serve(PORT, route)`.
 
 The generator maps the wire-faithful core (objects, `string`/`number`/`bool`,
 `array`, `$ref`, optional and `nullable` fields, `additionalProperties` →
-`Record<string, T>`). Where a construct has no faithful Glyph representation — a
-`string` enum (Glyph has no string-literal union), or an undiscriminated
-`oneOf` — it narrows to `string`/`unknown` and **prints a note** rather than
-emit a validator that would reject real payloads. Read the notes; they tell you
-exactly what was approximated.
+`Record<string, T>`). A `string` enum comes across as a string-literal union
+(`tier: "free" | "pro"`, D30), so the descriptor checks membership rather than
+accepting any string. Where a construct has no faithful Glyph representation, an
+undiscriminated `oneOf` being the main one, it narrows to `unknown` and **prints
+a note** rather than emit a validator that would reject real payloads. Read the
+notes; they tell you exactly what was approximated.
 
 ### From a TypeScript `.d.ts`
 
@@ -286,7 +287,7 @@ glyph gen dts node_modules/some-pkg/types.d.ts --out src/
 
 It maps the same wire-faithful core — `interface`/`type` declarations, objects,
 primitives, arrays, references, optional (`field?:`) and `| null` members, and
-string-literal unions (narrowed to `string` with a note). This needs `node` and
+string-literal unions (`kind: "free" | "paid"`). This needs `node` and
 the `typescript` package, resolved from the target file's own project first (a
 pinned version wins) then a global install. Both the classic compiler (5/6) and
 the 7.x native port are supported.

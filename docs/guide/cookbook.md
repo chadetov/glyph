@@ -308,6 +308,13 @@ fn price(t: Tier) -> int {
 The `match` is exhaustive with no `else`; add a tier to the union and every
 `match` over it must handle it.
 
+That holds when the union lives in another module. Declare it once and import it,
+by name (`import billing { Tier }`), by namespace (`import billing` with a
+`billing.Tier` annotation), or through an alias: a `match` covering every literal
+still needs no `else`, and one that misses a literal is still E0200. If a `match`
+you expect to be checked comes back E0218 instead, the scrutinee is typed
+`string`, not `Tier`.
+
 ## Hash and random identifiers
 
 ```glyph

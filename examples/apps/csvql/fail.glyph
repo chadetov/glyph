@@ -1,0 +1,63 @@
+// Every way a query can fail, as one union.
+//
+// The CSV reader, the coercer, the parser, the binder, and the executor all
+// produce a `QueryFail`, and `render` is the only module that turns one into
+// text. Each variant carries a `Locus`: where in the query text, or which cell
+// of which table, the reader should look.
+module fail
+
+// Where a failure happened. `InQuery` is a byte offset into the query text;
+// `InCell` and `InRow` point at CSV data; `Nowhere` is for failures that are
+// about a file as a whole.
+pub type Locus =
+  | InQuery({ offset: int })
+  | InCell({ table: string, row: int, column: string })
+  | InRow({ table: string, row: int })
+  | Nowhere
+
+pub type QueryFail =
+  // Loading
+  | Unreadable({ path: string, message: string })
+  | BadCatalog({ path: string, detail: string })
+  // CSV
+  | UnterminatedQuote({ table: string, row: int })
+  | RaggedRow({ table: string, row: int, expected: int, found: int })
+  | EmptyFile({ table: string, path: string })
+  // Coercion
+  | HeaderMismatch({ table: string, expected: Array<string>, found: Array<string> })
+  | BadCell({ table: string, row: int, column: string, raw: string, expected: string })
+  // Query text
+  | SyntaxError({ offset: int, found: string, expected: string })
+  // Binding
+  | UnknownTable({ offset: int, name: string, known: Array<string> })
+  | UnknownColumn({ offset: int, name: string, known: Array<string> })
+  | AmbiguousColumn({ offset: int, name: string, tables: Array<string> })
+  | TypeMismatch({ offset: int, left: string, right: string, op: string })
+  | BadAggregate({ offset: int, func: string, column: string, ctype: string })
+  | UngroupedColumn({ offset: int, name: string })
+  | BadLimit({ offset: int, text: string })
+  // Execution
+  | NoSuchFile({ table: string, path: string })
+
+pub fn locus(e: QueryFail) -> Locus {
+  return match e {
+    Unreadable({ path, message }) => Nowhere,
+    BadCatalog({ path, detail }) => Nowhere,
+    UnterminatedQuote({ table, row }) => InRow({ table: table, row: row }),
+    RaggedRow({ table, row, expected, found }) => InRow({ table: table, row: row }),
+    EmptyFile({ table, path }) => Nowhere,
+    HeaderMismatch({ table, expected, found }) => InRow({ table: table, row: 0 }),
+    BadCell({ table, row, column, raw, expected }) => InCell(
+      { table: table, row: row, column: column },
+    ),
+    SyntaxError({ offset, found, expected }) => InQuery({ offset: offset }),
+    UnknownTable({ offset, name, known }) => InQuery({ offset: offset }),
+    UnknownColumn({ offset, name, known }) => InQuery({ offset: offset }),
+    AmbiguousColumn({ offset, name, tables }) => InQuery({ offset: offset }),
+    TypeMismatch({ offset, left, right, op }) => InQuery({ offset: offset }),
+    BadAggregate({ offset, func, column, ctype }) => InQuery({ offset: offset }),
+    UngroupedColumn({ offset, name }) => InQuery({ offset: offset }),
+    BadLimit({ offset, text }) => InQuery({ offset: offset }),
+    NoSuchFile({ table, path }) => Nowhere,
+  }
+}

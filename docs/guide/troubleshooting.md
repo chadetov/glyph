@@ -61,7 +61,10 @@ returns a `Result` and dropped it, discarding a possible `Err`. Handle it with
 **E0200 / E0218: match is not exhaustive.** A `match` over a tagged union or a
 string-literal union must cover every case (E0200 lists the missing ones). A
 `match` over an unbounded `number`/`string` can never be exhaustive, so it needs
-an `else` (E0218).
+an `else` (E0218). If you get E0218 on a `match` over a type you believe is a
+string-literal union, check what the scrutinee's type actually is: E0218 means
+the checker read it as a bare `string`. Importing the type from another module is
+no longer a reason for that, whichever spelling you used.
 
 **E0220: unknown variant in a `match` arm.** A PascalCase arm head that names no
 variant of the union you are matching, usually a typo (`Loadign` for `Loading`)

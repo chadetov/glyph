@@ -68,9 +68,9 @@ variant of the union you are matching, usually a typo (`Loadign` for `Loading`)
 or a variant from the wrong union. Glyph reads a capitalized bare head as a
 variant reference, not a fresh binding, so it does not silently swallow the arm;
 the message suggests the nearest real variant when one is close. A lowercase head
-(`rest`) is still a binding. This is caught for a module-local union whose type is
-known at the match; a union imported from another module is checked for coverage
-but not yet for this typo.
+(`rest`) is still a binding. A qualified head over a union you imported by
+namespace (`model.Loadign`) gets the same check; a misspelled bare head is caught
+one stage earlier as an unresolved name (E0103) and again here.
 
 **E0105: `N` is not exported by `M`.** The name you imported is either
 misspelled or private. Declarations are module-private by default; mark the one

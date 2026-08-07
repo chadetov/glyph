@@ -1,0 +1,107 @@
+// The shapes of the two fixtures, and nothing else.
+//
+// `MachineFile.parse(value)` and `EventLog.parse(value)` run every check
+// written here at the one point where untrusted JSON becomes a typed value.
+// `Condition` and `Action` are reused straight from `model`, so a guard tree in
+// the fixture is validated by the same descriptor the evaluator walks; there is
+// no second definition of what a guard looks like.
+module wire
+
+import std/option { Option, Some, None }
+import std/result { Ok, Err }
+import std/string
+import model { Condition, Action, Slot }
+
+// A transition as written: the event name is the key in the owning state's
+// `on` table, so it does not repeat here.
+pub type TransitionSpec = { target: string, guard?: Condition, actions?: Array<Action> }
+
+// A state as written. `children` lists ids; `initial` is present only on a
+// compound state, which is what makes "compound state with no initial" a thing
+// the checker can notice rather than a shape the fixture cannot express.
+pub type StateSpec = {
+  id: string,
+  children?: Array<string>,
+  initial?: string,
+  on?: Record<string, TransitionSpec>,
+}
+
+pub type MachineFile = {
+  id: string,
+  root: string,
+  context: Record<string, Slot>,
+  states: Array<StateSpec>,
+  terminal?: Array<string>,
+}
+
+// One logged event. `updates` is applied to the context before the transition
+// is chosen, so a guard sees the payload that arrived with the event.
+pub type EventSpec = { name: string, updates?: Array<Action> }
+
+pub type EventLog = { events: Array<EventSpec> }
+
+// ---------------------------------------------------------------------------
+// Reading an absent field back
+// ---------------------------------------------------------------------------
+//
+// A `field?: T` is the only record shape whose key may be missing from the
+// JSON, but `match` will not narrow `T | undefined` to `T`, so the value cannot
+// be read with `Some`/`None` at the use site. These four helpers are the one
+// place that conversion happens; everything downstream sees an `Option` or a
+// plain default.
+
+// `string.from(undefined)` is the literal text "undefined", which is the only
+// handle Glyph gives on an absent optional field.
+fn is_absent(raw: unknown) -> bool {
+  return string.from(raw) == "undefined"
+}
+
+pub fn opt_text(raw: unknown) -> Option<string> {
+  return match is_absent(raw) {
+    true => None,
+    false => Some(string.from(raw)),
+  }
+}
+
+// The descriptor already rejected a malformed guard at the boundary, so a
+// second parse here can only fail on an absent one.
+pub fn opt_condition(raw: unknown) -> Option<Condition> {
+  return match Condition.parse(raw) {
+    Ok(c) => Some(c),
+    Err(_) => None,
+  }
+}
+
+// An absent list reads as an empty one. `Schema.array()` is the only way to get
+// a descriptor for `Array<T>`: there is no `Array.parse<T>`.
+pub fn action_list(raw: unknown) -> Array<Action> {
+  return match Action.schema.array().parse(raw) {
+    Ok(list) => list,
+    Err(_) => [],
+  }
+}
+
+// `Array<string>` and `Record<string, TransitionSpec>` have no descriptor of
+// their own: `Schema.array()` covers `Array<T>` for a named `T` only, and there
+// is no `Schema.record()` at all. Wrapping the value in a one-field record
+// borrows that record's descriptor for the check.
+type TextList = { of: Array<string> }
+
+type TransitionTable = { of: Record<string, TransitionSpec> }
+
+pub fn text_list(raw: unknown) -> Array<string> {
+  return match TextList.parse({ of: raw }) {
+    Ok(w) => w.of,
+    Err(_) => [],
+  }
+}
+
+pub fn transition_table(raw: unknown) -> Record<string, TransitionSpec> {
+  // The empty table is bound first: `{}` written as a `match` arm is an empty
+  // block, never an empty record literal, so the arm would produce no value.
+  let none: Record<string, TransitionSpec> = {}
+  return match TransitionTable.parse({ of: raw }) {
+    Ok(w) => w.of,
+    Err(_) => none,
+  }
+}

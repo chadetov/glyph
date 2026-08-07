@@ -1,0 +1,7 @@
+[
+  { "name": "review" },
+  {
+    "name": "submit",
+    "updates": [{ "tag": "Set", "key": "stauts", "value": "typo" }]
+  }
+]

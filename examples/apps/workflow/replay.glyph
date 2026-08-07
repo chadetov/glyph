@@ -1,0 +1,297 @@
+// The engine: one event at a time, outward through the ancestor chain, and a
+// trace entry for everything it did.
+//
+// The order inside one event is fixed and matters. The payload lands on the
+// context first, so a guard sees what arrived with the event; then the ancestor
+// walk collects every state that declares the event and the innermost one whose
+// guard passes wins; then the exit and entry sets are computed from the
+// transition's domain; then the transition's actions run.
+//
+// The replay stops at the first runtime error and keeps the trace up to that
+// point, so a failing log still explains how it got where it stopped.
+module replay
+
+import std/array
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import index
+import index { Index }
+import interp
+import interp { SlotError }
+import model { Machine, Transition, Context, Action }
+import wire { EventSpec, action_list }
+
+// Why a transition was or was not taken.
+pub type Verdict =
+  | NoGuard
+  | GuardPassed
+  | GuardFailed
+
+// One state the ancestor walk found declaring the event, and how its guard came
+// out. Every candidate the walk saw is kept, taken or not.
+pub type Candidate = { source: string, target: string, verdict: Verdict }
+
+// One event, replayed.
+pub type Step = {
+  at: int,
+  event: string,
+  updates: Array<Action>,
+  before: Array<string>,
+  declared_on: string,
+  from: string,
+  to: string,
+  verdict: Verdict,
+  rejected: Array<Candidate>,
+  exited: Array<string>,
+  entered: Array<string>,
+  actions: Array<Action>,
+  after: Array<string>,
+  context: Context,
+}
+
+// Every way a replay stops early. All five carry the event index and the leaf
+// that was active when it happened.
+pub type ReplayError =
+  | Unhandled({ at: int, event: string, active: string })
+  | AllGuardsRejected({ at: int, event: string, active: string, tried: Array<Candidate> })
+  | AfterTerminal({ at: int, event: string, active: string })
+  | BadGuard({ at: int, event: string, active: string, cause: SlotError })
+  | BadAction({ at: int, event: string, active: string, cause: SlotError })
+
+pub type Replay = {
+  steps: Array<Step>,
+  config: Array<string>,
+  context: Context,
+  stopped: Option<ReplayError>,
+}
+
+// ---------------------------------------------------------------------------
+// Configurations
+// ---------------------------------------------------------------------------
+
+// Root first, leaf last. Entering a compound state means descending its
+// `initial` chain, so a configuration always ends on a leaf.
+pub fn configuration(ix: Index, id: string) -> Array<string> {
+  return array.concat(index.path_from_root(ix, id), index.entry_path(ix, id))
+}
+
+pub fn active_leaf(config: Array<string>) -> string {
+  return match array.len(config) == 0 {
+    true => "",
+    false => config[array.len(config) - 1],
+  }
+}
+
+// The transition's domain: the innermost state that is a *proper* ancestor of
+// both ends. Taking the proper ancestor is what makes a self transition exit
+// and re-enter its own state instead of doing nothing.
+fn domain(ix: Index, source: string, target: string) -> string {
+  let above_target = array.slice(index.ancestors(ix, target), 1)
+  let shared = array.find(
+    array.slice(index.ancestors(ix, source), 1),
+    fn(one: string) -> bool { return array.contains(above_target, one) },
+  )
+  return match shared {
+    Some(one) => one,
+    None => ix.root,
+  }
+}
+
+// What leaves, innermost first: the part of the active configuration that sits
+// strictly inside the domain.
+fn exit_set(config: Array<string>, dom: string) -> Array<string> {
+  let inside: Array<string> = []
+  let below = false
+  for id in config {
+    match below {
+      true => { mut inside = array.push(inside, id) },
+      false => { mut below = id == dom },
+    }
+  }
+  return array.reverse(inside)
+}
+
+// What arrives, outermost first: the part of the target's configuration that
+// sits strictly inside the domain.
+fn entry_set(ix: Index, target: string, dom: string) -> Array<string> {
+  let inside: Array<string> = []
+  let below = false
+  for id in configuration(ix, target) {
+    match below {
+      true => { mut inside = array.push(inside, id) },
+      false => { mut below = id == dom },
+    }
+  }
+  return inside
+}
+
+// ---------------------------------------------------------------------------
+// Choosing a transition
+// ---------------------------------------------------------------------------
+
+// A guard's verdict, as its own function because `?` cannot appear in a `match`
+// scrutinee and hoisting it out of the `Some` arm would evaluate an absent
+// guard.
+fn verdict_of(ctx: Context, t: Transition) -> Result<Verdict, SlotError> {
+  return match t.guard {
+    None => Ok(NoGuard),
+    Some(c) => {
+      let passed = interp.evaluate(ctx, c)?
+      Ok(
+        match passed {
+          true => GuardPassed,
+          false => GuardFailed,
+        },
+      )
+    },
+  }
+}
+
+// Everything the ancestor walk turned up for this event, innermost first, with
+// each guard already evaluated. Nothing short-circuits: a rejected candidate is
+// kept so the report can say which ones were tried and why none fit.
+fn candidates(ix: Index, ctx: Context, active: string, event: string) -> Result<Array<Candidate>, SlotError> {
+  let out: Array<Candidate> = []
+  for id in index.ancestors(ix, active) {
+    match index.transition_for(ix, id, event) {
+      None => {},
+      Some(t) => {
+        let verdict = verdict_of(ctx, t)?
+        mut out = array.push(out, { source: id, target: t.target, verdict: verdict })
+      },
+    }
+  }
+  return Ok(out)
+}
+
+fn accepted(c: Candidate) -> bool {
+  return match c.verdict {
+    NoGuard => true,
+    GuardPassed => true,
+    GuardFailed => false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One event
+// ---------------------------------------------------------------------------
+
+// What replaying one event produced: either the step it recorded or the error
+// that stopped the run.
+type Outcome =
+  | Advanced({ step: Step })
+  | Stopped({ error: ReplayError })
+
+fn step_once(ix: Index, at: int, spec: EventSpec, config: Array<string>, ctx: Context) -> Outcome {
+  let active = active_leaf(config)
+  let event = spec.name
+
+  match index.is_terminal(ix, active) {
+    true => { return Stopped({ error: AfterTerminal({ at: at, event: event, active: active }) }) },
+    false => {},
+  }
+
+  // The payload lands before anything is chosen, so a guard reads the context
+  // the event brought with it.
+  let updates = action_list(spec.updates)
+  let staged = match interp.apply_all(ctx, updates) {
+    Ok(next) => next,
+    Err(cause) => {
+      return Stopped({ error: BadAction({ at: at, event: event, active: active, cause: cause }) })
+    },
+  }
+
+  let found = match candidates(ix, staged, active, event) {
+    Ok(list) => list,
+    Err(cause) => {
+      return Stopped({ error: BadGuard({ at: at, event: event, active: active, cause: cause }) })
+    },
+  }
+
+  match array.len(found) == 0 {
+    true => { return Stopped({ error: Unhandled({ at: at, event: event, active: active }) }) },
+    false => {},
+  }
+
+  let taken = match array.find(found, accepted) {
+    Some(c) => c,
+    None => {
+      return Stopped(
+        { error: AllGuardsRejected({ at: at, event: event, active: active, tried: found }) },
+      )
+    },
+  }
+
+  let rejected = array.filter(found, fn(c: Candidate) -> bool { return !accepted(c) })
+  let actions = match index.transition_for(ix, taken.source, event) {
+    Some(t) => t.actions,
+    None => [],
+  }
+  let settled = match interp.apply_all(staged, actions) {
+    Ok(next) => next,
+    Err(cause) => {
+      return Stopped({ error: BadAction({ at: at, event: event, active: active, cause: cause }) })
+    },
+  }
+
+  let dom = domain(ix, taken.source, taken.target)
+  let after = configuration(ix, taken.target)
+  return Advanced(
+    {
+      step: {
+        at: at,
+        event: event,
+        updates: updates,
+        before: config,
+        declared_on: taken.source,
+        from: active,
+        to: taken.target,
+        verdict: taken.verdict,
+        rejected: rejected,
+        exited: exit_set(config, dom),
+        entered: entry_set(ix, taken.target, dom),
+        actions: actions,
+        after: after,
+        context: settled,
+      },
+    },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// The whole log
+// ---------------------------------------------------------------------------
+
+// `stop_after` is the `--step N` bound: the replay runs up to and including
+// that index and then reports as if the log had ended there.
+pub fn run(m: Machine, ix: Index, events: Array<EventSpec>, stop_after: Option<int>) -> Replay {
+  let last = match stop_after {
+    Some(n) => n,
+    None => array.len(events) - 1,
+  }
+  let steps: Array<Step> = []
+  let config = configuration(ix, m.root)
+  let ctx = m.context
+  let stopped: Option<ReplayError> = None
+  let at = 0
+  loop {
+    match at >= array.len(events) || at > last {
+      true => { break },
+      false => {},
+    }
+    let outcome = step_once(ix, at, events[at], config, ctx)
+    match outcome {
+      Stopped({ error }) => {
+        mut stopped = Some(error)
+        break
+      },
+      Advanced({ step }) => {
+        mut steps = array.push(steps, step)
+        mut config = step.after
+        mut ctx = step.context
+        mut at = at + 1
+      },
+    }
+  }
+  return { steps: steps, config: config, context: ctx, stopped: stopped }
+}

@@ -2179,6 +2179,73 @@ Both are written up in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under
 Round 15. No release carries the Next marker now; the next trip picks from what
 is left of this list and Round 14's.
 
+## workflow dogfood trip — how you imported the union decided whether it was checked
+
+Writing a statechart replay engine (`examples/apps/workflow/`) surfaced a hole in
+the guarantee Glyph advertises hardest. A `match` over an imported tagged union
+was held to D9 when the variants came in through a named import, and not checked
+at all when the same union was reached through a namespace import. The app never
+hit it, because its author paid two eighteen-name import lists instead, which is
+its own signal.
+
+### 0.1.56 — Shipped · A `match` is checked whichever way you imported the union
+
+`match c { model.Yes(_) => …, model.No(_) => … }` on a three-variant union
+reported no diagnostics and passed `tsc --strict`, then threw
+`Error: non-exhaustive match` with a raw JS stack trace at run time. The named
+spelling of the identical match was E0200. `import model as m` was broken the
+same way.
+
+The scope is wider than the report that found it. It also hit the prelude unions,
+which is the part that matters most: `match o { option.Some(s) => s }` on an
+`option.Option<string>` with `None` missing was green through both checkers.
+`option.Option<T>` lowered to `Unknown` because the two-segment stdlib type table
+knew only the three `fs.*` types, so the most-used union in the language lost its
+exhaustiveness check to a one-token change in how it was imported.
+
+Both halves are wiring, not new machinery. `stdlib_path_ty` now falls back to
+`imported_prelude_container`, the same function that unifies
+`import std/option { Option }` with the prelude built-in, so `option.Option<T>`
+and `Option<T>` lower to one `Ty` and the ordinary exhaustiveness path runs. For
+project siblings, the imported-union lookup resolves a qualified arm through its
+head symbol (`ImportNamespace` or `ImportAlias`) instead of looking the variant
+name up as a symbol, which under a namespace import it never is.
+
+A misspelled qualified variant used to reach `tsc` and come back as `TS2678`
+against a literal union type. The required variant set is in hand once the union
+resolves, so it is E0220 now, on the arm, with the nearest-variant hint. That was
+a diagnostic-quality bug rather than a hole: the typo never shipped.
+
+Seven integration tests pin it, one per spelling and one each for the two ways
+the check could over-fire (an `else` arm, and a fully covered match). There was
+no coverage for any of this before, which is how it survived to 0.1.55.
+
+Proving the fix on the app rather than on unit tests turned up one more thing.
+Making `result.Result<T, E>` decidable also made it classifiable, and
+`type_expr_is_result` knew only the prelude and named-import spellings, so every
+`?` in a function returning the qualified type came back E0201. Nothing shipped
+that way, since the qualified return type had been `Unknown` and therefore
+permissive before this release, but it is the same defect as the one being fixed:
+a predicate that recognizes two of the three legal spellings of a type. It is a
+third arm and an eighth test now.
+
+Pillar: verifiability. A false green on sealed unions is the failure class the
+wedge exists to eliminate. Greppability second: nothing in the text of a `match`
+told you which of the two spellings had been checked, so a codebase could not be
+searched for its own unverified matches.
+
+### Still open from this trip
+
+E0200 quotes the missing variant names for a module-local union and for the
+prelude ones, and leaves them bare for a union imported from another Glyph
+module: `missing variants Maybe` where the same diagnostic elsewhere reads
+``missing variants `B` ``. Two code paths build that list and one of them
+formats. It is cosmetic, it splits by where the union is declared rather than by
+how it was imported, and it predates this release on both spellings. It is G74
+in [`../dogfooding-gaps.md`](../dogfooding-gaps.md) under Round 16, and it is the
+only finding this trip left open. No release carries the Next marker now; the
+next trip picks from what is left of this list, Round 15's, and Round 14's.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

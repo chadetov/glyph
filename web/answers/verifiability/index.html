@@ -160,6 +160,55 @@ fn label(s: Status) -&gt; string {
 
       <div class="detail">
         <p>
+          How the union got into scope doesn't change any of this. Glyph lets you
+          write a variant arm two ways, and both are checked the same:
+          <code>import model { Cond, Yes, No }</code> with bare arms, or
+          <code>import model</code> (or <code>import model as m</code>) with
+          <code>model.Yes(_)</code>. That holds for the standard library's unions too, so
+          <code>match o { option.Some(s) =&gt; … }</code> on an
+          <code>option.Option&lt;string&gt;</code> is <code>E0200</code> for the missing
+          <code>None</code> exactly as the bare <code>Some</code>/<code>None</code> spelling
+          is. Until 0.1.56 the qualified spelling skipped the check entirely and the build
+          reported no diagnostics on a match that threw at run time.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">interp.glyph: the import list came out, the match is still checked</span>
+<pre><span class="del">import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter,</span>
+<span class="del">               Equals, Flag, FlagSet, Increment, Not, Set, Slot, Text }</span>
+import model
+import std/result
+
+pub fn evaluate(ctx: model.Context, c: model.Condition) -&gt; result.Result&lt;bool, SlotError&gt; {
+  return match c {
+    model.Equals({ key, value }) =&gt; result.Ok(read_text(ctx, key, "equals")? == value),
+    model.AtLeast({ key, least }) =&gt; result.Ok(read_count(ctx, key, "at-least")? &gt;= least),
+    model.FlagSet({ key }) =&gt; result.Ok(read_flag(ctx, key, "flag-set")?),
+    model.All({ of }) =&gt; all_of(ctx, of),
+    model.Any({ of }) =&gt; any_of(ctx, of),
+    model.Not({ of }) =&gt; result.Ok(!(evaluate(ctx, of)?)),
+  }
+}</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, after deleting the last arm</span>
+<pre><span class="del">[E0200] non-exhaustive match on `Condition`: missing variants Not</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          That import list is where this came from. It was written by hand in every module of a
+          statechart engine, with a comment above it saying a union's constructors don't arrive
+          with its type. The comment was right about the syntax and wrong about the reason: the
+          list was there because the shorter spelling turned the check off, and nobody had
+          noticed, because turning it off is silent. Which form you pick is now a real choice
+          rather than a trap. The named one puts every variant you handle in the import list,
+          which is what a <code>grep</code> for <code>Equals</code> finds. The qualified one
+          says at each arm which module the variant came from. Neither costs you the check.
+        </p>
+        <p>
           The same "make it type-level, not convention" instinct covers PII. Put
           <code>@redact fields: [ssn, dob]</code> on a type and the compiler generates a
           <code>redact()</code> on its descriptor that masks those fields, so
@@ -259,7 +308,7 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) covers a union defined in the same module; a union imported from another file is checked for coverage but not yet for a misspelled arm. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
+          <p>Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike; a misspelled bare arm trips <code>E0103</code> as well, one stage earlier, so you get both lines for the same name. When <code>E0200</code> lists what you missed it quotes the names for a module-local union and leaves them bare for an imported one, which is a formatting split between two code paths and nothing more. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
         </div>
       </div>
 

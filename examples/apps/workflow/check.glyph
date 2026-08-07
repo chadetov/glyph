@@ -1,0 +1,293 @@
+// Machine validation: everything wrong with a definition, reported at once.
+//
+// This module never stops at the first problem. A fixture with a bad target
+// *and* an unreachable state names both, because a person fixing a machine
+// wants the whole list, not one line per run.
+//
+// A `Machine` value can only be produced here, so every later module is
+// entitled to assume that ids resolve: a child, an `initial`, a transition
+// target, and a terminal id all name a declared state, and every state is
+// reachable from the root.
+module check
+
+import std/array
+import std/option { Option, Some, None }
+import std/record
+import std/result { Result, Ok, Err }
+import std/set
+import model { Machine, State, Transition }
+import text
+import wire { MachineFile, StateSpec, TransitionSpec, action_list, opt_condition, opt_text, text_list, transition_table }
+
+// Every way a machine definition can be wrong.
+pub type MachineError =
+  | EmptyMachine
+  | UnknownRoot({ root: string })
+  | DuplicateState({ id: string, count: int })
+  | UnknownChild({ parent: string, child: string })
+  | MissingInitial({ id: string })
+  | UnknownInitial({ id: string, initial: string })
+  | InitialNotChild({ id: string, initial: string })
+  | UnknownTarget({ source: string, event: string, target: string })
+  | UnknownTerminal({ id: string })
+  | Unreachable({ id: string })
+
+// ---------------------------------------------------------------------------
+// Reading the fixture's optional fields
+// ---------------------------------------------------------------------------
+
+fn children_spec(s: StateSpec) -> Array<string> {
+  return text_list(s.children)
+}
+
+fn transitions_spec(s: StateSpec) -> Record<string, TransitionSpec> {
+  return transition_table(s.on)
+}
+
+// ---------------------------------------------------------------------------
+// The declared set
+// ---------------------------------------------------------------------------
+
+fn first_spec(states: Array<StateSpec>, id: string) -> Option<StateSpec> {
+  return array.find(states, fn(s: StateSpec) -> bool { return s.id == id })
+}
+
+fn declared(states: Array<StateSpec>) -> set.Set<string> {
+  let ids = set.create<string>()
+  for s in states {
+    ids.add(s.id)
+  }
+  return ids
+}
+
+fn duplicate_errors(states: Array<StateSpec>) -> Array<MachineError> {
+  let counts: Record<string, int> = {}
+  for s in states {
+    let seen = match record.get(counts, s.id) {
+      Some(n) => n,
+      None => 0,
+    }
+    mut counts = record.set(counts, s.id, seen + 1)
+  }
+  let out: Array<MachineError> = []
+  for id in array.sort(record.keys(counts), text.cmp) {
+    let n = match record.get(counts, id) {
+      Some(c) => c,
+      None => 0,
+    }
+    match n > 1 {
+      true => { mut out = array.push(out, DuplicateState({ id: id, count: n })) },
+      false => {},
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Per-state checks
+// ---------------------------------------------------------------------------
+
+fn child_errors(ids: set.Set<string>, s: StateSpec) -> Array<MachineError> {
+  let out: Array<MachineError> = []
+  for child in children_spec(s) {
+    match ids.has(child) {
+      true => {},
+      false => { mut out = array.push(out, UnknownChild({ parent: s.id, child: child })) },
+    }
+  }
+  return out
+}
+
+// A compound state must name which child it starts in, that child must exist,
+// and it must be one of its own children. A leaf naming an `initial` fails the
+// third check, which is the honest reading: nothing it names is a child of it.
+fn initial_errors(ids: set.Set<string>, s: StateSpec) -> Array<MachineError> {
+  let kids = children_spec(s)
+  return match opt_text(s.initial) {
+    None => match array.len(kids) > 0 {
+      true => [MissingInitial({ id: s.id })],
+      false => [],
+    },
+    Some(initial) => match ids.has(initial) {
+      false => [UnknownInitial({ id: s.id, initial: initial })],
+      true => match array.contains(kids, initial) {
+        true => [],
+        false => [InitialNotChild({ id: s.id, initial: initial })],
+      },
+    },
+  }
+}
+
+fn target_errors(ids: set.Set<string>, s: StateSpec) -> Array<MachineError> {
+  let table = transitions_spec(s)
+  let out: Array<MachineError> = []
+  for event in array.sort(record.keys(table), text.cmp) {
+    let target = match record.get(table, event) {
+      Some(t) => t.target,
+      None => "",
+    }
+    match ids.has(target) {
+      true => {},
+      false => {
+        mut out = array.push(out, UnknownTarget({ source: s.id, event: event, target: target }))
+      },
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Reachability
+// ---------------------------------------------------------------------------
+
+// Breadth-first from the root through `children`. A state nobody lists as a
+// child is dead weight in the definition and is reported rather than dropped.
+fn reachable(states: Array<StateSpec>, root: string) -> set.Set<string> {
+  let seen = set.create<string>()
+  let queue: Array<string> = [root]
+  loop {
+    match array.len(queue) == 0 {
+      true => { break },
+      false => {},
+    }
+    let id = queue[0]
+    mut queue = array.slice(queue, 1)
+    match seen.has(id) {
+      true => {},
+      false => {
+        seen.add(id)
+        let kids = match first_spec(states, id) {
+          Some(s) => children_spec(s),
+          None => [],
+        }
+        for child in kids {
+          mut queue = array.push(queue, child)
+        }
+      },
+    }
+  }
+  return seen
+}
+
+fn unreachable_errors(states: Array<StateSpec>, root: string, ids: set.Set<string>) -> Array<MachineError> {
+  match ids.has(root) {
+    true => {},
+    // Reachability from a root that does not exist says nothing useful; the
+    // missing root is already reported on its own.
+    false => { return [] },
+  }
+  let seen = reachable(states, root)
+  let out: Array<MachineError> = []
+  for id in array.sort(ids.values(), text.cmp) {
+    match seen.has(id) {
+      true => {},
+      false => { mut out = array.push(out, Unreachable({ id: id })) },
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Building the checked machine
+// ---------------------------------------------------------------------------
+
+fn transitions_of(s: StateSpec) -> Array<Transition> {
+  let table = transitions_spec(s)
+  let out: Array<Transition> = []
+  for event in array.sort(record.keys(table), text.cmp) {
+    match record.get(table, event) {
+      None => {},
+      Some(spec) => {
+        mut out = array.push(
+          out,
+          {
+            event: event,
+            source: s.id,
+            target: spec.target,
+            guard: opt_condition(spec.guard),
+            actions: action_list(spec.actions),
+          },
+        )
+      },
+    }
+  }
+  return out
+}
+
+fn build(file: MachineFile, terminal: Array<string>) -> Machine {
+  let states: Array<State> = []
+  let placed = set.create<string>()
+  for s in file.states {
+    match placed.has(s.id) {
+      true => {},
+      false => {
+        placed.add(s.id)
+        mut states = array.push(
+          states,
+          {
+            id: s.id,
+            children: children_spec(s),
+            initial: opt_text(s.initial),
+            transitions: transitions_of(s),
+            terminal: array.contains(terminal, s.id),
+          },
+        )
+      },
+    }
+  }
+  return { id: file.id, root: file.root, states: states, context: { slots: file.context } }
+}
+
+// ---------------------------------------------------------------------------
+// The whole check
+// ---------------------------------------------------------------------------
+
+pub fn validate(file: MachineFile) -> Result<Machine, Array<MachineError>> {
+  match array.len(file.states) == 0 {
+    // Nothing else is meaningful about a machine with no states, so this is the
+    // one check that reports alone.
+    true => { return Err([EmptyMachine]) },
+    false => {},
+  }
+
+  let ids = declared(file.states)
+  let terminal = text_list(file.terminal)
+  let errors: Array<MachineError> = []
+
+  match ids.has(file.root) {
+    true => {},
+    false => { mut errors = array.push(errors, UnknownRoot({ root: file.root })) },
+  }
+
+  for e in duplicate_errors(file.states) {
+    mut errors = array.push(errors, e)
+  }
+
+  for s in file.states {
+    for e in child_errors(ids, s) {
+      mut errors = array.push(errors, e)
+    }
+    for e in initial_errors(ids, s) {
+      mut errors = array.push(errors, e)
+    }
+    for e in target_errors(ids, s) {
+      mut errors = array.push(errors, e)
+    }
+  }
+
+  for id in terminal {
+    match ids.has(id) {
+      true => {},
+      false => { mut errors = array.push(errors, UnknownTerminal({ id: id })) },
+    }
+  }
+
+  for e in unreachable_errors(file.states, file.root, ids) {
+    mut errors = array.push(errors, e)
+  }
+
+  return match array.len(errors) == 0 {
+    true => Ok(build(file, terminal)),
+    false => Err(errors),
+  }
+}

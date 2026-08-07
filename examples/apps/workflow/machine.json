@@ -1,0 +1,126 @@
+{
+  "id": "order",
+  "root": "root",
+  "context": {
+    "status": { "tag": "Text", "text": "draft" },
+    "region": { "tag": "Text", "text": "us" },
+    "attempts": { "tag": "Counter", "count": 0 },
+    "pending_review": { "tag": "Flag", "on": true },
+    "payment_pending": { "tag": "Flag", "on": true },
+    "hold": { "tag": "Flag", "on": true }
+  },
+  "states": [
+    {
+      "id": "root",
+      "children": ["draft", "active", "closed"],
+      "initial": "draft",
+      "on": {
+        "abort": {
+          "target": "cancelled",
+          "actions": [{ "tag": "Set", "key": "status", "value": "aborted" }]
+        }
+      }
+    },
+    {
+      "id": "draft",
+      "on": {
+        "review": {
+          "target": "draft",
+          "actions": [
+            { "tag": "Clear", "key": "pending_review" },
+            { "tag": "Set", "key": "status", "value": "reviewed" }
+          ]
+        },
+        "submit": {
+          "target": "active",
+          "guard": { "tag": "Not", "of": { "tag": "FlagSet", "key": "pending_review" } },
+          "actions": [{ "tag": "Set", "key": "status", "value": "submitted" }]
+        }
+      }
+    },
+    {
+      "id": "active",
+      "children": ["awaiting_payment", "packing", "shipping"],
+      "initial": "awaiting_payment",
+      "on": {
+        "cancel": {
+          "target": "cancelled",
+          "actions": [{ "tag": "Set", "key": "status", "value": "cancelled" }]
+        },
+        "deliver": {
+          "target": "delivered",
+          "guard": { "tag": "AtLeast", "key": "attempts", "least": 3 },
+          "actions": [{ "tag": "Set", "key": "status", "value": "delivered-on-patience" }]
+        }
+      }
+    },
+    {
+      "id": "awaiting_payment",
+      "on": {
+        "pay": {
+          "target": "packing",
+          "guard": { "tag": "FlagSet", "key": "payment_pending" },
+          "actions": [
+            { "tag": "Clear", "key": "payment_pending" },
+            { "tag": "Set", "key": "status", "value": "paid" },
+            { "tag": "Increment", "key": "attempts", "by": 1 }
+          ]
+        },
+        "retry": {
+          "target": "awaiting_payment",
+          "actions": [
+            { "tag": "Increment", "key": "attempts", "by": 1 },
+            { "tag": "Set", "key": "status", "value": "retrying" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "packing",
+      "on": {
+        "ship": {
+          "target": "shipping",
+          "guard": { "tag": "AtLeast", "key": "attempts", "least": 1 },
+          "actions": [{ "tag": "Set", "key": "status", "value": "shipped" }]
+        }
+      }
+    },
+    {
+      "id": "shipping",
+      "on": {
+        "release": {
+          "target": "shipping",
+          "actions": [
+            { "tag": "Clear", "key": "hold" },
+            { "tag": "Set", "key": "status", "value": "released" }
+          ]
+        },
+        "deliver": {
+          "target": "delivered",
+          "guard": {
+            "tag": "All",
+            "of": [
+              { "tag": "Not", "of": { "tag": "FlagSet", "key": "hold" } },
+              {
+                "tag": "Any",
+                "of": [
+                  { "tag": "Equals", "key": "region", "value": "eu" },
+                  { "tag": "Equals", "key": "region", "value": "uk" }
+                ]
+              }
+            ]
+          },
+          "actions": [{ "tag": "Set", "key": "status", "value": "delivered" }]
+        }
+      }
+    },
+    {
+      "id": "closed",
+      "children": ["delivered", "cancelled"],
+      "initial": "delivered"
+    },
+    { "id": "delivered" },
+    { "id": "cancelled" }
+  ],
+  "terminal": ["delivered", "cancelled"]
+}

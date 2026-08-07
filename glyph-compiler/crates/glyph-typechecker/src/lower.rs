@@ -185,6 +185,14 @@ impl<'a> Lowerer<'a> {
     /// stdlib types the checker models the shape of. The module is read from the
     /// import's own path, so an alias resolves the same as the plain form.
     /// `None` for any other two-segment path, which keeps lowering to `Unknown`.
+    ///
+    /// A prelude container reached through the same spelling (`option.Option`,
+    /// `result.Result`) lowers to the prelude `Ty::Named`, the identical value
+    /// `import std/option { Option }` produces. Without it `option.Option<T>` was
+    /// `Unknown`, which sent every `match` over it down the imported-union path
+    /// that only understands `ImportNamed` variants, so a missing `None` was
+    /// never reported (verifiability: D9 sealed unions must hold regardless of
+    /// which legal import spelling brought the type into scope).
     fn stdlib_path_ty(&self, segments: &[Ident], span: glyph_ast::Span) -> Option<Ty> {
         let ResolvedRef::Module(id) = self.resolved.resolutions.get(span)? else {
             return None;
@@ -198,7 +206,9 @@ impl<'a> Lowerer<'a> {
         let ["std", module] = key.as_slice() else {
             return None;
         };
-        crate::assign::stdlib_modeled_type(module, segments.get(1)?.as_ref())
+        let name = segments.get(1)?;
+        crate::assign::stdlib_modeled_type(module, name.as_ref())
+            .or_else(|| self.imported_prelude_container(name))
     }
 
     /// If `name` is a prelude container type (`Result`, `Option`, `Array`,

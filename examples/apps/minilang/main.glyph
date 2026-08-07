@@ -1,0 +1,2205 @@
+// minilang — a tiny scripting language: lexer, Pratt parser, tree-walking
+// evaluator, and a REPL, all in one Glyph module.
+//
+// The language has numbers, strings, booleans, nil, arrays, records, and
+// first-class closures. `let` binds, bare `=` assigns, `fn` declares, `if` /
+// `else` / `while` / `return` do the obvious thing, and seven builtins
+// (len, push, print, str, num, keys, type_of) round it out.
+//
+// Nothing throws. A lexer, parser, or runtime failure is a value carrying the
+// span that caused it, and all three render the same way: the offending source
+// line, quoted, with a caret under the column.
+//
+// Usage:
+//
+//   glyph run examples/apps/minilang/main.glyph              // demo.ml, then the REPL fixture
+//   glyph run examples/apps/minilang/main.glyph -- --tokens  // dump the token stream
+//   glyph run examples/apps/minilang/main.glyph -- --ast     // dump the parse tree
+//   glyph run examples/apps/minilang/main.glyph -- --script session.txt
+//   glyph run examples/apps/minilang/main.glyph -- --repl    // read stdin
+//
+// Interpreter limits (call depth, step budget, whether the REPL echoes) are
+// read from config.json through a record descriptor, so a runaway recursion
+// reports a DepthExceeded diagnostic instead of blowing the host stack.
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/option { Option, Some, None }
+import std/path
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+
+// ---------------------------------------------------------------------------
+// Configuration (read from config.json through a record descriptor)
+// ---------------------------------------------------------------------------
+
+// The interpreter's resource limits, as they sit on disk. `max_call_depth` is
+// counted in minilang frames, not host frames, so it trips well before the
+// JavaScript stack does.
+type Config = { max_call_depth: int, max_steps: int, echo_results: bool }
+
+// The mutable half of the same thing: the budget, plus what has been spent.
+type Machine = { max_call_depth: int, max_steps: int, steps: int, depth: int }
+
+fn new_machine(c: Config) -> Machine {
+  return { max_call_depth: c.max_call_depth, max_steps: c.max_steps, steps: 0, depth: 0 }
+}
+
+fn reset_machine(m: Machine) -> void {
+  mut m.steps = 0
+  mut m.depth = 0
+}
+
+// ---------------------------------------------------------------------------
+// Spans and sources
+// ---------------------------------------------------------------------------
+
+// 1-based on both axes, because every diagnostic prints it and no reader
+// wants to add one in their head. `source` names the text it points into: a
+// REPL closure defined three lines ago still reports against the line that
+// defined it, not the line that called it.
+type Span = { source: string, line: int, col: int }
+
+// The text a span points into, kept as lines so rendering a diagnostic is an
+// array index rather than a re-scan.
+type Source = { name: string, lines: Array<string> }
+
+// Every source the session has seen, keyed by the name its spans carry.
+type Sources = { by_name: Record<string, Source> }
+
+fn new_sources() -> Sources {
+  let empty: Record<string, Source> = {}
+  return { by_name: empty }
+}
+
+fn remember(all: Sources, name: string, text: string) -> void {
+  let normalized = string.replace_all(text, "\r\n", "\n")
+  let src: Source = { name: name, lines: string.split(normalized, "\n") }
+  mut all.by_name[name] = src
+}
+
+// ---------------------------------------------------------------------------
+// Tokens
+// ---------------------------------------------------------------------------
+
+type TokenKind =
+  | TNumber({ value: number })
+  | TString({ value: string })
+  | TIdent({ name: string })
+  | TKeyword({ word: string })
+  | TOp({ sym: string })
+  | TPunct({ sym: string })
+  | TEnd
+
+type Token = { kind: TokenKind, text: string, span: Span }
+
+fn token_kind_name(k: TokenKind) -> string {
+  return match k {
+    TNumber => "number",
+    TString => "string",
+    TIdent => "ident",
+    TKeyword => "keyword",
+    TOp => "op",
+    TPunct => "punct",
+    TEnd => "end",
+  }
+}
+
+// What a token looks like when a parse error has to name it.
+fn token_label(t: Token) -> string {
+  return match t.kind {
+    TEnd => "end of input",
+    else => "`${t.text}`",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The lexer
+// ---------------------------------------------------------------------------
+
+const KEYWORDS = ["let", "fn", "if", "else", "return", "true", "false", "nil", "while"]
+
+const DIGITS = "0123456789"
+
+const IDENT_START = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
+
+const TWO_CHAR_OPS = ["==", "!=", "<=", ">=", "&&", "||"]
+
+const ONE_CHAR_OPS = "+-*/%<>!="
+
+const PUNCTUATION = "(){}[],;:."
+
+fn is_digit(c: string) -> bool {
+  return match c == "" {
+    true => false,
+    false => string.contains(DIGITS, c),
+  }
+}
+
+fn is_ident_start(c: string) -> bool {
+  return match c == "" {
+    true => false,
+    false => string.contains(IDENT_START, c),
+  }
+}
+
+fn is_ident_part(c: string) -> bool {
+  return is_ident_start(c) || is_digit(c)
+}
+
+fn is_space(c: string) -> bool {
+  return c == " " || c == "\t" || c == "\r" || c == "\n"
+}
+
+type LexError =
+  | UnterminatedString({ quote: string, span: Span })
+  | BadEscape({ ch: string, span: Span })
+  | UnexpectedChar({ ch: string, span: Span })
+  | MalformedNumber({ text: string, span: Span })
+
+fn lex_error_message(e: LexError) -> string {
+  return match e {
+    UnterminatedString({ quote }) => "string opened with ${quote} is never closed",
+    BadEscape({ ch }) => "unknown escape `\\${ch}`",
+    UnexpectedChar({ ch }) => "unexpected character `${ch}`",
+    MalformedNumber({ text }) => "`${text}` is not a number",
+  }
+}
+
+fn lex_error_span(e: LexError) -> Span {
+  return match e {
+    UnterminatedString({ span }) => span,
+    BadEscape({ span }) => span,
+    UnexpectedChar({ span }) => span,
+    MalformedNumber({ span }) => span,
+  }
+}
+
+// The scanner's cursor. `chars` is the source split into UTF-16 units so the
+// column a diagnostic prints is the column an editor shows.
+type Scanner = { source: string, chars: Array<string>, count: int, at: int, line: int, col: int }
+
+fn scanner_of(source: string, text: string) -> Scanner {
+  let normalized = string.replace_all(text, "\r\n", "\n")
+  let chars = string.split(normalized, "")
+  return { source: source, chars: chars, count: array.len(chars), at: 0, line: 1, col: 1 }
+}
+
+fn peek_at(s: Scanner, offset: int) -> string {
+  let i = s.at + offset
+  return match i < s.count {
+    true => s.chars[i],
+    false => "",
+  }
+}
+
+fn peek(s: Scanner) -> string {
+  return peek_at(s, 0)
+}
+
+fn here(s: Scanner) -> Span {
+  return { source: s.source, line: s.line, col: s.col }
+}
+
+fn bump(s: Scanner) -> string {
+  let c = peek(s)
+  mut s.at = s.at + 1
+  match c == "\n" {
+    true => {
+      mut s.line = s.line + 1
+      mut s.col = 1
+    },
+    false => { mut s.col = s.col + 1 },
+  }
+  return c
+}
+
+fn skip_trivia(s: Scanner) -> void {
+  loop {
+    match is_space(peek(s)) {
+      true => {
+        bump(s)
+        continue
+      },
+      false => {},
+    }
+    match peek(s) == "/" && peek_at(s, 1) == "/" {
+      true => {
+        loop {
+          match peek(s) == "" || peek(s) == "\n" {
+            true => { break },
+            false => { bump(s) },
+          }
+        }
+        continue
+      },
+      false => { break },
+    }
+  }
+}
+
+fn escape_for(c: string) -> Option<string> {
+  return match c {
+    "n" => Some("\n"),
+    "t" => Some("\t"),
+    "r" => Some("\r"),
+    "\\" => Some("\\"),
+    "'" => Some("'"),
+    "\"" => Some("\""),
+    else => None,
+  }
+}
+
+fn lex_string(s: Scanner) -> Result<Token, LexError> {
+  let start = here(s)
+  let quote = bump(s)
+  let parts: Array<string> = []
+  loop {
+    let c = peek(s)
+    match c == "" || c == "\n" {
+      true => { return Err(UnterminatedString({ quote: quote, span: start })) },
+      false => {},
+    }
+    match c == quote {
+      true => {
+        bump(s)
+        break
+      },
+      false => {},
+    }
+    match c == "\\" {
+      true => {
+        let escape_span = here(s)
+        bump(s)
+        let e = bump(s)
+        match escape_for(e) {
+          Some(decoded) => { mut parts.push(decoded) },
+          None => { return Err(BadEscape({ ch: e, span: escape_span })) },
+        }
+      },
+      false => { mut parts.push(bump(s)) },
+    }
+  }
+  let value = string.join(parts, "")
+  return Ok({ kind: TString({ value: value }), text: value, span: start })
+}
+
+fn lex_number(s: Scanner) -> Result<Token, LexError> {
+  let start = here(s)
+  let digits: Array<string> = []
+  loop {
+    match is_digit(peek(s)) {
+      true => { mut digits.push(bump(s)) },
+      false => { break },
+    }
+  }
+  match peek(s) == "." && is_digit(peek_at(s, 1)) {
+    true => {
+      mut digits.push(bump(s))
+      loop {
+        match is_digit(peek(s)) {
+          true => { mut digits.push(bump(s)) },
+          false => { break },
+        }
+      }
+    },
+    false => {},
+  }
+  let text = string.join(digits, "")
+  return match number.parse(text) {
+    Ok(n) => Ok({ kind: TNumber({ value: n }), text: text, span: start }),
+    Err(_msg) => Err(MalformedNumber({ text: text, span: start })),
+  }
+}
+
+fn lex_word(s: Scanner) -> Token {
+  let start = here(s)
+  let letters: Array<string> = []
+  loop {
+    match is_ident_part(peek(s)) {
+      true => { mut letters.push(bump(s)) },
+      false => { break },
+    }
+  }
+  let text = string.join(letters, "")
+  return match array.contains(KEYWORDS, text) {
+    true => { kind: TKeyword({ word: text }), text: text, span: start },
+    false => { kind: TIdent({ name: text }), text: text, span: start },
+  }
+}
+
+fn tokenize(source: string, text: string) -> Result<Array<Token>, LexError> {
+  let s = scanner_of(source, text)
+  let out: Array<Token> = []
+  loop {
+    skip_trivia(s)
+    let start = here(s)
+    let c = peek(s)
+    match c == "" {
+      true => {
+        mut out.push({ kind: TEnd, text: "", span: start })
+        break
+      },
+      false => {},
+    }
+    match c == "\"" || c == "'" {
+      true => {
+        let t = lex_string(s)?
+        mut out.push(t)
+        continue
+      },
+      false => {},
+    }
+    match is_digit(c) {
+      true => {
+        let t = lex_number(s)?
+        mut out.push(t)
+        continue
+      },
+      false => {},
+    }
+    match is_ident_start(c) {
+      true => {
+        mut out.push(lex_word(s))
+        continue
+      },
+      false => {},
+    }
+    let pair = "${c}${peek_at(s, 1)}"
+    match array.contains(TWO_CHAR_OPS, pair) {
+      true => {
+        bump(s)
+        bump(s)
+        mut out.push({ kind: TOp({ sym: pair }), text: pair, span: start })
+        continue
+      },
+      false => {},
+    }
+    match string.contains(ONE_CHAR_OPS, c) {
+      true => {
+        bump(s)
+        mut out.push({ kind: TOp({ sym: c }), text: c, span: start })
+        continue
+      },
+      false => {},
+    }
+    match string.contains(PUNCTUATION, c) {
+      true => {
+        bump(s)
+        mut out.push({ kind: TPunct({ sym: c }), text: c, span: start })
+        continue
+      },
+      false => {},
+    }
+    return Err(UnexpectedChar({ ch: c, span: start }))
+  }
+  return Ok(out)
+}
+
+// ---------------------------------------------------------------------------
+// The syntax tree
+// ---------------------------------------------------------------------------
+
+// One `key: value` pair of a record literal, kept as a struct rather than two
+// parallel arrays so a key can never drift away from its value.
+type FieldInit = { key: string, value: Expr }
+
+type Expr =
+  | Num({ value: number, span: Span })
+  | Str({ value: string, span: Span })
+  | Bool({ value: bool, span: Span })
+  | Nil({ span: Span })
+  | Ident({ name: string, span: Span })
+  | Unary({ op: string, operand: Expr, span: Span })
+  | Binary({ op: string, left: Expr, right: Expr, span: Span })
+  | Call({ callee: Expr, args: Array<Expr>, span: Span })
+  | If({ cond: Expr, then_body: Array<Stmt>, else_body: Option<Array<Stmt>>, span: Span })
+  | Fn({ name: Option<string>, params: Array<string>, body: Array<Stmt>, span: Span })
+  | Let({ name: string, value: Expr, span: Span })
+  | Assign({ target: Expr, value: Expr, span: Span })
+  | Block({ body: Array<Stmt>, span: Span })
+  | While({ cond: Expr, body: Array<Stmt>, span: Span })
+  | Return({ value: Expr, span: Span })
+  | Index({ target: Expr, index: Expr, span: Span })
+  | ArrayLit({ items: Array<Expr>, span: Span })
+  | RecordLit({ fields: Array<FieldInit>, span: Span })
+
+// A program is a sequence of statements; a statement is an expression whose
+// value the driver may echo.
+type Stmt = { expr: Expr, span: Span }
+
+fn expr_span(e: Expr) -> Span {
+  return match e {
+    Num({ span }) => span,
+    Str({ span }) => span,
+    Bool({ span }) => span,
+    Nil({ span }) => span,
+    Ident({ span }) => span,
+    Unary({ span }) => span,
+    Binary({ span }) => span,
+    Call({ span }) => span,
+    If({ span }) => span,
+    Fn({ span }) => span,
+    Let({ span }) => span,
+    Assign({ span }) => span,
+    Block({ span }) => span,
+    While({ span }) => span,
+    Return({ span }) => span,
+    Index({ span }) => span,
+    ArrayLit({ span }) => span,
+    RecordLit({ span }) => span,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The parser
+// ---------------------------------------------------------------------------
+
+type ParseError =
+  | Expected({ what: string, found: string, span: Span })
+  | UnexpectedStart({ found: string, span: Span })
+  | BadAssignTarget({ span: Span })
+  | BadRecordKey({ found: string, span: Span })
+
+fn parse_error_message(e: ParseError) -> string {
+  return match e {
+    Expected({ what, found }) => "expected ${what}, found ${found}",
+    UnexpectedStart({ found }) => "${found} cannot start an expression",
+    BadAssignTarget => "the left side of `=` must be a name or an index",
+    BadRecordKey({ found }) => "expected a field name, found ${found}",
+  }
+}
+
+fn parse_error_span(e: ParseError) -> Span {
+  return match e {
+    Expected({ span }) => span,
+    UnexpectedStart({ span }) => span,
+    BadAssignTarget({ span }) => span,
+    BadRecordKey({ span }) => span,
+  }
+}
+
+// The parser's cursor over the token array. `at` never runs off the end: the
+// last token is always TEnd and the cursor stops there.
+type Cursor = { toks: Array<Token>, count: int, at: int }
+
+fn cursor_of(toks: Array<Token>) -> Cursor {
+  return { toks: toks, count: array.len(toks), at: 0 }
+}
+
+fn current(c: Cursor) -> Token {
+  return match c.at < c.count {
+    true => c.toks[c.at],
+    false => c.toks[c.count - 1],
+  }
+}
+
+fn step(c: Cursor) -> Token {
+  let t = current(c)
+  match c.at + 1 < c.count {
+    true => { mut c.at = c.at + 1 },
+    false => {},
+  }
+  return t
+}
+
+fn at_punct(c: Cursor, sym: string) -> bool {
+  return match current(c).kind {
+    TPunct({ sym: s }) => s == sym,
+    else => false,
+  }
+}
+
+fn at_op(c: Cursor, sym: string) -> bool {
+  return match current(c).kind {
+    TOp({ sym: s }) => s == sym,
+    else => false,
+  }
+}
+
+fn at_keyword(c: Cursor, word: string) -> bool {
+  return match current(c).kind {
+    TKeyword({ word: w }) => w == word,
+    else => false,
+  }
+}
+
+fn at_end(c: Cursor) -> bool {
+  return match current(c).kind {
+    TEnd => true,
+    else => false,
+  }
+}
+
+fn expect_punct(c: Cursor, sym: string) -> Result<Token, ParseError> {
+  let t = current(c)
+  return match at_punct(c, sym) {
+    true => Ok(step(c)),
+    false => Err(Expected({ what: "`${sym}`", found: token_label(t), span: t.span })),
+  }
+}
+
+fn expect_keyword(c: Cursor, word: string) -> Result<Token, ParseError> {
+  let t = current(c)
+  return match at_keyword(c, word) {
+    true => Ok(step(c)),
+    false => Err(Expected({ what: "`${word}`", found: token_label(t), span: t.span })),
+  }
+}
+
+fn expect_name(c: Cursor) -> Result<string, ParseError> {
+  let t = current(c)
+  return match t.kind {
+    TIdent({ name }) => {
+      step(c)
+      Ok(name)
+    },
+    else => Err(Expected({ what: "a name", found: token_label(t), span: t.span })),
+  }
+}
+
+// Binding powers. Higher binds tighter; `=` is the only right-associative one.
+fn infix_power(sym: string) -> int {
+  return match sym {
+    "=" => 1,
+    "||" => 2,
+    "&&" => 3,
+    "==" => 4,
+    "!=" => 4,
+    "<" => 5,
+    "<=" => 5,
+    ">" => 5,
+    ">=" => 5,
+    "+" => 6,
+    "-" => 6,
+    "*" => 7,
+    "/" => 7,
+    "%" => 7,
+    else => 0,
+  }
+}
+
+const UNARY_POWER = 8
+
+const POSTFIX_POWER = 9
+
+fn parse_block(c: Cursor) -> Result<Array<Stmt>, ParseError> {
+  expect_punct(c, "{")?
+  let body: Array<Stmt> = []
+  loop {
+    match at_punct(c, ";") {
+      true => {
+        step(c)
+        continue
+      },
+      false => {},
+    }
+    match at_punct(c, "}") {
+      true => {
+        step(c)
+        break
+      },
+      false => {},
+    }
+    match at_end(c) {
+      true => {
+        let t = current(c)
+        return Err(Expected({ what: "`}`", found: token_label(t), span: t.span }))
+      },
+      false => {},
+    }
+    let span = current(c).span
+    let e = parse_expr(c, 0)?
+    mut body.push({ expr: e, span: span })
+  }
+  return Ok(body)
+}
+
+// `{` starts a block or a record literal. A record is `{}`, or `{` followed by
+// a name or a string and then a `:`. Everything else is a block.
+fn brace_is_record(c: Cursor) -> bool {
+  let next = match c.at + 1 < c.count {
+    true => c.toks[c.at + 1],
+    false => c.toks[c.count - 1],
+  }
+  let after = match c.at + 2 < c.count {
+    true => c.toks[c.at + 2],
+    false => c.toks[c.count - 1],
+  }
+  match next.kind {
+    TPunct({ sym }) => { return sym == "}" },
+    TIdent => {},
+    TString => {},
+    else => { return false },
+  }
+  return match after.kind {
+    TPunct({ sym }) => sym == ":",
+    else => false,
+  }
+}
+
+fn parse_record_literal(c: Cursor) -> Result<Expr, ParseError> {
+  let span = current(c).span
+  expect_punct(c, "{")?
+  let fields: Array<FieldInit> = []
+  loop {
+    match at_punct(c, "}") {
+      true => {
+        step(c)
+        break
+      },
+      false => {},
+    }
+    let t = current(c)
+    let key = match t.kind {
+      TIdent({ name }) => name,
+      TString({ value }) => value,
+      else => { return Err(BadRecordKey({ found: token_label(t), span: t.span })) },
+    }
+    step(c)
+    expect_punct(c, ":")?
+    let value = parse_expr(c, 0)?
+    mut fields.push({ key: key, value: value })
+    match at_punct(c, ",") {
+      true => { step(c) },
+      false => {},
+    }
+  }
+  return Ok(RecordLit({ fields: fields, span: span }))
+}
+
+fn parse_array_literal(c: Cursor) -> Result<Expr, ParseError> {
+  let span = current(c).span
+  expect_punct(c, "[")?
+  let items: Array<Expr> = []
+  loop {
+    match at_punct(c, "]") {
+      true => {
+        step(c)
+        break
+      },
+      false => {},
+    }
+    let item = parse_expr(c, 0)?
+    mut items.push(item)
+    match at_punct(c, ",") {
+      true => { step(c) },
+      false => {},
+    }
+  }
+  return Ok(ArrayLit({ items: items, span: span }))
+}
+
+fn parse_params(c: Cursor) -> Result<Array<string>, ParseError> {
+  expect_punct(c, "(")?
+  let params: Array<string> = []
+  loop {
+    match at_punct(c, ")") {
+      true => {
+        step(c)
+        break
+      },
+      false => {},
+    }
+    let name = expect_name(c)?
+    mut params.push(name)
+    match at_punct(c, ",") {
+      true => { step(c) },
+      false => {},
+    }
+  }
+  return Ok(params)
+}
+
+fn parse_fn(c: Cursor) -> Result<Expr, ParseError> {
+  let span = current(c).span
+  expect_keyword(c, "fn")?
+  let name = match current(c).kind {
+    TIdent({ name: n }) => {
+      step(c)
+      Some(n)
+    },
+    else => None,
+  }
+  let params = parse_params(c)?
+  let body = parse_block(c)?
+  return Ok(Fn({ name: name, params: params, body: body, span: span }))
+}
+
+fn parse_if(c: Cursor) -> Result<Expr, ParseError> {
+  let span = current(c).span
+  expect_keyword(c, "if")?
+  let cond = parse_expr(c, 0)?
+  let then_body = parse_block(c)?
+  match at_keyword(c, "else") {
+    false => { return Ok(If({ cond: cond, then_body: then_body, else_body: None, span: span })) },
+    true => {},
+  }
+  step(c)
+  // `else if` chains by making the whole nested `if` the single statement of
+  // the else body, so the evaluator never has to know chains exist.
+  match at_keyword(c, "if") {
+    true => {
+      let nested = parse_if(c)?
+      let one: Array<Stmt> = [{ expr: nested, span: expr_span(nested) }]
+      return Ok(If({ cond: cond, then_body: then_body, else_body: Some(one), span: span }))
+    },
+    false => {},
+  }
+  let else_body = parse_block(c)?
+  return Ok(If({ cond: cond, then_body: then_body, else_body: Some(else_body), span: span }))
+}
+
+fn parse_while(c: Cursor) -> Result<Expr, ParseError> {
+  let span = current(c).span
+  expect_keyword(c, "while")?
+  let cond = parse_expr(c, 0)?
+  let body = parse_block(c)?
+  return Ok(While({ cond: cond, body: body, span: span }))
+}
+
+fn parse_let(c: Cursor) -> Result<Expr, ParseError> {
+  let span = current(c).span
+  expect_keyword(c, "let")?
+  let name = expect_name(c)?
+  let t = current(c)
+  match at_op(c, "=") {
+    true => { step(c) },
+    false => { return Err(Expected({ what: "`=`", found: token_label(t), span: t.span })) },
+  }
+  let value = parse_expr(c, 0)?
+  return Ok(Let({ name: name, value: value, span: span }))
+}
+
+fn parse_return(c: Cursor) -> Result<Expr, ParseError> {
+  let span = current(c).span
+  expect_keyword(c, "return")?
+  let value = match at_punct(c, "}") || at_punct(c, ";") || at_end(c) {
+    true => Nil({ span: span }),
+    false => parse_expr(c, 0)?,
+  }
+  return Ok(Return({ value: value, span: span }))
+}
+
+fn parse_keyword_prefix(c: Cursor, word: string) -> Result<Expr, ParseError> {
+  let t = current(c)
+  return match word {
+    "true" => {
+      step(c)
+      Ok(Bool({ value: true, span: t.span }))
+    },
+    "false" => {
+      step(c)
+      Ok(Bool({ value: false, span: t.span }))
+    },
+    "nil" => {
+      step(c)
+      Ok(Nil({ span: t.span }))
+    },
+    "fn" => parse_fn(c),
+    "if" => parse_if(c),
+    "while" => parse_while(c),
+    "let" => parse_let(c),
+    "return" => parse_return(c),
+    else => Err(UnexpectedStart({ found: token_label(t), span: t.span })),
+  }
+}
+
+fn parse_prefix(c: Cursor) -> Result<Expr, ParseError> {
+  let t = current(c)
+  return match t.kind {
+    TNumber({ value }) => {
+      step(c)
+      Ok(Num({ value: value, span: t.span }))
+    },
+    TString({ value }) => {
+      step(c)
+      Ok(Str({ value: value, span: t.span }))
+    },
+    TIdent({ name }) => {
+      step(c)
+      Ok(Ident({ name: name, span: t.span }))
+    },
+    TKeyword({ word }) => parse_keyword_prefix(c, word),
+    TOp({ sym }) => {
+      let unary = sym == "-" || sym == "!"
+      match unary {
+        true => {
+          step(c)
+          let operand = parse_expr(c, UNARY_POWER)?
+          Ok(Unary({ op: sym, operand: operand, span: t.span }))
+        },
+        false => Err(UnexpectedStart({ found: token_label(t), span: t.span })),
+      }
+    },
+    TPunct({ sym }) => {
+      match sym {
+        "(" => {
+          step(c)
+          let inner = parse_expr(c, 0)?
+          expect_punct(c, ")")?
+          Ok(inner)
+        },
+        "[" => parse_array_literal(c),
+        "{" => {
+          match brace_is_record(c) {
+            true => parse_record_literal(c),
+            false => {
+              let span = t.span
+              let body = parse_block(c)?
+              Ok(Block({ body: body, span: span }))
+            },
+          }
+        },
+        else => Err(UnexpectedStart({ found: token_label(t), span: t.span })),
+      }
+    },
+    TEnd => Err(UnexpectedStart({ found: token_label(t), span: t.span })),
+  }
+}
+
+fn parse_call_args(c: Cursor) -> Result<Array<Expr>, ParseError> {
+  expect_punct(c, "(")?
+  let args: Array<Expr> = []
+  loop {
+    match at_punct(c, ")") {
+      true => {
+        step(c)
+        break
+      },
+      false => {},
+    }
+    let arg = parse_expr(c, 0)?
+    mut args.push(arg)
+    match at_punct(c, ",") {
+      true => { step(c) },
+      false => {},
+    }
+  }
+  return Ok(args)
+}
+
+fn parse_postfix(c: Cursor, seed: Expr) -> Result<Expr, ParseError> {
+  let left = seed
+  loop {
+    match at_punct(c, "(") {
+      true => {
+        let span = current(c).span
+        let args = parse_call_args(c)?
+        mut left = Call({ callee: left, args: args, span: span })
+        continue
+      },
+      false => {},
+    }
+    match at_punct(c, "[") {
+      true => {
+        let span = current(c).span
+        step(c)
+        let index = parse_expr(c, 0)?
+        expect_punct(c, "]")?
+        mut left = Index({ target: left, index: index, span: span })
+        continue
+      },
+      false => {},
+    }
+    match at_punct(c, ".") {
+      true => {
+        let span = current(c).span
+        step(c)
+        let name = expect_name(c)?
+        mut left = Index({ target: left, index: Str({ value: name, span: span }), span: span })
+        continue
+      },
+      false => { break },
+    }
+  }
+  return Ok(left)
+}
+
+fn parse_expr(c: Cursor, min_power: int) -> Result<Expr, ParseError> {
+  let prefix = parse_prefix(c)?
+  let left = parse_postfix(c, prefix)?
+  loop {
+    let t = current(c)
+    let sym = match t.kind {
+      TOp({ sym: s }) => s,
+      else => "",
+    }
+    let power = infix_power(sym)
+    match power == 0 || power < min_power {
+      true => { break },
+      false => {},
+    }
+    step(c)
+    match sym == "=" {
+      true => {
+        let assignable = match left {
+          Ident => true,
+          Index => true,
+          else => false,
+        }
+        match assignable {
+          false => { return Err(BadAssignTarget({ span: expr_span(left) })) },
+          true => {},
+        }
+        // `=` is right-associative, so the right side parses at the same power.
+        let value = parse_expr(c, power)?
+        mut left = Assign({ target: left, value: value, span: t.span })
+      },
+      false => {
+        let right = parse_expr(c, power + 1)?
+        mut left = Binary({ op: sym, left: left, right: right, span: t.span })
+      },
+    }
+  }
+  return Ok(left)
+}
+
+fn parse_program(toks: Array<Token>) -> Result<Array<Stmt>, ParseError> {
+  let c = cursor_of(toks)
+  let out: Array<Stmt> = []
+  loop {
+    match at_punct(c, ";") {
+      true => {
+        step(c)
+        continue
+      },
+      false => {},
+    }
+    match at_end(c) {
+      true => { break },
+      false => {},
+    }
+    let span = current(c).span
+    let e = parse_expr(c, 0)?
+    mut out.push({ expr: e, span: span })
+  }
+  return Ok(out)
+}
+
+// ---------------------------------------------------------------------------
+// Runtime values and environments
+// ---------------------------------------------------------------------------
+
+// A scope. `vars` is the bindings introduced here; `parent` is the scope this
+// one was created inside, which is what makes closures work: a VClosure keeps
+// the Env it was defined in, not the one it is called from.
+type Env = { vars: Record<string, Value>, parent: Option<Env> }
+
+type Value =
+  | VNum({ value: number })
+  | VStr({ value: string })
+  | VBool({ value: bool })
+  | VNil
+  | VArray({ items: Array<Value> })
+  | VRecord({ fields: Record<string, Value> })
+  | VClosure({ name: string, params: Array<string>, body: Array<Stmt>, env: Env })
+  | VBuiltin({ name: string })
+
+fn new_env(parent: Option<Env>) -> Env {
+  let empty: Record<string, Value> = {}
+  return { vars: empty, parent: parent }
+}
+
+fn env_define(env: Env, name: string, v: Value) -> void {
+  mut env.vars[name] = v
+}
+
+fn env_lookup(env: Env, name: string) -> Option<Value> {
+  let found = record.get(env.vars, name)
+  return match found {
+    Some(v) => Some(v),
+    None => match env.parent {
+      Some(p) => env_lookup(p, name),
+      None => None,
+    },
+  }
+}
+
+// Assignment walks outward to the scope that owns the name, so a closure can
+// update a counter its parent declared. Returns false if nothing owns it.
+fn env_assign(env: Env, name: string, v: Value) -> bool {
+  match record.has(env.vars, name) {
+    true => {
+      env_define(env, name, v)
+      return true
+    },
+    false => {},
+  }
+  return match env.parent {
+    Some(p) => env_assign(p, name, v),
+    None => false,
+  }
+}
+
+fn type_name(v: Value) -> string {
+  return match v {
+    VNum => "number",
+    VStr => "string",
+    VBool => "bool",
+    VNil => "nil",
+    VArray => "array",
+    VRecord => "record",
+    VClosure => "function",
+    VBuiltin => "function",
+  }
+}
+
+// Only `false` and `nil` are falsey, as in Lua. Everything else, zero and the
+// empty string included, is true.
+fn truthy(v: Value) -> bool {
+  return match v {
+    VBool({ value }) => value,
+    VNil => false,
+    else => true,
+  }
+}
+
+fn values_equal(a: Value, b: Value) -> bool {
+  return match a {
+    VNum({ value: x }) => match b {
+      VNum({ value: y }) => x == y,
+      else => false,
+    },
+    VStr({ value: x }) => match b {
+      VStr({ value: y }) => x == y,
+      else => false,
+    },
+    VBool({ value: x }) => match b {
+      VBool({ value: y }) => x == y,
+      else => false,
+    },
+    VNil => match b {
+      VNil => true,
+      else => false,
+    },
+    VArray({ items: xs }) => match b {
+      VArray({ items: ys }) => arrays_equal(xs, ys),
+      else => false,
+    },
+    VRecord({ fields: xs }) => match b {
+      VRecord({ fields: ys }) => records_equal(xs, ys),
+      else => false,
+    },
+    else => false,
+  }
+}
+
+fn arrays_equal(xs: Array<Value>, ys: Array<Value>) -> bool {
+  match array.len(xs) != array.len(ys) {
+    true => { return false },
+    false => {},
+  }
+  for i, x in xs {
+    match values_equal(x, ys[i]) {
+      false => { return false },
+      true => {},
+    }
+  }
+  return true
+}
+
+fn records_equal(xs: Record<string, Value>, ys: Record<string, Value>) -> bool {
+  let xk = record.keys(xs)
+  let yk = record.keys(ys)
+  match array.len(xk) != array.len(yk) {
+    true => { return false },
+    false => {},
+  }
+  for k in xk {
+    let a = record.get(xs, k)
+    let b = record.get(ys, k)
+    let same = match a {
+      Some(av) => match b {
+        Some(bv) => values_equal(av, bv),
+        None => false,
+      },
+      None => false,
+    }
+    match same {
+      false => { return false },
+      true => {},
+    }
+  }
+  return true
+}
+
+// ---------------------------------------------------------------------------
+// Rendering values
+// ---------------------------------------------------------------------------
+
+fn quote_string(s: string) -> string {
+  let escaped = string.replace_all(s, "\\", "\\\\")
+  let no_quotes = string.replace_all(escaped, "\"", "\\\"")
+  let no_newlines = string.replace_all(no_quotes, "\n", "\\n")
+  let no_tabs = string.replace_all(no_newlines, "\t", "\\t")
+  return "\"${no_tabs}\""
+}
+
+// `str(v)` at the top level: a string is itself. Nested inside a container it
+// is quoted, so `["a"]` and `[a]` are distinguishable.
+fn show_value(v: Value) -> string {
+  return match v {
+    VStr({ value }) => value,
+    else => show_nested(v),
+  }
+}
+
+fn show_nested(v: Value) -> string {
+  return match v {
+    VNum({ value }) => number.to_string(value),
+    VStr({ value }) => quote_string(value),
+    VBool({ value }) => match value {
+      true => "true",
+      false => "false",
+    },
+    VNil => "nil",
+    VArray({ items }) => {
+      let parts = array.map(items, fn(x: Value) -> string { show_nested(x) })
+      let joined = string.join(parts, ", ")
+      "[${joined}]"
+    },
+    VRecord({ fields }) => {
+      let parts = array.map(record.keys(fields), fn(k: string) -> string { show_field(fields, k) })
+      let joined = string.join(parts, ", ")
+      "{${joined}}"
+    },
+    VClosure({ name }) => "<fn ${name}>",
+    VBuiltin({ name }) => "<builtin ${name}>",
+  }
+}
+
+fn show_field(fields: Record<string, Value>, k: string) -> string {
+  let shown = match record.get(fields, k) {
+    Some(v) => show_nested(v),
+    None => "nil",
+  }
+  return "${k}: ${shown}"
+}
+
+// ---------------------------------------------------------------------------
+// Runtime failures, and the signal that carries a `return`
+// ---------------------------------------------------------------------------
+
+type RuntimeError =
+  | Undefined({ name: string, span: Span })
+  | AssignUndefined({ name: string, span: Span })
+  | NotCallable({ found: string, span: Span })
+  | Arity({ name: string, expected: int, got: int, span: Span })
+  | BadOperand({ op: string, found: string, span: Span })
+  | BadOperands({ op: string, left: string, right: string, span: Span })
+  | DivideByZero({ span: Span })
+  | NotIndexable({ found: string, span: Span })
+  | BadIndex({ found: string, target: string, span: Span })
+  | OutOfRange({ index: number, count: int, span: Span })
+  | NoSuchField({ name: string, span: Span })
+  | BadArgument({ name: string, expected: string, found: string, span: Span })
+  | DepthExceeded({ limit: int, span: Span })
+  | StepsExceeded({ limit: int, span: Span })
+
+fn runtime_error_message(e: RuntimeError) -> string {
+  return match e {
+    Undefined({ name }) => "undefined name `${name}`",
+    AssignUndefined({ name }) => "cannot assign to `${name}`; it is not defined in any enclosing scope",
+    NotCallable({ found }) => "a ${found} is not callable",
+    Arity({ name, expected, got }) => "${name} takes ${int_str(expected)} argument(s), got ${int_str(got)}",
+    BadOperand({ op, found }) => "`${op}` does not apply to a ${found}",
+    BadOperands({ op, left, right }) => "`${op}` does not apply to a ${left} and a ${right}",
+    DivideByZero => "division by zero",
+    NotIndexable({ found }) => "a ${found} cannot be indexed",
+    BadIndex({ found, target }) => "a ${target} cannot be indexed by a ${found}",
+    OutOfRange({ index, count }) => "index ${number.to_string(index)} is outside an array of ${int_str(count)}",
+    NoSuchField({ name }) => "no field `${name}` on this record",
+    BadArgument({ name, expected, found }) => "${name} expects a ${expected}, got a ${found}",
+    DepthExceeded({ limit }) => "call depth exceeded the configured limit of ${int_str(limit)}",
+    StepsExceeded({ limit }) => "step budget of ${int_str(limit)} exhausted",
+  }
+}
+
+fn runtime_error_span(e: RuntimeError) -> Span {
+  return match e {
+    Undefined({ span }) => span,
+    AssignUndefined({ span }) => span,
+    NotCallable({ span }) => span,
+    Arity({ span }) => span,
+    BadOperand({ span }) => span,
+    BadOperands({ span }) => span,
+    DivideByZero({ span }) => span,
+    NotIndexable({ span }) => span,
+    BadIndex({ span }) => span,
+    OutOfRange({ span }) => span,
+    NoSuchField({ span }) => span,
+    BadArgument({ span }) => span,
+    DepthExceeded({ span }) => span,
+    StepsExceeded({ span }) => span,
+  }
+}
+
+// Evaluation fails for two different reasons, and only one of them is an error.
+// Putting both in the `Err` channel means `?` unwinds a `return` through every
+// intermediate frame for free, which is exactly what a `return` has to do.
+type Signal =
+  | Fault({ error: RuntimeError })
+  | Unwind({ value: Value })
+
+// Every runtime failure travels as an `Err`, so wrapping one is a single call
+// rather than three nested constructors at every raise site.
+fn fault(e: RuntimeError) -> Signal {
+  return Fault({ error: e })
+}
+
+fn int_str(n: int) -> string {
+  return number.to_string(n)
+}
+
+// ---------------------------------------------------------------------------
+// The evaluator
+// ---------------------------------------------------------------------------
+
+fn evaluate(e: Expr, env: Env, m: Machine) -> Result<Value, Signal> {
+  mut m.steps = m.steps + 1
+  match m.steps > m.max_steps {
+    true => { return Err(fault(StepsExceeded({ limit: m.max_steps, span: expr_span(e) }))) },
+    false => {},
+  }
+  return match e {
+    Num({ value }) => Ok(VNum({ value: value })),
+    Str({ value }) => Ok(VStr({ value: value })),
+    Bool({ value }) => Ok(VBool({ value: value })),
+    Nil => Ok(VNil),
+    Ident({ name, span }) => match env_lookup(env, name) {
+      Some(v) => Ok(v),
+      None => Err(fault(Undefined({ name: name, span: span }))),
+    },
+    Unary({ op, operand, span }) => eval_unary(op, operand, span, env, m),
+    Binary({ op, left, right, span }) => eval_binary(op, left, right, span, env, m),
+    Call({ callee, args, span }) => eval_call(callee, args, span, env, m),
+    If({ cond, then_body, else_body }) => eval_if(cond, then_body, else_body, env, m),
+    Fn({ name, params, body }) => eval_fn(name, params, body, env),
+    Let({ name, value }) => eval_let(name, value, env, m),
+    Assign({ target, value, span }) => eval_assign(target, value, span, env, m),
+    Block({ body }) => eval_stmts(body, new_env(Some(env)), m),
+    While({ cond, body }) => eval_while(cond, body, env, m),
+    Return({ value }) => eval_return(value, env, m),
+    Index({ target, index, span }) => eval_index(target, index, span, env, m),
+    ArrayLit({ items }) => eval_array(items, env, m),
+    RecordLit({ fields }) => eval_record(fields, env, m),
+  }
+}
+
+fn eval_stmts(body: Array<Stmt>, env: Env, m: Machine) -> Result<Value, Signal> {
+  let last = VNil
+  for s in body {
+    mut last = evaluate(s.expr, env, m)?
+  }
+  return Ok(last)
+}
+
+fn eval_return(value: Expr, env: Env, m: Machine) -> Result<Value, Signal> {
+  let v = evaluate(value, env, m)?
+  return Err(Unwind({ value: v }))
+}
+
+fn eval_let(name: string, value: Expr, env: Env, m: Machine) -> Result<Value, Signal> {
+  let v = evaluate(value, env, m)?
+  env_define(env, name, v)
+  return Ok(v)
+}
+
+fn eval_fn(name: Option<string>, params: Array<string>, body: Array<Stmt>, env: Env) -> Result<Value, Signal> {
+  let shown = match name {
+    Some(n) => n,
+    None => "anonymous",
+  }
+  let closure = VClosure({ name: shown, params: params, body: body, env: env })
+  match name {
+    Some(n) => { env_define(env, n, closure) },
+    None => {},
+  }
+  return Ok(closure)
+}
+
+fn eval_if(cond: Expr, then_body: Array<Stmt>, else_body: Option<Array<Stmt>>, env: Env, m: Machine) -> Result<Value, Signal> {
+  let c = evaluate(cond, env, m)?
+  return match truthy(c) {
+    true => eval_stmts(then_body, new_env(Some(env)), m),
+    false => match else_body {
+      Some(b) => eval_stmts(b, new_env(Some(env)), m),
+      None => Ok(VNil),
+    },
+  }
+}
+
+fn eval_while(cond: Expr, body: Array<Stmt>, env: Env, m: Machine) -> Result<Value, Signal> {
+  loop {
+    let c = evaluate(cond, env, m)?
+    match truthy(c) {
+      false => { break },
+      true => {},
+    }
+    eval_stmts(body, new_env(Some(env)), m)?
+  }
+  return Ok(VNil)
+}
+
+fn eval_array(items: Array<Expr>, env: Env, m: Machine) -> Result<Value, Signal> {
+  let out: Array<Value> = []
+  for item in items {
+    let v = evaluate(item, env, m)?
+    mut out.push(v)
+  }
+  return Ok(VArray({ items: out }))
+}
+
+fn eval_record(fields: Array<FieldInit>, env: Env, m: Machine) -> Result<Value, Signal> {
+  let out: Record<string, Value> = {}
+  for f in fields {
+    let v = evaluate(f.value, env, m)?
+    mut out[f.key] = v
+  }
+  return Ok(VRecord({ fields: out }))
+}
+
+fn eval_unary(op: string, operand: Expr, span: Span, env: Env, m: Machine) -> Result<Value, Signal> {
+  let v = evaluate(operand, env, m)?
+  return match op {
+    "!" => Ok(VBool({ value: !truthy(v) })),
+    "-" => match v {
+      VNum({ value }) => Ok(VNum({ value: 0 - value })),
+      else => Err(fault(BadOperand({ op: op, found: type_name(v), span: span }))),
+    },
+    else => Err(fault(BadOperand({ op: op, found: type_name(v), span: span }))),
+  }
+}
+
+fn eval_binary(op: string, left: Expr, right: Expr, span: Span, env: Env, m: Machine) -> Result<Value, Signal> {
+  // `&&` and `||` short-circuit, so the right operand is not evaluated yet.
+  match op == "&&" {
+    true => {
+      let l = evaluate(left, env, m)?
+      return match truthy(l) {
+        false => Ok(l),
+        true => evaluate(right, env, m),
+      }
+    },
+    false => {},
+  }
+  match op == "||" {
+    true => {
+      let l = evaluate(left, env, m)?
+      return match truthy(l) {
+        true => Ok(l),
+        false => evaluate(right, env, m),
+      }
+    },
+    false => {},
+  }
+  let l = evaluate(left, env, m)?
+  let r = evaluate(right, env, m)?
+  return match op {
+    "==" => Ok(VBool({ value: values_equal(l, r) })),
+    "!=" => Ok(VBool({ value: !values_equal(l, r) })),
+    else => eval_arith(op, l, r, span),
+  }
+}
+
+fn eval_arith(op: string, l: Value, r: Value, span: Span) -> Result<Value, Signal> {
+  let pair = match l {
+    VNum({ value: a }) => match r {
+      VNum({ value: b }) => Some({ a: a, b: b }),
+      else => None,
+    },
+    else => None,
+  }
+  match pair {
+    Some(p) => { return numeric_op(op, p.a, p.b, span) },
+    None => {},
+  }
+  let texts = match l {
+    VStr({ value: a }) => match r {
+      VStr({ value: b }) => Some({ a: a, b: b }),
+      else => None,
+    },
+    else => None,
+  }
+  match texts {
+    Some(t) => { return string_op(op, t.a, t.b, span) },
+    None => {},
+  }
+  return Err(fault(BadOperands({ op: op, left: type_name(l), right: type_name(r), span: span })))
+}
+
+fn numeric_op(op: string, a: number, b: number, span: Span) -> Result<Value, Signal> {
+  return match op {
+    "+" => Ok(VNum({ value: a + b })),
+    "-" => Ok(VNum({ value: a - b })),
+    "*" => Ok(VNum({ value: a * b })),
+    "/" => match b == 0 {
+      true => Err(fault(DivideByZero({ span: span }))),
+      false => Ok(VNum({ value: a / b })),
+    },
+    "%" => match b == 0 {
+      true => Err(fault(DivideByZero({ span: span }))),
+      false => Ok(VNum({ value: a % b })),
+    },
+    "<" => Ok(VBool({ value: a < b })),
+    "<=" => Ok(VBool({ value: a <= b })),
+    ">" => Ok(VBool({ value: a > b })),
+    ">=" => Ok(VBool({ value: a >= b })),
+    else => Err(fault(BadOperands({ op: op, left: "number", right: "number", span: span }))),
+  }
+}
+
+fn string_op(op: string, a: string, b: string, span: Span) -> Result<Value, Signal> {
+  return match op {
+    "+" => Ok(VStr({ value: "${a}${b}" })),
+    "<" => Ok(VBool({ value: a < b })),
+    "<=" => Ok(VBool({ value: a <= b })),
+    ">" => Ok(VBool({ value: a > b })),
+    ">=" => Ok(VBool({ value: a >= b })),
+    else => Err(fault(BadOperands({ op: op, left: "string", right: "string", span: span }))),
+  }
+}
+
+fn eval_assign(target: Expr, value: Expr, span: Span, env: Env, m: Machine) -> Result<Value, Signal> {
+  let v = evaluate(value, env, m)?
+  return match target {
+    Ident({ name }) => match env_assign(env, name, v) {
+      true => Ok(v),
+      false => Err(fault(AssignUndefined({ name: name, span: span }))),
+    },
+    Index({ target: base, index, span: isp }) => assign_index(base, index, v, isp, env, m),
+    else => Err(fault(NotCallable({ found: "value", span: span }))),
+  }
+}
+
+fn assign_index(base: Expr, index: Expr, v: Value, span: Span, env: Env, m: Machine) -> Result<Value, Signal> {
+  let container = evaluate(base, env, m)?
+  let key = evaluate(index, env, m)?
+  return match container {
+    VArray({ items }) => match key {
+      VNum({ value: n }) => match n >= 0 && n < array.len(items) {
+        true => {
+          mut items[n] = v
+          Ok(v)
+        },
+        false => Err(fault(OutOfRange({ index: n, count: array.len(items), span: span }))),
+      },
+      else => Err(fault(BadIndex({ found: type_name(key), target: "array", span: span }))),
+    },
+    VRecord({ fields }) => match key {
+      VStr({ value: k }) => {
+        mut fields[k] = v
+        Ok(v)
+      },
+      else => Err(fault(BadIndex({ found: type_name(key), target: "record", span: span }))),
+    },
+    else => Err(fault(NotIndexable({ found: type_name(container), span: span }))),
+  }
+}
+
+fn eval_index(target: Expr, index: Expr, span: Span, env: Env, m: Machine) -> Result<Value, Signal> {
+  let container = evaluate(target, env, m)?
+  let key = evaluate(index, env, m)?
+  return match container {
+    VArray({ items }) => match key {
+      VNum({ value: n }) => match n >= 0 && n < array.len(items) {
+        true => Ok(items[n]),
+        false => Err(fault(OutOfRange({ index: n, count: array.len(items), span: span }))),
+      },
+      else => Err(fault(BadIndex({ found: type_name(key), target: "array", span: span }))),
+    },
+    VRecord({ fields }) => match key {
+      VStr({ value: k }) => match record.get(fields, k) {
+        Some(v) => Ok(v),
+        None => Err(fault(NoSuchField({ name: k, span: span }))),
+      },
+      else => Err(fault(BadIndex({ found: type_name(key), target: "record", span: span }))),
+    },
+    VStr({ value: s }) => match key {
+      VNum({ value: n }) => match n >= 0 && n < string.len(s) {
+        true => Ok(VStr({ value: string.slice(s, n, n + 1) })),
+        false => Err(fault(OutOfRange({ index: n, count: string.len(s), span: span }))),
+      },
+      else => Err(fault(BadIndex({ found: type_name(key), target: "string", span: span }))),
+    },
+    else => Err(fault(NotIndexable({ found: type_name(container), span: span }))),
+  }
+}
+
+fn eval_call(callee: Expr, args: Array<Expr>, span: Span, env: Env, m: Machine) -> Result<Value, Signal> {
+  let f = evaluate(callee, env, m)?
+  let values: Array<Value> = []
+  for a in args {
+    let v = evaluate(a, env, m)?
+    mut values.push(v)
+  }
+  return match f {
+    VBuiltin({ name }) => call_builtin(name, values, span, m),
+    VClosure({ name, params, body, env: captured }) => call_closure(
+      name,
+      params,
+      body,
+      captured,
+      values,
+      span,
+      m,
+    ),
+    else => Err(fault(NotCallable({ found: type_name(f), span: span }))),
+  }
+}
+
+fn call_closure(
+  name: string,
+  params: Array<string>,
+  body: Array<Stmt>,
+  captured: Env,
+  args: Array<Value>,
+  span: Span,
+  m: Machine,
+) -> Result<Value, Signal> {
+  match array.len(params) != array.len(args) {
+    true => {
+      return Err(
+        fault(Arity({ name: name, expected: array.len(params), got: array.len(args), span: span })),
+      )
+    },
+    false => {},
+  }
+  match m.depth >= m.max_call_depth {
+    true => { return Err(fault(DepthExceeded({ limit: m.max_call_depth, span: span }))) },
+    false => {},
+  }
+  // The frame's parent is where the function was defined, not where it was
+  // called: that one line is the whole of lexical scoping.
+  let frame = new_env(Some(captured))
+  for i, p in params {
+    env_define(frame, p, args[i])
+  }
+  mut m.depth = m.depth + 1
+  let outcome = eval_stmts(body, frame, m)
+  mut m.depth = m.depth - 1
+  return match outcome {
+    Ok(_v) => Ok(VNil),
+    Err(Unwind({ value })) => Ok(value),
+    Err(Fault({ error })) => Err(fault(error)),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Builtins
+// ---------------------------------------------------------------------------
+
+const BUILTIN_NAMES = ["len", "push", "print", "str", "num", "keys", "type_of"]
+
+fn install_builtins(env: Env) -> void {
+  for name in BUILTIN_NAMES {
+    env_define(env, name, VBuiltin({ name: name }))
+  }
+}
+
+fn expect_arity(name: string, args: Array<Value>, n: int, span: Span) -> Result<void, Signal> {
+  return match array.len(args) == n {
+    true => Ok(void),
+    false => Err(fault(Arity({ name: name, expected: n, got: array.len(args), span: span }))),
+  }
+}
+
+fn call_builtin(name: string, args: Array<Value>, span: Span, m: Machine) -> Result<Value, Signal> {
+  return match name {
+    "len" => builtin_len(args, span),
+    "push" => builtin_push(args, span),
+    "print" => builtin_print(args, span),
+    "str" => builtin_str(args, span),
+    "num" => builtin_num(args, span),
+    "keys" => builtin_keys(args, span),
+    "type_of" => builtin_type_of(args, span),
+    else => Err(fault(Undefined({ name: name, span: span }))),
+  }
+}
+
+fn builtin_len(args: Array<Value>, span: Span) -> Result<Value, Signal> {
+  expect_arity("len", args, 1, span)?
+  let v = args[0]
+  return match v {
+    VStr({ value }) => Ok(VNum({ value: string.len(value) })),
+    VArray({ items }) => Ok(VNum({ value: array.len(items) })),
+    VRecord({ fields }) => Ok(VNum({ value: array.len(record.keys(fields)) })),
+    else => Err(
+      fault(
+        BadArgument(
+          { name: "len", expected: "string, array, or record", found: type_name(v), span: span },
+        ),
+      ),
+    ),
+  }
+}
+
+fn builtin_push(args: Array<Value>, span: Span) -> Result<Value, Signal> {
+  expect_arity("push", args, 2, span)?
+  let target = args[0]
+  return match target {
+    VArray({ items }) => {
+      mut items.push(args[1])
+      Ok(target)
+    },
+    else => Err(
+      fault(BadArgument({ name: "push", expected: "array", found: type_name(target), span: span })),
+    ),
+  }
+}
+
+fn builtin_print(args: Array<Value>, span: Span) -> Result<Value, Signal> {
+  expect_arity("print", args, 1, span)?
+  io.println(show_value(args[0]))
+  return Ok(VNil)
+}
+
+fn builtin_str(args: Array<Value>, span: Span) -> Result<Value, Signal> {
+  expect_arity("str", args, 1, span)?
+  return Ok(VStr({ value: show_value(args[0]) }))
+}
+
+fn builtin_num(args: Array<Value>, span: Span) -> Result<Value, Signal> {
+  expect_arity("num", args, 1, span)?
+  let v = args[0]
+  return match v {
+    VNum({ value }) => Ok(VNum({ value: value })),
+    VStr({ value }) => match number.parse(string.trim(value)) {
+      Ok(n) => Ok(VNum({ value: n })),
+      Err(_e) => Err(
+        fault(BadArgument({ name: "num", expected: "numeric string", found: "string", span: span })),
+      ),
+    },
+    else => Err(
+      fault(
+        BadArgument({ name: "num", expected: "number or string", found: type_name(v), span: span }),
+      ),
+    ),
+  }
+}
+
+fn builtin_keys(args: Array<Value>, span: Span) -> Result<Value, Signal> {
+  expect_arity("keys", args, 1, span)?
+  let v = args[0]
+  return match v {
+    VRecord({ fields }) => {
+      let names = array.map(record.keys(fields), fn(k: string) -> Value { VStr({ value: k }) })
+      Ok(VArray({ items: names }))
+    },
+    else => Err(
+      fault(BadArgument({ name: "keys", expected: "record", found: type_name(v), span: span })),
+    ),
+  }
+}
+
+fn builtin_type_of(args: Array<Value>, span: Span) -> Result<Value, Signal> {
+  expect_arity("type_of", args, 1, span)?
+  return Ok(VStr({ value: type_name(args[0]) }))
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostics: one renderer for all three stages
+// ---------------------------------------------------------------------------
+
+fn source_line(all: Sources, span: Span) -> string {
+  let src = record.get(all.by_name, span.source)
+  return match src {
+    None => "",
+    Some(s) => match span.line >= 1 && span.line <= array.len(s.lines) {
+      true => string.replace_all(s.lines[span.line - 1], "\t", " "),
+      false => "",
+    },
+  }
+}
+
+fn render_diagnostic(all: Sources, stage: string, message: string, span: Span) -> Array<string> {
+  let out: Array<string> = []
+  mut out.push("${stage} error: ${message}")
+  let line_text = int_str(span.line)
+  let col_text = int_str(span.col)
+  mut out.push("  --> ${span.source}:${line_text}:${col_text}")
+  let blank = string.repeat(" ", string.len(line_text))
+  let quoted = source_line(all, span)
+  mut out.push("   ${blank} |")
+  mut out.push("   ${line_text} | ${quoted}")
+  let pad = string.repeat(" ", span.col - 1)
+  mut out.push("   ${blank} | ${pad}^")
+  return out
+}
+
+fn print_diagnostic(all: Sources, stage: string, message: string, span: Span) -> void {
+  for line in render_diagnostic(all, stage, message, span) {
+    io.println(line)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dumping the intermediate stages
+// ---------------------------------------------------------------------------
+
+fn dump_tokens(name: string, toks: Array<Token>) -> void {
+  io.println("tokens of ${name}")
+  for t in toks {
+    let place = "${int_str(t.span.line)}:${int_str(t.span.col)}"
+    let position = string.pad_end(place, 8, " ")
+    let kind = string.pad_end(token_kind_name(t.kind), 9, " ")
+    print_token(position, kind, t)
+  }
+}
+
+fn print_token(position: string, kind: string, t: Token) -> void {
+  let shown = match t.kind {
+    TString({ value }) => quote_string(value),
+    TEnd => "<end>",
+    else => t.text,
+  }
+  io.println("  ${position}${kind}${shown}")
+}
+
+fn indent_of(depth: int) -> string {
+  return string.repeat("  ", depth)
+}
+
+fn dump_body(label: string, body: Array<Stmt>, depth: int, out: Array<string>) -> void {
+  mut out.push("${indent_of(depth)}${label}")
+  for s in body {
+    dump_expr(s.expr, depth + 1, out)
+  }
+}
+
+fn dump_expr(e: Expr, depth: int, out: Array<string>) -> void {
+  let pad = indent_of(depth)
+  match e {
+    Num({ value }) => { mut out.push("${pad}Num ${number.to_string(value)}") },
+    Str({ value }) => { mut out.push("${pad}Str ${quote_string(value)}") },
+    Bool({ value }) => {
+      let shown = match value {
+        true => "true",
+        false => "false",
+      }
+      mut out.push("${pad}Bool ${shown}")
+    },
+    Nil => { mut out.push("${pad}Nil") },
+    Ident({ name }) => { mut out.push("${pad}Ident ${name}") },
+    Unary({ op, operand }) => {
+      mut out.push("${pad}Unary ${op}")
+      dump_expr(operand, depth + 1, out)
+    },
+    Binary({ op, left, right }) => {
+      mut out.push("${pad}Binary ${op}")
+      dump_expr(left, depth + 1, out)
+      dump_expr(right, depth + 1, out)
+    },
+    Call({ callee, args }) => {
+      mut out.push("${pad}Call")
+      dump_expr(callee, depth + 1, out)
+      for a in args {
+        dump_expr(a, depth + 1, out)
+      }
+    },
+    If({ cond, then_body, else_body }) => {
+      mut out.push("${pad}If")
+      dump_expr(cond, depth + 1, out)
+      dump_body("then", then_body, depth + 1, out)
+      match else_body {
+        Some(b) => { dump_body("else", b, depth + 1, out) },
+        None => {},
+      }
+    },
+    Fn({ name, params, body }) => {
+      let shown = match name {
+        Some(n) => n,
+        None => "<anonymous>",
+      }
+      let joined = string.join(params, ", ")
+      mut out.push("${pad}Fn ${shown}(${joined})")
+      dump_body("body", body, depth + 1, out)
+    },
+    Let({ name, value }) => {
+      mut out.push("${pad}Let ${name}")
+      dump_expr(value, depth + 1, out)
+    },
+    Assign({ target, value }) => {
+      mut out.push("${pad}Assign")
+      dump_expr(target, depth + 1, out)
+      dump_expr(value, depth + 1, out)
+    },
+    Block({ body }) => { dump_body("Block", body, depth, out) },
+    While({ cond, body }) => {
+      mut out.push("${pad}While")
+      dump_expr(cond, depth + 1, out)
+      dump_body("body", body, depth + 1, out)
+    },
+    Return({ value }) => {
+      mut out.push("${pad}Return")
+      dump_expr(value, depth + 1, out)
+    },
+    Index({ target, index }) => {
+      mut out.push("${pad}Index")
+      dump_expr(target, depth + 1, out)
+      dump_expr(index, depth + 1, out)
+    },
+    ArrayLit({ items }) => {
+      mut out.push("${pad}ArrayLit")
+      for item in items {
+        dump_expr(item, depth + 1, out)
+      }
+    },
+    RecordLit({ fields }) => {
+      mut out.push("${pad}RecordLit")
+      for f in fields {
+        mut out.push("${indent_of(depth + 1)}field ${f.key}")
+        dump_expr(f.value, depth + 2, out)
+      }
+    },
+  }
+}
+
+fn dump_ast(name: string, program: Array<Stmt>) -> void {
+  io.println("ast of ${name}")
+  let out: Array<string> = []
+  for s in program {
+    dump_expr(s.expr, 1, out)
+  }
+  for line in out {
+    io.println(line)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Driving a program and a session
+// ---------------------------------------------------------------------------
+
+// The result of feeding one chunk of text through all three stages.
+type Outcome =
+  | Failed
+  | Produced({ value: Value })
+
+fn run_text(all: Sources, name: string, text: string, env: Env, m: Machine) -> Outcome {
+  remember(all, name, text)
+  let toks = match tokenize(name, text) {
+    Ok(t) => t,
+    Err(le) => {
+      print_diagnostic(all, "lex", lex_error_message(le), lex_error_span(le))
+      return Failed
+    },
+  }
+  let program = match parse_program(toks) {
+    Ok(p) => p,
+    Err(pe) => {
+      print_diagnostic(all, "parse", parse_error_message(pe), parse_error_span(pe))
+      return Failed
+    },
+  }
+  reset_machine(m)
+  return match eval_stmts(program, env, m) {
+    Ok(v) => Produced({ value: v }),
+    Err(Unwind({ value })) => Produced({ value: value }),
+    Err(Fault({ error })) => {
+      print_diagnostic(all, "runtime", runtime_error_message(error), runtime_error_span(error))
+      Failed
+    },
+  }
+}
+
+fn run_program(name: string, text: string, config: Config) -> number {
+  let all = new_sources()
+  let globals = new_env(None)
+  install_builtins(globals)
+  let m = new_machine(config)
+  return match run_text(all, name, text, globals, m) {
+    Produced => 0,
+    Failed => 1,
+  }
+}
+
+// One REPL line, evaluated in an environment that outlives it. A failure
+// prints and the session continues, which is the whole point of a REPL.
+fn run_repl_line(all: Sources, index: int, text: string, env: Env, m: Machine, echo: bool) -> void {
+  io.println(">>> ${text}")
+  let name = "<repl:${int_str(index)}>"
+  match run_text(all, name, text, env, m) {
+    Failed => {},
+    Produced({ value }) => {
+      match echo && !is_nil(value) {
+        true => { io.println("=> ${show_nested(value)}") },
+        false => {},
+      }
+    },
+  }
+}
+
+fn is_nil(v: Value) -> bool {
+  return match v {
+    VNil => true,
+    else => false,
+  }
+}
+
+fn run_session(lines: Array<string>, config: Config) -> void {
+  let all = new_sources()
+  let globals = new_env(None)
+  install_builtins(globals)
+  let m = new_machine(config)
+  for i, line in lines {
+    match string.trim(line) == "" {
+      true => {},
+      false => { run_repl_line(all, i + 1, line, globals, m, config.echo_results) },
+    }
+  }
+}
+
+fn run_repl(config: Config) -> void {
+  let all = new_sources()
+  let globals = new_env(None)
+  install_builtins(globals)
+  let m = new_machine(config)
+  let index = 0
+  loop {
+    match io.read_line() {
+      None => { break },
+      Some(line) => {
+        match string.trim(line) == "" {
+          true => {},
+          false => {
+            mut index = index + 1
+            run_repl_line(all, index, line, globals, m, config.echo_results)
+          },
+        }
+      },
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading fixtures
+// ---------------------------------------------------------------------------
+
+fn load_text(p: string) -> Result<string, string> {
+  return match fs.read_text(p) {
+    Ok(t) => Ok(t),
+    Err(e) => Err("cannot read ${p}: ${e.message}"),
+  }
+}
+
+fn load_config(p: string) -> Result<Config, string> {
+  let text = load_text(p)?
+  return match json.parse<Config>(text) {
+    Ok(c) => Ok(c),
+    Err(issues) => Err(
+      "${p} is not a valid interpreter config (${int_str(array.len(issues))} problem(s))",
+    ),
+  }
+}
+
+fn read_lines(p: string) -> Result<Array<string>, string> {
+  let text = load_text(p)?
+  let normalized = string.replace_all(text, "\r\n", "\n")
+  return Ok(string.split(normalized, "\n"))
+}
+
+// ---------------------------------------------------------------------------
+// Command line
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DIR = "examples/apps/minilang"
+
+const USAGE = "usage: minilang [--dir DIR] [--tokens | --ast | --script FILE | --repl] [FILE]"
+
+type Mode =
+  | Everything
+  | Tokens
+  | Ast
+  | ScriptFile({ file: string })
+  | Interactive
+
+type Args = { dir: string, mode: Mode, file: Option<string> }
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let dir = DEFAULT_DIR
+  let mode: Mode = Everything
+  let file: Option<string> = None
+  let i = 0
+  let n = array.len(argv)
+  loop {
+    match i >= n {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg {
+      "--dir" => {
+        match i + 1 >= n {
+          true => { return Err("--dir expects a path") },
+          false => {},
+        }
+        mut dir = argv[i + 1]
+        mut i = i + 2
+      },
+      "--tokens" => {
+        mut mode = Tokens
+        mut i = i + 1
+      },
+      "--ast" => {
+        mut mode = Ast
+        mut i = i + 1
+      },
+      "--repl" => {
+        mut mode = Interactive
+        mut i = i + 1
+      },
+      "--script" => {
+        match i + 1 >= n {
+          true => { return Err("--script expects a path") },
+          false => {},
+        }
+        mut mode = ScriptFile({ file: argv[i + 1] })
+        mut i = i + 2
+      },
+      "--help" => { return Err(USAGE) },
+      else => {
+        match string.starts_with(arg, "--") {
+          true => { return Err("unknown option ${arg}") },
+          false => {
+            mut file = Some(arg)
+            mut i = i + 1
+          },
+        }
+      },
+    }
+  }
+  return Ok({ dir: dir, mode: mode, file: file })
+}
+
+fn resolve(dir: string, chosen: Option<string>, fallback: string) -> string {
+  return match chosen {
+    Some(f) => match string.contains(f, "/") {
+      true => f,
+      false => path.join([dir, f]),
+    },
+    None => path.join([dir, fallback]),
+  }
+}
+
+fn rule(label: string) -> string {
+  let dashes = string.repeat("-", 60 - string.len(label))
+  return "-- ${label} ${dashes}"
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 2
+    },
+  }
+
+  let config = match load_config(path.join([args.dir, "config.json"])) {
+    Ok(c) => c,
+    Err(msg) => {
+      io.eprintln("error: ${msg}")
+      return 1
+    },
+  }
+
+  return match args.mode {
+    Tokens => {
+      let p = resolve(args.dir, args.file, "demo.ml")
+      let text = match load_text(p) {
+        Ok(t) => t,
+        Err(msg) => {
+          io.eprintln("error: ${msg}")
+          return 1
+        },
+      }
+      let all = new_sources()
+      remember(all, p, text)
+      match tokenize(p, text) {
+        Ok(toks) => {
+          dump_tokens(p, toks)
+          0
+        },
+        Err(le) => {
+          print_diagnostic(all, "lex", lex_error_message(le), lex_error_span(le))
+          1
+        },
+      }
+    },
+    Ast => {
+      let p = resolve(args.dir, args.file, "demo.ml")
+      let text = match load_text(p) {
+        Ok(t) => t,
+        Err(msg) => {
+          io.eprintln("error: ${msg}")
+          return 1
+        },
+      }
+      let all = new_sources()
+      remember(all, p, text)
+      let toks = match tokenize(p, text) {
+        Ok(t) => t,
+        Err(le) => {
+          print_diagnostic(all, "lex", lex_error_message(le), lex_error_span(le))
+          return 1
+        },
+      }
+      match parse_program(toks) {
+        Ok(program) => {
+          dump_ast(p, program)
+          0
+        },
+        Err(pe) => {
+          print_diagnostic(all, "parse", parse_error_message(pe), parse_error_span(pe))
+          1
+        },
+      }
+    },
+    ScriptFile({ file }) => {
+      let p = resolve(args.dir, Some(file), "session.txt")
+      let lines = match read_lines(p) {
+        Ok(l) => l,
+        Err(msg) => {
+          io.eprintln("error: ${msg}")
+          return 1
+        },
+      }
+      run_session(lines, config)
+      0
+    },
+    Interactive => {
+      run_repl(config)
+      0
+    },
+    Everything => {
+      let program_path = resolve(args.dir, args.file, "demo.ml")
+      let text = match load_text(program_path) {
+        Ok(t) => t,
+        Err(msg) => {
+          io.eprintln("error: ${msg}")
+          return 1
+        },
+      }
+      io.println(rule("program ${program_path}"))
+      let code = run_program(program_path, text, config)
+
+      let session_path = path.join([args.dir, "session.txt"])
+      let lines = match read_lines(session_path) {
+        Ok(l) => l,
+        Err(msg) => {
+          io.eprintln("error: ${msg}")
+          return 1
+        },
+      }
+      io.println("")
+      io.println(rule("repl ${session_path}"))
+      run_session(lines, config)
+      code
+    },
+  }
+}

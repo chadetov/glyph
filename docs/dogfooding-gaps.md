@@ -22,9 +22,17 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled against the source after the dependency-resolver trip, which added two
-entries and closed one of them in the same release: of 72 entries, 48 are fixed,
-11 are partly fixed, 5 are decided or resolved, and 8 are open. G71 is the
+Reconciled against the source after the statechart trip, which added two entries
+and closed one of them in the same release: of 74 entries, 49 are fixed, 11 are
+partly fixed, 5 are decided or resolved, and 9 are open. G73 is the
+namespace-qualified `match` that got no exhaustiveness check, fixed by lowering
+`option.Option<T>` to the same prelude type the named import produces and by
+resolving a qualified arm through its head symbol. G74 is open and is cosmetic:
+E0200 quotes the missing variant names for some unions and not others.
+
+The reconciliation before it, after the dependency-resolver trip, which added two
+entries and closed one of them in the same release, read 72 entries, 48 fixed,
+11 partly fixed, 5 decided or resolved, and 8 open. G71 is the
 `record.get` into `match` into `for` miscompile, fixed by modeling `std/record`
 and by joining `match` arms one level into their type arguments. G72 is open and
 is a `glyph check` scoping behaviour that predates the trip.
@@ -1859,3 +1867,79 @@ did not need a new entry.
   identical on a build with this release's changes stashed, so it predates them.
   It also means the cost of checking one file scales with the directory it
   happens to live in.
+
+## Round 16 — a statechart replay engine, and the import spelling that turned the check off
+
+The loop pointed at `examples/apps/workflow/`: read a hierarchical statechart and
+an event log from JSON fixtures, resolve each event against the active
+configuration, evaluate guards over a typed context, run entry and exit actions in
+the right order, and print the replay. Nine modules. A domain built almost
+entirely out of tagged unions, since a condition, an action, a slot value, and a
+transition verdict are all sum types, and half the app is a `match` over one of
+them.
+
+That is why the trip found what it found. The app's own import lists were the
+tell. Every module carried an eighteen-name variant import so its matches could be
+written on bare constructors, and `interp.glyph` had a comment explaining that a
+union's constructors do not arrive with its type. The comment was accurate about
+the syntax and wrong about the reason: the author had not chosen the named form
+for readability, they had been pushed into it because the namespace form silently
+skipped the exhaustiveness check.
+
+The hole was total, not partial. `match c { model.Yes(_) => …, model.No(_) => … }`
+over a three-variant union reported no diagnostics, passed `tsc --strict`, and
+threw `Error: non-exhaustive match` with a raw JavaScript stack trace at run time.
+Writing the identical match with `import model { Yes, No }` was E0200. It reached
+the prelude unions too, which is the part that matters: `option.Option<T>` lowered
+to `Unknown`, so the most-used union in the language lost D9 to a one-token change
+in how it was imported.
+
+One thing turned up while proving the fix on the real app rather than on unit
+tests. Making `result.Result<T, E>` decidable also made it *classifiable*, and
+`type_expr_is_result` recognized only the prelude and named-import spellings, so
+every `?` in a function returning the qualified type became E0201. Nothing shipped
+in that state, because the qualified return type had been `Unknown` and therefore
+permissive before this release, but it is the same defect as the one being fixed:
+a predicate that knows two of the three legal spellings of a type. It is a third
+arm in `type_expr_is_result` and a regression test now.
+
+The rewrite is the evidence. `interp.glyph` and `main.glyph` are in the namespace
+form with their import lists deleted, and the remaining seven modules stayed on
+the named form, so the app carries both spellings and builds clean on both. Every
+run mode is byte-identical to the pre-rewrite baseline, and deleting any single
+arm from either rewritten module is now an E0200.
+
+The trip also put a number on what G72 costs once it reaches CI. The examples
+gate runs `glyph build ../examples` over one root, so a multi-module app nested
+under `examples/apps/` has its own siblings out of scope and every cross-module
+import comes back `TS2307`. That gate has been red since the app directories
+started arriving; this app makes the failure larger without changing its shape.
+All four multi-module apps build clean when the root is the app directory. The
+fix is a call about the walk or about the gate, not about the apps.
+
+- **G73. [FIXED] A namespace-qualified `match` over an imported union got no
+  exhaustiveness check at all.** `import model` plus `model.Yes(_)` arms, or
+  `import model as m` plus `m.Yes(_)`, was accepted with any subset of the
+  variants covered: no diagnostic, `tsc --strict` green, `Error: non-exhaustive
+  match` at run time. The named-import spelling of the same match was E0200. It
+  applied to project-sibling unions and to `std/option` and `std/result` alike.
+  *Fixed in 0.1.56, in two places that had the same shape. `stdlib_path_ty` now
+  falls back to `imported_prelude_container` when the two-segment stdlib type
+  table misses, so `option.Option<T>` and `Option<T>` lower to one `Ty` and the
+  ordinary exhaustiveness path runs on both. For project modules,
+  `imported_union_variants_from_arms` resolves a qualified arm through its head
+  symbol (`ImportNamespace` or `ImportAlias`) instead of looking the variant name
+  up as a symbol, which under a namespace import it never is. A misspelled
+  qualified head used to enter the covered set unexamined and come back from
+  `tsc` as a `TS2678` against a literal union type; it is E0220 on the arm now,
+  with the nearest-variant hint. Seven integration tests pin the spellings and the
+  two ways the check could over-fire, an eighth pins the `?` regression, and there
+  was no coverage for any of it before.*
+
+- **G74. E0200 quotes the missing variant names for some unions and not
+  others.** A module-local union reports ``missing variants `B` `` and so do the
+  prelude unions, but a union imported from another Glyph module reports `missing
+  variants Maybe` with the names bare. The two lists are built in different places
+  and only one of them quotes. Cosmetic, and it splits by where the union is defined
+  rather than by how it was imported, so it is not a residue of G73; confirmed on
+  the named-import spelling as well.

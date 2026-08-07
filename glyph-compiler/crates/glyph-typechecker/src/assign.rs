@@ -1459,10 +1459,24 @@ impl Assigner<'_> {
         }
         match self.resolved.resolutions.get(*span) {
             Some(ResolvedRef::Prelude(id)) => self.lowerer.prelude.lookup("Result") == Some(id),
-            Some(ResolvedRef::Module(id)) => matches!(
-                self.resolved.symbols.table.get(id).map(|s| &s.kind),
-                Some(SymbolKind::ImportNamed { original, .. }) if original.as_ref() == "Result"
-            ),
+            Some(ResolvedRef::Module(id)) => {
+                match self.resolved.symbols.table.get(id).map(|s| &s.kind) {
+                    Some(SymbolKind::ImportNamed { original, .. }) => {
+                        original.as_ref() == "Result"
+                    }
+                    // `result.Result<T, E>`, and the same through an alias. The
+                    // lowerer now gives this the prelude `Ty::Named`, which makes
+                    // it decidable, so without this arm the `?` rule reads it as a
+                    // decidably non-`Result` return and rejects every `?` in the
+                    // function body.
+                    Some(SymbolKind::ImportNamespace { path })
+                    | Some(SymbolKind::ImportAlias { path, .. }) => {
+                        segments.len() == 2
+                            && path.segments.iter().map(|s| s.as_ref()).eq(["std", "result"])
+                    }
+                    _ => false,
+                }
+            }
             _ => false,
         }
     }
@@ -1689,11 +1703,23 @@ impl Assigner<'_> {
     /// arms: find the first arm naming an imported variant, follow its
     /// `ImportNamed` symbol to the source module, and ask the resolver for the
     /// union that owns it. `None` when no arm names a resolvable imported variant.
+    ///
+    /// A qualified arm (`model.Yes(_)`, or `m.Yes(_)` through
+    /// `import model as m`) is resolved through its *head* instead: the variant
+    /// name is not a symbol under a namespace import, so the `ImportNamed`
+    /// lookup below can never find it and the whole match went unchecked.
     fn imported_union_variants_from_arms(
         &self,
         arms: &[MatchArm],
     ) -> Option<(String, Vec<Ident>)> {
         for arm in arms {
+            if let Pattern::Constructor { path, .. } = &arm.pattern {
+                if path.len() >= 2 {
+                    if let Some(found) = self.qualified_union_variants(path) {
+                        return Some(found);
+                    }
+                }
+            }
             let variant = match &arm.pattern {
                 Pattern::Constructor { path, .. } => path.last(),
                 Pattern::Ident { name, .. }
@@ -1729,10 +1755,40 @@ impl Assigner<'_> {
         None
     }
 
+    /// The `(type name, variant set)` a qualified constructor pattern names,
+    /// when its head is a namespace import of a project sibling: `model.Yes(_)`
+    /// resolves `model` to its `ImportNamespace`/`ImportAlias` path and asks the
+    /// resolver which union in that module declares `Yes`. `None` for a head
+    /// that is not a namespace import, or a module that declares no such
+    /// variant (a stdlib namespace such as `option` has no project file, so it
+    /// falls through here and is typed by the lowerer instead).
+    fn qualified_union_variants(&self, path: &[Ident]) -> Option<(String, Vec<Ident>)> {
+        let head = path.first()?;
+        let variant = path.last()?;
+        let &sym_id = self.resolved.symbols.by_name.get(head)?;
+        let sym = self.resolved.symbols.table.get(sym_id)?;
+        let import_path = match &sym.kind {
+            SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. } => path,
+            _ => return None,
+        };
+        let module_path: String = import_path
+            .segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("/");
+        self.decl_ty_resolver
+            .imported_union_of_variant(&module_path, variant)
+    }
+
     /// Coverage check for a `match` on an imported union: every required variant
     /// must be covered by an arm, or a catch-all must absorb the rest. Whole-
     /// variant coverage only (nested-pattern exhaustiveness of an imported union
-    /// is not tracked cross-module in v1). Emits `NonExhaustiveMatch`.
+    /// is not tracked cross-module in v1). Emits `NonExhaustiveMatch`, and
+    /// `UnknownVariantPattern` for a constructor head that names no variant of
+    /// the union — that arm used to be inserted into `covered` unexamined, so a
+    /// misspelling reached `tsc` and came back as a raw `TS2678` instead of a
+    /// Glyph diagnostic pointing at the arm.
     fn check_imported_union_coverage(
         &mut self,
         type_name: &str,
@@ -1742,6 +1798,7 @@ impl Assigner<'_> {
     ) {
         let mut covered: std::collections::HashSet<&str> = std::collections::HashSet::new();
         let mut has_catch_all = false;
+        let mut unknown: Vec<(String, glyph_ast::Span)> = Vec::new();
         for arm in arms {
             match &arm.pattern {
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => has_catch_all = true,
@@ -1752,13 +1809,26 @@ impl Assigner<'_> {
                         has_catch_all = true;
                     }
                 }
-                Pattern::Constructor { path, .. } => {
+                Pattern::Constructor { path, span, .. } => {
                     if let Some(v) = path.last() {
-                        covered.insert(v.as_ref());
+                        if required.iter().any(|r| r == v) {
+                            covered.insert(v.as_ref());
+                        } else if is_constructor_shaped(v) {
+                            unknown.push((v.to_string(), *span));
+                        }
                     }
                 }
                 _ => {}
             }
+        }
+        for (name, span) in unknown {
+            let suggestion = nearest_variant(&name, required);
+            self.errors.push(TypeError::UnknownVariantPattern {
+                union: type_name.to_string(),
+                name,
+                suggestion,
+                span,
+            });
         }
         if has_catch_all {
             return;

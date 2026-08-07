@@ -1,0 +1,29 @@
+{
+  "id": "broken",
+  "root": "root",
+  "context": {
+    "status": { "tag": "Text", "text": "new" }
+  },
+  "states": [
+    {
+      "id": "root",
+      "children": ["a", "b", "c", "missing"],
+      "initial": "a",
+      "on": {
+        "go": { "target": "nowhere" }
+      }
+    },
+    {
+      "id": "a",
+      "on": {
+        "next": { "target": "b" }
+      }
+    },
+    { "id": "a" },
+    { "id": "b", "children": ["d"] },
+    { "id": "c", "initial": "zzz" },
+    { "id": "d", "initial": "a" },
+    { "id": "orphan" }
+  ],
+  "terminal": ["ghost"]
+}

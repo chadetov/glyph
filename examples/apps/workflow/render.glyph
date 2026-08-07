@@ -1,0 +1,417 @@
+// Everything the program prints. No module above this one calls `io`.
+//
+// Each function returns lines rather than printing them, so the same text can
+// be compared, held back by a mode that does not want it, or sent to stderr
+// instead of stdout without the producing code knowing which.
+module render
+
+import std/array
+import std/option { Option, Some, None }
+import std/record
+import std/string
+import check { DuplicateState, EmptyMachine, InitialNotChild, MachineError, MissingInitial, Unreachable, UnknownChild, UnknownInitial, UnknownRoot, UnknownTarget, UnknownTerminal }
+import index
+import index { Index }
+import interp
+import interp { UnknownKey, WrongKind, SlotError }
+import model { Action, All, Any, AtLeast, Clear, Condition, Context, Counter, Equals, Flag, FlagSet, Increment, Machine, Not, Set, Slot, State, Text, Transition }
+import replay
+import replay { AfterTerminal, AllGuardsRejected, BadAction, BadGuard, Candidate, GuardFailed, GuardPassed, NoGuard, Replay, ReplayError, Step, Unhandled, Verdict }
+import text
+
+// A configuration is printed the way it nests.
+const ARROW = " > "
+
+const COMMA = ", "
+
+// ---------------------------------------------------------------------------
+// Guards, actions, context
+// ---------------------------------------------------------------------------
+
+fn joined(parts: Array<Condition>) -> string {
+  return string.join(array.map(parts, condition_text), COMMA)
+}
+
+pub fn condition_text(c: Condition) -> string {
+  return match c {
+    Equals({ key, value }) => "${key} == ${text.quote(value)}",
+    AtLeast({ key, least }) => "${key} >= ${number.to_string(least)}",
+    FlagSet({ key }) => "${key} set",
+    All({ of }) => "all(${joined(of)})",
+    Any({ of }) => "any(${joined(of)})",
+    Not({ of }) => "not(${condition_text(of)})",
+  }
+}
+
+pub fn guard_text(g: Option<Condition>) -> string {
+  return match g {
+    None => "none",
+    Some(c) => condition_text(c),
+  }
+}
+
+pub fn action_text(a: Action) -> string {
+  return match a {
+    Set({ key, value }) => "set ${key} = ${text.quote(value)}",
+    Increment({ key, by }) => "increment ${key} by ${number.to_string(by)}",
+    Clear({ key }) => "clear ${key}",
+  }
+}
+
+fn action_list_text(actions: Array<Action>) -> string {
+  return match array.len(actions) == 0 {
+    true => "none",
+    false => string.join(array.map(actions, action_text), COMMA),
+  }
+}
+
+fn slot_text(s: Slot) -> string {
+  return match s {
+    Text({ text: value }) => text.quote(value),
+    Counter({ count }) => number.to_string(count),
+    Flag({ on }) => match on {
+      true => "set",
+      false => "clear",
+    },
+  }
+}
+
+pub fn config_text(config: Array<string>) -> string {
+  return string.join(config, ARROW)
+}
+
+// Keys are sorted so two runs of the same log print the same context.
+pub fn context_lines(ctx: Context, indent: string) -> Array<string> {
+  let keys = array.sort(record.keys(ctx.slots), text.cmp)
+  let width = array.fold(
+    keys,
+    0,
+    fn(acc: number, k: string) -> number {
+      return match string.len(k) > acc {
+        true => string.len(k),
+        false => acc,
+      }
+    },
+  )
+  let out: Array<string> = []
+  for key in keys {
+    match record.get(ctx.slots, key) {
+      None => {},
+      Some(s) => {
+        let name = text.pad(key, width)
+        let kind = text.pad(interp.kind_of(s), 8)
+        mut out = array.push(out, "${indent}${name}  ${kind}${slot_text(s)}")
+      },
+    }
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Machine errors
+// ---------------------------------------------------------------------------
+
+fn machine_error_text(e: MachineError) -> string {
+  return match e {
+    EmptyMachine => "the machine declares no states",
+    UnknownRoot({ root }) => "the root ${text.quote(root)} is not a declared state",
+    DuplicateState({ id, count }) => "the state id ${text.quote(id)} is declared ${number.to_string(count)} times",
+    UnknownChild({ parent, child }) => "${parent} lists a child ${text.quote(child)} that is not a declared state",
+    MissingInitial({ id }) => "${id} has children but no initial child",
+    UnknownInitial({ id, initial }) => "${id} starts in ${text.quote(initial)}, which is not a declared state",
+    InitialNotChild({ id, initial }) => "${id} starts in ${text.quote(initial)}, which is not one of its children",
+    UnknownTarget({ source, event, target }) => "${source} on ${text.quote(event)} targets ${text.quote(target)}, which is not a declared state",
+    UnknownTerminal({ id }) => "the terminal set names ${text.quote(id)}, which is not a declared state",
+    Unreachable({ id }) => "${id} is not reachable from the root",
+  }
+}
+
+pub fn machine_error_lines(errors: Array<MachineError>) -> Array<string> {
+  let count = number.to_string(array.len(errors))
+  let out: Array<string> = ["the machine does not check out (${count} problems):"]
+  for e in errors {
+    mut out = array.push(out, "  ${machine_error_text(e)}")
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// The state tree
+// ---------------------------------------------------------------------------
+
+fn state_note(s: State) -> string {
+  let compound = match s.initial {
+    Some(initial) => "compound, starts in ${initial}",
+    None => "leaf",
+  }
+  return match s.terminal {
+    true => "${compound}, terminal",
+    false => compound,
+  }
+}
+
+fn subtree_lines(ix: Index, id: string, depth: number) -> Array<string> {
+  return match index.node(ix, id) {
+    None => ["${text.indent(depth)}${id}  (undeclared)"],
+    Some(s) => {
+      let head = "${text.indent(depth)}${s.id}  (${state_note(s)})"
+      let out: Array<string> = [head]
+      for child in s.children {
+        for line in subtree_lines(ix, child, depth + 1) {
+          mut out = array.push(out, line)
+        }
+      }
+      out
+    },
+  }
+}
+
+pub fn tree_lines(m: Machine, ix: Index) -> Array<string> {
+  let out: Array<string> = ["state tree"]
+  for line in subtree_lines(ix, m.root, 1) {
+    mut out = array.push(out, line)
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// The transition table
+// ---------------------------------------------------------------------------
+
+fn widest(values: Array<string>, floor: number) -> number {
+  return array.fold(
+    values,
+    floor,
+    fn(acc: number, v: string) -> number {
+      return match string.len(v) > acc {
+        true => string.len(v),
+        false => acc,
+      }
+    },
+  )
+}
+
+// States in tree order, so the table reads like the tree above it.
+fn tree_order(ix: Index, id: string) -> Array<string> {
+  let out: Array<string> = [id]
+  match index.node(ix, id) {
+    None => {},
+    Some(s) => {
+      for child in s.children {
+        for one in tree_order(ix, child) {
+          mut out = array.push(out, one)
+        }
+      }
+    },
+  }
+  return out
+}
+
+pub fn transition_table_lines(m: Machine, ix: Index) -> Array<string> {
+  let rows: Array<Transition> = []
+  for id in tree_order(ix, m.root) {
+    match index.node(ix, id) {
+      None => {},
+      Some(s) => {
+        for t in s.transitions {
+          mut rows = array.push(rows, t)
+        }
+      },
+    }
+  }
+  let sources = widest(array.map(rows, fn(t: Transition) -> string { return t.source }), 5)
+  let events = widest(array.map(rows, fn(t: Transition) -> string { return t.event }), 5)
+  let targets = widest(array.map(rows, fn(t: Transition) -> string { return t.target }), 6)
+  // The three headings are bound first: a string literal cannot appear inside a
+  // `${...}` interpolation.
+  let h_state = text.pad("state", sources)
+  let h_event = text.pad("event", events)
+  let h_target = text.pad("target", targets)
+  let out: Array<string> = ["transition table", "  ${h_state}  ${h_event}  ${h_target}  guard"]
+  for t in rows {
+    let cells = "${text.pad(t.source, sources)}  ${text.pad(t.event, events)}  ${text.pad(t.target, targets)}"
+    mut out = array.push(out, "  ${cells}  ${guard_text(t.guard)}")
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// The replay
+// ---------------------------------------------------------------------------
+
+fn verdict_text(v: Verdict) -> string {
+  return match v {
+    NoGuard => "no guard",
+    GuardPassed => "guard passed",
+    GuardFailed => "guard failed",
+  }
+}
+
+fn id_list(ids: Array<string>) -> string {
+  return match array.len(ids) == 0 {
+    true => "none",
+    false => string.join(ids, COMMA),
+  }
+}
+
+fn step_detail(s: Step, depth: number) -> Array<string> {
+  let pad = text.indent(depth)
+  let out: Array<string> = []
+  match array.len(s.updates) == 0 {
+    true => {},
+    false => { mut out = array.push(out, "${pad}payload     ${action_list_text(s.updates)}") },
+  }
+  mut out = array.push(
+    out,
+    "${pad}transition  ${s.from} -> ${s.to}  (declared on ${s.declared_on}, ${verdict_text(s.verdict)})",
+  )
+  for c in s.rejected {
+    mut out = array.push(
+      out,
+      "${pad}passed over ${c.source} -> ${c.target}  (${verdict_text(c.verdict)})",
+    )
+  }
+  mut out = array.push(out, "${pad}exited      ${id_list(s.exited)}")
+  mut out = array.push(out, "${pad}entered     ${id_list(s.entered)}")
+  mut out = array.push(out, "${pad}actions     ${action_list_text(s.actions)}")
+  mut out = array.push(out, "${pad}now         ${config_text(s.after)}")
+  return out
+}
+
+fn slot_error_text(e: SlotError) -> string {
+  return match e {
+    UnknownKey({ key, from }) => "the ${from} names ${text.quote(key)}, which the context does not declare",
+    WrongKind({ key, from, wanted, found }) => "the ${from} wants ${key} to be a ${wanted}, but it is a ${found}",
+  }
+}
+
+fn replay_error_lines(e: ReplayError) -> Array<string> {
+  let pad = text.indent(1)
+  return match e {
+    Unhandled({ at, event, active }) => [
+      "stopped at event ${number.to_string(at)}",
+      "${pad}nothing on the way out from ${active} handles ${text.quote(event)}",
+    ],
+    AllGuardsRejected({ at, event, active, tried }) => {
+      let head: Array<string> = [
+        "stopped at event ${number.to_string(at)}",
+        "${pad}every transition for ${text.quote(event)} from ${active} was rejected by its guard",
+      ]
+      let rows = array.map(
+        tried,
+        fn(c: Candidate) -> string { return "${pad}${text.STEP}${c.source} -> ${c.target}  (${verdict_text(c.verdict)})" },
+      )
+      array.concat(head, rows)
+    },
+    AfterTerminal({ at, event, active }) => [
+      "stopped at event ${number.to_string(at)}",
+      "${pad}${text.quote(event)} arrived after the machine settled in the terminal state ${active}",
+    ],
+    BadGuard({ at, event, active, cause }) => [
+      "stopped at event ${number.to_string(at)}",
+      "${pad}a guard reachable from ${active} could not be evaluated for ${text.quote(event)}",
+      "${pad}${text.STEP}${slot_error_text(cause)}",
+    ],
+    BadAction({ at, event, active, cause }) => [
+      "stopped at event ${number.to_string(at)}",
+      "${pad}an action for ${text.quote(event)} at ${active} could not be applied",
+      "${pad}${text.STEP}${slot_error_text(cause)}",
+    ],
+  }
+}
+
+pub fn replay_lines(r: Replay) -> Array<string> {
+  let out: Array<string> = ["replay"]
+  match array.len(r.steps) == 0 {
+    true => { mut out = array.push(out, "${text.indent(1)}(no events replayed)") },
+    false => {},
+  }
+  for s in r.steps {
+    mut out = array.push(out, "${text.indent(1)}[${number.to_string(s.at)}] ${s.event}")
+    for line in step_detail(s, 3) {
+      mut out = array.push(out, line)
+    }
+  }
+  mut out = array.push(out, "")
+  match r.stopped {
+    None => {},
+    Some(e) => {
+      for line in replay_error_lines(e) {
+        mut out = array.push(out, line)
+      }
+      mut out = array.push(out, "")
+    },
+  }
+  mut out = array.push(out, "final configuration")
+  mut out = array.push(out, "${text.indent(1)}${config_text(r.config)}")
+  mut out = array.push(out, "final context")
+  for line in context_lines(r.context, text.indent(1)) {
+    mut out = array.push(out, line)
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// One point in the replay
+// ---------------------------------------------------------------------------
+
+// What the machine looks like at a chosen event index: where it is, what it
+// remembers, and what it would do next.
+pub fn step_lines(m: Machine, ix: Index, r: Replay, at: int) -> Array<string> {
+  let taken = array.find(r.steps, fn(s: Step) -> bool { return s.at == at })
+  let head = match taken {
+    Some(s) => "machine state after event ${number.to_string(at)} (${s.event})",
+    None => "machine state before event ${number.to_string(at)} (never reached)",
+  }
+  let out: Array<string> = [head, ""]
+  match taken {
+    None => {},
+    Some(s) => {
+      for line in step_detail(s, 1) {
+        mut out = array.push(out, line)
+      }
+      mut out = array.push(out, "")
+    },
+  }
+  mut out = array.push(out, "configuration")
+  mut out = array.push(out, "${text.indent(1)}${config_text(r.config)}")
+  mut out = array.push(out, "context")
+  for line in context_lines(r.context, text.indent(1)) {
+    mut out = array.push(out, line)
+  }
+  mut out = array.push(out, "reachable from here")
+  let active = replay.active_leaf(r.config)
+  let offered: Array<Transition> = []
+  for id in index.ancestors(ix, active) {
+    match index.node(ix, id) {
+      None => {},
+      Some(s) => {
+        for t in s.transitions {
+          mut offered = array.push(offered, t)
+        }
+      },
+    }
+  }
+  match array.len(offered) == 0 {
+    true => { mut out = array.push(out, "${text.indent(1)}(nothing; ${active} is a dead end)") },
+    false => {},
+  }
+  let events = widest(array.map(offered, fn(t: Transition) -> string { return t.event }), 5)
+  let targets = widest(array.map(offered, fn(t: Transition) -> string { return t.target }), 6)
+  for t in offered {
+    let verdict = match t.guard {
+      None => "ready",
+      Some(c) => match interp.evaluate(r.context, c) {
+        Ok(true) => "ready",
+        Ok(false) => "blocked",
+        Err(_) => "unevaluable",
+      },
+    }
+    let cells = "${text.pad(t.event, events)}  -> ${text.pad(t.target, targets)}"
+    mut out = array.push(
+      out,
+      "${text.indent(1)}${cells}  ${text.pad(verdict, 12)}(on ${t.source}, guard ${guard_text(t.guard)})",
+    )
+  }
+  return out
+}

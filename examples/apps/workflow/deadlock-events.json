@@ -1,0 +1,7 @@
+[
+  { "name": "review" },
+  { "name": "submit" },
+  { "name": "pay" },
+  { "name": "ship" },
+  { "name": "deliver" }
+]

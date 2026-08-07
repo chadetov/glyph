@@ -1,0 +1,16 @@
+let x = 1
+x + 1
+let inc = fn(n) { return n + 1 }
+inc(x)
+let msg = "state survives the line"
+msg
+[1, 2, 3]
+{ a: 1, b: "two" }
+len("hello") + len([1, 2])
+x = x + 40
+x
+1 +
+nope
+fn deep(n) { return deep(n + 1) }
+deep(0)
+x

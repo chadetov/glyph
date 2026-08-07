@@ -4251,6 +4251,251 @@ fn non_exhaustive_imported_union_match_is_caught() {
     );
 }
 
+/// A three-variant union in a sibling module, for the namespace-import
+/// exhaustiveness tests below. Written once so every spelling is checked
+/// against the same declaration.
+const COND_MODULE: &str = "module model\n\
+     pub type Cond =\n\
+     \x20 | Yes({ k: string })\n\
+     \x20 | No({ k: string })\n\
+     \x20 | Maybe({ k: string })\n";
+
+#[test]
+fn namespace_qualified_match_on_imported_union_is_exhaustiveness_checked() {
+    // `import model` + `model.Yes(_)` arms got no exhaustiveness check at all:
+    // the variant name is not a symbol under a namespace import, so the
+    // imported-union lookup missed and the match was silently accepted. The
+    // build reported no diagnostics and `tsc --strict` passed, then the program
+    // threw `non-exhaustive match` at runtime. The same match with a named
+    // import was E0200. D9 does not depend on the import spelling.
+    let root = unique_tmp("nsexhaust");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", COND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import model\n\
+         pub fn name(c: model.Cond) -> string {\n\
+         \x20 return match c {\n\
+         \x20\x20\x20 model.Yes(_) => \"yes\",\n\
+         \x20\x20\x20 model.No(_) => \"no\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Maybe")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn aliased_namespace_match_on_imported_union_is_exhaustiveness_checked() {
+    // `import model as m` interns an `ImportAlias` rather than an
+    // `ImportNamespace`; both resolve through the import's own path, so the
+    // aliased spelling is held to the same bar.
+    let root = unique_tmp("aliasexhaust");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", COND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import model as m\n\
+         pub fn name(c: m.Cond) -> string {\n\
+         \x20 return match c {\n\
+         \x20\x20\x20 m.Yes(_) => \"yes\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("No") && d.contains("Maybe")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn namespace_qualified_match_on_prelude_option_is_exhaustiveness_checked() {
+    // `option.Option<string>` used to lower to `Ty::Unknown` (the two-segment
+    // stdlib table knew only the three `fs.*` types), so a match over it fell
+    // into the imported-union path and was never checked. The most-used union
+    // in the language lost D9 to a one-token change in how it was imported.
+    let root = unique_tmp("nsoption");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/option\n\
+         pub fn unwrap(o: option.Option<string>) -> string {\n\
+         \x20 return match o {\n\
+         \x20\x20\x20 option.Some(s) => s,\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("None")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn namespace_qualified_match_on_prelude_result_is_exhaustiveness_checked() {
+    let root = unique_tmp("nsresult");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/result\n\
+         pub fn ok_or(r: result.Result<string, string>) -> string {\n\
+         \x20 return match r {\n\
+         \x20\x20\x20 result.Ok(v) => v,\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Err")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn namespace_qualified_misspelled_variant_is_a_glyph_diagnostic() {
+    // A misspelled qualified head was inserted into the covered set unexamined,
+    // so it reached `tsc` and came back as a raw TS2678. E0220 belongs here,
+    // pointing at the arm, with the nearest-variant hint.
+    let root = unique_tmp("nstypo");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", COND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import model\n\
+         pub fn name(c: model.Cond) -> string {\n\
+         \x20 return match c {\n\
+         \x20\x20\x20 model.Yes(_) => \"yes\",\n\
+         \x20\x20\x20 model.Nooo(_) => \"typo\",\n\
+         \x20\x20\x20 model.Maybe(_) => \"maybe\",\n\
+         \x20\x20\x20 else => \"other\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0220") && d.contains("Nooo")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.diagnostics.iter().any(|d| d.contains("TS2678")),
+        "the typo must not leak to tsc: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn namespace_qualified_match_with_else_arm_is_accepted() {
+    // Guard against over-firing: an `else` catch-all forfeits D9 by choice and
+    // is legal, so the new check must not report a missing variant.
+    let root = unique_tmp("nselse");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", COND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import model\n\
+         pub fn name(c: model.Cond) -> string {\n\
+         \x20 return match c {\n\
+         \x20\x20\x20 model.Yes(_) => \"yes\",\n\
+         \x20\x20\x20 else => \"other\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+}
+
+#[test]
+fn namespace_qualified_match_covering_every_variant_is_clean() {
+    // The other over-firing guard: a fully covered namespace-form match, plus a
+    // qualified pattern whose head is a stdlib namespace that owns no project
+    // union (`fs.ErrorKind.NotFound`), must both stay silent.
+    let root = unique_tmp("nsfull");
+    let src = root.join("src");
+    write_file(&src, "model.glyph", COND_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import model\n\
+         pub fn name(c: model.Cond) -> string {\n\
+         \x20 return match c {\n\
+         \x20\x20\x20 model.Yes(_) => \"yes\",\n\
+         \x20\x20\x20 model.No(_) => \"no\",\n\
+         \x20\x20\x20 model.Maybe(_) => \"maybe\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(root.join("dist").join("main.ts")).unwrap();
+    assert!(ts.contains("case \"Maybe\":"), "{ts}");
+}
+
+#[test]
+fn question_operator_accepts_a_namespace_qualified_result_return() {
+    // Lowering `result.Result<T, E>` to the prelude type made it decidable, and
+    // the `?` rule only recognized the prelude and `ImportNamed` spellings, so
+    // every `?` in a function returning `result.Result<_, _>` was rejected as
+    // sitting outside a `Result` function.
+    let root = unique_tmp("nsquestion");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/result\n\
+         fn inner(x: int) -> result.Result<int, string> {\n\
+         \x20 return match x >= 0 {\n\
+         \x20\x20\x20 true => result.Ok(x),\n\
+         \x20\x20\x20 false => result.Err(\"neg\"),\n\
+         \x20 }\n\
+         }\n\
+         pub fn outer(x: int) -> result.Result<int, string> {\n\
+         \x20 let v = inner(x)?\n\
+         \x20 return result.Ok(v + 1)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+}
+
 #[test]
 fn run_reports_every_build_diagnostic_including_on_a_cache_hit() {
     // `glyph run` computed a full build report and read only `emitted` from it,

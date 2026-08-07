@@ -1,0 +1,81 @@
+// The vocabulary every other module speaks: what a machine is made of, what it
+// remembers, and what a guard or an action can say.
+//
+// Nothing here reads a file, evaluates anything, or prints. The types are the
+// contract between the boundary (`wire`), the checker (`check`), the engine
+// (`replay`), and the report (`render`).
+module model
+
+import std/option { Option }
+
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
+
+// One slot of the machine's memory. The three kinds are exactly the three an
+// action can touch: text is `set`, a counter is `increment`, a flag is `clear`.
+pub type Slot =
+  | Text({ text: string })
+  | Counter({ count: int })
+  | Flag({ on: bool })
+
+// The whole context. Keys are declared by the machine and never created by an
+// action, so `apply` can reject an unknown key instead of inventing a slot.
+pub type Context = { slots: Record<string, Slot> }
+
+// ---------------------------------------------------------------------------
+// Guards
+// ---------------------------------------------------------------------------
+
+// A guard is a tree, not a string. There is no expression parser anywhere in
+// this program: the shape below is what the fixture writes and what the
+// evaluator walks, so a malformed guard is rejected by the descriptor at the
+// boundary rather than by a parser three phases later.
+pub type Condition =
+  | Equals({ key: string, value: string })
+  | AtLeast({ key: string, least: int })
+  | FlagSet({ key: string })
+  | All({ of: Array<Condition> })
+  | Any({ of: Array<Condition> })
+  | Not({ of: Condition })
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+// The three effects a transition (or an event payload) may have on the context.
+pub type Action =
+  | Set({ key: string, value: string })
+  | Increment({ key: string, by: int })
+  | Clear({ key: string })
+
+// ---------------------------------------------------------------------------
+// The machine
+// ---------------------------------------------------------------------------
+
+// One transition, denormalized: `source` is the state that declares it, so a
+// transition carries enough to explain itself once it has been pulled out of
+// its state during the ancestor walk.
+pub type Transition = {
+  event: string,
+  source: string,
+  target: string,
+  guard: Option<Condition>,
+  actions: Array<Action>,
+}
+
+// One state. `children` holds ids, not nodes, so the tree is a graph the
+// checker can hold to a standard (a child id that names nothing is an error,
+// not a missing branch), and `initial` is absent exactly for a leaf.
+pub type State = {
+  id: string,
+  children: Array<string>,
+  initial: Option<string>,
+  transitions: Array<Transition>,
+  terminal: bool,
+}
+
+// A machine that has passed `check.validate`. Every id mentioned by a child
+// list, an `initial`, a transition target, or the terminal set is declared, and
+// every state is reachable from `root`.
+pub type Machine = { id: string, root: string, states: Array<State>, context: Context }

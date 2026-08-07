@@ -1,0 +1,132 @@
+// Guards and actions over the context.
+//
+// Both directions fail as values. A guard reading a key the machine never
+// declared is an error, not `false`, and an action writing one is an error, not
+// a silent insert: a workflow that quietly reads a typo as "condition not met"
+// is the failure mode this module exists to prevent.
+module interp
+
+import std/option
+import std/record
+import std/result
+import model
+
+// What went wrong reaching into the context, from either direction. `from` is
+// the guard or action that reached, so a diagnostic can name it.
+pub type SlotError =
+  | UnknownKey({ key: string, from: string })
+  | WrongKind({ key: string, from: string, wanted: string, found: string })
+
+// The name of a slot's kind, for a diagnostic and for the report.
+pub fn kind_of(s: model.Slot) -> string {
+  return match s {
+    model.Text(_) => "text",
+    model.Counter(_) => "counter",
+    model.Flag(_) => "flag",
+  }
+}
+
+fn slot(ctx: model.Context, key: string, from: string) -> result.Result<model.Slot, SlotError> {
+  return match record.get(ctx.slots, key) {
+    option.Some(s) => result.Ok(s),
+    option.None => result.Err(UnknownKey({ key: key, from: from })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Guards
+// ---------------------------------------------------------------------------
+
+fn read_text(ctx: model.Context, key: string, from: string) -> result.Result<string, SlotError> {
+  let found = slot(ctx, key, from)?
+  return match found {
+    model.Text({ text }) => result.Ok(text),
+    other => result.Err(WrongKind({ key: key, from: from, wanted: "text", found: kind_of(other) })),
+  }
+}
+
+fn read_count(ctx: model.Context, key: string, from: string) -> result.Result<int, SlotError> {
+  let found = slot(ctx, key, from)?
+  return match found {
+    model.Counter({ count }) => result.Ok(count),
+    other => result.Err(
+      WrongKind({ key: key, from: from, wanted: "counter", found: kind_of(other) }),
+    ),
+  }
+}
+
+fn read_flag(ctx: model.Context, key: string, from: string) -> result.Result<bool, SlotError> {
+  let found = slot(ctx, key, from)?
+  return match found {
+    model.Flag({ on }) => result.Ok(on),
+    other => result.Err(WrongKind({ key: key, from: from, wanted: "flag", found: kind_of(other) })),
+  }
+}
+
+// `all` over an empty list is true and `any` over an empty list is false, the
+// usual reading, so a fixture can write `{"tag":"All","of":[]}` for an
+// unconditional guard without a special case here.
+fn all_of(ctx: model.Context, parts: Array<model.Condition>) -> result.Result<bool, SlotError> {
+  let verdict = true
+  for part in parts {
+    let one = evaluate(ctx, part)?
+    mut verdict = verdict && one
+  }
+  return result.Ok(verdict)
+}
+
+fn any_of(ctx: model.Context, parts: Array<model.Condition>) -> result.Result<bool, SlotError> {
+  let verdict = false
+  for part in parts {
+    let one = evaluate(ctx, part)?
+    mut verdict = verdict || one
+  }
+  return result.Ok(verdict)
+}
+
+// Every branch is evaluated: a guard has no side effects, and evaluating all of
+// it means an `All` whose second clause names a bad key reports that bad key
+// instead of hiding behind a short circuit on the first.
+pub fn evaluate(ctx: model.Context, c: model.Condition) -> result.Result<bool, SlotError> {
+  return match c {
+    model.Equals({ key, value }) => result.Ok(read_text(ctx, key, "equals")? == value),
+    model.AtLeast({ key, least }) => result.Ok(read_count(ctx, key, "at-least")? >= least),
+    model.FlagSet({ key }) => result.Ok(read_flag(ctx, key, "flag-set")?),
+    model.All({ of }) => all_of(ctx, of),
+    model.Any({ of }) => any_of(ctx, of),
+    model.Not({ of }) => result.Ok(!(evaluate(ctx, of)?)),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+fn write(ctx: model.Context, key: string, value: model.Slot) -> model.Context {
+  return { slots: record.set(ctx.slots, key, value) }
+}
+
+pub fn apply(ctx: model.Context, a: model.Action) -> result.Result<model.Context, SlotError> {
+  return match a {
+    model.Set({ key, value }) => {
+      let _ = read_text(ctx, key, "set")?
+      result.Ok(write(ctx, key, model.Text({ text: value })))
+    },
+    model.Increment({ key, by }) => {
+      let current = read_count(ctx, key, "increment")?
+      result.Ok(write(ctx, key, model.Counter({ count: current + by })))
+    },
+    model.Clear({ key }) => {
+      let _ = read_flag(ctx, key, "clear")?
+      result.Ok(write(ctx, key, model.Flag({ on: false })))
+    },
+  }
+}
+
+pub fn apply_all(ctx: model.Context, actions: Array<model.Action>) -> result.Result<model.Context, SlotError> {
+  let out = ctx
+  for a in actions {
+    mut out = apply(out, a)?
+  }
+  return result.Ok(out)
+}

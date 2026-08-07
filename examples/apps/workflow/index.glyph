@@ -1,0 +1,131 @@
+// The runtime index: the questions the engine asks about the state tree,
+// answered once instead of by a search per event.
+//
+// Everything here takes a `Machine`, which only `check.validate` can produce,
+// so a lookup that cannot fail on a checked machine is still written total: it
+// returns an `Option` or a documented fallback rather than trusting the caller.
+module index
+
+import std/array
+import std/option { Option, Some, None }
+import std/record
+import model { Machine, State, Transition }
+
+pub type Index = { by_id: Record<string, State>, parent: Record<string, string>, root: string }
+
+// Parent links come from the child lists, walked once. A checked machine has
+// exactly one parent per non-root state, so the last writer never differs from
+// the first.
+pub fn build(m: Machine) -> Index {
+  let by_id: Record<string, State> = {}
+  let parent: Record<string, string> = {}
+  for s in m.states {
+    mut by_id[s.id] = s
+  }
+  for s in m.states {
+    for child in s.children {
+      mut parent[child] = s.id
+    }
+  }
+  return { by_id: by_id, parent: parent, root: m.root }
+}
+
+pub fn node(ix: Index, id: string) -> Option<State> {
+  return record.get(ix.by_id, id)
+}
+
+pub fn parent_of(ix: Index, id: string) -> Option<string> {
+  return record.get(ix.parent, id)
+}
+
+pub fn is_compound(ix: Index, id: string) -> bool {
+  return match node(ix, id) {
+    Some(s) => array.len(s.children) > 0,
+    None => false,
+  }
+}
+
+pub fn is_terminal(ix: Index, id: string) -> bool {
+  return match node(ix, id) {
+    Some(s) => s.terminal,
+    None => false,
+  }
+}
+
+// `[id, parent, ..., root]`: outward, starting at the state itself. This is the
+// order the engine searches for a transition.
+pub fn ancestors(ix: Index, id: string) -> Array<string> {
+  let out: Array<string> = [id]
+  let at = id
+  loop {
+    match parent_of(ix, at) {
+      None => { break },
+      Some(up) => {
+        mut out = array.push(out, up)
+        mut at = up
+      },
+    }
+  }
+  return out
+}
+
+// `[root, ..., id]`: the configuration a state implies, innermost last.
+pub fn path_from_root(ix: Index, id: string) -> Array<string> {
+  return array.reverse(ancestors(ix, id))
+}
+
+// The states entered below `id` when a transition lands on it: the chain of
+// `initial` children down to a leaf. Empty for a leaf.
+pub fn entry_path(ix: Index, id: string) -> Array<string> {
+  let out: Array<string> = []
+  let at = id
+  loop {
+    let next = match node(ix, at) {
+      None => None,
+      Some(s) => match array.len(s.children) == 0 {
+        true => None,
+        false => s.initial,
+      },
+    }
+    match next {
+      None => { break },
+      Some(child) => {
+        mut out = array.push(out, child)
+        mut at = child
+      },
+    }
+  }
+  return out
+}
+
+// The leaf a configuration settles on: `id` itself when it is a leaf, otherwise
+// the end of its entry path.
+pub fn settle(ix: Index, id: string) -> string {
+  let descent = entry_path(ix, id)
+  return match array.len(descent) == 0 {
+    true => id,
+    false => descent[array.len(descent) - 1],
+  }
+}
+
+// The innermost state that is an ancestor of both, the root when they share
+// nothing closer.
+pub fn common_ancestor(ix: Index, a: string, b: string) -> string {
+  let up = ancestors(ix, b)
+  let shared = array.find(
+    ancestors(ix, a),
+    fn(one: string) -> bool { return array.contains(up, one) },
+  )
+  return match shared {
+    Some(one) => one,
+    None => ix.root,
+  }
+}
+
+// The transition this state declares for this event, if it declares one.
+pub fn transition_for(ix: Index, id: string, event: string) -> Option<Transition> {
+  return match node(ix, id) {
+    None => None,
+    Some(s) => array.find(s.transitions, fn(t: Transition) -> bool { return t.event == event }),
+  }
+}

@@ -1,0 +1,34 @@
+// The three text operations every other module needs and the standard library
+// does not have: an ordering to sort by, a quoted form for a report, and a
+// column pad that a `for` can call.
+module text
+
+import std/string
+
+// `array.sort` always takes a comparator, even for strings, so every module
+// that wants deterministic output needs this one.
+pub fn cmp(a: string, b: string) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+pub fn quote(s: string) -> string {
+  return "\"${s}\""
+}
+
+pub fn pad(s: string, width: number) -> string {
+  return string.pad_end(s, width)
+}
+
+// One indentation level, as a name: a string literal cannot be written inside a
+// `${...}` interpolation.
+pub const STEP = "  "
+
+pub fn indent(depth: number) -> string {
+  return string.repeat(STEP, depth)
+}

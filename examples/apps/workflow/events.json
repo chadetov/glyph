@@ -1,0 +1,12 @@
+[
+  { "name": "review" },
+  { "name": "submit" },
+  { "name": "retry" },
+  { "name": "pay" },
+  {
+    "name": "ship",
+    "updates": [{ "tag": "Set", "key": "region", "value": "eu" }]
+  },
+  { "name": "release" },
+  { "name": "deliver" }
+]

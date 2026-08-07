@@ -1,0 +1,252 @@
+// workflow — a statechart replay engine.
+//
+// Reads a hierarchical state machine and an ordered event log from JSON
+// fixtures, checks the machine, and replays the log: for each event it walks
+// outward from the active leaf until a state declares that event, evaluates the
+// guard against the context, applies the actions, and records what was exited
+// and entered.
+//
+// Guards are a declarative tree that comes straight out of the fixture. There
+// is no expression parser in this program, and nothing throws: a machine that
+// does not check out, an event nothing handles, a guard that rejects every
+// candidate, and an event arriving after a terminal state are all values.
+//
+// Usage:
+//
+//   glyph run examples/apps/workflow/main.glyph
+//   glyph run examples/apps/workflow/main.glyph --validate
+//   glyph run examples/apps/workflow/main.glyph --step 3
+//   glyph run examples/apps/workflow/main.glyph --machine broken-machine.json
+//   glyph run examples/apps/workflow/main.glyph --events deadlock-events.json
+//
+// The default fixture directory is `examples/apps/workflow`, so the first form
+// works from the repository root and prints the same output every time.
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/option
+import std/path
+import std/result
+import check
+import index
+import model
+import render
+import replay
+import wire { MachineFile, EventLog, EventSpec }
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DIR = "examples/apps/workflow"
+
+const DEFAULT_MACHINE = "machine.json"
+
+const DEFAULT_EVENTS = "events.json"
+
+const USAGE = "usage: workflow [--dir DIR] [--machine FILE] [--events FILE] [--validate | --step N]"
+
+// `Validate` never opens the event log; `Step` replays up to and including one
+// index and reports the machine as it stood there.
+type Mode =
+  | Full
+  | Validate
+  | Step({ at: int })
+
+type Args = { dir: string, machine: string, events: string, mode: Mode }
+
+fn parse_index(raw: string) -> result.Result<int, string> {
+  return match number.parse(raw) {
+    result.Ok(n) => match n >= 0 {
+      true => result.Ok(n),
+      false => result.Err("--step wants an event index of 0 or more, got ${raw}"),
+    },
+    result.Err(_) => result.Err("--step wants a whole number, got ${raw}"),
+  }
+}
+
+fn parse_args(argv: Array<string>) -> result.Result<Args, string> {
+  let dir = DEFAULT_DIR
+  let machine = DEFAULT_MACHINE
+  let events = DEFAULT_EVENTS
+  let mode: Mode = Full
+  let i = 0
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg {
+      "--validate" => {
+        mut mode = Validate
+        mut i = i + 1
+      },
+      "--dir" => {
+        mut dir = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      "--machine" => {
+        mut machine = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      "--events" => {
+        mut events = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      "--step" => {
+        mut mode = Step({ at: parse_index(value_at(argv, i, arg)?)? })
+        mut i = i + 2
+      },
+      else => { return result.Err("unknown argument ${arg}") },
+    }
+  }
+  return result.Ok({ dir: dir, machine: machine, events: events, mode: mode })
+}
+
+fn value_at(argv: Array<string>, i: number, flag: string) -> result.Result<string, string> {
+  return match i + 1 >= array.len(argv) {
+    true => result.Err("${flag} expects a value"),
+    false => result.Ok(argv[i + 1]),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+type LoadError =
+  | Unreadable({ path: string, message: string })
+  | Invalid({ path: string, shape: string })
+
+fn load_error_lines(e: LoadError) -> Array<string> {
+  return match e {
+    Unreadable({ path, message }) => ["cannot read ${path}: ${message}"],
+    // A failed descriptor reports the type it wanted and no path into the
+    // value, so naming the type is the whole diagnostic available here.
+    Invalid({ path, shape }) => ["${path} does not match the ${shape} fixture shape"],
+  }
+}
+
+fn read_json(p: string) -> result.Result<unknown, LoadError> {
+  let text = match fs.read_text(p) {
+    result.Ok(t) => t,
+    result.Err(e) => { return result.Err(Unreadable({ path: p, message: e.message })) },
+  }
+  return match json.parse<unknown>(text) {
+    result.Ok(v) => result.Ok(v),
+    result.Err(_) => result.Err(Invalid({ path: p, shape: "JSON" })),
+  }
+}
+
+fn load_machine(p: string) -> result.Result<MachineFile, LoadError> {
+  let decoded = read_json(p)?
+  return match MachineFile.parse(decoded) {
+    result.Ok(m) => result.Ok(m),
+    result.Err(_) => result.Err(Invalid({ path: p, shape: "machine" })),
+  }
+}
+
+// The log on disk is a bare JSON array, which has no descriptor of its own, so
+// it is wrapped in the one-field record that does.
+fn load_events(p: string) -> result.Result<Array<EventSpec>, LoadError> {
+  let decoded = read_json(p)?
+  return match EventLog.parse({ events: decoded }) {
+    result.Ok(log) => result.Ok(log.events),
+    result.Err(_) => result.Err(Invalid({ path: p, shape: "event log" })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn report(lines: Array<string>) -> void {
+  for line in lines {
+    io.eprintln(line)
+  }
+}
+
+fn emit(lines: Array<string>) -> void {
+  for line in lines {
+    io.println(line)
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    result.Ok(a) => a,
+    result.Err(message) => {
+      io.eprintln("error: ${message}")
+      io.eprintln(USAGE)
+      return 2
+    },
+  }
+
+  let machine_path = path.join([args.dir, args.machine])
+  let file = match load_machine(machine_path) {
+    result.Ok(f) => f,
+    result.Err(e) => {
+      report(load_error_lines(e))
+      return 1
+    },
+  }
+
+  let m = match check.validate(file) {
+    result.Ok(checked) => checked,
+    result.Err(problems) => {
+      report(render.machine_error_lines(problems))
+      return 1
+    },
+  }
+  let ix = index.build(m)
+
+  emit(["machine ${m.id}", "  definition  ${machine_path}"])
+
+  return match args.mode {
+    Validate => {
+      emit([""])
+      emit(render.tree_lines(m, ix))
+      emit([""])
+      emit(render.transition_table_lines(m, ix))
+      emit([""])
+      emit(["initial configuration", "  ${render.config_text(replay.configuration(ix, m.root))}"])
+      emit(["initial context"])
+      emit(render.context_lines(m.context, "  "))
+      0
+    },
+    Full => run_log(m, ix, args, option.None),
+    Step({ at }) => run_log(m, ix, args, option.Some(at)),
+  }
+}
+
+fn run_log(m: model.Machine, ix: index.Index, args: Args, stop_after: option.Option<int>) -> number {
+  let events_path = path.join([args.dir, args.events])
+  let events = match load_events(events_path) {
+    result.Ok(e) => e,
+    result.Err(e) => {
+      report(load_error_lines(e))
+      return 1
+    },
+  }
+  emit(["  log         ${events_path} (${number.to_string(array.len(events))} events)", ""])
+
+  let r = replay.run(m, ix, events, stop_after)
+  emit(["initial configuration", "  ${render.config_text(replay.configuration(ix, m.root))}"])
+  emit(["initial context"])
+  emit(render.context_lines(m.context, "  "))
+  emit([""])
+
+  match stop_after {
+    option.Some(at) => emit(render.step_lines(m, ix, r, at)),
+    option.None => emit(render.replay_lines(r)),
+  }
+
+  return match r.stopped {
+    option.None => 0,
+    option.Some(_) => 1,
+  }
+}

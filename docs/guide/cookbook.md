@@ -158,6 +158,21 @@ fn area(s: Shape) -> number {
 
 Add a variant and this `match` stops compiling until you handle it.
 
+When the union lives in another module you can import it either way, and both
+are checked the same:
+
+```glyph
+import shapes { Shape, Circle, Rect }  // arms read Circle({ radius }) => …
+import shapes                          // arms read shapes.Circle({ radius }) => …
+import shapes as s                     // arms read s.Circle({ radius }) => …
+```
+
+The named form puts every variant you match on in the import list, which is what
+a `grep` for `Circle` finds. The namespace form keeps the list to one line and
+keeps the union's origin visible at the arm. Pick per module. The same holds for
+the standard library's unions, so `option.Some(v)` is exhaustiveness-checked
+exactly as a bare `Some(v)` is.
+
 ## Share state across functions
 
 ```glyph

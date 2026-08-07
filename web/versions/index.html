@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.55</span>
+            <span class="rel-ver">0.1.56</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>How you imported the union decided whether it was checked</h3>
+            <p>Exhaustive <code>match</code> is the guarantee Glyph leans on hardest, and it was off for one of the two ways you can import a union. <code>match c { model.Yes(_) =&gt; …, model.No(_) =&gt; … }</code> over a three-variant union reported no diagnostics, passed <code>tsc --strict</code>, and then threw <code>Error: non-exhaustive match</code> at run time. Writing the same match with <code>import model { Yes, No }</code> was <code>E0200</code>. This came out of writing a statechart replay engine, where every module carried an eighteen-name variant import so its matches would be checked, with a comment in the source explaining the import lists as a syntax rule. They were not a syntax rule. They were a workaround.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A qualified arm is checked like a bare one. <code>import model</code> with <code>model.Yes(_)</code> arms, and <code>import model as m</code> with <code>m.Yes(_)</code>, are held to the same exhaustiveness bar as <code>import model { Yes }</code> with bare arms. The lookup used to try to resolve <code>Yes</code> as a symbol, which under a namespace import it never is, so it found no union and checked nothing. It now resolves the arm through the head of the path.</li>
+              <li><span class="tag fixed">Fixed</span> The standard library's unions get it too, which is the half that mattered most. <code>option.Option&lt;T&gt;</code> and <code>result.Result&lt;T, E&gt;</code> used to lower to an unknown type, because the table of two-segment stdlib types held only the three <code>fs.*</code> entries. So the most-used union in the language lost its exhaustiveness check to a one-token change in how you imported it: <code>match o { option.Some(s) =&gt; s }</code> with <code>None</code> missing was green through both checkers. Both now lower to the same type the named import produces.</li>
+              <li><span class="tag fixed">Fixed</span> A misspelled qualified variant is <code>E0220</code> with the nearest-variant hint, on the arm. It used to enter the covered set unexamined and come back from <code>tsc</code> as a <code>TS2678</code> about a literal union type, twenty lines from the name you mistyped.</li>
+              <li><span class="tag known">Known</span> When <code>E0200</code> lists the variants you missed, it quotes their names for a union declared in the same module and for the prelude ones, and leaves them bare for a union imported from another Glyph module. Two code paths build that list and only one of them formats. Cosmetic, and it predates this release.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.55</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

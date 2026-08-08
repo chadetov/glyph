@@ -2852,6 +2852,37 @@ otherwise, and nothing reported it.
 - **`examples/apps/jobq`**, a durable job queue: HTTP API, SQLite store, workers,
   retry with backoff, dead-lettering. The first app here to run `http.serve`.
 
+### 0.1.67 — Shipped · Three entries that had outrun their evidence
+
+G48, G64 and G66 were scheduled together. All three closed by establishing what
+the compiler does today rather than by changing it, which is a result worth
+stating: a backlog is a snapshot, and two of these had been overtaken by fixes
+made for other reasons.
+
+- **G48 closes.** Both halves. The silent-green half went with E0223; the
+  spelling half is closed too and nobody noticed, because `({})` compiles and
+  `glyph fmt` keeps the parentheses. The entry's complaint that the workaround
+  "does not survive the toolchain" was fixed by a formatter batch. A formatter
+  test now pins it: un-spelling a workaround puts the file back into the error it
+  was formatted out of.
+- **G64 is decided rather than fixed.** Glyph will not get untagged primitive
+  unions. D8's tagged unions are sealed so a `match` over one is verifiable, and
+  an untagged union puts a hole in exactly that. Two Glyph-native answers exist
+  and both stay checked: name the cases when you own the type, and take the
+  value as `unknown` and narrow with `is` when it arrives from somewhere you do
+  not. E0111 now explains both, and says why `extern_ts` is the last resort
+  rather than the answer.
+- **G66 is resolved by an idiom the entry predates.** An optional field is
+  readable; what is not allowed is reading one into a non-optional `T`, and
+  `tsc` draws that line exactly right. Optional fields belong on a *wire* type,
+  consumed by its own `parse`, and decoded into a domain type carrying
+  `Option<T>` — which is what `examples/apps/workflow` does. A Glyph-level error
+  for the read was written and reverted: it fired on eight sites across the
+  examples and every one was the safe idiom.
+
+No language change ships in this release. The compiler is unchanged except for
+E0111's explanation and one formatter regression test.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

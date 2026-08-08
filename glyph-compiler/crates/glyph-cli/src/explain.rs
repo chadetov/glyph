@@ -178,9 +178,21 @@ pub fn explain(code: &str) -> Option<&'static str> {
             type Key =\n  \
               | Text(string)\n  \
               | Count(number)\n\n\
-            then `match` over it. If you need the raw TypeScript union at a \
-            boundary, `extern_ts(\"string | number\")` spells it verbatim and \
-            leaves the checking to `tsc`.",
+            then `match` over it.\n\n\
+            At a boundary, where the value arrives from somewhere Glyph does not \
+            own, take it as `unknown` and narrow with `is`, which stays checked \
+            the whole way:\n\n\
+            fn render(v: unknown) -> string {\n  \
+              return match v {\n    \
+                is string => v,\n    \
+                is number => number.to_string(v),\n    \
+                else => \"?\",\n  \
+              }\n\
+            }\n\n\
+            `extern_ts(\"string | number\")` spells the raw TypeScript union \
+            verbatim, but it is opaque to Glyph's own checker, so prefer the \
+            `unknown` + `is` form unless the type must cross into TypeScript by \
+            name.",
 
         // ----- typechecker (E02xx) -----
         "E0200" => "E0200: non-exhaustive match\n\n\

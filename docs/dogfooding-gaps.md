@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 69 are fixed, 14 are partly fixed, 5 are
-decided or resolved, and 10 are open. That round re-ran an assignment the
+fixed two of them: of 98 entries, 70 are fixed, 12 are partly fixed, 7 are
+decided or resolved, and 9 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -1224,7 +1224,7 @@ of truth. On the async path it was a preprocessor with opinions.
   `fs.ErrorKind.Other({ code }) => "${e.message} (${code})"`; deleting the
   `PermissionDenied` arm from that app now fails `glyph build` with
   `E0200 ... missing variants 'PermissionDenied'`.
-- **G48. [HALF FIXED] `{}` as a match arm is silent green.** `true => {}` parses
+- **G48. [FIXED] `{}` as a match arm is silent green.** `true => {}` parses
   as an empty
   block, emits `case true: { break; }`, and the function falls out of its own
   switch returning `undefined` while claiming a record type. No Glyph diagnostic;
@@ -1739,7 +1739,7 @@ several rounds that the backlog grew.
   `dist/`, and a hand-written `extern/` shim see. That is an architecture
   decision and it has not been made.
 
-- **G64. [HALF FIXED] `type Key = string | number` built clean and meant
+- **G64. [DECIDED] `type Key = string | number` built clean and meant
   something else.** D8's `A | B` is a tagged union whose members are variant
   *names*, so bare primitives on the right-hand side declare variant
   constructors called `string` and `number`. The line looks like ordinary
@@ -1772,7 +1772,7 @@ several rounds that the backlog grew.
   and forcing an explicit comparison). Not this release's scope, but it should
   not sit long.
 
-- **G66. An optional record field is declarable but cannot be read.** `field?:
+- **G66. [RESOLVED] An optional record field is declarable but cannot be read.** `field?:
   T` parses, and `RecordTypeField::optional` reaches the emitter, which writes
   `field?: T` into the TypeScript. The two checkers then disagree about what a
   read of it produces. Glyph's member-access path
@@ -2807,3 +2807,50 @@ the work. Closing that means modelling stdlib named types as more than a field
 set, which is the architecture decision phase 1 of this entry already named. The
 job queue's `store.glyph` still reads `row[column]` and is still relying on its
 own discipline rather than the compiler's.
+
+## Round 24: three entries that had outrun their evidence
+
+Working the backlog rather than an app. All three turned out to be closable by
+checking what the compiler does today rather than by changing it, which is worth
+recording as its own result: a gap list is a snapshot, and three of these had
+been overtaken by fixes made for other reasons.
+
+- **G48 closes.** Both halves are done. The silent-green half went with E0223,
+  which reports a value-position arm that produces no value. The spelling half
+  is closed too, and nobody noticed: `({})` compiles, and `glyph fmt` **keeps
+  the parentheses**. The entry's complaint that "the obvious workaround does not
+  survive the toolchain" was true when written and was fixed by one of the
+  formatter batches. A formatter test now pins it, because a formatter that
+  un-spells a workaround puts the file back into the error it was formatted out
+  of, and nothing was stopping that from regressing.
+
+- **G64 is decided, not fixed.** What remained was that Glyph cannot spell a
+  union of two primitive types. It should not: D8's tagged unions are sealed so
+  that a `match` over one is verifiable, and untagged unions would put a hole in
+  exactly that. There are two Glyph-native answers and both are checked all the
+  way through. When you own the type, name the cases
+  (`| Text(string) | Count(number)`). When the value arrives from somewhere
+  Glyph does not own, take it as `unknown` and narrow with `is`, which was
+  verified to compile and run. `extern_ts` remains for a type that must cross
+  into TypeScript by name, and is opaque, so it is the last resort rather than
+  the answer. E0111 now says all of this.
+
+- **G66 is resolved by an idiom the entry did not know about.** The claim was
+  that an optional field is "writable and unreadable". Reading one is fine; what
+  is not fine is reading it *into a non-optional `T`*, and `tsc` draws that line
+  exactly right, rejecting the unsafe use and accepting the safe one. The safe
+  one is what `workflow` does: optional fields live on the **wire** type, where
+  they mirror the JSON and are consumed by the record's own `parse`, and the
+  domain type they decode into has `children: Array<string>` and
+  `initial: Option<string>`. `check.glyph` reads `s.children` straight into
+  `text_list(raw: unknown)`, which validates it.
+
+  A Glyph-level error for reading an optional field was written and then
+  reverted: it fired on eight sites across the examples and every one was the
+  safe idiom. `tsc` was already right, and duplicating a correct check in the
+  frontend only to make it wrong is not an improvement. What is left is message
+  quality on the rejecting path, which is real but small, and is the same
+  complaint as G27 and G98 rather than a fact about optional fields.
+
+The pattern across all three: two were stale, and the third wanted a language
+feature that would cost the guarantee it was asking to be exempted from.

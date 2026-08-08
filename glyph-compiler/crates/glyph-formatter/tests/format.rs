@@ -705,3 +705,28 @@ fn an_async_fn_type_round_trips() {
     assert!(once.contains("-> async fn() -> Fetched"), "{once}");
     assert_eq!(fmt(&once), once, "not idempotent:\n{once}");
 }
+
+/// The empty map keeps its parentheses.
+///
+/// `X => {}` is an empty *block* arm, which is a legal no-op where the `match`
+/// is a statement, so `{}` cannot be reread as a record. `({})` is how the empty
+/// map is spelled, and the formatter used to take the parentheses back off:
+/// the file then reproduced the error it had just been formatted out of, which
+/// is the worst thing a formatter can do to a workaround.
+#[test]
+fn the_empty_map_keeps_its_parentheses() {
+    let src = "module x\n\
+               \n\
+               pub fn f(n: int) -> Record<string, int> {\n\
+               \x20 return match n {\n\
+               \x20   0 => ({}),\n\
+               \x20   else => { a: 1 },\n\
+               \x20 }\n\
+               }\n";
+    let once = fmt(src);
+    assert!(
+        once.contains("({})"),
+        "the empty map must survive formatting, got:\n{once}"
+    );
+    assert_eq!(once, fmt(&once), "and formatting must be idempotent");
+}

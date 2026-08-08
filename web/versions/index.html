@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.66</span>
+            <span class="rel-ver">0.1.67</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Three entries that had outrun their evidence</h3>
+            <p>Three backlog items scheduled together, and all three closed by establishing what the compiler already does rather than by changing it. Two had been overtaken by fixes made for other reasons; the third asked for a feature that would cost the guarantee it wanted an exemption from. No language change ships here.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> The empty map is spelled <code>({})</code>, it compiles, and <code>glyph fmt</code> keeps the parentheses. A formatter test now pins that: un-spelling a workaround puts the file back into the error it was formatted out of.</li>
+              <li><span class="tag">Decided</span> Glyph will not get untagged primitive unions. Tagged unions are sealed so a <code>match</code> over one is verifiable. Name the cases when you own the type; take the value as <code>unknown</code> and narrow with <code>is</code> when it arrives from somewhere you do not. <code>--explain E0111</code> now shows both.</li>
+              <li><span class="tag">Resolved</span> Optional fields are readable. What is not allowed is reading one into a non-optional <code>T</code>, and <code>tsc</code> draws that line correctly. They belong on a wire type consumed by its own <code>parse</code>, decoded into a domain type carrying <code>Option&lt;T&gt;</code>.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.66</span>
+            <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

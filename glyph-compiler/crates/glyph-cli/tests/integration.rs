@@ -2026,6 +2026,92 @@ fn main() -> number {
 }
 
 #[test]
+fn parse_reports_which_rule_the_value_broke() {
+    // The four ways a payload can be wrong used to answer with the same string:
+    // an absent field, a field failing its `where` predicate, a field of the
+    // wrong type, and a posted array all read "field `x` is missing or has the
+    // wrong type" (and an array was accepted outright by a record with no
+    // required fields). Each now answers differently, in both the message and
+    // the machine-readable `code`, and the refinement names its predicate so the
+    // rejection greps back to the `type Password = ...` line. The program
+    // returns its count of wrong answers as the exit code. Needs node/tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping boundary-issue run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("boundary_issue");
+    write_file(
+        &root,
+        "main.glyph",
+        r#"module main
+
+import std/result { Ok, Err }
+import std/io
+
+pub type Password = string where value.length >= 8
+
+pub type Signup = {
+  email: string,
+  password: Password,
+}
+
+pub type Empty = {
+}
+
+fn first_issue(issues: Array<Issue>) -> string {
+  let first = issues[0]
+  return "${first.code}|${first.message}"
+}
+
+fn outcome(v: unknown) -> string {
+  return match Signup.parse(v) {
+    Ok(s) => "ok",
+    Err(issues) => first_issue(issues),
+  }
+}
+
+fn expect_str(got: string, want: string) -> number {
+  return match got == want {
+    true => 0,
+    false => 1,
+  }
+}
+
+fn main() -> number {
+  let absent = outcome({ email: "user@example.com" })
+  let refined = outcome({ email: "user@example.com", password: "short" })
+  let wrong = outcome({ email: 42, password: "longenough" })
+  let arrayed = outcome([1, 2, 3])
+
+  io.eprintln(absent)
+  io.eprintln(refined)
+  io.eprintln(wrong)
+  io.eprintln(arrayed)
+
+  let f = 0
+  mut f = f + expect_str(absent, "missing|field `password` is required")
+  mut f = f + expect_str(refined, "refinement|expected Password (string where value.length >= 8)")
+  mut f = f + expect_str(wrong, "type|field `email` must be string")
+  mut f = f + expect_str(arrayed, "type|expected Signup (an object), got an array")
+  mut f = f + match Empty.parse([]) { Ok(e) => 1, Err(x) => 0, }
+  mut f = f + match Empty.parse({}) { Ok(e) => 0, Err(x) => 1, }
+  return f
+}
+"#,
+    );
+    let file = root.join("main.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "boundary parse gave {code} wrong answer(s)");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound | glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping: toolchain not found at run time");
+        }
+        other => panic!("boundary-issue program did not run: {other:?}"),
+    }
+}
+
+#[test]
 fn bigint_arithmetic_is_exact_past_2_53() {
     // `bigint` holds exact arbitrary-precision integers where a float `number`
     // silently rounds past 2^53. The program returns its count of wrong results
@@ -2309,13 +2395,17 @@ fn infer_output_is_independent_of_the_validator_type_name() {
 
 import std/result { Result, Ok, Err }
 
-type Issue = {
+// Named `CodecIssue`, not `Issue`: a module-local type called `Issue` shadows
+// the ambient prelude one inside the emitted file, and every descriptor's
+// `parse` annotates its error array as `Issue[]`. That shadowing is a known
+// edge unrelated to what this test covers.
+type CodecIssue = {
   path: Array<string>,
   message: string,
 }
 
 type Codec<T> = {
-  parse: fn(input: unknown) -> Result<T, Array<Issue>>,
+  parse: fn(input: unknown) -> Result<T, Array<CodecIssue>>,
 }
 
 fn number_codec() -> Codec<number> {

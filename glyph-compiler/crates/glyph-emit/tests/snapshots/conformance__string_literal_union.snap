@@ -13,18 +13,25 @@ export type Tier = "free" | "pro";
 export type Plan = { tier: Tier };
 export const Plan = {
   is(value: unknown): value is Plan {
-    return typeof value === "object" && value !== null
+    return typeof value === "object" && value !== null && !Array.isArray(value)
       && ((value as Record<string, unknown>).tier === "free" || (value as Record<string, unknown>).tier === "pro")
       && Object.keys(value as object).every((__k: string) => __k === "tier");
   },
   parse(value: unknown): __GlyphResult<Plan, Issue[]> {
+    if (Array.isArray(value)) {
+      return __glyph_err([{ path: [], message: "expected Plan (an object), got an array", code: "type" }]);
+    }
     if (typeof value !== "object" || value === null) {
-      return __glyph_err([{ path: [], message: "expected Plan (an object)" }]);
+      return __glyph_err([{ path: [], message: "expected Plan (an object)", code: "type" }]);
     }
     const __issues: Issue[] = [];
-    if (!(((value as Record<string, unknown>).tier === "free" || (value as Record<string, unknown>).tier === "pro"))) __issues.push({ path: ["tier"], message: "field `tier` is missing or has the wrong type" });
+    if ((value as Record<string, unknown>).tier === undefined) {
+      __issues.push({ path: ["tier"], message: "field `tier` is required", code: "missing" });
+    } else if (!(((value as Record<string, unknown>).tier === "free" || (value as Record<string, unknown>).tier === "pro"))) {
+      __issues.push({ path: ["tier"], message: "field `tier` must be Tier", code: "type" });
+    }
     for (const __k of Object.keys(value as object)) {
-      if (!(__k === "tier")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`" });
+      if (!(__k === "tier")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`", code: "unexpected" });
     }
     return __issues.length === 0 ? __glyph_ok(value as Plan) : __glyph_err(__issues);
   },

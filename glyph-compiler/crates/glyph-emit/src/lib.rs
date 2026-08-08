@@ -950,6 +950,12 @@ impl<'a> Emitter<'a> {
     /// leaf-check and the predicate; the base check narrows `value` first, so
     /// the predicate (which refers to the bound `value`) sees the base type. A
     /// value that fails the predicate is rejected by `.parse` at the boundary.
+    ///
+    /// The rejection names the constraint: `expected Password (string where
+    /// value.length >= 8)`, with the base type and the predicate spelled the way
+    /// the declaration spells them. That is the greppability half of D39 — the
+    /// string that reaches an HTTP 422 body greps straight back to the
+    /// `type Password = ...` line. The issue carries `code: "refinement"`.
     fn emit_refinement_descriptor(
         &mut self,
         name: &Ident,
@@ -958,6 +964,7 @@ impl<'a> Emitter<'a> {
     ) -> Result<(), EmitError> {
         let base_check = self.field_value_check(base, "value");
         let pred = self.expr(predicate)?;
+        let constraint = format!("{} where {}", type_label(base), strip_outer_parens(&pred));
         self.line(&format!("{}const {name} = {{", self.emit_export));
         self.indent += 1;
         self.line(&format!("is(value: unknown): value is {name} {{"));
@@ -974,7 +981,8 @@ impl<'a> Emitter<'a> {
         self.indent += 1;
         self.line(&format!("? {OK_CTOR}(value)"));
         self.line(&format!(
-            ": {ERR_CTOR}([{{ path: [], message: \"expected {name}\" }}]);"
+            ": {ERR_CTOR}([{{ path: [], message: {}, code: \"refinement\" }}]);",
+            escape_double_quoted(&format!("expected {name} ({constraint})"))
         ));
         self.indent -= 1;
         self.indent -= 1;
@@ -1062,10 +1070,18 @@ impl<'a> Emitter<'a> {
         self.indent += 1;
         self.line(&format!("is{decl_generics}({entry_params}): value is {self_ty} {{"));
         self.indent += 1;
+        // An array is an object to `typeof`, so it has to be excluded explicitly:
+        // without this an `Array` satisfies every check of a record with no
+        // required fields, and `Empty.is([])` (and `Empty.parse([])`) answered
+        // true for a value that is not a record at all.
         if checks.is_empty() {
-            self.line("return typeof value === \"object\" && value !== null;");
+            self.line(
+                "return typeof value === \"object\" && value !== null && !Array.isArray(value);",
+            );
         } else {
-            self.line("return typeof value === \"object\" && value !== null");
+            self.line(
+                "return typeof value === \"object\" && value !== null && !Array.isArray(value)",
+            );
             self.indent += 1;
             for (i, c) in checks.iter().enumerate() {
                 let term = if i + 1 == checks.len() { ";" } else { "" };
@@ -1078,33 +1094,56 @@ impl<'a> Emitter<'a> {
         // `parse` validates field by field and returns `Result<T, Issue[]>`: each
         // failing field contributes an `Issue` naming it (`path: [field]`), so a
         // boundary rejection reports which field is wrong rather than a single
-        // "expected T" string. A non-object value fails outright. When no issue is
-        // found the value is exactly a `T`, so the `Ok` payload is a checked cast.
+        // "expected T" string. A non-object value fails outright, and an array is
+        // called out by name (it reaches here as a `typeof "object"`). When no
+        // issue is found the value is exactly a `T`, so the `Ok` payload is a
+        // checked cast.
+        //
+        // The per-field test is ordered so the answer says *which rule* failed
+        // rather than collapsing three of them into one string: an absent
+        // required field reports `code: "missing"`, a present-but-wrong one
+        // reports `code: "type"` and names the declared type, and a field whose
+        // type has its own descriptor delegates to `T.parse` so the nested
+        // issues arrive with the field name prepended to their `path` (and a
+        // refinement's constraint message survives the trip). Leaf types,
+        // unconstrained type parameters, and imported `.d.ts` types have no
+        // descriptor to delegate to and keep the flat `field_value_check`.
         self.used_result.set(true);
         self.line(&format!(
             "parse{decl_generics}({entry_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
         ));
         self.indent += 1;
+        self.line("if (Array.isArray(value)) {");
+        self.indent += 1;
+        self.line(&format!(
+            "return {ERR_CTOR}([{{ path: [], message: \"expected {name} (an object), got an array\", code: \"type\" }}]);"
+        ));
+        self.indent -= 1;
+        self.line("}");
         self.line("if (typeof value !== \"object\" || value === null) {");
         self.indent += 1;
         self.line(&format!(
-            "return {ERR_CTOR}([{{ path: [], message: \"expected {name} (an object)\" }}]);"
+            "return {ERR_CTOR}([{{ path: [], message: \"expected {name} (an object)\", code: \"type\" }}]);"
         ));
         self.indent -= 1;
         self.line("}");
         self.line("const __issues: Issue[] = [];");
-        for (f, check) in fields.iter().zip(field_checks.iter()) {
-            self.line(&format!(
-                "if (!({check})) __issues.push({{ path: [\"{fname}\"], message: \"field `{fname}` is missing or has the wrong type\" }});",
-                fname = f.name
-            ));
+        // The type-parameter guards are needed again here: a field typed `T`
+        // still validates through its threaded checker inside `parse`.
+        *self.desc_param_guards.borrow_mut() = generics
+            .iter()
+            .map(|g| (g.name.to_string(), Self::guard_param_name(g.name.as_ref())))
+            .collect();
+        for (i, f) in fields.iter().enumerate() {
+            self.emit_field_parse_check(i, f);
         }
+        self.desc_param_guards.borrow_mut().clear();
         if let Some(allowed) = &allowed_keys {
             let cond = if allowed.is_empty() { "false" } else { allowed.as_str() };
             self.line("for (const __k of Object.keys(value as object)) {");
             self.indent += 1;
             self.line(&format!(
-                "if (!({cond})) __issues.push({{ path: [__k], message: \"unexpected field `\" + __k + \"`\" }});"
+                "if (!({cond})) __issues.push({{ path: [__k], message: \"unexpected field `\" + __k + \"`\", code: \"unexpected\" }});"
             ));
             self.indent -= 1;
             self.line("}");
@@ -1145,6 +1184,124 @@ impl<'a> Emitter<'a> {
         self.indent -= 1;
         self.line("};");
         Ok(())
+    }
+
+    /// One field's contribution to a record descriptor's `parse`, as statements
+    /// pushing zero or one `Issue` (or several, when the field delegates).
+    ///
+    /// A required field is tested in order: absent first (`code: "missing"`),
+    /// then wrong (`code: "type"`, naming the declared type). An optional field
+    /// (`f?: T`) skips the absence test entirely, so absence stays legal exactly
+    /// where the type says it is. When the field's type has its own emitted
+    /// descriptor the check becomes `T.parse(...)` and its issues are spliced in
+    /// with this field's name prepended to each `path`, which is what makes a
+    /// nested rejection reportable as `["body", "password"]` and what carries a
+    /// refinement's constraint message out to the caller.
+    fn emit_field_parse_check(&mut self, index: usize, field: &RecordTypeField) {
+        let fname = field.name.to_string();
+        let access = format!("(value as Record<string, unknown>).{fname}");
+        let present = format!("\"{fname}\" in (value as object)");
+        let missing_issue = format!(
+            "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"missing\" }});",
+            escape_double_quoted(&format!("field `{fname}` is required"))
+        );
+        match self.field_descriptor_name(&field.ty) {
+            Some(desc) => {
+                let res = format!("__r{index}");
+                let issue = format!("__i{index}");
+                let splice = |this: &mut Self| {
+                    this.line(&format!("const {res} = {desc}.parse({access});"));
+                    this.line(&format!("if ({res}.tag === \"Err\") {{"));
+                    this.indent += 1;
+                    this.line(&format!("for (const {issue} of {res}.value) {{"));
+                    this.indent += 1;
+                    this.line(&format!(
+                        "__issues.push({{ path: [\"{fname}\", ...{issue}.path], message: {issue}.message, code: {issue}.code }});"
+                    ));
+                    this.indent -= 1;
+                    this.line("}");
+                    this.indent -= 1;
+                    this.line("}");
+                };
+                if field.optional {
+                    self.line(&format!("if ({present}) {{"));
+                    self.indent += 1;
+                    splice(self);
+                    self.indent -= 1;
+                    self.line("}");
+                } else {
+                    self.line(&format!("if ({access} === undefined) {{"));
+                    self.indent += 1;
+                    self.line(&missing_issue);
+                    self.indent -= 1;
+                    self.line("} else {");
+                    self.indent += 1;
+                    splice(self);
+                    self.indent -= 1;
+                    self.line("}");
+                }
+            }
+            None => {
+                let check = self.field_value_check(&field.ty, &access);
+                let type_issue = format!(
+                    "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"type\" }});",
+                    escape_double_quoted(&format!(
+                        "field `{fname}` must be {}",
+                        type_label(&field.ty)
+                    ))
+                );
+                if field.optional {
+                    self.line(&format!("if ({present} && !({check})) {{"));
+                    self.indent += 1;
+                    self.line(&type_issue);
+                    self.indent -= 1;
+                    self.line("}");
+                } else {
+                    self.line(&format!("if ({access} === undefined) {{"));
+                    self.indent += 1;
+                    self.line(&missing_issue);
+                    self.indent -= 1;
+                    self.line(&format!("}} else if (!({check})) {{"));
+                    self.indent += 1;
+                    self.line(&type_issue);
+                    self.indent -= 1;
+                    self.line("}");
+                }
+            }
+        }
+    }
+
+    /// The descriptor a field of type `ty` can delegate its `parse` to, or `None`
+    /// when there is none to delegate to. Mirrors the descriptor branches of
+    /// [`Self::field_value_check`] exactly, including their order: a leaf type
+    /// and a type parameter bound to a threaded checker never delegate, a local
+    /// alias resolves through to whatever it names, and a two-segment path
+    /// reaches another module's descriptor by the same binding the emitted type
+    /// annotation uses.
+    fn field_descriptor_name(&self, ty: &TypeExpr) -> Option<String> {
+        if is_named_type(ty, "int") || js_typeof(ty).is_some() {
+            return None;
+        }
+        match ty {
+            TypeExpr::Path { segments, .. } if segments.len() == 1 => {
+                let name = segments[0].as_ref();
+                if self.param_guard(name).is_some() {
+                    return None;
+                }
+                if self.has_descriptor(name) {
+                    return Some(name.to_string());
+                }
+                let leaf = self.resolve_alias_leaf(name)?;
+                self.field_descriptor_name(&leaf)
+            }
+            TypeExpr::Path { segments, .. } if segments.len() == 2 => {
+                let ns = segments[0].as_ref();
+                let name = segments[1].as_ref();
+                self.has_namespaced_descriptor(ns, name)
+                    .then(|| format!("{ns}.{name}"))
+            }
+            _ => None,
+        }
     }
 
     fn emit_import(&mut self, im: &ImportDecl) -> Result<(), EmitError> {
@@ -4404,6 +4561,73 @@ fn escape_double_quoted(s: &str) -> String {
     out
 }
 
+/// Render a type the way the declaration spells it, for a boundary rejection
+/// message. This is deliberately Glyph's spelling and not the emitted
+/// TypeScript one (`int` stays `int`, `bool` stays `bool`), so the message a
+/// caller reads greps back to the source line that imposed the rule. A shape
+/// with no useful short spelling reads as a noun phrase instead (`a function`,
+/// `an object`).
+fn type_label(te: &TypeExpr) -> String {
+    match te {
+        TypeExpr::Path { segments, .. } => segments
+            .iter()
+            .map(|s| s.as_ref())
+            .collect::<Vec<_>>()
+            .join("."),
+        TypeExpr::Generic { base, args, .. } => format!(
+            "{}<{}>",
+            type_label(base),
+            args.iter().map(type_label).collect::<Vec<_>>().join(", ")
+        ),
+        TypeExpr::Fn { .. } => "a function".to_string(),
+        TypeExpr::Record { .. } => "an object".to_string(),
+        TypeExpr::Union { variants, .. } => variants
+            .iter()
+            .map(|v| v.name.to_string())
+            .collect::<Vec<_>>()
+            .join(" | "),
+        TypeExpr::StringLiteralUnion { values, .. } => values
+            .iter()
+            .map(|v| escape_double_quoted(v))
+            .collect::<Vec<_>>()
+            .join(" | "),
+        TypeExpr::Extern { raw, .. } => raw.clone(),
+        TypeExpr::TypeOf { path, .. } => format!(
+            "typeof {}",
+            path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
+        ),
+    }
+}
+
+/// Drop one redundant enclosing paren pair from an emitted expression, so a
+/// predicate reads `value.length >= 8` rather than `(value.length >= 8)` inside
+/// a rejection message. Only strips when the opening paren's match is the final
+/// character, so `(a) && (b)` is left alone.
+fn strip_outer_parens(expr: &str) -> &str {
+    let bytes = expr.as_bytes();
+    if bytes.first() != Some(&b'(') || bytes.last() != Some(&b')') {
+        return expr;
+    }
+    let mut depth = 0usize;
+    for (i, b) in bytes.iter().enumerate() {
+        match b {
+            b'(' => depth += 1,
+            b')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return if i + 1 == bytes.len() {
+                        &expr[1..bytes.len() - 1]
+                    } else {
+                        expr
+                    };
+                }
+            }
+            _ => {}
+        }
+    }
+    expr
+}
+
 /// Whether `arm` is a constructor pattern carrying a single nested constructor
 /// argument (`Err(NetworkError({ status }))`), which needs an inner switch on
 /// the payload's tag. A whole-payload bind (`Err(e)`), an object destructure
@@ -5361,10 +5585,27 @@ mod tests {
             ts.contains("parse(value: unknown): __GlyphResult<User, Issue[]> {"),
             "{ts}"
         );
-        // It validates field by field, naming the offending field in the issue.
+        // It validates field by field, naming the offending field in the issue,
+        // and it separates "absent" from "present but the wrong type".
+        assert!(
+            ts.contains("if ((value as Record<string, unknown>).id === undefined) {"),
+            "{ts}"
+        );
         assert!(
             ts.contains(
-                "if (!(typeof (value as Record<string, unknown>).id === \"string\")) __issues.push({ path: [\"id\"], message: \"field `id` is missing or has the wrong type\" });"
+                "__issues.push({ path: [\"id\"], message: \"field `id` is required\", code: \"missing\" });"
+            ),
+            "{ts}"
+        );
+        assert!(
+            ts.contains(
+                "} else if (!(typeof (value as Record<string, unknown>).id === \"string\")) {"
+            ),
+            "{ts}"
+        );
+        assert!(
+            ts.contains(
+                "__issues.push({ path: [\"id\"], message: \"field `id` must be string\", code: \"type\" });"
             ),
             "{ts}"
         );
@@ -5377,7 +5618,17 @@ mod tests {
             "{ts}"
         );
         assert!(
-            ts.contains("return __glyph_err([{ path: [], message: \"expected User (an object)\" }]);"),
+            ts.contains(
+                "return __glyph_err([{ path: [], message: \"expected User (an object)\", code: \"type\" }]);"
+            ),
+            "{ts}"
+        );
+        // An array is an object to `typeof`, so it is rejected by name rather
+        // than answered with one misleading issue per declared field.
+        assert!(
+            ts.contains(
+                "return __glyph_err([{ path: [], message: \"expected User (an object), got an array\", code: \"type\" }]);"
+            ),
             "{ts}"
         );
         // No stale inlined wire format remains.
@@ -5392,6 +5643,68 @@ mod tests {
             "{ts}"
         );
         assert_eq!(ts.matches("from \"std/result\"").count(), 1, "{ts}");
+    }
+
+    #[test]
+    fn optional_field_is_never_reported_as_missing() {
+        // `f?: T` says absence is legal, so `parse` tests the value only when the
+        // key is present and never emits the `"missing"` branch for it.
+        let ts = emit("module x\npub type P = { id: string, nick?: string }\n");
+        assert!(
+            ts.contains(
+                "if (\"nick\" in (value as object) && !(typeof (value as Record<string, unknown>).nick === \"string\")) {"
+            ),
+            "{ts}"
+        );
+        assert!(
+            !ts.contains("message: \"field `nick` is required\""),
+            "{ts}"
+        );
+        // The required sibling still gets both branches.
+        assert!(ts.contains("message: \"field `id` is required\""), "{ts}");
+    }
+
+    #[test]
+    fn field_with_a_descriptor_delegates_and_prefixes_the_path() {
+        // A field whose type has its own descriptor is validated by that type's
+        // `parse`, and its issues arrive with the field name prepended to `path`.
+        // That is what carries a refinement's constraint message out to the
+        // caller instead of flattening it into one "wrong type" string.
+        let ts = emit(
+            "module x\npub type Password = string where value.length >= 8\npub type Signup = { password: Password }\n",
+        );
+        assert!(
+            ts.contains("const __r0 = Password.parse((value as Record<string, unknown>).password);"),
+            "{ts}"
+        );
+        assert!(ts.contains("if (__r0.tag === \"Err\") {"), "{ts}");
+        assert!(
+            ts.contains(
+                "__issues.push({ path: [\"password\", ...__i0.path], message: __i0.message, code: __i0.code });"
+            ),
+            "{ts}"
+        );
+        // The absent case is still distinguished from the failing one.
+        assert!(
+            ts.contains("message: \"field `password` is required\", code: \"missing\""),
+            "{ts}"
+        );
+        // No collapsed message survives anywhere.
+        assert!(!ts.contains("is missing or has the wrong type"), "{ts}");
+    }
+
+    #[test]
+    fn leaf_typed_field_keeps_the_flat_check() {
+        // The delegation is scoped: a leaf type, an unconstrained type parameter,
+        // and an imported type have no descriptor to call, so they keep the
+        // inline `field_value_check` and report `code: "type"`.
+        let ts = emit("module x\npub type Box<T> = { item: T, label: string }\n");
+        assert!(!ts.contains(".parse("), "{ts}");
+        assert!(ts.contains("!(__is_T((value as Record<string, unknown>).item))"), "{ts}");
+        assert!(
+            ts.contains("message: \"field `item` must be T\", code: \"type\""),
+            "{ts}"
+        );
     }
 
     #[test]
@@ -5431,8 +5744,12 @@ mod tests {
             "{ts}"
         );
         assert!(ts.contains("? __glyph_ok(value)"), "{ts}");
+        // The rejection names the constraint, base type and predicate as
+        // written, so the message greps back to the declaration.
         assert!(
-            ts.contains(": __glyph_err([{ path: [], message: \"expected Amount\" }]);"),
+            ts.contains(
+                ": __glyph_err([{ path: [], message: \"expected Amount (int where value >= 0)\", code: \"refinement\" }]);"
+            ),
             "{ts}"
         );
 

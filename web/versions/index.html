@@ -49,8 +49,28 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.58</span>
+            <span class="rel-ver">0.1.59</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The boundary knew which rule you broke and would not say</h3>
+            <p>A record's <code>parse</code> checked three separate things about every field and reported all three with the same sentence. A missing <code>password</code>, a <code>password</code> that was a number, and a <code>password</code> that was a string of four characters failing <code>string where value.length &gt;= 8</code> all came back as <code>field `password` is missing or has the wrong type</code>. One of those is a client that forgot a field and one is a client that chose a weak password, which is a 400 and a 422, and the validator had computed the difference and then dropped it. Building a signup and login API in <code>examples/apps/auth_api</code>, the way out was a second copy of every payload type with the constraints removed, parsed a second time on the failure path, purely to recover the bit the first parse already had. Two types, two parses, a helper each, and a constant restating the rule that was already written on the type.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> Each field is tested absent first, then wrong, with a message for each. An absent required field reads <code>field `password` is required</code>; a present one of the wrong type reads <code>field `email` must be string</code>, naming the type as the declaration spells it. An optional field (<code>f?: T</code>) is never reported missing.</li>
+              <li><span class="tag fixed">Fixed</span> A <code>where</code> refinement names the predicate it enforced: <code>expected Password (string where value.length &gt;= 8)</code>. The rule is written once, on the type, and the string in the 422 body greps back to that line. This is the half of D39 that was specified and not delivered.</li>
+              <li><span class="tag fixed">Fixed</span> Arrays no longer pass the object test. <code>typeof [] === "object"</code>, so a record with no required fields accepted <code>[]</code> outright, and a posted <code>[1, 2, 3]</code> came back as one misleading issue per declared field with nothing saying you had sent a list. Both <code>is</code> and <code>parse</code> exclude arrays, and <code>parse</code> says <code>expected Signup (an object), got an array</code>.</li>
+              <li><span class="tag added">Added</span> <code>Issue</code> carries an optional <code>code</code>: <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, or <code>"unexpected"</code>. Branch on that instead of matching message text. It is optional, so every <code>Issue</code> you already construct or consume compiles unchanged.</li>
+              <li><span class="tag added">Added</span> A field whose type has its own descriptor is validated by that type's <code>parse</code>, with the field name spliced onto the front of each nested issue's <code>path</code>. A refinement two levels down reports its own message at <code>["body", "password"]</code> rather than a flat check at the top.</li>
+              <li><span class="tag changed">Changed</span> <code>examples/apps/auth_api</code> dropped the workaround: two duplicate payload types, two helper functions, the restated rule constant, and both re-parse blocks are gone, and the four boundary responses in its transcript are now four different answers.</li>
+              <li><span class="tag known">Known</span> A module that declares its own type named <code>Issue</code> shadows the prelude one and breaks every descriptor in that module, because <code>parse</code> annotates its error array as <code>Issue[]</code>. The fix is the one <code>Result</code> already uses, referencing the prelude type through an injected alias, and it has not landed. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.58</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

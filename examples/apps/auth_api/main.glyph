@@ -133,7 +133,7 @@ fn run_demo() -> number {
   let anon = ""
   show("GET  /health", call("GET", "/health", {}, anon))
 
-  step("signup: one good account, four bad ones")
+  step("signup: one good account, five bad ones")
   let good = { email: "  Alice@Example.COM ", password: ALICE_PASSWORD }
   show("POST /signup alice", call("POST", "/signup", good, anon))
   show("POST /signup alice again", call("POST", "/signup", good, anon))
@@ -143,6 +143,8 @@ fn run_demo() -> number {
   show("POST /signup short password", call("POST", "/signup", short, anon))
   let missing = { email: "carol@example.com" }
   show("POST /signup no password field", call("POST", "/signup", missing, anon))
+  let array_body = ["carol@example.com", ALICE_PASSWORD]
+  show("POST /signup a JSON array", call("POST", "/signup", array_body, anon))
 
   step("login: five wrong guesses lock the address")
   let wrong = { email: ALICE, password: "hunter2" }

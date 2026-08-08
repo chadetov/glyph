@@ -27,10 +27,16 @@ declare const number: {
   parse(s: string): import("./std/result").Result<number, string>;
 };
 
-/// One problem reported by a record/schema parser.
+/// One problem reported by a record/schema parser. `code` classifies the
+/// failure so a handler can branch on it without matching the human-readable
+/// `message`: `"missing"` for a required field that was absent, `"type"` for a
+/// value of the wrong shape, `"refinement"` for a value that passed its base
+/// type but failed a `where` predicate, and `"unexpected"` for a key the type
+/// does not declare. It is optional, so an `Issue` built by hand still checks.
 type Issue = {
   path: ReadonlyArray<string | number>;
   message: string;
+  code?: "missing" | "type" | "refinement" | "unexpected";
 };
 
 /// A runtime validator for `T`, produced by `T.schema` and consumed by

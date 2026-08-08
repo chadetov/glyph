@@ -88,15 +88,6 @@ pub type AuthError =
 
 pub type SignupBody = { email: string, password: Password }
 
-// The same payload with the length rule dropped.
-//
-// It exists because a `where` refinement reports the same `Issue` as a missing
-// field: both are `{ path: ["password"], message: "field `password` is missing
-// or has the wrong type" }`, so a body that omits the field and one that sends
-// "short" are indistinguishable from the result alone. Parsing against the
-// loose shape second is how the handler tells them apart.
-pub type SignupBodyLoose = { email: string, password: string }
-
 // Login does not use the refined `Password`: a wrong-length password at login
 // is a bad credential, not a malformed request, and the two must not report
 // differently or the error tells an attacker which one it was.
@@ -105,8 +96,6 @@ pub type LoginBody = { email: string, password: string }
 pub type RefreshBody = { refresh_token: string }
 
 pub type ChangePasswordBody = { current_password: string, new_password: Password }
-
-pub type ChangePasswordBodyLoose = { current_password: string, new_password: string }
 
 // What a client is allowed to see about a user. The stored record carries the
 // salt and hash; this one cannot, because it is a different type.

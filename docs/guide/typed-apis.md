@@ -98,8 +98,26 @@ fn create(req: Request) -> Result<Response, string> {
 
 No `zod` schema, no `as NewTask` cast, no separate validator to keep in sync. If
 a request sends `{"title": 123}` the `Err` arm runs; if a field is missing the
-`Err` arm runs; only a well-formed body reaches `Ok`. The full worked server —
-auth, in-memory store, every method — is
+`Err` arm runs; only a well-formed body reaches `Ok`.
+
+The `Err` arm is told which rule the value broke, so it can answer differently
+for a malformed request and a rejected value. Each `Issue` carries a `code`:
+
+| `code` | what happened | message it reads like |
+| --- | --- | --- |
+| `"missing"` | a required field was absent | ``field `title` is required`` |
+| `"type"` | the value was the wrong shape | ``field `title` must be string`` |
+| `"refinement"` | it passed the base type and failed a `where` predicate | `expected Password (string where value.length >= 8)` |
+| `"unexpected"` | a key the type does not declare | ``unexpected field `role` `` |
+
+A non-object body is rejected before any field is looked at, and an array is
+named as one (`expected NewTask (an object), got an array`). Branch on `code`
+rather than on the message text: the message is for the human reading the
+response body, and it is free to get clearer. A field whose type has its own
+descriptor is validated by that type's `parse`, so a nested failure comes back
+with the whole path (`["body", "password"]`) and its own message.
+
+The full worked server (auth, in-memory store, every method) is
 [`examples/05_rest_api.glyph`](../../examples/05_rest_api.glyph); run it with
 `glyph run examples/05_rest_api.glyph`.
 

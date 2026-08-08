@@ -6,7 +6,7 @@ module routes
 
 import clock
 import config
-import model { Role, User, view_of, SignupBody, SignupBodyLoose, LoginBody, RefreshBody, ChangePasswordBody, ChangePasswordBodyLoose, AuthError, EmailTaken, InvalidEmail, WeakPassword, BadCredentials, RateLimited, SessionUnknown, SessionExpired, SessionRevoked, TokenMalformed, TokenBadSignature, TokenExpired, TokenStale, MissingAuthorization, Forbidden, NotFound, BadRequest }
+import model { Role, User, view_of, SignupBody, LoginBody, RefreshBody, ChangePasswordBody, AuthError, EmailTaken, InvalidEmail, WeakPassword, BadCredentials, RateLimited, SessionUnknown, SessionExpired, SessionRevoked, TokenMalformed, TokenBadSignature, TokenExpired, TokenStale, MissingAuthorization, Forbidden, NotFound, BadRequest }
 import service
 import std/array
 import std/http { Request, Response, json, segments, header }
@@ -67,16 +67,18 @@ pub fn error_response(e: AuthError) -> Response {
   return json(f.status, { error: f.code, message: f.message })
 }
 
-// A body that failed the strict shape. If it still fits the shape with the
-// password rule dropped, the only thing wrong with it was the password; if it
-// does not, the body itself is malformed and the issues say how.
-//
-// The two-parse dance is here because the `Issue` a `where` refinement produces
-// is textually identical to the one a missing field produces, so the result
-// alone cannot tell a weak password from an absent one.
-fn weak_or_malformed(fits_loose: bool, issues: Array<Issue>, weak_reason: string) -> AuthError {
-  return match fits_loose {
-    true => WeakPassword({ reason: weak_reason }),
+// A body that failed the strict shape. Each issue says which rule it broke, so
+// a password that was present, was a string, and only failed the length bound
+// on `Password` arrives tagged `refinement`. That is the one failure this
+// service reports as a weak password rather than a malformed body; the reason
+// is the boundary's own words, so the rule is stated once, in the type.
+fn is_refinement(i: Issue) -> bool {
+  return i.code == "refinement"
+}
+
+fn weak_or_malformed(issues: Array<Issue>) -> AuthError {
+  return match array.any(issues, is_refinement) {
+    true => WeakPassword({ reason: describe_issues(array.filter(issues, is_refinement)) }),
     false => BadRequest({ detail: describe_issues(issues) }),
   }
 }
@@ -85,22 +87,6 @@ fn describe_issues(issues: Array<Issue>) -> string {
   let parts = array.map(issues, fn(i: Issue) { i.message })
   let separator = "; "
   return string.join(parts, separator)
-}
-
-const PASSWORD_RULE: string = "password must be between 8 and 128 characters"
-
-fn fits_signup(body: unknown) -> bool {
-  return match SignupBodyLoose.parse(body) {
-    Ok(loose) => true,
-    Err(issues) => false,
-  }
-}
-
-fn fits_change_password(body: unknown) -> bool {
-  return match ChangePasswordBodyLoose.parse(body) {
-    Ok(loose) => true,
-    Err(issues) => false,
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -128,10 +114,7 @@ fn caller(req: Request) -> Result<User, AuthError> {
 fn handle_signup(req: Request) -> Result<Response, string> {
   let role: Role = "user"
   return match SignupBody.parse(req.body) {
-    Err(issues) => {
-      let fits = fits_signup(req.body)
-      Ok(error_response(weak_or_malformed(fits, issues, PASSWORD_RULE)))
-    },
+    Err(issues) => Ok(error_response(weak_or_malformed(issues))),
     Ok(body) => match service.signup(body.email, body.password, role, clock.now()) {
       Err(e) => Ok(error_response(e)),
       Ok(created) => Ok(json(201, created)),
@@ -180,10 +163,7 @@ fn handle_change_password(req: Request) -> Result<Response, string> {
   return match caller(req) {
     Err(e) => Ok(error_response(e)),
     Ok(u) => match ChangePasswordBody.parse(req.body) {
-      Err(issues) => {
-        let fits = fits_change_password(req.body)
-        Ok(error_response(weak_or_malformed(fits, issues, PASSWORD_RULE)))
-      },
+      Err(issues) => Ok(error_response(weak_or_malformed(issues))),
       Ok(body) => match service.change_password(
         u,
         body.current_password,

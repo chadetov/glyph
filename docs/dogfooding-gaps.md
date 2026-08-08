@@ -24,8 +24,9 @@ open.
 
 Reconciled again after the adversarial review of the csvql round, which added one
 entry (G77, the match-arm binding that shadowed the `let` it assigned to) and
-closed it along with G74 in the same release, then again after G75: of 78 entries,
-53 are fixed, 11 are partly fixed, 5 are decided or resolved, and 9 are open. G75
+closed it along with G74 in the same release, then again after G75 and after the
+auth_api boundary round (G79/G80): of 80 entries, 54 are fixed, 11 are partly
+fixed, 5 are decided or resolved, and 10 are open. G75
 was the largest thing still open: an imported record type lowered to `Ty::Unknown`,
 so field checking and the `for i, x` index type were both wrong across an import.
 It carried an identity across the boundary from that release on.
@@ -2138,3 +2139,51 @@ salsa-memoized. Nobody had written the second query.
   third option, writing the imports root-relative as `import apps/csvql/catalog`,
   is worse: it would fix the tree build and break building the app on its own,
   which is how the app is actually used.
+
+- **G79. [FIXED] A boundary rejection said which field was wrong but never which
+  rule, and a record accepted an array.** Every failing field in a record
+  descriptor's `parse` pushed the same string, whatever went wrong:
+  ``field `password` is missing or has the wrong type``. Absent, present-but-failing-its-`where`-predicate, and
+  present-with-the-wrong-type were byte-identical, so a handler could not tell a
+  400 from a 422 without re-deriving the answer the validator already had. The
+  refinement descriptor was no better: it said only `expected Password` and never
+  named the predicate it had just rendered verbatim one line above, which is the
+  half of D39 that promises the constraint is greppable from the rejection. And
+  the object test was `typeof value !== "object" || value === null`, which an
+  array passes, so a record with no required fields accepted an array outright
+  (`Empty.parse([])` returned `Ok`, and the emitter's own comment called that
+  payload "a checked cast") while a posted `[1, 2, 3]` came back as one
+  misleading issue per declared field, none of them saying "you sent an array".
+  The auth_api app paid for it in shipped code: two record types and two `parse`
+  calls per password-bearing payload to recover one bit, and before that
+  workaround a signup with no password field at all answered `weak_password`.
+  *Fixed in the descriptor emitter. The object test now excludes arrays in both
+  `is` and `parse`, and `parse` answers an array by name. Each field is tested in
+  order — absent first (`code: "missing"`), then wrong (`code: "type"`, naming
+  the declared type as the declaration spells it) — and a field whose type has
+  its own descriptor delegates to that type's `parse`, splicing the nested issues
+  in with the field name prepended to each `path`. That delegation is what
+  carries a refinement's message out to the caller, and the refinement descriptor
+  now emits `expected Password (string where value.length >= 8)`. `Issue` gained
+  an optional `code` (`"missing" | "type" | "refinement" | "unexpected"`) so a
+  handler branches on the classification instead of matching message text.
+  Optional fields (`f?: T`) are unchanged: absence stays legal exactly where the
+  type says it is. Leaf types, unconstrained type parameters, and imported
+  `.d.ts` types have no descriptor to delegate to and keep the flat inline check
+  — the emitter still does not synthesize descriptors, which is its documented
+  soundness limitation. The auth_api app dropped both loose record types, both
+  extra `parse` calls, and the hand-written restatement of the length rule; it
+  now branches on `code == "refinement"` and reports the boundary's own message,
+  and its transcript answers a posted JSON array with `expected SignupBody (an
+  object), got an array`.*
+
+- **G80. A module-local type named `Issue` shadows the prelude one and breaks
+  every descriptor in that module.** A descriptor's `parse` annotates its error
+  array as `Issue[]`, which resolves to the module's own `Issue` when one is
+  declared. The emitted issues carry `path`, `message`, and now `code`, so a
+  user type spelled `{ path, message }` fails `tsc` with TS2353 on `code`. This
+  was always fragile (a user `Issue` missing `path` broke the same way); the
+  `code` field widened the surface. The clean fix is the one `Result` already
+  uses: export `Issue` from the runtime and have the emitter reference it through
+  an injected alias (`__GlyphIssue`), so no user name can shadow it. That is a
+  public-surface change and is not made here.

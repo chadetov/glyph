@@ -1,6 +1,6 @@
 {
   "name": "@glyphlang/darwin-x64",
-  "version": "0.1.58",
+  "version": "0.1.59",
   "description": "Prebuilt glyph compiler binary for macOS (Intel).",
   "os": [
     "darwin"

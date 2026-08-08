@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>When a parse fails, do I find out why? · Glyph</title>
+    <meta name="description" content="A failing parse names the field, says which rule the value broke, quotes the where predicate it violated, and tags the issue with a code you can branch on." />
+    <link rel="canonical" href="https://glyphlang.io/answers/parse-errors/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">18</span> Caught earlier</a>
+        <a href="/answers/parse-errors/" class="active"><span class="n">19</span> Why a parse failed</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">19 &middot; Parse failures</p>
+      <h1 class="q-title">When a parse fails, do I find out why?</h1>
+
+      <p class="short-answer">
+        Yes. Every issue names the field, says <strong>which rule the value broke</strong>,
+        and carries a <code>code</code> you can branch on. A field constrained by a
+        <code>where</code> predicate reports the predicate itself, so the rejection greps
+        back to the line that imposed it.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          A validator that says "this payload is bad" has done half the job. The handler
+          still has to decide: is this a client that forgot a field, or a client that sent
+          a password four characters long? One is a 400, the other is a 422, and if the
+          validator won't say, you end up parsing the same body twice with two different
+          types to recover a bit the validator already had.
+        </p>
+        <p>
+          That is exactly what happened building an auth API in Glyph. A signup with no
+          <code>password</code> key at all came back as <code>weak_password</code>, because
+          absent and too-short produced the same string.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>One type, one constraint:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">signup.glyph</span>
+<pre>pub type Password = string where value.length &gt;= 8
+
+pub type Signup = {
+  email: string,
+  password: Password,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Four bad payloads, four different answers. Each is one <code>Issue</code>, shown
+          as <code>code | path | message</code>:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Signup.parse(...)</span>
+<pre><span class="cm">// { "email": "user@example.com" }</span>
+missing     ["password"]  field `password` is required
+
+<span class="cm">// { "email": "user@example.com", "password": "short" }</span>
+refinement  ["password"]  expected Password (string where value.length &gt;= 8)
+
+<span class="cm">// { "email": 42, "password": "longenough" }</span>
+type        ["email"]     field `email` must be string
+
+<span class="cm">// [1, 2, 3]</span>
+type        []            expected Signup (an object), got an array</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The second one is the point. <code>value.length &gt;= 8</code> is written once, at
+          the type, and the rejection quotes it verbatim. Paste that string out of an HTTP
+          422 body into <code>grep</code> and you land on the declaration that produced it.
+          Nobody has to keep a copy of the rule in the error-message layer, which is how
+          the two drift apart.
+        </p>
+        <p>
+          The fourth one used to be worse than a bad message. An array is an object to
+          <code>typeof</code>, so a record with no required fields accepted one outright,
+          and a posted <code>[1, 2, 3]</code> came back as one confusing issue per declared
+          field, none of them mentioning that you had sent a list.
+        </p>
+
+        <p class="block-label">Nested types answer for themselves</p>
+        <p>
+          A field whose type has its own descriptor is validated by that type's
+          <code>parse</code>, and its issues come back with the field name on the front of
+          the path. So a <code>Password</code> nested two levels down reports
+          <code>["body", "password"]</code> and still carries its own message. You get the
+          location and the reason from the same issue, without re-running anything.
+        </p>
+
+        <p class="block-label">The code, not the string</p>
+        <p>
+          <code>Issue</code> carries an optional <code>code</code>:
+          <code>"missing"</code>, <code>"type"</code>, <code>"refinement"</code>, or
+          <code>"unexpected"</code>. Branch on that. Matching on message text is the
+          fragility Glyph exists to remove, and the message is for the human reading the
+          response body.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">A 400/422 split that does not read the message</span>
+<pre>fn status_for(issues: Array&lt;Issue&gt;) -&gt; number {
+  let first = issues[0]
+  return match first.code == "refinement" {
+    true =&gt; 422,
+    false =&gt; 400,
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>code</code> is optional, so an <code>Issue</code> you build by hand, and
+          every consumer written before it existed, still compiles unchanged.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Records and <code>where</code> types report the failing rule, not just the failing field: <code>"missing"</code> for an absent required field, <code>"type"</code> for the wrong shape (including a non-object or an array), <code>"refinement"</code> for a value that passed its base type and failed the predicate, and <code>"unexpected"</code> for a key the type does not declare. A refinement quotes its predicate. A field whose type has a descriptor delegates to it, so nested issues arrive with the full path. Optional fields (<code>f?: T</code>) are never reported as missing.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. And a module that declares its own type called <code>Issue</code> shadows the prelude one inside the emitted file, which breaks the descriptors in that module; the fix is to reference the prelude type through an injected alias the way <code>Result</code> already is, and it has not landed.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/early-errors/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Why does Glyph catch what tsc catches, but earlier?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/parse-errors/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -11,20 +11,31 @@ import { schema as __glyph_schema } from "std/schema";
 export type Account = { id: bigint; balance: number };
 export const Account = {
   is(value: unknown): value is Account {
-    return typeof value === "object" && value !== null
+    return typeof value === "object" && value !== null && !Array.isArray(value)
       && typeof (value as Record<string, unknown>).id === "bigint"
       && (typeof (value as Record<string, unknown>).balance === "number" && Number.isInteger((value as Record<string, unknown>).balance))
       && Object.keys(value as object).every((__k: string) => __k === "id" || __k === "balance");
   },
   parse(value: unknown): __GlyphResult<Account, Issue[]> {
+    if (Array.isArray(value)) {
+      return __glyph_err([{ path: [], message: "expected Account (an object), got an array", code: "type" }]);
+    }
     if (typeof value !== "object" || value === null) {
-      return __glyph_err([{ path: [], message: "expected Account (an object)" }]);
+      return __glyph_err([{ path: [], message: "expected Account (an object)", code: "type" }]);
     }
     const __issues: Issue[] = [];
-    if (!(typeof (value as Record<string, unknown>).id === "bigint")) __issues.push({ path: ["id"], message: "field `id` is missing or has the wrong type" });
-    if (!((typeof (value as Record<string, unknown>).balance === "number" && Number.isInteger((value as Record<string, unknown>).balance)))) __issues.push({ path: ["balance"], message: "field `balance` is missing or has the wrong type" });
+    if ((value as Record<string, unknown>).id === undefined) {
+      __issues.push({ path: ["id"], message: "field `id` is required", code: "missing" });
+    } else if (!(typeof (value as Record<string, unknown>).id === "bigint")) {
+      __issues.push({ path: ["id"], message: "field `id` must be bigint", code: "type" });
+    }
+    if ((value as Record<string, unknown>).balance === undefined) {
+      __issues.push({ path: ["balance"], message: "field `balance` is required", code: "missing" });
+    } else if (!((typeof (value as Record<string, unknown>).balance === "number" && Number.isInteger((value as Record<string, unknown>).balance)))) {
+      __issues.push({ path: ["balance"], message: "field `balance` must be int", code: "type" });
+    }
     for (const __k of Object.keys(value as object)) {
-      if (!(__k === "id" || __k === "balance")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`" });
+      if (!(__k === "id" || __k === "balance")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`", code: "unexpected" });
     }
     return __issues.length === 0 ? __glyph_ok(value as Account) : __glyph_err(__issues);
   },

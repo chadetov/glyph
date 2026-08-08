@@ -2443,8 +2443,65 @@ diagnostic and for E0210 naming the real type.
   build each app separately and the compiler should say so instead of emitting a
   bare specifier).
 
-0.1.58 carries the Next marker; the trip after it picks from what is left of this
-list, Round 16's, and Round 15's.
+The trip after 0.1.59 picks from what is left of this list, Round 16's, and
+Round 15's.
+
+### 0.1.59 — Next · The boundary says which rule you broke
+
+From the auth_api dogfood trip. Building a signup/login API in Glyph, the thing
+that cost real code was not writing the validator, it was reading its answer.
+
+A record descriptor's `parse` computed exactly which rule a field broke and then
+threw the distinction away: absent, failing its `where` predicate, and holding
+the wrong type all pushed the byte-identical string ``field `password` is missing
+or has the wrong type``. The refinement descriptor said only `expected Password`,
+never naming the predicate it had rendered verbatim one line above, so the half
+of D39 that promises the constraint is greppable from the rejection did not hold.
+And the object test let arrays through, so a record with no required fields
+answered `Ok` for an array and a posted `[1, 2, 3]` came back as one misleading
+issue per declared field.
+
+What shipped:
+
+- The object test excludes arrays in both `is` and `parse`, and `parse` names an
+  array when it gets one (`expected Signup (an object), got an array`).
+- Each field is tested in order: absent first, then wrong, with the message
+  naming the declared type as the declaration spells it.
+- A field whose type has its own descriptor delegates to that type's `parse`, so
+  nested issues arrive with the field name prepended to their `path` and a
+  refinement's message reaches the caller.
+- The refinement rejection reads `expected Password (string where value.length >= 8)`.
+- `Issue` gained an optional `code` (`"missing" | "type" | "refinement" |
+  "unexpected"`) so a handler branches on the classification rather than matching
+  message text. Optional keeps every existing `Issue` consumer compiling.
+
+G79 in [`../dogfooding-gaps.md`](../dogfooding-gaps.md).
+
+### Still open from this trip
+
+- **A module-local type named `Issue` shadows the prelude one** and breaks every
+  descriptor in that module, because `parse` annotates its error array as
+  `Issue[]`. The fix is the one `Result` already uses: export `Issue` from the
+  runtime and reference it through an injected alias. Public-surface change, not
+  made yet. G80.
+- **`std/crypto` is 31 lines with no KDF and no timing-safe compare**, so the app
+  hand-rolled a 4000-round HMAC as PBKDF2. The module header claims security
+  primitives belong in the stdlib, which makes the gap worse than shipping
+  neither. An afternoon of wrapping `node:crypto`, no design content.
+- **`std/http` cannot see the client address**, so the app keyed its lockout on
+  email and password spraying across accounts is unthrottled.
+- **`std/http` headers are `Record<string, string>`**, so two `Set-Cookie` cannot
+  coexist and a repeated request header is silently dropped: absence and
+  multiplicity collapse into the answer that reads as safe.
+- **`std/http` accumulates the whole body before the handler runs**, unbounded.
+- **`Request.url` holds a request target**, not a URL, while the name, the type,
+  and the docs all agree on something untrue.
+- **No `bytes` type**, so `base64url(HMAC)` and therefore a standards-compliant
+  JWT is inexpressible. This one is a design decision, not an iteration.
+- **A project-local import that resolves to nothing is silent.** Strongest
+  runner-up for the next trip.
+- **The `module` header is read only by the formatter** and is free to lie, which
+  is the greppability pillar exactly inverted. Ten cheap lines.
 
 ## Road to 1.0
 

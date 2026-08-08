@@ -11,20 +11,31 @@ import { schema as __glyph_schema } from "std/schema";
 export type User = { id: number; name: string };
 export const User = {
   is(value: unknown): value is User {
-    return typeof value === "object" && value !== null
+    return typeof value === "object" && value !== null && !Array.isArray(value)
       && typeof (value as Record<string, unknown>).id === "number"
       && typeof (value as Record<string, unknown>).name === "string"
       && Object.keys(value as object).every((__k: string) => __k === "id" || __k === "name");
   },
   parse(value: unknown): __GlyphResult<User, Issue[]> {
+    if (Array.isArray(value)) {
+      return __glyph_err([{ path: [], message: "expected User (an object), got an array", code: "type" }]);
+    }
     if (typeof value !== "object" || value === null) {
-      return __glyph_err([{ path: [], message: "expected User (an object)" }]);
+      return __glyph_err([{ path: [], message: "expected User (an object)", code: "type" }]);
     }
     const __issues: Issue[] = [];
-    if (!(typeof (value as Record<string, unknown>).id === "number")) __issues.push({ path: ["id"], message: "field `id` is missing or has the wrong type" });
-    if (!(typeof (value as Record<string, unknown>).name === "string")) __issues.push({ path: ["name"], message: "field `name` is missing or has the wrong type" });
+    if ((value as Record<string, unknown>).id === undefined) {
+      __issues.push({ path: ["id"], message: "field `id` is required", code: "missing" });
+    } else if (!(typeof (value as Record<string, unknown>).id === "number")) {
+      __issues.push({ path: ["id"], message: "field `id` must be number", code: "type" });
+    }
+    if ((value as Record<string, unknown>).name === undefined) {
+      __issues.push({ path: ["name"], message: "field `name` is required", code: "missing" });
+    } else if (!(typeof (value as Record<string, unknown>).name === "string")) {
+      __issues.push({ path: ["name"], message: "field `name` must be string", code: "type" });
+    }
     for (const __k of Object.keys(value as object)) {
-      if (!(__k === "id" || __k === "name")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`" });
+      if (!(__k === "id" || __k === "name")) __issues.push({ path: [__k], message: "unexpected field `" + __k + "`", code: "unexpected" });
     }
     return __issues.length === 0 ? __glyph_ok(value as User) : __glyph_err(__issues);
   },

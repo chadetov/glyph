@@ -726,10 +726,26 @@ schema<T>(name: string, is: fn(unknown) -> bool) -> Schema<T>
 `Schema<T>` and `Issue` are ambient prelude types:
 
 ```
-type Issue = { path: Array<string | number>, message: string }
+type Issue = {
+  path: Array<string | number>,
+  message: string,
+  code?: "missing" | "type" | "refinement" | "unexpected",
+}
 type Schema<T> = {
   name: string,
   parse(input: unknown) -> Result<T, Array<Issue>>,
   array() -> Schema<Array<T>>,
 }
 ```
+
+`code` says which rule the value broke, so a handler branches on it instead of
+matching the message text: `"missing"` for a required field that was absent,
+`"type"` for a value of the wrong shape (including a non-object or an array
+where a record was expected), `"refinement"` for a value that passed its base
+type but failed a `where` predicate, and `"unexpected"` for a key the type does
+not declare. It is optional, so an `Issue` you build by hand still checks.
+
+The `message` names the field and what it needed. A record field whose type has
+its own descriptor delegates to that type's `parse`, so nested failures arrive
+with the full path (`["body", "password"]`) and a refinement's rejection carries
+its predicate: `expected Password (string where value.length >= 8)`.

@@ -14,13 +14,21 @@
 // Passing one record round also means `grep -n "^\s*mut conn\."` lists every
 // piece of connection state that ever changes.
 //
-// Four escapes to raw TypeScript, all greppable by `extern_ts`: the WebSocket
-// type, the timer handle type, the constructor, and reading a close event. The
-// WHATWG `WebSocket` is a global in Node, and Glyph resolves imported module
-// names rather than ambient globals, so there is no other way to name it, and
-// `new WebSocket(...)` is E0103 for the same reason. The type is real either
-// way: `tsc` checks every call against its own `WebSocket`, so a misspelled
-// method is a compile error rather than a 3am one.
+// This is the only file in the app that escapes to raw TypeScript, and it does
+// so for one reason: everything it reaches for is a JavaScript *global*, and
+// Glyph resolves imported module names rather than ambient globals. So the
+// `WebSocket` type, its constructor, and the fields of the events it delivers
+// all have to be named through `extern_ts`. `new WebSocket(url)` is E0103 for
+// the same reason, which is why the constructor is a string too.
+//
+// `grep -n extern_ts` is the list; it is deliberately not repeated here as a
+// count, because a hand-maintained one goes stale the next time a field is read
+// off an event, and this comment has already been wrong twice.
+//
+// What the escapes do not cost is the type. `extern_ts` in *type* position
+// names the real `WebSocket`, so `tsc` checks every call against it and
+// `sock.sendd(...)` is a compile error that names the type and the misspelling.
+// Only the construction and the event-field reads are untyped at the seam.
 module gateway
 
 import std/io

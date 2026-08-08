@@ -2,12 +2,27 @@
   "name": "@glyphlang/win32-x64",
   "version": "0.1.58",
   "description": "Prebuilt glyph compiler binary for Windows (x86_64).",
-  "os": ["win32"],
-  "cpu": ["x64"],
-  "files": ["bin/"],
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/"
+  ],
   "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "glyph",
+    "compiler",
+    "binary"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chadetov/glyph.git"
+  },
+  "homepage": "https://glyphlang.io",
+  "bugs": {
+    "url": "https://github.com/chadetov/glyph/issues"
   }
 }

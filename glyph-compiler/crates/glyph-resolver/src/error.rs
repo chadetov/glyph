@@ -37,8 +37,23 @@ pub enum ResolveError {
         mut_target: bool,
     },
 
-    #[error("unresolved module path `{path}`")]
-    UnresolvedModule { path: String, span: Span },
+    /// A local (non-`std`, non-`extern`) import that names no module under the
+    /// build root. A local import path is resolved from the build root (D15),
+    /// so a nested app built from an enclosing directory fails here; without
+    /// this the type silently degrades and the user gets a downstream
+    /// non-exhaustive-match or `tsc` error that never mentions imports.
+    #[error(
+        "unresolved import `{path}`: no module `{path}` under the build root `{root}`{}",
+        .found_at.as_deref().map(|p| format!(
+            ". There is a `{p}` under the root; a local import path is resolved from the build root, not from the importing file's directory (D15)"
+        )).unwrap_or_default()
+    )]
+    UnresolvedModule {
+        path: String,
+        root: String,
+        found_at: Option<String>,
+        span: Span,
+    },
 
     #[error("`{name}` is not exported by `{module}`")]
     UnknownExportedName {
@@ -205,7 +220,9 @@ impl ResolveError {
                 }
             }
             ResolveError::UnresolvedModule { .. } => {
-                "Check the module path and that the module exists in the project or stdlib."
+                "A local import resolves from the build root, the directory passed to `glyph build`/`glyph run`. \
+                 Build that module's own directory as the root, or spell the import path as it reads from the root. \
+                 If this is an npm package, install it or declare it in `<root>/.types/*.d.ts`."
             }
             ResolveError::UnknownExportedName { .. } => {
                 "Check the spelling, and that the module actually exports this name."

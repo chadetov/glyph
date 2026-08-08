@@ -110,6 +110,11 @@ for a malformed request and a rejected value. Each `Issue` carries a `code`:
 | `"refinement"` | it passed the base type and failed a `where` predicate | `expected Password (string where value.length >= 8)` |
 | `"unexpected"` | a key the type does not declare | ``unexpected field `role` `` |
 
+A refined type reports the two failures separately. `42` is not a `string` at
+all, so it comes back as `expected Password (string)` with `code: "type"`;
+only `"short"`, which is a string, gets the `where` predicate in its message.
+A handler branching on `code` can answer 400 for one and 422 for the other.
+
 A non-object body is rejected before any field is looked at, and an array is
 named as one (`expected NewTask (an object), got an array`). Branch on `code`
 rather than on the message text: the message is for the human reading the

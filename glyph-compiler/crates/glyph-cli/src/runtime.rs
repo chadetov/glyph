@@ -156,7 +156,9 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
 /// The bundled Node builtin shim, written only when the project has no
 /// `@types/node` (with `@types/node` installed we prefer it and skip this to
 /// avoid a duplicate `declare module "fs"` conflict).
-const NODE_SHIMS: (&str, &str) = (
+/// `build.rs` also reads the shim's `declare module` names, so a `import fs`
+/// is not mistaken for an unresolvable local import.
+pub(crate) const NODE_SHIMS: (&str, &str) = (
     ".glyph-runtime/glyph-node-shims.d.ts",
     include_str!("../../../runtime/glyph-node-shims.d.ts"),
 );

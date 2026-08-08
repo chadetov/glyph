@@ -69,7 +69,7 @@ variant names**. Variants are the surface that bites: a union with an `Error`
 variant emits `export function Error(...)` at module top level, and the
 `new Error(...)` the compiler emits below it then calls the variant.
 
-### JavaScript globals the emitted TypeScript refers to
+### JavaScript and TypeScript globals the emitted TypeScript refers to
 
 | Name | Where the emitted module uses it |
 |------|----------------------------------|
@@ -78,6 +78,10 @@ variant emits `export function Error(...)` at module top level, and the
 | `Promise` | every `async fn`'s emitted return type |
 | `Number` | `Number.isInteger` in the `int` boundary check (D31) |
 | `Error` | `new Error(...)` in `?` lowering, non-exhaustive-match fallthrough, and descriptor `parse` |
+| `Record` | `Record<string, unknown>` in emitted field access and in `redact` |
+
+`Record` is a TypeScript built-in utility type rather than a runtime global, but
+it fails the same way and for the same reason, so it lives on this list.
 
 The list is derived from the emitter, not from a general list of JavaScript
 globals: `Date`, `Math`, `JSON`, `Symbol`, and the rest are free, because
@@ -91,11 +95,24 @@ In scope in every module without an import, so a declaration using one replaces
 it.
 
 ```
-assert   bigint   bool     int      number   par
-print    string   unknown  void
+assert   bigint   bool     int      Issue    number
+par      print    string   unknown  void
 ```
 
 `void` is also a Glyph keyword (list 1), so it fails earlier.
+
+`Issue` is a type rather than a value, and it is on the list for the same reason
+the globals above are: the emitted module writes it whether or not you did.
+
+| Name | Where the emitted module uses it |
+| --- | --- |
+| `Issue` | `parse(value: unknown): Result<T, Issue[]>` in every descriptor, and `const __issues: Issue[] = []` in a record descriptor |
+
+Prelude types the emitter never writes on its own are **not** reserved, on the
+same rule as `Date`: `Schema`, `Component` and `Option` only reach the output
+because you wrote them in an annotation, so declaring one shadows nothing.
+`Result`, `Ok`, `Err`, `infer_output` and the `schema` factory are emitted under
+`__Glyph`-prefixed aliases and cannot be shadowed at all.
 
 Std namespace names (`io`, `math`, `path`, `json`, `array`, `record`, ...) are
 **not** on this list. They are only in scope in a module that imports them, and

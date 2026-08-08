@@ -97,8 +97,11 @@ enum Command {
         json: bool,
     },
     /// Build then run a Glyph program via node.
+    ///
+    /// PATH is a `.glyph` file, or a directory whose `main.glyph` is the
+    /// program.
     Run {
-        #[arg(value_name = "FILE")]
+        #[arg(value_name = "PATH")]
         file: std::path::PathBuf,
         /// Skip type-checking with `tsc` before running. By default `glyph run`
         /// type-checks first so type errors surface as diagnostics, not crashes.
@@ -529,10 +532,10 @@ fn main() {
                             );
                             std::process::exit(127);
                         }
-                        glyph_cli::run::RunOutcome::NoMain { exports } => {
+                        glyph_cli::run::RunOutcome::NoMain { exports, module } => {
                             eprintln!(
                                 "[E0310] glyph run: `{}` has no `fn main` to run.",
-                                file.display()
+                                module.display()
                             );
                             eprintln!(
                                 "  `glyph run` executes a program's `main(argv)` entry; this module is a \

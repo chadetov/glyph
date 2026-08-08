@@ -130,6 +130,10 @@ pub(crate) const JS_GLOBALS: &[&str] = &[
     // `new Error(...)` in the lowering of `?`, `match` fallthrough, and the
     // descriptor `parse` throw paths.
     "Error",
+    // `Record<string, unknown>` in emitted field access and in `redact`. A
+    // TypeScript built-in utility type, not a Glyph prelude name: it belongs
+    // here so E0110 says where it actually comes from.
+    "Record",
     // `Date` is deliberately absent: the emitter never writes it (the only
     // occurrence in glyph-emit is a test fixture for `extern_ts("Date.now()")`),
     // so a module declaring `type Date` shadows nothing and rejecting it would
@@ -144,6 +148,23 @@ pub(crate) const PRELUDE_GLOBALS: &[&str] = &[
     // Ambient values from runtime/glyph-prelude.d.ts.
     "par", "print", "assert", "number", // Primitive type names (see prelude.rs).
     "string", "int", "bigint", "bool", "void", "unknown",
+    // Ambient *types* the emitter writes on its own initiative. A module-local
+    // declaration of one of these wins over the ambient prelude and breaks the
+    // emitted code, so it is the same failure E0110 already names for JS
+    // globals.
+    //
+    // `Issue[]` in every descriptor's `parse` return type and in the record
+    // descriptor's `const __issues: Issue[] = []`.
+    "Issue",
+    // `Record` is emitted the same way but is not a prelude name: it is a
+    // TypeScript built-in, so it sits in JS_GLOBALS with `Array`/`Promise`/
+    // `Error`, and E0110 names that origin instead of this one.
+    //
+    // Deliberately absent, on the `Date` precedent: `Schema`, `Component`,
+    // `Option`. The emitter only ever writes those because the *user* wrote
+    // them in a type annotation, so a module declaring one shadows nothing.
+    // `Result`, `Ok`, `Err`, `infer_output` and the `schema` factory are all
+    // emitted under `__Glyph`-prefixed aliases, so they cannot be shadowed.
 ];
 
 /// Where a shadowed name comes from. Drives the E0110 message, whose whole job
@@ -202,7 +223,7 @@ mod tests {
 
     #[test]
     fn flags_js_globals_the_emitter_references() {
-        for w in ["Error", "Number", "Object", "Array", "Promise"] {
+        for w in ["Error", "Number", "Object", "Array", "Promise", "Record"] {
             assert_eq!(
                 shadowed_global(w),
                 Some(ShadowOrigin::JsGlobal),
@@ -218,7 +239,7 @@ mod tests {
     fn flags_prelude_globals() {
         for w in [
             "number", "par", "assert", "print", "string", "int", "bigint", "bool", "void",
-            "unknown",
+            "unknown", "Issue",
         ] {
             assert_eq!(
                 shadowed_global(w),
@@ -226,6 +247,12 @@ mod tests {
                 "{w} should be flagged as a prelude global"
             );
         }
+        // The other half of the rule: a prelude type the emitter never writes
+        // on its own initiative stays legal, same as `Date` among the JS
+        // globals. `Schema`/`Component` only reach the output because the user
+        // wrote them in an annotation.
+        assert_eq!(shadowed_global("Schema"), None);
+        assert_eq!(shadowed_global("Component"), None);
     }
 
     #[test]
@@ -253,6 +280,7 @@ mod tests {
             "Promise",
             "Number",
             "Error",
+            "Record",
             "Date",
             "JSON",
             "Math",
@@ -280,7 +308,20 @@ mod tests {
             .canonicalize()
             .expect("glyph-emit/src must exist next to glyph-resolver");
 
+        // Ambient prelude *types*. Same drift risk, different list: these are
+        // shadowable by a module-local `type X`, which is how a module-local
+        // `Issue` silently broke every descriptor in its module.
+        const PRELUDE_CANDIDATES: &[&str] = &[
+            "Issue",
+            "Schema",
+            "Component",
+            "Option",
+            "Result",
+            "infer_output",
+        ];
+
         let mut seen: Vec<(String, String)> = Vec::new();
+        let mut seen_prelude: Vec<(String, String)> = Vec::new();
         for entry in std::fs::read_dir(&emit_src).expect("read glyph-emit/src") {
             let path = entry.expect("dir entry").path();
             if path.extension().and_then(|e| e.to_str()) != Some("rs") {
@@ -302,6 +343,14 @@ mod tests {
                         ));
                     }
                 }
+                for g in PRELUDE_CANDIDATES {
+                    if mentions_global(&literal, g) {
+                        seen_prelude.push((
+                            (*g).to_string(),
+                            path.file_name().unwrap().to_string_lossy().into_owned(),
+                        ));
+                    }
+                }
             }
         }
 
@@ -310,6 +359,13 @@ mod tests {
         for expected in ["Object", "Array", "Promise", "Number", "Error"] {
             assert!(
                 seen.iter().any(|(g, _)| g == expected),
+                "the drift scan found no `{expected}` in glyph-emit's emitted strings; \
+                 the scanner is broken, not the emitter"
+            );
+        }
+        for expected in ["Issue"] {
+            assert!(
+                seen_prelude.iter().any(|(g, _)| g == expected),
                 "the drift scan found no `{expected}` in glyph-emit's emitted strings; \
                  the scanner is broken, not the emitter"
             );
@@ -324,6 +380,19 @@ mod tests {
             "glyph-emit emits references to JavaScript globals that reserved.rs does not guard \
              against shadowing: {missing:?}. Add them to JS_GLOBALS (and to the reserved-word \
              table in docs/reference/reserved-words.md)."
+        );
+
+        let missing: Vec<_> = seen_prelude
+            .iter()
+            .filter(|(g, _)| !PRELUDE_GLOBALS.contains(&g.as_str()))
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "glyph-emit emits references to ambient prelude types that reserved.rs does not \
+             guard against shadowing: {missing:?}. A module-local `type X` with one of these \
+             names wins over the prelude and breaks the emitted module. Add them to \
+             PRELUDE_GLOBALS (and to the reserved-word table in \
+             docs/reference/reserved-words.md)."
         );
     }
 
@@ -425,7 +494,13 @@ mod tests {
             let end = start + global.len();
             let before_ok = start == 0
                 || !(bytes[start - 1].is_ascii_alphanumeric() || bytes[start - 1] == b'_');
-            let after_ok = matches!(bytes.get(end), Some(b'.') | Some(b'(') | Some(b'<'));
+            // `[` matters as much as the rest: `Issue[]` is how the descriptor
+            // return type is written, and not seeing it is exactly how the
+            // `Issue` shadow bug shipped.
+            let after_ok = matches!(
+                bytes.get(end),
+                Some(b'.') | Some(b'(') | Some(b'<') | Some(b'[')
+            );
             if before_ok && after_ok {
                 return true;
             }

@@ -49,8 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.59</span>
+            <span class="rel-ver">0.1.60</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The compiler stops blaming the wrong line</h3>
+            <p>Five small things, none of which changes the language. Three are the same defect in different clothes: the compiler knew something was wrong and reported it somewhere you could not act on. A type you declared named <code>Issue</code> came back as a <code>tsc</code> error about generated code you never wrote. An import that resolved to nothing came back as a non-exhaustive-match error on a <code>match</code> that was exhaustive, so the message asked you to add an arm for a case that could not happen. Those are worse than no message. A wrong error costs you the time to chase it and then the trust you had in the next one.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> Declaring a type named <code>Issue</code> or <code>Record</code> is <code>E0110</code>, reported at the declaration. Every descriptor's <code>parse</code> writes <code>Issue[]</code> whether or not you did, so a local <code>Issue</code> won the name and the build failed with TS2353 pointing into <code>dist/</code>. <code>Record</code> sits with the JavaScript globals rather than the prelude names, because it is a TypeScript built-in and saying otherwise would make the message wrong about where the name comes from. <code>Schema</code>, <code>Component</code> and <code>Option</code> stay legal: the emitter writes those only because you wrote them in an annotation, so declaring one shadows nothing.</li>
+              <li><span class="tag fixed">Fixed</span> A local import that names no module is <code>E0104</code>. A local import path resolves from the build root, the directory you passed to <code>glyph build</code>, not from the importing file's directory, so building an enclosing tree left the failure silent and the imported type degraded. The message names the module and, when a matching <code>.glyph</code> file exists elsewhere under the root, says where it actually is. An npm package is not caught by this: the build first collects every <code>declare module</code> under <code>&lt;root&gt;/.types/</code> and in the bundled Node shim, plus every package in your <code>node_modules</code>.</li>
+              <li><span class="tag fixed">Fixed</span> A wrong type and a failed predicate stopped reading alike. Against <code>type Password = string where long_enough(value)</code>, the number <code>42</code> reports <code>expected Password (string)</code> with <code>code: "type"</code>, and only a string that fails the predicate gets the <code>where</code> clause in its message and <code>code: "refinement"</code>. Both used to carry the refinement text, so a client that sent the wrong JSON type was told its password was too short.</li>
+              <li><span class="tag changed">Changed</span> <code>glyph run &lt;dir&gt;</code> runs that directory's <code>main.glyph</code>, which is what <code>glyph build &lt;dir&gt;</code> already meant. Two commands disagreeing about what a directory is costs you once, and after that you stop trusting either.</li>
+              <li><span class="tag known">Known</span> The refinement split is covered by unit tests, not by an app. No transcript step in <code>examples/apps/auth_api</code> posts a wrong-typed password, so the branch that would answer 400 where the old code answered 422 has not been seen doing it. The union descriptor's <code>parse</code> still emits a bare <code>expected Name</code> with no <code>code</code>, so records and unions do not classify alike. The LSP does not report <code>E0104</code>: it analyzes text with no build root, and guessing one would produce exactly the false positives this check was built to avoid.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.59</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

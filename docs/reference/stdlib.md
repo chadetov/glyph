@@ -748,4 +748,6 @@ not declare. It is optional, so an `Issue` you build by hand still checks.
 The `message` names the field and what it needed. A record field whose type has
 its own descriptor delegates to that type's `parse`, so nested failures arrive
 with the full path (`["body", "password"]`) and a refinement's rejection carries
-its predicate: `expected Password (string where value.length >= 8)`.
+its predicate: `expected Password (string where value.length >= 8)`. A value
+that is not a `string` in the first place failed the base type, not the
+predicate, and reports `expected Password (string)` with `code: "type"`.

@@ -145,6 +145,11 @@ pub fn build_project_inner(
     let project_modules: std::collections::BTreeSet<String> =
         entries.iter().map(|(p, _)| p.clone()).collect();
 
+    // Module names that resolve without a `.glyph` file: ambient `declare
+    // module` blocks and installed packages. Read once per build, and only used
+    // by the local-import check below.
+    let external_modules = external_module_names(src);
+
     // Cross-module union shapes: `(module path, variant name)` for every variant
     // with a record payload, across all project modules. The emitter needs this
     // to bind a `Variant(v)` pattern correctly when the union is *imported* — a
@@ -239,6 +244,45 @@ pub fn build_project_inner(
                 crate::render::stage_label_for(e),
             ));
             report.error_count += 1;
+        }
+
+        // A local import that names no module under the build root gets a real
+        // diagnostic here. `import_diagnostics` is deliberately permissive
+        // about unknown modules (npm packages have no exports table), which
+        // left the local case silent: the type degraded and the user saw a
+        // non-exhaustive match instead of the import that failed.
+        if let Some(ast) = parsed.module() {
+            let local_import_errors = glyph_resolver::verify_local_imports(
+                ast,
+                &src.display().to_string(),
+                &|path: &str| {
+                    if project_modules.contains(path)
+                        || is_external_module(&external_modules.names, path)
+                    {
+                        glyph_resolver::ModuleResolution::Resolved
+                    } else if external_modules.saw_installed_packages {
+                        glyph_resolver::ModuleResolution::Unresolved
+                    } else {
+                        glyph_resolver::ModuleResolution::Unknown
+                    }
+                },
+                &|path: &str| locate_module_file(src, &files, path),
+            );
+            for e in &local_import_errors {
+                report.diagnostics.push(render_resolve_error(
+                    module_path,
+                    &source,
+                    e,
+                    with_color,
+                ));
+                report.structured.push(crate::diagnostic::from_resolve_error(
+                    module_path,
+                    &source,
+                    e,
+                    crate::render::stage_label_for(e),
+                ));
+                report.error_count += 1;
+            }
         }
 
         let diags = import_diagnostics(&db, *sf);
@@ -686,6 +730,178 @@ fn derive_module_path(src_root: &Path, file: &Path) -> String {
     no_ext.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/")
 }
 
+/// Where a module named by an unresolved import actually lives, if anywhere
+/// under the build root. Matches the import path as a whole-segment *suffix* of
+/// a walked file's module path, so `import a/b/model` is not answered by an
+/// unrelated `x/model.glyph`; `files` is sorted, so the first match is
+/// deterministic. The result is relative to the root, which is the form the
+/// diagnostic quotes back.
+fn locate_module_file(src_root: &Path, files: &[PathBuf], path: &str) -> Option<String> {
+    for file in files {
+        let module_path = derive_module_path(src_root, file);
+        // Same module path means the import already resolved; the caller only
+        // asks about paths it could not resolve, but stay honest anyway.
+        if module_path == path {
+            return None;
+        }
+        if module_path.ends_with(path)
+            && module_path.as_bytes()[module_path.len() - path.len() - 1] == b'/'
+        {
+            return Some(format!("{module_path}.glyph"));
+        }
+    }
+    None
+}
+
+/// Every module name this build can resolve without a `.glyph` file of its own:
+/// the ambient `declare module "X"` blocks in `<src>/.types/**/*.d.ts` and in
+/// the bundled Node shim, plus every package installed in a `node_modules`
+/// within the project.
+///
+/// This is what makes E0104 safe to report. Without it the only available test
+/// for "is this an npm package" was "does no `.glyph` file share its basename",
+/// which answered *no* for a declared package that happened to collide with a
+/// local helper, and errored on correct code.
+struct ExternalModules {
+    names: std::collections::BTreeSet<String>,
+    /// Whether a `node_modules` was found within the project. When none was, an
+    /// unknown name may be a dependency that is not installed yet (or one
+    /// hoisted above a package boundary), and the check says nothing about it.
+    saw_installed_packages: bool,
+}
+
+fn external_module_names(src: &Path) -> ExternalModules {
+    let mut names = std::collections::BTreeSet::new();
+
+    // The bundled Node builtin shim. `write_build_support` skips writing it when
+    // the project has `@types/node`, which declares the same module names, so
+    // reading it unconditionally is right either way.
+    declared_ambient_modules(crate::runtime::NODE_SHIMS.1, &mut names);
+
+    let types_dir = src.join(".types");
+    if types_dir.is_dir() {
+        let mut dts = Vec::new();
+        if collect_files_with_suffix(&types_dir, ".d.ts", false, &mut dts).is_ok() {
+            for path in &dts {
+                if let Ok(text) = std::fs::read_to_string(path) {
+                    declared_ambient_modules(&text, &mut names);
+                }
+            }
+        }
+    }
+
+    // Every `node_modules` from the source directory up to the project root, not
+    // just the nearest: a dependency can legitimately be hoisted to an outer one
+    // while an inner one exists, and node's own resolution walks up the same
+    // way. Over-collecting only makes the check quieter, which is the safe
+    // direction.
+    let mut saw_installed_packages = false;
+    let mut dir = src.canonicalize().unwrap_or_else(|_| src.to_path_buf());
+    loop {
+        let candidate = dir.join("node_modules");
+        if candidate.is_dir() {
+            saw_installed_packages = true;
+            installed_package_names(&candidate, &mut names);
+        }
+        // The project root. Climbing past it reaches an unrelated ancestor's
+        // dependencies (a stray `node_modules` in `$HOME` is common), which is
+        // the same boundary `find_project_node_modules` keeps.
+        if dir.join(".git").exists() || dir.join("package.json").is_file() {
+            break;
+        }
+        let Some(parent) = dir.parent() else { break };
+        dir = parent.to_path_buf();
+    }
+
+    ExternalModules {
+        names,
+        saw_installed_packages,
+    }
+}
+
+/// Collect every `declare module "X"` name in an ambient `.d.ts`.
+///
+/// A text scan, not a parse: this compiler does not parse TypeScript, and the
+/// only question asked here is whether a name is spoken for. Over-collecting (a
+/// name inside a comment) keeps the build quiet, which is the safe direction for
+/// a check whose failure mode is an error on correct code.
+fn declared_ambient_modules(text: &str, out: &mut std::collections::BTreeSet<String>) {
+    const KEYWORD: &str = "declare module";
+    let mut rest = text;
+    while let Some(i) = rest.find(KEYWORD) {
+        rest = &rest[i + KEYWORD.len()..];
+        let body = rest.trim_start();
+        let Some(quote) = body.chars().next() else {
+            break;
+        };
+        if quote != '"' && quote != '\'' {
+            continue;
+        }
+        let after = &body[1..];
+        let Some(close) = after.find(quote) else {
+            break;
+        };
+        let name = &after[..close];
+        if !name.is_empty() {
+            out.insert(name.to_string());
+        }
+        rest = &after[close + 1..];
+    }
+}
+
+/// Package names installed in `node_modules`, including scoped ones. An
+/// `@types/x` package types a package named `x` (and `@types/a__b` types
+/// `@a/b`), so it answers for that name too: the import is typed either way,
+/// which is all this check asks.
+fn installed_package_names(node_modules: &Path, out: &mut std::collections::BTreeSet<String>) {
+    let Ok(entries) = std::fs::read_dir(node_modules) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with('.') || !entry.path().is_dir() {
+            continue;
+        }
+        let Some(scope) = name.strip_prefix('@') else {
+            out.insert(name);
+            continue;
+        };
+        let Ok(inner) = std::fs::read_dir(entry.path()) else {
+            continue;
+        };
+        for pkg in inner.flatten() {
+            let pkg_name = pkg.file_name().to_string_lossy().into_owned();
+            if pkg_name.starts_with('.') {
+                continue;
+            }
+            out.insert(format!("{name}/{pkg_name}"));
+            if scope == "types" {
+                match pkg_name.split_once("__") {
+                    Some((a, b)) => out.insert(format!("@{a}/{b}")),
+                    None => out.insert(pkg_name),
+                };
+            }
+        }
+    }
+}
+
+/// Whether an import path names something outside the `.glyph` file walk. A
+/// subpath import (`lodash/fp`, `date-fns/format`) resolves through its package,
+/// so any whole-segment prefix that names one answers for it.
+fn is_external_module(names: &std::collections::BTreeSet<String>, path: &str) -> bool {
+    if names.contains(path) {
+        return true;
+    }
+    let mut cut = path;
+    while let Some((head, _)) = cut.rsplit_once('/') {
+        if names.contains(head) {
+            return true;
+        }
+        cut = head;
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -702,6 +918,59 @@ mod tests {
         let src = Path::new("/tmp/proj/src");
         let file = Path::new("/tmp/proj/src/main.glyph");
         assert_eq!(derive_module_path(src, file), "main");
+    }
+
+    #[test]
+    fn locate_matches_a_whole_segment_suffix_not_a_bare_basename() {
+        let src = Path::new("/tmp/proj/src");
+        let files = vec![PathBuf::from("/tmp/proj/src/x/model.glyph")];
+        assert_eq!(
+            locate_module_file(src, &files, "model"),
+            Some("x/model.glyph".to_string())
+        );
+        // `a/b/model` is not the file that was found, so claiming it is would be
+        // a false statement in the message.
+        assert_eq!(locate_module_file(src, &files, "a/b/model"), None);
+        // Nor is `submodel` answered by `model`.
+        assert_eq!(locate_module_file(src, &files, "submodel"), None);
+    }
+
+    #[test]
+    fn declared_ambient_modules_reads_declare_module_names() {
+        let mut out = std::collections::BTreeSet::new();
+        declared_ambient_modules(
+            "declare module \"tinylog\" { export function log(m: string): void; }\n\
+             declare module 'node:fs' { }\n\
+             declare modules \"not-a-name\"\n",
+            &mut out,
+        );
+        assert!(out.contains("tinylog"), "{out:?}");
+        assert!(out.contains("node:fs"), "{out:?}");
+        assert!(!out.contains("not-a-name"), "{out:?}");
+    }
+
+    #[test]
+    fn the_bundled_node_shim_declares_the_builtins() {
+        // `import fs` must never read as an unresolvable local import, whether or
+        // not the project installed `@types/node`.
+        let mut out = std::collections::BTreeSet::new();
+        declared_ambient_modules(crate::runtime::NODE_SHIMS.1, &mut out);
+        for m in ["fs", "path", "http", "crypto", "os", "url"] {
+            assert!(out.contains(m), "bundled shim should declare `{m}`: {out:?}");
+        }
+    }
+
+    #[test]
+    fn a_subpath_import_resolves_through_its_package() {
+        let names: std::collections::BTreeSet<String> =
+            ["lodash".to_string(), "@scope/pkg".to_string()]
+                .into_iter()
+                .collect();
+        assert!(is_external_module(&names, "lodash"));
+        assert!(is_external_module(&names, "lodash/fp"));
+        assert!(is_external_module(&names, "@scope/pkg/sub"));
+        assert!(!is_external_module(&names, "lodashy"));
+        assert!(!is_external_module(&names, "model"));
     }
 
     #[test]

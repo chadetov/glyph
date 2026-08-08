@@ -73,7 +73,7 @@ one-line count. A sibling module that failed to compile does not stop the run
 |---|---|
 | `glyph init [dir]` | Scaffold a runnable starter project (`src/main.glyph`, `.types/`, `package.json`, `.gitignore`) |
 | `glyph check [path]` | Type-check a file or a tree without running it or writing output |
-| `glyph run <file> [args]` | Type-check, compile, and run a program |
+| `glyph run <path> [args]` | Type-check, compile, and run a program. `<path>` is a `.glyph` file, or a directory whose `main.glyph` is the program, the same spelling `glyph build` takes |
 | `glyph build <src> --out <dir>` | Compile a source tree to TypeScript, type-checked with `tsc --strict`, running every `@example` and `@doc @run` test |
 | `glyph build <src> --out <dir> --no-test` | Skip the `@example` and `@doc @run` tests |
 | `glyph fmt [path]` | Format files in place (the one canonical layout) |

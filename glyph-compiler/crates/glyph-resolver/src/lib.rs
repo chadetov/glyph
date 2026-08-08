@@ -35,8 +35,8 @@ pub use collect::{collect_module_symbols, ModuleSymbols};
 pub use error::{ResolveError, Severity, ShadowOrigin};
 pub use lints::module_lints;
 pub use module_graph::{
-    path_key, verify_imports, verify_qualified_type_refs, CompositeGraph, ModuleExports,
-    ModuleGraph, StdlibStubs,
+    path_key, verify_imports, verify_local_imports, verify_qualified_type_refs, CompositeGraph,
+    ModuleExports, ModuleGraph, ModuleResolution, StdlibStubs,
 };
 pub use prelude::{build_prelude, Prelude};
 pub use resolve::{

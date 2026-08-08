@@ -161,7 +161,7 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::BarrelFile { .. } => "collect",
         ResolveError::UnknownExportedName { .. } => "import",
         ResolveError::UnresolvedName { .. } => "resolve",
-        ResolveError::UnresolvedModule { .. } => "resolve",
+        ResolveError::UnresolvedModule { .. } => "import",
         ResolveError::UnusedImport { .. } => "lint",
         ResolveError::UnusedBinding { .. } => "lint",
         ResolveError::UnreachableCode { .. } => "lint",

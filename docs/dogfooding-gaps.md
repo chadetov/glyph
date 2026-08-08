@@ -25,8 +25,8 @@ open.
 Reconciled again after the adversarial review of the csvql round, which added one
 entry (G77, the match-arm binding that shadowed the `let` it assigned to) and
 closed it along with G74 in the same release, then again after G75 and after the
-auth_api boundary round (G79/G80): of 80 entries, 54 are fixed, 11 are partly
-fixed, 5 are decided or resolved, and 10 are open. G75
+auth_api boundary round (G79/G80), then the papercut batch: of 80 entries, 53
+are fixed, 12 are partly fixed, 5 are decided or resolved, and 10 are open. G75
 was the largest thing still open: an imported record type lowered to `Ty::Unknown`,
 so field checking and the `for i, x` index type were both wrong across an import.
 It carried an identity across the boundary from that release on.
@@ -1809,13 +1809,22 @@ several rounds that the backlog grew.
   success on code whose own examples were failing, and only the slower `build`
   found it.
 
-- **G70. `E0109` and `E0110` can report the same declaration twice.**
+- **G70. `[FIXED]` `E0109` and `E0110` can report the same declaration twice.**
   `is_reserved_ts_word` is called from both `collect.rs` and `resolve.rs`, so a
-  reserved name is counted once per pass. The new shadow check runs only in
-  `collect`, and the rendered diagnostic still appears twice for a single-file
-  build because the collect pass itself is reached more than once. Cosmetic: it
-  inflates the reported error count without changing the verdict or the spans,
-  and a reader who trusts the count sees two problems where there is one.
+  reserved name looked like it could be counted once per pass. It cannot: the
+  two call sites check disjoint name sets (collect checks top-level declaration
+  and variant names, resolve checks local bindings, and `walk_decl` never
+  re-binds a declaration's own name), and when collection reports anything the
+  resolve pass is skipped and its output dropped, which 0.1.54 added to stop
+  exactly this doubling. Both codes now report once per declaration; a counting
+  assertion in `glyph-cli/tests/integration.rs` pins it, and
+  `tests/negative/reserved_word_decl_name.glyph` gives E0109 its first fixture.
+
+  One residual, deliberately left open: because a collect error skips resolve
+  entirely, a reserved-word *parameter* (`fn f(class: number)`) stays invisible
+  until an unrelated duplicate-name error in the same file is fixed. That is
+  cascade suppression rather than duplication, and narrowing it (running resolve
+  against the partial table) trades one kind of noise for another. Undecided.
 
 ## Round 15 — a dependency resolver, and a loop index that was a string
 
@@ -2140,8 +2149,8 @@ salsa-memoized. Nobody had written the second query.
   is worse: it would fix the tree build and break building the app on its own,
   which is how the app is actually used.
 
-- **G79. [FIXED] A boundary rejection said which field was wrong but never which
-  rule, and a record accepted an array.** Every failing field in a record
+- **G79. [HALF FIXED] A boundary rejection said which field was wrong but never
+  which rule, and a record accepted an array.** Every failing field in a record
   descriptor's `parse` pushed the same string, whatever went wrong:
   ``field `password` is missing or has the wrong type``. Absent, present-but-failing-its-`where`-predicate, and
   present-with-the-wrong-type were byte-identical, so a handler could not tell a
@@ -2177,13 +2186,38 @@ salsa-memoized. Nobody had written the second query.
   and its transcript answers a posted JSON array with `expected SignupBody (an
   object), got an array`.*
 
-- **G80. A module-local type named `Issue` shadows the prelude one and breaks
-  every descriptor in that module.** A descriptor's `parse` annotates its error
-  array as `Issue[]`, which resolves to the module's own `Issue` when one is
-  declared. The emitted issues carry `path`, `message`, and now `code`, so a
-  user type spelled `{ path, message }` fails `tsc` with TS2353 on `code`. This
-  was always fragile (a user `Issue` missing `path` broke the same way); the
-  `code` field widened the surface. The clean fix is the one `Result` already
-  uses: export `Issue` from the runtime and have the emitter reference it through
-  an injected alias (`__GlyphIssue`), so no user name can shadow it. That is a
-  public-surface change and is not made here.
+  What is not proved is the split this entry exists for. A refined field now
+  reports `expected Password (string)` with `code: "type"` for `42` and
+  `expected Password (string where value.length >= 8)` with `code: "refinement"`
+  for `"short"`, but only in unit assertions. No `examples/apps/auth_api`
+  transcript step posts a wrong-typed password, so the `code == "refinement"`
+  branch has never been seen answering 400 where the old code answered 422. The
+  bar for this entry is an app, so it stays half closed until that step exists.
+
+- **G80. `[FIXED]` A module-local type named `Issue` shadows the prelude one and
+  breaks every descriptor in that module.** A descriptor's `parse` annotates its
+  error array as `Issue[]`, which resolves to the module's own `Issue` when one
+  is declared. The emitted issues carry `path`, `message`, and `code`, so a user
+  type spelled `{ path, message }` failed `tsc` with TS2353 on `code`, at a span
+  pointing somewhere else entirely.
+
+  Fixed as what it is: a declaration shadowing a name the emitted module depends
+  on, which is what E0110 already covers for JavaScript globals. `Issue` is now
+  in `PRELUDE_GLOBALS` and `Record` in `JS_GLOBALS`
+  (`crates/glyph-resolver/src/reserved.rs`), so declaring either is an error at
+  the declaration naming the type. `Record` sits with the JavaScript globals
+  because it is a TypeScript built-in; filing it under the prelude made E0110
+  state a falsehood about where the name comes from. The
+  drift scan that guards the JS-global list now covers ambient prelude types too
+  (it also had to learn to see `Issue[]`, which is how this shipped in the first
+  place). `Schema`, `Component` and `Option` stay legal on the `Date` precedent:
+  the emitter only writes them because the author wrote them in an annotation,
+  so declaring one shadows nothing. The injected-alias route (`__GlyphIssue`)
+  was not taken; it needs a runtime public-surface change and an emitter change
+  to buy the same thing.
+
+  The proof: `examples/01_validator.glyph` and `examples/corpus/infer_output.glyph`
+  each hand-declared `type Issue = { path: Array<string>, message: string }`.
+  Both are deleted, both files use the prelude `Issue`, and
+  `glyph check examples/corpus/infer_output.glyph` goes from 15 TS2353 errors to
+  clean under `tsc --strict`.

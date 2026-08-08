@@ -316,6 +316,78 @@ pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveEr
     errors
 }
 
+/// Report a local import that names no module under the build root.
+///
+/// [`verify_imports`] is deliberately permissive about unknown modules, which
+/// is right for npm packages but means a *local* import that fails to resolve
+/// says nothing at all: the imported type degrades to `unknown` and the user
+/// gets a non-exhaustive-match error, or a `tsc` complaint about generated
+/// code, neither of which mentions imports or the build layout. This names the
+/// module that could not be resolved, and where a file with that name actually
+/// lives when there is one.
+///
+/// `resolve` answers what the build knows about an import path — a project
+/// module, an ambient `declare module` name, an installed package, or nothing;
+/// `locate` answers "is there a `.glyph` file under the root whose module path
+/// ends in this one, and where". Both are supplied by the caller so this crate
+/// stays free of filesystem access. `std/*` and `extern/*` are the compiler's
+/// own paths and are never checked.
+///
+/// [`ModuleResolution::Unknown`] is what keeps this from firing on correct code.
+/// A build with no view of the project's installed packages cannot tell a
+/// misspelled local import from a dependency that is not installed yet, so it
+/// reports only what it can prove: an import a `.glyph` file under the root
+/// answers to, spelled from the wrong directory. With that view, a name nothing
+/// answers to is reported too.
+///
+/// This changes no resolution semantics. It only makes the failure legible.
+pub fn verify_local_imports(
+    module: &Module,
+    root: &str,
+    resolve: &dyn Fn(&str) -> ModuleResolution,
+    locate: &dyn Fn(&str) -> Option<String>,
+) -> Vec<ResolveError> {
+    let mut errors = Vec::new();
+    for item in &module.items {
+        let Decl::Import(imp) = item else { continue };
+        let first = imp.path.segments.first().map(|s| s.as_ref()).unwrap_or("");
+        if first == "std" || first == "extern" {
+            continue;
+        }
+        let key = path_key(&imp.path);
+        let resolution = resolve(&key);
+        if resolution == ModuleResolution::Resolved {
+            continue;
+        }
+        let found_at = locate(&key);
+        if found_at.is_none() && resolution == ModuleResolution::Unknown {
+            continue;
+        }
+        errors.push(ResolveError::UnresolvedModule {
+            path: key,
+            root: root.to_string(),
+            found_at,
+            span: imp.span,
+        });
+    }
+    errors
+}
+
+/// What a build knows about an import path, for [`verify_local_imports`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModuleResolution {
+    /// A project module, an ambient `declare module` name, or an installed
+    /// package. Nothing to report.
+    Resolved,
+    /// Nothing in the build answers to this name, and the build can see the
+    /// project's installed packages, so npm is not the explanation.
+    Unresolved,
+    /// Nothing answers to it, but the build has no view of installed packages
+    /// (no `node_modules` within the project), so an uninstalled dependency and
+    /// a typo are indistinguishable.
+    Unknown,
+}
+
 /// Hold every `ns.Name` type annotation to the same export rule
 /// `import ns { Name }` is held to, and emit `ResolveError::UnknownExportedName`
 /// where it fails.
@@ -487,5 +559,131 @@ mod tests {
                 "stdlib stub missing the Q3 module: {m}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod local_import_tests {
+    use super::*;
+    use glyph_parser::parse;
+
+    /// A build that can see the project's installed packages: anything not in
+    /// `project` is genuinely unresolved.
+    fn errors(src: &str, project: &[&str], located: Option<&str>) -> Vec<ResolveError> {
+        let module = parse(src).expect("parse");
+        verify_local_imports(
+            &module,
+            "root",
+            &|p| {
+                if project.contains(&p) {
+                    ModuleResolution::Resolved
+                } else {
+                    ModuleResolution::Unresolved
+                }
+            },
+            &|_| located.map(str::to_string),
+        )
+    }
+
+    /// A build with no `node_modules` in sight: it cannot tell an uninstalled
+    /// dependency from a typo.
+    fn errors_without_npm_view(
+        src: &str,
+        project: &[&str],
+        located: Option<&str>,
+    ) -> Vec<ResolveError> {
+        let module = parse(src).expect("parse");
+        verify_local_imports(
+            &module,
+            "root",
+            &|p| {
+                if project.contains(&p) {
+                    ModuleResolution::Resolved
+                } else {
+                    ModuleResolution::Unknown
+                }
+            },
+            &|_| located.map(str::to_string),
+        )
+    }
+
+    #[test]
+    fn std_and_extern_imports_are_never_checked() {
+        // Those two paths are the compiler's own; it resolves them itself.
+        let e = errors(
+            "module m\nimport std/io\nimport extern/thing\n",
+            &[],
+            Some("io.glyph"),
+        );
+        assert!(e.is_empty(), "{e:?}");
+    }
+
+    #[test]
+    fn a_resolved_project_module_is_not_reported() {
+        let e = errors("module m\nimport lib\n", &["lib"], Some("lib.glyph"));
+        assert!(e.is_empty(), "{e:?}");
+    }
+
+    #[test]
+    fn an_unresolved_import_with_a_file_under_the_root_is_reported_once() {
+        let e = errors(
+            "module m\nimport model { Id }\n",
+            &["app/model"],
+            Some("app/model.glyph"),
+        );
+        assert_eq!(e.len(), 1, "{e:?}");
+        assert_eq!(e[0].code(), "E0104");
+        let msg = e[0].to_string();
+        assert!(msg.contains("`model`"), "{msg}");
+        assert!(msg.contains("`root`"), "{msg}");
+        assert!(msg.contains("app/model.glyph"), "{msg}");
+    }
+
+    #[test]
+    fn a_declared_or_installed_package_is_not_reported() {
+        // `resolves` answers for ambient `declare module` names and installed
+        // packages too, so an npm import is quiet even when an unrelated local
+        // file shares its basename. That collision used to be the whole test
+        // for "is this npm", and it errored on correct code.
+        let e = errors(
+            "module m\nimport tinylog { log }\n",
+            &["tinylog"],
+            Some("vendor/tinylog.glyph"),
+        );
+        assert!(e.is_empty(), "{e:?}");
+    }
+
+    #[test]
+    fn an_import_naming_nothing_at_all_is_reported_without_a_found_at_clause() {
+        // A misspelling. Nothing in the build answers to it, npm included.
+        let e = errors("module m\nimport modle { Id }\n", &["model"], None);
+        assert_eq!(e.len(), 1, "{e:?}");
+        assert_eq!(e[0].code(), "E0104");
+        let msg = e[0].to_string();
+        assert!(msg.contains("`modle`"), "{msg}");
+        assert!(!msg.contains("There is a"), "{msg}");
+    }
+
+    #[test]
+    fn an_unknown_name_stays_quiet_when_the_build_cannot_see_installed_packages() {
+        // No `node_modules` anywhere: `import react` in a project whose deps are
+        // not installed yet (or are hoisted above a package boundary) is not
+        // something this check can call wrong, and an error on correct code is
+        // worse than a late one from `tsc`.
+        let e = errors_without_npm_view("module m\nimport react { Component }\n", &[], None);
+        assert!(e.is_empty(), "{e:?}");
+    }
+
+    #[test]
+    fn the_layout_error_is_reported_even_without_an_npm_view() {
+        // A `.glyph` file under the root answers to this name, which is provable
+        // without knowing anything about npm.
+        let e = errors_without_npm_view(
+            "module m\nimport model { Id }\n",
+            &["app/model"],
+            Some("app/model.glyph"),
+        );
+        assert_eq!(e.len(), 1, "{e:?}");
+        assert_eq!(e[0].code(), "E0104");
     }
 }

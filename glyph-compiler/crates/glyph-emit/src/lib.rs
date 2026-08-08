@@ -977,9 +977,21 @@ impl<'a> Emitter<'a> {
             "parse(value: unknown): {RESULT_TY}<{name}, Issue[]> {{"
         ));
         self.indent += 1;
-        self.line("return this.is(value)");
+        // A value of the wrong base type and a base-typed value that fails the
+        // predicate are different failures, so they get different messages. The
+        // base check runs first and reports the base type alone; only a value
+        // that *is* a `string` can meaningfully be told it failed a `where`.
+        self.line(&format!("if (!({base_check})) {{"));
         self.indent += 1;
-        self.line(&format!("? {OK_CTOR}(value)"));
+        self.line(&format!(
+            "return {ERR_CTOR}([{{ path: [], message: {}, code: \"type\" }}]);",
+            escape_double_quoted(&format!("expected {name} ({})", type_label(base)))
+        ));
+        self.indent -= 1;
+        self.line("}");
+        self.line(&format!("return {pred}"));
+        self.indent += 1;
+        self.line(&format!("? {OK_CTOR}(value as {name})"));
         self.line(&format!(
             ": {ERR_CTOR}([{{ path: [], message: {}, code: \"refinement\" }}]);",
             escape_double_quoted(&format!("expected {name} ({constraint})"))
@@ -5743,7 +5755,15 @@ mod tests {
             ts.contains("parse(value: unknown): __GlyphResult<Amount, Issue[]> {"),
             "{ts}"
         );
-        assert!(ts.contains("? __glyph_ok(value)"), "{ts}");
+        assert!(ts.contains("? __glyph_ok(value as Amount)"), "{ts}");
+        // A value that is not an `int` at all failed the base type, not the
+        // refinement, and the message says so.
+        assert!(
+            ts.contains(
+                "return __glyph_err([{ path: [], message: \"expected Amount (int)\", code: \"type\" }]);"
+            ),
+            "{ts}"
+        );
         // The rejection names the constraint, base type and predicate as
         // written, so the message greps back to the declaration.
         assert!(

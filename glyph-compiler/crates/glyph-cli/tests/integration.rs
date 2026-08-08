@@ -1500,7 +1500,7 @@ fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("imported descriptor parse should type-check under tsc:\n{msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a `main`; got NoMain: {exports:?}");
         }
     }
@@ -1609,7 +1609,7 @@ fn imported_generic_descriptor_is_rejects_bad_element_at_runtime() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("cross-module `is` should type-check under tsc:\n{msg}")
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a `main`; got NoMain: {exports:?}")
         }
     }
@@ -2315,11 +2315,6 @@ fn infer_output_guarantee_bites_on_shape_mismatch() {
 
 import std/result { Result, Ok, Err }
 
-type Issue = {
-  path: Array<string>,
-  message: string,
-}
-
 type Schema<T> = {
   name: string,
   parse: fn(input: unknown) -> Result<T, Array<Issue>>,
@@ -2801,7 +2796,7 @@ fn run_executes_main_and_propagates_exit_code() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("unexpected type-check failure (run was --no-check): {msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("a program with a `main` should run, not report NoMain: {exports:?}");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
@@ -2987,7 +2982,7 @@ async fn main(argv: Array<string>) -> number {
             panic!("task.pool program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -3046,7 +3041,7 @@ async fn main(argv: Array<string>) -> number {
             panic!("async-closure program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -3100,7 +3095,7 @@ fn main(argv: Array<string>) -> number {
             panic!("inline-union program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -3165,7 +3160,7 @@ fn main(argv: Array<string>) -> number {
             panic!("value-position-match program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -3230,7 +3225,7 @@ fn main(argv: Array<string>) -> number {
             panic!("nested-literal program failed to build: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -3409,7 +3404,7 @@ fn fs_make_dir_and_append_text_round_trip() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("unexpected type-check failure: {msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a main; got NoMain: {exports:?}");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
@@ -3504,7 +3499,7 @@ fn main(argv: Array<string>) -> number {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("read_dir/is_dir/stat must type-check under tsc --strict:\n{msg}")
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
     }
 }
 
@@ -3589,7 +3584,7 @@ fn main(argv: Array<string>) -> number {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("the `Other({{ code }})` pattern must type-check under tsc --strict:\n{msg}")
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
     }
 }
 
@@ -3645,7 +3640,7 @@ fn main(argv: Array<string>) -> number {
             panic!("unexpected build failure: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -3717,7 +3712,7 @@ async fn main(argv: Array<string>) -> number {
             panic!("unexpected build failure: {:?}", r.diagnostics);
         }
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => panic!("type-check failed: {msg}"),
-        glyph_cli::run::RunOutcome::NoMain { exports } => panic!("has main; got NoMain: {exports:?}"),
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => panic!("has main; got NoMain: {exports:?}"),
         glyph_cli::run::RunOutcome::TscMissing => unreachable!("run was --no-check"),
     }
 }
@@ -3786,7 +3781,7 @@ fn string_breadth_helpers_round_trip() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("unexpected type-check failure: {msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a main; got NoMain: {exports:?}");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
@@ -3851,7 +3846,7 @@ fn array_fold_index_of_and_flat_map() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("unexpected type-check failure: {msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a main; got NoMain: {exports:?}");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
@@ -3935,7 +3930,7 @@ fn a_two_binding_for_over_a_match_result_binds_a_numeric_index() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("unexpected type-check failure: {msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a main; got NoMain: {exports:?}");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
@@ -4020,7 +4015,7 @@ fn array_range_and_range_from_drive_counted_loops() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("unexpected type-check failure: {msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a main; got NoMain: {exports:?}");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
@@ -4110,7 +4105,7 @@ fn run_reports_no_main_for_a_library_instead_of_a_type_error() {
     );
     let file = root.join("lib.glyph");
     match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             assert!(exports.contains(&"helper".to_string()), "lists exports: {exports:?}");
             assert!(exports.contains(&"other".to_string()), "lists exports: {exports:?}");
         }
@@ -4274,7 +4269,7 @@ fn run_reports_build_failure_for_a_broken_target() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("a Glyph build failure must precede any tsc check: {msg}");
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("a broken build should not reach the no-main check: {exports:?}");
         }
         glyph_cli::run::RunOutcome::TscMissing => {
@@ -5032,7 +5027,7 @@ fn imported_descriptor_field_rejects_bad_data_at_runtime() {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
             panic!("emitted descriptor checks should type-check under tsc:\n{msg}")
         }
-        glyph_cli::run::RunOutcome::NoMain { exports } => {
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
             panic!("program has a `main`; got NoMain: {exports:?}")
         }
     }
@@ -6398,4 +6393,231 @@ fn a_question_operator_under_an_imported_result_alias_is_not_flagged() {
     );
     let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
     assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+}
+
+#[test]
+fn a_reserved_or_shadowing_declaration_is_reported_exactly_once() {
+    // One declaration, one diagnostic. `is_reserved_ts_word` is consulted from
+    // both the collect pass (top-level names) and the resolve pass (local
+    // bindings); the two check disjoint name sets and the collect-failure guard
+    // in `build_project_inner` drops resolve's output, so neither code can
+    // double-report. Count, not `any`: a regression here shows up as 2.
+    let root = unique_tmp("once");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "shadow.glyph",
+        "module shadow\npub type Value = | Num(number) | Error(string)\n",
+    );
+    write_file(&src, "reserved.glyph", "module reserved\nfn switch() {}\n");
+
+    let report =
+        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let count = |code: &str| {
+        report
+            .structured
+            .iter()
+            .filter(|d| d.code == code)
+            .count()
+    };
+    assert_eq!(count("E0110"), 1, "diags: {:?}", report.structured);
+    assert_eq!(count("E0109"), 1, "diags: {:?}", report.structured);
+}
+
+#[test]
+fn a_module_local_issue_type_is_rejected_at_the_declaration() {
+    // The emitted descriptor writes `Issue[]` whether or not the author did, so
+    // a module-local `type Issue` wins over the prelude one and every
+    // descriptor in the module breaks with a `tsc` error about generated code.
+    // It is the same failure E0110 already names for JavaScript globals.
+    let root = unique_tmp("issueshadow");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\ntype Issue = { path: Array<string>, message: string }\npub type User = { id: string }\n",
+    );
+
+    let report =
+        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let shadow: Vec<_> = report
+        .structured
+        .iter()
+        .filter(|d| d.code == "E0110")
+        .collect();
+    assert_eq!(shadow.len(), 1, "diags: {:?}", report.structured);
+    assert!(
+        shadow[0].message.contains("Issue"),
+        "message should name the type: {:?}",
+        shadow[0]
+    );
+}
+
+#[test]
+fn an_unresolvable_local_import_names_the_module_and_where_it_lives() {
+    // A local import resolves from the build root (D15). Build an enclosing
+    // directory and a nested app's `import model` resolves to nothing; before
+    // this diagnostic the type degraded and the user got a non-exhaustive-match
+    // error on a match that was exhaustive.
+    let root = unique_tmp("localimport");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "app/main.glyph",
+        "module app/main\nimport model { Id }\npub fn use_it(i: Id) -> Id {\n\x20 return i\n}\n",
+    );
+    write_file(
+        &src,
+        "app/nested/model.glyph",
+        "module app/nested/model\npub type Id = string\n",
+    );
+
+    let report =
+        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let unresolved: Vec<_> = report
+        .structured
+        .iter()
+        .filter(|d| d.code == "E0104")
+        .collect();
+    assert_eq!(unresolved.len(), 1, "diags: {:?}", report.structured);
+    let msg = &unresolved[0].message;
+    assert!(msg.contains("`model`"), "{msg}");
+    assert!(msg.contains("app/nested/model.glyph"), "{msg}");
+}
+
+#[test]
+fn a_declared_npm_module_is_not_reported_when_a_local_file_shares_its_name() {
+    // The false positive this check was rebuilt around: `tinylog` is declared in
+    // `<root>/.types/`, exactly as E0104's own help text tells the user to
+    // declare an npm package, and an unrelated `vendor/tinylog.glyph` happens to
+    // share the basename. The import is correct and must not be reported.
+    let root = unique_tmp("declaredpkg");
+    let src = root.join("src");
+    write_file(
+        &src,
+        ".types/tinylog.d.ts",
+        "declare module \"tinylog\" { export function log(msg: string): void; }\n",
+    );
+    write_file(
+        &src,
+        "vendor/tinylog.glyph",
+        "module vendor/tinylog\npub fn helper() -> number {\n\x20 return 1\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport tinylog { log }\npub fn go() -> void {\n\x20 log(\"hi\")\n}\n",
+    );
+
+    let report =
+        build_project_inner(&src, &root.join("dist"), false).expect("build_project ok");
+    let unresolved: Vec<_> = report
+        .structured
+        .iter()
+        .filter(|d| d.code == "E0104")
+        .collect();
+    assert!(unresolved.is_empty(), "diags: {:?}", report.structured);
+}
+
+#[test]
+fn an_import_matching_nothing_is_reported_only_when_the_build_can_see_node_modules() {
+    // With no `node_modules` in the project there is no way to tell a misspelled
+    // local import from a dependency that has not been installed yet, so the
+    // check says nothing. Install one and the same import is E0104, with the
+    // help line that tells the user to install it or declare it.
+    let root = unique_tmp("npmview");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "model.glyph",
+        "module model\npub type Id = string\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport modle { Id }\npub fn use_it(i: Id) -> Id {\n\x20 return i\n}\n",
+    );
+
+    let quiet = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    assert!(
+        !quiet.structured.iter().any(|d| d.code == "E0104"),
+        "diags: {:?}",
+        quiet.structured
+    );
+
+    // A `node_modules` at the project root gives the build a view of what is
+    // installed, which is what makes "nothing answers to this name" provable.
+    std::fs::create_dir_all(src.join("node_modules/left-pad")).expect("mkdir node_modules");
+    let report = build_project_inner(&src, &root.join("dist2"), false).expect("build ok");
+    let unresolved: Vec<_> = report
+        .structured
+        .iter()
+        .filter(|d| d.code == "E0104")
+        .collect();
+    assert_eq!(unresolved.len(), 1, "diags: {:?}", report.structured);
+    let msg = &unresolved[0].message;
+    assert!(msg.contains("`modle`"), "{msg}");
+    assert!(!msg.contains("There is a"), "{msg}");
+
+    // An installed package with the same shape is not reported.
+    std::fs::create_dir_all(src.join("node_modules/tinylog")).expect("mkdir pkg");
+    write_file(
+        &src,
+        "uses_pkg.glyph",
+        "module uses_pkg\nimport tinylog { log }\npub fn go() -> void {\n\x20 log(\"hi\")\n}\n",
+    );
+    let installed = build_project_inner(&src, &root.join("dist3"), false).expect("build ok");
+    assert!(
+        !installed
+            .structured
+            .iter()
+            .any(|d| d.code == "E0104" && d.message.contains("tinylog")),
+        "diags: {:?}",
+        installed.structured
+    );
+}
+
+#[test]
+fn run_accepts_a_directory_and_runs_its_main_glyph() {
+    // `glyph build <dir>` and `glyph run <dir>` are the two commands a
+    // multi-module app needs; they are spelled the same way.
+    let root = unique_tmp("rundir");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\npub fn code() -> number {\n\x20 return 7\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport lib { code }\nfn main() -> number {\n\x20 return code()\n}\n",
+    );
+
+    match glyph_cli::run::run_file(&src, &[], false, false)
+        .expect("run_file accepts a directory")
+        .outcome
+    {
+        glyph_cli::run::RunOutcome::Ran(code) => assert_eq!(code, 7),
+        glyph_cli::run::RunOutcome::TsxNotFound => eprintln!("skipping: `tsx` not found"),
+        glyph_cli::run::RunOutcome::TscMissing => eprintln!("skipping: `tsc` not found"),
+        other => panic!("expected the directory's main.glyph to run; got {other:?}"),
+    }
+}
+
+#[test]
+fn run_on_a_directory_without_a_main_glyph_says_so() {
+    let root = unique_tmp("rundirnomain");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\npub fn code() -> number {\n\x20 return 7\n}\n",
+    );
+
+    let err = glyph_cli::run::run_file(&src, &[], false, false)
+        .expect_err("a directory with no main.glyph is an error");
+    let msg = err.to_string();
+    assert!(msg.contains("main.glyph"), "{msg}");
+    assert!(msg.contains(&src.display().to_string()), "{msg}");
 }

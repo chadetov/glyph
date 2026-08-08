@@ -41,13 +41,13 @@ below.
 | `E0101` | Relative import (use an absolute module path; D15) |
 | `E0102` | Barrel file: only imports, no declarations (D15) |
 | `E0103` | Unresolved name |
-| `E0104` | Unresolved module path |
+| `E0104` | Unresolved import: a local import naming no module under the build root. A local import path resolves from the build root, the directory passed to `glyph build`/`glyph run`, not from the importing file's directory (D15). When a file with that name exists elsewhere under the root the message says where |
 | `E0105` | Name not exported by the imported module (reported for a named import, `import lib { Secret }`, and for a type written through a namespace import, `import lib` plus a `lib.Secret` annotation; a value read through a namespace is still a `tsc` error) |
 | `E0106` | Unused import (warning) |
 | `E0107` | Unused variable binding (warning) |
 | `E0108` | Unreachable code after `return`/`break`/`continue` (warning) |
 | `E0109` | A TypeScript reserved word (`class`, `new`, `switch`, `eval`, ...) used as a declaration, parameter, or binding name |
-| `E0110` | A top-level declaration whose name shadows a global the emitted module depends on (`Error`, `Number`, `Object`, `Array`, `Promise`, or a prelude name such as `number`, `par`, `print`, `string`) |
+| `E0110` | A top-level declaration whose name shadows a global the emitted module depends on (`Error`, `Number`, `Object`, `Array`, `Promise`, `Record`, or a prelude name such as `number`, `par`, `print`, `string`, `Issue`) |
 | `E0111` | `type Key = string \| number`: bare primitive names on the right of `\|` declare tagged-union variants, not a union of those types |
 
 `E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
@@ -66,8 +66,29 @@ silent. A variant named `Error` emits `export function Error(...)` at module
 top level, and every `new Error(...)` the compiler emits below it resolves to
 the variant instead. The list is in
 `crates/glyph-resolver/src/reserved.rs`; the full set is tabulated in
-[reserved words](reference/reserved-words.md). `E0111` is the case that reads
-most like a TypeScript program and is not one: see the same page.
+[reserved words](reference/reserved-words.md). A module-local `type Issue` is
+the same failure one step further down: the emitted descriptors keep writing
+`Issue[]`, so the module compiles until `tsc` complains about generated code
+you never wrote. `E0111` is the case that reads most like a TypeScript program
+and is not one: see the same page.
+
+`E0104` fires when a local import names no module under the build root. Glyph
+resolves a local import path from the build root (D15), so `import model` from
+`apps/auth_api/main.glyph` resolves only when `apps/auth_api` is the root; build
+the enclosing tree instead and there is no `model` to find. Without this the
+import failed silently, the imported type degraded, and what the user saw was a
+`E0218` non-exhaustive match on a match that was exhaustive. The message names
+the module and, when a `.glyph` file whose module path ends in that import exists
+elsewhere under the root, where it actually is.
+
+An npm import is not this error. Before reporting, the build collects the module
+names it can resolve without a `.glyph` file: every `declare module "X"` in
+`<root>/.types/**/*.d.ts` and in the bundled Node shim, plus every package in a
+`node_modules` within the project. A name on that list is never reported, so a
+declared or installed package is safe even when a local file happens to share its
+basename. When the project has no `node_modules` at all the build cannot tell an
+uninstalled dependency from a misspelling, and it reports only what it can prove:
+an import some `.glyph` file under the root answers to.
 
 ### Typechecker — `E02xx`
 

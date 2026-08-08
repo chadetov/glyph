@@ -98,7 +98,17 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "E0104" => "E0104: unresolved module\n\n\
             An `import` names a module that does not exist in the project or the \
             standard library.\n\n\
-            Check the path and that the module is present.",
+            A local import path resolves from the build root, the directory you \
+            pass to `glyph build`/`glyph run`, not from the importing file's \
+            directory (D15). A nested app whose modules import each other by bare \
+            name has to be built with its own directory as the root; building an \
+            enclosing tree leaves those imports with nothing to resolve against. \
+            When a `.glyph` file whose module path ends in the import exists \
+            somewhere under the root, the message says where.\n\n\
+            An npm package is not this error: a module declared in \
+            `<root>/.types/*.d.ts` or installed in the project's `node_modules` \
+            is resolved, even when a local file shares its name. If the package \
+            is neither, install it or declare it.",
         "E0105" => "E0105: unknown exported name\n\n\
             The module exists but does not export the name you imported. A name \
             is exported only if it is declared `pub`.\n\n\

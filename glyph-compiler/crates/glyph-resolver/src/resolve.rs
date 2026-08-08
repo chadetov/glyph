@@ -1048,9 +1048,11 @@ fn make() -> number {
 
     #[test]
     fn type_decl_named_ref_resolves() {
+        // Not `Issue`: that name is in `PRELUDE_GLOBALS`, so declaring it is
+        // E0110 and collection fails before this test's subject is reached.
         let src = r#"module x
-type Issue = { message: string }
-type Bundle = { issue: Issue }
+type Finding = { message: string }
+type Bundle = { finding: Finding }
 "#;
         let (_, errs) = resolve(src);
         assert!(errs.is_empty(), "errs: {errs:?}");

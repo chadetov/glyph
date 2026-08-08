@@ -2446,7 +2446,7 @@ diagnostic and for E0210 naming the real type.
 The trip after 0.1.59 picks from what is left of this list, Round 16's, and
 Round 15's.
 
-### 0.1.59 — Next · The boundary says which rule you broke
+### 0.1.59 — Shipped · The boundary says which rule you broke
 
 From the auth_api dogfood trip. Building a signup/login API in Glyph, the thing
 that cost real code was not writing the validator, it was reading its answer.
@@ -2481,9 +2481,8 @@ G79 in [`../dogfooding-gaps.md`](../dogfooding-gaps.md).
 
 - **A module-local type named `Issue` shadows the prelude one** and breaks every
   descriptor in that module, because `parse` annotates its error array as
-  `Issue[]`. The fix is the one `Result` already uses: export `Issue` from the
-  runtime and reference it through an injected alias. Public-surface change, not
-  made yet. G80.
+  `Issue[]`. G80. *Closed in 0.1.60, by the other route: `Issue` is reserved, so
+  the error lands on the declaration. The injected alias was not built.*
 - **`std/crypto` is 31 lines with no KDF and no timing-safe compare**, so the app
   hand-rolled a 4000-round HMAC as PBKDF2. The module header claims security
   primitives belong in the stdlib, which makes the gap worse than shipping
@@ -2499,9 +2498,75 @@ G79 in [`../dogfooding-gaps.md`](../dogfooding-gaps.md).
 - **No `bytes` type**, so `base64url(HMAC)` and therefore a standards-compliant
   JWT is inexpressible. This one is a design decision, not an iteration.
 - **A project-local import that resolves to nothing is silent.** Strongest
-  runner-up for the next trip.
+  runner-up for the next trip. *Closed in 0.1.60 as `E0104`. Resolution
+  semantics did not change, which is still G78.*
 - **The `module` header is read only by the formatter** and is free to lie, which
   is the greppability pillar exactly inverted. Ten cheap lines.
+
+### 0.1.60 — Shipped · The compiler stops blaming the wrong line
+
+Five small things, none of which changes the language. Three are the same defect
+wearing different clothes: the compiler knew something was wrong and reported it
+somewhere the user could not act on.
+
+- **A module-local `Issue` or `Record` is `E0110`.** Declaring either used to
+  compile and then fail `tsc` with a TS2353 pointing at generated code, because
+  every descriptor's `parse` writes `Issue[]` on its own initiative and the local
+  declaration won. `Issue` joined `PRELUDE_GLOBALS` and `Record` joined
+  `JS_GLOBALS` (it is a TypeScript built-in, so filing it under the prelude would
+  have made the message state a falsehood about where the name comes from). The
+  drift scan that guards the JS-global list now covers ambient prelude types, and
+  it had to learn to see `Issue[]`, which is how this shipped in the first place.
+  `Schema`, `Component` and `Option` stay legal on the `Date` precedent: the
+  emitter writes them only because the author wrote them. G80.
+- **An unresolvable local import is `E0104`.** A local import resolves from the
+  build root (D15), so building an enclosing tree left the failure silent, the
+  imported type degraded, and what the user saw was `E0218`, a non-exhaustive
+  match on a match that was exhaustive. The message names the module and, when a
+  `.glyph` file whose module path ends in that import exists elsewhere under the
+  root, where it actually is. What makes the check safe against false positives
+  is that the build first collects the module names resolvable without a `.glyph`
+  file: every `declare module "X"` under `<root>/.types/**/*.d.ts` and in the
+  bundled Node shim, plus every package in the project's `node_modules`.
+- **A wrong type and a failed predicate stopped reading alike.** `42` against
+  `type Password = string where long_enough(value)` reports
+  `expected Password (string)` with `code: "type"`; only a string that fails the
+  predicate gets `expected Password (string where long_enough(value))` and
+  `code: "refinement"`. Before, both were the refinement text.
+- **`glyph run <dir>`** runs that directory's `main.glyph`, matching
+  `glyph build <dir>`. The two commands disagreeing about what a directory means
+  is the kind of thing you only hit once, and then never trust again.
+- **G70 was not real.** `E0109`/`E0110` cannot double-report: the two
+  `is_reserved_ts_word` call sites check disjoint name sets, and a collect
+  failure already skips the resolve pass, which 0.1.54 added for exactly this.
+  Counting assertions now pin it, and `tests/negative/reserved_word_decl_name.glyph`
+  gives `E0109` its first fixture. Bookkeeping, not a fix.
+
+### Still open from this release
+
+- **The refinement split is proved by unit assertion, not by an app.** No
+  `examples/apps/auth_api` transcript step posts a wrong-typed password, so the
+  `code == "refinement"` branch has never been seen answering 400 where the old
+  code answered 422. G79 stays half closed until that step exists.
+- **The union descriptor's `parse` still emits a bare `expected Name`** with no
+  `code`, so the record path and the union path do not classify alike.
+- **The LSP does not report `E0104`.** `glyph_lsp::analysis::analyze` takes text
+  and nothing else, so it has no build root, and the workspace folder is not one
+  either (`examples/apps/auth_api` is a root inside a workspace whose folder is
+  the repo). Guessing a root would recreate the false-positive class this check
+  was built to avoid, so it needs the LSP to learn which root a document builds
+  under. Not decided.
+- **A reserved-word parameter stays invisible behind an unrelated collect error.**
+  Because a collect failure skips resolve entirely, `fn f(class: number)` is not
+  reported until a duplicate-name error in the same file is fixed. Cascade
+  suppression rather than duplication; narrowing it trades one kind of noise for
+  another. Undecided, and it is the residual of G70.
+- **`glyph check examples` reports the apps' sibling imports as `E0104`**,
+  because the tree is not one build root. Documented in `examples/README.md`; the
+  layout decision itself is G78.
+- **`ResolveError::UnresolvedModule` stores the build root as a caller-supplied
+  display string**, so an absolute path typed on the command line ends up inside
+  a structured diagnostic. Rendering it at the CLI boundary is the fix.
 
 ## Road to 1.0
 

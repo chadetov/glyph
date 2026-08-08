@@ -11,7 +11,7 @@
 //! arguments; its return value becomes the process exit code. A program that
 //! returns `void` (or nothing) exits 0.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::AtomicU64;
 
@@ -56,6 +56,12 @@ pub enum RunError {
     FileMissing(std::path::PathBuf),
     #[error("run target is not a `.glyph` file: {0}")]
     NotGlyph(std::path::PathBuf),
+    #[error(
+        "no `main.glyph` in `{}`: `glyph run <dir>` runs that directory's `main.glyph`, and \
+         there is none. Name a `.glyph` file instead, or add `main.glyph`.",
+        .dir.display()
+    )]
+    NoMainGlyph { dir: std::path::PathBuf },
     #[error(transparent)]
     Build(#[from] BuildError),
     #[error("io error preparing the run directory: {0}")]
@@ -85,7 +91,12 @@ pub enum RunOutcome {
     /// library). Carries the module's top-level function names as a hint.
     /// Reported as `E0310` and exits non-zero, instead of letting the generated
     /// entrypoint call an undefined `main` and throw a raw Node `TypeError`.
-    NoMain { exports: Vec<String> },
+    NoMain {
+        exports: Vec<String>,
+        /// The module that was actually looked at, so the diagnostic names
+        /// `.../main.glyph` even when the user named its directory.
+        module: PathBuf,
+    },
 }
 
 /// The diagnostics a build produced, rendered and structured.
@@ -172,6 +183,20 @@ pub fn run_file(
     if !file.exists() {
         return Err(RunError::FileMissing(file.to_path_buf()));
     }
+    // A directory runs its `main.glyph`, matching `glyph build <dir>`: the two
+    // commands a multi-module app needs are spelled the same way.
+    let target: PathBuf = if file.is_dir() {
+        let main = file.join("main.glyph");
+        if !main.is_file() {
+            return Err(RunError::NoMainGlyph {
+                dir: file.to_path_buf(),
+            });
+        }
+        main
+    } else {
+        file.to_path_buf()
+    };
+    let file: &Path = target.as_path();
     if file.extension().and_then(|e| e.to_str()) != Some("glyph") {
         return Err(RunError::NotGlyph(file.to_path_buf()));
     }
@@ -302,7 +327,10 @@ pub fn run_file(
                     _ => None,
                 })
                 .collect();
-            return Ok(diags.into_result(RunOutcome::NoMain { exports }));
+            return Ok(diags.into_result(RunOutcome::NoMain {
+                exports,
+                module: file.to_path_buf(),
+            }));
         }
     }
 

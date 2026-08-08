@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Why does Glyph catch what tsc catches, but earlier? · Glyph</title>
-    <meta name="description" content="Glyph reports await outside an async fn, a match arm that produces no value, and an assignment missing mut against your source, with the rule and the fix, instead of leaving them to tsc or to runtime." />
+    <meta name="description" content="Glyph reports await outside an async fn, a match arm that produces no value, and an assignment missing mut against your source, with the rule and the fix. It also stops reporting the wrong cause: a shadowed Issue and an unresolved import now name themselves instead of surfacing as a tsc error or a bogus non-exhaustive match." />
     <link rel="canonical" href="https://glyphlang.io/answers/early-errors/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -231,15 +231,104 @@ assignable to parameter of type ...</span></pre>
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">A wrong message is worse than no message</p>
+        <p>
+          The shadow list started with names the emitter writes as <em>values</em>. It
+          was missing the ones it writes as <em>types</em>, and that produced the sharpest
+          version of this whole problem. Every descriptor's <code>parse</code> returns
+          <code>Result&lt;T, Issue[]&gt;</code>, so the emitted module writes
+          <code>Issue</code> whether or not you did. Declare
+          <code>type Issue = { path: Array&lt;string&gt;, message: string }</code> in your own
+          module and yours wins, the emitted <code>Issue</code> objects carry a
+          <code>code</code> field yours has never heard of, and the build fails with a
+          <code>tsc</code> error about generated code, at a span pointing somewhere else.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, before: fifteen of these, none of them near the cause</span>
+<pre><span class="dim">dist/corpus/infer_output.ts:52:9 - error TS2353: Object literal may only
+specify known properties, and 'code' does not exist in type 'Issue'.</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build, now</span>
+<pre><span class="del">[E0110] `Issue` cannot name a type, variant, or function: the emitted module
+        references the Glyph prelude global `Issue`, and this declaration
+        would shadow it</span>
+   ╰─ Rename it. The name is legal TypeScript, so nothing downstream catches
+      the rebinding.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Record</code> joined the list at the same time, filed with the JavaScript
+          globals rather than the prelude names because it is a TypeScript built-in and
+          claiming otherwise would make the message wrong about where the name comes from.
+          The drift test that greps the emitter now covers ambient types too, and it had
+          to learn to see <code>Issue[]</code> in a type position, which is the reason this
+          reached a release. <code>Schema</code>, <code>Component</code> and
+          <code>Option</code> stay legal on the same rule that keeps <code>Date</code>
+          free: the emitter writes them only because you wrote them in an annotation, so
+          declaring one shadows nothing.
+        </p>
+        <p>
+          The other one in this class was an import. A local import path resolves from the
+          build root, the directory you hand to <code>glyph build</code>, not from the
+          directory of the file doing the importing. Build an enclosing tree and
+          <code>import catalog</code> finds nothing, and until now nothing said so. The
+          type degraded to unknown, a <code>match</code> over it lost the variants it was
+          matching, and what you got was <code>E0218</code>, non-exhaustive match, on a
+          <code>match</code> that covered every case. Doing what that message asked would
+          have added a dead <code>else</code> arm to correct code.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph build examples/apps, on `import catalog` inside csvql/</span>
+<pre><span class="del">[E0104] unresolved import `catalog`: no module `catalog` under the build
+        root `examples/apps`. There is a `csvql/catalog.glyph` under the
+        root; a local import path is resolved from the build root, not from
+        the importing file's directory (D15)</span>
+   ╰─ Build that module's own directory as the root, or spell the import path
+      as it reads from the root.
+
+<span class="cm">// before: no import diagnostic, then</span>
+<span class="dim">[E0218] non-exhaustive match on string   // on a match over all four values</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The risk in a check like this is that it fires on things that are fine, and an
+          import checker that cries wolf on every npm package is worse than the silence it
+          replaced. So the build first collects the module names it can resolve without a
+          <code>.glyph</code> file: every <code>declare module "X"</code> under
+          <code>&lt;root&gt;/.types/</code> and in the bundled Node shim, plus every package
+          in the project's <code>node_modules</code>. A name on that list is never
+          reported, even when a local file happens to share its basename. When a project
+          has no <code>node_modules</code> at all, the compiler cannot tell an uninstalled
+          dependency from a typo, so it reports only what it can prove: an import that some
+          <code>.glyph</code> file under the root answers to.
+        </p>
+        <p>
+          Resolution itself did not change. The same programs build and the same programs
+          fail. What changed is that the failure now names the import instead of accusing a
+          <code>match</code> two files away, which is the whole of it: a compiler that
+          reports the wrong cause costs you the hour spent chasing it, and then the benefit
+          of the doubt on every message after.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, and <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, and <code>E0104</code> for a local import that names no module under the build root. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Five edges. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled.</p>
+          <p>Five edges. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it.</p>
         </div>
       </div>
 

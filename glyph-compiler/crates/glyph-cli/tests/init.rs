@@ -135,3 +135,34 @@ fn a_scaffolded_project_runs_from_its_own_directory_with_no_path() {
 
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A scaffolded project records which Glyph built it.
+///
+/// It used to pin `typescript` and `tsx` and not the compiler, so the one tool
+/// that decides whether the source compiles at all was whatever happened to be
+/// on each developer's PATH. Two people on one repository could get different
+/// results from the same commit with nothing to compare, and the project
+/// appeared in no dependency graph, because nothing recorded that it depended
+/// on Glyph.
+///
+/// The pin tracks the compiler's own version, so a scaffold never asks for a
+/// release older than the binary that wrote it: the `scripts` a given binary
+/// emits are always satisfied by the version it pins.
+#[test]
+fn a_scaffold_pins_the_compiler_that_wrote_it() {
+    let dir = unique_tmp();
+    scaffold(&dir).expect("scaffold");
+
+    let manifest = std::fs::read_to_string(dir.join("package.json")).expect("read manifest");
+    let expected = format!("\"@glyphlang/glyph\": \"^{}\"", env!("CARGO_PKG_VERSION"));
+    assert!(
+        manifest.contains(&expected),
+        "the scaffold must pin its own compiler version, got:\n{manifest}"
+    );
+    assert!(
+        manifest.contains("\"typescript\"") && manifest.contains("\"tsx\""),
+        "and still pin the TypeScript toolchain, got:\n{manifest}"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

@@ -60,6 +60,20 @@ impl std::fmt::Display for InitError {
 const SCAFFOLD_TYPESCRIPT: &str = "^6.0.0";
 const SCAFFOLD_TSX: &str = "^4.19.0";
 
+/// The compiler itself, pinned like any other build tool.
+///
+/// A scaffolded project used to record which TypeScript built it and not which
+/// *Glyph* did, so the one tool that decides whether the source compiles at all
+/// was whatever happened to be on each developer's PATH. Two people on the same
+/// repository could get different results from the same commit and have nothing
+/// to compare. Pinning it also means `npm install` is enough to build a checkout
+/// (the `scripts` below resolve `glyph` from `node_modules/.bin`), so a
+/// contributor needs no global install and CI needs no separate setup step.
+///
+/// Tracked against the compiler's own version so a scaffold never asks for a
+/// release older than the binary that wrote it.
+const SCAFFOLD_GLYPH: &str = concat!("^", env!("CARGO_PKG_VERSION"));
+
 const MAIN_GLYPH: &str = "module main\n\
 \n\
 import std/io\n\
@@ -125,7 +139,10 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
         Template::Lib => ("lib.glyph", LIB_GLYPH, false),
     };
     let start_script = if runnable {
-        format!("glyph run src/{entry_name}")
+        {
+            let _ = entry_name;
+            "glyph run".to_string()
+        }
     } else {
         "glyph build src --out dist".to_string()
     };
@@ -144,6 +161,7 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
 \x20\x20\x20 \"src\": \"src\"\n\
 \x20 }},\n\
 \x20 \"devDependencies\": {{\n\
+\x20\x20\x20 \"@glyphlang/glyph\": \"{SCAFFOLD_GLYPH}\",\n\
 \x20\x20\x20 \"typescript\": \"{SCAFFOLD_TYPESCRIPT}\",\n\
 \x20\x20\x20 \"tsx\": \"{SCAFFOLD_TSX}\"\n\
 \x20 }}\n\

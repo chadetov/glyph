@@ -131,8 +131,14 @@ declare const process: {
   argv: string[];
   env: Record<string, string | undefined>;
   exit(code: number): never;
+  exitCode: number | undefined;
   cwd(): string;
   platform: string;
+  // The standard streams. `isTTY` is how a program tells a person from a pipe,
+  // and `write` is what a prompt needs, since it does not append a newline.
+  stdout: { write(text: string): boolean; isTTY?: boolean };
+  stderr: { write(text: string): boolean; isTTY?: boolean };
+  stdin: { isTTY?: boolean };
 };
 
 // A node `Buffer` is a `Uint8Array`: iterable and index-addressable, so

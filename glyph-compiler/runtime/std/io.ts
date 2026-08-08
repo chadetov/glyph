@@ -1,5 +1,7 @@
-// std/io — line-oriented console I/O. `println` writes to stdout, `eprintln`
-// to stderr; `read_line`/`read_to_string` read from stdin.
+// std/io — console I/O. `println`/`eprintln` write a line, `print`/`eprint`
+// write without one, and `read_line`/`read_to_string` read from stdin.
+// `is_terminal`/`stdin_is_terminal` say whether a person or a pipe is on the
+// other end.
 
 import { Option, Some, None } from "./option";
 import { readSync } from "node:fs";
@@ -11,6 +13,40 @@ export function println(message: string): void {
 
 export function eprintln(message: string): void {
   console.error(message);
+}
+
+// Writing without a newline is what a prompt is: `> ` with the answer typed on
+// the same line. `println` cannot do it, so an interactive program had to put
+// its prompt on a line of its own and every session read as alternating lines
+// rather than as a conversation.
+//
+// `console.log` appends the newline and otherwise goes through the same stream,
+// so mixing `print` and `println` keeps its order. On a terminal the write is
+// synchronous and the prompt appears before the read that follows it; on a pipe
+// it is buffered, which changes when the bytes leave but not what order they
+// leave in.
+export function print(message: string): void {
+  process.stdout.write(message);
+}
+
+export function eprint(message: string): void {
+  process.stderr.write(message);
+}
+
+// Whether stdout is a terminal rather than a pipe or a file.
+//
+// This is the predicate behind every CLI that colours its output, draws a
+// progress line, or prompts. Without it a program has to be told which it is by
+// a flag, and the default is wrong half the time.
+export function is_terminal(): boolean {
+  return process.stdout.isTTY === true;
+}
+
+// Whether stdin is a terminal: whether a person is typing, rather than a file
+// being piped in. A program that prompts should ask this first, because
+// prompting into a pipe writes noise nobody reads.
+export function stdin_is_terminal(): boolean {
+  return process.stdin.isTTY === true;
 }
 
 // stdin is read incrementally, one synchronous chunk at a time, into a shared

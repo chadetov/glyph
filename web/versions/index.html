@@ -49,8 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.62</span>
+            <span class="rel-ver">0.1.63</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A Glyph program can be a server</h3>
+            <p>The chat trip was given the same assignment twice: a server several clients talk to at once. The first time it quietly shipped a session replayer instead. The reason turned out to be one line in the runner, and it failed in the worst way, which is silently. <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line inside the <code>listen</code> callback, and exited 0. Every long-lived program was affected: servers, watchers, bots, REPLs.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> Returning from <code>main</code> no longer stops the process. The generated entrypoint called <code>process.exit</code> as soon as <code>main</code> came back, which Node honours immediately even while the event loop holds live handles, so a server bound its port and died in the same tick. The exit code is now assigned, leaving Node's own rule in place: leave when there is nothing left to wait for. A program that only computes still exits the moment <code>main</code> returns, with the same code.</li>
+              <li><span class="tag fixed">Fixed</span> A nested project's <code>.types/</code> declarations reach its own type check. The generated <code>tsconfig.json</code> included <code>**/*.ts</code>, which reaches into nested projects' output, while <code>.types/**/*.d.ts</code> covered only the outer project's directory. So an app passed on its own and failed as part of the tree with <code>Cannot find name 'net'</code>. Each project now excludes the output of the projects nested inside it.</li>
+              <li><span class="tag fixed">Fixed</span> A <code>main</code> that throws still terminates, but only once stderr has drained. <code>console.error</code> is asynchronous when stderr is a pipe, which is every CI job, so the old exit could truncate the diagnostic it had just written.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/chat</code> is a real multi-client TCP server. Line reassembly, event routing and the room engine are pure and checked by <code>@example</code>; one file touches sockets. Verified with three concurrent clients: a room post reaches that room and nobody else, a direct message reaches exactly two, and three clients dropping at once are each announced under the right name.</li>
+              <li><span class="tag known">Known</span> Nothing sets the exit code once <code>main</code> has returned, so a listener that fails to bind exits 0 unless the program calls <code>process.exit</code> itself. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.62</span>
+            <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

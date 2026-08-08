@@ -22,13 +22,22 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled again after the chat round, which added three entries and closed the
-one it was about: of 83 entries, 54 are fixed, 13 are partly fixed, 5 are decided
-or resolved, and 11 are open. G81 is the one it closed, and it had been true since
-`std/io` was written: `read_line` returned only when stdin closed, so no program
-a person could talk to was writable in Glyph. The two it left open, G82 and G83,
-are what an interactive program still cannot do: write a prompt without a
-newline, and tell a terminal from a pipe.
+Reconciled again after the chat *server* round, which added six entries and
+fixed two of them: of 89 entries, 56 are fixed, 13 are partly fixed, 5 are
+decided or resolved, and 15 are open. That round re-ran an assignment the
+previous one had quietly substituted its way out of, and found why: `glyph run`
+called `process.exit` the moment `main` returned, so no program that outlived a
+single pass could run at all (G84). The four it left open are about the
+language rather than the build, and G87 is the sharpest of them: `owned`, the
+manifesto's one carve-out from "no linear types", turns out not to reach
+sockets, which is the case it was written for.
+
+The round before it, the chat *engine*, added three entries and closed the one
+it was about. G81 had been true since `std/io` was written: `read_line`
+returned only when stdin closed, so no program a person could talk to was
+writable in Glyph. The two it left open, G82 and G83, are what an interactive
+program still cannot do: write a prompt without a newline, and tell a terminal
+from a pipe.
 
 The reconciliation before it, after the adversarial review of the csvql round,
 which added one entry (G77, the match-arm binding that shadowed the `let` it
@@ -2342,3 +2351,129 @@ that. G82 and G83 are the two it left open, and both are the same shape as G81:
 they are the difference between a language that can pipe a file through a program
 and a language that can write the program a person talks to. No release carries
 the Next marker now; the next trip picks from what is open above.
+
+## Round 19: the chat server, for real this time
+
+The previous round built a chat *engine* and shipped it as a session replayer
+over a recorded JSON file. The assignment had been a multi-client server. This
+round ran the same assignment again with one rule: a fallback is a finding, to
+be reported with the exact error, not a design choice to be made quietly.
+
+There was no design choice available. `glyph run` could not run a server at all,
+and the failure was invisible: exit 0, no output, nothing on stderr.
+
+The engine from the previous round was kept whole and three modules were added
+around it (`framing`, `audience`, `daemon`), plus `.types/net.d.ts` and a
+`--serve PORT` flag. It was then run with three concurrent TCP clients and
+checked against what a chat server is actually supposed to do: a room post
+reaches that room's members and nobody else, a direct message reaches exactly
+two clients, `/who` answers only the client that asked, a `/nick` is visible to
+the client that sent it, a message split across three TCP packets arrives as one
+line, two messages in one packet arrive as two, and three clients dropping at
+once are each announced under the right name.
+
+- **G84. [FIXED] `glyph run` killed any program that was still doing something
+  when `main` returned.** The generated entrypoint called `process.exit(code)`
+  as soon as `main` came back. Node honours that immediately, while the event
+  loop still holds live handles, so a program that created a TCP server bound
+  its port and died in the same tick. `glyph run app.glyph --serve 4100` printed
+  nothing, not even the line inside the `listen` callback, and exited 0. Every
+  long-lived program was affected: a server, a watcher, a bot, a REPL, anything
+  driven by events rather than by a single pass. Nothing about it was visible
+  from the source, which type-checked and read correctly, and the exit code said
+  success. Fixed by assigning `process.exitCode` instead of calling
+  `process.exit`, which leaves Node's own rule in place: exit when there is
+  nothing left to wait for. A program that only computes still exits
+  immediately with the same code. The failure path still terminates, but now
+  waits for stderr to drain first, because `console.error` is asynchronous when
+  stderr is a pipe and the old code could truncate the diagnostic it had just
+  written.
+
+  Why it survived this long is the interesting part. `std/http.serve` returns a
+  promise that never resolves while the server listens, and its own comment
+  names the reason: "a Glyph `main` that does `await http.serve(...)` never
+  returns, so the process stays alive without any keep-alive hack." The one
+  server path in the stdlib had a private workaround built into it, so HTTP
+  serving worked and nothing else did. A raw TCP server, a WebSocket server, a
+  bot holding a gateway connection, a file watcher: none had a workaround, and
+  nothing in the docs said one was needed. The stdlib had routed around a
+  compiler defect and left no note that it was one.
+
+- **G85. [FIXED] A nested project's `.types/` ambient declarations were dropped
+  in a tree build.** Since D41 a directory carrying a `package.json` with a
+  `"glyph"` key is its own resolution root, and `glyph build <tree>` builds each
+  project it finds. The generated `tsconfig.json` includes `**/*.ts`, which
+  reaches down into nested projects' emitted output, while `.types/**/*.d.ts`
+  only ever covered the outer project's own directory. So the outer `tsc` run
+  type-checked the inner project's files under the outer project's
+  configuration, without the declarations they depend on. `examples/apps/chat`
+  built clean on its own and failed as part of `examples/` with `Cannot find name
+  'net'` and four implicit-`any` errors, which is the worst shape a build error
+  can have: correct code, rejected only in the configuration CI uses. Fixed by
+  giving each project's config an `exclude` naming the output directories of the
+  projects nested inside it, so every project is checked exactly once, by its own
+  config. The exclusion is derived from output paths, not source paths: a
+  project's output directory comes from its package directory while its sources
+  may sit in `src/` below it, and deriving it from sources produced
+  `apps/inner/src`, which matches nothing and silently excluded nothing. The
+  flat layout every app under `examples/` uses hid that, because there the two
+  paths coincide.
+
+- **G86. Nothing sets the exit code after `main` returns, so a program that
+  fails later reports success.** This is the hole G84's fix opened, and it is
+  worth stating plainly because it is the same silent-success shape. Once `main`
+  has returned, its return value is spent. The chat daemon's `listener.on("error")`
+  fires on `EADDRINUSE` well after that, and without intervention the loop
+  drains and the process exits 0: a server that never bound its port reports
+  success. The app now calls `process.exit(1)` there itself, which is correct
+  and which every server will have to remember to do. What is missing is a way
+  for the language to make it hard to forget. `main -> number` is documented as
+  "the exit code" in four guide pages, and that is now only true of programs
+  that finish inside `main`.
+
+- **G87. `owned` (D25) is unusable for sockets, the case it was specced for.**
+  The manifesto grants exactly one carve-out from "no linear types" and names
+  its justification: files, sockets, database connections, locks, the forgotten
+  `.close()`. This round wrote the canonical version of that workload, a server
+  holding N live sockets each of which must be closed exactly once, and `owned`
+  appears nowhere in it. `owned` requires a type declared with `resource`, and a
+  socket arrives from an ambient `.d.ts` as an opaque foreign type that cannot
+  be declared `resource` in the consuming project. So `Conn` holds a raw
+  `net.Socket`, `drop` removes it from the registry without closing it, and the
+  only thing that reclaims the descriptor is the peer going away first. A
+  server-side eviction leaks it, and Glyph's dedicated leak-prevention feature
+  has nothing to say. Either D25 cannot reach the case it was written for, in
+  which case the spec is wrong, or it can and this needs rewriting; nobody has
+  established which, and this entry stays open until somebody does.
+
+- **G88. A record holding an opaque external value gets a `parse` that lies.**
+  Descriptors are emitted for every record type. For a field whose type the
+  emitter has no descriptor for, the generated check is `field !== undefined`
+  and the generated message is ``field `socket` must be Socket``. So `Conn.parse`
+  accepts `{ id: 1, nick: "a", socket: "hello", buffered: "" }` and reports
+  success. A boolean that is always true would merely be useless; a boolean that
+  is always true under a message naming a type it never checked is worse,
+  because `parse` is exactly what a boundary is told to trust. The verifiability
+  pillar should not ship this. The options are to refuse the descriptor for such
+  a record, to keep it with a message that says only what is true, or to have
+  `parse` report the unverifiable field. All three are better than the current
+  one.
+
+- **G89. A program cannot say that it does not terminate.** `daemon.serve` is a
+  `pub fn serve(port: int)` whose doc comment has to explain in prose that the
+  process is driven by socket events from there on. `main` has a `return 0` that
+  is never reached in the normal case, and `main.glyph` carries a dead match arm
+  that exists only to keep a later `match` exhaustive. `std/process.exit` is
+  typed `-> never`, so the concept exists in the stdlib and is not spellable in
+  user code. A `-> never` return type would delete the dead arm, delete the
+  unreachable `return`, and let the compiler state what the comment currently
+  asserts.
+
+The round found two compiler defects and fixed both, and left four entries open
+that are about the language rather than about the build. The uncomfortable one
+is G84: it had been true since the runner was written, it made an entire
+category of program impossible, it is one line deep, and the round before this
+one hit it and shipped a replayer without reporting it. It could not have
+reported it easily, which is the actual lesson. A `glyph run` that exits 0
+having produced no output and consumed no measurable time is indistinguishable
+from a program that worked, and that is the signal the loop was missing.

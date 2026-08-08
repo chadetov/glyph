@@ -2623,6 +2623,77 @@ shipped as a session replayer with a comment in its source explaining why.
   seconds at a pty prompt cost 0.00s of child CPU), but the branch itself is
   exercised only where stdin is non-blocking.
 
+### 0.1.63 — Shipped · A Glyph program can be a server
+
+The chat trip again, with the assignment it was given the first time: a server
+several clients talk to at once. The previous round substituted a session
+replayer and did not say why. The reason turned out to be one line in the
+runner, and it was invisible: `glyph run` on a program that starts a server
+printed nothing and exited 0.
+
+- **A program that is still doing something when `main` returns keeps running.**
+  The generated entrypoint called `process.exit(code)` as soon as `main` came
+  back, which Node honours immediately, while the event loop still holds live
+  handles. So a Glyph program that created a TCP server bound its port and died
+  in the same tick. Every long-lived program was affected: servers, watchers,
+  bots, REPLs. The entrypoint now assigns `process.exitCode`, leaving Node's own
+  rule in place: leave when there is nothing left to wait for. A program that
+  only computes still exits the moment `main` returns, with the same code. G84.
+- **A thrown `main` still terminates, but its diagnostic survives a pipe.**
+  `console.error` is asynchronous when stderr is a pipe, which is every CI job
+  and every agent capturing output, so the old `process.exit(1)` on the next
+  line could truncate the error it had just written. The failure path now sets
+  the code, waits for stderr to drain, and then exits.
+- **A nested project's `.types/` declarations reach its own type check.** The
+  generated `tsconfig.json` includes `**/*.ts`, which reaches into nested
+  projects' output, while `.types/**/*.d.ts` covered only the outer project's
+  own directory. The outer `tsc` run therefore checked an inner project's files
+  without the declarations they depend on: `examples/apps/chat` passed on its
+  own and failed as part of `examples/` with `Cannot find name 'net'`. Each
+  project's config now excludes the output of the projects nested inside it, so
+  every project is checked exactly once by its own config. The exclusion is
+  derived from output paths, never source paths, because a project's output
+  directory comes from its package directory while its sources may sit in `src/`
+  below it. G85.
+- **The chat app is a real server.** `examples/apps/chat` gained `framing.glyph`
+  (TCP line reassembly, pure and `@example`-tested against split and coalesced
+  packets), `audience.glyph` (which clients receive which event), and
+  `daemon.glyph` (the only file that touches a socket). Verified with three
+  concurrent clients: a room post reaches that room's members and nobody else, a
+  direct message reaches exactly two, `/who` answers only the asker, a rename is
+  visible to the client that sent it, a message split across three packets
+  arrives as one line, and three clients dropping at once are each announced
+  under the right name.
+- **`getting-started.md` documents long-running programs.** `main` returning no
+  longer means the process stops, and four guide pages said it did.
+
+### Still open from this release
+
+- **Nothing sets the exit code after `main` returns.** A listener that fails to
+  bind fires well after `main` is done, and without the program calling
+  `process.exit` itself the loop drains and the process exits 0: success for a
+  server that never started. The chat daemon does call it, and every server will
+  have to remember to. G86.
+- **`owned` (D25) does not reach sockets, the case it was specced for.** It
+  requires a type declared with `resource`, and a socket arrives from an ambient
+  `.d.ts` as an opaque foreign type that cannot be. So the one program in the
+  repository that holds N handles each needing exactly one close does not use
+  the language's one carve-out from "no linear types". Either the spec is wrong
+  or the app is; nobody has established which. G87.
+- **A record holding an opaque external value gets a `parse` that lies.** For a
+  field the emitter has no descriptor for, the generated check is
+  `field !== undefined` under the message ``field `socket` must be Socket``, so
+  `parse` accepts a string there and reports success. G88.
+- **A program cannot say that it does not terminate.** `serve` explains in a doc
+  comment what a `-> never` return type would state, and `main` carries an
+  unreachable `return 0` plus a dead match arm to keep a later `match`
+  exhaustive. `std/process.exit` is typed `-> never`, so the concept exists in
+  the stdlib and is not spellable in user code. G89.
+- **A silent `glyph run` is still indistinguishable from a working one.** The
+  reason G84 went unreported for a whole round is that its failure was exit 0
+  with no output. A run that terminates having produced nothing, consumed no
+  measurable time, and returned 0 could say so.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

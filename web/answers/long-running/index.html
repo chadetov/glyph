@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can I write a server, or does the process just exit? · Glyph</title>
+    <meta name="description" content="A Glyph program can be a long-running server. main sets up and returns; the process stays alive while sockets and timers are pending, exactly as Node does." />
+    <link rel="canonical" href="https://glyphlang.io/answers/long-running/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">18</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">19</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">20</span> Programs you type into</a>
+        <a href="/answers/long-running/" class="active"><span class="n">21</span> Servers &amp; daemons</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">21 &middot; Servers &amp; daemons</p>
+      <h1 class="q-title">Can I write a server, or does the process just exit?</h1>
+
+      <p class="short-answer">
+        You can write a server. <code>main</code> sets things up and returns, and the
+        process <strong>stays alive while sockets and timers are still pending</strong>,
+        the same rule Node uses. Until 0.1.63 it did not: the runner tore the process
+        down the moment <code>main</code> returned, so a server bound its port and died
+        in the same tick.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          This is the difference between a language that can run a script and one that can
+          run a service. A server, a file watcher, a bot holding a gateway connection, a
+          job runner: none of them finish inside <code>main</code>. They set up handlers
+          and hand the process over to events.
+        </p>
+        <p>
+          The old behaviour failed in the worst possible way, which is quietly.
+          <code>glyph run app.glyph --serve 4100</code> printed nothing, not even the line
+          inside the <code>listen</code> callback, and exited 0. Nothing in the source
+          looked wrong and it type-checked. An agent that hits that has no error to report
+          and no reason to think anything failed.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          A TCP server in full. <code>main</code> returns immediately; the callbacks run
+          for as long as the process lives:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">A server, start to finish</span>
+<pre>module main
+
+import std/io
+import std/process
+import net { createServer }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let server = createServer(fn(socket) {
+    mut socket.write("hello\n")
+    mut socket.end()
+  })
+
+  mut server.on("error", fn(err) {
+    io.eprintln("cannot listen: ${err.message}")
+    process.exit(1)
+  })
+
+  mut server.listen(4000, fn() {
+    io.println("listening on 4000")
+  })
+  return 0
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>net</code> is a Node builtin, so it is an ordinary import, but it is not one
+          of the six the compiler ships ambient types for (<code>fs</code>, <code>http</code>,
+          <code>path</code>, <code>os</code>, <code>crypto</code>, <code>url</code>). Either
+          install <code>@types/node</code> and the build prefers it, or drop a declaration in
+          <code>.types/net.d.ts</code> next to your source, which is what the chat app does
+          so it needs no dependencies at all.
+        </p>
+        <p>
+          Two things worth knowing. The <code>return 0</code> runs before the first client
+          ever connects: it is the code the process will eventually leave with, not a
+          statement about when it leaves. And anything that fails <em>after</em>
+          <code>main</code> has returned has to set its own exit code, because
+          <code>main</code>'s return value is already spent. That is what the
+          <code>error</code> handler is for. Without it, a server that cannot bind its port
+          drains its event loop and exits 0, reporting success.
+        </p>
+
+        <p class="block-label">A real one</p>
+        <p>
+          <code>examples/apps/chat</code> is a chat server holding several TCP clients at
+          once. The parts that do not touch the network stay separate and testable: line
+          reassembly, routing, and the room engine are pure functions checked by
+          <code>@example</code>, and one file talks to sockets.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">Three clients connected at once</span>
+<pre><span class="cm">alice&gt;</span> /join #general
+<span class="cm">bob&gt;</span>   /join #general
+<span class="cm">carol&gt;</span> /join #random
+<span class="cm">alice&gt;</span> hello everyone
+
+alice sees:  1  #general &lt;alice&gt; hello everyone
+bob sees:    1  #general &lt;alice&gt; hello everyone
+carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          TCP does not deliver messages, it delivers bytes, so the tail of a chunk is
+          usually half a line. That reassembly is a pure function with the awkward cases
+          written down as examples rather than provoked over a socket:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/framing.glyph</span>
+<pre>@example feed("", "hel").lines == []
+@example feed("hel", "lo\n").lines == ["hello"]
+@example feed("", "a\nb\nc\n").lines == ["a", "b", "c"]
+@example feed("", "a\nb").rest == "b"
+@example feed("", "hi\r\n").lines == ["hi"]
+pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>Two rough edges. Nothing sets the exit code for you once <code>main</code> has returned, so a listener that fails to bind exits 0 unless the program calls <code>process.exit</code> itself; that is easy to forget and the compiler cannot yet warn about it. And there is no way to write down that a function does not return: <code>serve</code> explains it in a comment, and <code>main</code> carries a <code>return 0</code> that is never reached. A <code>-&gt; never</code> return type would let the compiler say it instead.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/interactive-cli/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Can I write a program someone types into?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/interactive-cli/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

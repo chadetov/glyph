@@ -244,6 +244,44 @@ fn parse_interface_member(p: &mut Cursor) -> Result<InterfaceMember, ParseError>
     }
 }
 
+/// Whether the newline the cursor is sitting on continues the annotation rather
+/// than ending it: true when the next line starts with an operator that can only
+/// be the middle of an expression.
+///
+/// `Minus` and `Bang` are deliberately absent. Both can begin an expression
+/// (`-1`, `!flag`), so a line starting with one is genuinely ambiguous, and
+/// treating it as a continuation would swallow whatever follows the annotation.
+fn continues_after_newline(p: &Cursor) -> bool {
+    let mut i = 0;
+    while matches!(p.peek_at(i), Some(Token::Newline)) {
+        i += 1;
+    }
+    matches!(
+        p.peek_at(i),
+        Some(
+            Token::EqEq
+                | Token::BangEq
+                | Token::AmpAmp
+                | Token::PipePipe
+                | Token::LtEq
+                | Token::GtEq
+                | Token::LAngle
+                | Token::RAngle
+                | Token::Plus
+                | Token::Star
+                | Token::Slash
+                | Token::Percent
+                | Token::Dot
+                | Token::QDot
+                | Token::QQ
+                | Token::Question
+                | Token::Amp
+                | Token::Pipe
+                | Token::Caret
+        )
+    )
+}
+
 /// D27: parse zero or more `@<name> <raw args until newline>` annotations.
 /// The raw-args text is captured as a source slice; the typechecker parses
 /// it later (per `Annotation.raw_args`).
@@ -257,14 +295,64 @@ fn parse_annotations(p: &mut Cursor) -> Result<Vec<Annotation>, ParseError> {
         let at_span = p.expect(&Token::At, "`@`")?;
         let (name, name_span) = p.expect_field_name("annotation name after `@`")?;
         // Scan to end of line, capturing the raw args source.
+        //
+        // A newline ends an annotation, except where the next line begins with a
+        // binary or postfix operator. An annotation whose argument is a real
+        // expression is often long (an `@example` comparing a parsed frame of
+        // JSON against a record literal has nowhere sensible to sit on one
+        // line), and the alternative was naming a helper function per example
+        // purely to get under a line length.
+        //
+        // Nothing about it is ambiguous: a line starting with `==`, `&&`, `+`,
+        // `.` and the rest cannot begin a declaration or another annotation, so
+        // it can only be the continuation of this one. A newline *inside*
+        // brackets never reaches here at all, because the lexer only emits one
+        // at bracket depth zero (D1), so a wrapped argument list already worked.
         let args_start = p.peek_span().start;
         let mut args_end = name_span.end;
-        while !matches!(p.peek(), Token::Newline | Token::Eof) {
-            args_end = p.peek_span().end;
-            p.advance();
+        // Each span skipped by a continuation: the newline and the indentation
+        // that follows it, which is spliced out when the slice is assembled.
+        let mut gaps: Vec<(u32, u32)> = Vec::new();
+        loop {
+            match p.peek() {
+                Token::Eof => break,
+                Token::Newline => {
+                    if !continues_after_newline(p) {
+                        break;
+                    }
+                    let gap_start = p.peek_span().start;
+                    while matches!(p.peek(), Token::Newline) {
+                        p.advance();
+                    }
+                    gaps.push((gap_start, p.peek_span().start));
+                }
+                _ => {
+                    args_end = p.peek_span().end;
+                    p.advance();
+                }
+            }
         }
+        // A continued annotation's slice spans the line breaks it continued
+        // across. Each is replaced by a single space, which leaves the
+        // expression identical: those breaks sit *between tokens*, and Glyph has
+        // no significant whitespace there.
+        //
+        // Only the recorded gaps are touched, never the slice as a whole. A
+        // blanket replace would also rewrite anything that looked like a line
+        // break inside a string literal, which is the author's data.
         let raw_args = if args_end > args_start {
-            p.slice(args_start, args_end).trim().to_string()
+            let mut out = String::new();
+            let mut at = args_start;
+            for (gs, ge) in &gaps {
+                if *gs >= args_end {
+                    break;
+                }
+                out.push_str(p.slice(at, *gs));
+                out.push(' ');
+                at = *ge;
+            }
+            out.push_str(p.slice(at, args_end));
+            out.trim().to_string()
         } else {
             String::new()
         };
@@ -515,3 +603,33 @@ fn parse_param(p: &mut Cursor) -> Result<Param, ParseError> {
     })
 }
 
+
+#[cfg(test)]
+mod annotation_tests {
+    /// An annotation continues onto the next line when that line starts with an
+    /// operator, so a long `@example` does not have to sit on one line or be
+    /// given a helper function purely to fit.
+    #[test]
+    fn an_annotation_continues_across_a_leading_operator() {
+        let src = "module x\n@example f(1)\n  == 1\nfn f(n: int) -> int { return n }\n";
+        let m = crate::parse(src).expect("parse");
+        let ann = match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => &f.annotations[0],
+            other => panic!("expected a fn, got {other:?}"),
+        };
+        assert_eq!(ann.raw_args, "f(1) == 1");
+    }
+
+    /// A next line that begins a declaration ends the annotation.
+    #[test]
+    fn an_annotation_ends_at_a_line_that_is_not_a_continuation() {
+        let src = "module x\n@example f(1) == 1\nfn f(n: int) -> int { return n }\n";
+        let m = crate::parse(src).expect("parse");
+        let ann = match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => &f.annotations[0],
+            other => panic!("expected a fn, got {other:?}"),
+        };
+        assert_eq!(ann.raw_args, "f(1) == 1");
+        assert_eq!(m.items.len(), 1);
+    }
+}

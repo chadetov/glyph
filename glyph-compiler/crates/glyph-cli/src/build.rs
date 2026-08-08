@@ -327,8 +327,28 @@ pub fn build_tree(target: &Path, out: &Path, with_color: bool) -> Result<TreeRep
                 files: f.as_slice(),
             })
             .collect();
-        let report =
-            build_project_inner_with(&project.src, &out.join(&project.out_rel), with_color, &others)?;
+        // Projects nested inside this one, as output paths relative to this
+        // project's out dir, so this project's `tsc` run does not reach into
+        // them and each project is checked once under its own config (D41).
+        //
+        // Derived from `out_rel`, never from `src`. A project's output path
+        // comes from its *package* directory, while its sources may sit below
+        // it (`"glyph": { "src": "src" }`, which is what `glyph init` writes).
+        // Stripping source paths yields `apps/inner/src`, which matches nothing
+        // in the out tree, and the exclusion silently does nothing.
+        let nested_out_dirs: Vec<String> = project_files
+            .iter()
+            .filter_map(|(p, _)| p.out_rel.strip_prefix(&project.out_rel).ok())
+            .filter(|rel| !rel.as_os_str().is_empty())
+            .map(|rel| rel.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/"))
+            .collect();
+        let report = build_project_inner_with(
+            &project.src,
+            &out.join(&project.out_rel),
+            with_color,
+            &others,
+            &nested_out_dirs,
+        )?;
         tree.projects.push(ProjectReport {
             project: project.clone(),
             report,
@@ -357,7 +377,7 @@ pub fn build_project_inner(
     out: &Path,
     with_color: bool,
 ) -> Result<BuildReport, BuildError> {
-    build_project_inner_with(src, out, with_color, &[])
+    build_project_inner_with(src, out, with_color, &[], &[])
 }
 
 /// Another project in the same tree, as an unresolved-import diagnostic needs to
@@ -380,6 +400,7 @@ fn build_project_inner_with(
     out: &Path,
     with_color: bool,
     other_projects: &[OtherProject<'_>],
+    nested_out_dirs: &[String],
 ) -> Result<BuildReport, BuildError> {
     if !src.exists() {
         return Err(BuildError::SrcMissing(src.to_path_buf()));
@@ -732,7 +753,7 @@ fn build_project_inner_with(
         // emitted module files are pruned — the bundled `.glyph-runtime/` tree,
         // any `.d.ts`, and the `glyph run` entrypoint are left untouched.
         prune_stale_outputs(out, &report.emitted)?;
-        crate::runtime::write_build_support(out, src).map_err(|e| BuildError::Io {
+        crate::runtime::write_build_support(out, src, nested_out_dirs).map_err(|e| BuildError::Io {
             path: out.to_path_buf(),
             source: e,
         })?;

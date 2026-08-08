@@ -1506,6 +1506,74 @@ fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
     }
 }
 
+/// Work still pending when `main` returns must be allowed to finish.
+///
+/// The generated entrypoint used to call `process.exit` the moment `main`
+/// returned, which killed the process while its event loop still had live
+/// handles. Any long-lived program was therefore impossible to write: a Glyph
+/// TCP server bound its port and died in the same tick, so `glyph run` printed
+/// nothing, exited 0, and no client could connect. Nothing in the source looked
+/// wrong and it type-checked, so the failure was invisible.
+///
+/// This program schedules a delayed write and returns from `main` immediately.
+/// The delayed write is what the assertion is about: if the process is torn
+/// down at `return`, the exit code is 0 but the write never lands.
+#[test]
+fn work_pending_when_main_returns_still_runs() {
+    let root = unique_tmp("pending_work");
+    let src = root.join("src");
+    let marker = root.join("landed.txt");
+    let marker_lit = marker.to_string_lossy().replace('\\', "/");
+    write_file(
+        &src,
+        "app.glyph",
+        &format!(
+            "module app\n\
+             import std/fs\n\
+             import std/time\n\
+             async fn later() {{\n\
+             \x20 await time.sleep(time.Duration.ms(50))\n\
+             \x20 let _ = fs.write_text(\"{marker_lit}\", \"landed\")\n\
+             }}\n\
+             fn main(argv: Array<string>) -> number {{\n\
+             \x20 later()\n\
+             \x20 return 0\n\
+             }}\n"
+        ),
+    );
+
+    let file = src.join("app.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, true)
+        .expect("run_file ok")
+        .outcome
+    {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "the program itself succeeds");
+            assert!(
+                marker.is_file(),
+                "a delayed write scheduled before `main` returned must still land; \
+                 the process was torn down at `return` instead"
+            );
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping: `tsx` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::TscMissing => {
+            eprintln!("skipping: `tsc` not found on PATH");
+        }
+        glyph_cli::run::RunOutcome::BuildFailed(r) => {
+            panic!("fixture should build: {:?}", r.diagnostics);
+        }
+        glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {
+            panic!("fixture should type-check:\n{msg}");
+        }
+        glyph_cli::run::RunOutcome::NoMain { exports, .. } => {
+            panic!("program has a `main`; got NoMain: {exports:?}");
+        }
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 #[test]
 fn imported_generic_descriptor_is_narrows_cross_module() {
     // `match v { is Box<User> => .. }` on a generic descriptor imported from
@@ -6692,6 +6760,200 @@ fn the_same_tree_without_markers_still_fails_to_resolve() {
         tree.diagnostics().collect::<Vec<_>>()
     );
     assert_eq!(tree.projects.len(), 1, "no marker means exactly one project");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// A nested project's `.types/` ambient declarations must survive a tree build.
+///
+/// `include`'s `**/*.ts` reaches into a nested project's emitted output, but
+/// `.types/**/*.d.ts` only ever covered the outer project's own directory, so
+/// the outer `tsc` run type-checked the inner project's files without the
+/// declarations they depend on. The inner project's own run passed; the tree
+/// build failed. The app that found this declares `net` in
+/// `examples/apps/chat/.types/`, and every `socket` parameter came back as an
+/// implicit `any` when the tree was built as one.
+#[test]
+fn a_nested_projects_ambient_types_survive_a_tree_build() {
+    let root = unique_tmp("nested_types");
+    let out = unique_tmp("nested_types_out");
+    std::fs::write(
+        root.join("outer.glyph"),
+        "module outer\n\npub fn v() -> int {\n  return 1\n}\n",
+    )
+    .expect("write outer");
+
+    let inner = root.join("inner");
+    std::fs::create_dir_all(&inner).expect("create inner");
+    write_file(
+        &inner,
+        "package.json",
+        "{ \"name\": \"inner\", \"private\": true, \"glyph\": {} }\n",
+    );
+    // Declared only for the inner project. Nothing outside it can see this.
+    write_file(
+        &inner,
+        ".types/widget.d.ts",
+        "declare module \"widget\" {\n  export function spin(turns: number): string;\n}\n",
+    );
+    write_file(
+        &inner,
+        "main.glyph",
+        "module main\n\nimport widget { spin }\n\npub fn go() -> string {\n  return spin(2)\n}\n",
+    );
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    assert!(
+        !tree.has_errors(),
+        "a nested project's own .types/ must be honoured in a tree build: {:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+
+    // `build_tree` does not type-check; the whole subject of this fix is what
+    // `tsc` sees, so the assertion has to go through the checker that produced
+    // the errors in the first place. Asserting on the tsconfig text instead
+    // would only pin the current implementation of the fix.
+    match glyph_cli::runtime::check_tree_with_tsc(&tree, &out).expect("run tsc") {
+        glyph_cli::runtime::TscOutcome::Passed => {}
+        glyph_cli::runtime::TscOutcome::NotFound => {
+            eprintln!("skipping: `tsc` not found on PATH");
+        }
+        glyph_cli::runtime::TscOutcome::Failed(msg) => {
+            panic!("the nested project's ambient types must reach its own tsc run:\n{msg}");
+        }
+    }
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// The same thing for the layout `glyph init` scaffolds: a project whose
+/// sources live in `src/`.
+///
+/// A project's output directory is derived from its *package* directory, while
+/// its sources may sit a level below it. Deriving the exclude list from the
+/// source directories instead produced `apps/inner/src`, which matches nothing
+/// in the out tree, so the outer run kept swallowing the nested project. The
+/// flat `{"glyph": {}}` layout that every app under `examples/` uses hid it,
+/// because there the two paths coincide.
+#[test]
+fn a_nested_project_with_a_src_layout_is_excluded_by_its_output_path() {
+    let root = unique_tmp("nested_src_layout");
+    let out = unique_tmp("nested_src_layout_out");
+    std::fs::write(
+        root.join("outer.glyph"),
+        "module outer\n\npub fn v() -> int {\n  return 1\n}\n",
+    )
+    .expect("write outer");
+
+    let inner = root.join("inner");
+    std::fs::create_dir_all(&inner).expect("create inner");
+    write_file(
+        &inner,
+        "package.json",
+        "{ \"name\": \"inner\", \"private\": true, \"glyph\": { \"src\": \"src\" } }\n",
+    );
+    write_file(
+        &inner,
+        "src/.types/widget.d.ts",
+        "declare module \"widget\" {\n  export function spin(turns: number): string;\n}\n",
+    );
+    write_file(
+        &inner,
+        "src/main.glyph",
+        "module main\n\nimport widget { spin }\n\npub fn go() -> string {\n  return spin(2)\n}\n",
+    );
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    assert!(
+        !tree.has_errors(),
+        "a src/-layout nested project must build clean: {:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+
+    // The nested project's output lands at `<out>/inner`, so that is what the
+    // outer config must disclaim — not `<out>/inner/src`, which does not exist.
+    let outer_cfg =
+        std::fs::read_to_string(out.join("tsconfig.json")).expect("read outer tsconfig");
+    assert!(
+        outer_cfg.contains("\"inner\""),
+        "exclude must name the output path, got: {outer_cfg}"
+    );
+    assert!(
+        !outer_cfg.contains("inner/src"),
+        "exclude must not use the source path, got: {outer_cfg}"
+    );
+    assert!(
+        out.join("inner").join("main.ts").is_file(),
+        "sanity: nested output lands at <out>/inner/"
+    );
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// Excluding a nested project from the outer `tsc` run must not stop it being
+/// checked at all.
+///
+/// The error here is one **only `tsc`** can catch: a call into an ambient
+/// declaration, which Glyph's own checker does not type. A Glyph-level error
+/// would prove nothing, since it is reported with or without the exclusion, and
+/// with or without `tsc` running at all.
+#[test]
+fn a_nested_projects_tsc_only_error_still_fails_the_tree_build() {
+    let root = unique_tmp("nested_types_bad");
+    let out = unique_tmp("nested_types_bad_out");
+    std::fs::write(
+        root.join("outer.glyph"),
+        "module outer\n\npub fn v() -> int {\n  return 1\n}\n",
+    )
+    .expect("write outer");
+
+    let inner = root.join("inner");
+    std::fs::create_dir_all(&inner).expect("create inner");
+    write_file(
+        &inner,
+        "package.json",
+        "{ \"name\": \"inner\", \"private\": true, \"glyph\": {} }\n",
+    );
+    write_file(
+        &inner,
+        ".types/widget.d.ts",
+        "declare module \"widget\" {\n  export function spin(turns: number): string;\n}\n",
+    );
+    // `spin` wants a number. Glyph does not type external modules, so nothing
+    // short of the nested project's own `tsc` run rejects this.
+    write_file(
+        &inner,
+        "main.glyph",
+        "module main\n\nimport widget { spin }\n\npub fn go() -> string {\n  return spin(\"two\")\n}\n",
+    );
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    assert!(
+        !tree.has_errors(),
+        "sanity: Glyph's own checker does not catch this, tsc must: {:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+
+    match glyph_cli::runtime::check_tree_with_tsc(&tree, &out).expect("run tsc") {
+        glyph_cli::runtime::TscOutcome::Failed(msg) => {
+            assert!(
+                msg.contains("string") || msg.contains("number"),
+                "expected an argument-type error, got:\n{msg}"
+            );
+        }
+        glyph_cli::runtime::TscOutcome::NotFound => {
+            eprintln!("skipping: `tsc` not found on PATH");
+        }
+        glyph_cli::runtime::TscOutcome::Passed => {
+            panic!(
+                "excluding a nested project from the outer run must not stop it \
+                 being checked by its own run"
+            );
+        }
+    }
+
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&out);
 }

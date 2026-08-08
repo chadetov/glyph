@@ -170,6 +170,15 @@ pub(crate) const NODE_SHIMS: (&str, &str) = (
 /// 4.1+), so no `baseUrl` is needed — and `baseUrl` is deprecated as of
 /// TypeScript 6, which would make `--check` fail on a current toolchain.
 ///
+/// `{excludes}` is filled with the output directories of any projects nested
+/// inside this one (D41). `include`'s `**/*.ts` would otherwise reach down into
+/// them, and the outer project would type-check a nested project's emitted
+/// files under the *outer* project's configuration: without the nested
+/// project's `.types/**/*.d.ts`, without its `node_modules`. That check is not
+/// the one that project asked for, and it fails on code that is correct, while
+/// the nested project's own `tsc` run passes. Excluding them leaves each
+/// project checked exactly once, by its own config.
+///
 /// `{node_modules_paths}` is filled with a `"*"` entry pointing at the
 /// project's `node_modules` when one is found, so installed packages resolve;
 /// it is empty otherwise (behavior identical to a project with no dependencies).
@@ -192,7 +201,7 @@ const TSCONFIG_TEMPLATE: &str = r#"{
     ".glyph-runtime/**/*.ts",
     ".glyph-runtime/**/*.d.ts",
     ".types/**/*.d.ts"
-  ]
+  ]{excludes}
 }
 "#;
 
@@ -206,7 +215,25 @@ const TSCONFIG_TEMPLATE: &str = r#"{
 /// `@types`, since the out dir sits outside the project). Otherwise `types: []`
 /// keeps the ambient global surface minimal and the bundled Node shim (written
 /// separately) covers the common builtins.
-fn tsconfig_json(node_modules: Option<&Path>, has_types_node: bool) -> String {
+fn tsconfig_json(
+    node_modules: Option<&Path>,
+    has_types_node: bool,
+    nested_out_dirs: &[String],
+) -> String {
+    // Both the directory itself and everything under it: TypeScript's `exclude`
+    // does not imply the subtree, and the emitted modules sit inside it.
+    let excludes = if nested_out_dirs.is_empty() {
+        String::new()
+    } else {
+        let entries: Vec<String> = nested_out_dirs
+            .iter()
+            .flat_map(|d| {
+                let d = d.trim_end_matches('/').replace('\\', "/");
+                [format!("    \"{d}\""), format!("    \"{d}/**/*\"")]
+            })
+            .collect();
+        format!(",\n  \"exclude\": [\n{}\n  ]", entries.join(",\n"))
+    };
     let node_modules_paths = match node_modules {
         Some(nm) => {
             let nm = nm.to_string_lossy().replace('\\', "\\\\");
@@ -240,6 +267,7 @@ fn tsconfig_json(node_modules: Option<&Path>, has_types_node: bool) -> String {
         .replace("{node_modules_paths}", &node_modules_paths)
         .replace("{node_types}", &node_types)
         .replace("{type_roots}", &type_roots)
+        .replace("{excludes}", &excludes)
 }
 
 /// Whether the project has `@types/node` installed (so its full Node typings can
@@ -291,7 +319,15 @@ pub(crate) fn find_project_node_modules(src: &Path) -> Option<PathBuf> {
 /// Write the bundled runtime, a `tsconfig.json`, and any `<src>/.types/`
 /// ambient declarations into `out`, so `tsc -p <out>/tsconfig.json` can type
 /// the emitted TypeScript.
-pub fn write_build_support(out: &Path, src: &Path) -> std::io::Result<()> {
+///
+/// `nested_out_dirs` names the output directories of projects nested inside this
+/// one, relative to `out`, so the generated config does not type-check them; see
+/// `TSCONFIG_TEMPLATE`. Empty for a single-project build.
+pub fn write_build_support(
+    out: &Path,
+    src: &Path,
+    nested_out_dirs: &[String],
+) -> std::io::Result<()> {
     for (rel, contents) in RUNTIME_FILES {
         let path = out.join(rel);
         if let Some(parent) = path.parent() {
@@ -322,7 +358,7 @@ pub fn write_build_support(out: &Path, src: &Path) -> std::io::Result<()> {
 
     std::fs::write(
         out.join("tsconfig.json"),
-        tsconfig_json(node_modules.as_deref(), types_node),
+        tsconfig_json(node_modules.as_deref(), types_node, nested_out_dirs),
     )?;
 
     // A project may supply ambient declarations for its external dependencies
@@ -491,7 +527,7 @@ mod tests {
     /// resolution emitted, so a dependency-free project is unaffected.
     #[test]
     fn tsconfig_without_node_modules_only_maps_std() {
-        let ts = tsconfig_json(None, false);
+        let ts = tsconfig_json(None, false, &[]);
         assert!(ts.contains(r#""std/*": ["./.glyph-runtime/std/*"]"#));
         assert!(!ts.contains(r#""*""#), "no wildcard mapping without node_modules");
         assert!(ts.contains(r#""types": [],"#), "no @types/node: empty types array");
@@ -505,7 +541,7 @@ mod tests {
     #[test]
     fn tsconfig_with_types_node_loads_it() {
         let nm = Path::new("/proj/node_modules");
-        let ts = tsconfig_json(Some(nm), true);
+        let ts = tsconfig_json(Some(nm), true, &[]);
         assert!(ts.contains(r#""types": ["node"],"#), "got: {ts}");
         assert!(ts.contains(r#""typeRoots": ["/proj/node_modules/@types"]"#), "got: {ts}");
     }
@@ -519,7 +555,7 @@ mod tests {
     #[test]
     fn tsconfig_with_node_modules_wires_the_wildcard() {
         let nm = Path::new("/proj/node_modules");
-        let ts = tsconfig_json(Some(nm), false);
+        let ts = tsconfig_json(Some(nm), false, &[]);
         assert!(ts.contains(r#""std/*": ["./.glyph-runtime/std/*"]"#));
         assert!(ts.contains(
             r#""*": ["/proj/node_modules/@types/*", "/proj/node_modules/*"]"#
@@ -531,7 +567,7 @@ mod tests {
     #[test]
     fn tsconfig_escapes_backslashes_in_the_path() {
         let nm = Path::new(r"C:\proj\node_modules");
-        let ts = tsconfig_json(Some(nm), false);
+        let ts = tsconfig_json(Some(nm), false, &[]);
         assert!(ts.contains(r#""C:\\proj\\node_modules/*""#), "got: {ts}");
     }
 

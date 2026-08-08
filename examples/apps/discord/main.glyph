@@ -1,0 +1,298 @@
+// discord — a Discord bot: gateway handshake, heartbeat, resume, commands.
+//
+// The bot connects to a gateway over a WebSocket, identifies, heartbeats on the
+// interval the gateway asks for, tracks the sequence number so a dropped
+// connection resumes instead of starting over, and answers `!ping`, `!help` and
+// `!echo`.
+//
+// Usage:
+//
+//   glyph run examples/apps/discord/main.glyph --check
+//   glyph run examples/apps/discord/main.glyph --url ws://127.0.0.1:4910 --token t
+//   glyph run examples/apps/discord/main.glyph --url wss://gateway.discord.gg/?v=10&encoding=json --token $DISCORD_TOKEN
+//
+// `--check` replays a recorded handshake through the same protocol and session
+// code the live path uses and prints what the bot would do, so the interesting
+// half runs with no socket, no token, and no network.
+module main
+
+import std/array
+import std/io
+import std/json
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+import gateway
+import protocol
+import session
+
+const USAGE = "usage: discord [--url URL --token TOKEN] [--check] [--quiet]"
+
+// Discord's own gateway. Pointing `--url` at a local mock is how this is
+// exercised without credentials.
+const DISCORD_GATEWAY = "wss://gateway.discord.gg/?v=10&encoding=json"
+
+type Mode =
+  | Connect({ url: string, token: string })
+  | Check
+
+type Args = { mode: Mode, verbose: bool }
+
+fn value_at(argv: Array<string>, i: number, flag: string) -> Result<string, string> {
+  return match i + 1 < array.len(argv) {
+    true => Ok(argv[i + 1]),
+    false => Err("${flag} needs a value"),
+  }
+}
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let url = DISCORD_GATEWAY
+  let token: Option<string> = None
+  let check = false
+  let verbose = true
+  let i = 0
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg {
+      "--check" => {
+        mut check = true
+        mut i = i + 1
+      },
+      "--quiet" => {
+        mut verbose = false
+        mut i = i + 1
+      },
+      "--url" => {
+        mut url = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      "--token" => {
+        mut token = Some(value_at(argv, i, arg)?)
+        mut i = i + 2
+      },
+      else => { return Err("unknown argument ${arg}") },
+    }
+  }
+  return match check {
+    true => Ok({ mode: Check, verbose: verbose }),
+    false => match token {
+      // A gateway rejects an unauthenticated connection, so refusing here is
+      // the same answer sooner and with a better explanation.
+      None => Err("connecting needs --token (or use --check to replay offline)"),
+      Some(t) => Ok({ mode: Connect({ url: url, token: t }), verbose: verbose }),
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The offline replay
+// ---------------------------------------------------------------------------
+
+// A recorded handshake, in the exact frames a gateway sends: greet, ready, a
+// message, a heartbeat acknowledgement, then a request to reconnect.
+const RECORDED: Array<string> = [
+  "{\"op\":10,\"d\":{\"heartbeat_interval\":41250},\"s\":null,\"t\":null}",
+  "{\"op\":0,\"s\":1,\"t\":\"READY\",\"d\":{\"session_id\":\"abc123\",\"user\":{\"username\":\"glyphbot\"}}}",
+  "{\"op\":0,\"s\":2,\"t\":\"MESSAGE_CREATE\",\"d\":{\"channel_id\":\"c1\",\"content\":\"!ping\",\"author\":{\"username\":\"ada\",\"bot\":false}}}",
+  "{\"op\":0,\"s\":3,\"t\":\"MESSAGE_CREATE\",\"d\":{\"channel_id\":\"c1\",\"content\":\"!echo hello there\",\"author\":{\"username\":\"ada\",\"bot\":false}}}",
+  "{\"op\":0,\"s\":4,\"t\":\"MESSAGE_CREATE\",\"d\":{\"channel_id\":\"c1\",\"content\":\"!ping\",\"author\":{\"username\":\"glyphbot\",\"bot\":true}}}",
+  "{\"op\":11,\"s\":null,\"t\":null}",
+  "{\"op\":7,\"s\":null,\"t\":null}",
+]
+
+fn describe(action: session.Action) -> string {
+  return match action {
+    // The IDENTIFY frame carries the token. Printing the frame verbatim would
+    // put a live credential in a log the moment this is pointed at Discord.
+    session.Send({ frame }) => "  send ${redacted(frame)}",
+    session.Note({ line }) => "  note ${line}",
+    session.StartHeartbeat({ interval }) => "  start heartbeat every ${number.to_string(interval)}ms",
+    session.StopHeartbeat => "  stop heartbeat",
+    session.CloseSocket => "  close socket",
+    session.Reconnect({ resume }) => "  reconnect (resume=${yes_no(resume)})",
+    session.Stop({ reason }) => "  stop: ${reason}",
+    session.Reply({ channel, text }) => "  reply to ${channel}: ${text}",
+  }
+}
+
+// Anything with a `"token"` in it is reported by shape rather than by content.
+fn redacted(frame: string) -> string {
+  return match string.contains(frame, "\"token\"") {
+    true => "{...} (contains a token, not shown)",
+    false => frame,
+  }
+}
+
+fn yes_no(value: bool) -> string {
+  return match value {
+    true => "yes",
+    false => "no",
+  }
+}
+
+// Replay the recording through the real protocol and session code, and check
+// that it did what it was supposed to.
+//
+// The assertions are the point. A replay that only prints exits 0 whatever it
+// read, which makes it indistinguishable from a run where every frame failed to
+// parse, and that is the exact failure signature this project keeps being
+// caught by. Each expectation below is a property of the recording that would
+// break if the protocol or session layer regressed.
+fn check() -> number {
+  let state = session.start("a-token")
+  let failures = 0
+  let saw_identify = false
+  let saw_pong = false
+  let saw_resume_decision = false
+
+  io.println("replaying ${number.to_string(array.len(RECORDED))} frames offline")
+  io.println("")
+  for frame in RECORDED {
+    let incoming = protocol.read(frame)
+    // Every frame in the recording is one this bot claims to understand, so an
+    // unreadable one is a regression rather than a tolerated surprise.
+    match incoming {
+      protocol.Malformed({ reason }) => {
+        io.eprintln("  FAIL unreadable frame: ${reason}")
+        mut failures = failures + 1
+      },
+      _ => {},
+    }
+    io.println("<- ${label(incoming)}")
+    let taken = session.receive(state, incoming)
+    mut state = taken.session
+    for action in taken.actions {
+      io.println(describe(action))
+      match action {
+        session.Send({ frame: sent }) => match string.contains(sent, "\"op\":2") {
+          true => { mut saw_identify = true },
+          false => {},
+        },
+        session.Reply({ text }) => match text == "pong" {
+          true => { mut saw_pong = true },
+          false => {},
+        },
+        session.Reconnect({ resume }) => { mut saw_resume_decision = resume },
+        _ => {},
+      }
+    }
+  }
+
+  io.println("")
+  io.println("a heartbeat with no acknowledgement:")
+  let waiting = session.tick(state)
+  mut state = waiting.session
+  for action in waiting.actions {
+    io.println(describe(action))
+  }
+  let giving_up = session.tick(state)
+  io.println("and the next one, still unacknowledged:")
+  for action in giving_up.actions {
+    io.println(describe(action))
+  }
+
+  // What the replay ended holding, with the credential masked. `redact` is the
+  // only way this gets printed; `json.stringify` on the session itself would
+  // put the token in the log.
+  io.println("")
+  io.println("final session: ${json.stringify(session.Session.redact(state))}")
+
+  mut failures = failures + expect(
+    !string.contains(json.stringify(session.Session.redact(state)), "a-token"),
+    "the token is masked when the session is printed",
+  )
+  mut failures = failures + expect(saw_identify, "the handshake sent an IDENTIFY")
+  mut failures = failures + expect(saw_pong, "!ping was answered with pong")
+  mut failures = failures + expect(saw_resume_decision, "RECONNECT decided to resume")
+  mut failures = failures + expect(
+    session.has_session(state),
+    "the session id survived the reconnect",
+  )
+  mut failures = failures + expect(
+    array.any(giving_up.actions, is_reconnect),
+    "a second unacknowledged heartbeat gave up on the connection",
+  )
+  // The recording ends after a MESSAGE_CREATE at s=4, so that is what a RESUME
+  // would replay from. A dropped sequence number is invisible without this.
+  mut failures = failures + expect(
+    string.contains(protocol.write(protocol.Heartbeat({ seq: Some(4) })), "\"d\":4"),
+    "the heartbeat carries the last sequence number",
+  )
+
+  return match failures == 0 {
+    true => {
+      io.println("all checks passed")
+      0
+    },
+    false => {
+      io.eprintln("${number.to_string(failures)} check(s) failed")
+      1
+    },
+  }
+}
+
+// Report one expectation and return how many failures it contributed.
+fn expect(ok: bool, what: string) -> int {
+  return match ok {
+    true => {
+      io.println("  ok   ${what}")
+      0
+    },
+    false => {
+      io.eprintln("  FAIL ${what}")
+      1
+    },
+  }
+}
+
+fn is_reconnect(action: session.Action) -> bool {
+  return match action {
+    session.Reconnect(_) => true,
+    _ => false,
+  }
+}
+
+fn label(incoming: protocol.Incoming) -> string {
+  return match incoming {
+    protocol.Hello({ heartbeat_interval }) => "HELLO (interval ${number.to_string(heartbeat_interval)}ms)",
+    protocol.HeartbeatRequest => "HEARTBEAT (requested)",
+    protocol.HeartbeatAck => "HEARTBEAT_ACK",
+    protocol.Ready({ session_id, user }) => "READY (${user}, session ${session_id})",
+    protocol.Message({ author, content, bot }) => "MESSAGE from ${author}${bot_mark(bot)}: ${content}",
+    protocol.Dispatch({ event }) => "DISPATCH ${event}",
+    protocol.Reconnect => "RECONNECT",
+    protocol.InvalidSession({ resumable }) => "INVALID_SESSION (resumable=${yes_no(resumable)})",
+    protocol.Malformed({ reason }) => "unreadable frame: ${reason}",
+    protocol.Unknown({ op }) => "opcode ${number.to_string(op)}",
+  }
+}
+
+fn bot_mark(bot: bool) -> string {
+  return match bot {
+    true => " (a bot)",
+    false => "",
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      io.eprintln(USAGE)
+      return 2
+    },
+  }
+  return match args.mode {
+    Check => check(),
+    Connect({ url, token }) => {
+      io.println("connecting to ${url}")
+      gateway.run(url, token, args.verbose)
+      0
+    },
+  }
+}

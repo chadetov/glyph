@@ -1,0 +1,525 @@
+// The gateway conversation, as a value.
+//
+// Connecting to Discord is a protocol, not a callback: you are greeted, you
+// identify, you heartbeat on the interval you were given, you track a sequence
+// number so a dropped connection can be resumed rather than restarted, and you
+// notice when the gateway has stopped answering. All of that is decided here,
+// where it is a function from a session and one event to a new session and a
+// list of actions.
+//
+// Nothing in this file opens a socket or schedules a timer. `gateway` does
+// both, by carrying out the actions this returns. That split is why the
+// reconnect logic, which is the part that is genuinely hard to get right, is
+// checked by `@example` instead of by unplugging a network cable.
+module session
+
+import std/array
+import std/option { Option, Some, None }
+import std/string
+import protocol
+import protocol { Incoming, Outgoing }
+
+// Where the handshake has got to.
+pub type Phase =
+  | Connecting
+  | Identifying
+  | Live
+  // A failure that retrying cannot fix: a rejected token, or intents the
+  // application has not been granted. Reconnecting on those is an infinite
+  // loop against someone else's rate limiter.
+  | Fatal({ reason: string })
+
+// The bot's credential lives in here, so anything that prints a `Session` has
+// to go through `Session.redact` first. D24 checks the field name against the
+// type at compile time, so this cannot quietly stop covering the token if the
+// field is renamed.
+@redact fields: [token]
+pub type Session = {
+  phase: Phase,
+  token: string,
+  // The last sequence number the gateway sent. A RESUME replays from it, so it
+  // survives a reconnect while everything else is thrown away.
+  seq: Option<int>,
+  session_id: Option<string>,
+  // A heartbeat has gone out and has not been acknowledged. If the next tick
+  // finds this still set, the connection is dead even though the socket is
+  // open, which is the failure a heartbeat exists to detect.
+  awaiting_ack: bool,
+  // A reconnect has already been decided and not yet completed.
+  //
+  // Every route to a reconnect is followed by the socket closing, and the close
+  // arrives as its own event. Without this, one RECONNECT from the gateway
+  // schedules two connections: one for the opcode and one for the close behind
+  // it. That was visible against a live gateway as two overlapping sockets and
+  // a backoff that doubled twice per outage.
+  reconnecting: bool,
+}
+
+// What the socket layer should do about it.
+pub type Action =
+  | Send({ frame: string })
+  | StartHeartbeat({ interval: int })
+  | StopHeartbeat
+  // Hang up the current socket. A connection this bot has given up on is still
+  // open at the TCP level until someone closes it, and its listeners are still
+  // armed: a late frame from a socket we have written off would otherwise be
+  // applied to the connection that replaced it.
+  | CloseSocket
+  | Reconnect({ resume: bool })
+  | Stop({ reason: string })
+  | Note({ line: string })
+  | Reply({ channel: string, text: string })
+
+pub type Step = { session: Session, actions: Array<Action> }
+
+pub fn start(token: string) -> Session {
+  return {
+    phase: Connecting,
+    token: token,
+    seq: None,
+    session_id: None,
+    awaiting_ack: false,
+    reconnecting: false,
+  }
+}
+
+fn step(next: Session, actions: Array<Action>) -> Step {
+  return { session: next, actions: actions }
+}
+
+// ---------------------------------------------------------------------------
+// Events from the gateway
+// ---------------------------------------------------------------------------
+
+// A HELLO starts the clock: identify (or resume, if we have a session to
+// resume) and begin heartbeating on the interval Discord chose.
+@example is_live(receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "bot" })).session)
+@example acks_clear_the_flag()
+@example a_missed_ack_reconnects()
+@example a_resumable_invalid_session_resumes()
+@example a_dead_session_starts_over()
+@example own_messages_are_ignored()
+@example a_close_after_a_reconnect_does_not_schedule_a_second()
+pub fn receive(current: Session, incoming: Incoming) -> Step {
+  return match incoming {
+    protocol.Hello({ heartbeat_interval }) => greet(current, heartbeat_interval),
+
+    // The gateway wants one now, off-schedule. It goes out immediately and
+    // still counts as unacknowledged, so a gateway that asks and then goes
+    // quiet is caught by the same check as a missed scheduled beat.
+    protocol.HeartbeatRequest => step(
+      with_ack(current, true),
+      [Send({ frame: protocol.write(protocol.Heartbeat({ seq: current.seq })) })],
+    ),
+
+    // The gateway is alive. This is the only thing that clears the flag, and
+    // clearing it is the whole point of the exchange.
+    protocol.HeartbeatAck => step(
+      with_ack(current, false),
+      [Note({ line: "heartbeat acknowledged" })],
+    ),
+
+    // READY is a dispatch like any other and carries a sequence number. Losing
+    // it means a reconnect straight after READY has a session id but nothing to
+    // resume from, so it would announce a resume and then identify instead.
+    protocol.Ready({ seq, session_id, user }) => step(
+      { phase: live_phase(current), token: current.token, seq: Some(seq),
+        session_id: Some(session_id), awaiting_ack: current.awaiting_ack,
+        reconnecting: current.reconnecting },
+      [Note({ line: "ready as ${user}" })],
+    ),
+
+    protocol.Message({ seq, channel, author, content, bot }) => {
+      let advanced = with_seq(current, seq)
+      // A bot that answers bots answers itself, and two of them in a channel
+      // will talk until someone stops them.
+      match bot {
+        true => step(advanced, []),
+        false => step(advanced, replies(channel, author, content)),
+      }
+    },
+
+    // An event this bot does not handle still moves the sequence forward,
+    // because a RESUME replays from it.
+    protocol.Dispatch({ seq, event }) => step(
+      with_seq(current, seq),
+      [Note({ line: "dispatch ${event}" })],
+    ),
+
+    // Discord asking us to reconnect is routine, not an error. The session is
+    // still valid, so the new connection resumes rather than starting over.
+    protocol.Reconnect => step(
+      with_reconnecting(current),
+      [StopHeartbeat, CloseSocket, Reconnect({ resume: true })],
+    ),
+
+    protocol.InvalidSession({ resumable }) => step(
+      with_reconnecting(match resumable {
+        true => current,
+        false => forget_session(current),
+      }),
+      [StopHeartbeat, CloseSocket, Reconnect({ resume: resumable })],
+    ),
+
+    protocol.Malformed({ reason }) => step(
+      current,
+      [Note({ line: "ignoring an unreadable frame: ${reason}" })],
+    ),
+
+    protocol.Unknown({ op }) => step(
+      current,
+      [Note({ line: "ignoring opcode ${number.to_string(op)}" })],
+    ),
+  }
+}
+
+// The handshake after HELLO. With a session id in hand this is a reconnect, so
+// it resumes and replays what it missed; otherwise it is a fresh identify.
+fn greet(current: Session, interval: int) -> Step {
+  let opening = match current.session_id {
+    Some(id) => match current.seq {
+      Some(n) => protocol.Resume({ token: current.token, session_id: id, seq: n }),
+      None => protocol.Identify({ token: current.token, intents: MESSAGE_INTENTS }),
+    },
+    None => protocol.Identify({ token: current.token, intents: MESSAGE_INTENTS }),
+  }
+  return step(
+    { phase: Identifying, token: current.token,
+      seq: current.seq, session_id: current.session_id, awaiting_ack: false,
+      reconnecting: false },
+    [
+      StartHeartbeat({ interval: interval }),
+      Send({ frame: protocol.write(opening) }),
+      Note({ line: opening_note(opening) }),
+    ],
+  )
+}
+
+// GUILDS + GUILD_MESSAGES + MESSAGE_CONTENT. Discord will not send message text
+// without the last one, and it has to be enabled on the application too.
+const MESSAGE_INTENTS = 33281
+
+fn opening_note(opening: Outgoing) -> string {
+  return match opening {
+    protocol.Resume(_) => "resuming the previous session",
+    _ => "identifying",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The heartbeat
+// ---------------------------------------------------------------------------
+
+// One heartbeat interval has elapsed.
+//
+// If the previous heartbeat was never acknowledged the socket is open but the
+// connection is gone, which no socket event reports. Reconnecting is the only
+// way to find out, and the session is still valid, so it resumes.
+pub fn tick(current: Session) -> Step {
+  return match current.awaiting_ack {
+    true => step(
+      with_reconnecting(current),
+      [
+        Note({ line: "no acknowledgement for the last heartbeat, reconnecting" }),
+        StopHeartbeat,
+        CloseSocket,
+        Reconnect({ resume: true }),
+      ],
+    ),
+    false => step(
+      with_ack(current, true),
+      [Send({ frame: protocol.write(protocol.Heartbeat({ seq: current.seq })) })],
+    ),
+  }
+}
+
+// The socket closed under us.
+//
+// Some close codes are terminal: a rejected token or an intent the application
+// was never granted will be rejected identically forever, and retrying is an
+// infinite loop against someone else's rate limiter. Everything else is an
+// outage, and outages end.
+//
+// A close that follows a reconnect this session already decided on is the tail
+// of that decision, not a new one. A close that arrives *after* the next
+// attempt has begun is a new failure and must schedule another attempt, which
+// is why `attempting` clears the flag rather than the arrival of a HELLO: a
+// connection that never gets far enough to be greeted would otherwise leave the
+// flag latched and the bot would stop reconnecting for good.
+@example a_close_while_a_reconnect_is_pending_is_ignored()
+@example a_failed_attempt_schedules_another()
+@example a_rejected_token_stops_rather_than_retrying()
+pub fn disconnected(current: Session, code: int, reason: string) -> Step {
+  return match is_terminal(code) {
+    true => step(
+      { phase: Fatal({ reason: reason }), token: current.token, seq: current.seq,
+        session_id: current.session_id, awaiting_ack: false, reconnecting: false },
+      [
+        StopHeartbeat,
+        CloseSocket,
+        Stop({ reason: "gateway closed with ${number.to_string(code)}: ${reason}" }),
+      ],
+    ),
+    false => match current.reconnecting {
+      true => step(current, [Note({ line: "socket closed, reconnect already under way" })]),
+      false => step(
+        with_reconnecting(current),
+        [
+          Note({ line: "disconnected (${number.to_string(code)}): ${reason}" }),
+          StopHeartbeat,
+          CloseSocket,
+          Reconnect({ resume: has_session(current) }),
+        ],
+      ),
+    },
+  }
+}
+
+// A connection attempt is starting. Whatever happens to it is a fresh event.
+pub fn attempting(current: Session) -> Session {
+  return {
+    phase: current.phase,
+    token: current.token,
+    seq: current.seq,
+    session_id: current.session_id,
+    awaiting_ack: false,
+    reconnecting: false,
+  }
+}
+
+// Discord's terminal close codes: authentication failed, invalid shard, sharding
+// required, invalid API version, invalid intents, and intents not enabled for
+// the application.
+fn is_terminal(code: int) -> bool {
+  return code == 4004 || code == 4010 || code == 4011
+    || code == 4012 || code == 4013 || code == 4014
+}
+
+// ---------------------------------------------------------------------------
+// Bot replies
+// ---------------------------------------------------------------------------
+
+const PREFIX = "!"
+
+fn replies(channel: string, author: string, content: string) -> Array<Action> {
+  return match answer(author, content) {
+    Some(text) => [Reply({ channel: channel, text: text })],
+    None => [],
+  }
+}
+
+// What the bot says back, if anything. A message that is not a command is not
+// a mistake, it is just conversation the bot stays out of.
+@example answer("ada", "!ping") == Some("pong")
+@example answer("ada", "hello there") == None
+@example answer("ada", "!help") == Some("commands: !ping, !help, !echo <text>")
+@example answer("ada", "!echo  hi  ") == Some("ada said: hi")
+@example answer("ada", "!echo") == Some("!echo needs something to echo")
+@example answer("ada", "!nope") == Some("unknown command: !nope")
+pub fn answer(author: string, content: string) -> Option<string> {
+  let line = string.trim(content)
+  return match string.starts_with(line, PREFIX) {
+    false => None,
+    true => {
+      let body = string.trim(string.slice(line, string.len(PREFIX), string.len(line)))
+      let cut = string.index_of(body, " ")
+      let name = match cut {
+        Some(at) => string.slice(body, 0, at),
+        None => body,
+      }
+      let rest = match cut {
+        Some(at) => string.trim(string.slice(body, at, string.len(body))),
+        None => "",
+      }
+      command(author, name, rest)
+    },
+  }
+}
+
+fn command(author: string, name: string, rest: string) -> Option<string> {
+  return match name {
+    "ping" => Some("pong"),
+    "help" => Some("commands: !ping, !help, !echo <text>"),
+    "echo" => match string.len(rest) == 0 {
+      true => Some("!echo needs something to echo"),
+      false => Some("${author} said: ${rest}"),
+    },
+    else => Some("unknown command: ${PREFIX}${name}"),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Small updates
+// ---------------------------------------------------------------------------
+
+fn with_ack(current: Session, waiting: bool) -> Session {
+  return {
+    phase: current.phase,
+    token: current.token,
+    seq: current.seq,
+    session_id: current.session_id,
+    awaiting_ack: waiting,
+    reconnecting: current.reconnecting,
+  }
+}
+
+// Mark that a reconnect is under way, so the socket close that always follows
+// one does not schedule a second.
+fn with_reconnecting(current: Session) -> Session {
+  return {
+    phase: current.phase,
+    token: current.token,
+    seq: current.seq,
+    session_id: current.session_id,
+    awaiting_ack: false,
+    reconnecting: true,
+  }
+}
+
+fn with_seq(current: Session, seq: int) -> Session {
+  return {
+    phase: current.phase,
+    token: current.token,
+    seq: Some(seq),
+    session_id: current.session_id,
+    awaiting_ack: current.awaiting_ack,
+    reconnecting: current.reconnecting,
+  }
+}
+
+// A session the gateway has declared dead cannot be resumed, and keeping its id
+// would make the next HELLO try to.
+fn forget_session(current: Session) -> Session {
+  return {
+    phase: current.phase,
+    token: current.token,
+    seq: None,
+    session_id: None,
+    awaiting_ack: false,
+    reconnecting: current.reconnecting,
+  }
+}
+
+fn live_phase(current: Session) -> Phase {
+  return match current.phase {
+    Identifying => Live,
+    _ => current.phase,
+  }
+}
+
+pub fn has_session(current: Session) -> bool {
+  return match current.session_id {
+    Some(_) => true,
+    None => false,
+  }
+}
+
+fn is_live(s: Session) -> bool {
+  return match s.phase {
+    Live => true,
+    _ => false,
+  }
+}
+
+// Nothing further will be attempted on this session.
+pub fn is_fatal(s: Session) -> bool {
+  return match s.phase {
+    Fatal(_) => true,
+    _ => false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fixtures for the `@example` rows above
+// ---------------------------------------------------------------------------
+
+fn greeted() -> Session {
+  return receive(start("t"), protocol.Hello({ heartbeat_interval: 1000 })).session
+}
+
+fn acks_clear_the_flag() -> bool {
+  let waiting = tick(greeted()).session
+  let cleared = receive(waiting, protocol.HeartbeatAck).session
+  return waiting.awaiting_ack && !cleared.awaiting_ack
+}
+
+fn a_missed_ack_reconnects() -> bool {
+  // Two ticks with no acknowledgement in between: the second gives up.
+  let waiting = tick(greeted()).session
+  return array.any(tick(waiting).actions, is_reconnect)
+}
+
+fn a_resumable_invalid_session_resumes() -> bool {
+  let live = with_seq(receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session, 9)
+  let after = receive(live, protocol.InvalidSession({ resumable: true }))
+  return has_session(after.session) && array.any(after.actions, is_reconnect)
+}
+
+fn a_dead_session_starts_over() -> bool {
+  let live = with_seq(receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session, 9)
+  let after = receive(live, protocol.InvalidSession({ resumable: false }))
+  return !has_session(after.session)
+}
+
+// One RECONNECT from the gateway must produce exactly one reconnect, even
+// though the socket close that follows arrives as its own event.
+fn a_close_after_a_reconnect_does_not_schedule_a_second() -> bool {
+  let asked = receive(ready_session(), protocol.Reconnect)
+  let closed = disconnected(asked.session, 1006, "socket closed")
+  return array.any(asked.actions, is_reconnect) && !array.any(closed.actions, is_reconnect)
+}
+
+fn a_close_while_a_reconnect_is_pending_is_ignored() -> bool {
+  return a_close_after_a_reconnect_does_not_schedule_a_second()
+}
+
+// The reconnect attempt itself failing must schedule the next one. Latching the
+// flag until a HELLO arrives left the bot silent forever after two attempts
+// against a gateway that was simply down, which is the ordinary outage.
+fn a_failed_attempt_schedules_another() -> bool {
+  let asked = receive(ready_session(), protocol.Reconnect)
+  let trying = attempting(asked.session)
+  let failed = disconnected(trying, 1006, "connect failed")
+  return array.any(failed.actions, is_reconnect)
+}
+
+// A rejected token is rejected identically forever.
+fn a_rejected_token_stops_rather_than_retrying() -> bool {
+  let dead = disconnected(ready_session(), 4004, "Authentication failed")
+  return !array.any(dead.actions, is_reconnect)
+    && array.any(dead.actions, is_stop)
+    && is_fatal(dead.session)
+}
+
+fn ready_session() -> Session {
+  return receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session
+}
+
+fn is_stop(action: Action) -> bool {
+  return match action {
+    Stop(_) => true,
+    _ => false,
+  }
+}
+
+fn own_messages_are_ignored() -> bool {
+  let live = receive(greeted(), protocol.Ready({ seq: 1, session_id: "s1", user: "b" })).session
+  let from_bot = receive(live, protocol.Message({
+    seq: 3, channel: "c", author: "b", content: "!ping", bot: true,
+  }))
+  return array.len(from_bot.actions) == 0 && seq_of(from_bot.session) == 3
+}
+
+fn seq_of(s: Session) -> int {
+  return match s.seq {
+    Some(n) => n,
+    None => 0 - 1,
+  }
+}
+
+fn is_reconnect(action: Action) -> bool {
+  return match action {
+    Reconnect(_) => true,
+    _ => false,
+  }
+}

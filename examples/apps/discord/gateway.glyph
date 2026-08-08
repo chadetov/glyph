@@ -1,0 +1,234 @@
+// The socket and the clock.
+//
+// Everything the bot decides is decided in `session`, as a pure function from
+// one event to a new session and a list of actions. This file is the part that
+// cannot be a value: it opens the WebSocket, runs the heartbeat timer, and
+// carries out those actions. It holds no protocol logic, which is why the hard
+// parts (resume, zombie detection, backoff) are checked by `@example` rather
+// than by provoking a real outage.
+//
+// The connection lives in a `Conn` record threaded through top-level functions
+// rather than in closures over `let` bindings. It has to: `connect` schedules a
+// reconnect, which calls `connect` again, and a `let`-bound closure cannot be
+// named before the line that binds it, so the cycle is unwritable that way.
+// Passing one record round also means `grep -n "^\s*mut conn\."` lists every
+// piece of connection state that ever changes.
+//
+// Four escapes to raw TypeScript, all greppable by `extern_ts`: the WebSocket
+// type, the timer handle type, the constructor, and reading a close event. The
+// WHATWG `WebSocket` is a global in Node, and Glyph resolves imported module
+// names rather than ambient globals, so there is no other way to name it, and
+// `new WebSocket(...)` is E0103 for the same reason. The type is real either
+// way: `tsc` checks every call against its own `WebSocket`, so a misspelled
+// method is a compile error rather than a 3am one.
+module gateway
+
+import std/io
+import std/option { Option, Some, None }
+import std/process
+import timers { setInterval, clearInterval, setTimeout }
+import backoff
+import backoff { Backoff }
+import protocol
+import session
+import session { Session, Action, Step }
+
+// The global `WebSocket`, named for the type checker.
+type Socket = extern_ts("WebSocket")
+
+// What `setInterval` hands back. Nothing inspects it; it only goes back to
+// `clearInterval`.
+type Timer = extern_ts("object")
+
+// Everything about the current connection that outlives a single callback.
+type Conn = {
+  url: string,
+  verbose: bool,
+  socket: Option<Socket>,
+  heartbeat: Option<Timer>,
+  state: Session,
+  retry: Backoff,
+  // Which connection attempt is the current one.
+  //
+  // A socket this bot has written off stays open at the TCP level until it is
+  // closed, and its listeners stay armed either way. Without an identity to
+  // compare against, a late frame or a delayed close from the abandoned socket
+  // would be applied to the connection that replaced it: the worst version
+  // tears down a healthy connection when a zombie finally times out. Each
+  // `connect` captures the generation it was started under and ignores
+  // everything once it is no longer current.
+  generation: int,
+}
+
+// Run the bot until the process is killed.
+//
+// This returns as soon as the first socket is opened. The process stays alive
+// afterwards because the socket and the heartbeat timer are pending work, the
+// same reason any Node server keeps running.
+pub fn run(url: string, token: string, verbose: bool) {
+  let conn: Conn = {
+    url: url,
+    verbose: verbose,
+    socket: None,
+    heartbeat: None,
+    state: session.start(token),
+    retry: backoff.fresh(),
+    generation: 0,
+  }
+  connect(conn)
+}
+
+fn connect(conn: Conn) {
+  mut conn.generation = conn.generation + 1
+  let mine = conn.generation
+  // Whatever happens to this attempt is a fresh event, so the session stops
+  // treating further closes as the tail of the decision that scheduled it.
+  mut conn.state = session.attempting(conn.state)
+
+  let sock: Socket = extern_ts("new WebSocket(conn.url)")
+  mut conn.socket = Some(sock)
+
+  mut sock.addEventListener("open", fn(_) {
+    match current(conn, mine) {
+      false => {},
+      true => {
+        say(conn, "socket open")
+        mut conn.retry = backoff.succeeded(conn.retry)
+      },
+    }
+  })
+
+  mut sock.addEventListener("message", fn(ev) {
+    match current(conn, mine) {
+      false => {},
+      true => advance(conn, session.receive(conn.state, protocol.read(text_of(ev)))),
+    }
+  })
+
+  mut sock.addEventListener("close", fn(ev) {
+    match current(conn, mine) {
+      false => {},
+      true => advance(conn, session.disconnected(conn.state, close_code(ev), close_reason(ev))),
+    }
+  })
+
+  // An error is always followed by a close, and the close is where the
+  // reconnect is decided, so this only reports.
+  mut sock.addEventListener("error", fn(_) {
+    match current(conn, mine) {
+      false => {},
+      true => say(conn, "socket error"),
+    }
+  })
+}
+
+// Whether the socket a listener belongs to is still the one in use.
+fn current(conn: Conn, generation: int) -> bool {
+  return conn.generation == generation
+}
+
+// A step from the protocol layer: adopt the new session, then do what it asked,
+// in the order it asked.
+fn advance(conn: Conn, taken: Step) {
+  mut conn.state = taken.session
+  for action in taken.actions {
+    perform(conn, action)
+  }
+}
+
+// Carrying out one action. The protocol layer decided it; nothing here
+// second-guesses it.
+fn perform(conn: Conn, action: Action) {
+  match action {
+    session.Send({ frame }) => send(conn, frame),
+    session.Note({ line }) => say(conn, line),
+    session.StartHeartbeat({ interval }) => {
+      stop_heartbeat(conn)
+      mut conn.heartbeat = Some(setInterval(fn() {
+        advance(conn, session.tick(conn.state))
+      }, interval))
+      say(conn, "heartbeat every ${number.to_string(interval)}ms")
+    },
+    session.StopHeartbeat => stop_heartbeat(conn),
+    session.CloseSocket => close_socket(conn),
+    session.Reconnect({ resume }) => schedule_reconnect(conn, resume),
+    // A failure retrying cannot fix. Reporting it and exiting non-zero is the
+    // only useful thing left: `main` returned long ago, so nothing else would.
+    session.Stop({ reason }) => {
+      io.eprintln("discord: ${reason}")
+      process.exit(1)
+    },
+    // A real bot POSTs this to the REST API. Printing it keeps the example
+    // runnable against a mock gateway and with no credentials.
+    session.Reply({ channel, text }) => io.println("reply to ${channel}: ${text}"),
+  }
+}
+
+fn schedule_reconnect(conn: Conn, resume: bool) {
+  mut conn.retry = backoff.failed(conn.retry)
+  let delay = backoff.wait_ms(conn.retry)
+  say(conn, "reconnecting in ${number.to_string(delay)}ms (resume=${yes_no(resume)})")
+  let _ = setTimeout(fn() { connect(conn) }, delay)
+}
+
+fn send(conn: Conn, frame: string) {
+  match conn.socket {
+    Some(sock) => { mut sock.send(frame) },
+    None => say(conn, "dropped a frame: no socket"),
+  }
+}
+
+// Hang up, and stop listening to what we hung up on. The generation bump is
+// what silences the listeners: they cannot be detached without holding each
+// closure, and a socket that closes later must not reach the session.
+fn close_socket(conn: Conn) {
+  match conn.socket {
+    Some(sock) => {
+      mut conn.generation = conn.generation + 1
+      mut conn.socket = None
+      mut sock.close()
+    },
+    None => {},
+  }
+}
+
+fn stop_heartbeat(conn: Conn) {
+  match conn.heartbeat {
+    Some(handle) => {
+      clearInterval(handle)
+      mut conn.heartbeat = None
+    },
+    None => {},
+  }
+}
+
+fn say(conn: Conn, line: string) {
+  match conn.verbose {
+    true => io.println(line),
+    false => {},
+  }
+}
+
+// A message event's payload. Node's WebSocket delivers a string for a text
+// frame, and the gateway sends nothing else.
+fn text_of(ev: unknown) -> string {
+  return extern_ts("String((ev as { data: unknown }).data)")
+}
+
+// A close event's code and reason. Which code it is decides whether this is an
+// outage to wait out or a rejection to stop on, so reporting a constant instead
+// would make a rejected token retry forever.
+fn close_code(ev: unknown) -> int {
+  return extern_ts("Number((ev as { code?: number }).code ?? 1006)")
+}
+
+fn close_reason(ev: unknown) -> string {
+  return extern_ts("String((ev as { reason?: string }).reason || \"socket closed\")")
+}
+
+fn yes_no(value: bool) -> string {
+  return match value {
+    true => "yes",
+    false => "no",
+  }
+}

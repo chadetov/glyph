@@ -1,0 +1,258 @@
+// The Discord gateway wire format: frames in, frames out.
+//
+// Every gateway message is a JSON object with an `op` number that says what it
+// is, and a payload `d` whose shape depends on the op. The interesting part for
+// Glyph is that this is somebody else's wire format: Glyph never writes it, so
+// the frames arrive in whatever shape Discord chose, including `null` where a
+// value is absent.
+//
+// That drives the record shapes below. Each one is `@open` and declares only
+// the fields that opcode actually carries. A single `Frame` record with
+// `s: Option<int>` would be the natural spelling and does not work: an `Option`
+// field is required and accepts only Glyph's own `{"tag":"Some","value":1}`
+// encoding, so `"s": null` (what Discord sends in a HELLO) is rejected, and so
+// is a bare `"s": 1`. Declaring per-opcode records sidesteps it, because a
+// field nobody declares is a field nobody has to decode.
+module protocol
+
+import std/json
+import std/option { Option, Some, None }
+
+// What the gateway just told us.
+//
+// `Unknown` is not an error. Discord adds opcodes and events, and a bot that
+// fell over on an op it had not heard of would break on Discord's schedule
+// rather than its own.
+pub type Incoming =
+  | Hello({ heartbeat_interval: int })
+  // The gateway can ask for a heartbeat off-schedule, and expects one straight
+  // back. Ignoring it is how a bot gets disconnected for being unresponsive
+  // while its own timer is still ticking happily.
+  | HeartbeatRequest
+  | HeartbeatAck
+  | Ready({ seq: int, session_id: string, user: string })
+  | Message({ seq: int, channel: string, author: string, content: string, bot: bool })
+  | Dispatch({ seq: int, event: string })
+  | Reconnect
+  | InvalidSession({ resumable: bool })
+  | Malformed({ reason: string })
+  | Unknown({ op: int })
+
+// What we send back.
+pub type Outgoing =
+  | Identify({ token: string, intents: int })
+  | Resume({ token: string, session_id: string, seq: int })
+  | Heartbeat({ seq: Option<int> })
+
+// Gateway opcodes, named so the `match` below reads as the protocol does.
+const OP_DISPATCH = 0
+const OP_HEARTBEAT = 1
+const OP_IDENTIFY = 2
+const OP_RESUME = 6
+const OP_RECONNECT = 7
+const OP_INVALID_SESSION = 9
+const OP_HELLO = 10
+const OP_HEARTBEAT_ACK = 11
+
+// ---------------------------------------------------------------------------
+// Reading a frame
+// ---------------------------------------------------------------------------
+
+// Only the discriminant. Everything else on the frame is read by a record
+// chosen from this.
+@open
+type Envelope = { op: int }
+
+@open
+type HelloFrame = { d: HelloData }
+
+@open
+type HelloData = { heartbeat_interval: int }
+
+@open
+type DispatchFrame = { s: int, t: string }
+
+@open
+type ReadyFrame = { d: ReadyData }
+
+@open
+type ReadyData = { session_id: string, user: ReadyUser }
+
+@open
+type ReadyUser = { username: string }
+
+@open
+type MessageFrame = { d: MessageData }
+
+@open
+type MessageData = {
+  channel_id: string,
+  content: string,
+  author: MessageAuthor,
+}
+
+@open
+type MessageAuthor = { username: string, bot: bool }
+
+// An INVALID_SESSION carries a bare boolean in `d` saying whether the session
+// can be resumed. A bare value, not an object, so it needs its own read.
+@open
+type InvalidSessionFrame = { d: bool }
+
+// Parse one gateway frame.
+//
+// Nothing here throws and nothing returns a `Result`: a frame we cannot read is
+// an `Incoming` too. A bot is a long-lived process on somebody else's socket,
+// and the useful thing to do with a surprising frame is carry on, having said
+// what was surprising about it.
+@example is_malformed(read("not json"))
+@example is_malformed(read("{\"op\":\"ten\"}"))
+@example read("{\"op\":11,\"s\":null,\"t\":null}") == HeartbeatAck
+@example read("{\"op\":7,\"s\":null,\"t\":null}") == Reconnect
+@example read("{\"op\":10,\"d\":{\"heartbeat_interval\":41250}}") == Hello({ heartbeat_interval: 41250 })
+@example read("{\"op\":9,\"d\":false}") == InvalidSession({ resumable: false })
+@example read("{\"op\":9,\"d\":true}") == InvalidSession({ resumable: true })
+@example read("{\"op\":4}") == Unknown({ op: 4 })
+@example read("{\"op\":1,\"d\":null}") == HeartbeatRequest
+pub fn read(raw: string) -> Incoming {
+  let decoded = match json.parse<unknown>(raw) {
+    Ok(v) => v,
+    Err(_) => { return Malformed({ reason: "not JSON" }) },
+  }
+  let envelope = match Envelope.parse(decoded) {
+    Ok(e) => e,
+    Err(_) => { return Malformed({ reason: "no numeric `op`" }) },
+  }
+  return match envelope.op == OP_HELLO {
+    true => read_hello(decoded),
+    false => match envelope.op == OP_HEARTBEAT {
+      true => HeartbeatRequest,
+      false => match envelope.op == OP_HEARTBEAT_ACK {
+      true => HeartbeatAck,
+      false => match envelope.op == OP_RECONNECT {
+        true => Reconnect,
+        false => match envelope.op == OP_INVALID_SESSION {
+          true => read_invalid_session(decoded),
+          false => match envelope.op == OP_DISPATCH {
+            true => read_dispatch(decoded),
+            false => Unknown({ op: envelope.op }),
+          },
+        },
+      },
+      },
+    },
+  }
+}
+
+fn read_hello(decoded: unknown) -> Incoming {
+  return match HelloFrame.parse(decoded) {
+    Ok(frame) => Hello({ heartbeat_interval: frame.d.heartbeat_interval }),
+    Err(_) => Malformed({ reason: "HELLO without a heartbeat interval" }),
+  }
+}
+
+fn read_invalid_session(decoded: unknown) -> Incoming {
+  return match InvalidSessionFrame.parse(decoded) {
+    Ok(frame) => InvalidSession({ resumable: frame.d }),
+    // Discord documents `d` as a boolean here. A frame that omits it is treated
+    // as not resumable, which is the safe direction: a fresh IDENTIFY always
+    // works, while resuming a session the gateway has dropped does not.
+    Err(_) => InvalidSession({ resumable: false }),
+  }
+}
+
+// A DISPATCH carries the event name in `t` and the sequence number in `s`. The
+// sequence has to be recorded whatever the event is, because it is what a
+// RESUME replays from, so an event this bot does not handle still produces a
+// `Dispatch` rather than being dropped.
+fn read_dispatch(decoded: unknown) -> Incoming {
+  let frame = match DispatchFrame.parse(decoded) {
+    Ok(f) => f,
+    Err(_) => { return Malformed({ reason: "DISPATCH without `s` and `t`" }) },
+  }
+  return match frame.t == "READY" {
+    true => read_ready(decoded, frame),
+    false => match frame.t == "MESSAGE_CREATE" {
+      true => read_message(decoded, frame),
+      false => Dispatch({ seq: frame.s, event: frame.t }),
+    },
+  }
+}
+
+fn read_ready(decoded: unknown, frame: DispatchFrame) -> Incoming {
+  return match ReadyFrame.parse(decoded) {
+    Ok(ready) => Ready({
+      seq: frame.s,
+      session_id: ready.d.session_id,
+      user: ready.d.user.username,
+    }),
+    Err(_) => Dispatch({ seq: frame.s, event: frame.t }),
+  }
+}
+
+fn read_message(decoded: unknown, frame: DispatchFrame) -> Incoming {
+  return match MessageFrame.parse(decoded) {
+    Ok(m) => Message({
+      seq: frame.s,
+      channel: m.d.channel_id,
+      author: m.d.author.username,
+      content: m.d.content,
+      bot: m.d.author.bot,
+    }),
+    Err(_) => Dispatch({ seq: frame.s, event: frame.t }),
+  }
+}
+
+fn is_malformed(incoming: Incoming) -> bool {
+  return match incoming {
+    Malformed(_) => true,
+    _ => false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Writing a frame
+// ---------------------------------------------------------------------------
+
+type IdentifyProperties = { os: string, browser: string, device: string }
+
+type IdentifyData = {
+  token: string,
+  intents: int,
+  properties: IdentifyProperties,
+}
+
+type IdentifyFrame = { op: int, d: IdentifyData }
+
+type ResumeData = { token: string, session_id: string, seq: int }
+
+type ResumeFrame = { op: int, d: ResumeData }
+
+// Serialize a frame for the socket.
+//
+// A heartbeat before the first dispatch has to send `"d": null`, and a `null`
+// is the one thing this codebase cannot produce from a record: an `Option`
+// field emits Glyph's tagged encoding, which the gateway would reject. The
+// heartbeat is two fields, so it is written directly.
+@example write(Heartbeat({ seq: None })) == "{\"op\":1,\"d\":null}"
+@example write(Heartbeat({ seq: Some(42) })) == "{\"op\":1,\"d\":42}"
+pub fn write(outgoing: Outgoing) -> string {
+  return match outgoing {
+    Heartbeat({ seq }) => match seq {
+      Some(n) => "{\"op\":1,\"d\":${number.to_string(n)}}",
+      None => "{\"op\":1,\"d\":null}",
+    },
+    Identify({ token, intents }) => json.stringify({
+      op: OP_IDENTIFY,
+      d: {
+        token: token,
+        intents: intents,
+        properties: { os: "linux", browser: "glyph", device: "glyph" },
+      },
+    }),
+    Resume({ token, session_id, seq }) => json.stringify({
+      op: OP_RESUME,
+      d: { token: token, session_id: session_id, seq: seq },
+    }),
+  }
+}

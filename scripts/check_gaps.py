@@ -33,6 +33,12 @@ SETTLED = {"DECIDED", "RESOLVED"}
 KNOWN = FIXED | PARTIAL | SETTLED
 
 ENTRY = re.compile(r"\*\*G(\d+)\.\s*(\[[^\]]*\])?")
+
+# A marker written inside backticks (``**G70. `[FIXED]` ...``) does not parse as
+# one, so the entry silently counts as open while reading as closed. Two entries
+# sat like that for releases, and the counts they were reconciled against were
+# wrong the whole time. A marker is either a real marker or it is not written.
+QUOTED_MARKER = re.compile(r"\*\*G(\d+)\.\s*`\[")
 COUNTS = re.compile(
     r"of (\d+) entries, (\d+) are fixed, (\d+) are partly fixed, "
     r"(\d+) are decided or resolved, and (\d+) (?:are|is) open",
@@ -57,6 +63,12 @@ def main() -> int:
     # the ambiguity worth failing on.
     status: dict[int, str] = {}
     bad: list[str] = []
+
+    for num in QUOTED_MARKER.findall(text):
+        bad.append(
+            f"G{num}: its status marker is inside backticks, so it does not "
+            f"count. Write it as `**G{num}. [FIXED] ...`"
+        )
     for num, marker in ENTRY.findall(text):
         n = int(num)
         word = marker_word(marker or "")

@@ -145,11 +145,24 @@ and does report E0200.
 ```
 io.println(message: string) -> void             // stdout, with newline
 io.eprintln(message: string) -> void            // stderr, with newline
+io.print(message: string) -> void               // stdout, no newline (a prompt)
+io.eprint(message: string) -> void              // stderr, no newline
+io.is_terminal() -> bool                        // is stdout a terminal, not a pipe
+io.stdin_is_terminal() -> bool                  // is a person typing, not a file piped in
 io.read_line() -> Option<string>                // one line from stdin (None at EOF)
 io.read_to_string() -> string                   // the rest of stdin
 io.inspect(value: unknown) -> void              // pretty-print any value to stderr (debugging)
 io.render(value: unknown) -> string             // the same rendering as a string
 ```
+
+`print` is what a prompt needs: `> ` with the answer typed on the same line.
+It shares a stream with `println`, so mixing them keeps their order. On a
+terminal the write is synchronous and the prompt appears before the read that
+follows it.
+
+`is_terminal` and `stdin_is_terminal` are the predicate behind colouring
+output, drawing a progress line, or deciding whether to prompt at all. Without
+them a program has to be told by a flag, and the default is wrong half the time.
 
 `read_line` returns as soon as a full line has arrived, so a prompt/read/respond
 loop answers while the writer is still connected. It does not wait for the
@@ -233,10 +246,21 @@ fs.read_dir(dir).map(fn(names: Array<string>) {
 
 ```
 process.args() -> Array<string>                 // program arguments
-process.exit(code: number) -> never
+process.exit(code: number) -> never             // stop now; pending work is abandoned
+process.set_exit_code(code: number) -> void     // record the code, keep running
+process.exit_code() -> number                   // the code it will currently leave with
 process.env(name: string) -> Option<string>
 process.cwd() -> string
 ```
+
+`main` returning sets the exit code, but a long-running program has usually
+outlived its `main` by the time it learns it failed. `set_exit_code` records the
+verdict and lets the program shut down on its own terms; `exit` stops it
+immediately and can truncate output still queued on a pipe. Reach for `exit`
+when nothing is left worth finishing, and `set_exit_code` when something is.
+
+An uncaught error thrown after `main` has returned already exits non-zero by
+itself, so these are for failures the program detects and decides about.
 
 ## std/record
 

@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 95 entries, 58 are fixed, 13 are partly fixed, 5 are
-decided or resolved, and 19 are open. That round re-ran an assignment the
+fixed two of them: of 97 entries, 68 are fixed, 13 are partly fixed, 5 are
+decided or resolved, and 11 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -1817,7 +1817,7 @@ several rounds that the backlog grew.
   descriptor's issues through, or the guide has to say which form to reach for
   when the error message is going to a human.
 
-- **G69. `glyph run` and `glyph check` never run `@example` blocks.** Both
+- **G69. [FIXED] `glyph run` and `glyph check` never run `@example` blocks.** Both
   `run_examples` call sites are inside the `Build` arm, the text path and the
   JSON path (`glyph-cli/src/main.rs:284` and `:344`). So a colocated test that
   fails turns `glyph build` red and leaves `glyph run` and `glyph check` green
@@ -1826,7 +1826,7 @@ several rounds that the backlog grew.
   success on code whose own examples were failing, and only the slower `build`
   found it.
 
-- **G70. `[FIXED]` `E0109` and `E0110` can report the same declaration twice.**
+- **G70. [FIXED] `E0109` and `E0110` can report the same declaration twice.**
   `is_reserved_ts_word` is called from both `collect.rs` and `resolve.rs`, so a
   reserved name looked like it could be counted once per pass. It cannot: the
   two call sites check disjoint name sets (collect checks top-level declaration
@@ -1897,7 +1897,7 @@ did not need a new entry.
   identical.* What this does not close is G37's residue, which is the iterand
   whose type is honestly unknown; that one is a decision, not a patch.
 
-- **G72. `glyph check` on one file compiles every `.glyph` under that file's
+- **G72. [FIXED] `glyph check` on one file compiles every `.glyph` under that file's
   directory.** `glyph check examples/apps/bracket.glyph` reports "13 module(s)",
   and `glyph check examples/corpus/calendar.glyph` reports 57: the walk is
   recursive from the file's directory rather than the file plus what it imports.
@@ -2235,7 +2235,7 @@ salsa-memoized. Nobody had written the second query.
   branch has never been seen answering 400 where the old code answered 422. The
   bar for this entry is an app, so it stays half closed until that step exists.
 
-- **G80. `[FIXED]` A module-local type named `Issue` shadows the prelude one and
+- **G80. [FIXED] A module-local type named `Issue` shadows the prelude one and
   breaks every descriptor in that module.** A descriptor's `parse` annotates its
   error array as `Issue[]`, which resolves to the module's own `Issue` when one
   is declared. The emitted issues carry `path`, `message`, and `code`, so a user
@@ -2325,7 +2325,7 @@ not three apps' worth of design.
   20-21ms, multi-byte UTF-8 split across a chunk boundary round-trips, and
   idling 15 seconds at a pty prompt costs 0.00s of child CPU.
 
-- **G82. `std/io` cannot write without a newline, so a prompt cannot share a line
+- **G82. [FIXED] `std/io` cannot write without a newline, so a prompt cannot share a line
   with the answer.** `println` and `eprintln` are the whole write surface, and
   both append `"\n"`. The `> ` prompt every REPL and every interactive CLI opens
   with is therefore unwritable: the cursor is always on the line below the
@@ -2337,7 +2337,7 @@ not three apps' worth of design.
   decision about flushing, since `process.stdout.write` on a pipe is buffered
   where `console.log` is not.
 
-- **G83. A program cannot tell whether stdin is a terminal or a pipe.** `std/process`
+- **G83. [FIXED] A program cannot tell whether stdin is a terminal or a pipe.** `std/process`
   exposes `args`, `env`, `cwd` and `exit`, and nothing reports `isTTY`. So an app
   that wants to behave one way when a person is typing and another way when a
   file is piped in has to be told which by a flag: the chat app takes `--stdin`,
@@ -2419,7 +2419,7 @@ once are each announced under the right name.
   flat layout every app under `examples/` uses hid that, because there the two
   paths coincide.
 
-- **G86. Nothing sets the exit code after `main` returns, so a program that
+- **G86. [FIXED] Nothing sets the exit code after `main` returns, so a program that
   fails later reports success.** This is the hole G84's fix opened, and it is
   worth stating plainly because it is the same silent-success shape. Once `main`
   has returned, its return value is spent. The chat daemon's `listener.on("error")`
@@ -2620,7 +2620,7 @@ this round, and it is why the adversarial gateway exists.
   but the language forces it without saying so and the diagnostic points at a
   name rather than at the rule.
 
-- **G93. An `@example` has to fit on one line.** Wrapping one is
+- **G93. [FIXED] An `@example` has to fit on one line.** Wrapping one is
   `[E0003] unexpected token: EqEq` pointing at the continuation. Examples of
   anything with a real payload are long, so this app names a helper function per
   example several times purely to get under a line length.
@@ -2637,3 +2637,65 @@ Three of the five entries are about reaching outside Glyph: a global, a foreign
 JSON shape, an escape hatch that costs its type. That is the same seam the
 interop work was about, and it is still where the sharp edges are. G94 is not
 about the seam at all, and is the most serious thing found in twenty rounds.
+
+## Round 21: closing the backlog
+
+Not an app trip. The owner's instruction was to close the open gaps and re-check
+the applications, so this round works the list rather than looking for new
+entries. Six closed below, plus two defects the work itself turned up, one of
+which was `glyph fmt` moving a comment into somewhere it did not belong.
+
+Everything here was re-verified against the applications afterwards: the chat
+server still holds three concurrent TCP clients with correct room scoping, and
+the bot still passes its offline replay and all three adversarial gateways.
+
+- **G96. [FIXED] `glyph fmt` relocated a comment written between two
+  annotations into the parameter list.** A comment above a declaration is
+  flushed at the declaration's start, which is the *first annotation's* offset,
+  so a comment sitting between two annotations was never flushed there. It
+  stayed pending and surfaced in the next construct that flushes comments, which
+  is the parameter list: a note between two `@example` lines came out inside
+  `fn f(...)`, expanding the parameters to one per line to make room for it.
+  Found while testing G93 and reproduced with no wrapping involved, so it
+  predates that work. A formatter that runs on save must never move a comment
+  into unrelated syntax. The annotation block now flushes its own comments,
+  before each annotation and again before the declaration keyword.
+
+- **G97. [FIXED] `let _ = expr` could not appear twice in one scope.** `_` is
+  the spelling the unused-binding lint tells you to use, so a function ignoring
+  two results writes it twice, and two `const _` in one scope is a raw `tsc`
+  redeclaration error naming a variable the author never meant to declare. A
+  bare `_` now emits its initializer as a statement: the effect happens, nothing
+  is bound, and nothing can collide. A named `_foo` still binds. Found while
+  writing a two-timer test for G86.
+
+The six from the list:
+
+- **G69** closed by running the `@example` gate in `check` and `run`, each in
+  its own project root (D41), with `--no-test` to opt out. `build` had always
+  run it, so a failing colocated test turned one command red and left the other
+  two green on the same source, and the fast edit-run loop was the one that
+  missed it. Both now exit non-zero.
+- **G72** closed by building only the file's own project when the target is a
+  file. A directory target still builds every project under it, because there
+  the nested projects are the point. Checking a loose file under `examples/`
+  went from 119 modules to its project's 72; an app file was already down to 2
+  from D41, which had closed the half of this entry about `TS2307` pointing into
+  a different app.
+- **G82** and **G83** closed by `io.print`, `io.eprint`, `io.is_terminal` and
+  `io.stdin_is_terminal`. A prompt can share a line with its answer, and a
+  program can tell a person from a pipe instead of being told by a flag whose
+  default is wrong half the time. Verified in both directions: under a pty the
+  predicates report true, under a pipe false.
+- **G86** closed by `process.set_exit_code`, which records the code the process
+  will leave with and lets it shut down on its own terms. `exit` stops
+  immediately and can truncate output still queued on a pipe, so a late failure
+  had to choose between reporting itself and finishing cleanly. An uncaught
+  error thrown after `main` returns was checked and already exits non-zero, so
+  what was missing was only the deliberate case.
+- **G93** closed by continuing an annotation onto a line that begins with an
+  operator. Nothing about it is ambiguous: a line starting with `==`, `&&`, `.`
+  and the rest cannot begin a declaration or another annotation. `-` and `!` are
+  deliberately excluded because both can begin an expression. The captured slice
+  splices out exactly the line breaks it crossed, never the text between them,
+  so a string literal in the argument is untouched.

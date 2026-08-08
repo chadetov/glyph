@@ -59,7 +59,13 @@ glyph run hello.glyph
 glyph run hello.glyph one two three
 ```
 
-`main` returns a `number` — the process exit code.
+`main` returns a `number`, the process exit code.
+
+Returning from `main` sets that code but does not force the process to stop. It
+stops when there is nothing left to wait for, which is Node's own rule. A
+program that only computes and prints exits the moment `main` returns; a program
+that started a server or scheduled a timer keeps running until that work is
+done. See [long-running programs](#long-running-programs) below.
 
 `glyph run` reports every diagnostic `glyph build` would report on the same
 directory, warnings included, and prints them after the program's output with a
@@ -124,6 +130,58 @@ fn double(n: number) -> number {
   return n * 2
 }
 ```
+
+## Long-running programs
+
+A server, a watcher, a bot: anything driven by events rather than by one pass
+through `main`. These work the way they do in Node. `main` sets things up and
+returns, and the process stays alive as long as something is holding it open.
+
+```glyph
+module main
+
+import std/io
+import net { createServer }
+
+fn main(argv: Array<string>) -> number {
+  let server = createServer(fn(socket) {
+    mut socket.write("hello\n")
+    mut socket.end()
+  })
+  mut server.listen(4000, fn() {
+    io.println("listening on 4000")
+  })
+  return 0
+}
+```
+
+`net` is a Node builtin and imports like any other, but it is not one of the six
+the compiler ships ambient types for (`fs`, `http`, `path`, `os`, `crypto`,
+`url`). Install `@types/node` and the build prefers it, or write the piece you
+use into `.types/net.d.ts` beside your source. See
+[`external-imports.md`](external-imports.md).
+
+Two things to know about the shape.
+
+The `return 0` runs immediately, long before the first client connects. It is
+the exit code the process will eventually leave with, not a statement about when
+it leaves.
+
+Anything that fails after `main` has returned has to set its own exit code,
+because `main`'s return value is already spent. A listener that cannot bind its
+port is the common case, and without this the process drains its event loop and
+exits 0, reporting success for a server that never started:
+
+```glyph
+mut server.on("error", fn(err) {
+  io.eprintln("cannot listen on 4000: ${err.message}")
+  process.exit(1)
+})
+```
+
+`examples/apps/chat` is a worked example: a chat server that holds several TCP
+clients at once, with the socket handling in `daemon.glyph` and the parts that
+do not touch the network kept separate and tested with `@example`.
 
 ## Next
 

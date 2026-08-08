@@ -130,7 +130,11 @@ fn show(todos: Array<Todo>) -> void {
 
 ## Wire up `main`
 
-`main(argv) -> number` returns the process exit code. Here the `match` is in
+`main(argv) -> number` returns the process exit code. Returning sets that code
+without forcing the process to stop: it stops when nothing is left to wait for,
+which for a program like this one is immediately. See
+[long-running programs](getting-started.md#long-running-programs) for the case
+where it is not. Here the `match` is in
 statement position, so each arm uses `return`. Block-bodied arms still need a
 trailing comma after the closing brace — a small thing the formatter will fix
 for you, but worth knowing.

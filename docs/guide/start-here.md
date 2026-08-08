@@ -23,7 +23,9 @@ glyph run src/main.glyph
 ```
 
 `glyph run` type-checked the program, compiled it to TypeScript, and executed
-its `main(argv)`. `main` returns a `number` — the process exit code.
+its `main(argv)`. `main` returns a `number`, the process exit code. Returning
+sets the code; the process leaves when nothing is left to wait for, so a program
+that started a server keeps serving.
 
 ## 3. Add something real
 

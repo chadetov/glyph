@@ -9,7 +9,10 @@
 //!
 //! The program's `main(argv) -> number` entry is called with the trailing CLI
 //! arguments; its return value becomes the process exit code. A program that
-//! returns `void` (or nothing) exits 0.
+//! returns `void` (or nothing) exits 0. The code is assigned rather than forced,
+//! so a program that started a server or scheduled a timer keeps running until
+//! that work is done instead of being killed the moment `main` returns; see
+//! `entrypoint_source`.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -371,11 +374,30 @@ pub fn run_file(
 }
 
 /// The generated entrypoint: install the prelude globals (side-effect import),
-/// then call the program's `main` with the trailing argv and exit with its
-/// numeric return. An async IIFE rather than top-level `await` so it runs under
-/// either CommonJS or ESM resolution. Relative imports are resolved against the
-/// entrypoint's own location, so the absolute path passed to `tsx` works
-/// regardless of the caller's working directory.
+/// then call the program's `main` with the trailing argv and take its numeric
+/// return as the exit code. An async IIFE rather than top-level `await` so it
+/// runs under either CommonJS or ESM resolution. Relative imports are resolved
+/// against the entrypoint's own location, so the absolute path passed to `tsx`
+/// works regardless of the caller's working directory.
+///
+/// The exit code is **assigned** (`process.exitCode`), not forced
+/// (`process.exit`). The difference is the whole reason a server can be written
+/// in Glyph: `process.exit` tears the process down the moment `main` returns,
+/// while a listening socket, a timer, or any other pending handle is still
+/// live, so `main` could start a server but never serve anything. Assigning the
+/// code instead lets Node do what it normally does, which is exit once nothing
+/// is left to wait for. A program that only computes and prints has nothing
+/// pending and still exits immediately with the same code; a program that
+/// started a listener stays up.
+///
+/// The `catch` arm still terminates: `main` throwing means the program failed
+/// to start, and leaving a half-initialized process alive on a handle it opened
+/// before it failed would hang instead of reporting the error. It waits for
+/// stderr to drain first. `console.error` is asynchronous when stderr is a pipe
+/// — which is every CI job and every agent capturing output — and calling
+/// `process.exit` on the next line truncates the diagnostic it just wrote.
+/// `process.exitCode` is set before the wait, so the exit code is right even if
+/// the drain callback never runs.
 fn entrypoint_source(stem: &str) -> String {
     format!(
         "import \"./.glyph-runtime/glyph-bootstrap.ts\";\n\
@@ -383,11 +405,63 @@ fn entrypoint_source(stem: &str) -> String {
          (async () => {{\n\
          \x20 try {{\n\
          \x20   const code = await main(process.argv.slice(2));\n\
-         \x20   process.exit(typeof code === \"number\" ? code : 0);\n\
+         \x20   process.exitCode = typeof code === \"number\" ? code : 0;\n\
          \x20 }} catch (e) {{\n\
          \x20   console.error(e);\n\
-         \x20   process.exit(1);\n\
+         \x20   process.exitCode = 1;\n\
+         \x20   process.stderr.write(\"\", () => process.exit(1));\n\
          \x20 }}\n\
          }})();\n"
     )
+}
+
+#[cfg(test)]
+mod entrypoint_tests {
+    use super::entrypoint_source;
+
+    /// The success path must *assign* the exit code, never force it.
+    ///
+    /// `process.exit` tears the process down as soon as `main` returns, while
+    /// any pending handle is still live. A Glyph program that starts a TCP
+    /// server therefore bound its port and died in the same tick: `glyph run`
+    /// printed nothing and exited 0, and no client could ever connect. That is
+    /// what made a multi-client server impossible to write, and it is invisible
+    /// from the source, which looks correct and type-checks.
+    ///
+    /// Assigning `process.exitCode` leaves Node's own exit rule in place: leave
+    /// when there is nothing left to wait for. A program that only computes
+    /// still exits immediately with the same code.
+    #[test]
+    fn the_success_path_assigns_the_exit_code_rather_than_forcing_it() {
+        let src = entrypoint_source("main");
+        assert!(
+            src.contains("process.exitCode = typeof code === \"number\" ? code : 0;"),
+            "expected an assignment to process.exitCode, got:\n{src}"
+        );
+        assert!(
+            !src.contains("process.exit(typeof code"),
+            "the success path must not call process.exit, got:\n{src}"
+        );
+    }
+
+    /// The failure path still terminates: a half-initialized process sitting on
+    /// a handle it opened before it failed would hang instead of reporting the
+    /// error. It sets the code first and terminates only once stderr has
+    /// drained, so the diagnostic survives a piped stderr.
+    #[test]
+    fn the_failure_path_terminates_but_only_after_stderr_drains() {
+        let src = entrypoint_source("main");
+        assert!(
+            src.contains("process.exitCode = 1;"),
+            "the exit code must be set before the wait, got:\n{src}"
+        );
+        assert!(
+            src.contains("process.stderr.write(\"\", () => process.exit(1));"),
+            "a throwing main must terminate after stderr drains, got:\n{src}"
+        );
+        assert!(
+            !src.contains("console.error(e);\n   process.exit(1);"),
+            "process.exit must not immediately follow the write, got:\n{src}"
+        );
+    }
 }

@@ -133,7 +133,7 @@ fn run_demo() -> number {
   let anon = ""
   show("GET  /health", call("GET", "/health", {}, anon))
 
-  step("signup: one good account, five bad ones")
+  step("signup: one good account, six bad ones")
   let good = { email: "  Alice@Example.COM ", password: ALICE_PASSWORD }
   show("POST /signup alice", call("POST", "/signup", good, anon))
   show("POST /signup alice again", call("POST", "/signup", good, anon))
@@ -145,6 +145,12 @@ fn run_demo() -> number {
   show("POST /signup no password field", call("POST", "/signup", missing, anon))
   let array_body = ["carol@example.com", ALICE_PASSWORD]
   show("POST /signup a JSON array", call("POST", "/signup", array_body, anon))
+  // A number where a `Password` belongs is a malformed body, not a weak
+  // password: the value never got as far as the length rule. The boundary says
+  // `expected Password (string)` and the router answers 400, which is the whole
+  // reason `weak_or_malformed` can branch on `code`.
+  let wrong_type = { email: "dave@example.com", password: 42 }
+  show("POST /signup password 42", call("POST", "/signup", wrong_type, anon))
 
   step("login: five wrong guesses lock the address")
   let wrong = { email: ALICE, password: "hunter2" }

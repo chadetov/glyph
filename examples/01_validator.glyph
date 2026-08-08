@@ -9,14 +9,13 @@
 
 module validator
 
+import std/array
 import std/result { Result, Ok, Err }
 import std/string
 
 // ---------------------------------------------------------------------------
 // Core types
 // ---------------------------------------------------------------------------
-
-type Issue = { path: Array<string>, message: string }
 
 type Schema<T> = { name: string, parse: fn(input: unknown) -> Result<T, Array<Issue>> }
 
@@ -137,7 +136,10 @@ fn demo() {
     Ok(user) => print("hello ${user.name}"),
     Err(issues) => {
       for issue in issues {
-        print("${string.join(issue.path, \".\")}: ${issue.message}")
+        // A prelude `Issue` path segment is a key or an array index, so it is
+        // `string | number`; render each one before joining.
+        let location = string.join(array.map(issue.path, fn(p) -> string { return string.from(p) }), ".")
+        print("${location}: ${issue.message}")
       }
     },
   }

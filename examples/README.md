@@ -1,5 +1,34 @@
 # Glyph examples
 
+## Building the tree
+
+The whole directory builds in one command:
+
+```sh
+glyph build examples --out /tmp/out
+```
+
+Each of the six directories under `apps/` (`auth_api`, `csvql`, `depsolve`,
+`minilang`, `sheet`, `workflow`) is a program of its own whose modules import
+each other by bare name, so each one carries a `package.json` with a `"glyph"`
+key. That marker makes the directory its own module-resolution root (D41), so
+`import catalog` inside `apps/csvql` finds `apps/csvql/catalog.glyph` no matter
+which enclosing directory you point `glyph build` at. Their output lands under
+`/tmp/out/apps/<name>/`.
+
+The same app still builds standalone, and emits the same files:
+
+```sh
+glyph build examples/apps/csvql --out /tmp/out
+```
+
+A project's imports resolve within its own root only, in both directions:
+`apps/csvql` cannot import a module of `examples/`, and `examples/` cannot
+import one of `apps/csvql`.
+
+Checking a single file compiles every `.glyph` in its project (G72), so
+`glyph check examples/01_validator.glyph` reports its siblings' errors too.
+
 The four hard-case example programs locked in step 2 (see `archive/SESSION_1.md`). These are the seed corpus for the transpiler test suite (step 4). Step 6 dogfooding (the fridge shopping list) grows this directory to ~30–50 example programs per the brainstorm Q2 resolution.
 
 | File | Stresses | Pillars |

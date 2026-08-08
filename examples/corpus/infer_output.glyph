@@ -5,8 +5,6 @@ module infer_output
 
 import std/result { Result, Ok, Err }
 
-type Issue = { path: Array<string>, message: string }
-
 type Schema<T> = { name: string, parse: fn(input: unknown) -> Result<T, Array<Issue>> }
 
 fn string_schema() -> Schema<string> {

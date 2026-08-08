@@ -1,0 +1,8 @@
+// `switch` is a TypeScript reserved word: it cannot name a binding in the
+// emitted output, so Glyph rejects it here rather than letting `tsc` fail on
+// generated code.
+module reserved_word_decl_name
+
+pub fn switch() -> number {
+  return 1
+}

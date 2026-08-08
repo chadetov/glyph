@@ -2743,6 +2743,61 @@ turned up a miscompile that twenty rounds of apps had missed.
   lift them to top level and thread a context record. G92.
 - **An `@example` must fit on one line.** G93.
 
+### 0.1.65 — Shipped · An app does not need TypeScript
+
+The Discord bot needed a hand-written declaration file and six escapes to raw
+TypeScript to open a socket and run a timer. The chat server needed a
+declaration file to reach `net`. That is the wrong shape for a language whose
+claim is that you write Glyph: every one of those lines is a line the Glyph
+type checker does not see, in the language Glyph exists to replace.
+
+The measure for this release was that both apps had to lose their TypeScript
+entirely, and both did.
+
+- **`std/timers`.** `after`, `every`, `cancel`, `unref`, `sleep`. Scheduling is
+  a global in JavaScript and Glyph resolves imported module names rather than
+  ambient globals, so before this there was no way to run something later
+  without declaring Node's `timers` by hand. A pending timer holds the process
+  open, which is what makes a scheduled program a program; `unref` opts a
+  background tick out of that. `cancel` takes a handle from either constructor
+  and does nothing to one that has already fired, so teardown paths are safe to
+  run twice.
+- **`std/websocket`.** `connect`, `on_open`, `on_message`, `on_close`,
+  `on_error`, `send`, `close`, `is_open`. Each event is its own function taking
+  exactly what that event carries rather than the host's
+  `addEventListener(name, handler)`, so no handler parameter needs narrowing and
+  an event name cannot be misspelled because there are no event-name strings.
+  `on_close` gets the code, because that is what separates an outage worth
+  retrying from a rejection that will be rejected identically forever. `send`
+  into a socket that is not open returns `false` instead of throwing on a
+  callback stack the program does not own.
+- **Six more Node builtins type-check with nothing installed:** `net`, `timers`,
+  `events`, `child_process`, `dns/promises`, `zlib`, joining `fs`, `http`,
+  `path`, `os`, `crypto` and `url`.
+- **Both apps are pure Glyph, and were re-run rather than merely rebuilt.** The
+  chat server dropped `.types/net.d.ts` and still holds three concurrent TCP
+  clients. The bot dropped `.types/timers.d.ts` and all six `extern_ts` escapes
+  and still passes the cooperative gateway and all three adversarial ones: an
+  unprompted opcode 1, a terminal 4004, and a gateway that greets you and then
+  stops answering.
+- **`scripts/check_apps_are_glyph.py` gates it in CI.** Any `.d.ts`, `.ts` or
+  `extern_ts` under `examples/apps/` fails the build, so the answer to the next
+  missing capability is to extend the stdlib rather than to write TypeScript.
+  G90.
+
+### Still open from this release
+
+- **A host global the stdlib does not wrap is still unnameable.** The general
+  form: an ambient `declare var` in `.types/` is invisible to the resolver, so a
+  global Glyph ships no wrapper for is reachable only through `extern_ts`, typed
+  `unknown`. Two ways to close it and they are different decisions: read ambient
+  globals in the resolver, which would also make D37's `new` work on a global
+  class; or keep the resolver module-only and treat each unwrapped global as a
+  stdlib gap, which is what timers and WebSocket just did. G95.
+- **An `Option<T>` field still cannot be read from ordinary JSON.** G91.
+- **Locally bound closures still cannot call each other.** G92.
+- **An `@example` must still fit on one line.** G93.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

@@ -49,8 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.64</span>
+            <span class="rel-ver">0.1.65</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An app does not need TypeScript</h3>
+            <p>Two example apps were reaching for the language Glyph exists to replace. The Discord bot needed a hand-written declaration file and six escapes to raw TypeScript to open a socket and run a timer; the chat server needed one to reach <code>net</code>. Every such line is a line the Glyph type checker does not see. The measure for this release was that both apps had to lose their TypeScript entirely, and both did.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>std/timers</code>: <code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>, <code>sleep</code>. Scheduling is a global in JavaScript and Glyph resolves module names rather than ambient globals, so before this there was no way to run something later without declaring Node's <code>timers</code> by hand.</li>
+              <li><span class="tag added">Added</span> <code>std/websocket</code>. Each event is its own function taking what that event carries, so no handler parameter needs narrowing and an event name cannot be misspelled: there are no event-name strings. <code>on_close</code> is handed the close code, because that is what separates an outage worth retrying from a rejection that will be rejected identically forever.</li>
+              <li><span class="tag added">Added</span> Six more Node builtins type-check with nothing installed: <code>net</code>, <code>timers</code>, <code>events</code>, <code>child_process</code>, <code>dns/promises</code>, <code>zlib</code>.</li>
+              <li><span class="tag changed">Changed</span> Both apps were re-run, not merely rebuilt. The chat server still holds three concurrent TCP clients; the bot still passes a cooperative gateway and three adversarial ones. A CI check now fails the build if any app carries a <code>.d.ts</code> or an <code>extern_ts</code>, so the answer to a missing capability is to extend the stdlib.</li>
+              <li><span class="tag known">Known</span> A host global the stdlib does not wrap is still unnameable: ambient <code>declare var</code> in <code>.types/</code> is invisible to the resolver. And an <code>Option</code> field still cannot be read from ordinary JSON.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.64</span>
+            <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -23,7 +23,7 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 94 entries, 57 are fixed, 13 are partly fixed, 5 are
+fixed two of them: of 95 entries, 58 are fixed, 13 are partly fixed, 5 are
 decided or resolved, and 19 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -2535,32 +2535,58 @@ this round, and it is why the adversarial gateway exists.
   already used and documented. Two emitter tests now cover it, both verified to
   fail against the old lowering.
 
-- **G90. Ambient *global* declarations in `.types/` are invisible to the
-  resolver.** `.types/*.d.ts` is documented as the way to give the type-checker
-  types for something external, and it works for `declare module "x"` blocks.
-  A `declare var WebSocket` or `declare function setInterval` in the same file
-  is not read at all: naming either is `[E0103] unresolved name`, from Glyph's
-  own resolver, before `tsc` is consulted. Installing `@types/node` does not
-  help, because the resolver matches module names and a global is not one.
+- **G90. [FIXED] Ambient *global* declarations in `.types/` are invisible to the
+  resolver, so reaching the platform meant writing TypeScript.** `.types/*.d.ts`
+  is documented as the way to give the type-checker types for something
+  external, and it works for `declare module "x"` blocks. A `declare var
+  WebSocket` or `declare function setInterval` in the same file is not read at
+  all: naming either is `[E0103] unresolved name`, from Glyph's own resolver,
+  before `tsc` is consulted. Installing `@types/node` does not help, because the
+  resolver matches module names and a global is not one. The sharp end was D37:
+  `new` was added so class-based clients would not need an `extern_ts("new ...")`
+  string, and `new WebSocket(url)` is E0103, so for every global class the string
+  was still the only route.
 
-  The sharp end of this is D37. `new` was added to the language, in its own
-  words, because class-based clients "were otherwise reachable only through the
-  `unknown`-typed `extern_ts("new ...")` string" — and `new WebSocket(url)` is
-  `E0103`, so for every global class D37 does not apply and the string is still
-  the only route. That is a shipped feature with a category-sized hole in it.
+  Fixed by removing the reason to reach for a global, rather than by teaching
+  the resolver to read one. Two stdlib modules now cover what the apps actually
+  wanted: **`std/timers`** (`after`, `every`, `cancel`, `unref`, `sleep`) and
+  **`std/websocket`** (`connect`, `on_open`, `on_message`, `on_close`,
+  `on_error`, `send`, `close`, `is_open`). Both are typed Glyph, both work on
+  any host that can schedule or connect, and neither has an event-name string to
+  misspell: each event is its own function taking exactly what it carries, so
+  `on_close` is handed the code and the reason rather than an event object to
+  narrow. The bundled Node shim also grew `net`, `timers`, `events`,
+  `child_process`, `dns/promises` and `zlib`, so a program that imports a
+  builtin directly type-checks with nothing installed.
 
-  Globals with a stdlib wrapper (`console` is `std/io`, `fetch` is `std/http`,
-  `Date` is `std/time`) are not affected. The two that bite are `WebSocket` and
-  the repeating timers, and only the second has a module form to fall back on:
-  this app reaches timers through `import timers { setInterval }` with a
-  hand-written `.types/timers.d.ts`, which is fully typed but is a module
-  nobody would think to import.
+  The measure was that both apps had to lose their TypeScript entirely, and both
+  did. The chat server dropped `.types/net.d.ts`; the bot dropped
+  `.types/timers.d.ts` and all six `extern_ts` escapes, and its socket layer is
+  now ordinary Glyph. Every app was re-run afterwards, not just rebuilt: three
+  concurrent TCP clients against the chat server, and the bot against a
+  cooperative gateway and all three adversarial ones. `scripts/check_apps_are_glyph.py`
+  fails CI if any app under `examples/apps/` ever again contains a `.d.ts`, a
+  `.ts`, or an `extern_ts`, so the answer to the next missing capability is to
+  extend the stdlib rather than to write the TypeScript Glyph exists to replace.
 
-  One thing does work and is worth writing down, because it is what makes the
-  socket layer safe: `extern_ts` in *type* position names the real type.
-  `type Socket = extern_ts("WebSocket")` gives `tsc` the genuine `WebSocket`,
-  so `sock.sendd(...)` is a compile error naming the type and the misspelling.
-  Only the construction is untyped.
+  What is *not* fixed is the underlying resolver behaviour: an ambient global in
+  `.types/` is still invisible, and a program that needs a host global the
+  stdlib does not wrap still has no way to name it. That is now a smaller hole
+  with a clear remedy, and it is recorded as G95 rather than being closed here.
+
+- **G95. A host global the stdlib does not wrap is still unnameable.** The
+  general form of G90, left open deliberately. `declare var`/`declare function`
+  in `.types/` is not read by the resolver, so a global that Glyph ships no
+  wrapper for can only be reached through `extern_ts`, which is `unknown` at the
+  seam. Two ways to close it, and they are different decisions: teach the
+  resolver to read ambient global declarations, which makes `.types/` mean what
+  its documentation implies and would also make D37's `new` work on a global
+  class; or keep the resolver module-only and treat every unwrapped global as a
+  stdlib gap to be filled on demand, which is what was done for timers and
+  WebSocket. The first is more general and reopens the question of what a
+  program is allowed to reach without the compiler knowing; the second keeps the
+  guarantee that anything reachable is typed Glyph, at the cost of the stdlib
+  being the bottleneck for every new host capability.
 
 - **G91. An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
   this and deferred the lenient forms deliberately, on the grounds that the

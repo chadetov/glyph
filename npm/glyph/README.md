@@ -59,7 +59,7 @@ That compiles to clean, readable TypeScript you can commit, run anywhere TS runs
 ```sh
 glyph init my-app          # scaffold a project
 cd my-app
-glyph run src/main.glyph   # build + type-check + execute
+glyph run                  # build + type-check + execute
 glyph build --check        # emit TypeScript, verified with tsc --strict
 glyph fmt                  # one canonical layout
 glyph --explain E0200      # long-form help for any diagnostic

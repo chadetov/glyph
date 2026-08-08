@@ -103,3 +103,35 @@ fn a_scaffolded_project_builds_from_its_directory() {
     );
     assert!(out.join("main.ts").is_file(), "emitted flat under --out");
 }
+
+/// The entry point a new user is handed has to work exactly as typed.
+///
+/// `npm install -g @glyphlang/glyph && glyph init my-app && cd my-app &&
+/// glyph run` is the four-command flow on the README and in `glyph init`'s own
+/// closing line. The last command used to be a clap usage error, because `run`
+/// required a PATH while `check` already defaulted to the current directory, so
+/// the front door failed on its final step and the fix was knowing that `.` was
+/// allowed.
+///
+/// This asserts the resolution the default depends on: from inside a
+/// scaffolded project, `.` finds that project and its `src/main.glyph`, which
+/// is what `glyph run` with no argument now passes.
+#[test]
+fn a_scaffolded_project_runs_from_its_own_directory_with_no_path() {
+    let dir = unique_tmp();
+    scaffold(&dir).expect("scaffold");
+
+    // The resolution a bare `glyph run` depends on: a *project* directory runs
+    // the `main.glyph` at its resolution root (D41), not one it does not have
+    // at its top level. The scaffold puts the entry in `src/`, so a directory
+    // form that ignored the marker would look for `<dir>/main.glyph` and report
+    // that the project has no entry point.
+    let src = glyph_cli::config::project_src(&dir).expect("the scaffold is a project root");
+    assert_eq!(src, dir.join("src"), "the marker's src/ is the resolution root");
+    assert!(
+        src.join("main.glyph").is_file(),
+        "and it holds the entry the scaffolder wrote"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

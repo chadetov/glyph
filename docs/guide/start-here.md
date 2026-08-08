@@ -18,7 +18,7 @@ glyph doctor                    # confirm the toolchain is ready
 ```sh
 glyph init hello
 cd hello
-glyph run src/main.glyph
+glyph run
 # hello from glyph
 ```
 
@@ -52,7 +52,7 @@ fn main(argv: Array<string>) -> number {
 ```
 
 ```sh
-glyph run src/main.glyph
+glyph run
 # finished
 ```
 

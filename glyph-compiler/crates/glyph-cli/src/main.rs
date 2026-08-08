@@ -103,10 +103,11 @@ enum Command {
     /// Build then run a Glyph program via node.
     ///
     /// PATH is a `.glyph` file, or a directory whose `main.glyph` is the
-    /// program.
+    /// program. Omitted, it is the current directory, so `glyph run` inside a
+    /// project runs that project.
     Run {
         #[arg(value_name = "PATH")]
-        file: std::path::PathBuf,
+        file: Option<std::path::PathBuf>,
         /// Skip the `@example` / `@doc @run` tests before running. By default
         /// `run` reports the same failures `glyph build` would on the same
         /// source.
@@ -597,6 +598,13 @@ fn main() {
             }
         }
         Some(Command::Run { file, no_test, no_tsc, no_check, args }) => {
+            // No path means the current directory, matching `glyph check`.
+            // `glyph init my-app && cd my-app && glyph run` is the flow the
+            // scaffolder's own closing line and the README both put in front of
+            // a new user, and `glyph run` on its own used to be a clap usage
+            // error: the last step of the entry point failed as typed, and the
+            // fix was to know that `.` was allowed.
+            let file = file.unwrap_or_else(|| std::path::PathBuf::from("."));
             use std::io::IsTerminal;
             let with_color = std::io::stderr().is_terminal();
             let do_check = !(no_tsc || no_check);
@@ -820,8 +828,18 @@ fn main() {
                     for path in &report.skipped {
                         eprintln!("skipped {} (already exists)", path.display());
                     }
+                    // Point at the shortest thing that works. Scaffolding into
+                    // a new directory, that is `cd <dir> && glyph run`; in place
+                    // (`glyph init` with no argument) there is nothing to `cd`
+                    // into, so it is just `glyph run`.
                     let next = if report.runnable {
-                        format!("Run it with `glyph run {}`.", report.entry.display())
+                        match report.root.as_os_str().is_empty() || report.root == std::path::Path::new(".") {
+                            true => "Run it with `glyph run`.".to_string(),
+                            false => format!(
+                                "Run it with `cd {} && glyph run`.",
+                                report.root.display()
+                            ),
+                        }
                     } else {
                         format!("Build it with `glyph build {} --out dist`.", report.root.join("src").display())
                     };

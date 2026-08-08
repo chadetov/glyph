@@ -1,0 +1,129 @@
+// The store. Users by id, an email index, refresh sessions, and failed-login
+// counters. Every write is a `store.set`/`store.update` call, so the whole
+// mutation surface of the service is this one file.
+//
+// It is in memory on purpose: swapping it for `std/sqlite` is a change to this
+// file's bodies and nothing else, because no other module knows how a user is
+// persisted.
+module repo
+
+import model { User, Session, Attempt }
+import std/array
+import std/option { Option, Some, None }
+import std/record
+import std/store
+
+const users = store.create<Record<string, User>>({})
+
+const emails = store.create<Record<string, string>>({})
+
+const sessions = store.create<Record<string, Session>>({})
+
+const attempts = store.create<Record<string, Attempt>>({})
+
+pub fn reset() -> void {
+  users.set({})
+  emails.set({})
+  sessions.set({})
+  attempts.set({})
+}
+
+// ---------------------------------------------------------------------------
+// Users
+// ---------------------------------------------------------------------------
+
+pub fn find_user(id: string) -> Option<User> {
+  return record.get(users.get(), id)
+}
+
+pub fn find_by_email(email: string) -> Option<User> {
+  return match record.get(emails.get(), email) {
+    Some(id) => find_user(id),
+    None => None,
+  }
+}
+
+pub fn insert_user(u: User) -> void {
+  users.update(fn(m: Record<string, User>) { record.set(m, u.id, u) })
+  emails.update(fn(m: Record<string, string>) { record.set(m, u.email, u.id) })
+}
+
+// An update never touches the email index: an address is the identity here and
+// changing one is a different operation the service does not offer.
+pub fn save_user(u: User) -> void {
+  users.update(fn(m: Record<string, User>) { record.set(m, u.id, u) })
+}
+
+pub fn all_users() -> Array<User> {
+  return array.sort(
+    record.values(users.get()),
+    fn(a: User, b: User) {
+      return match a.created_at == b.created_at {
+        true => compare_text(a.id, b.id),
+        false => a.created_at - b.created_at,
+      }
+    },
+  )
+}
+
+fn compare_text(a: string, b: string) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sessions
+// ---------------------------------------------------------------------------
+
+pub fn find_session(id: string) -> Option<Session> {
+  return record.get(sessions.get(), id)
+}
+
+pub fn save_session(s: Session) -> void {
+  sessions.update(fn(m: Record<string, Session>) { record.set(m, s.id, s) })
+}
+
+pub fn revoke_sessions_of(user_id: string) -> void {
+  sessions.update(
+    fn(m: Record<string, Session>) {
+      let next = m
+      for id, s in m {
+        mut next = match s.user_id == user_id {
+          true => record.set(next, id, { ...s, revoked: true }),
+          false => next,
+        }
+      }
+      return next
+    },
+  )
+}
+
+pub fn count_live_sessions(user_id: string) -> number {
+  return array.len(
+    array.filter(
+      record.values(sessions.get()),
+      fn(s: Session) { return s.user_id == user_id && !s.revoked },
+    ),
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Failed-login counters
+// ---------------------------------------------------------------------------
+
+pub fn find_attempt(email: string) -> Option<Attempt> {
+  return record.get(attempts.get(), email)
+}
+
+pub fn save_attempt(email: string, a: Attempt) -> void {
+  attempts.update(fn(m: Record<string, Attempt>) { record.set(m, email, a) })
+}
+
+pub fn clear_attempt(email: string) -> void {
+  attempts.update(fn(m: Record<string, Attempt>) { record.remove(m, email) })
+}

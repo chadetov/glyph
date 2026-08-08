@@ -1,0 +1,256 @@
+// auth-api — signup, login, refresh, rotation, logout, password change, and a
+// role-gated read, over HTTP, with nothing thrown and no `any` anywhere.
+//
+// Passwords are salted and stretched (`passwords.glyph`), access tokens are
+// signed and stateless (`token.glyph`), refresh tokens are stored hashed and
+// rotate on use (`service.glyph`), and every failure is one variant of one
+// union that the transport layer turns into a status code in a single match
+// (`routes.glyph`).
+//
+// Two ways to run it:
+//
+//   glyph run examples/apps/auth_api            a scripted transcript, then exit
+//   glyph run examples/apps/auth_api serve      a real server on :8141
+//
+// The transcript drives the same `routes.route` the server does, against a
+// frozen clock, so it can watch a lockout end and an access token expire
+// without waiting and without printing a different answer on each run.
+//
+//   curl -s localhost:8141/health
+//   curl -s -X POST localhost:8141/signup -d '{"email":"a@b.com","password":"correct horse"}'
+//   curl -s -X POST localhost:8141/login  -d '{"email":"a@b.com","password":"correct horse"}'
+//   curl -s localhost:8141/me -H 'Authorization: Bearer <access_token>'
+module main
+
+import clock
+import config
+import model { TokenPair, Role }
+import repo
+import routes
+import service
+import std/array
+import std/http { Request, Response, serve, json }
+import std/io { println }
+import std/json as encode
+import std/option { Option, Some, None }
+import std/regex
+import std/result { Ok, Err }
+import std/string
+
+// 2026-01-01T00:00:00Z. Any fixed instant would do; a fixed one is the point.
+const EPOCH: int = 1767225600000
+
+const ALICE: string = "alice@example.com"
+
+const ALICE_PASSWORD: string = "correct horse battery"
+
+const ALICE_NEW_PASSWORD: string = "a much better passphrase"
+
+const ROOT: string = "root@example.com"
+
+const ROOT_PASSWORD: string = "administrator passphrase"
+
+// ---------------------------------------------------------------------------
+// Driving the router in-process
+// ---------------------------------------------------------------------------
+
+// `Request.url` holds the path and query the server received, not an absolute
+// URL: `http.path` slices at the `?` and hands the rest to `segments`, so a
+// `http://host/health` here splits into three segments and matches no route.
+fn request(method: string, target: string, body: unknown, bearer: string) -> Request {
+  return { url: target, method: method, headers: { authorization: bearer }, body: body, raw: "" }
+}
+
+fn call(method: string, target: string, body: unknown, bearer: string) -> Response {
+  return match routes.route(request(method, target, body, bearer)) {
+    Ok(resp) => resp,
+    // A handler is allowed to give up; the server would answer 500 and so do we.
+    Err(message) => json(500, { error: "internal", message: message }),
+  }
+}
+
+// Ids, salts, and signed tokens are random, so the transcript would differ on
+// every run if it printed them. A long hex run and a long base64url run are
+// both replaced by a placeholder, which leaves every status code, error code,
+// and human-readable field visible and makes the output byte-identical between
+// runs.
+fn summarize(body: unknown) -> string {
+  let text = encode.stringify(body)
+  let hex = """[0-9a-f]{16,}"""
+  let b64 = """[A-Za-z0-9_-]{40,}"""
+  let masked = regex.replace_all(b64, text, "<token>")
+  return regex.replace_all(hex, masked, "<redacted>")
+}
+
+fn show(label: string, resp: Response) -> void {
+  let padded = string.pad_end(label, 38)
+  let status = string.pad_start(number.to_string(resp.status), 3)
+  println("${padded} ${status}  ${summarize(resp.body)}")
+}
+
+fn step(title: string) -> void {
+  println("")
+  println("-- ${title}")
+}
+
+fn tokens_of(resp: Response) -> Option<TokenPair> {
+  return match TokenPair.parse(resp.body) {
+    Ok(pair) => Some(pair),
+    Err(issues) => None,
+  }
+}
+
+// The transcript needs the token text to make the next call, and a step that
+// failed to produce one should say so loudly rather than carry "" forward.
+fn access_of(resp: Response) -> string {
+  return match tokens_of(resp) {
+    Some(pair) => pair.access_token,
+    None => "no-access-token",
+  }
+}
+
+fn refresh_of(resp: Response) -> string {
+  return match tokens_of(resp) {
+    Some(pair) => pair.refresh_token,
+    None => "no-refresh-token",
+  }
+}
+
+fn bearer(access: string) -> string {
+  return "Bearer ${access}"
+}
+
+// ---------------------------------------------------------------------------
+// The transcript
+// ---------------------------------------------------------------------------
+
+fn run_demo() -> number {
+  clock.freeze(EPOCH)
+  repo.reset()
+  println("auth-api transcript (frozen clock, in-process router)")
+
+  step("health")
+  let anon = ""
+  show("GET  /health", call("GET", "/health", {}, anon))
+
+  step("signup: one good account, four bad ones")
+  let good = { email: "  Alice@Example.COM ", password: ALICE_PASSWORD }
+  show("POST /signup alice", call("POST", "/signup", good, anon))
+  show("POST /signup alice again", call("POST", "/signup", good, anon))
+  let bad_address = { email: "alice at example.com", password: ALICE_PASSWORD }
+  show("POST /signup bad address", call("POST", "/signup", bad_address, anon))
+  let short = { email: "bob@example.com", password: "short" }
+  show("POST /signup short password", call("POST", "/signup", short, anon))
+  let missing = { email: "carol@example.com" }
+  show("POST /signup no password field", call("POST", "/signup", missing, anon))
+
+  step("login: five wrong guesses lock the address")
+  let wrong = { email: ALICE, password: "hunter2" }
+  for attempt in array.range(5) {
+    show("POST /login wrong", call("POST", "/login", wrong, anon))
+  }
+  let right = { email: ALICE, password: ALICE_PASSWORD }
+  show("POST /login right, still locked", call("POST", "/login", right, anon))
+
+  step("the lockout ends on its own")
+  clock.advance(service.LOCKOUT_MS + 1000)
+  let logged_in = call("POST", "/login", right, anon)
+  show("POST /login right", logged_in)
+  let access = access_of(logged_in)
+  let refresh = refresh_of(logged_in)
+
+  step("the access token, and three ways it can fail")
+  show("GET  /me with token", call("GET", "/me", {}, bearer(access)))
+  show("GET  /me no header", call("GET", "/me", {}, anon))
+  show("GET  /me tampered", call("GET", "/me", {}, bearer("${access}0")))
+  show("GET  /me not a token", call("GET", "/me", {}, bearer("garbage")))
+
+  step("a user is not an admin")
+  show("GET  /admin/users as user", call("GET", "/admin/users", {}, bearer(access)))
+
+  step("refresh rotates, and a replayed refresh token is dead")
+  let rotated = call("POST", "/refresh", { refresh_token: refresh }, anon)
+  show("POST /refresh", rotated)
+  show("POST /refresh replayed", call("POST", "/refresh", { refresh_token: refresh }, anon))
+  let access2 = access_of(rotated)
+  let refresh2 = refresh_of(rotated)
+
+  step("changing the password retires every token already issued")
+  let change = { current_password: ALICE_PASSWORD, new_password: ALICE_NEW_PASSWORD }
+  show("POST /me/password", call("POST", "/me/password", change, bearer(access2)))
+  show("GET  /me with the old token", call("GET", "/me", {}, bearer(access2)))
+  show(
+    "POST /refresh after the change",
+    call("POST", "/refresh", { refresh_token: refresh2 }, anon),
+  )
+
+  step("the new password works, and the rule is enforced at the boundary")
+  let relogin = call("POST", "/login", { email: ALICE, password: ALICE_NEW_PASSWORD }, anon)
+  show("POST /login new password", relogin)
+  let access3 = access_of(relogin)
+  let weak = { current_password: ALICE_NEW_PASSWORD, new_password: "tiny" }
+  show("POST /me/password too short", call("POST", "/me/password", weak, bearer(access3)))
+  let junk = { current_password: ALICE_NEW_PASSWORD, nueva: "whatever" }
+  show("POST /me/password wrong shape", call("POST", "/me/password", junk, bearer(access3)))
+
+  step("an admin, seeded through the service rather than the wire")
+  let role: Role = "admin"
+  let seeded = service.signup(ROOT, ROOT_PASSWORD, role, clock.now())
+  println(
+    match seeded {
+      Ok(view) => "seeded ${view.email} as ${view.role}",
+      Err(e) => "could not seed the admin",
+    },
+  )
+  let admin_login = call("POST", "/login", { email: ROOT, password: ROOT_PASSWORD }, anon)
+  show("POST /login as root", admin_login)
+  let admin_access = access_of(admin_login)
+  let admin_refresh = refresh_of(admin_login)
+  show("GET  /admin/users as admin", call("GET", "/admin/users", {}, bearer(admin_access)))
+
+  step("logout kills the session, not the access token")
+  show("POST /logout", call("POST", "/logout", { refresh_token: admin_refresh }, anon))
+  show(
+    "POST /refresh after logout",
+    call("POST", "/refresh", { refresh_token: admin_refresh }, anon),
+  )
+
+  step("an access token expires on its own")
+  clock.advance(service.ACCESS_TTL_MS + 1000)
+  show("GET  /me after the TTL", call("GET", "/me", {}, bearer(access3)))
+
+  step("routing")
+  show("POST /me wrong method", call("POST", "/me", {}, bearer(access3)))
+  show("GET  /nope", call("GET", "/nope", {}, anon))
+
+  println("")
+  println("done")
+  clock.release()
+  return 0
+}
+
+// ---------------------------------------------------------------------------
+// Entry
+// ---------------------------------------------------------------------------
+
+async fn main(argv: Array<string>) -> number {
+  let mode = match array.len(argv) == 0 {
+    true => "demo",
+    false => argv[0],
+  }
+  match mode {
+    "serve" => {
+      let port = number.to_string(config.PORT)
+      println("auth-api listening on http://localhost:${port}")
+      match await serve(config.PORT, routes.route) {
+        Ok(closed) => { return 0 },
+        Err(message) => {
+          println("auth-api: could not listen: ${message}")
+          return 1
+        },
+      }
+    },
+    else => {},
+  }
+  return run_demo()
+}

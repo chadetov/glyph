@@ -1,0 +1,293 @@
+// The service: everything the API can do, expressed without HTTP.
+//
+// Every function takes the clock as an argument and returns a `Result` whose
+// error is the domain's own union, so the transport layer decides status codes
+// and nothing else does. Nothing here throws and nothing here prints.
+module service
+
+import model { User, Session, Claims, Role, Attempt, UserView, TokenPair, AuthError, EmailTaken, InvalidEmail, BadCredentials, RateLimited, SessionUnknown, SessionExpired, SessionRevoked, TokenStale, MissingAuthorization, Forbidden, NotFound, view_of }
+import passwords
+import repo
+import token
+import std/array
+import std/crypto
+import std/option { Some, None }
+import std/regex
+import std/result { Result, Ok, Err }
+import std/string
+
+pub const ACCESS_TTL_MS: int = 900000
+
+pub const REFRESH_TTL_MS: int = 2592000000
+
+pub const MAX_ATTEMPTS: int = 5
+
+pub const LOCKOUT_MS: int = 300000
+
+pub const ATTEMPT_WINDOW_MS: int = 900000
+
+// A salt and hash that belong to nobody. An unknown address still pays for a
+// derivation, so "no such user" and "wrong password" cost the same wall time.
+const DUMMY_SALT: string = "00000000000000000000000000000000"
+
+const DUMMY_HASH: string = "0000000000000000000000000000000000000000000000000000000000000000"
+
+const EMAIL_PATTERN: string = """^[^@\s]+@[^@\s]+\.[^@\s]{2,}$"""
+
+const BEARER: string = "Bearer "
+
+// ---------------------------------------------------------------------------
+// Addresses
+// ---------------------------------------------------------------------------
+
+// Addresses are compared case-insensitively, so the normalized form is what
+// gets stored and what the index is keyed by. Doing it anywhere but here would
+// let `Alice@x.com` sign up twice.
+pub fn normalize_email(raw: string) -> string {
+  return string.lower(string.trim(raw))
+}
+
+@example is_email("alice@example.com") == true
+@example is_email("alice@example") == false
+@example is_email("alice at example.com") == false
+@example is_email("") == false
+pub fn is_email(candidate: string) -> bool {
+  return regex.matches(EMAIL_PATTERN, candidate)
+}
+
+// ---------------------------------------------------------------------------
+// Signup
+// ---------------------------------------------------------------------------
+
+pub fn signup(email: string, password: string, role: Role, now: int) -> Result<UserView, AuthError> {
+  let addr = normalize_email(email)
+  match is_email(addr) {
+    true => {},
+    false => { return Err(InvalidEmail({ email: addr })) },
+  }
+  match repo.find_by_email(addr) {
+    Some(existing) => { return Err(EmailTaken({ email: addr })) },
+    None => {},
+  }
+  let salt = passwords.new_salt()
+  let created: User = {
+    id: "usr_${crypto.random_hex(8)}",
+    email: addr,
+    role: role,
+    salt: salt,
+    hash: passwords.derive(password, salt),
+    created_at: now,
+    token_epoch: 1,
+  }
+  repo.insert_user(created)
+  return Ok(view_of(created))
+}
+
+// ---------------------------------------------------------------------------
+// Failed-attempt throttling
+// ---------------------------------------------------------------------------
+
+fn fresh_attempt(now: int) -> Attempt {
+  return { count: 0, first_at: now, locked_until: 0 }
+}
+
+// The counter for an address, with a window that has fully elapsed treated as
+// no counter at all. A lockout that is still running is never reset by the
+// window, or waiting out the window would be cheaper than waiting out the lock.
+fn attempt_state(addr: string, now: int) -> Attempt {
+  return match repo.find_attempt(addr) {
+    None => fresh_attempt(now),
+    Some(a) => match now >= a.locked_until && now - a.first_at >= ATTEMPT_WINDOW_MS {
+      true => fresh_attempt(now),
+      false => a,
+    },
+  }
+}
+
+fn register_failure(addr: string, state: Attempt, now: int) -> void {
+  let count = state.count + 1
+  let locked = match count >= MAX_ATTEMPTS {
+    true => now + LOCKOUT_MS,
+    false => state.locked_until,
+  }
+  repo.save_attempt(addr, { count: count, first_at: state.first_at, locked_until: locked })
+}
+
+// ---------------------------------------------------------------------------
+// Login
+// ---------------------------------------------------------------------------
+
+fn check_credentials(addr: string, password: string) -> bool {
+  return match repo.find_by_email(addr) {
+    Some(u) => passwords.verify(password, u.salt, u.hash),
+    None => passwords.verify(password, DUMMY_SALT, DUMMY_HASH),
+  }
+}
+
+pub fn login(secret: string, email: string, password: string, now: int) -> Result<TokenPair, AuthError> {
+  let addr = normalize_email(email)
+  let state = attempt_state(addr, now)
+  match now < state.locked_until {
+    true => { return Err(RateLimited({ retry_after_ms: state.locked_until - now })) },
+    false => {},
+  }
+  match check_credentials(addr, password) {
+    true => {},
+    false => {
+      register_failure(addr, state, now)
+      return Err(BadCredentials)
+    },
+  }
+  repo.clear_attempt(addr)
+  return match repo.find_by_email(addr) {
+    Some(u) => issue_tokens(secret, u, now),
+    None => Err(BadCredentials),
+  }
+}
+
+// An access token and a refresh token, and the session row the refresh token
+// points at. Only the hash of the refresh secret is stored, so a dump of the
+// session table cannot be replayed against the service.
+fn issue_tokens(secret: string, u: User, now: int) -> Result<TokenPair, AuthError> {
+  let access_expires = now + ACCESS_TTL_MS
+  let claims: Claims = {
+    sub: u.id,
+    email: u.email,
+    role: u.role,
+    epoch: u.token_epoch,
+    issued_at: now,
+    expires_at: access_expires,
+  }
+  let session_id = "ses_${crypto.random_hex(8)}"
+  let session_secret = crypto.random_hex(24)
+  let refresh_expires = now + REFRESH_TTL_MS
+  let session: Session = {
+    id: session_id,
+    secret_hash: crypto.sha256(session_secret),
+    user_id: u.id,
+    issued_at: now,
+    expires_at: refresh_expires,
+    revoked: false,
+  }
+  repo.save_session(session)
+  return Ok(
+    {
+      token_type: "Bearer",
+      access_token: token.sign(claims, secret),
+      expires_at: access_expires,
+      refresh_token: "${session_id}.${session_secret}",
+      refresh_expires_at: refresh_expires,
+    },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Refresh and logout
+// ---------------------------------------------------------------------------
+
+fn check_session(s: Session, presented_secret: string, now: int) -> Result<Session, AuthError> {
+  match passwords.secure_equals(crypto.sha256(presented_secret), s.secret_hash) {
+    true => {},
+    false => { return Err(SessionUnknown) },
+  }
+  match s.revoked {
+    true => { return Err(SessionRevoked) },
+    false => {},
+  }
+  match s.expires_at <= now {
+    true => { return Err(SessionExpired) },
+    false => {},
+  }
+  return Ok(s)
+}
+
+fn open_session(presented: string, now: int) -> Result<Session, AuthError> {
+  let parts = string.split(presented, ".")
+  match array.len(parts) == 2 {
+    true => {},
+    false => { return Err(SessionUnknown) },
+  }
+  return match repo.find_session(parts[0]) {
+    None => Err(SessionUnknown),
+    Some(s) => check_session(s, parts[1], now),
+  }
+}
+
+// Refresh rotates: the presented session is revoked and a new pair is issued.
+// Presenting a rotated token again is a replay, and it lands on `SessionRevoked`
+// rather than quietly working.
+pub fn refresh(secret: string, presented: string, now: int) -> Result<TokenPair, AuthError> {
+  let session = open_session(presented, now)?
+  repo.save_session({ ...session, revoked: true })
+  return match repo.find_user(session.user_id) {
+    Some(u) => issue_tokens(secret, u, now),
+    None => Err(SessionUnknown),
+  }
+}
+
+pub fn logout(presented: string, now: int) -> Result<string, AuthError> {
+  let session = open_session(presented, now)?
+  repo.save_session({ ...session, revoked: true })
+  return Ok(session.user_id)
+}
+
+// ---------------------------------------------------------------------------
+// Authentication and authorization
+// ---------------------------------------------------------------------------
+
+// An access token is stateless, so nothing is looked up to check it beyond the
+// user it names. The one stored thing it is held against is `token_epoch`: a
+// password change bumps it, which retires every token issued before, without a
+// revocation list.
+pub fn authenticate(secret: string, authorization: string, now: int) -> Result<User, AuthError> {
+  match string.starts_with(authorization, BEARER) {
+    true => {},
+    false => { return Err(MissingAuthorization) },
+  }
+  let raw = string.trim(string.slice(authorization, string.len(BEARER)))
+  let claims = token.verify(raw, secret, now)?
+  return match repo.find_user(claims.sub) {
+    None => Err(NotFound({ what: "user" })),
+    Some(u) => match u.token_epoch == claims.epoch {
+      true => Ok(u),
+      false => Err(TokenStale),
+    },
+  }
+}
+
+// Both arms of `Role` are covered, so adding a third role makes this a compile
+// error instead of a silent grant.
+pub fn require_role(u: User, needed: Role) -> Result<User, AuthError> {
+  return match needed {
+    "user" => Ok(u),
+    "admin" => match u.role {
+      "admin" => Ok(u),
+      "user" => Err(Forbidden({ needed: needed })),
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Account maintenance
+// ---------------------------------------------------------------------------
+
+pub fn change_password(actor: User, current: string, next: string, now: int) -> Result<UserView, AuthError> {
+  match passwords.verify(current, actor.salt, actor.hash) {
+    true => {},
+    false => { return Err(BadCredentials) },
+  }
+  let salt = passwords.new_salt()
+  let updated: User = {
+    ...actor,
+    salt: salt,
+    hash: passwords.derive(next, salt),
+    token_epoch: actor.token_epoch + 1,
+  }
+  repo.save_user(updated)
+  repo.revoke_sessions_of(updated.id)
+  return Ok(view_of(updated))
+}
+
+pub fn list_users() -> Array<UserView> {
+  return array.map(repo.all_users(), fn(u: User) { view_of(u) })
+}

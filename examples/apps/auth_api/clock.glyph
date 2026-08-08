@@ -1,0 +1,33 @@
+// The clock, behind a seam.
+//
+// Tokens expire, sessions expire, and a lockout ends. None of that is testable
+// against a wall clock, so every module that needs the time asks this one, and
+// a caller that wants to watch an hour pass calls `freeze` and `advance`.
+module clock
+
+import std/store
+import std/time
+
+// Zero means "not frozen", which is safe: the epoch is not a time this program
+// will ever legitimately run at.
+const frozen = store.create<number>(0)
+
+pub fn freeze(at: number) -> void {
+  frozen.set(at)
+}
+
+pub fn advance(ms: number) -> void {
+  frozen.update(fn(t: number) { t + ms })
+}
+
+pub fn release() -> void {
+  frozen.set(0)
+}
+
+pub fn now() -> int {
+  let t = frozen.get()
+  return match t == 0 {
+    true => time.now(),
+    false => t,
+  }
+}

@@ -1,0 +1,125 @@
+// The shapes the whole service agrees on: what a user is, what a session is,
+// what a token carries, what can go wrong, and what arrives on the wire.
+//
+// Nothing here does work. Every other module imports from this one, so the
+// domain is stated once and a change to it breaks the callers that care.
+module model
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
+// A closed set of roles. A string-literal union, so a `match` over it has to
+// cover both cases and a wire value that is neither fails validation.
+pub type Role = "user" | "admin"
+
+// A password as it may arrive from a client. The length bound is part of the
+// type, so it is checked where untrusted JSON becomes a typed value rather
+// than by a rule every handler has to remember to call.
+pub type Password = string where value.length >= 8 && value.length <= 128
+
+// A stored user. `salt` and `hash` are the derived credential; the plaintext
+// password never exists past the request that carried it. `token_epoch` is
+// bumped on a password change, which invalidates every access token already
+// handed out without needing a token blacklist.
+pub type User = {
+  id: string,
+  email: string,
+  role: Role,
+  salt: string,
+  hash: string,
+  created_at: int,
+  token_epoch: int,
+}
+
+// A refresh session. Access tokens are short-lived and stateless; refresh
+// tokens are long-lived and revocable, which is the only reason this record
+// has to be stored at all.
+pub type Session = {
+  id: string,
+  secret_hash: string,
+  user_id: string,
+  issued_at: int,
+  expires_at: int,
+  revoked: bool,
+}
+
+// What a signed access token carries. This is also the boundary shape: a
+// decoded token is validated against this record before anything reads it.
+pub type Claims = {
+  sub: string,
+  email: string,
+  role: Role,
+  epoch: int,
+  issued_at: int,
+  expires_at: int,
+}
+
+// Failed-login bookkeeping for one email address.
+pub type Attempt = { count: int, first_at: int, locked_until: int }
+
+// ---------------------------------------------------------------------------
+// Failure
+// ---------------------------------------------------------------------------
+
+// Every way this service refuses a request. The HTTP layer maps each case to a
+// status code in one place; nothing throws.
+pub type AuthError =
+  | EmailTaken({ email: string })
+  | InvalidEmail({ email: string })
+  | WeakPassword({ reason: string })
+  | BadCredentials
+  | RateLimited({ retry_after_ms: int })
+  | SessionUnknown
+  | SessionExpired
+  | SessionRevoked
+  | TokenMalformed({ detail: string })
+  | TokenBadSignature
+  | TokenExpired
+  | TokenStale
+  | MissingAuthorization
+  | Forbidden({ needed: Role })
+  | NotFound({ what: string })
+  | BadRequest({ detail: string })
+
+// ---------------------------------------------------------------------------
+// Wire
+// ---------------------------------------------------------------------------
+
+pub type SignupBody = { email: string, password: Password }
+
+// The same payload with the length rule dropped.
+//
+// It exists because a `where` refinement reports the same `Issue` as a missing
+// field: both are `{ path: ["password"], message: "field `password` is missing
+// or has the wrong type" }`, so a body that omits the field and one that sends
+// "short" are indistinguishable from the result alone. Parsing against the
+// loose shape second is how the handler tells them apart.
+pub type SignupBodyLoose = { email: string, password: string }
+
+// Login does not use the refined `Password`: a wrong-length password at login
+// is a bad credential, not a malformed request, and the two must not report
+// differently or the error tells an attacker which one it was.
+pub type LoginBody = { email: string, password: string }
+
+pub type RefreshBody = { refresh_token: string }
+
+pub type ChangePasswordBody = { current_password: string, new_password: Password }
+
+pub type ChangePasswordBodyLoose = { current_password: string, new_password: string }
+
+// What a client is allowed to see about a user. The stored record carries the
+// salt and hash; this one cannot, because it is a different type.
+pub type UserView = { id: string, email: string, role: Role, created_at: int }
+
+pub type TokenPair = {
+  token_type: string,
+  access_token: string,
+  expires_at: int,
+  refresh_token: string,
+  refresh_expires_at: int,
+}
+
+pub fn view_of(u: User) -> UserView {
+  return { id: u.id, email: u.email, role: u.role, created_at: u.created_at }
+}

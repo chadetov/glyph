@@ -1,0 +1,242 @@
+// The transport layer. It reads the request, validates the body, calls the
+// service, and maps the one error union onto status codes. This is the only
+// file that knows what HTTP is, and the only file that turns a domain failure
+// into a wire shape.
+module routes
+
+import clock
+import config
+import model { Role, User, view_of, SignupBody, SignupBodyLoose, LoginBody, RefreshBody, ChangePasswordBody, ChangePasswordBodyLoose, AuthError, EmailTaken, InvalidEmail, WeakPassword, BadCredentials, RateLimited, SessionUnknown, SessionExpired, SessionRevoked, TokenMalformed, TokenBadSignature, TokenExpired, TokenStale, MissingAuthorization, Forbidden, NotFound, BadRequest }
+import service
+import std/array
+import std/http { Request, Response, json, segments, header }
+import std/option { Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+
+// What a failure looks like on the wire. `status` is the HTTP code, `code` is
+// the machine-readable tag a client switches on, and `message` is for a human
+// reading a log.
+type Failure = { status: int, code: string, message: string }
+
+fn failure(status: int, code: string, message: string) -> Failure {
+  return { status: status, code: code, message: message }
+}
+
+// One place decides what every domain failure means over HTTP. Add a variant to
+// `AuthError` and this match stops compiling until the new case has an answer.
+//
+// The wrong-credential family deliberately collapses: a caller cannot tell an
+// unknown address from a wrong password from a retired token, because telling
+// them apart is an account-enumeration oracle.
+fn failure_of(e: AuthError) -> Failure {
+  return match e {
+    EmailTaken({ email }) => failure(409, "email_taken", "that address already has an account"),
+    InvalidEmail({ email }) => failure(422, "invalid_email", "that is not an email address"),
+    WeakPassword({ reason }) => failure(422, "weak_password", reason),
+    BadCredentials => failure(401, "bad_credentials", "email or password is wrong"),
+    RateLimited({ retry_after_ms }) => failure(
+      429,
+      "rate_limited",
+      "too many failed attempts, retry in ${number.to_string(retry_after_ms / 1000)}s",
+    ),
+    SessionUnknown => failure(401, "invalid_refresh_token", "that refresh token is not valid"),
+    SessionExpired => failure(401, "refresh_token_expired", "that refresh token has expired"),
+    SessionRevoked => failure(
+      401,
+      "refresh_token_revoked",
+      "that refresh token was already used or revoked",
+    ),
+    TokenMalformed({ detail }) => failure(401, "invalid_token", detail),
+    TokenBadSignature => failure(401, "invalid_token", "signature does not match"),
+    TokenExpired => failure(401, "token_expired", "the access token has expired"),
+    TokenStale => failure(401, "token_stale", "the access token predates a password change"),
+    MissingAuthorization => failure(
+      401,
+      "missing_authorization",
+      "expected an Authorization: Bearer header",
+    ),
+    Forbidden({ needed }) => failure(403, "forbidden", "this endpoint needs the ${needed} role"),
+    NotFound({ what }) => failure(404, "not_found", "no such ${what}"),
+    BadRequest({ detail }) => failure(400, "bad_request", detail),
+  }
+}
+
+pub fn error_response(e: AuthError) -> Response {
+  let f = failure_of(e)
+  return json(f.status, { error: f.code, message: f.message })
+}
+
+// A body that failed the strict shape. If it still fits the shape with the
+// password rule dropped, the only thing wrong with it was the password; if it
+// does not, the body itself is malformed and the issues say how.
+//
+// The two-parse dance is here because the `Issue` a `where` refinement produces
+// is textually identical to the one a missing field produces, so the result
+// alone cannot tell a weak password from an absent one.
+fn weak_or_malformed(fits_loose: bool, issues: Array<Issue>, weak_reason: string) -> AuthError {
+  return match fits_loose {
+    true => WeakPassword({ reason: weak_reason }),
+    false => BadRequest({ detail: describe_issues(issues) }),
+  }
+}
+
+fn describe_issues(issues: Array<Issue>) -> string {
+  let parts = array.map(issues, fn(i: Issue) { i.message })
+  let separator = "; "
+  return string.join(parts, separator)
+}
+
+const PASSWORD_RULE: string = "password must be between 8 and 128 characters"
+
+fn fits_signup(body: unknown) -> bool {
+  return match SignupBodyLoose.parse(body) {
+    Ok(loose) => true,
+    Err(issues) => false,
+  }
+}
+
+fn fits_change_password(body: unknown) -> bool {
+  return match ChangePasswordBodyLoose.parse(body) {
+    Ok(loose) => true,
+    Err(issues) => false,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reading the request
+// ---------------------------------------------------------------------------
+
+fn authorization(req: Request) -> string {
+  let name = "authorization"
+  return match header(req, name) {
+    Some(v) => v,
+    None => "",
+  }
+}
+
+// Everything that needs a signed-in caller goes through here, so the header
+// name, the bearer prefix, and the epoch check live in one path.
+fn caller(req: Request) -> Result<User, AuthError> {
+  return service.authenticate(config.secret(), authorization(req), clock.now())
+}
+
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+fn handle_signup(req: Request) -> Result<Response, string> {
+  let role: Role = "user"
+  return match SignupBody.parse(req.body) {
+    Err(issues) => {
+      let fits = fits_signup(req.body)
+      Ok(error_response(weak_or_malformed(fits, issues, PASSWORD_RULE)))
+    },
+    Ok(body) => match service.signup(body.email, body.password, role, clock.now()) {
+      Err(e) => Ok(error_response(e)),
+      Ok(created) => Ok(json(201, created)),
+    },
+  }
+}
+
+fn handle_login(req: Request) -> Result<Response, string> {
+  return match LoginBody.parse(req.body) {
+    Err(issues) => Ok(error_response(BadRequest({ detail: describe_issues(issues) }))),
+    Ok(body) => match service.login(config.secret(), body.email, body.password, clock.now()) {
+      Err(e) => Ok(error_response(e)),
+      Ok(pair) => Ok(json(200, pair)),
+    },
+  }
+}
+
+fn handle_refresh(req: Request) -> Result<Response, string> {
+  return match RefreshBody.parse(req.body) {
+    Err(issues) => Ok(error_response(BadRequest({ detail: describe_issues(issues) }))),
+    Ok(body) => match service.refresh(config.secret(), body.refresh_token, clock.now()) {
+      Err(e) => Ok(error_response(e)),
+      Ok(pair) => Ok(json(200, pair)),
+    },
+  }
+}
+
+fn handle_logout(req: Request) -> Result<Response, string> {
+  return match RefreshBody.parse(req.body) {
+    Err(issues) => Ok(error_response(BadRequest({ detail: describe_issues(issues) }))),
+    Ok(body) => match service.logout(body.refresh_token, clock.now()) {
+      Err(e) => Ok(error_response(e)),
+      Ok(user_id) => Ok(json(200, { logged_out: user_id })),
+    },
+  }
+}
+
+fn handle_me(req: Request) -> Result<Response, string> {
+  return match caller(req) {
+    Err(e) => Ok(error_response(e)),
+    Ok(u) => Ok(json(200, view_of(u))),
+  }
+}
+
+fn handle_change_password(req: Request) -> Result<Response, string> {
+  return match caller(req) {
+    Err(e) => Ok(error_response(e)),
+    Ok(u) => match ChangePasswordBody.parse(req.body) {
+      Err(issues) => {
+        let fits = fits_change_password(req.body)
+        Ok(error_response(weak_or_malformed(fits, issues, PASSWORD_RULE)))
+      },
+      Ok(body) => match service.change_password(
+        u,
+        body.current_password,
+        body.new_password,
+        clock.now(),
+      ) {
+        Err(e) => Ok(error_response(e)),
+        Ok(updated) => Ok(json(200, updated)),
+      },
+    },
+  }
+}
+
+fn handle_list_users(req: Request) -> Result<Response, string> {
+  let needed: Role = "admin"
+  return match caller(req) {
+    Err(e) => Ok(error_response(e)),
+    Ok(u) => match service.require_role(u, needed) {
+      Err(e) => Ok(error_response(e)),
+      Ok(admin) => Ok(json(200, { users: service.list_users() })),
+    },
+  }
+}
+
+fn handle_health(req: Request) -> Result<Response, string> {
+  return Ok(json(200, { status: "ok", service: "auth-api" }))
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch
+// ---------------------------------------------------------------------------
+
+// A route is matched on its path segments; the method is checked afterwards, so
+// a POST to a GET-only path is a 405 rather than a 404 that hides the typo.
+fn dispatch(req: Request, expected: string, run: fn(Request) -> Result<Response, string>) -> Result<Response, string> {
+  return match req.method == expected {
+    true => run(req),
+    false => Ok(json(405, { error: "method_not_allowed", message: "expected ${expected} here" })),
+  }
+}
+
+pub fn route(req: Request) -> Result<Response, string> {
+  let get = "GET"
+  let post = "POST"
+  return match segments(req) {
+    ["health"] => dispatch(req, get, handle_health),
+    ["signup"] => dispatch(req, post, handle_signup),
+    ["login"] => dispatch(req, post, handle_login),
+    ["refresh"] => dispatch(req, post, handle_refresh),
+    ["logout"] => dispatch(req, post, handle_logout),
+    ["me"] => dispatch(req, get, handle_me),
+    ["me", "password"] => dispatch(req, post, handle_change_password),
+    ["admin", "users"] => dispatch(req, get, handle_list_users),
+    else => Ok(json(404, { error: "not_found", message: "no such route" })),
+  }
+}

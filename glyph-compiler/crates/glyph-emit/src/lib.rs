@@ -1725,7 +1725,19 @@ impl<'a> Emitter<'a> {
                         // (`let x = await f()?.g()`) propagate the `Err` and bind
                         // the `Ok` payload.
                         let value = self.emit_value(&l.value)?;
-                        self.line(&format!("let {}{ty} = {value};", l.name));
+                        if l.name.as_ref() == "_" {
+                            // `let _ = expr` discards. It is the spelling the
+                            // unused-binding lint tells you to use, so a function
+                            // that ignores two results writes it twice, and two
+                            // `const _` in one scope is a `tsc` redeclaration
+                            // error about a variable the author never meant to
+                            // declare. Emitting the initializer as a statement
+                            // keeps the effect, drops the binding, and cannot
+                            // collide. A named `_foo` still binds.
+                            self.line(&format!("{value};"));
+                        } else {
+                            self.line(&format!("let {}{ty} = {value};", l.name));
+                        }
                     }
                 }
             }
@@ -7940,6 +7952,32 @@ mod tests {
         let b_pos = f.find("b();").expect("b in finally");
         let a_pos = f.find("a();").expect("a in finally");
         assert!(b_pos < a_pos, "LIFO: b before a: {f}");
+    }
+
+    /// `let _ = expr` discards rather than binding.
+    ///
+    /// `_` is the spelling the unused-binding lint tells you to use, so a
+    /// function that ignores two results writes it twice, and two `const _` in
+    /// one scope is a `tsc` redeclaration error naming a variable the author
+    /// never meant to declare. A named `_foo` still binds.
+    #[test]
+    fn a_bare_underscore_binding_discards_instead_of_declaring() {
+        let ts = emit(
+            "module x\npub fn f() -> void {\n\
+             \x20 let _ = g(1)\n\
+             \x20 let _ = g(2)\n\
+             \x20 let _kept = g(3)\n\
+             \x20 return void\n\
+             }\npub fn g(n: int) -> int { return n }\n",
+        );
+        let body = ts.split("function f(").nth(1).unwrap_or("");
+        let body = body.split("function g").next().unwrap_or("");
+        assert!(
+            !body.contains("let _ ") && !body.contains("let _:") && !body.contains("let _="),
+            "a bare `_` must not be declared, got: {body}"
+        );
+        assert!(body.contains("g(1);") && body.contains("g(2);"), "got: {body}");
+        assert!(body.contains("let _kept"), "a named `_foo` still binds, got: {body}");
     }
 
     /// A match arm whose last statement produces no value must still `break`

@@ -8,5 +8,5 @@ import { Kafka } from "kafkajs";
 
 export function make(): void {
   let k = new Kafka({ clientId: "app" });
-  let _ = k.producer();
+  k.producer();
 }

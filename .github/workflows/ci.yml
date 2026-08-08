@@ -52,6 +52,12 @@ jobs:
         with:
           node-version: "22"
       - run: npm install -g tsx typescript@6
+      # The gen-dts helper resolves `typescript` with `require`, from the target
+      # project first and then via NODE_PATH. A global install is only on that
+      # second path, so without this the helper cannot load it, writes nothing,
+      # and the test that was meant to exercise the classic compiler fails
+      # instead of running.
+      - run: echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
 
       - name: Workspace tests
         working-directory: glyph-compiler

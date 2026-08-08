@@ -562,6 +562,14 @@ fn run_helper(script: &str, name: &str, runner: &str, arg: &Path) -> HelperOutco
         Ok(o) if !o.status.success() => {
             HelperOutcome::Exit(String::from_utf8_lossy(&o.stderr).trim().to_string())
         }
+        // Empty stdout is never a valid result. Route it through `Exit` so the
+        // caller's marker checks (GLYPH_GEN_NO_TYPESCRIPT and friends) still run:
+        // a helper that reports a missing toolchain and then exits 0 would
+        // otherwise surface as "did not emit valid JSON", which names the symptom
+        // and hides the cause. CI hit exactly that.
+        Ok(o) if o.stdout.iter().all(u8::is_ascii_whitespace) => {
+            HelperOutcome::Exit(String::from_utf8_lossy(&o.stderr).trim().to_string())
+        }
         Ok(o) => match serde_json::from_slice(&o.stdout) {
             Ok(v) => HelperOutcome::Ok(v),
             Err(e) => HelperOutcome::Io(format!("helper did not emit valid JSON: {e}")),

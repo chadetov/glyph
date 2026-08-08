@@ -86,6 +86,10 @@ enum Command {
         /// A `.glyph` file or a directory to check (default: the current directory).
         #[arg(value_name = "PATH")]
         path: Option<std::path::PathBuf>,
+        /// Skip the `@example` / `@doc @run` tests. By default `check` runs them,
+        /// so it cannot report a clean tree that `glyph build` would fail.
+        #[arg(long)]
+        no_test: bool,
         /// Stop after the Glyph stages (parse, resolve, typecheck) instead of
         /// also type-checking the emitted TypeScript with `tsc --strict`.
         /// Faster, and it needs no toolchain, but it checks less.
@@ -103,6 +107,11 @@ enum Command {
     Run {
         #[arg(value_name = "PATH")]
         file: std::path::PathBuf,
+        /// Skip the `@example` / `@doc @run` tests before running. By default
+        /// `run` reports the same failures `glyph build` would on the same
+        /// source.
+        #[arg(long)]
+        no_test: bool,
         /// Skip type-checking with `tsc` before running. By default `glyph run`
         /// type-checks first so type errors surface as diagnostics, not crashes.
         #[arg(long)]
@@ -255,6 +264,50 @@ fn run_examples_across(
         }
     }
     Ok(merged)
+}
+
+/// Run the `@example` / `@doc @run` gate for each project root and report.
+/// Returns true when something failed.
+///
+/// `build` has always run these; `check` and `run` did not, so a failing
+/// colocated test turned `glyph build` red and left the other two green on the
+/// same source, and the fast edit-run loop reported success on code whose own
+/// examples were failing. The guide says the three never disagree.
+fn report_examples_for(srcs: &[std::path::PathBuf], command: &str) -> bool {
+    let mut total = 0usize;
+    let mut failures: Vec<String> = Vec::new();
+    let mut ran = true;
+    for src in srcs {
+        match glyph_cli::examples::run_examples(src) {
+            Ok(r) => {
+                total += r.total;
+                failures.extend(r.failures);
+                ran &= r.ran;
+            }
+            Err(e) => {
+                eprintln!("glyph {command}: could not run examples: {e}");
+                return true;
+            }
+        }
+    }
+    if !ran {
+        eprintln!(
+            "glyph {command}: `tsx` not found on PATH, so the @example tests could not run. \
+             Install it (`npm install -g tsx`), or pass `--no-test`."
+        );
+        return true;
+    }
+    for f in &failures {
+        eprintln!("glyph {command}: example failed: {f}");
+    }
+    if !failures.is_empty() {
+        eprintln!("glyph {command}: {} of {total} example(s) failed.", failures.len());
+        return true;
+    }
+    if total > 0 {
+        eprintln!("glyph {command}: {total} example(s) passed.");
+    }
+    false
 }
 
 fn main() {
@@ -476,7 +529,7 @@ fn main() {
             }
             }
         }
-        Some(Command::Check { path, no_tsc, json }) => {
+        Some(Command::Check { path, no_test, no_tsc, json }) => {
             use std::io::IsTerminal;
             let with_color = !json && std::io::stderr().is_terminal();
             let target = path.unwrap_or_else(|| std::path::PathBuf::from("."));
@@ -512,6 +565,14 @@ fn main() {
                         );
                         std::process::exit(2);
                     }
+                    // The `@example` gate, in each project's own root (D41).
+                    // Nothing signs off before it: a clean type check on source
+                    // whose own tests fail is exactly the disagreement between
+                    // `check` and `build` that this command is supposed not to
+                    // have.
+                    if !no_test && report_examples_for(&report.project_srcs, "check") {
+                        std::process::exit(1);
+                    }
                     // Green lines come last here for the same reason they do in
                     // `build`: nothing signs off until every stage has run.
                     let warnings = report.warning_count();
@@ -535,10 +596,22 @@ fn main() {
                 }
             }
         }
-        Some(Command::Run { file, no_tsc, no_check, args }) => {
+        Some(Command::Run { file, no_test, no_tsc, no_check, args }) => {
             use std::io::IsTerminal;
             let with_color = std::io::stderr().is_terminal();
             let do_check = !(no_tsc || no_check);
+            // The `@example` gate, before the program runs. `build` has always
+            // run these and `run` did not, so the command an edit-loop uses
+            // reported success on source whose own tests were failing. Failing
+            // examples stop the run rather than being printed alongside its
+            // output, because a program built on a broken helper is not a run
+            // worth reading.
+            if !no_test {
+                let project = glyph_cli::config::project_for_file(&file).src;
+                if report_examples_for(&[project], "run") {
+                    std::process::exit(1);
+                }
+            }
             match glyph_cli::run::run_file(&file, &args, with_color, do_check) {
                 Ok(result) => {
                     // Every diagnostic the build computed is printed, whatever

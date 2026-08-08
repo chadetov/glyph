@@ -357,6 +357,30 @@ pub fn build_tree(target: &Path, out: &Path, with_color: bool) -> Result<TreeRep
     Ok(tree)
 }
 
+/// Build exactly one project, as a `TreeReport` with a single entry.
+///
+/// `glyph check <file>` uses this. A file belongs to one project (D41), and the
+/// projects nested below that project's root are not importable from it, so
+/// compiling them is work the file did not ask for: checking one loose file
+/// under `examples/` compiled 119 modules where its own project has 72, and the
+/// cost of checking a file scaled with whatever else happened to live beneath
+/// it. Directory targets still build the whole tree, because there the nested
+/// projects are the point.
+pub fn build_one_project(src: &Path, out: &Path, with_color: bool) -> Result<TreeReport, BuildError> {
+    let report = build_project_inner(src, out, with_color)?;
+    Ok(TreeReport {
+        projects: vec![ProjectReport {
+            project: Project {
+                package_dir: src.to_path_buf(),
+                src: src.to_path_buf(),
+                out_rel: PathBuf::new(),
+            },
+            report,
+        }],
+        notices: Vec::new(),
+    })
+}
+
 /// `path` written relative to `base` when it lies under it, else as it stands.
 /// Diagnostics name projects this way: a path relative to what the user asked
 /// to build is stable across machines and readable in a snapshot.

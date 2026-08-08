@@ -61,6 +61,9 @@ pub enum CheckError {
 /// asked: did the check find errors, from any stage.
 #[derive(Debug)]
 pub struct CheckReport {
+    /// The project source roots this check covered, so the caller can run each
+    /// project's `@example` gate in the root its imports resolve from (D41).
+    pub project_srcs: Vec<PathBuf>,
     /// Module paths the check saw, in deterministic order.
     pub modules: Vec<String>,
     /// One entry per Glyph-stage diagnostic (errors and warnings), pre-rendered.
@@ -159,7 +162,7 @@ pub fn check_path(
     let out = root.join(format!("{}-{n}", std::process::id()));
     let _ = remove_dir_all_retry(&out);
 
-    let result = check_in(&src, &out, with_color, run_tsc);
+    let result = check_in(&src, &out, with_color, run_tsc, path.is_dir());
     let _ = remove_dir_all_retry(&out);
     // Take the parent too, so a machine that ran `glyph check` once is not left
     // with an empty directory under /tmp forever. Non-recursive on purpose: it
@@ -175,11 +178,20 @@ fn check_in(
     out: &Path,
     with_color: bool,
     run_tsc: bool,
+    whole_tree: bool,
 ) -> Result<CheckReport, CheckError> {
     // A directory target may hold several Glyph projects (D41); each is built in
     // its own root, and the reports are concatenated in project order by the
     // same `flatten` the build command uses, so the two cannot drift.
-    let tree = build_tree(src, out, with_color)?;
+    // A directory target may hold several projects and all of them are meant.
+    // A *file* target belongs to exactly one, and the projects nested below that
+    // project's root cannot be imported from it, so building them is work the
+    // file did not ask for.
+    let tree = if whole_tree {
+        build_tree(src, out, with_color)?
+    } else {
+        crate::build::build_one_project(src, out, with_color)?
+    };
     let report = tree.flatten();
 
     let mut structured = report.structured.clone();
@@ -209,6 +221,7 @@ fn check_in(
     }
 
     Ok(CheckReport {
+        project_srcs: tree.projects.iter().map(|p| p.project.src.clone()).collect(),
         modules: report.modules,
         diagnostics: report.diagnostics,
         structured,

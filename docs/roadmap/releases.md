@@ -2883,6 +2883,33 @@ made for other reasons.
 No language change ships in this release. The compiler is unchanged except for
 E0111's explanation and one formatter regression test.
 
+### 0.1.68 — Shipped · Null is absence, and a loop keeps its type
+
+- **An optional field accepts a JSON `null` as absent.** `field?: T` already
+  took an omitted key and a present value; it rejected an explicit `null`, which
+  is what every real API sends and what a Discord gateway frame carries in every
+  HELLO. The declared type is `T`, and `null` is not a value of `T`, so a key
+  holding null is a key holding no value. `glyph gen openapi` had documented
+  exactly this mapping while the runtime did not implement it, so a generated
+  type rejected the payload it was generated from. `Option<T>`'s tagged encoding
+  is untouched. Half of G91, and it did not need the design decision the entry
+  was holding: measuring showed the gap was one JSON spelling, not the type.
+- **A `for` binding carries the iterand's element type**, so D30 exhaustiveness
+  survives a loop. A `match` over a string-literal union inside a `for` went
+  from E0218 ("a string match can never be exhaustive, add an `else`") to E0200
+  ("missing variants `pro`") — from advice to switch the check off to advice to
+  satisfy it. Single-binding only; `for i, x in xs` needs per-binding spans in
+  the AST, which is what G37 is about. Half of G67.
+
+### Assessed and deliberately not done
+
+- **G98**, the confusing message when an `is` arm re-reads its scrutinee, stays
+  open. The detectable condition has a legitimate counterexample
+  (`match f() { is string => "yes", else => "no" }` tests the type without using
+  the value), so a check would fire on correct code, which is worse than the
+  message it would replace. Doing it properly means attaching a note during the
+  `tsc` remap rather than adding a check.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

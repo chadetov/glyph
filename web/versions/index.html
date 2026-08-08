@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.67</span>
+            <span class="rel-ver">0.1.68</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Null is absence, and a loop keeps its type</h3>
+            <p>A wire type could not read the payload it was written for. <code>field?: T</code> accepted an omitted key and a present value, and rejected an explicit <code>null</code> &mdash; which is what every real API sends. A Discord gateway frame carries <code>"s": null</code> in every HELLO.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> An optional field treats a JSON <code>null</code> as absent. The declared type is <code>T</code>, and <code>null</code> is not a value of <code>T</code>, so a key holding null is a key holding no value. <code>glyph gen openapi</code> had documented exactly this mapping while the runtime did not implement it, so a generated type rejected the payload it was generated from. <code>Option&lt;T&gt;</code>'s tagged encoding is untouched.</li>
+              <li><span class="tag fixed">Fixed</span> A <code>for</code> binding carries the iterand's element type, so exhaustiveness survives a loop. A <code>match</code> over a string-literal union inside a <code>for</code> went from "a string match can never be exhaustive, add an <code>else</code>" to "missing variants <code>pro</code>": from advice to switch the check off, to advice to satisfy it.</li>
+              <li><span class="tag known">Known</span> The two-binding <code>for i, x in xs</code> still loses its types, because the AST carries no per-binding spans. And an <code>is</code> arm that re-reads its scrutinee still reports a TypeScript message rather than a Glyph one.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.67</span>
+            <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

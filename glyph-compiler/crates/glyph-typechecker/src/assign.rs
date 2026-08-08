@@ -510,6 +510,25 @@ impl Assigner<'_> {
             }
             Stmt::For(f) => {
                 self.walk_expr(&f.iter);
+                // Give the loop binding the iterand's element type.
+                //
+                // Without it the binding is `Unknown`, so every judgement that
+                // depends on the element's type evaporates the moment the value
+                // is iterated: a `match` over a string-literal union (D30) went
+                // from "you have not handled `pro`" to "a string match can never
+                // be exhaustive, add an `else`", which is advice to switch off
+                // the check rather than to satisfy it.
+                //
+                // Only the single-binding form. `for i, x in xs` gives both
+                // names the statement's span as their def-site key (the AST
+                // carries no per-binding spans), so the two would share one
+                // entry and the index would be typed as the element. That needs
+                // the AST change G37 is about.
+                if f.bindings.len() == 1 {
+                    if let Some(elem) = array_elem_ty(&self.tm.get(f.iter.span()).clone()) {
+                        self.local_tys.insert(f.span.start, elem);
+                    }
+                }
                 self.walk_block(&f.body);
             }
             Stmt::Loop(l) => self.walk_block(&l.body),
@@ -3132,6 +3151,23 @@ fn index_key_display(index: &Expr) -> String {
     }
 }
 
+/// The element type of an `Array<T>`, for a `for` binding.
+///
+/// Only a literal array application. A map, a string, and anything undecidable
+/// return `None` and leave the binding as it was, so this never invents a type
+/// for an iterand the checker does not understand.
+fn array_elem_ty(ty: &Ty) -> Option<Ty> {
+    match ty {
+        Ty::App { base, args } if args.len() == 1 => match base.as_ref() {
+            Ty::Named { path, .. } if path.last().map(|s| s.as_ref()) == Some("Array") => {
+                Some(args[0].clone())
+            }
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 /// Whether a type is a `Record<K, V>` map: a value whose keys are arbitrary
 /// rather than a record with a declared field set.
 ///
@@ -5573,6 +5609,32 @@ fn outer() -> string {
     // ----- G6a: member-access field checking -----
 
     #[test]
+    /// A `for` binding carries the iterand's element type, so D30
+    /// exhaustiveness survives a loop.
+    ///
+    /// Without it the binding was `Unknown` and degraded to `string`, so the
+    /// diagnostic changed from "you have not handled `pro`" (E0200) to "a string
+    /// match can never be exhaustive, add an `else`" (E0218): advice to switch
+    /// the check off rather than to satisfy it.
+    #[test]
+    fn a_for_binding_keeps_the_element_type() {
+        let errs = errors_of(
+            "module x\ntype Tier = \"free\" | \"pro\"\n\
+             pub fn f(ts: Array<Tier>) -> void {\n\
+             \x20 for t in ts {\n\
+             \x20   let _v = match t {\n\
+             \x20     \"free\" => 1,\n\
+             \x20   }\n\
+             \x20 }\n\
+             \x20 return void\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| e.code() == "E0200"),
+            "expected the missing-variant error, got {errs:?}"
+        );
+    }
+
     /// Reading a key out of a map is a guess, so it is E0224.
     ///
     /// The compiler cannot know the key is there, and typing the read as `V`

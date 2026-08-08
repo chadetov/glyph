@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 70 are fixed, 12 are partly fixed, 7 are
-decided or resolved, and 9 are open. That round re-ran an assignment the
+fixed two of them: of 98 entries, 70 are fixed, 14 are partly fixed, 7 are
+decided or resolved, and 7 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -1786,7 +1786,7 @@ several rounds that the backlog grew.
   narrowing story or the parser should stop accepting `?`; accepting a
   declaration whose values cannot be used is the worst of the three.
 
-- **G67. A `for` binding carries no element type, so D30 exhaustiveness
+- **G67. [HALF FIXED] A `for` binding carries no element type, so D30 exhaustiveness
   evaporates inside a loop.** `Stmt::For` in the typechecker's assigner
   (`glyph-typechecker/src/assign.rs:452`) walks the iterand and the body and
   binds nothing for the loop variable. Iterating `Array<CommandSpec>` where
@@ -2588,7 +2588,7 @@ this round, and it is why the adversarial gateway exists.
   guarantee that anything reachable is typed Glyph, at the cost of the stdlib
   being the bottleneck for every new host capability.
 
-- **G91. An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
+- **G91. [HALF FIXED] An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
   this and deferred the lenient forms deliberately, on the grounds that the
   tagged encoding is "the canonical wire format". That holds while Glyph owns
   both ends. It does not survive contact with somebody else's API, which is
@@ -2854,3 +2854,51 @@ been overtaken by fixes made for other reasons.
 
 The pattern across all three: two were stale, and the third wanted a language
 feature that would cost the guarantee it was asking to be exempted from.
+
+## Round 25: null is absence, and a loop keeps its type
+
+G91, G67 and G98 were scheduled together. Two are fixed and the third was
+assessed and deliberately left alone.
+
+- **G91's practical half is closed, and it turned out not to need the design
+  decision the entry was holding.** The entry framed this as `Option<T>` versus
+  ordinary JSON, with a fork between loosening `Option.parse` and inventing a
+  boundary nullable. Neither was needed. Measuring first showed that the wire
+  spelling `field?: T` already accepts an **absent** key and a **present**
+  value, and rejected only an explicit `null` — which is what every real API
+  sends, and what a Discord gateway frame carries in every HELLO.
+
+  An optional field now treats `null` as absence. That is the only coherent
+  reading: the field's declared type is `T`, and `null` is not a value of `T`,
+  so a key holding null is a key holding no value. `glyph gen openapi` had
+  already documented exactly this mapping (a `nullable` schema field becomes an
+  optional one, "a literal JSON `null` is treated as absent") while the runtime
+  descriptor did not implement it, so a generated type rejected the payload it
+  was generated from.
+
+  `Option<T>`'s own encoding is untouched: the tagged form stays canonical, and
+  G5's deliberate stance on it stands. What changed is the *wire* spelling, which
+  is what a boundary type should have been using. The entry stays half fixed
+  because an `Option<T>` field still does not decode from a bare value, which is
+  the part G5 decided and this round did not revisit.
+
+- **G67 is half fixed.** A `for` binding now carries the iterand's element type,
+  so D30 exhaustiveness survives a loop: a `match` over a string-literal union
+  inside `for t in ts` went from E0218 ("a string match can never be exhaustive,
+  add an `else`") to E0200 ("missing variants `pro`"). The first is advice to
+  switch the check off; the second is advice to satisfy it.
+
+  Single-binding only. `for i, x in xs` gives both names the statement's span as
+  their def-site key, because the AST carries no per-binding spans, so typing one
+  would type the other. That is the AST change G37 is already about, and the two
+  entries should be closed together.
+
+- **G98 was assessed and left open on purpose.** The confusing message is real
+  and still reproduces. But the detectable condition — an `is` arm whose
+  scrutinee is an expression rather than a binding — has a legitimate
+  counterexample: `match f() { is string => "yes", else => "no" }` tests the type
+  without using the value, and is correct. A diagnostic that fires on correct
+  code is worse than the tsc message it replaces. Doing this properly means
+  attaching a note during the tsc remap, when the error is known to involve a
+  match with an `is` arm, which is real plumbing rather than a check. Recorded
+  rather than forced.

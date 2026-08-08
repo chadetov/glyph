@@ -1212,7 +1212,17 @@ impl<'a> Emitter<'a> {
     fn emit_field_parse_check(&mut self, index: usize, field: &RecordTypeField) {
         let fname = field.name.to_string();
         let access = format!("(value as Record<string, unknown>).{fname}");
-        let present = format!("\"{fname}\" in (value as object)");
+        // An optional field is absent in either of JSON's two spellings for it:
+        // the key is omitted, or the key is there holding `null`. Every real
+        // payload uses the second (a Discord gateway frame carries `"s": null`),
+        // and `glyph gen openapi` already maps a `nullable` schema field to an
+        // optional one and documents that a literal null is treated as absent —
+        // the generator said so and the descriptor did not implement it, so a
+        // generated type rejected the payload it was generated from.
+        //
+        // Treating null as absent is the only coherent reading: the field's type
+        // is `T`, and `null` is not a value of `T`.
+        let present = format!("{access} !== undefined && {access} !== null");
         let missing_issue = format!(
             "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"missing\" }});",
             escape_double_quoted(&format!("field `{fname}` is required"))
@@ -3121,7 +3131,8 @@ impl<'a> Emitter<'a> {
         let access = format!("(value as Record<string, unknown>).{}", field.name);
         let check = self.field_value_check(&field.ty, &access);
         if field.optional {
-            let present = format!("\"{}\" in (value as object)", field.name);
+            // Same rule as `emit_field_parse_check`: null is absence.
+            let present = format!("{access} !== undefined && {access} !== null");
             format!("(!({present}) || {check})")
         } else {
             check
@@ -5666,9 +5677,10 @@ mod tests {
             ts.contains("typeof (value as Record<string, unknown>).age === \"number\""),
             "{ts}"
         );
-        // Optional field: passes when absent.
+        // Optional field: passes when absent, where absent is either JSON
+        // spelling — the key omitted, or the key holding `null`.
         assert!(
-            ts.contains("(!(\"admin\" in (value as object)) || typeof (value as Record<string, unknown>).admin === \"boolean\")"),
+            ts.contains("(!((value as Record<string, unknown>).admin !== undefined && (value as Record<string, unknown>).admin !== null) || typeof (value as Record<string, unknown>).admin === \"boolean\")"),
             "{ts}"
         );
         // Nested record field: recurses through the field type's descriptor
@@ -5774,14 +5786,44 @@ mod tests {
         assert_eq!(ts.matches("from \"std/result\"").count(), 1, "{ts}");
     }
 
+    /// A JSON `null` is absence for an optional field.
+    ///
+    /// This is the whole of G91's practical half. Every real payload spells a
+    /// missing value as `null` rather than by omitting the key — a Discord
+    /// gateway frame carries `"s": null` in every HELLO — and the descriptor
+    /// rejected it, so the natural spelling of a wire record was unparseable.
+    /// `glyph gen openapi` had documented this exact mapping (`nullable` to an
+    /// optional field, a literal null treated as absent) while the runtime did
+    /// not implement it, so a generated type rejected the payload it was
+    /// generated from.
+    #[test]
+    fn an_optional_field_accepts_a_json_null_as_absent() {
+        let ts = emit("module x\npub type P = { id: string, nick?: string }\n");
+        assert!(
+            ts.contains("(value as Record<string, unknown>).nick !== null"),
+            "absence must include an explicit null, got: {ts}"
+        );
+        // And a required field is unaffected: null there is still a value of the
+        // wrong type, not a licence to omit it.
+        let req = emit("module x\npub type Q = { id: string }\n");
+        assert!(
+            req.contains("(value as Record<string, unknown>).id === undefined"),
+            "a required field still reports missing on absence, got: {req}"
+        );
+    }
+
     #[test]
     fn optional_field_is_never_reported_as_missing() {
         // `f?: T` says absence is legal, so `parse` tests the value only when the
         // key is present and never emits the `"missing"` branch for it.
+        //
+        // Present means neither omitted nor `null`: JSON spells absence both
+        // ways, and a real payload uses the second. `null` is not a value of
+        // `T`, so reading it as absence is the only coherent option.
         let ts = emit("module x\npub type P = { id: string, nick?: string }\n");
         assert!(
             ts.contains(
-                "if (\"nick\" in (value as object) && !(typeof (value as Record<string, unknown>).nick === \"string\")) {"
+                "if ((value as Record<string, unknown>).nick !== undefined && (value as Record<string, unknown>).nick !== null && !(typeof (value as Record<string, unknown>).nick === \"string\")) {"
             ),
             "{ts}"
         );

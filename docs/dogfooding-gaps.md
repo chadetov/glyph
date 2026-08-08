@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 89 entries, 56 are fixed, 13 are partly fixed, 5 are
-decided or resolved, and 15 are open. That round re-ran an assignment the
+fixed two of them: of 94 entries, 57 are fixed, 13 are partly fixed, 5 are
+decided or resolved, and 19 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -2477,3 +2477,137 @@ one hit it and shipped a replayer without reporting it. It could not have
 reported it easily, which is the actual lesson. A `glyph run` that exits 0
 having produced no output and consumed no measurable time is indistinguishable
 from a program that worked, and that is the signal the loop was missing.
+
+## Round 20: a Discord bot
+
+A gateway client: connect over a WebSocket, identify, heartbeat on the interval
+the server dictates, track a sequence number so a dropped connection resumes
+instead of starting over, notice when the gateway has stopped answering, back
+off between reconnects, and answer commands. It is the first app here that
+speaks a protocol Glyph did not design, against a server Glyph does not control.
+
+It was verified against a mock gateway speaking the real opcodes rather than by
+inspection, and then against an adversarial one written from Discord's
+documentation rather than from the client: an unprompted opcode 1, a close with
+code 4004, and a gateway that greets you and then silently stops acknowledging
+heartbeats. All three are real Discord behaviours and the first two broke the
+bot as originally written.
+
+**What the live runs found that reading did not.** Four things, and the order
+matters, because each was found only after the previous one was fixed.
+
+1. One `RECONNECT` opcode scheduled two reconnects, since the socket close that
+   follows one arrives as its own event.
+2. The fix for that latched: the flag was cleared only when a HELLO arrived, so
+   a gateway that was simply *down* left it set forever. Against a dead port the
+   bot made exactly two attempts and then went silent permanently, which is the
+   ordinary outage and the one case a reconnect loop exists for. It is cleared
+   when an attempt *begins* now, and the same dead port produces attempts at
+   2s, 4s, 8s, 16s, 32s toward the ceiling.
+3. Opcode 1 is a heartbeat *request*, not only something the client sends. It
+   was parsed as an unknown opcode and ignored, which is how Discord decides a
+   bot is unresponsive and hangs up on it.
+4. Close codes were thrown away and a constant reported in their place, so a
+   rejected token retried forever instead of stopping. 4004 and its five
+   siblings are terminal now, and the process exits non-zero.
+
+The first was caught by the cooperative mock. The other three were not, and
+could not have been: a mock written by the author of the client only tests the
+parts of the protocol the author read. That is the lesson worth keeping from
+this round, and it is why the adversarial gateway exists.
+
+- **G94. [FIXED] A match arm whose last statement produced no value fell
+  through into the compiler's own "non-exhaustive match" throw.** The worst
+  class of bug this project has found: code that compiles clean, passes
+  `tsc --strict`, and throws at run time on a `match` that is exhaustive. A
+  lambda body is a value block in return position, so an arm ending in a `mut`
+  (or a `let`, `for`, `loop`, all of which yield nothing) emitted no `return`,
+  because there is no value to return, and no `break` either, because the
+  emitter only added one in statement position. The `switch` case then ran
+  straight on into the generated
+  `default: throw new Error("non-exhaustive match")`. Twelve lines of Glyph
+  reproduce it. The same code inside a top-level `fn` was correct, which is why
+  it survived: nothing in the test suite put a valueless arm inside a lambda,
+  and the bot's socket callbacks are nothing but lambdas containing matches. A
+  nested match in the same position had the identical hole one level down.
+  Fixed by making the `break` depend only on being inside a `switch` case and
+  not on the arm's position, which is the rule the empty-block case next to it
+  already used and documented. Two emitter tests now cover it, both verified to
+  fail against the old lowering.
+
+- **G90. Ambient *global* declarations in `.types/` are invisible to the
+  resolver.** `.types/*.d.ts` is documented as the way to give the type-checker
+  types for something external, and it works for `declare module "x"` blocks.
+  A `declare var WebSocket` or `declare function setInterval` in the same file
+  is not read at all: naming either is `[E0103] unresolved name`, from Glyph's
+  own resolver, before `tsc` is consulted. Installing `@types/node` does not
+  help, because the resolver matches module names and a global is not one.
+
+  The sharp end of this is D37. `new` was added to the language, in its own
+  words, because class-based clients "were otherwise reachable only through the
+  `unknown`-typed `extern_ts("new ...")` string" — and `new WebSocket(url)` is
+  `E0103`, so for every global class D37 does not apply and the string is still
+  the only route. That is a shipped feature with a category-sized hole in it.
+
+  Globals with a stdlib wrapper (`console` is `std/io`, `fetch` is `std/http`,
+  `Date` is `std/time`) are not affected. The two that bite are `WebSocket` and
+  the repeating timers, and only the second has a module form to fall back on:
+  this app reaches timers through `import timers { setInterval }` with a
+  hand-written `.types/timers.d.ts`, which is fully typed but is a module
+  nobody would think to import.
+
+  One thing does work and is worth writing down, because it is what makes the
+  socket layer safe: `extern_ts` in *type* position names the real type.
+  `type Socket = extern_ts("WebSocket")` gives `tsc` the genuine `WebSocket`,
+  so `sock.sendd(...)` is a compile error naming the type and the misspelling.
+  Only the construction is untyped.
+
+- **G91. An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
+  this and deferred the lenient forms deliberately, on the grounds that the
+  tagged encoding is "the canonical wire format". That holds while Glyph owns
+  both ends. It does not survive contact with somebody else's API, which is
+  what this round supplies. Measured against
+  `type Frame = { op: int, s: Option<int> }`: the field absent is ``field `s` is
+  required``, `"s": null` is ``field `s` must be Option<int>``, and a bare
+  `"s": 1` is the same error. Only `{"tag":"Some","value":1}` parses, and no
+  third-party service sends that. Discord puts `"s": null` in every HELLO, so
+  the natural spelling of a gateway frame is unparseable and `.parse` is
+  unusable at exactly the boundary boundary-validation is for.
+
+  The app works around it with `@open` records that declare only the fields a
+  given opcode carries, which is a good idiom and should be documented as one
+  whatever else is decided. There are two ways forward and they are not the
+  same decision: loosen `Option<T>.parse` to accept `null` and bare values,
+  which keeps one type and inherits G5's real objection that it is ambiguous
+  when `T` is itself nullable; or treat "a JSON field that may be null" as a
+  distinct boundary type that decodes *into* `Option`, which has no ambiguity
+  and costs a new concept. Reopened as its own entry because the case that
+  motivates it is not the case G5 was written about.
+
+- **G92. Locally bound closures cannot call each other.** `let a = fn() { b() }`
+  followed by `let b = ...` is `[E0103] unresolved name b`: a `let` is in scope
+  from its own line down and there is no local `fn` that hoists. Event-driven
+  code is full of mutual reference and this one is not exotic: `connect`
+  schedules a reconnect and the reconnect calls `connect`. The way out is to
+  lift them to top-level functions and thread the shared state through as a
+  record. That is arguably the better structure and it is what this app does,
+  but the language forces it without saying so and the diagnostic points at a
+  name rather than at the rule.
+
+- **G93. An `@example` has to fit on one line.** Wrapping one is
+  `[E0003] unexpected token: EqEq` pointing at the continuation. Examples of
+  anything with a real payload are long, so this app names a helper function per
+  example several times purely to get under a line length.
+
+Two smaller notes. `@redact` (D24) had never been used by any example in the
+repository; this is the first app to hold a credential, and marking
+`Session.token` with it is now checked by the replay, which asserts the token
+does not survive being printed. And the replay mode asserts at all only because
+the first version of it could not fail: it printed frames and returned 0
+whatever it read, which is the same vacuous-success shape as the silent
+`glyph run` that Round 19 ended on.
+
+Three of the five entries are about reaching outside Glyph: a global, a foreign
+JSON shape, an escape hatch that costs its type. That is the same seam the
+interop work was about, and it is still where the sharp edges are. G94 is not
+about the seam at all, and is the most serious thing found in twenty rounds.

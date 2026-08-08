@@ -2694,6 +2694,55 @@ printed nothing and exited 0.
   with no output. A run that terminates having produced nothing, consumed no
   measurable time, and returned 0 could say so.
 
+### 0.1.64 — Shipped · A match that was exhaustive could throw
+
+The Discord bot round. A gateway client is the first app here that speaks a
+protocol Glyph did not design, against a server Glyph does not control, and it
+turned up a miscompile that twenty rounds of apps had missed.
+
+- **A match arm that produced no value fell through into the compiler's own
+  "non-exhaustive match" throw.** A lambda body is a value block in return
+  position, so an arm ending in a `mut` (or `let`, `for`, `loop`, all of which
+  yield nothing) emitted no `return`, because there is no value, and no `break`
+  either, because the emitter only added one in statement position. The
+  generated `switch` case ran straight into
+  `default: throw new Error("non-exhaustive match")`. Twelve lines reproduce it,
+  it compiles clean, `tsc --strict` passes, and it throws at run time on a match
+  that is exhaustive. The same code inside a top-level `fn` was correct, which
+  is how it survived: no test put a valueless arm inside a lambda, and socket
+  callbacks are nothing but lambdas containing matches. A nested match had the
+  identical hole one level down. The `break` now depends only on being inside a
+  `switch` case, which is the rule the empty-arm case beside it already used.
+  Two emitter tests cover it, both verified against the old lowering. G94.
+- **`examples/apps/discord` is a working gateway client.** Handshake, identify
+  or resume, heartbeat on the interval the server dictates, sequence tracking,
+  zombie detection, exponential backoff, and commands. The protocol and the
+  state machine are pure and carry 37 `@example` rows; one module touches the
+  socket.
+- **Verified against an adversarial gateway, not only a cooperative one.**
+  Written from Discord's documentation rather than from the client: an
+  unprompted opcode 1, a close with code 4004, and a gateway that greets you and
+  then stops acknowledging heartbeats. The cooperative mock had passed while the
+  bot ignored opcode 1 entirely and retried a rejected token forever.
+- **`@redact` (D24) is used by an example for the first time.** The bot holds a
+  token; the replay asserts it does not survive being printed.
+
+### Still open from this release
+
+- **Ambient *global* declarations in `.types/` are invisible to the resolver.**
+  Only `declare module` blocks are read, so `WebSocket` and the repeating timers
+  cannot be named. The sharp end is D37: `new` was added so class-based clients
+  would not need an `extern_ts("new ...")` string, and `new WebSocket(url)` is
+  E0103, so for every global class the string is still the only route. G90.
+- **An `Option<T>` field cannot be read from ordinary JSON.** `null`, an absent
+  field and a bare value are all rejected; only Glyph's tagged encoding parses,
+  and no third-party API sends that. Two ways forward, and they are different
+  decisions: loosen `Option.parse`, or add a boundary-only nullable that decodes
+  into `Option`. G91.
+- **Locally bound closures cannot call each other**, so event-driven code has to
+  lift them to top level and thread a context record. G92.
+- **An `@example` must fit on one line.** G93.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

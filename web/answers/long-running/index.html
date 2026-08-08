@@ -172,6 +172,46 @@ carol sees:  <span class="cm">(nothing: she is in #random)</span></pre>
 pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
       </div>
 
+      <div class="detail">
+        <p class="block-label">The other direction: a long-running client</p>
+        <p>
+          A bot is the same shape pointed outward. <code>examples/apps/discord</code>
+          is a Discord gateway client: it connects over a WebSocket, identifies,
+          heartbeats on the interval the server dictates, tracks a sequence number
+          so a dropped connection resumes rather than starting over, notices when
+          the connection is open but dead, and backs off between reconnects.
+        </p>
+        <p>
+          The part worth copying is where the logic lives. Deciding what to do
+          about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token
+          is a pure function from a session and one event to a new session and a
+          list of actions. One module carries those actions out on a real socket.
+          That is why the reconnect logic, which is the part that is genuinely
+          hard to get right, is checked by <code>@example</code> rather than by
+          unplugging a network cable:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/discord/session.glyph</span>
+<pre>@example a_close_while_a_reconnect_is_pending_is_ignored()
+@example a_failed_attempt_schedules_another()
+@example a_rejected_token_stops_rather_than_retrying()
+pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Those three examples are each a bug that was in the code first. Writing
+          a mock gateway and pointing the bot at it caught one of them. The other
+          two were caught by a second mock written from Discord's documentation
+          instead of from the client, which sends the things a cooperative mock
+          never does: an unprompted heartbeat request, and a close code that means
+          "your token is wrong, stop asking". A mock written by the author of the
+          client only tests the parts of the protocol the author read.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">

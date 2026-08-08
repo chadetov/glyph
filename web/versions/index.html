@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.63</span>
+            <span class="rel-ver">0.1.64</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A match that was exhaustive could throw</h3>
+            <p>Writing a Discord gateway client turned up a miscompile that twenty rounds of example apps had missed. A match arm that produces no value, one ending in a <code>mut</code>, emitted neither a <code>return</code> nor a <code>break</code> when it sat inside a lambda. The generated <code>switch</code> case ran straight into the compiler's own <code>default: throw new Error("non-exhaustive match")</code>. Twelve lines reproduce it: it compiles clean, <code>tsc --strict</code> passes, and it throws at run time on a match that is exhaustive.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> The <code>break</code> now depends only on being inside a <code>switch</code> case, not on whether the arm is in return position. The same code inside a top-level <code>fn</code> was always correct, which is how this survived: nothing in the suite put a valueless arm inside a lambda, and socket callbacks are lambdas containing matches. A nested match had the identical hole one level down.</li>
+              <li><span class="tag added">Added</span> <code>examples/apps/discord</code>, a working gateway client: handshake, identify or resume, heartbeat on the server's interval, sequence tracking, detection of a connection that is open but dead, exponential backoff, and commands. The protocol and state machine are pure and carry 37 <code>@example</code> rows; one module touches the socket.</li>
+              <li><span class="tag changed">Changed</span> Verified against an adversarial gateway written from Discord's docs rather than from the client: an unprompted opcode 1, a close with code 4004, and a server that greets you then stops answering. The cooperative mock had passed while the bot ignored opcode 1 and retried a rejected token forever.</li>
+              <li><span class="tag known">Known</span> Ambient <em>global</em> declarations in <code>.types/</code> are invisible to the resolver, so <code>WebSocket</code> and the repeating timers cannot be named directly and <code>new WebSocket(url)</code> is an unresolved name. And an <code>Option</code> field still cannot be read from ordinary JSON: <code>null</code>, an absent field and a bare value are all rejected.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.63</span>
+            <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -23,7 +23,7 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 97 entries, 68 are fixed, 13 are partly fixed, 5 are
+fixed two of them: of 98 entries, 69 are fixed, 13 are partly fixed, 5 are
 decided or resolved, and 11 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -1757,7 +1757,7 @@ several rounds that the backlog grew.
   set is what makes a `match` verifiable. It is a type-system decision, not a
   patch.
 
-- **G65. `==` means `deepEqual` in an `@example` and `===` in the program.** The
+- **G65. [FIXED] `==` means `deepEqual` in an `@example` and `===` in the program.** The
   worst finding of the trip. `@example make(1) == { x: 1 }` reports a passing
   example, because the example harness compiles `==` through its own
   `deepEqual` (`glyph-cli/src/examples.rs:292`). The same `==` inside a function
@@ -2699,3 +2699,64 @@ The six from the list:
   deliberately excluded because both can begin an expression. The captured slice
   splices out exactly the line breaks it crossed, never the text between them,
   so a string literal in the argument is untouched.
+
+## Round 22: a durable job queue
+
+An HTTP service with a SQLite store and workers: submit a job, have it run,
+retry it with backoff, give up on it, and survive the process dying. Chosen
+because nothing in the repository had ever run `http.serve`, and because a queue
+is a state machine whose correctness is checkable rather than a matter of taste.
+
+Five modules. The transitions are pure and carry 25 `@example` rows; routing is
+a `match` with seven more; persistence and the socket are the only impure parts.
+It was run rather than inspected: three jobs submitted over HTTP, workers on a
+timer picking them up, `noop` reaching `done`, `poison` reaching `dead` on its
+first attempt, `fail` reaching `dead` after exactly five attempts, then the
+server killed and a **separate process** reading the same database and seeing
+the same state.
+
+- **G65. [FIXED] `==` meant a deep comparison in an `@example` and reference
+  equality in the program.** Found in the first module written, inside ten
+  minutes: `last_error(j) == Some("bad payload")` inside a `fn` was false while
+  the identical expression as an `@example` passed. A test reporting success on
+  code that does not work is the worst artifact the example gate can produce,
+  and reaching it needed nothing more than writing the same expression twice.
+
+  `==` is now value equality on every type (**D42**). Records, tagged unions and
+  arrays compare by structure; primitives are unchanged, and so is the emitted
+  TypeScript for them, since `===` is still what a comparison of two known
+  primitives lowers to. Reference identity is deliberately not expressible: a
+  language whose values are records and unions has no use for it, and offering
+  both would mean every `==` needed a reader to work out which was meant.
+
+  Worth noting how narrow the blast radius was. All 959 existing tests passed
+  unchanged and no conformance snapshot moved, which says no test in the
+  repository had ever compared two aggregates with `==`: the operator was broken
+  in exactly the place nobody had looked.
+
+**What this round could not fix, and what it cost.**
+
+- **G39 is the most serious thing open, and this round makes it concrete.** A
+  `sqlite.Row` is `Record<string, unknown>`, so every column read is a member
+  access against `unknown`. `row.naem` for `row.name` compiles clean, passes
+  `tsc --strict`, and evaluates to `undefined`, which `string.from` then renders
+  as the text `"undefined"` and the app stores. There is no diagnostic at any
+  stage. Every database read in every application is that surface, and it is the
+  precise failure Glyph's front page says it prevents. The store works around it
+  by naming each column once in a `const` and routing every value through a
+  checked conversion, which is a discipline the compiler should be enforcing
+  rather than a convention an author has to remember.
+
+- **G20 cost three separate edits in one sitting.** A nested string literal
+  inside `${...}` is a parse error, so a message interpolating `string.join`
+  has to become a helper function with two `let`s. It is marked improved and the
+  diagnostic is genuinely good (it names the limitation and the fix), but three
+  hoists in one app is friction rather than a papercut.
+
+- **G98. An `is` pattern narrows the scrutinee's *binding*, and using it any
+  other way fails as a `tsc` error rather than a Glyph one.** Writing
+  `match row[col] { is string => Some(row[col]), else => None }` reports
+  `Type 'Option<unknown>' is not assignable to type 'Option<string>'` pointing
+  at the whole match, which does not say that the narrowing applies to a binding
+  and that the fix is to bind it with `let` first. The rule is right; the
+  diagnostic makes an agent reconstruct the compiler's model before it can act.

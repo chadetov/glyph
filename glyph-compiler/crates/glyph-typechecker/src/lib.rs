@@ -222,6 +222,24 @@ pub enum TypeError {
         span: Span,
     },
 
+    /// `r.name` where `r` is a `Record<K, V>` map.
+    ///
+    /// A map's keys are arbitrary, so the compiler cannot know the key is
+    /// there, and typing the access as `V` states something it has not checked.
+    /// The value is `undefined` when the key is absent, under a type saying it
+    /// is a `V`, and nothing downstream reports it: a mistyped column name read
+    /// off a database row compiled clean and rendered as the text
+    /// `"undefined"`.
+    ///
+    /// `record.get(r, "name")` returns `Option<V>`, which is the same lookup
+    /// with the absent case in the type where a `match` can reach it.
+    #[error("`{type_name}` is a map, so `{field}` may not be there")]
+    MapFieldAccess {
+        field: String,
+        type_name: String,
+        span: Span,
+    },
+
     /// A call argument's type is decidably incompatible with the parameter type
     /// it is passed to. Fires only when both types are fully resolved and
     /// provably distinct (primitive mismatches, different named types, a generic
@@ -410,6 +428,7 @@ impl TypeError {
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
+            TypeError::MapFieldAccess { span, .. } => *span,
             TypeError::ArgumentTypeMismatch { span, .. } => *span,
             TypeError::ArgumentCountMismatch { span, .. } => *span,
             TypeError::MutateConst { span, .. } => *span,
@@ -441,6 +460,7 @@ impl TypeError {
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
             TypeError::UnknownField { .. } => "E0210",
+            TypeError::MapFieldAccess { .. } => "E0224",
             TypeError::ArgumentTypeMismatch { .. } => "E0211",
             TypeError::MutateConst { .. } => "E0212",
             TypeError::ArgumentCountMismatch { .. } => "E0213",
@@ -471,6 +491,9 @@ impl TypeError {
             }
             TypeError::TypeMismatch { .. } => {
                 "Change the value, or the declared type, so the two agree."
+            }
+            TypeError::MapFieldAccess { .. } => {
+                "Use `record.get(map, \"key\")`, which returns `Option<V>` so the absent case has somewhere to go. `record.has` tests for the key alone."
             }
             TypeError::OwnedRequiresResourceType { .. } => {
                 "`owned` is only for `resource`-marked types. Drop `owned`, or mark the type `resource`."

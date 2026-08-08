@@ -465,7 +465,22 @@ impl Assigner<'_> {
                             }
                         }
                     }
-                    self.walk_expr(target);
+                    // The target is an lvalue, so an index on it is a *write*.
+                    // Writing a key into a map is how a map is built and is
+                    // always safe; only reading one is a guess (E0224). Walking
+                    // the parts rather than the whole keeps every other check
+                    // on them while skipping that judgement.
+                    match target {
+                        Expr::Index { object, index, span } => {
+                            self.walk_expr(object);
+                            self.walk_expr(index);
+                            // The node still needs a type: every expression
+                            // carries one, and the lvalue is an expression.
+                            // Only the E0224 judgement is skipped.
+                            self.tm.insert(*span, Ty::Unknown);
+                        }
+                        other => self.walk_expr(other),
+                    }
                     self.walk_expr(value);
                     if let Expr::Match { arms, .. } = value {
                         self.check_arms_produce_values(arms);
@@ -566,6 +581,21 @@ impl Assigner<'_> {
                     // then the runtime descriptor a type declaration of our own
                     // emits (`WireLedger.parse`); otherwise stay `Unknown`
                     // (permissive).
+                    // A `Record<K, V>` map has arbitrary keys, so the compiler
+                    // cannot know this one is there. Typing the access as `V`
+                    // states something unchecked, and the value is `undefined`
+                    // when the key is absent: a mistyped column read off a
+                    // database row compiled clean and rendered as the text
+                    // "undefined". `record.get` is the same lookup with the
+                    // absent case in the type.
+                    None if self.resolves_to_map(&obj_ty) => {
+                        self.errors.push(TypeError::MapFieldAccess {
+                            field: field.to_string(),
+                            type_name: ty_display(&obj_ty),
+                            span: *span,
+                        });
+                        Ty::Unknown
+                    }
                     None => self
                         .stdlib_member_ty(object, field)
                         .or_else(|| self.descriptor_member_ty(object, field))
@@ -595,15 +625,32 @@ impl Assigner<'_> {
                     }
                 }
             }
-            Expr::Binary { left, right, span, .. }
-            | Expr::Index {
-                object: left,
-                index: right,
+            Expr::Binary { left, right, span, .. } => {
+                self.walk_expr(left);
+                self.walk_expr(right);
+                self.tm.insert(*span, Ty::Unknown);
+            }
+            // Indexing. `xs[i]` on an array stays unchecked: the bound is a
+            // value, and a program that has just measured `array.len` is not
+            // making a mistake. A `Record<K, V>` map is different, because
+            // there is no bound to check against and the key is a guess, so
+            // the same reasoning as the dot form applies (E0224).
+            Expr::Index {
+                object,
+                index,
                 span,
                 ..
             } => {
-                self.walk_expr(left);
-                self.walk_expr(right);
+                self.walk_expr(object);
+                self.walk_expr(index);
+                let obj_ty = self.tm.get(object.span()).clone();
+                if self.resolves_to_map(&obj_ty) {
+                    self.errors.push(TypeError::MapFieldAccess {
+                        field: index_key_display(index),
+                        type_name: ty_display(&obj_ty),
+                        span: *span,
+                    });
+                }
                 self.tm.insert(*span, Ty::Unknown);
             }
             // A `new` interop constructor. Glyph has no class definitions, so
@@ -2530,6 +2577,38 @@ impl Assigner<'_> {
     /// arguments are substituted into the field types). Returns `None` for any
     /// non-record or undecidable type, so callers (member-access checking) never
     /// flag a field on a type they cannot resolve.
+    /// Whether `ty` is a `Record<K, V>` map, seeing through one level of local
+    /// alias.
+    ///
+    /// The alias is the case that matters. Nobody annotates a parameter
+    /// `Record<string, unknown>` twice; they name it (`type Headers =
+    /// Record<string, string>`) and pass the name around, so a check that only
+    /// recognised the literal spelling would miss every real program.
+    ///
+    /// One level, deliberately: a chain is rare and stopping here needs no cycle
+    /// guard, which is the same reasoning `named_record_fields` uses.
+    fn resolves_to_map(&self, ty: &Ty) -> bool {
+        if is_map_ty(ty) {
+            return true;
+        }
+        let Ty::Named { symbol, path } = ty else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
+            return false;
+        };
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return false;
+        }
+        let SymbolKind::Type { decl_idx } = sym.kind else {
+            return false;
+        };
+        let Some(Decl::Type(td)) = self.module.items.get(decl_idx as usize) else {
+            return false;
+        };
+        is_map_ty(&self.lowerer.lower(&td.body))
+    }
+
     fn record_fields_of(&self, ty: &Ty) -> Option<Vec<RecordField>> {
         match ty {
             Ty::Record { fields } => Some(fields.clone()),
@@ -3043,6 +3122,29 @@ fn stdlib_named(module: &str, name: &str) -> Ty {
 /// This is what `Lowerer` consults for a written `fs.FsError` annotation, and
 /// the restriction is the point: a stdlib type with no modeled shape keeps
 /// lowering to `Ty::Unknown`, so nothing the checker cannot judge becomes newly
+/// How to name the key in an E0224 about `map[k]`. A literal is quoted as
+/// written; anything computed is described rather than rendered, since the
+/// point of the diagnostic is that its value is not known here.
+fn index_key_display(index: &Expr) -> String {
+    match index {
+        Expr::String { value, .. } => value.clone(),
+        _ => "that key".to_string(),
+    }
+}
+
+/// Whether a type is a `Record<K, V>` map: a value whose keys are arbitrary
+/// rather than a record with a declared field set.
+///
+/// Only the map form counts. A record type (`{ id: int }`) has known fields and
+/// is checked by `record_fields_of`, and anything undecidable stays permissive,
+/// so this never turns an unknown receiver into an error.
+fn is_map_ty(ty: &Ty) -> bool {
+    matches!(ty, Ty::App { base, args }
+        if args.len() == 2
+            && matches!(base.as_ref(), Ty::Named { path, .. }
+                if path.last().map(|s| s.as_ref()) == Some("Record")))
+}
+
 /// checked by this table growing an entry it has no fields for.
 pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
     matches!(
@@ -5471,6 +5573,62 @@ fn outer() -> string {
     // ----- G6a: member-access field checking -----
 
     #[test]
+    /// Reading a key out of a map is a guess, so it is E0224.
+    ///
+    /// The compiler cannot know the key is there, and typing the read as `V`
+    /// states something it has not checked: the value is `undefined` when the
+    /// key is absent, under a type saying otherwise. A mistyped column name
+    /// read off a database row compiled clean, passed `tsc --strict`, and
+    /// rendered as the text "undefined".
+    #[test]
+    fn reading_a_key_from_a_map_is_flagged() {
+        for src in [
+            "module x\npub fn f(m: Record<string, int>) -> unknown {\n  return m.naem\n}\n",
+            "module x\npub fn f(m: Record<string, int>) -> unknown {\n  return m[\"naem\"]\n}\n",
+            // Through an alias, which is how a map is actually spelled in a
+            // program: nobody annotates `Record<string, unknown>` twice.
+            "module x\ntype M = Record<string, int>\npub fn f(m: M) -> unknown {\n  return m.naem\n}\n",
+        ] {
+            let errs = errors_of(src);
+            assert!(
+                errs.iter().any(|e| e.code() == "E0224"),
+                "expected E0224 for:\n{src}\ngot {errs:?}"
+            );
+        }
+    }
+
+    /// Writing a key is how a map is built, and is always safe.
+    ///
+    /// The first cut flagged `mut m[k] = v` and lit up twenty call sites across
+    /// the examples, every one of them a write. An lvalue index is not a read.
+    #[test]
+    fn writing_a_key_into_a_map_is_not_flagged() {
+        let errs = errors_of(
+            "module x\npub fn f() -> void {\n\
+             \x20 let m: Record<string, int> = {}\n\
+             \x20 mut m[\"a\"] = 1\n\
+             \x20 return void\n\
+             }\n",
+        );
+        assert!(
+            !errs.iter().any(|e| e.code() == "E0224"),
+            "a write must not be flagged, got {errs:?}"
+        );
+    }
+
+    /// An array index is not a map read. The bound is a value, and a program
+    /// that has just measured `array.len` is not guessing.
+    #[test]
+    fn indexing_an_array_is_not_flagged() {
+        let errs = errors_of(
+            "module x\npub fn f(xs: Array<int>) -> int {\n  return xs[0]\n}\n",
+        );
+        assert!(
+            !errs.iter().any(|e| e.code() == "E0224"),
+            "array indexing must stay unchecked, got {errs:?}"
+        );
+    }
+
     fn member_typo_on_a_record_is_flagged() {
         // `u.naem` on a `User` record (no such field) is an UnknownField error.
         let src = r#"module x

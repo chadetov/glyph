@@ -385,6 +385,29 @@ pub fn explain(code: &str) -> Option<&'static str> {
             needs no value. `X => {}` remains a legal no-op where the `match` \
             is a statement rather than a value.",
 
+        "E0224" => "E0224: reading a key out of a map\n\n\
+            A `Record<K, V>` has arbitrary keys, so the compiler cannot know \
+            this one is there. Typing the read as `V` would state something it \
+            has not checked: when the key is absent the value is `undefined` \
+            under a type saying it is a `V`, and nothing downstream reports it. \
+            A mistyped column name read off a database row compiled clean, \
+            passed `tsc --strict`, and rendered as the text \"undefined\".\n\n\
+            `record.get` is the same lookup with the absent case in the type, \
+            where a `match` can reach it.\n\n\
+            Before:  fn name_of(row: Record<string, string>) -> string {\n              \
+              return row.name\n            \
+            }\n\
+            After:   fn name_of(row: Record<string, string>) -> string {\n              \
+              return match record.get(row, \"name\") {\n                \
+                Some(v) => v,\n                \
+                None => \"\",\n              \
+              }\n            \
+            }\n\n\
+            `record.has(m, k)` tests for the key alone. Writing is unaffected: \
+            `mut m[k] = v` is how a map is built and is always safe. Indexing an \
+            array (`xs[i]`) is also untouched, because a bound is a value a \
+            program can check with `array.len`.",
+
         // ----- emitter (E03xx) -----
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -468,7 +491,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0205",
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",
-    "E0219", "E0220", "E0221", "E0222", "E0223", "E0300", "E0301",
+    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0300", "E0301",
     "E0302", "E0303", "E0310",
 ];
 

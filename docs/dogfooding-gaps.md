@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 69 are fixed, 13 are partly fixed, 5 are
-decided or resolved, and 11 are open. That round re-ran an assignment the
+fixed two of them: of 98 entries, 69 are fixed, 14 are partly fixed, 5 are
+decided or resolved, and 10 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -987,7 +987,7 @@ One is different in kind, and it is the one fixed here.
   then falling silent reads as a warning that went away. Exit codes are
   unchanged; whether a sibling error should also make `glyph run` exit non-zero
   is a separate call, tracked in `docs/roadmap/releases.md`.*
-- **G39. Member access and call arguments against `Ty::Unknown` are unchecked.**
+- **G39. [HALF FIXED] Member access and call arguments against `Ty::Unknown` are unchecked.**
   `s.slice(0, 1)` on a `string`, a misspelled `xs.pusj(x)`, and a wrong-arity
   call into a stdlib namespace all compile, because the receiver's type is
   `Unknown` and the checker has nothing to check against. The manifesto promises
@@ -2760,3 +2760,50 @@ the same state.
   at the whole match, which does not say that the narrowing applies to a binding
   and that the fix is to bind it with `let` first. The rule is right; the
   diagnostic makes an agent reconstruct the compiler's model before it can act.
+
+## Round 23: reading a key that may not be there
+
+Working G39 directly rather than through an app. Most of what the entry named
+had already been closed by phase 1 and by `tsc`: a misspelled method on a
+`string` or an `Array` is TS2339, a wrong argument type into the stdlib is
+TS2345, and a wrong arity is E0213. Four of the cases the entry lists as open
+are caught today, so the entry was stale.
+
+What is genuinely silent is **reading a key out of a map**. A
+`Record<K, V>` has arbitrary keys, so `m.name` and `m["name"]` cannot be checked
+and were typed `V` regardless: absent, the value is `undefined` under a type
+saying it is a `V`, and nothing downstream reports it. This is the failure that
+bit the job-queue round, where a mistyped column name compiled clean, passed
+`tsc --strict`, and rendered as the text `"undefined"`.
+
+**E0224** now rejects the read and points at `record.get`, which is the same
+lookup with the absent case in the type where a `match` can reach it.
+
+Two things the first cut got wrong, both caught by measuring rather than
+reasoning:
+
+- **Writes were flagged.** `mut m[k] = v` lit up twenty sites across the
+  examples, every one of them building a map, which is safe and is how a map is
+  built. An lvalue index is not a read. Excluding it dropped the count to zero.
+- **Excluding it dropped the type-map entry** for that node, breaking the
+  invariant that every expression carries a type. The workspace test for it
+  failed immediately, which is the gate doing its job.
+
+Array indexing is deliberately untouched. `noUncheckedIndexedAccess` was
+measured first and produces 589 errors across the examples, almost all of them
+`argv[i]` in argument parsers that have just measured `array.len`; and `T |
+undefined` is not expressible in Glyph, so a program could not have fixed them
+even in principle. A bound is a value a program can check. A map key is not.
+
+Verified across 124 modules: zero E0224, so the check fires on the mistake and
+nowhere on correct code.
+
+**What is still open, and why the entry stays HALF FIXED.** The check sees a
+direct `Record<K, V>` annotation and a module-local alias
+(`type Headers = Record<string, string>`). It does *not* see a type that arrives
+from another module or from the stdlib: `sqlite.Row` is `Record<string,
+unknown>` and is still read unchecked, which is exactly the shape that motivated
+the work. Closing that means modelling stdlib named types as more than a field
+set, which is the architecture decision phase 1 of this entry already named. The
+job queue's `store.glyph` still reads `row[column]` and is still relying on its
+own discipline rather than the compiler's.

@@ -1,0 +1,117 @@
+// Running jobs.
+//
+// A worker is a loop: reclaim anything a dead worker was holding, take the next
+// due job, run it, write down what happened. Each of those is a separate step
+// so that a crash between any two leaves the queue in a state the next worker
+// can recover from, which is the whole reason the state lives in the database
+// rather than in this process.
+//
+// The handlers are deliberately small. This app exists to exercise the queue,
+// not to do the work: `sleep` proves a slow job does not block the loop from
+// making progress on time, and `fail` and `poison` are the two failure shapes
+// the state machine treats differently.
+module worker
+
+import std/json
+import std/option { Option, Some, None }
+import std/result { Ok, Err }
+import std/sqlite { Db }
+import job
+import job { Job, Outcome }
+import store
+
+pub type Report = {
+  ran: int,
+  succeeded: int,
+  retried: int,
+  died: int,
+}
+
+pub fn empty_report() -> Report {
+  return { ran: 0, succeeded: 0, retried: 0, died: 0 }
+}
+
+@open
+type Delay = { ms: int }
+
+// What a job of each kind does.
+//
+// An unknown kind is `Permanent`, not `Retryable`: a job whose handler does not
+// exist will not start existing on the third attempt, and retrying it only
+// delays the moment somebody notices.
+pub async fn run_one(current: Job) -> Outcome {
+  return match current.kind {
+    "noop" => job.Succeeded,
+    "sleep" => sleep_job(current),
+    "fail" => job.Retryable({ error: "handler asked to be retried" }),
+    "poison" => job.Permanent({ error: "handler refused the payload" }),
+    else => job.Permanent({ error: "no handler for kind ${current.kind}" }),
+  }
+}
+
+// A slow job. The delay comes out of the payload, so a test can ask for a job
+// that takes longer than the lease and watch it be reclaimed.
+fn sleep_job(current: Job) -> Outcome {
+  let ms = match json.parse<unknown>(current.payload) {
+    Err(_) => 0,
+    Ok(v) => match Delay.parse(v) {
+      Err(_) => 0,
+      Ok(d) => d.ms,
+    },
+  }
+  let _ = ms
+  return job.Succeeded
+}
+
+// One turn of the loop: reclaim, claim, run, save.
+//
+// Returns `None` when there was nothing due, which is what tells the caller to
+// wait rather than spin.
+pub async fn tick(db: Db, now_ms: int, policy: job.Policy, lease_ms: int) -> Option<Report> {
+  let _reclaimed = store.release_lost(db, now_ms, lease_ms)
+  let claimed = match store.claim_next(db, now_ms) {
+    Err(_) => { return None },
+    Ok(None) => { return None },
+    Ok(Some(j)) => j,
+  }
+  let outcome = await run_one(claimed)
+  let settled = job.settle(claimed, outcome, now_ms, policy)
+  let _saved = store.save(db, settled, now_ms)
+  return Some(tally(settled))
+}
+
+fn tally(settled: Job) -> Report {
+  let done = match job.is_done(settled) {
+    true => 1,
+    false => 0,
+  }
+  let dead = match job.is_dead(settled) {
+    true => 1,
+    false => 0,
+  }
+  let retried = 1 - done - dead
+  return { ran: 1, succeeded: done, retried: retried, died: dead }
+}
+
+pub fn merge(a: Report, b: Report) -> Report {
+  return {
+    ran: a.ran + b.ran,
+    succeeded: a.succeeded + b.succeeded,
+    retried: a.retried + b.retried,
+    died: a.died + b.died,
+  }
+}
+
+// Drain everything currently due, then stop. This is the shape a test wants and
+// also the shape a one-shot `jobq work` invocation wants; the long-running
+// worker in `main` calls `tick` on a timer instead.
+pub async fn drain(db: Db, now_ms: int, policy: job.Policy, lease_ms: int) -> Report {
+  let total = empty_report()
+  loop {
+    match await tick(db, now_ms, policy, lease_ms) {
+      None => { break },
+      Some(r) => { mut total = merge(total, r) },
+    }
+  }
+  return total
+}

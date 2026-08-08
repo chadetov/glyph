@@ -1,0 +1,345 @@
+// What a job is, and every way it is allowed to change.
+//
+// A queue is a state machine that happens to be stored in a database. Getting
+// the machine right is most of getting the queue right: a job that is retried
+// forever, or that is marked done while a worker is still holding it, or that
+// loses its attempt count on a restart, is a production incident rather than a
+// bug report.
+//
+// So the transitions live here, as a pure function from a job and one outcome
+// to the next job, and every rule about them is an `@example`. Nothing in this
+// file knows about SQL, HTTP, or time passing: `now_ms` is a parameter, which
+// is what lets the retry schedule be checked without waiting for it.
+module job
+
+import std/option { Option, Some, None }
+
+// Where a job is in its life.
+//
+// `Dead` is separate from `Failed` on purpose. A failed job will be tried
+// again; a dead one will not, and the difference is the single most important
+// thing an operator needs to see. Collapsing them into a `failed: bool` is how
+// a queue ends up retrying a poison message ten thousand times.
+pub type Status =
+  | Queued
+  | Running({ claimed_ms: int })
+  | Done({ finished_ms: int })
+  | Failed({ last_error: string })
+  | Dead({ last_error: string })
+
+pub type Job = {
+  id: int,
+  kind: string,
+  // The handler's input, as JSON text. Kept as text rather than a parsed value
+  // because the queue does not know what any given `kind` expects, and storing
+  // it decoded would mean the queue's own schema had to change whenever a
+  // handler's did.
+  payload: string,
+  status: Status,
+  attempts: int,
+  // The earliest time this job may be claimed. Backoff is expressed by pushing
+  // this forward rather than by sleeping, so a restart does not lose the delay
+  // and a worker never holds a thread waiting.
+  run_after_ms: int,
+}
+
+// What a handler reported.
+pub type Outcome =
+  | Succeeded
+  | Retryable({ error: string })
+  // Some failures are not worth a second attempt: a malformed payload will be
+  // malformed next time too. A handler that knows this says so, and the job
+  // goes straight to `Dead` instead of burning its whole retry budget.
+  | Permanent({ error: string })
+
+pub type Policy = {
+  max_attempts: int,
+  base_delay_ms: int,
+  max_delay_ms: int,
+}
+
+pub fn default_policy() -> Policy {
+  return { max_attempts: 5, base_delay_ms: 1000, max_delay_ms: 60000 }
+}
+
+// A newly submitted job.
+@example new_job(1, "email", "{}", 100).attempts == 0
+@example is_queued(new_job(1, "email", "{}", 100))
+pub fn new_job(id: int, kind: string, payload: string, now_ms: int) -> Job {
+  return {
+    id: id,
+    kind: kind,
+    payload: payload,
+    status: Queued,
+    attempts: 0,
+    run_after_ms: now_ms,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Transitions
+// ---------------------------------------------------------------------------
+
+// A worker takes the job. The attempt is counted here, at the claim, not at the
+// outcome: a worker that dies mid-job must not leave the attempt uncounted, or
+// a job that crashes the process is retried forever.
+@example claim(new_job(1, "e", "{}", 0), 500).attempts == 1
+@example is_running(claim(new_job(1, "e", "{}", 0), 500))
+pub fn claim(current: Job, now_ms: int) -> Job {
+  return {
+    id: current.id,
+    kind: current.kind,
+    payload: current.payload,
+    status: Running({ claimed_ms: now_ms }),
+    attempts: current.attempts + 1,
+    run_after_ms: current.run_after_ms,
+  }
+}
+
+// The handler reported. This is the only place a job's fate is decided.
+//
+// A retryable failure with attempts left is rescheduled, and one without is
+// dead. A permanent failure is dead whatever the budget says.
+@example settles_to_done()
+@example a_retryable_failure_is_rescheduled()
+@example the_delay_grows_with_attempts()
+@example the_delay_stops_at_the_ceiling()
+@example the_last_attempt_is_dead_not_failed()
+@example a_permanent_failure_skips_the_retry_budget()
+@example a_dead_job_keeps_its_error()
+pub fn settle(current: Job, outcome: Outcome, now_ms: int, policy: Policy) -> Job {
+  return match outcome {
+    Succeeded => with_status(current, Done({ finished_ms: now_ms }), current.run_after_ms),
+    Permanent({ error }) => with_status(current, Dead({ last_error: error }), current.run_after_ms),
+    Retryable({ error }) => match current.attempts >= policy.max_attempts {
+      true => with_status(current, Dead({ last_error: error }), current.run_after_ms),
+      false => with_status(
+        current,
+        Failed({ last_error: error }),
+        now_ms + backoff_ms(current.attempts, policy),
+      ),
+    },
+  }
+}
+
+// How long before the next attempt: doubling, capped.
+//
+// Capped because an unbounded double reaches a delay longer than the outage it
+// is waiting out, and a queue that has healed should not sit idle for an hour
+// because it was unlucky earlier.
+@example backoff_ms(1, default_policy()) == 1000
+@example backoff_ms(2, default_policy()) == 2000
+@example backoff_ms(3, default_policy()) == 4000
+@example backoff_ms(30, default_policy()) == 60000
+pub fn backoff_ms(attempts: int, policy: Policy) -> int {
+  let steps = match attempts <= 1 {
+    true => 0,
+    false => attempts - 1,
+  }
+  return capped(policy.base_delay_ms, steps, policy.max_delay_ms)
+}
+
+// Doubling by repeated multiplication rather than a power, so the cap applies
+// at every step and the result cannot overflow through it.
+fn capped(base: int, steps: int, ceiling: int) -> int {
+  let value = base
+  let i = 0
+  loop {
+    match i >= steps {
+      true => { break },
+      false => {},
+    }
+    mut value = match value * 2 >= ceiling {
+      true => ceiling,
+      false => value * 2,
+    }
+    mut i = i + 1
+  }
+  return value
+}
+
+// Whether a job is eligible to be claimed now.
+@example is_due(new_job(1, "e", "{}", 100), 100)
+@example !is_due(new_job(1, "e", "{}", 500), 100)
+@example is_due(retried(), 99999)
+@example !is_running_forever()
+pub fn is_due(current: Job, now_ms: int) -> bool {
+  return waiting(current) && current.run_after_ms <= now_ms
+}
+
+// `Queued` and `Failed` are both waiting to run; `Running`, `Done` and `Dead`
+// are not. Written as a match rather than a boolean field so adding a state
+// forces this decision to be made again (D9).
+fn waiting(current: Job) -> bool {
+  return match current.status {
+    Queued => true,
+    Failed(_) => true,
+    Running(_) => false,
+    Done(_) => false,
+    Dead(_) => false,
+  }
+}
+
+// A job whose worker died holds `Running` forever unless someone reclaims it.
+// Anything running longer than the lease is presumed lost.
+@example a_lost_job_is_reclaimable()
+@example !is_lost(claim(new_job(1, "e", "{}", 0), 1000), 1500, 30000)
+pub fn is_lost(current: Job, now_ms: int, lease_ms: int) -> bool {
+  return match current.status {
+    Running({ claimed_ms }) => now_ms - claimed_ms > lease_ms,
+    _ => false,
+  }
+}
+
+// Put a lost job back in the queue. Its attempt count is kept, so a job that
+// reliably kills its worker still reaches the retry ceiling and dies.
+@example release(claim(new_job(1, "e", "{}", 0), 0), 900).attempts == 1
+@example is_queued(release(claim(new_job(1, "e", "{}", 0), 0), 900))
+pub fn release(current: Job, now_ms: int) -> Job {
+  return with_status(current, Queued, now_ms)
+}
+
+fn with_status(current: Job, status: Status, run_after_ms: int) -> Job {
+  return {
+    id: current.id,
+    kind: current.kind,
+    payload: current.payload,
+    status: status,
+    attempts: current.attempts,
+    run_after_ms: run_after_ms,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reading a status
+// ---------------------------------------------------------------------------
+
+// The stored spelling of a status. The payload fields travel in their own
+// columns, so this is only the tag.
+pub fn status_name(status: Status) -> string {
+  return match status {
+    Queued => "queued",
+    Running(_) => "running",
+    Done(_) => "done",
+    Failed(_) => "failed",
+    Dead(_) => "dead",
+  }
+}
+
+// The reverse, for a row read back out of the database. An unrecognized
+// spelling is `None` rather than a guess: a row this code cannot understand is
+// a corrupt row, and treating it as `queued` would run it again.
+@example name_status("queued", 0, "") == Some(Queued)
+@example name_status("nonsense", 0, "") == None
+pub fn name_status(name: string, at_ms: int, error: string) -> Option<Status> {
+  return match name {
+    "queued" => Some(Queued),
+    "running" => Some(Running({ claimed_ms: at_ms })),
+    "done" => Some(Done({ finished_ms: at_ms })),
+    "failed" => Some(Failed({ last_error: error })),
+    "dead" => Some(Dead({ last_error: error })),
+    else => None,
+  }
+}
+
+pub fn is_queued(current: Job) -> bool {
+  return match current.status {
+    Queued => true,
+    _ => false,
+  }
+}
+
+pub fn is_running(current: Job) -> bool {
+  return match current.status {
+    Running(_) => true,
+    _ => false,
+  }
+}
+
+pub fn is_done(current: Job) -> bool {
+  return match current.status {
+    Done(_) => true,
+    _ => false,
+  }
+}
+
+pub fn is_dead(current: Job) -> bool {
+  return match current.status {
+    Dead(_) => true,
+    _ => false,
+  }
+}
+
+pub fn last_error(current: Job) -> Option<string> {
+  return match current.status {
+    Failed({ last_error }) => Some(last_error),
+    Dead({ last_error }) => Some(last_error),
+    _ => None,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Fixtures for the `@example` rows above
+// ---------------------------------------------------------------------------
+
+fn settled(outcome: Outcome, attempts: int) -> Job {
+  let base = new_job(1, "e", "{}", 0)
+  let held = with_attempts(base, attempts)
+  return settle(held, outcome, 10000, default_policy())
+}
+
+fn with_attempts(current: Job, attempts: int) -> Job {
+  return {
+    id: current.id,
+    kind: current.kind,
+    payload: current.payload,
+    status: current.status,
+    attempts: attempts,
+    run_after_ms: current.run_after_ms,
+  }
+}
+
+fn settles_to_done() -> bool {
+  return is_done(settled(Succeeded, 1))
+}
+
+fn a_retryable_failure_is_rescheduled() -> bool {
+  let j = settled(Retryable({ error: "boom" }), 1)
+  return !is_dead(j) && j.run_after_ms > 10000
+}
+
+fn the_delay_grows_with_attempts() -> bool {
+  let first = settled(Retryable({ error: "b" }), 1)
+  let third = settled(Retryable({ error: "b" }), 3)
+  return third.run_after_ms > first.run_after_ms
+}
+
+fn the_delay_stops_at_the_ceiling() -> bool {
+  return backoff_ms(9, default_policy()) == default_policy().max_delay_ms
+}
+
+fn the_last_attempt_is_dead_not_failed() -> bool {
+  return is_dead(settled(Retryable({ error: "b" }), 5))
+}
+
+fn a_permanent_failure_skips_the_retry_budget() -> bool {
+  return is_dead(settled(Permanent({ error: "bad payload" }), 1))
+}
+
+fn a_dead_job_keeps_its_error() -> bool {
+  return last_error(settled(Permanent({ error: "bad payload" }), 1))
+    == Some("bad payload")
+}
+
+fn retried() -> Job {
+  return settled(Retryable({ error: "b" }), 1)
+}
+
+fn is_running_forever() -> bool {
+  return is_due(claim(new_job(1, "e", "{}", 0), 0), 99999)
+}
+
+fn a_lost_job_is_reclaimable() -> bool {
+  let held = claim(new_job(1, "e", "{}", 0), 1000)
+  return is_lost(held, 1000 + 30001, 30000)
+}

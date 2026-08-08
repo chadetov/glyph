@@ -1,0 +1,197 @@
+// The HTTP surface.
+//
+// Routing is a `match` on the method and the path segments, so every route the
+// service answers is one arm and `grep -n '"jobs"'` finds them all. A request
+// that matches nothing is a 404, which is an ordinary `Ok` response rather than
+// an error: the request was handled, and the answer was "no".
+//
+// Nothing here decides a job's fate. The handler reads and writes through
+// `store` and reports what it found; the state machine lives in `job`.
+module api
+
+import std/array
+import std/http
+import std/http { Request, Response }
+import std/json
+import std/option { Some, None }
+import std/result { Ok, Err }
+import std/sqlite { Db }
+import std/string
+import job
+import job { Job }
+import store
+
+// A job as JSON. Written by hand rather than serialized from the record,
+// because the wire shape is a contract with whoever is polling this service and
+// should not change silently when a field is added to `Job`.
+fn job_json(current: Job) -> string {
+  let error_text = match job.last_error(current) {
+    Some(e) => e,
+    None => "",
+  }
+  return json.stringify({
+    id: current.id,
+    kind: current.kind,
+    status: job.status_name(current.status),
+    attempts: current.attempts,
+    run_after_ms: current.run_after_ms,
+    last_error: error_text,
+  })
+}
+
+fn ok_json(body: string) -> Response {
+  return http.with_header(http.text(200, body), "content-type", "application/json")
+}
+
+fn problem(status: int, message: string) -> Response {
+  let body = json.stringify({ error: message })
+  return http.with_header(http.text(status, body), "content-type", "application/json")
+}
+
+fn store_problem(e: store.StoreError) -> Response {
+  return match e {
+    store.Missing({ id }) => problem(404, "no job ${number.to_string(id)}"),
+    store.Corrupt({ id, reason }) => problem(500, "job ${number.to_string(id)} is corrupt: ${reason}"),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
+// Handle one request.
+//
+// `now_ms` is a parameter rather than a call to the clock, so the whole API can
+// be exercised at a fixed instant and the tests do not depend on how fast the
+// machine is.
+pub fn handle(db: Db, req: Request, now_ms: int) -> Response {
+  let parts = http.segments(req)
+  let method = string.upper(req.method)
+  return match route_of(method, parts) {
+    Health => http.text(200, "ok"),
+    Stats => stats(db),
+    Enqueue => enqueue(db, req, now_ms),
+    Show({ id }) => show(db, id),
+    Recent => recent(db),
+    NotFound => problem(404, no_route(method, parts)),
+  }
+}
+
+fn no_route(method: string, parts: Array<string>) -> string {
+  let slash = "/"
+  let path = string.join(parts, slash)
+  return "no route for ${method} /${path}"
+}
+
+// The routes this service answers, as a value. Naming them separates "which
+// route is this" from "what does that route do", so the second can be read
+// without re-deriving the first.
+type Route =
+  | Health
+  | Stats
+  | Enqueue
+  | Show({ id: int })
+  | Recent
+  | NotFound
+
+@example route_of("GET", ["health"]) == Health
+@example route_of("POST", ["jobs"]) == Enqueue
+@example route_of("GET", ["jobs"]) == Recent
+@example route_of("GET", ["jobs", "7"]) == Show({ id: 7 })
+@example route_of("GET", ["jobs", "seven"]) == NotFound
+@example route_of("DELETE", ["jobs"]) == NotFound
+@example route_of("GET", ["nope"]) == NotFound
+fn route_of(method: string, parts: Array<string>) -> Route {
+  let count = array.len(parts)
+  return match count == 1 && parts[0] == "health" && method == "GET" {
+    true => Health,
+    false => match count == 1 && parts[0] == "stats" && method == "GET" {
+      true => Stats,
+      false => match count == 1 && parts[0] == "jobs" {
+        true => match method {
+          "POST" => Enqueue,
+          "GET" => Recent,
+          else => NotFound,
+        },
+        false => match count == 2 && parts[0] == "jobs" && method == "GET" {
+          true => match number.parse(parts[1]) {
+            Ok(id) => Show({ id: id }),
+            Err(_) => NotFound,
+          },
+          false => NotFound,
+        },
+      },
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+// The body a client posts to enqueue. `payload` is kept as text: the queue does
+// not know what a given `kind` expects, so re-encoding it here would only risk
+// changing it.
+@open
+type Submission = { kind: string }
+
+fn enqueue(db: Db, req: Request, now_ms: int) -> Response {
+  let raw = http.raw(req)
+  let decoded = match json.parse<unknown>(raw) {
+    Ok(v) => v,
+    Err(_) => { return problem(400, "body is not JSON") },
+  }
+  let submission = match Submission.parse(decoded) {
+    Ok(s) => s,
+    Err(_) => { return problem(400, "body needs a string `kind`") },
+  }
+  match string.len(submission.kind) == 0 {
+    true => { return problem(400, "`kind` cannot be empty") },
+    false => {},
+  }
+  // The payload travels as whatever the client sent under `payload`, re-encoded
+  // from the decoded body so that a client sending an object and a client
+  // sending a string both store something a handler can read back.
+  let payload = payload_text(raw)
+  let id = store.enqueue(db, submission.kind, payload, now_ms)
+  return ok_json(json.stringify({ id: id, kind: submission.kind, status: "queued" }))
+}
+
+@open
+type WithPayload = { payload: unknown }
+
+// The submitted `payload` as JSON text, defaulting to an empty object when the
+// client did not send one.
+fn payload_text(raw: string) -> string {
+  return match json.parse<unknown>(raw) {
+    Err(_) => "{}",
+    Ok(v) => match WithPayload.parse(v) {
+      Err(_) => "{}",
+      Ok(w) => json.stringify(w.payload),
+    },
+  }
+}
+
+fn show(db: Db, id: int) -> Response {
+  return match store.get(db, id) {
+    Ok(found) => ok_json(job_json(found)),
+    Err(e) => store_problem(e),
+  }
+}
+
+fn recent(db: Db) -> Response {
+  let found = store.recent(db, 50)
+  let bodies = array.map(found.jobs, job_json)
+  return ok_json("[" + string.join(bodies, ",") + "]")
+}
+
+fn stats(db: Db) -> Response {
+  let c = store.counts(db)
+  return ok_json(json.stringify({
+    queued: c.queued,
+    running: c.running,
+    done: c.done,
+    failed: c.failed,
+    dead: c.dead,
+  }))
+}

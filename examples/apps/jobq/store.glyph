@@ -1,0 +1,284 @@
+// Where jobs live between processes.
+//
+// The queue's durability guarantee is this file. A job that has been accepted
+// survives a restart, a worker that dies releases its job, and two workers
+// never run the same job at once. The last of those is why claiming is an
+// `UPDATE ... WHERE status = 'queued'` rather than a read followed by a write:
+// SQLite serializes the write, so exactly one worker's update touches a row.
+//
+// Reading is the part that needs care. A `sqlite.Row` is
+// `Record<string, unknown>`, so every column comes back as `unknown` and has to
+// be narrowed before it is a `Job`. Glyph does not check a member read against
+// `unknown` (a mistyped column name compiles clean and yields `undefined`), so
+// the column names appear exactly once each, in `decode`, and every value goes
+// through a checked conversion rather than being trusted.
+module store
+
+import std/array
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/sqlite
+import std/sqlite { Db, Row }
+import job
+import job { Job }
+
+pub type StoreError =
+  | Corrupt({ id: int, reason: string })
+  | Missing({ id: int })
+
+// One row per job. `status` is the tag; `status_at_ms` and `last_error` carry
+// the payload the tag needs, which keeps the table readable in a SQL client
+// instead of holding an opaque blob.
+const SCHEMA = """
+CREATE TABLE IF NOT EXISTS jobs (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind          TEXT    NOT NULL,
+  payload       TEXT    NOT NULL,
+  status        TEXT    NOT NULL,
+  attempts      INTEGER NOT NULL,
+  run_after_ms  INTEGER NOT NULL,
+  status_at_ms  INTEGER NOT NULL,
+  last_error    TEXT    NOT NULL
+);
+CREATE INDEX IF NOT EXISTS jobs_ready ON jobs (status, run_after_ms);
+"""
+
+pub fn open(path: string) -> Db {
+  let db = sqlite.open(path)
+  db.exec(SCHEMA)
+  return db
+}
+
+// ---------------------------------------------------------------------------
+// Reading a row
+// ---------------------------------------------------------------------------
+
+// The column names, written once. Every read below goes through these, so a
+// rename is one edit rather than a hunt through string literals that the
+// compiler cannot check.
+const C_ID = "id"
+const C_KIND = "kind"
+const C_PAYLOAD = "payload"
+const C_STATUS = "status"
+const C_ATTEMPTS = "attempts"
+const C_RUN_AFTER = "run_after_ms"
+const C_STATUS_AT = "status_at_ms"
+const C_LAST_ERROR = "last_error"
+
+// A row's column as text. Absent or non-text is `None` rather than a coerced
+// value: a column this code cannot read is a corrupt row, and `String(value)`
+// would turn a missing column into the string "undefined" and store it.
+fn text_at(row: Row, column: string) -> Option<string> {
+  let cell = row[column]
+  return match cell {
+    is string => Some(cell),
+    else => None,
+  }
+}
+
+fn int_at(row: Row, column: string) -> Option<int> {
+  let cell = row[column]
+  return match cell {
+    is number => Some(cell),
+    else => None,
+  }
+}
+
+// Turn a row into a job, or say which column defeated it.
+//
+// Returning a `Result` rather than throwing means one corrupt row is a row the
+// operator can be told about, not a worker that dies on startup and takes the
+// whole queue down with it.
+pub fn decode(row: Row) -> Result<Job, StoreError> {
+  let id = match int_at(row, C_ID) {
+    Some(v) => v,
+    None => { return Err(Corrupt({ id: 0, reason: "id is not an integer" })) },
+  }
+  let kind = match text_at(row, C_KIND) {
+    Some(v) => v,
+    None => { return Err(Corrupt({ id: id, reason: "kind is not text" })) },
+  }
+  let payload = match text_at(row, C_PAYLOAD) {
+    Some(v) => v,
+    None => { return Err(Corrupt({ id: id, reason: "payload is not text" })) },
+  }
+  let attempts = match int_at(row, C_ATTEMPTS) {
+    Some(v) => v,
+    None => { return Err(Corrupt({ id: id, reason: "attempts is not an integer" })) },
+  }
+  let run_after = match int_at(row, C_RUN_AFTER) {
+    Some(v) => v,
+    None => { return Err(Corrupt({ id: id, reason: "run_after_ms is not an integer" })) },
+  }
+  let status_at = match int_at(row, C_STATUS_AT) {
+    Some(v) => v,
+    None => { return Err(Corrupt({ id: id, reason: "status_at_ms is not an integer" })) },
+  }
+  let last_error = match text_at(row, C_LAST_ERROR) {
+    Some(v) => v,
+    None => "",
+  }
+  let name = match text_at(row, C_STATUS) {
+    Some(v) => v,
+    None => { return Err(Corrupt({ id: id, reason: "status is not text" })) },
+  }
+  let status = match job.name_status(name, status_at, last_error) {
+    Some(s) => s,
+    None => { return Err(Corrupt({ id: id, reason: "unknown status ${name}" })) },
+  }
+  return Ok({
+    id: id,
+    kind: kind,
+    payload: payload,
+    status: status,
+    attempts: attempts,
+    run_after_ms: run_after,
+  })
+}
+
+// Decode a batch, dropping nothing silently: a row that will not decode is
+// reported alongside the ones that did.
+pub type Decoded = { jobs: Array<Job>, broken: Array<StoreError> }
+
+pub fn decode_all(rows: Array<Row>) -> Decoded {
+  let jobs: Array<Job> = []
+  let broken: Array<StoreError> = []
+  for row in rows {
+    match decode(row) {
+      Ok(j) => { mut jobs = array.push(jobs, j) },
+      Err(e) => { mut broken = array.push(broken, e) },
+    }
+  }
+  return { jobs: jobs, broken: broken }
+}
+
+// ---------------------------------------------------------------------------
+// Writing
+// ---------------------------------------------------------------------------
+
+pub fn enqueue(db: Db, kind: string, payload: string, now_ms: int) -> int {
+  let _ = db.run(
+    "INSERT INTO jobs (kind, payload, status, attempts, run_after_ms, status_at_ms, last_error)
+     VALUES (?, ?, 'queued', 0, ?, ?, '')",
+    [kind, payload, now_ms, now_ms],
+  )
+  return db.last_insert_id()
+}
+
+// Take the next due job, atomically.
+//
+// The `UPDATE ... WHERE id = (SELECT ...)` is one statement, so SQLite's write
+// lock decides the winner when several workers race. Doing it as a `SELECT`
+// then an `UPDATE` would let two workers read the same row and both claim it,
+// which is the classic way a queue delivers a job twice.
+pub fn claim_next(db: Db, now_ms: int) -> Result<Option<Job>, StoreError> {
+  let changed = db.run(
+    "UPDATE jobs SET status = 'running', attempts = attempts + 1, status_at_ms = ?
+     WHERE id = (
+       SELECT id FROM jobs
+       WHERE status IN ('queued', 'failed') AND run_after_ms <= ?
+       ORDER BY run_after_ms, id LIMIT 1
+     )",
+    [now_ms, now_ms],
+  )
+  return match changed == 0 {
+    true => Ok(None),
+    false => match db.query_one(
+      "SELECT * FROM jobs WHERE status = 'running' AND status_at_ms = ? ORDER BY id LIMIT 1",
+      [now_ms],
+    ) {
+      None => Ok(None),
+      Some(row) => match decode(row) {
+        Ok(j) => Ok(Some(j)),
+        Err(e) => Err(e),
+      },
+    },
+  }
+}
+
+// Write a settled job back. The whole row is written rather than a delta, so
+// the stored state is always exactly what the state machine produced.
+pub fn save(db: Db, current: Job, now_ms: int) -> Result<void, StoreError> {
+  let error_text = match job.last_error(current) {
+    Some(e) => e,
+    None => "",
+  }
+  let changed = db.run(
+    "UPDATE jobs SET status = ?, attempts = ?, run_after_ms = ?, status_at_ms = ?, last_error = ?
+     WHERE id = ?",
+    [
+      job.status_name(current.status),
+      current.attempts,
+      current.run_after_ms,
+      now_ms,
+      error_text,
+      current.id,
+    ],
+  )
+  return match changed == 0 {
+    true => Err(Missing({ id: current.id })),
+    false => Ok(void),
+  }
+}
+
+// Hand back every job a dead worker was holding.
+pub fn release_lost(db: Db, now_ms: int, lease_ms: int) -> int {
+  return db.run(
+    "UPDATE jobs SET status = 'queued', status_at_ms = ?, run_after_ms = ?
+     WHERE status = 'running' AND status_at_ms < ?",
+    [now_ms, now_ms, now_ms - lease_ms],
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Reading
+// ---------------------------------------------------------------------------
+
+pub fn get(db: Db, id: int) -> Result<Job, StoreError> {
+  return match db.query_one("SELECT * FROM jobs WHERE id = ?", [id]) {
+    None => Err(Missing({ id: id })),
+    Some(row) => decode(row),
+  }
+}
+
+pub fn recent(db: Db, limit: int) -> Decoded {
+  return decode_all(db.query("SELECT * FROM jobs ORDER BY id DESC LIMIT ?", [limit]))
+}
+
+pub type Counts = {
+  queued: int,
+  running: int,
+  done: int,
+  failed: int,
+  dead: int,
+}
+
+// One grouped query rather than five counts, so the numbers describe a single
+// moment. Five separate statements can report a job in two states at once when
+// a worker moves it between them.
+pub fn counts(db: Db) -> Counts {
+  let tally: Counts = { queued: 0, running: 0, done: 0, failed: 0, dead: 0 }
+  for row in db.query("SELECT status, COUNT(*) AS n FROM jobs GROUP BY status", []) {
+    let name = match text_at(row, C_STATUS) {
+      Some(v) => v,
+      None => "",
+    }
+    let n = match int_at(row, "n") {
+      Some(v) => v,
+      None => 0,
+    }
+    mut tally = with_count(tally, name, n)
+  }
+  return tally
+}
+
+fn with_count(tally: Counts, name: string, n: int) -> Counts {
+  return match name {
+    "queued" => { queued: n, running: tally.running, done: tally.done, failed: tally.failed, dead: tally.dead },
+    "running" => { queued: tally.queued, running: n, done: tally.done, failed: tally.failed, dead: tally.dead },
+    "done" => { queued: tally.queued, running: tally.running, done: n, failed: tally.failed, dead: tally.dead },
+    "failed" => { queued: tally.queued, running: tally.running, done: tally.done, failed: n, dead: tally.dead },
+    "dead" => { queued: tally.queued, running: tally.running, done: tally.done, failed: tally.failed, dead: n },
+    else => tally,
+  }
+}

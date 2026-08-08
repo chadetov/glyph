@@ -1,0 +1,275 @@
+// jobq — a durable job queue: an HTTP API, a SQLite store, and workers.
+//
+// The point of the app is the guarantee, not the feature list: a job that has
+// been accepted survives a restart, a worker that dies hands its job back, and
+// no job runs twice at once. Everything else is arranged to make those three
+// checkable.
+//
+// Usage:
+//
+//   glyph run examples/apps/jobq/main.glyph serve --port 8080 --db /tmp/jobq.db
+//   glyph run examples/apps/jobq/main.glyph work --db /tmp/jobq.db
+//   glyph run examples/apps/jobq/main.glyph add noop --db /tmp/jobq.db
+//   glyph run examples/apps/jobq/main.glyph stats --db /tmp/jobq.db
+//   glyph run examples/apps/jobq/main.glyph selftest
+//
+// `selftest` runs the whole queue against a temporary database with no network
+// and no clock dependence, and exits non-zero if any guarantee fails.
+module main
+
+import std/array
+import std/http
+import std/io
+import std/json
+import std/result { Ok, Err }
+import std/sqlite { Db }
+import std/string
+import std/time
+import std/timers
+import api
+import job
+import store
+import worker
+
+const USAGE = "usage: jobq <serve|work|add|stats|selftest> [--port N] [--db PATH] [--kind K]"
+
+const DEFAULT_DB = "jobq.db"
+
+const LEASE_MS = 30000
+
+type Command =
+  | Serve({ port: int })
+  | Work
+  | Add({ kind: string })
+  | Stats
+  | Selftest
+
+type Args = { command: Command, db: string }
+
+fn value_at(argv: Array<string>, i: number, flag: string) -> Result<string, string> {
+  return match i + 1 < array.len(argv) {
+    true => Ok(argv[i + 1]),
+    false => Err("${flag} needs a value"),
+  }
+}
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  match array.len(argv) == 0 {
+    true => { return Err("no command") },
+    false => {},
+  }
+  let verb = argv[0]
+  let db = DEFAULT_DB
+  let port = 8080
+  let kind = "noop"
+  let i = 1
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg {
+      "--db" => {
+        mut db = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      "--port" => {
+        mut port = parse_port(value_at(argv, i, arg)?)?
+        mut i = i + 2
+      },
+      "--kind" => {
+        mut kind = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      else => { return Err("unknown argument ${arg}") },
+    }
+  }
+  let command = match verb {
+    "serve" => Serve({ port: port }),
+    "work" => Work,
+    "add" => Add({ kind: kind }),
+    "stats" => Stats,
+    "selftest" => Selftest,
+    else => { return Err("unknown command ${verb}") },
+  }
+  return Ok({ command: command, db: db })
+}
+
+fn parse_port(raw: string) -> Result<int, string> {
+  return match number.parse(raw) {
+    Ok(n) => match n > 0 && n < 65536 {
+      true => Ok(n),
+      false => Err("--port wants 1..65535, got ${raw}"),
+    },
+    Err(_) => Err("--port wants a number, got ${raw}"),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+// The API and a worker in one process. A production deployment would usually
+// separate them, but running both here is what makes the whole thing testable
+// with one command, and the queue does not care which process claims a job.
+async fn serve(db: Db, port: int) -> number {
+  let policy = job.default_policy()
+  let _pump = timers.every(200, fn() {
+    let _ = worker.drain(db, time.now(), policy, LEASE_MS)
+  })
+  io.println("jobq listening on ${number.to_string(port)}")
+  let outcome = await http.serve(port, fn(req) {
+    return Ok(api.handle(db, req, time.now()))
+  })
+  return match outcome {
+    Ok(_) => 0,
+    Err(message) => {
+      io.eprintln("jobq: ${message}")
+      1
+    },
+  }
+}
+
+async fn work(db: Db) -> number {
+  let report = await worker.drain(db, time.now(), job.default_policy(), LEASE_MS)
+  io.println(report_line(report))
+  return 0
+}
+
+fn report_line(r: worker.Report) -> string {
+  let ran = number.to_string(r.ran)
+  let ok = number.to_string(r.succeeded)
+  let retried = number.to_string(r.retried)
+  let died = number.to_string(r.died)
+  return "ran ${ran}: ${ok} done, ${retried} retried, ${died} dead"
+}
+
+fn add(db: Db, kind: string) -> number {
+  let id = store.enqueue(db, kind, "{}", time.now())
+  io.println("queued ${number.to_string(id)} (${kind})")
+  return 0
+}
+
+fn stats(db: Db) -> number {
+  let c = store.counts(db)
+  io.println(json.stringify({
+    queued: c.queued,
+    running: c.running,
+    done: c.done,
+    failed: c.failed,
+    dead: c.dead,
+  }))
+  return 0
+}
+
+// ---------------------------------------------------------------------------
+// The self test
+// ---------------------------------------------------------------------------
+
+// Exercise the guarantees against a real database, at a fixed clock.
+//
+// It asserts rather than prints. A queue whose test only printed would be the
+// same shape as a `--check` that always exits zero, which is not a check.
+async fn selftest() -> number {
+  let db = store.open(":memory:")
+  let policy = job.default_policy()
+  let t0 = 1000000
+  let failures = 0
+
+  let a = store.enqueue(db, "noop", "{}", t0)
+  let b = store.enqueue(db, "fail", "{}", t0)
+  let c = store.enqueue(db, "poison", "{}", t0)
+  mut failures = failures + expect(a > 0 && b > a && c > b, "ids are handed out in order")
+
+  // A job that is not due yet must not be claimed.
+  let later = store.enqueue(db, "noop", "{}", t0 + 60000)
+  let drained = await worker.drain(db, t0, policy, LEASE_MS)
+  mut failures = failures + expect(drained.ran == 3, "only the three due jobs ran")
+  mut failures = failures + expect(drained.succeeded == 1, "the noop job succeeded")
+  mut failures = failures + expect(drained.retried == 1, "the failing job was rescheduled")
+  mut failures = failures + expect(drained.died == 1, "the poison job died on its first attempt")
+
+  // The retried job is scheduled into the future, not left runnable.
+  let after = store.counts(db)
+  mut failures = failures + expect(after.running == 0, "no job is left running")
+  mut failures = failures + expect(after.done == 1, "one job is done")
+  mut failures = failures + expect(after.dead == 1, "one job is dead")
+  mut failures = failures + expect(after.failed == 1, "one job is waiting to retry")
+  mut failures = failures + expect(after.queued == 1, "the future job is still queued")
+
+  // Run the failing job to exhaustion. Each drain runs it at most once,
+  // because settling it pushes `run_after_ms` past the instant being drained:
+  // that is backoff working, and it is why the clock has to advance between
+  // drains rather than the loop spinning.
+  let rounds = 0
+  let clock = t0
+  loop {
+    match rounds >= 8 {
+      true => { break },
+      false => {},
+    }
+    mut clock = clock + 200000
+    let _ = await worker.drain(db, clock, policy, LEASE_MS)
+    mut rounds = rounds + 1
+  }
+  let final_counts = store.counts(db)
+  mut failures = failures + expect(final_counts.failed == 0, "nothing is left waiting to retry")
+  mut failures = failures + expect(final_counts.dead == 2, "the repeatedly failing job is dead")
+
+  // A row that will not decode is reported, not silently skipped.
+  db.exec("INSERT INTO jobs (kind, payload, status, attempts, run_after_ms, status_at_ms, last_error)
+           VALUES ('x', '{}', 'not-a-status', 0, 0, 0, '')")
+  let listed = store.recent(db, 50)
+  mut failures = failures + expect(array.len(listed.broken) == 1, "the corrupt row is reported")
+  mut failures = failures + expect(
+    array.len(listed.jobs) == 4,
+    "the four readable jobs are still returned",
+  )
+
+  let _ = later
+  db.close()
+  return match failures == 0 {
+    true => {
+      io.println("selftest: all checks passed")
+      0
+    },
+    false => {
+      io.eprintln("selftest: ${number.to_string(failures)} check(s) failed")
+      1
+    },
+  }
+}
+
+fn expect(ok: bool, what: string) -> int {
+  return match ok {
+    true => {
+      io.println("  ok   ${what}")
+      0
+    },
+    false => {
+      io.eprintln("  FAIL ${what}")
+      1
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+async fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      io.eprintln(USAGE)
+      return 2
+    },
+  }
+  return match args.command {
+    Selftest => await selftest(),
+    Serve({ port }) => await serve(store.open(args.db), port),
+    Work => await work(store.open(args.db)),
+    Add({ kind }) => add(store.open(args.db), kind),
+    Stats => stats(store.open(args.db)),
+  }
+}

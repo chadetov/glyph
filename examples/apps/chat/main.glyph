@@ -36,6 +36,7 @@ import protocol
 import render
 import server
 import wire { SessionFile, Turn }
+import daemon
 
 const DEFAULT_DIR = "examples/apps/chat"
 
@@ -57,6 +58,7 @@ type Mode =
 type Source =
   | FromFile({ path: string })
   | FromStdin
+  | Listen({ port: int })
 
 type Args = { source: Source, mode: Mode, limit: Option<int> }
 
@@ -87,6 +89,7 @@ fn parse_args(argv: Array<string>) -> Result<Args, string> {
   let from_stdin = false
   let mode: Mode = Transcript
   let limit: Option<int> = None
+  let port: Option<int> = None
   let i = 0
   loop {
     match i >= array.len(argv) {
@@ -98,6 +101,10 @@ fn parse_args(argv: Array<string>) -> Result<Args, string> {
       "--stdin" => {
         mut from_stdin = true
         mut i = i + 1
+      },
+      "--serve" => {
+        mut port = Some(parse_count(value_at(argv, i, arg)?)?)
+        mut i = i + 2
       },
       "--rooms" => {
         mut mode = Rooms
@@ -122,9 +129,12 @@ fn parse_args(argv: Array<string>) -> Result<Args, string> {
       else => { return Err("unknown argument ${arg}") },
     }
   }
-  let source = match from_stdin {
-    true => FromStdin,
-    false => FromFile({ path: path.join([dir, session]) }),
+  let source = match port {
+    Some(p) => Listen({ port: p }),
+    None => match from_stdin {
+      true => FromStdin,
+      false => FromFile({ path: path.join([dir, session]) }),
+    },
   }
   return Ok({ source: source, mode: mode, limit: limit })
 }
@@ -296,8 +306,20 @@ fn main(argv: Array<string>) -> number {
     },
   }
 
+  // Serving is not a mode of the replay: it never produces a final state to
+  // report, because it does not end. It starts the listener and hands the
+  // process over to socket events.
+  match args.source {
+    Listen({ port }) => {
+      daemon.serve(port)
+      return 0
+    },
+    _ => {},
+  }
+
   let state: Server = match args.source {
     FromStdin => converse(args.limit),
+    Listen(_) => server.empty(),
     FromFile({ path }) => match load_file(path) {
       Ok(session) => {
         let done = replay(session.turns, args.limit)

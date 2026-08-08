@@ -1,0 +1,282 @@
+// The server process: real sockets, several clients at once.
+//
+// Everything above this file is pure. `server.apply` folds one command into a
+// new state plus the events it caused, `audience.recipients` says who those
+// events are for, and `render` turns them into lines. This module is the only
+// place that touches a socket, and all it does is move bytes between those
+// three and the network.
+//
+// The state that has to survive between callbacks is a connection registry and
+// one `Server` value. Both live in `serve` and are captured by the listeners.
+//
+// `grep -n "^\s*mut "` finds every mutation, which is the point of D5, but on
+// this file it is a blunt instrument: of its hits, only the assignments to
+// `conns`, `state` and `next_id` change anything that outlives a callback. The
+// rest are `mut socket.on(...)`, `mut socket.write(...)` and friends, which D5
+// counts because they are method calls, not because they mutate this program's
+// state. Grepping for `mut conns` or `mut state` is the audit worth running
+// here.
+module daemon
+
+import std/array
+import std/io
+import std/option { Option, Some, None }
+import std/process
+import std/string
+import net { createServer, Socket }
+import audience
+import framing
+import model
+import model { Server, Event }
+import protocol
+import render
+import server
+
+// One connected client.
+//
+// `nick` is the identity the engine knows this socket by, and it changes when
+// the client sends `/nick`, so it is stored per connection rather than derived.
+// `buffered` is the half line left over from the last chunk (see `framing`).
+type Conn = {
+  id: int,
+  nick: string,
+  socket: Socket,
+  buffered: string,
+}
+
+// What one line from one client did: the new engine state, the lines each nick
+// should be sent, and the events themselves.
+//
+// The events are kept alongside the rendered writes because the socket layer
+// has to react to one of them: a `Renamed` means the connection's identity
+// changed, and that is not recoverable from the rendered text.
+type Outcome = { state: Server, writes: Array<Write>, events: Array<Event> }
+
+type Write = { to: string, lines: Array<string> }
+
+// ---------------------------------------------------------------------------
+// Turning one client line into addressed writes
+// ---------------------------------------------------------------------------
+
+// A parse failure or a rejected command is reported to the sender alone. The
+// other clients have no reason to see it, and a server that broadcast every
+// typo would be unusable.
+fn only(to: string, lines: Array<string>) -> Array<Write> {
+  return [{ to: to, lines: lines }]
+}
+
+// Fan one event out to its recipients, each as its own addressed write.
+fn spread(state: Server, from: string, event: Event) -> Array<Write> {
+  let lines = render.event_lines(event)
+  let nicks = audience.recipients(state, from, event)
+  return array.map(nicks, fn(nick) { return { to: nick, lines: lines } })
+}
+
+// One line from one client, against the current engine state.
+//
+// The engine is not told about sockets and this function is not told about
+// them either: it returns who should be written to, and `serve` does the
+// writing. That keeps the whole request path testable without a network.
+pub fn handle(state: Server, from: string, line: string) -> Outcome {
+  return match protocol.parse(line) {
+    Err(bad) => {
+      state: state,
+      writes: only(from, [render.protocol_error(bad)]),
+      events: [],
+    },
+    Ok(command) => match server.apply(state, from, command) {
+      Err(failure) => {
+        state: state,
+        writes: only(from, [render.chat_error(failure)]),
+        events: [],
+      },
+      Ok(applied) => {
+        let writes = array.flat_map(applied.events, fn(event) {
+          return spread(applied.server, from, event)
+        })
+        { state: applied.server, writes: writes, events: applied.events }
+      },
+    },
+  }
+}
+
+// The engine renames a user in place; the connection holding that socket has to
+// follow, or the next command from it arrives under a nick nobody is using.
+fn renamed_to(events: Array<Event>, current: string) -> Option<string> {
+  return array.fold(events, None, fn(found: Option<string>, event: Event) {
+    return match event {
+      model.Renamed({ from, to }) => match from == current {
+        true => Some(to),
+        false => found,
+      },
+      _ => found,
+    }
+  })
+}
+
+// ---------------------------------------------------------------------------
+// The socket layer
+// ---------------------------------------------------------------------------
+
+// Start listening. Returns nothing: from here on the process is driven by
+// socket events until it is killed.
+pub fn serve(port: int) {
+  let state = server.empty()
+  let conns: Array<Conn> = []
+  let next_id = 1
+
+  let listener = createServer(fn(socket) {
+    let id = next_id
+    let nick = "guest${number.to_string(id)}"
+    mut next_id = next_id + 1
+    mut conns = array.push(conns, {
+      id: id,
+      nick: nick,
+      socket: socket,
+      buffered: "",
+    })
+    mut socket.setEncoding("utf8")
+    mut socket.setNoDelay(true)
+    send(socket, ["welcome to chat. you are ${nick}. try /join #general"])
+    io.println("connect ${nick} (#${number.to_string(id)})")
+
+    mut socket.on("data", fn(chunk) {
+      let framed = framing.feed(buffer_of(conns, id), chunk)
+      mut conns = with_buffer(conns, id, framed.rest)
+      for line in framed.lines {
+        let speaker = nick_of(conns, id)
+        let outcome = handle(state, speaker, line)
+        mut state = outcome.state
+        // The rename lands before the writes go out, not after. Writes are
+        // addressed to the nick the engine now knows, so a connection still
+        // registered under the old one would be skipped and the client would
+        // never see its own `/nick` take effect.
+        mut conns = follow_rename(conns, id, speaker, outcome)
+        deliver(conns, outcome.writes)
+      }
+    })
+
+    // A failed write (the peer vanished mid-broadcast) is not the place to
+    // deregister: Node always follows `error` with `close`, so removing the
+    // connection here would leave `close` unable to find the nick it is meant
+    // to announce, and the client would quietly leave under a stale name.
+    mut socket.on("error", fn(_) {})
+
+    // Deregistering happens exactly once, here. Looking the connection up
+    // rather than assuming it is present means a socket that somehow closes
+    // twice is a no-op instead of a second `/quit` from a nick that already
+    // left.
+    mut socket.on("close", fn() {
+      match find(conns, id) {
+        None => {},
+        Some(gone) => {
+          let speaker = gone.nick
+          mut conns = drop(conns, id)
+          let parting = handle(state, speaker, "/quit")
+          mut state = parting.state
+          deliver(conns, parting.writes)
+          io.println("disconnect ${speaker}")
+        },
+      }
+    })
+  })
+
+  // A listener error is fatal and has to say so itself.
+  //
+  // `main` has already returned by the time this fires, so its return value is
+  // long since spent: the process would otherwise drain its loop and exit 0,
+  // reporting success for a server that never bound its port. Anything a
+  // program decides after `main` returns has to set its own exit code.
+  mut listener.on("error", fn(err) {
+    io.eprintln("chat: cannot listen on ${number.to_string(port)}: ${err.message}")
+    process.exit(1)
+  })
+
+  mut listener.listen(port, fn() {
+    io.println("chat listening on ${number.to_string(port)}")
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Registry helpers
+//
+// The registry is an array rather than a Record because it is keyed by
+// connection id and iterated far more often than it is looked up, and it stays
+// small.
+// ---------------------------------------------------------------------------
+
+fn find(conns: Array<Conn>, id: int) -> Option<Conn> {
+  return array.find(conns, fn(c) { return c.id == id })
+}
+
+fn buffer_of(conns: Array<Conn>, id: int) -> string {
+  return match find(conns, id) {
+    Some(c) => c.buffered,
+    None => "",
+  }
+}
+
+fn nick_of(conns: Array<Conn>, id: int) -> string {
+  return match find(conns, id) {
+    Some(c) => c.nick,
+    None => "guest${number.to_string(id)}",
+  }
+}
+
+fn with_buffer(conns: Array<Conn>, id: int, rest: string) -> Array<Conn> {
+  return array.map(conns, fn(c) {
+    return match c.id == id {
+      true => { id: c.id, nick: c.nick, socket: c.socket, buffered: rest },
+      false => c,
+    }
+  })
+}
+
+fn with_nick(conns: Array<Conn>, id: int, nick: string) -> Array<Conn> {
+  return array.map(conns, fn(c) {
+    return match c.id == id {
+      true => { id: c.id, nick: nick, socket: c.socket, buffered: c.buffered },
+      false => c,
+    }
+  })
+}
+
+fn follow_rename(
+  conns: Array<Conn>,
+  id: int,
+  speaker: string,
+  outcome: Outcome,
+) -> Array<Conn> {
+  return match renamed_to(outcome.events, speaker) {
+    Some(fresh) => with_nick(conns, id, fresh),
+    None => conns,
+  }
+}
+
+fn drop(conns: Array<Conn>, id: int) -> Array<Conn> {
+  return array.filter(conns, fn(c) { return c.id != id })
+}
+
+// ---------------------------------------------------------------------------
+// Writing
+// ---------------------------------------------------------------------------
+
+fn send(socket: Socket, lines: Array<string>) {
+  for line in lines {
+    mut socket.write("${line}\n")
+  }
+}
+
+// A write addressed to a nick reaches every connection using it. A nick with
+// no live connection (one that just closed) is skipped rather than an error:
+// the client is gone, and the state it left behind is still consistent.
+fn deliver(conns: Array<Conn>, writes: Array<Write>) {
+  for w in writes {
+    for c in conns {
+      match c.nick == w.to {
+        true => send(c.socket, w.lines),
+        false => {},
+      }
+    }
+  }
+}

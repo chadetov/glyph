@@ -186,6 +186,28 @@ impl StdlibStubs {
         s.add("std/sqlite", &["Db", "Row", "open"]);
         // Exact base-10 fixed-point arithmetic (money) over BigInt, no floats.
         s.add("std/decimal", &["Decimal", "decimal", "from_int", "zero"]);
+        // Scheduling. A global in JavaScript, so this module is the only way a
+        // Glyph program can reach it, and every long-running program needs one.
+        s.add(
+            "std/timers",
+            &["Timer", "after", "every", "cancel", "unref", "sleep"],
+        );
+        // A WebSocket client. Each event is its own function taking what that
+        // event carries, so no handler parameter is left to be narrowed.
+        s.add(
+            "std/websocket",
+            &[
+                "Socket",
+                "connect",
+                "on_open",
+                "on_message",
+                "on_close",
+                "on_error",
+                "send",
+                "close",
+                "is_open",
+            ],
+        );
         // Untrusted-input discipline as types: Tainted/Trusted with sanitize.
         s.add(
             "std/taint",

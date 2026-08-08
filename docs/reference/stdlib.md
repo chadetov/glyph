@@ -593,6 +593,67 @@ stream.bools() -> Stream<bool>                  // alternating
 stream.from<T>(values: Array<T>) -> Stream<T>   // cycle through a fixed list
 ```
 
+## std/timers
+
+Run something later, or repeatedly, and stop it again.
+
+Scheduling is a global in JavaScript, and Glyph resolves imported module names
+rather than ambient globals, so this module is the only way to reach it. Any
+long-running program needs it: a heartbeat, a retry, a poll.
+
+A pending timer keeps the process alive, which is what makes a scheduled
+program a program rather than a script that exits. `unref` opts a background
+tick out of that.
+
+```
+type Timer                                          // opaque; give it to cancel
+
+timers.after(delay_ms: number, handler: fn()) -> Timer     // once
+timers.every(interval_ms: number, handler: fn()) -> Timer  // until cancelled
+timers.cancel(timer: Timer) -> void                        // safe to repeat
+timers.unref(timer: Timer) -> Timer                        // stop holding the process open
+timers.sleep(delay_ms: number) -> Promise<void>            // for `await`
+```
+
+`cancel` takes a timer from either constructor, and cancelling one that has
+already fired does nothing, so teardown paths are safe to run more than once.
+
+## std/websocket
+
+A WebSocket client.
+
+Each event is its own function taking exactly what that event carries, rather
+than the host's `addEventListener(name, handler)` with an event object whose
+useful field depends on the name. So every handler parameter is typed, and an
+event name cannot be misspelled because there are no event-name strings.
+
+```
+type Socket
+
+websocket.connect(url: string) -> Socket            // ws:// or wss://; returns before it opens
+
+websocket.on_open(socket: Socket, handler: fn()) -> void
+websocket.on_message(socket: Socket, handler: fn(text: string)) -> void
+websocket.on_close(socket: Socket, handler: fn(code: number, reason: string)) -> void
+websocket.on_error(socket: Socket, handler: fn()) -> void
+
+websocket.send(socket: Socket, text: string) -> bool   // false if not open
+websocket.close(socket: Socket) -> void                // safe to repeat
+websocket.is_open(socket: Socket) -> bool
+```
+
+`connect` returns before the connection is established: register handlers
+first and write in `on_open`. `send` into a socket that is not open reports
+`false` rather than throwing, so a frame racing a disconnect is a value you can
+act on instead of an exception on a callback stack you do not control.
+
+`on_close` is handed the code because that is what separates an outage worth
+retrying from a rejection that will be rejected identically forever. A close
+with no code reports 1006, which is what a connection that failed before
+opening produces.
+
+Only text is delivered; a binary frame is decoded as UTF-8.
+
 ## std/test
 
 ```

@@ -164,6 +164,117 @@ declare module "node:string_decoder" {
   export * from "string_decoder";
 }
 
+// TCP. Enough of `net` to write a server that accepts several clients and a
+// client that talks to one. A Glyph program reaching for a socket previously
+// had to hand-write this declaration itself, which meant writing TypeScript to
+// use a Node builtin the language already claims to support.
+//
+// Event names are literal types rather than `string`, so a mistyped
+// `socket.on("dtaa", ...)` is a compile error and each listener's parameters
+// are known instead of `any`.
+declare module "net" {
+  export interface Socket {
+    on(event: "data", listener: (chunk: string) => void): Socket;
+    on(event: "close", listener: () => void): Socket;
+    on(event: "error", listener: (err: Error) => void): Socket;
+    on(event: "connect", listener: () => void): Socket;
+    on(event: "end", listener: () => void): Socket;
+    write(data: string): boolean;
+    end(): void;
+    destroy(): void;
+    setEncoding(encoding: string): void;
+    setNoDelay(noDelay: boolean): Socket;
+    setKeepAlive(enable: boolean, initialDelay?: number): Socket;
+    readonly remoteAddress: string | undefined;
+    readonly remotePort: number | undefined;
+  }
+
+  export interface Server {
+    listen(port: number, listener?: () => void): Server;
+    listen(port: number, host: string, listener?: () => void): Server;
+    close(listener?: () => void): Server;
+    on(event: "error", listener: (err: Error) => void): Server;
+    on(event: "close", listener: () => void): Server;
+    on(event: "listening", listener: () => void): Server;
+  }
+
+  export function createServer(listener: (socket: Socket) => void): Server;
+  export function connect(port: number, host: string, listener?: () => void): Socket;
+  export function createConnection(port: number, host: string, listener?: () => void): Socket;
+}
+declare module "node:net" {
+  export * from "net";
+}
+
+// Scheduling, as the module form of the globals. `std/timers` is the Glyph-shaped
+// way to reach these; this declaration is here so a program that imports the
+// builtin directly (or an npm package that does) still type-checks.
+declare module "timers" {
+  export function setTimeout(handler: () => void, ms?: number): object;
+  export function setInterval(handler: () => void, ms?: number): object;
+  export function setImmediate(handler: () => void): object;
+  export function clearTimeout(handle: object): void;
+  export function clearInterval(handle: object): void;
+  export function clearImmediate(handle: object): void;
+}
+declare module "node:timers" {
+  export * from "timers";
+}
+
+// The event emitter most Node APIs are built on. Declared so a program that
+// subclasses or holds one type-checks without `@types/node`.
+declare module "events" {
+  export class EventEmitter {
+    on(event: string, listener: (...args: never[]) => void): this;
+    once(event: string, listener: (...args: never[]) => void): this;
+    off(event: string, listener: (...args: never[]) => void): this;
+    emit(event: string, ...args: never[]): boolean;
+    removeAllListeners(event?: string): this;
+    listenerCount(event: string): number;
+  }
+  export default EventEmitter;
+}
+declare module "node:events" {
+  export * from "events";
+}
+
+// Spawning a process. `spawnSync`/`execFileSync` are the two a build script or
+// a CLI wrapper actually reaches for.
+declare module "child_process" {
+  export function spawnSync(
+    command: string,
+    args?: ReadonlyArray<string>,
+    options?: { cwd?: string; encoding?: string; input?: string; env?: Record<string, string> },
+  ): { status: number | null; stdout: string; stderr: string; error?: Error };
+  export function execFileSync(
+    command: string,
+    args?: ReadonlyArray<string>,
+    options?: { cwd?: string; encoding?: string; env?: Record<string, string> },
+  ): string;
+}
+declare module "node:child_process" {
+  export * from "child_process";
+}
+
+// DNS lookups, promise form.
+declare module "dns/promises" {
+  export function lookup(hostname: string): Promise<{ address: string; family: number }>;
+  export function resolve4(hostname: string): Promise<Array<string>>;
+  export function resolveTxt(hostname: string): Promise<Array<Array<string>>>;
+}
+declare module "node:dns/promises" {
+  export * from "dns/promises";
+}
+
+// Compression, the two calls that cover reading and writing a gzipped payload.
+declare module "zlib" {
+  export function gzipSync(data: GlyphBuffer | string): GlyphBuffer;
+  export function gunzipSync(data: GlyphBuffer): GlyphBuffer;
+}
+declare module "node:zlib" {
+  export * from "zlib";
+}
+
 declare module "node:sqlite" {
   export interface StatementSync {
     run(...params: unknown[]): { changes: number; lastInsertRowid: number };

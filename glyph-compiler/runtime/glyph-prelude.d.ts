@@ -16,6 +16,11 @@ declare const par: {
 /// Print a line to standard output (the prelude logging primitive).
 declare function print(message: string): void;
 
+/// Value equality for `==` / `!=` on anything that is not a known primitive.
+/// Compares records, tagged unions and arrays by structure, which is what the
+/// operator means; `===` alone made it reference equality for those.
+declare function __glyph_eq(a: unknown, b: unknown): boolean;
+
 /// Assert a condition (D26 `@doc @run` blocks). A false condition throws,
 /// failing the build that runs the doc example.
 declare function assert(condition: boolean): void;

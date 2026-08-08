@@ -2244,6 +2244,70 @@ impl<'a> Emitter<'a> {
         self.types.get(expr.span()).clone()
     }
 
+    /// Whether an operand's type is a primitive, so `===` already means value
+    /// equality for it.
+    ///
+    /// Deliberately conservative: anything the checker did not pin down
+    /// (`Unknown`, `unknown`, a generic parameter, an imported or opaque type)
+    /// is *not* treated as primitive, so it routes through the structural
+    /// comparison. That helper's first line is `a === b`, so an operand that
+    /// turns out to be a primitive at run time still costs one comparison and
+    /// gives the same answer.
+    fn is_primitive_operand(&self, e: &Expr) -> bool {
+        match self.scrutinee_ty(e) {
+            // `int` and `bigint` are named types over a primitive, and a
+            // string-literal union is a set of strings; all compare correctly
+            // with `===`.
+            Ty::Prim(_) | Ty::StringLiteralUnion(_) => true,
+            Ty::Named { ref symbol, ref path } => {
+                // `int` and `bigint` are named types over a primitive.
+                if matches!(
+                    path.last().map(|p| p.as_ref()),
+                    Some("int") | Some("bigint")
+                ) {
+                    return true;
+                }
+                // A module-local alias for something primitive, most often a
+                // string-literal union (`type Tier = "free" | "pro"`). Resolving
+                // it keeps `t == "pro"` a plain `===` in the emitted TypeScript
+                // rather than a helper call that would give the same answer more
+                // slowly and read worse.
+                self.local_alias_is_primitive(*symbol, path)
+            }
+            _ => false,
+        }
+    }
+
+    /// Whether a module-local `type X = ...` names a primitive or a
+    /// string-literal union. One level of alias only: a chain is rare, and
+    /// stopping keeps this from needing cycle detection for a formatting nicety.
+    fn local_alias_is_primitive(&self, symbol: glyph_typechecker::ty::SymbolRef, path: &[Ident]) -> bool {
+        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
+            return false;
+        };
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return false;
+        }
+        let SymbolKind::Type { decl_idx } = &sym.kind else {
+            return false;
+        };
+        let Some(Decl::Type(td)) = self.module.items.get(*decl_idx as usize) else {
+            return false;
+        };
+        match &td.body {
+            TypeExpr::Path { segments, .. } => matches!(
+                segments.last().map(|p| p.as_ref()),
+                Some("string") | Some("number") | Some("bool") | Some("int") | Some("bigint")
+            ),
+            // A union of string literals and nothing else.
+            TypeExpr::Union { variants, .. } => variants
+                .iter()
+                .all(|v| v.payload.is_none() && v.name.as_ref().starts_with('"')),
+            TypeExpr::StringLiteralUnion { .. } => true,
+            _ => false,
+        }
+    }
+
     /// Variant names of `outer_variant`'s payload union in `scrutinee_ty`, when
     /// that payload is itself a tagged union. Lets `degroup_nested_arms`
     /// recognize a nested *nullary* variant (`Err(Empty)` where `Empty` is a
@@ -3801,12 +3865,32 @@ impl<'a> Emitter<'a> {
             Expr::Binary {
                 op, left, right, ..
             } => {
-                format!(
-                    "({} {} {})",
-                    self.expr(left)?,
-                    bin_op(*op),
-                    self.expr(right)?
-                )
+                // `==` and `!=` are value equality (D42). `===` delivers that
+                // for primitives and nothing else: on a record, a tagged union
+                // or an array it compares references, so `Some("a") ==
+                // Some("a")` was false with no diagnostic, while the identical
+                // expression written as an `@example` compared structurally and
+                // passed. A test that reports success on code that does not
+                // work is the worst outcome the example gate can produce.
+                //
+                // `===` is still emitted whenever both sides are known
+                // primitives, which is most comparisons, so the common case is
+                // byte-identical to what it always was.
+                if matches!(op, BinOp::Eq | BinOp::NotEq)
+                    && !(self.is_primitive_operand(left) && self.is_primitive_operand(right))
+                {
+                    let l = self.expr(left)?;
+                    let r = self.expr(right)?;
+                    let bang = if matches!(op, BinOp::NotEq) { "!" } else { "" };
+                    format!("({bang}__glyph_eq({l}, {r}))")
+                } else {
+                    format!(
+                        "({} {} {})",
+                        self.expr(left)?,
+                        bin_op(*op),
+                        self.expr(right)?
+                    )
+                }
             }
             Expr::Unary { op, operand, .. } => {
                 let op = match op {
@@ -7952,6 +8036,56 @@ mod tests {
         let b_pos = f.find("b();").expect("b in finally");
         let a_pos = f.find("a();").expect("a in finally");
         assert!(b_pos < a_pos, "LIFO: b before a: {f}");
+    }
+
+    /// `==` is value equality, so a record or a tagged union compares by
+    /// structure rather than by reference.
+    ///
+    /// `===` gave reference equality the moment either side was an aggregate,
+    /// so `Some("a") == Some("a")` was false with no diagnostic, while the
+    /// identical expression written as an `@example` compared structurally and
+    /// passed. A test reporting success on code that does not work is the worst
+    /// thing the example gate can produce.
+    #[test]
+    fn equality_on_an_aggregate_compares_by_value() {
+        let ts = emit(
+            "module x\n\
+             pub type Point = { x: int, y: int }\n\
+             pub fn same(a: Point, b: Point) -> bool { return a == b }\n\
+             pub fn differs(a: Point, b: Point) -> bool { return a != b }\n",
+        );
+        assert!(ts.contains("__glyph_eq(a, b)"), "got: {ts}");
+        assert!(ts.contains("(!__glyph_eq(a, b))"), "`!=` negates it, got: {ts}");
+    }
+
+    /// Primitives keep `===`. That is most comparisons, so the emitted
+    /// TypeScript for ordinary code is unchanged, and the helper is not paid for
+    /// where it cannot change the answer.
+    #[test]
+    fn equality_on_primitives_stays_strict() {
+        let ts = emit(
+            "module x\n\
+             pub fn checks(n: int, s: string, b: bool) -> bool {\n\
+             \x20 return n == 1 && s == \"a\" && b == true\n\
+             }\n",
+        );
+        assert!(ts.contains("n === 1"), "got: {ts}");
+        assert!(ts.contains("s === \"a\""), "got: {ts}");
+        assert!(ts.contains("b === true"), "got: {ts}");
+        assert!(!ts.contains("__glyph_eq"), "no helper for primitives, got: {ts}");
+    }
+
+    /// A local alias for a string-literal union is still a primitive
+    /// comparison, so `tier == "pro"` reads as `===` in the output.
+    #[test]
+    fn equality_on_a_string_literal_alias_stays_strict() {
+        let ts = emit(
+            "module x\n\
+             pub type Tier = \"free\" | \"pro\"\n\
+             pub fn paid(t: Tier) -> bool { return t == \"pro\" }\n",
+        );
+        assert!(ts.contains("t === \"pro\""), "got: {ts}");
+        assert!(!ts.contains("__glyph_eq"), "got: {ts}");
     }
 
     /// `let _ = expr` discards rather than binding.

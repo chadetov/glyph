@@ -39,6 +39,37 @@ function print(message: string): void {
   console.log(message);
 }
 
+/**
+ * Value equality for `==` and `!=`.
+ *
+ * Glyph's `==` is a value comparison, which is what the operator has always
+ * been documented to mean. Emitting `===` made it a *reference* comparison the
+ * moment either side was a record, a tagged union, or an array, so
+ * `Some("a") == Some("a")` was false, silently, with no diagnostic. The same
+ * expression written as an `@example` compared structurally and passed, so a
+ * test could report that code worked while the code did not.
+ *
+ * `===` first, so primitives and identical references cost nothing. Function
+ * properties are skipped: a value's methods (a `Result`'s `map`, say) are
+ * behaviour rather than data, and they differ per instance.
+ */
+function __glyph_eq(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) {
+    return false;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((x, i) => __glyph_eq(x, b[i]));
+  }
+  const ao = a as Record<string, unknown>;
+  const bo = b as Record<string, unknown>;
+  const ak = Object.keys(ao).filter((k) => typeof ao[k] !== "function");
+  const bk = Object.keys(bo).filter((k) => typeof bo[k] !== "function");
+  if (ak.length !== bk.length) return false;
+  return ak.every((k) => Object.prototype.hasOwnProperty.call(bo, k) && __glyph_eq(ao[k], bo[k]));
+}
+
 function assert(condition: boolean): void {
   if (!condition) {
     throw new Error("assertion failed");
@@ -50,3 +81,4 @@ g.number = number;
 g.par = par;
 g.print = print;
 g.assert = assert;
+g.__glyph_eq = __glyph_eq;

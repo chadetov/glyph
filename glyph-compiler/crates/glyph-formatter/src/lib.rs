@@ -400,7 +400,7 @@ impl Printer {
     }
 
     fn interface_decl(&mut self, i: &glyph_ast::InterfaceDecl) {
-        self.annotations(&i.annotations);
+        self.annotations(&i.annotations, i.span.start);
         self.visibility(i.is_public);
         self.push("interface ");
         self.push(&i.name);
@@ -447,7 +447,18 @@ impl Printer {
         self.push("}\n");
     }
 
-    fn annotations(&mut self, anns: &[Annotation]) {
+    /// Emit a declaration's annotations, with any `//` comments the author put
+    /// between them.
+    ///
+    /// `keyword_start` is where the declaration itself begins (`fn`, `type`,
+    /// ...). Comments inside the annotation block have to be flushed here,
+    /// because the declaration-level flush ran at the *first annotation's*
+    /// offset and so passed over them. Left pending, they surfaced in the next
+    /// construct that flushes comments, which is the parameter list: a comment
+    /// written between two `@example` lines came out inside `fn f(...)`,
+    /// expanding the parameters to one per line to accommodate it. A formatter
+    /// that runs on save must never relocate a comment into unrelated syntax.
+    fn annotations(&mut self, anns: &[Annotation], keyword_start: u32) {
         // D27 fixes the order of annotation *kinds*, not the order of repeated
         // annotations of one kind. `sort_by` is stable, so several `@example`s
         // keep the order the author wrote them in — which is the order they read
@@ -457,6 +468,11 @@ impl Printer {
         let mut sorted: Vec<&Annotation> = anns.iter().collect();
         sorted.sort_by(|a, b| a.name.cmp(&b.name));
         for a in sorted {
+            // A comment the author wrote above this annotation stays above it.
+            // Repeated annotations of one kind keep source order, so for the
+            // common case (several `@example`s with notes between them) this is
+            // exactly where it was written.
+            self.flush_comments_before(a.span.start);
             self.push("@");
             self.push(&a.name);
             let args = a.raw_args.trim();
@@ -466,6 +482,8 @@ impl Printer {
             }
             self.push("\n");
         }
+        // A comment between the last annotation and the declaration keyword.
+        self.flush_comments_before(keyword_start);
     }
 
     fn import(&mut self, im: &ImportDecl) {
@@ -498,7 +516,7 @@ impl Printer {
     }
 
     fn fn_decl(&mut self, f: &FnDecl) {
-        self.annotations(&f.annotations);
+        self.annotations(&f.annotations, f.span.start);
         self.visibility(f.is_public);
         if f.is_async {
             self.push("async ");
@@ -520,7 +538,7 @@ impl Printer {
     }
 
     fn component_decl(&mut self, c: &ComponentDecl) {
-        self.annotations(&c.annotations);
+        self.annotations(&c.annotations, c.span.start);
         self.visibility(c.is_public);
         self.push("component ");
         self.push(&c.name);
@@ -539,7 +557,7 @@ impl Printer {
     }
 
     fn const_decl(&mut self, c: &ConstDecl) {
-        self.annotations(&c.annotations);
+        self.annotations(&c.annotations, c.span.start);
         self.visibility(c.is_public);
         self.push("const ");
         self.push(&c.name);
@@ -553,7 +571,7 @@ impl Printer {
     }
 
     fn type_decl(&mut self, t: &TypeDecl) {
-        self.annotations(&t.annotations);
+        self.annotations(&t.annotations, t.span.start);
         self.visibility(t.is_public);
         if t.is_resource {
             self.push("resource ");

@@ -175,7 +175,12 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
             location_value(&path, root, &text, &index, start, start)
         }
         Some(Definition::InModule { module_path, name }) => {
-            let file = root.join(&module_path).with_extension("glyph");
+            // The import path is counted from the *importing* file's project
+            // root (D41), which is the marked ancestor when there is one and the
+            // server's root otherwise.
+            let file = crate::project_root_for(&path, root)
+                .join(&module_path)
+                .with_extension("glyph");
             let ftext = std::fs::read_to_string(&file)
                 .map_err(|e| format!("cannot read {}: {e}", file.display()))?;
             let (start, end) = crate::analysis::find_symbol_span(&outline_of(&ftext), &name)
@@ -194,14 +199,18 @@ fn tool_references(args: &Value, root: &Path) -> Result<String, String> {
         return Ok("[]".to_string());
     };
     let offset = LineIndex::new(&text).offset(&text, line, character);
+    // Module paths, and so the search for other files naming this symbol, are
+    // scoped to the file's own project (D41): another project's `import lib`
+    // names its own `lib`, not this one.
+    let project = crate::project_root_for(&path, root);
     let this_module =
-        module_path_of(root, &path).ok_or("the file is not under the project root")?;
+        module_path_of(&project, &path).ok_or("the file is not under the project root")?;
 
     let mut out: Vec<Value> = Vec::new();
     match a.symbol_target(offset, &text, &this_module) {
         Some(SymbolTarget::Global { module, name }) => {
-            for (fpath, ftext) in workspace_files(root) {
-                let Some(fm) = module_path_of(root, &fpath) else {
+            for (fpath, ftext) in workspace_files(&project) {
+                let Some(fm) = module_path_of(&project, &fpath) else {
                     continue;
                 };
                 let Some(fa) = analyze_full(&ftext) else {

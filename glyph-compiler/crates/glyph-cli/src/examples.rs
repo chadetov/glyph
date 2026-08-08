@@ -66,7 +66,7 @@ struct FileExamples {
 /// neither copies the project nor builds anything.
 fn collect_project(src: &Path) -> Result<(Vec<FileExamples>, usize, usize), ExampleError> {
     let mut files = Vec::new();
-    collect_glyph_files(src, &mut files)?;
+    collect_glyph_files(src, src, &mut files)?;
     files.sort();
 
     let mut per_file = Vec::new();
@@ -374,7 +374,14 @@ fn remove_dir_all(path: &Path) -> Result<(), ExampleError> {
     })
 }
 
-fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), ExampleError> {
+/// Same boundary rule as the build walk: a nested Glyph project (D41) is not
+/// part of the enclosing project's compilation, so its `@example`s are not run
+/// from here either (they would not resolve against this root).
+fn collect_glyph_files(
+    dir: &Path,
+    project_root: &Path,
+    out: &mut Vec<PathBuf>,
+) -> Result<(), ExampleError> {
     for entry in std::fs::read_dir(dir).map_err(|e| ExampleError::Io {
         path: dir.to_path_buf(),
         source: e,
@@ -393,10 +400,13 @@ fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), Example
         }
         if meta.is_dir() {
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if name.starts_with('.') || name == "target" {
+            if name.starts_with('.') || name == "target" || name == "node_modules" {
                 continue;
             }
-            collect_glyph_files(&path, out)?;
+            if path != project_root && crate::config::is_project_root(&path) {
+                continue;
+            }
+            collect_glyph_files(&path, project_root, out)?;
         } else if meta.is_file() && path.extension().and_then(|e| e.to_str()) == Some("glyph") {
             out.push(path);
         }

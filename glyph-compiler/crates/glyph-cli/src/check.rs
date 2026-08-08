@@ -31,7 +31,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicU64;
 
-use crate::build::{build_project_inner, BuildError};
+use crate::build::{build_tree, BuildError};
 use crate::run::remove_dir_all_retry;
 use crate::runtime::TscOutcome;
 
@@ -81,6 +81,9 @@ pub struct CheckReport {
     /// `tsc`, because "we did not look" and "we looked and found nothing" are
     /// the two answers this command must never confuse.
     pub tsc_ran: bool,
+    /// Problems with the tree rather than with any source file: a `package.json`
+    /// that would not parse, so its directory is not a project root (D41).
+    pub notices: Vec<String>,
 }
 
 impl CheckReport {
@@ -136,10 +139,12 @@ pub fn check_path(
         if path.extension().and_then(|e| e.to_str()) != Some("glyph") {
             return Err(CheckError::NotGlyph(path.to_path_buf()));
         }
-        path.parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or_else(|| Path::new("."))
-            .to_path_buf()
+        // A file is checked in the context of its *project* (D41, P6): the
+        // nearest enclosing directory carrying a `package.json` with a `"glyph"`
+        // key, else its own directory, which is the pre-D41 behaviour and what
+        // `glyph run` uses for the same file. Relative and absolute spellings of
+        // the same file find the same project.
+        crate::config::project_for_file(path).src
     };
 
     // Scratch output, named by pid + counter, which is all the uniqueness a
@@ -171,7 +176,11 @@ fn check_in(
     with_color: bool,
     run_tsc: bool,
 ) -> Result<CheckReport, CheckError> {
-    let report = build_project_inner(src, out, with_color)?;
+    // A directory target may hold several Glyph projects (D41); each is built in
+    // its own root, and the reports are concatenated in project order by the
+    // same `flatten` the build command uses, so the two cannot drift.
+    let tree = build_tree(src, out, with_color)?;
+    let report = tree.flatten();
 
     let mut structured = report.structured.clone();
     let mut error_count = report.error_count;
@@ -183,7 +192,11 @@ fn check_in(
     // TypeScript errors would be noise about a cause already reported.
     if run_tsc && !report.has_errors() {
         tsc_ran = true;
-        tsc = crate::runtime::check_with_tsc(out)?;
+        // Each project is type-checked in its own output subtree, because that
+        // is where `build_project_inner` staged its runtime and wrote its
+        // `tsconfig.json`. Same walk `glyph build` runs, so a missing `tsc` is
+        // reported as missing in both.
+        tsc = crate::runtime::check_tree_with_tsc(&tree, out)?;
         if let TscOutcome::Failed(msg) = &tsc {
             let remapped_text =
                 crate::tscmap::remap_tsc_output(msg, &report.module_maps, with_color);
@@ -202,5 +215,6 @@ fn check_in(
         error_count,
         tsc,
         tsc_ran,
+        notices: tree.notices,
     })
 }

@@ -361,10 +361,12 @@ glyph build examples --out /tmp/out
 # compare examples/02_async_errors.glyph with /tmp/out/user_feed.ts
 ```
 
-`examples/` is not a single build root: each directory under `examples/apps/` is
-its own program and imports its siblings by bare name, so building the tree as
-one root reports their imports as unresolved (`E0104`). The five top-level
-examples still emit. See `examples/README.md`.
+That one command builds the whole tree. Each directory under `examples/apps/` is
+its own program whose modules import each other by bare name, and each carries a
+`package.json` with a `"glyph"` key. That marker makes the directory its own
+module-resolution root (D41), so a build over any enclosing tree compiles it in
+its own root and its bare-name imports resolve exactly as they do when you build
+the app on its own. See `examples/README.md`.
 
 The async-errors example is the best one to start with: the manual `Promise`
 error handling and discriminated-union plumbing that Glyph generates is exactly

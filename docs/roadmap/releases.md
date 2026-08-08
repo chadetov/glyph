@@ -3445,6 +3445,21 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **Mark the six apps under `examples/apps/` as projects, and collapse the CI
+  loop.** D41 landed the mechanism (a `package.json` with a `"glyph"` key is a
+  module-resolution root), but none of the apps carries the marker yet, so
+  `glyph build examples` still reports their sibling imports as E0104 and
+  `.github/workflows/ci.yml` still builds each app on its own from a copy of
+  `examples/` that excludes `apps/`. Adding the six manifests and reducing that
+  job to a single `glyph build ../examples` is what actually closes G78.
+- **One implementation of project-root resolution for the CLI and the LSP.**
+  `glyph-cli`'s `config::project_for_file` and `glyph-lsp`'s `project_root_for`
+  read the same marker the same way and have to keep agreeing, or
+  go-to-definition finds nothing in a tree `glyph build` compiles fine. They
+  cannot share code today because `glyph-cli` depends on `glyph-lsp`. Hoisting
+  the manifest reading onto a crate both can depend on is the fix; the duplicated
+  climb is pinned by tests on both sides until then.
+
 - **One name for the TypeScript stage: `--no-tsc`.** ✅ **done.** Shipping
   `glyph check --no-tsc` next to `build --no-check` and `run --no-check` gave one
   stage two names, so there was no single string to grep for "the flag that skips

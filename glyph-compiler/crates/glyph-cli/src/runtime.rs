@@ -275,9 +275,13 @@ pub(crate) fn find_project_node_modules(src: &Path) -> Option<PathBuf> {
         if candidate.is_dir() {
             return Some(candidate);
         }
-        // Reached the project root with no `node_modules` at or below it: stop
-        // rather than climb into an unrelated ancestor's dependencies.
-        if dir.join(".git").exists() || dir.join("package.json").is_file() {
+        // Reached the repository root with no `node_modules` at or below it:
+        // stop rather than climb into an unrelated ancestor's dependencies (a
+        // stray `$HOME/node_modules` is common). The stop is `.git` only, never
+        // the first `package.json`: since D41 a nested app carries a marker
+        // manifest, and stopping there would lose sight of a monorepo's hoisted
+        // `node_modules` and leave every npm import untyped.
+        if dir.join(".git").exists() {
             return None;
         }
         dir = dir.parent()?;
@@ -372,6 +376,35 @@ pub fn check_with_tsc(out: &Path) -> std::io::Result<TscOutcome> {
     }
 }
 
+/// Type-check every project of a tree build (D41). Each project's `--out`
+/// subtree carries its own staged runtime and `tsconfig.json` (that is what
+/// `build_project_inner` writes), so `tsc` runs once per project.
+///
+/// A missing `tsc` ends the walk and is reported as `NotFound`: "the
+/// type-checker is not installed" and "your code has type errors" are different
+/// answers, and the first must never be reported as the second.
+pub fn check_tree_with_tsc(
+    tree: &crate::build::TreeReport,
+    out: &Path,
+) -> std::io::Result<TscOutcome> {
+    let mut failures = String::new();
+    for p in &tree.projects {
+        if p.report.emitted.is_empty() {
+            continue;
+        }
+        match check_with_tsc(&out.join(&p.project.out_rel))? {
+            TscOutcome::Passed => {}
+            TscOutcome::NotFound => return Ok(TscOutcome::NotFound),
+            TscOutcome::Failed(msg) => failures.push_str(&msg),
+        }
+    }
+    if failures.is_empty() {
+        Ok(TscOutcome::Passed)
+    } else {
+        Ok(TscOutcome::Failed(failures))
+    }
+}
+
 /// Recursively copy every file under `from` into `to`.
 fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(to)?;
@@ -389,10 +422,68 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{tsconfig_json, RUNTIME_FILES};
+    use super::{find_project_node_modules, tsconfig_json, RUNTIME_FILES};
     use glyph_resolver::StdlibStubs;
     use std::collections::{BTreeMap, BTreeSet};
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    /// A uniquely named temp directory for the `node_modules`-climb tests.
+    fn climb_tmp(prefix: &str) -> PathBuf {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!(
+            "glyph_climb_{prefix}_{}_{n}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    /// A marked nested app finds the monorepo's hoisted `node_modules`. The
+    /// climb used to stop at the first `package.json`, which since D41 is the
+    /// app's own marker manifest, and every npm import in a nested app would
+    /// have become an E0104.
+    #[test]
+    fn the_climb_passes_a_marker_manifest_to_reach_a_hoisted_node_modules() {
+        let repo = climb_tmp("hoisted");
+        std::fs::create_dir_all(repo.join(".git")).expect("git dir");
+        std::fs::create_dir_all(repo.join("node_modules")).expect("node_modules");
+        let app = repo.join("apps").join("app");
+        std::fs::create_dir_all(app.join("src")).expect("app src");
+        std::fs::write(
+            app.join("package.json"),
+            "{ \"name\": \"app\", \"private\": true, \"glyph\": {} }\n",
+        )
+        .expect("marker");
+
+        // The temp dir is reached through a symlink on macOS, so compare
+        // canonical paths rather than the spellings.
+        let found = find_project_node_modules(&app.join("src")).expect("hoisted node_modules");
+        assert_eq!(
+            found.canonicalize().expect("canonicalize found"),
+            repo.join("node_modules")
+                .canonicalize()
+                .expect("canonicalize expected")
+        );
+        let _ = std::fs::remove_dir_all(&repo);
+    }
+
+    /// The climb stops at the repository root, so a `node_modules` belonging to
+    /// an unrelated ancestor (a stray one in `$HOME` is the common case) is not
+    /// adopted.
+    #[test]
+    fn the_climb_stops_at_the_repository_root() {
+        let outer = climb_tmp("stop_at_git");
+        std::fs::create_dir_all(outer.join("node_modules")).expect("outer node_modules");
+        let repo = outer.join("repo");
+        std::fs::create_dir_all(repo.join(".git")).expect("git dir");
+        std::fs::create_dir_all(repo.join("src")).expect("repo src");
+
+        assert_eq!(find_project_node_modules(&repo.join("src")), None);
+        let _ = std::fs::remove_dir_all(&outer);
+    }
 
     /// With no project `node_modules`, the tsconfig is the plain form: `std/*`
     /// resolves to the bundled runtime and nothing else is wired into `paths`.

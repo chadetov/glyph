@@ -87,6 +87,268 @@ pub fn build_project(src: &Path, out: &Path) -> Result<BuildReport, BuildError> 
     build_project_inner(src, out, true)
 }
 
+/// One Glyph project found under a build target (D41).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Project {
+    /// The directory holding the `package.json` marker, or the build target
+    /// itself for the fallback project.
+    pub package_dir: PathBuf,
+    /// The resolution root: what local import paths are counted from.
+    pub src: PathBuf,
+    /// `package_dir` relative to the build target. Empty for the target project,
+    /// so a single-project build writes flat under `--out` exactly as before.
+    pub out_rel: PathBuf,
+}
+
+/// What a walk of the build target found: the projects to compile, and anything
+/// about the *discovery* worth telling the user (D41).
+#[derive(Debug, Default)]
+pub struct Discovery {
+    /// The projects to compile, target first, then nested ones in
+    /// lexicographic order of `package_dir`. Output determinism depends on that
+    /// order, since each project writes under `<out>/<out_rel>`.
+    pub projects: Vec<Project>,
+    /// Directories that hold a `package.json` which could not be read, so they
+    /// are not project roots (P8). A build must not fail over one malformed
+    /// manifest, but a directory that silently stops being a project is a bad
+    /// half-hour, so say it.
+    pub notices: Vec<String>,
+}
+
+/// Every project a build over `target` should compile (D41).
+///
+/// The target project comes first (its `out_rel` is empty), then every marker
+/// directory strictly below it in lexicographic order. A marker at `target`
+/// itself makes the target project's resolution root that marker's `src`; with
+/// no marker anywhere, the single project is `target` itself, which is the
+/// behaviour every existing project has today.
+///
+/// Discovery never looks *above* `target`: a marker in an ancestor is ignored,
+/// so `glyph build app/src` builds what you pointed at rather than silently
+/// expanding to the whole enclosing project.
+pub fn discover_projects(target: &Path) -> Result<Discovery, BuildError> {
+    if !target.exists() {
+        return Err(BuildError::SrcMissing(target.to_path_buf()));
+    }
+    if !target.is_dir() {
+        return Err(BuildError::SrcNotDir(target.to_path_buf()));
+    }
+    let mut found = Discovery::default();
+    let src = match crate::config::project_src_checked(target) {
+        Ok(Some(src)) => src,
+        Ok(None) => target.to_path_buf(),
+        Err(e) => {
+            found.notices.push(unreadable_manifest_notice(&e));
+            target.to_path_buf()
+        }
+    };
+    found.projects.push(Project {
+        package_dir: target.to_path_buf(),
+        src,
+        out_rel: PathBuf::new(),
+    });
+    let mut nested = Vec::new();
+    collect_nested_projects(target, target, &mut nested, &mut found.notices)?;
+    nested.sort_by(|a: &Project, b: &Project| a.package_dir.cmp(&b.package_dir));
+    found.projects.extend(nested);
+    Ok(found)
+}
+
+/// The one-line report for a `package.json` that would not parse. `err` already
+/// names the manifest. It is not a diagnostic about source, so it carries no
+/// error code and no span.
+fn unreadable_manifest_notice(err: &str) -> String {
+    format!(
+        "warning: {err}. That directory is therefore not a Glyph project root, \
+         so its modules resolve from the build root instead (D41)."
+    )
+}
+
+/// Walk below `dir` for marker directories. A marker directory is collected and
+/// **not** descended past for further markers by this walker's own boundary
+/// rule: nested markers below it are still found, because a project inside a
+/// project is a project, and each is compiled in its own root.
+fn collect_nested_projects(
+    target: &Path,
+    dir: &Path,
+    out: &mut Vec<Project>,
+    notices: &mut Vec<String>,
+) -> Result<(), BuildError> {
+    let entries = std::fs::read_dir(dir).map_err(|e| BuildError::Io {
+        path: dir.to_path_buf(),
+        source: e,
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|e| BuildError::Io {
+            path: dir.to_path_buf(),
+            source: e,
+        })?;
+        let path = entry.path();
+        let meta = entry.metadata().map_err(|e| BuildError::Io {
+            path: path.clone(),
+            source: e,
+        })?;
+        if meta.file_type().is_symlink() || !meta.is_dir() {
+            continue;
+        }
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if name.starts_with('.') || name == "target" || name == "node_modules" {
+            continue;
+        }
+        match crate::config::project_src_checked(&path) {
+            Ok(Some(src)) => {
+                let out_rel = path.strip_prefix(target).unwrap_or(&path).to_path_buf();
+                out.push(Project {
+                    package_dir: path.clone(),
+                    src,
+                    out_rel,
+                });
+            }
+            Ok(None) => {}
+            Err(e) => notices.push(unreadable_manifest_notice(&e)),
+        }
+        collect_nested_projects(target, &path, out, notices)?;
+    }
+    Ok(())
+}
+
+/// One project's build within a tree build.
+#[derive(Debug)]
+pub struct ProjectReport {
+    pub project: Project,
+    pub report: BuildReport,
+}
+
+/// The outcome of building every project under a target (D41). For a single
+/// project it carries exactly one entry, and every accessor below then reports
+/// what the equivalent `BuildReport` accessor used to.
+#[derive(Debug, Default)]
+pub struct TreeReport {
+    pub projects: Vec<ProjectReport>,
+    /// Problems with the tree rather than with any source file: a `package.json`
+    /// that would not parse, so its directory is not a project root (P8).
+    pub notices: Vec<String>,
+}
+
+impl TreeReport {
+    pub fn has_errors(&self) -> bool {
+        self.projects.iter().any(|p| p.report.has_errors())
+    }
+
+    pub fn error_count(&self) -> usize {
+        self.projects.iter().map(|p| p.report.error_count).sum()
+    }
+
+    pub fn warning_count(&self) -> usize {
+        self.projects.iter().map(|p| p.report.warning_count()).sum()
+    }
+
+    pub fn module_count(&self) -> usize {
+        self.projects.iter().map(|p| p.report.modules.len()).sum()
+    }
+
+    pub fn emitted_count(&self) -> usize {
+        self.projects.iter().map(|p| p.report.emitted.len()).sum()
+    }
+
+    /// Every diagnostic across every project, in project order.
+    pub fn diagnostics(&self) -> impl Iterator<Item = &str> {
+        self.projects
+            .iter()
+            .flat_map(|p| p.report.diagnostics.iter().map(String::as_str))
+    }
+
+    /// The whole tree as one `BuildReport`, which is what every gate reads: one
+    /// project is the overwhelmingly common case, and its output must stay
+    /// byte-identical to what it was before D41.
+    ///
+    /// `module_maps` keeps each `ts_rel` relative to its own project's output
+    /// directory, which is where `tsc` ran, so a remapped `tsc` diagnostic
+    /// matches without rebasing.
+    pub fn flatten(&self) -> BuildReport {
+        let mut flat = BuildReport::default();
+        for p in &self.projects {
+            flat.diagnostics.extend(p.report.diagnostics.iter().cloned());
+            flat.structured.extend(p.report.structured.iter().cloned());
+            flat.error_count += p.report.error_count;
+            flat.modules.extend(p.report.modules.iter().cloned());
+            flat.emitted.extend(p.report.emitted.iter().cloned());
+            flat.module_maps
+                .extend(p.report.module_maps.iter().cloned());
+        }
+        flat
+    }
+}
+
+/// Build every project under `target` (D41), writing each project's output into
+/// `<out>/<project dir relative to target>`.
+///
+/// A project whose resolution root holds no `.glyph` file is skipped rather than
+/// failing the build: a marker directory whose sources all live in a subproject
+/// is not an error. `NoSources` is raised only when the whole tree produced no
+/// project with sources, which preserves today's message for the single-root
+/// case.
+pub fn build_tree(target: &Path, out: &Path, with_color: bool) -> Result<TreeReport, BuildError> {
+    let found = discover_projects(target)?;
+    // Every project's module files, so an import naming a *sibling* or enclosing
+    // project's module is reported as a cross-project import rather than as a
+    // bare typo (D41).
+    let mut project_files: Vec<(Project, Vec<PathBuf>)> = Vec::new();
+    for p in &found.projects {
+        if !p.src.is_dir() {
+            continue;
+        }
+        let mut files = Vec::new();
+        walk_glyph_files(&p.src, &p.src, &mut files)?;
+        files.sort();
+        project_files.push((p.clone(), files));
+    }
+    if project_files.iter().all(|(_, f)| f.is_empty()) {
+        return Err(BuildError::NoSources(target.to_path_buf()));
+    }
+
+    let mut tree = TreeReport {
+        projects: Vec::new(),
+        notices: found.notices,
+    };
+    for (i, (project, files)) in project_files.iter().enumerate() {
+        if files.is_empty() {
+            continue;
+        }
+        let others: Vec<OtherProject<'_>> = project_files
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| *j != i)
+            .map(|(_, (p, f))| OtherProject {
+                src: p.src.as_path(),
+                // Named relative to the build target, so a diagnostic reads
+                // `apps/csvql` rather than a machine-specific absolute path.
+                label: display_relative(target, &p.src),
+                files: f.as_slice(),
+            })
+            .collect();
+        let report =
+            build_project_inner_with(&project.src, &out.join(&project.out_rel), with_color, &others)?;
+        tree.projects.push(ProjectReport {
+            project: project.clone(),
+            report,
+        });
+    }
+    Ok(tree)
+}
+
+/// `path` written relative to `base` when it lies under it, else as it stands.
+/// Diagnostics name projects this way: a path relative to what the user asked
+/// to build is stable across machines and readable in a snapshot.
+fn display_relative(base: &Path, path: &Path) -> String {
+    let rel = path.strip_prefix(base).unwrap_or(path);
+    if rel.as_os_str().is_empty() {
+        ".".to_string()
+    } else {
+        rel.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/")
+    }
+}
+
 /// Internal entry point that lets tests opt out of ANSI color so
 /// rendered diagnostics are stable text. Production callers go through
 /// `build_project` which leaves color on.
@@ -94,6 +356,30 @@ pub fn build_project_inner(
     src: &Path,
     out: &Path,
     with_color: bool,
+) -> Result<BuildReport, BuildError> {
+    build_project_inner_with(src, out, with_color, &[])
+}
+
+/// Another project in the same tree, as an unresolved-import diagnostic needs to
+/// see it (D41).
+struct OtherProject<'a> {
+    /// That project's resolution root, for deriving its module paths.
+    src: &'a Path,
+    /// The same root written relative to the build target, for the message.
+    label: String,
+    /// Its `.glyph` files.
+    files: &'a [PathBuf],
+}
+
+/// `build_project_inner` plus the other projects in the same tree, used only to
+/// sharpen an unresolved-import diagnostic into "that module belongs to another
+/// project" (D41). Resolution itself is unaffected: a project's imports resolve
+/// within its own root only.
+fn build_project_inner_with(
+    src: &Path,
+    out: &Path,
+    with_color: bool,
+    other_projects: &[OtherProject<'_>],
 ) -> Result<BuildReport, BuildError> {
     if !src.exists() {
         return Err(BuildError::SrcMissing(src.to_path_buf()));
@@ -105,7 +391,7 @@ pub fn build_project_inner(
     // Walk for .glyph files. Deterministic order so diagnostic output is
     // stable across runs (good for tests, good for human readability).
     let mut files = Vec::new();
-    walk_glyph_files(src, &mut files)?;
+    walk_glyph_files(src, src, &mut files)?;
     files.sort();
     if files.is_empty() {
         return Err(BuildError::NoSources(src.to_path_buf()));
@@ -266,7 +552,7 @@ pub fn build_project_inner(
                         glyph_resolver::ModuleResolution::Unknown
                     }
                 },
-                &|path: &str| locate_module_file(src, &files, path),
+                &|path: &str| locate_module_site(src, &files, other_projects, path),
             );
             for e in &local_import_errors {
                 report.diagnostics.push(render_resolve_error(
@@ -540,7 +826,7 @@ fn collect_ts_outputs(
 pub fn source_fingerprint(src: &Path) -> Result<String, BuildError> {
     use std::hash::{Hash, Hasher};
     let mut files = Vec::new();
-    walk_glyph_files(src, &mut files)?;
+    walk_glyph_files(src, src, &mut files)?;
     files.sort();
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     env!("CARGO_PKG_VERSION").hash(&mut hasher);
@@ -680,7 +966,11 @@ fn collect_files_with_suffix_inner(
     Ok(())
 }
 
-fn walk_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError> {
+fn walk_glyph_files(
+    dir: &Path,
+    project_root: &Path,
+    out: &mut Vec<PathBuf>,
+) -> Result<(), BuildError> {
     let entries = std::fs::read_dir(dir).map_err(|e| BuildError::Io {
         path: dir.to_path_buf(),
         source: e,
@@ -710,7 +1000,15 @@ fn walk_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError
             if name.starts_with('.') || name == "target" || name == "node_modules" {
                 continue;
             }
-            walk_glyph_files(&path, out)?;
+            // A nested Glyph project is carved out of its enclosing project in
+            // both directions (D41): its files are not part of this project's
+            // compilation, which is also why the enclosing project cannot import
+            // one of its modules. The nested build passes that directory as its
+            // own `project_root`, so it still walks it.
+            if path != project_root && crate::config::is_project_root(&path) {
+                continue;
+            }
+            walk_glyph_files(&path, project_root, out)?;
         } else if meta.is_file()
             && path.extension().and_then(|e| e.to_str()) == Some("glyph")
         {
@@ -724,7 +1022,7 @@ fn walk_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), BuildError
 /// string `"foo/bar"`. Strips the `src` prefix, drops the `.glyph`
 /// extension, and replaces native path separators with `/` so the result
 /// matches what `import foo/bar` produces during parsing.
-fn derive_module_path(src_root: &Path, file: &Path) -> String {
+pub(crate) fn derive_module_path(src_root: &Path, file: &Path) -> String {
     let rel = file.strip_prefix(src_root).unwrap_or(file);
     let no_ext = rel.with_extension("");
     no_ext.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/")
@@ -751,6 +1049,54 @@ fn locate_module_file(src_root: &Path, files: &[PathBuf], path: &str) -> Option<
         }
     }
     None
+}
+
+/// Where a build found a file that could answer to an unresolved import path:
+/// in this project (a path spelled from the wrong root, D15) or in another
+/// project of the same tree (D41, whose imports do not cross project roots).
+///
+/// This project is asked first, so a name that exists in both is reported as the
+/// local mis-spelling it almost always is.
+fn locate_module_site(
+    src_root: &Path,
+    files: &[PathBuf],
+    other_projects: &[OtherProject<'_>],
+    path: &str,
+) -> Option<glyph_resolver::ModuleSite> {
+    if let Some(file) = locate_module_file(src_root, files, path) {
+        return Some(glyph_resolver::ModuleSite::ThisProject(file));
+    }
+    for other in other_projects {
+        for file in other.files {
+            // Two spellings can name the same file across a project boundary:
+            // the module path *that* project gives it (what a sibling or a
+            // nested project would write), and the path it would have had in
+            // *this* project's root (what an enclosing project writes for a
+            // module it can see on disk but may not import).
+            let theirs = derive_module_path(other.src, file);
+            let ours = file
+                .starts_with(src_root)
+                .then(|| derive_module_path(src_root, file));
+            if theirs == path
+                || ours.as_deref() == Some(path)
+                || is_whole_segment_suffix(&theirs, path)
+            {
+                return Some(glyph_resolver::ModuleSite::OtherProject {
+                    file: format!("{theirs}.glyph"),
+                    project: other.label.clone(),
+                });
+            }
+        }
+    }
+    None
+}
+
+/// Whether `path` is a whole-segment *suffix* of `module_path` (`a/b/model` ends
+/// with `model` at a `/` boundary), and not the whole of it.
+fn is_whole_segment_suffix(module_path: &str, path: &str) -> bool {
+    module_path.len() > path.len()
+        && module_path.ends_with(path)
+        && module_path.as_bytes()[module_path.len() - path.len() - 1] == b'/'
 }
 
 /// Every module name this build can resolve without a `.glyph` file of its own:
@@ -806,7 +1152,11 @@ fn external_module_names(src: &Path) -> ExternalModules {
         // The project root. Climbing past it reaches an unrelated ancestor's
         // dependencies (a stray `node_modules` in `$HOME` is common), which is
         // the same boundary `find_project_node_modules` keeps.
-        if dir.join(".git").exists() || dir.join("package.json").is_file() {
+        // Stop at `.git` (or the filesystem root) only, never at the first
+        // `package.json`: since D41 a nested app carries a marker manifest, and
+        // stopping there would lose sight of a monorepo's hoisted
+        // `node_modules` and turn every npm import into an E0104.
+        if dir.join(".git").exists() {
             break;
         }
         let Some(parent) = dir.parent() else { break };

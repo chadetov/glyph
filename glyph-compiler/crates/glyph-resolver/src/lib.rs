@@ -36,7 +36,7 @@ pub use error::{ResolveError, Severity, ShadowOrigin};
 pub use lints::module_lints;
 pub use module_graph::{
     path_key, verify_imports, verify_local_imports, verify_qualified_type_refs, CompositeGraph,
-    ModuleExports, ModuleGraph, ModuleResolution, StdlibStubs,
+    ModuleExports, ModuleGraph, ModuleResolution, ModuleSite, StdlibStubs,
 };
 pub use prelude::{build_prelude, Prelude};
 pub use resolve::{

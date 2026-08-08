@@ -81,3 +81,25 @@ fn re_running_never_overwrites() {
     let main = std::fs::read_to_string(dir.join("src/main.glyph")).unwrap();
     assert!(main.contains("edited by the user"), "user edit was clobbered");
 }
+
+/// A scaffolded project builds when you point `glyph build` at the project
+/// directory, not only at its `src/`. `glyph init` writes the `"glyph"` key, so
+/// the directory is a project root (D41) and the build roots at `src/`.
+#[test]
+fn a_scaffolded_project_builds_from_its_directory() {
+    let dir = unique_tmp();
+    scaffold(&dir).expect("scaffold");
+
+    let found = glyph_cli::build::discover_projects(&dir).expect("discover");
+    assert_eq!(found.projects.len(), 1);
+    assert_eq!(found.projects[0].src, dir.join("src"));
+
+    let out = unique_tmp();
+    let tree = glyph_cli::build::build_tree(&dir, &out, false).expect("build");
+    assert!(
+        !tree.has_errors(),
+        "the scaffold must build from its directory: {:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+    assert!(out.join("main.ts").is_file(), "emitted flat under --out");
+}

@@ -6621,3 +6621,421 @@ fn run_on_a_directory_without_a_main_glyph_says_so() {
     assert!(msg.contains("main.glyph"), "{msg}");
     assert!(msg.contains(&src.display().to_string()), "{msg}");
 }
+
+// ---------------------------------------------------------------------------
+// D41: a `package.json` with a `"glyph"` key is a module-resolution root
+// ---------------------------------------------------------------------------
+
+/// Write a two-app tree under `root/apps/`. Each app has a `lib` module and a
+/// `main` that imports it by bare name, which only resolves when the app itself
+/// is the resolution root.
+fn two_app_tree(root: &Path, with_markers: bool) {
+    for app in ["alpha", "beta"] {
+        let dir = root.join("apps").join(app);
+        std::fs::create_dir_all(&dir).expect("create app dir");
+        if with_markers {
+            std::fs::write(
+                dir.join("package.json"),
+                format!("{{ \"name\": \"{app}\", \"private\": true, \"glyph\": {{}} }}\n"),
+            )
+            .expect("write marker");
+        }
+        std::fs::write(
+            dir.join("lib.glyph"),
+            "module lib\n\npub fn greet(name: string) -> string {\n  return name\n}\n",
+        )
+        .expect("write lib");
+        std::fs::write(
+            dir.join("main.glyph"),
+            "module main\n\nimport lib { greet }\n\npub fn run() -> string {\n  return greet(\"x\")\n}\n",
+        )
+        .expect("write main");
+    }
+}
+
+#[test]
+fn a_tree_of_marked_projects_builds_in_one_invocation() {
+    let root = unique_tmp("tree_markers");
+    let out = unique_tmp("tree_markers_out");
+    two_app_tree(&root, true);
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    assert!(
+        !tree.has_errors(),
+        "a marked tree should build clean: {:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+    // Each app's output lands under `<out>/apps/<name>/`.
+    for app in ["alpha", "beta"] {
+        assert!(
+            out.join("apps").join(app).join("main.ts").is_file(),
+            "expected <out>/apps/{app}/main.ts"
+        );
+    }
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+#[test]
+fn the_same_tree_without_markers_still_fails_to_resolve() {
+    // The pre-D41 behaviour is preserved exactly when no marker exists: one
+    // root, and `import lib` from `apps/alpha/main.glyph` names nothing.
+    let root = unique_tmp("tree_nomarkers");
+    let out = unique_tmp("tree_nomarkers_out");
+    two_app_tree(&root, false);
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    assert!(tree.has_errors(), "an unmarked tree must still report E0104");
+    assert!(
+        tree.diagnostics().any(|d| d.contains("E0104")),
+        "{:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+    assert_eq!(tree.projects.len(), 1, "no marker means exactly one project");
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+#[test]
+fn a_nested_project_cannot_import_from_the_enclosing_one() {
+    let root = unique_tmp("nested_imports_up");
+    let out = unique_tmp("nested_imports_up_out");
+    std::fs::write(
+        root.join("shared.glyph"),
+        "module shared\n\npub fn v() -> int {\n  return 1\n}\n",
+    )
+    .expect("write shared");
+    let inner = root.join("inner");
+    std::fs::create_dir_all(&inner).expect("create inner");
+    std::fs::write(
+        inner.join("package.json"),
+        "{ \"name\": \"inner\", \"private\": true, \"glyph\": {} }\n",
+    )
+    .expect("write marker");
+    std::fs::write(
+        inner.join("main.glyph"),
+        "module main\n\nimport shared { v }\n\npub fn run() -> int {\n  return v()\n}\n",
+    )
+    .expect("write inner main");
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    let diags: Vec<&str> = tree.diagnostics().collect();
+    assert!(
+        diags.iter().any(|d| d.contains("E0104")),
+        "a nested project importing an enclosing module must be E0104: {diags:?}"
+    );
+    assert!(
+        diags
+            .iter()
+            .any(|d| d.contains("a project's imports resolve within its own root only")),
+        "the message must name the D41 rule: {diags:?}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+#[test]
+fn an_enclosing_project_cannot_import_from_a_nested_one() {
+    let root = unique_tmp("nested_imports_down");
+    let out = unique_tmp("nested_imports_down_out");
+    std::fs::write(
+        root.join("main.glyph"),
+        "module main\n\nimport inner/helper { v }\n\npub fn run() -> int {\n  return v()\n}\n",
+    )
+    .expect("write outer main");
+    let inner = root.join("inner");
+    std::fs::create_dir_all(&inner).expect("create inner");
+    std::fs::write(
+        inner.join("package.json"),
+        "{ \"name\": \"inner\", \"private\": true, \"glyph\": {} }\n",
+    )
+    .expect("write marker");
+    std::fs::write(
+        inner.join("helper.glyph"),
+        "module helper\n\npub fn v() -> int {\n  return 1\n}\n",
+    )
+    .expect("write helper");
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    let diags: Vec<&str> = tree.diagnostics().collect();
+    assert!(
+        diags.iter().any(|d| d.contains("E0104")),
+        "a nested project's module is not part of the enclosing compilation: {diags:?}"
+    );
+    // The other project is named relative to the build target, not as an
+    // absolute machine path, and the message says where the file actually is.
+    assert!(
+        diags
+            .iter()
+            .any(|d| d.contains("in the project rooted at `inner`")),
+        "the message names the other project relative to the target: {diags:?}"
+    );
+    assert!(
+        !diags.iter().any(|d| d.contains(&format!(
+            "rooted at `{}",
+            root.display()
+        ))),
+        "the project is not named by an absolute path: {diags:?}"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+#[test]
+fn a_marker_at_the_build_target_roots_at_its_src() {
+    let root = unique_tmp("marker_at_target");
+    let out = unique_tmp("marker_at_target_out");
+    std::fs::write(
+        root.join("package.json"),
+        "{ \"name\": \"app\", \"private\": true, \"glyph\": { \"src\": \"src\" } }\n",
+    )
+    .expect("write marker");
+    let src = root.join("src");
+    std::fs::create_dir_all(src.join("deep")).expect("create src");
+    std::fs::write(
+        src.join("deep").join("lib.glyph"),
+        "module lib\n\npub fn v() -> int {\n  return 1\n}\n",
+    )
+    .expect("write lib");
+    std::fs::write(
+        src.join("main.glyph"),
+        "module main\n\nimport deep/lib { v }\n\npub fn run() -> int {\n  return v()\n}\n",
+    )
+    .expect("write main");
+    // A stray `.glyph` outside `src/` is not a module of this project.
+    std::fs::create_dir_all(root.join("scripts")).expect("create scripts");
+    std::fs::write(root.join("scripts").join("tool.glyph"), "module tool\n")
+        .expect("write tool");
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    assert!(
+        !tree.has_errors(),
+        "{:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+    let modules: Vec<String> = tree
+        .projects
+        .iter()
+        .flat_map(|p| p.report.modules.iter().cloned())
+        .collect();
+    assert_eq!(modules, vec!["deep/lib".to_string(), "main".to_string()]);
+    // Output is flat under `--out` for a single project, exactly as before D41.
+    assert!(out.join("main.ts").is_file());
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+#[test]
+fn discovery_never_looks_above_the_build_target() {
+    // `glyph build app/src` means `app/src`, whether or not `app` is marked.
+    let root = unique_tmp("no_climb");
+    std::fs::write(
+        root.join("package.json"),
+        "{ \"name\": \"app\", \"private\": true, \"glyph\": { \"src\": \"src\" } }\n",
+    )
+    .expect("write marker");
+    let src = root.join("src");
+    std::fs::create_dir_all(&src).expect("create src");
+    std::fs::write(src.join("main.glyph"), "module main\n").expect("write main");
+
+    let found = glyph_cli::build::discover_projects(&src).expect("discover");
+    assert_eq!(found.projects.len(), 1);
+    assert_eq!(found.projects[0].src, src);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_package_json_without_the_glyph_key_is_not_a_root() {
+    let root = unique_tmp("plain_npm_pkg");
+    let inner = root.join("inner");
+    std::fs::create_dir_all(&inner).expect("create inner");
+    std::fs::write(inner.join("package.json"), "{ \"name\": \"plain\" }\n")
+        .expect("write plain manifest");
+    std::fs::write(inner.join("lib.glyph"), "module lib\n").expect("write lib");
+
+    let found = glyph_cli::build::discover_projects(&root).expect("discover");
+    assert_eq!(
+        found.projects.len(),
+        1,
+        "a plain npm package is not a project root"
+    );
+    assert!(found.notices.is_empty(), "{:?}", found.notices);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn an_unparseable_package_json_is_not_a_root() {
+    let root = unique_tmp("bad_manifest");
+    let inner = root.join("inner");
+    std::fs::create_dir_all(&inner).expect("create inner");
+    std::fs::write(inner.join("package.json"), "{ not json").expect("write bad manifest");
+    std::fs::write(inner.join("lib.glyph"), "module lib\n").expect("write lib");
+
+    let found = glyph_cli::build::discover_projects(&root).expect("discover");
+    assert_eq!(
+        found.projects.len(),
+        1,
+        "a malformed manifest must not fail the tree"
+    );
+    // P8: it must not fail the build, and it must not be silent either.
+    assert_eq!(found.notices.len(), 1, "{:?}", found.notices);
+    assert!(
+        found.notices[0].contains("package.json") && found.notices[0].contains("inner"),
+        "the notice names the manifest and its directory: {:?}",
+        found.notices
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// A one-app tree whose entry module lives a directory below the resolution
+/// root and imports a sibling by bare name: `app/src/queries/report.glyph`
+/// importing `catalog`. That import resolves only when `app` is found as the
+/// project root, which is what makes it the fixture for path spelling.
+fn nested_entry_app(root: &Path) {
+    write_file(
+        root,
+        "app/package.json",
+        "{ \"name\": \"app\", \"private\": true, \"glyph\": { \"src\": \"src\" } }\n",
+    );
+    write_file(
+        root,
+        "app/src/catalog.glyph",
+        "module catalog\n\npub fn all() -> number {\n  return 1\n}\n",
+    );
+    write_file(
+        root,
+        "app/src/queries/report.glyph",
+        "module report\n\nimport catalog { all }\n\npub fn run() -> number {\n  return all()\n}\n",
+    );
+}
+
+#[test]
+fn a_relative_path_finds_the_same_project_as_an_absolute_one() {
+    // A file has one meaning regardless of how its path was spelled (D41).
+    // Comparing a user-typed relative path against a canonicalized project root
+    // used to fail every relative invocation, and fail it silently: the import
+    // resolved to nothing, and an import that names nothing outside a known
+    // project draws no diagnostic at all.
+    let root = unique_tmp("relative_path_project");
+    nested_entry_app(&root);
+
+    let check = |arg: &Path| {
+        std::process::Command::new(env!("CARGO_BIN_EXE_glyph"))
+            .arg("check")
+            .arg(arg)
+            .arg("--no-tsc")
+            .current_dir(&root)
+            .output()
+            .expect("spawn glyph check")
+    };
+
+    let relative = check(Path::new("app/src/queries/report.glyph"));
+    let rel_err = String::from_utf8_lossy(&relative.stderr).to_string();
+    let absolute = check(&root.join("app/src/queries/report.glyph"));
+    let abs_err = String::from_utf8_lossy(&absolute.stderr).to_string();
+
+    assert!(
+        !rel_err.contains("E0104"),
+        "a relative path must resolve `catalog` too: {rel_err}"
+    );
+    assert!(
+        rel_err.contains("2 module(s) checked"),
+        "the relative invocation must compile the whole project: {rel_err}"
+    );
+    assert!(
+        abs_err.contains("2 module(s) checked"),
+        "the absolute invocation compiles the whole project: {abs_err}"
+    );
+    assert_eq!(relative.status.code(), absolute.status.code());
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn run_on_an_unmarked_directory_still_runs_its_own_main() {
+    // No marker means the directory itself is the root, exactly as before D41.
+    // Applying the `src/` convention to an unmarked directory would make
+    // `glyph run <dir>` and `glyph build <dir>` disagree about the root.
+    let root = unique_tmp("run_unmarked_dir");
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\npub fn helper() -> number {\n  return 1\n}\n",
+    );
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\nfn main(argv: Array<string>) -> number {\n  return 0\n}\n",
+    );
+
+    let result = glyph_cli::run_file(&root, &[], false, false).expect("run");
+    match result.outcome {
+        glyph_cli::RunOutcome::NoMain { module, .. } => {
+            assert_eq!(module, root.join("main.glyph"));
+        }
+        other => panic!("expected the directory's own main.glyph, got {other:?}"),
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn run_on_a_marked_directory_runs_the_main_at_its_resolution_root() {
+    // With a marker, `glyph run <dir>` runs the `main.glyph` at the project's
+    // resolution root, which is what `glyph build <dir>` compiles.
+    let root = unique_tmp("run_marked_dir");
+    write_file(
+        &root,
+        "package.json",
+        "{ \"name\": \"app\", \"private\": true, \"glyph\": {} }\n",
+    );
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\nfn main(argv: Array<string>) -> number {\n  return 0\n}\n",
+    );
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\npub fn helper() -> number {\n  return 1\n}\n",
+    );
+
+    let result = glyph_cli::run_file(&root, &[], false, false).expect("run");
+    match result.outcome {
+        glyph_cli::RunOutcome::NoMain { module, .. } => {
+            // The project root is canonicalized, so the module is named by its
+            // canonical path (on macOS, `/private/var/...` for a temp dir).
+            assert_eq!(
+                module,
+                root.join("src")
+                    .join("main.glyph")
+                    .canonicalize()
+                    .expect("canonicalize")
+            );
+        }
+        other => panic!("expected the project's src/main.glyph, got {other:?}"),
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn run_on_a_nested_file_resolves_its_project_siblings() {
+    // `glyph run app/src/queries/report.glyph` climbs to the marker at `app`, so
+    // `import catalog` resolves the same way `glyph build app` resolves it.
+    let root = unique_tmp("run_nested_file");
+    nested_entry_app(&root);
+    let entry = root.join("app/src/queries/report.glyph");
+
+    let result = glyph_cli::run_file(&entry, &[], false, false).expect("run");
+    assert!(
+        !result.diagnostics.iter().any(|d| d.contains("E0104")),
+        "the sibling import must resolve: {:?}",
+        result.diagnostics
+    );
+    // The entry is a library module, so nothing runs; that is reported instead
+    // of the import being quietly lost.
+    assert!(
+        matches!(result.outcome, glyph_cli::RunOutcome::NoMain { .. }),
+        "expected NoMain, got {:?}",
+        result.outcome
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}

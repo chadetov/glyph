@@ -25,8 +25,7 @@ open.
 Reconciled again after the adversarial review of the csvql round, which added one
 entry (G77, the match-arm binding that shadowed the `let` it assigned to) and
 closed it along with G74 in the same release, then again after G75 and after the
-auth_api boundary round (G79/G80), then the papercut batch: of 80 entries, 53
-are fixed, 12 are partly fixed, 5 are decided or resolved, and 10 are open. G75
+auth_api boundary round (G79/G80), then the papercut batch: of 80 entries, 53 are fixed, 13 are partly fixed, 5 are decided or resolved, and 9 are open. G75
 was the largest thing still open: an imported record type lowered to `Ty::Unknown`,
 so field checking and the `for i, x` index type were both wrong across an import.
 It carried an identity across the boundary from that release on.
@@ -2125,7 +2124,7 @@ salsa-memoized. Nobody had written the second query.
   the 0.1.57 binary, all 65 files, which is what keeps the fix off every existing
   program's diff.*
 
-- **G78. A multi-module app cannot be built as part of an enclosing tree.** Glyph
+- **G78. [HALF FIXED] A multi-module app cannot be built as part of an enclosing tree.** Glyph
   resolves a local import from the module root (D15: no relative imports, paths
   are slash-separated from the root), so an app at `examples/apps/csvql/` writing
   `import catalog` resolves only when its *own* directory is the build root.
@@ -2148,6 +2147,30 @@ salsa-memoized. Nobody had written the second query.
   third option, writing the imports root-relative as `import apps/csvql/catalog`,
   is worse: it would fix the tree build and break building the app on its own,
   which is how the app is actually used.
+
+  *The compiler half is answered by D41: a directory holding a `package.json`
+  with a `"glyph"` key is its own module-resolution root, nearest marker wins.
+  It is the marker `glyph init` already writes and `glyph publish` already reads;
+  resolution simply did not read it. `glyph build` over an enclosing tree walks
+  it and builds each project it finds, writing each project's output under
+  `<out>/<dir relative to the target>`, so a marked app compiles the same whether
+  you build it or the tree above it. With no marker anywhere the build target is
+  the sole root, which is the pre-D41 behaviour, so nothing existing changed. A
+  project's imports resolve within its own root only, in both directions: a
+  nested project's files are not part of the enclosing project's compilation.
+  E0104 keeps its code and gains a clause naming the other project when the
+  module it would answer to lives across a boundary. `glyph run` and `glyph check`
+  on a file find its project by climbing to the nearest marker, and they find the
+  same one whether the path was typed relative or absolute.*
+
+  *This repo's own tree proves it. Each of the six directories under
+  `examples/apps/` carries a `package.json` with a `"glyph"` key, and
+  `glyph build examples --out /tmp/out` now compiles all seven projects (105
+  modules, 222 `@example`s) in one invocation with `tsc --strict` passing, where
+  it used to report 88 E0104s. Each app still builds standalone with
+  byte-identical output. `.github/workflows/ci.yml` lost its per-app loop and the
+  `.ci-examples` copy that excluded `apps/`; both collapsed into a single
+  `glyph build ../examples`.*
 
 - **G79. [HALF FIXED] A boundary rejection said which field was wrong but never
   which rule, and a record accepted an array.** Every failing field in a record

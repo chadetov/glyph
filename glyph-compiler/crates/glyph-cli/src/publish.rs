@@ -11,7 +11,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::config::{self, StaleImport};
+use crate::config::{self, resolve_src, StaleImport};
 use crate::runtime::{check_with_tsc, TscOutcome};
 
 /// Outcome of a successful `prepare` (the build may still carry diagnostics).
@@ -93,20 +93,6 @@ pub fn prepare(dir: &Path, with_color: bool) -> Result<PublishReport, PublishErr
         has_build_errors: false,
         tsc,
     })
-}
-
-/// The source directory: an explicit `glyph.src`, else `src/` if it exists, else
-/// the project directory itself.
-fn resolve_src(dir: &Path, glyph: &config::GlyphConfig) -> PathBuf {
-    if let Some(src) = &glyph.src {
-        return dir.join(src);
-    }
-    let conventional = dir.join("src");
-    if conventional.is_dir() {
-        conventional
-    } else {
-        dir.to_path_buf()
-    }
 }
 
 /// Render a stale import as a one-line human message.

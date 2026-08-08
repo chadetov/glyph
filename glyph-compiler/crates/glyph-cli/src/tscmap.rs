@@ -20,7 +20,7 @@ use crate::render::render_tsc_error;
 /// The per-module data needed to remap a `tsc` error: the emitted file's path
 /// (to match `tsc`'s output), the Glyph source (to render against), the emitted
 /// TypeScript (to turn a line/col into a byte offset), and the source map.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleMap {
     /// The emitted `.ts` path relative to the out dir, e.g. `main.ts`.
     pub ts_rel: String,

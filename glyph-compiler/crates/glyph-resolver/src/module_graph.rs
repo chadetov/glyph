@@ -345,7 +345,7 @@ pub fn verify_local_imports(
     module: &Module,
     root: &str,
     resolve: &dyn Fn(&str) -> ModuleResolution,
-    locate: &dyn Fn(&str) -> Option<String>,
+    locate: &dyn Fn(&str) -> Option<ModuleSite>,
 ) -> Vec<ResolveError> {
     let mut errors = Vec::new();
     for item in &module.items {
@@ -359,18 +359,33 @@ pub fn verify_local_imports(
         if resolution == ModuleResolution::Resolved {
             continue;
         }
-        let found_at = locate(&key);
-        if found_at.is_none() && resolution == ModuleResolution::Unknown {
+        let site = locate(&key);
+        if site.is_none() && resolution == ModuleResolution::Unknown {
             continue;
         }
         errors.push(ResolveError::UnresolvedModule {
             path: key,
             root: root.to_string(),
-            found_at,
+            site,
             span: imp.span,
         });
     }
     errors
+}
+
+/// Where a build found a file that could answer to an unresolved import path.
+///
+/// The distinction is what lets E0104 tell "you spelled the path wrong" from
+/// "that module belongs to a different Glyph project, and a project's imports
+/// resolve within its own root only" (D41). The resolver stays free of
+/// filesystem access: the caller does the looking and reports the site.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModuleSite {
+    /// A file in the importing module's own project, at this root-relative path.
+    ThisProject(String),
+    /// A file belonging to another Glyph project (a sibling, a nested one, or an
+    /// enclosing one), with that project's root for the message to name.
+    OtherProject { file: String, project: String },
 }
 
 /// What a build knows about an import path, for [`verify_local_imports`].
@@ -581,7 +596,7 @@ mod local_import_tests {
                     ModuleResolution::Unresolved
                 }
             },
-            &|_| located.map(str::to_string),
+            &|_| located.map(|f| ModuleSite::ThisProject(f.to_string())),
         )
     }
 
@@ -603,7 +618,7 @@ mod local_import_tests {
                     ModuleResolution::Unknown
                 }
             },
-            &|_| located.map(str::to_string),
+            &|_| located.map(|f| ModuleSite::ThisProject(f.to_string())),
         )
     }
 

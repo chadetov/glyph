@@ -43,15 +43,25 @@ pub enum ResolveError {
     /// this the type silently degrades and the user gets a downstream
     /// non-exhaustive-match or `tsc` error that never mentions imports.
     #[error(
-        "unresolved import `{path}`: no module `{path}` under the build root `{root}`{}",
-        .found_at.as_deref().map(|p| format!(
-            ". There is a `{p}` under the root; a local import path is resolved from the build root, not from the importing file's directory (D15)"
-        )).unwrap_or_default()
+        "unresolved import `{path}`: no module `{path}` under the project root `{root}`{}",
+        match .site.as_ref() {
+            Some(crate::ModuleSite::ThisProject(p)) => format!(
+                ". There is a `{p}` under the root; a local import path is resolved from the project root, not from the importing file's directory (D15/D41)"
+            ),
+            Some(crate::ModuleSite::OtherProject { file, project }) => format!(
+                ". There is a `{file}` in the project rooted at `{project}`, and a project's imports resolve within its own root only (D41); reach another project by package name through npm"
+            ),
+            None => String::new(),
+        }
     )]
     UnresolvedModule {
         path: String,
         root: String,
-        found_at: Option<String>,
+        /// Where the build found a file that could answer to `path`, if it found
+        /// one at all: in this project, or in another project of the same tree
+        /// (D41). One value with three states, so "in another project" cannot be
+        /// recorded without saying which file.
+        site: Option<crate::ModuleSite>,
         span: Span,
     },
 
@@ -220,8 +230,8 @@ impl ResolveError {
                 }
             }
             ResolveError::UnresolvedModule { .. } => {
-                "A local import resolves from the build root, the directory passed to `glyph build`/`glyph run`. \
-                 Build that module's own directory as the root, or spell the import path as it reads from the root. \
+                "A local import resolves from the project root: the nearest directory holding a `package.json` with a `\"glyph\"` key, else the directory passed to `glyph build`/`glyph run` (D41). \
+                 Spell the import path as it reads from that root, or give the module's own project a `\"glyph\"` marker. \
                  If this is an npm package, install it or declare it in `<root>/.types/*.d.ts`."
             }
             ResolveError::UnknownExportedName { .. } => {

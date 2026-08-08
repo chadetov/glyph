@@ -11,7 +11,7 @@
 
 use serde::Deserialize;
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// The fields of `package.json` Glyph reads. Unknown fields are ignored.
@@ -96,6 +96,122 @@ pub fn read_package_json(dir: &Path) -> Result<Option<PackageJson>, String> {
         Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
     };
     serde_json::from_str(&text).map(Some).map_err(|e| format!("invalid {}: {e}", path.display()))
+}
+
+/// The resolution root of `dir` when `dir` is a Glyph *project root* (D41): it
+/// holds a `package.json` whose top-level `"glyph"` key is present, and the root
+/// is that key's `src` (else `src/` when it exists, else `dir`).
+///
+/// `Ok(None)` says `dir` is not a project root: either there is no manifest, or
+/// there is one with no `"glyph"` key (a plain npm package). `Err` says a
+/// manifest is there and could not be read, which is also not a root — one
+/// malformed manifest somewhere in a tree must not fail the whole build — but
+/// the caller can report why the directory stopped being a project.
+///
+/// This is the only place the marker is interpreted. `is_project_root` and
+/// `project_src` are views of it, so no caller can accidentally apply the `src/`
+/// convention to a directory that is not a project.
+pub fn project_src_checked(dir: &Path) -> Result<Option<PathBuf>, String> {
+    match read_package_json(dir)? {
+        Some(PackageJson { glyph: Some(g), .. }) => Ok(Some(resolve_src(dir, &g))),
+        _ => Ok(None),
+    }
+}
+
+/// Whether `dir` is a Glyph project root (D41). See [`project_src_checked`].
+pub fn is_project_root(dir: &Path) -> bool {
+    matches!(project_src_checked(dir), Ok(Some(_)))
+}
+
+/// The resolution root of a project directory (D41), or `None` when `dir` is not
+/// a project root. The directory local import paths are counted from.
+///
+/// It returns an `Option` rather than falling back to `dir`, because a caller
+/// that has not checked `is_project_root` must not get the `src/` convention
+/// applied to an arbitrary directory: that would change what
+/// `glyph run <dir>` means for a directory carrying no marker.
+pub fn project_src(dir: &Path) -> Option<PathBuf> {
+    project_src_checked(dir).ok().flatten()
+}
+
+/// The source directory: an explicit `glyph.src`, else `src/` if it exists, else
+/// the project directory itself. Shared by `glyph publish` and by the build's
+/// project discovery so the two cannot drift.
+pub fn resolve_src(dir: &Path, glyph: &GlyphConfig) -> PathBuf {
+    if let Some(src) = &glyph.src {
+        return dir.join(src);
+    }
+    let conventional = dir.join("src");
+    if conventional.is_dir() {
+        conventional
+    } else {
+        dir.to_path_buf()
+    }
+}
+
+/// The nearest project root at or above `start`, climbing until a directory
+/// holding `.git` (inclusive) or the filesystem root (D41, P6). `glyph run` and
+/// `glyph check` use this to find a *file*'s project, so the same file means the
+/// same thing however the build was started.
+pub fn nearest_project_root(start: &Path) -> Option<PathBuf> {
+    let mut dir = start.canonicalize().unwrap_or_else(|_| start.to_path_buf());
+    loop {
+        if is_project_root(&dir) {
+            return Some(dir);
+        }
+        if dir.join(".git").exists() {
+            return None;
+        }
+        let parent = dir.parent()?;
+        if parent == dir {
+            return None;
+        }
+        dir = parent.to_path_buf();
+    }
+}
+
+/// A single `.glyph` file placed in its project (D41): the root its imports
+/// resolve from, and the file itself spelled under that root.
+#[derive(Debug, PartialEq, Eq)]
+pub struct FileProject {
+    /// The resolution root: the nearest marked ancestor's `src`, else the file's
+    /// own directory.
+    pub src: PathBuf,
+    /// The file, rewritten so it lies under `src`. Same path the caller passed
+    /// when no project was found.
+    pub file: PathBuf,
+}
+
+/// Place `file` in its project (D41, P6), for `glyph run` and `glyph check`.
+///
+/// Both sides are canonicalized before they are compared, so the answer does not
+/// depend on how the path was spelled: `glyph check app/src/x.glyph` and
+/// `glyph check $PWD/app/src/x.glyph` find the same project and compile the same
+/// modules. Comparing the user-typed path against a canonicalized root instead
+/// would drop the project for every relative invocation, and drop it *silently*,
+/// since an import that resolves to nothing outside a known project is not
+/// reported at all.
+pub fn project_for_file(file: &Path) -> FileProject {
+    let parent = file
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let canon_file = file.canonicalize().unwrap_or_else(|_| file.to_path_buf());
+    if let Some(src) = nearest_project_root(parent)
+        .and_then(|dir| project_src(&dir))
+        .map(|src| src.canonicalize().unwrap_or(src))
+    {
+        if canon_file.starts_with(&src) {
+            return FileProject {
+                src,
+                file: canon_file,
+            };
+        }
+    }
+    FileProject {
+        src: parent.to_path_buf(),
+        file: file.to_path_buf(),
+    }
 }
 
 /// A `(year, month, day)` civil date.

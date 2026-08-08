@@ -235,6 +235,28 @@ enum GenTarget {
     },
 }
 
+/// Run every project's `@example` / `@doc @run` gate in that project's own root
+/// (D41) and merge the outcomes. A nested project's examples cannot be built in
+/// the enclosing root, because its imports do not resolve there.
+fn run_examples_across(
+    tree: &glyph_cli::build::TreeReport,
+) -> Result<glyph_cli::examples::ExampleReport, glyph_cli::examples::ExampleError> {
+    let mut merged = glyph_cli::examples::ExampleReport {
+        ran: true,
+        ..Default::default()
+    };
+    for p in &tree.projects {
+        let r = glyph_cli::examples::run_examples(&p.project.src)?;
+        merged.total += r.total;
+        merged.failures.extend(r.failures);
+        merged.ran &= r.ran;
+        if let Some(d) = r.build_failed {
+            merged.build_failed.get_or_insert_with(Vec::new).extend(d);
+        }
+    }
+    Ok(merged)
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -272,8 +294,31 @@ fn main() {
             // never carries color.
             use std::io::IsTerminal;
             let with_color = !json && std::io::stderr().is_terminal();
-            match glyph_cli::build::build_project_inner(&src, &out, with_color) {
-            Ok(report) => {
+            match glyph_cli::build::build_tree(&src, &out, with_color) {
+            Ok(tree) => {
+                // One project is the overwhelmingly common case, and its output
+                // must stay byte-identical to what it was before D41. The
+                // flattened view is what every gate reads.
+                let project_count = tree.projects.len();
+                let report = tree.flatten();
+                for notice in &tree.notices {
+                    eprintln!("glyph build: {notice}");
+                }
+                // Which roots were discovered is the thing to confirm when the
+                // root is inferred from the filesystem rather than spelled in
+                // source: a fat-fingered marker would otherwise be a silent
+                // partial build. Single-project output is untouched.
+                if project_count > 1 && !json {
+                    eprintln!("glyph build: {project_count} project(s):");
+                    for p in &tree.projects {
+                        let rel = p.project.out_rel.display().to_string();
+                        eprintln!(
+                            "  {} ({} module(s))",
+                            if rel.is_empty() { "." } else { &rel },
+                            p.report.modules.len()
+                        );
+                    }
+                }
                 if json {
                     // D23/D26 checks run on every build, and the JSON path is no
                     // exception: `emit_build_json` diverges, so the examples have
@@ -284,7 +329,9 @@ fn main() {
                     let examples = if no_test || report.has_errors() {
                         ExamplesOutcome::Skipped
                     } else {
-                        match glyph_cli::examples::run_examples(&src) {
+                        // A nested project's `@example`s must build in their own
+                        // root (D41), so the runner is invoked per project.
+                        match run_examples_across(&tree) {
                             Ok(r) => ExamplesOutcome::Ran(r),
                             Err(e) => ExamplesOutcome::Failed(e.to_string()),
                         }
@@ -295,8 +342,13 @@ fn main() {
                     eprintln!("{diag}");
                 }
                 if report.has_errors() {
+                    let across = if project_count > 1 {
+                        format!(" in {project_count} project(s)")
+                    } else {
+                        String::new()
+                    };
                     eprintln!(
-                        "glyph build: {} error(s) across {} module(s)",
+                        "glyph build: {} error(s) across {} module(s){across}",
                         report.error_count,
                         report.modules.len()
                     );
@@ -312,7 +364,7 @@ fn main() {
                 let mut tsc_passed = false;
                 if do_check {
                     use glyph_cli::runtime::TscOutcome;
-                    match glyph_cli::runtime::check_with_tsc(&out) {
+                    match glyph_cli::runtime::check_tree_with_tsc(&tree, &out) {
                         Ok(TscOutcome::Passed) => {
                             tsc_passed = true;
                         }
@@ -344,7 +396,7 @@ fn main() {
                     }
                 }
                 if !no_test {
-                    match glyph_cli::examples::run_examples(&src) {
+                    match run_examples_across(&tree) {
                         Ok(ex) => {
                             for f in &ex.failures {
                                 eprintln!("glyph build: example failed: {f}");
@@ -432,6 +484,9 @@ fn main() {
                 Ok(report) => {
                     if json {
                         emit_check_json(&report);
+                    }
+                    for notice in &report.notices {
+                        eprintln!("glyph check: {notice}");
                     }
                     for diag in &report.diagnostics {
                         eprintln!("{diag}");

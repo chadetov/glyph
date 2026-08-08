@@ -41,7 +41,7 @@ below.
 | `E0101` | Relative import (use an absolute module path; D15) |
 | `E0102` | Barrel file: only imports, no declarations (D15) |
 | `E0103` | Unresolved name |
-| `E0104` | Unresolved import: a local import naming no module under the build root. A local import path resolves from the build root, the directory passed to `glyph build`/`glyph run`, not from the importing file's directory (D15). When a file with that name exists elsewhere under the root the message says where |
+| `E0104` | Unresolved import: a local import naming no module under the project root. A local import path resolves from the project root, the nearest directory holding a `package.json` with a `"glyph"` key, else the directory passed to `glyph build`/`glyph run` (D15/D41), not from the importing file's directory. When a file with that name exists elsewhere under the root the message says where, and when it belongs to a different project the message says that instead |
 | `E0105` | Name not exported by the imported module (reported for a named import, `import lib { Secret }`, and for a type written through a namespace import, `import lib` plus a `lib.Secret` annotation; a value read through a namespace is still a `tsc` error) |
 | `E0106` | Unused import (warning) |
 | `E0107` | Unused variable binding (warning) |
@@ -72,14 +72,23 @@ the same failure one step further down: the emitted descriptors keep writing
 you never wrote. `E0111` is the case that reads most like a TypeScript program
 and is not one: see the same page.
 
-`E0104` fires when a local import names no module under the build root. Glyph
-resolves a local import path from the build root (D15), so `import model` from
-`apps/auth_api/main.glyph` resolves only when `apps/auth_api` is the root; build
-the enclosing tree instead and there is no `model` to find. Without this the
-import failed silently, the imported type degraded, and what the user saw was a
-`E0218` non-exhaustive match on a match that was exhaustive. The message names
-the module and, when a `.glyph` file whose module path ends in that import exists
-elsewhere under the root, where it actually is.
+`E0104` fires when a local import names no module under the project root. Glyph
+resolves a local import path from the project root: the nearest directory holding
+a `package.json` with a `"glyph"` key, else the directory passed to `glyph build`
+(D15/D41). So `import model` from `apps/auth_api/main.glyph` resolves when
+`apps/auth_api` carries that marker, or when it is itself the build target.
+Without this the import failed silently, the imported type degraded, and what the
+user saw was a `E0218` non-exhaustive match on a match that was exhaustive. The
+message names the module and, when a `.glyph` file whose module path ends in that
+import exists elsewhere under the root, where it actually is.
+
+A project's imports resolve within its own root only (D41). When the file that
+would answer to the import belongs to a *different* project in the same tree (a
+nested one, an enclosing one, or a sibling), the message says which file it found
+and which project holds it, rather than suggesting a spelling fix that cannot
+work. That project is named relative to what you asked to build, so the message
+is the same on every machine. Reach another project the way TypeScript does, by
+package name through npm.
 
 An npm import is not this error. Before reporting, the build collects the module
 names it can resolve without a `.glyph` file: every `declare module "X"` in

@@ -226,7 +226,7 @@ impl LanguageServer for Backend {
             None => None,
             Some(Definition::Here(start, end)) => Some(location_in(&uri, &text, start, end)),
             Some(Definition::InModule { module_path, name }) => {
-                self.resolve_cross_module(&module_path, &name)
+                self.resolve_cross_module(&uri, &module_path, &name)
             }
         };
         Ok(location.map(GotoDefinitionResponse::Scalar))
@@ -598,6 +598,55 @@ pub(crate) fn collect_glyph_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
+/// The resolution root a `.glyph` file's imports are counted from (D41): the
+/// nearest ancestor holding a `package.json` with a top-level `"glyph"` key,
+/// with that key's `"src"` applied (else `src/` when it exists, else the marked
+/// directory). Falls back to `workspace`, the editor's workspace folder, which
+/// is what the server used before D41.
+///
+/// The climb stops at the workspace folder or at a directory holding `.git`,
+/// whichever comes first, so an unrelated marker above the workspace cannot
+/// capture a file.
+///
+/// This mirrors `glyph-cli`'s `config::project_for_file`, and the two have to
+/// agree: if they disagree, go-to-definition finds nothing in a tree `glyph
+/// build` compiles without complaint. They cannot share code today because
+/// `glyph-cli` depends on `glyph-lsp`, so the dependency cannot point back;
+/// hoisting both onto a shared crate is the follow-up.
+pub(crate) fn project_root_for(file: &Path, workspace: &Path) -> PathBuf {
+    let mut dir = file.parent();
+    while let Some(d) = dir {
+        if let Some(src) = marked_project_src(d) {
+            if file.starts_with(&src) {
+                return src;
+            }
+        }
+        if d == workspace || d.join(".git").exists() {
+            break;
+        }
+        dir = d.parent();
+    }
+    workspace.to_path_buf()
+}
+
+/// The resolution root declared by `dir/package.json`, or `None` when there is
+/// no manifest, no `"glyph"` key, or the manifest will not parse (D41: a
+/// malformed manifest is not a marker).
+fn marked_project_src(dir: &Path) -> Option<PathBuf> {
+    let text = std::fs::read_to_string(dir.join("package.json")).ok()?;
+    let manifest: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let glyph = manifest.get("glyph")?;
+    if let Some(src) = glyph.get("src").and_then(|s| s.as_str()) {
+        return Some(dir.join(src));
+    }
+    let conventional = dir.join("src");
+    Some(if conventional.is_dir() {
+        conventional
+    } else {
+        dir.to_path_buf()
+    })
+}
+
 /// The Glyph module path of a `.glyph` file under `root` — its path relative to
 /// the root, minus the extension, with `/` separators (`src/foo.glyph` →
 /// `src/foo`). This is the name an `import` uses and the key a cross-file
@@ -680,12 +729,18 @@ impl Backend {
         self.docs.lock().expect("docs mutex").get(uri).cloned()
     }
 
-    /// The workspace root and the open file's own module path, when both exist
+    /// The open file's resolution root and its own module path, when both exist
     /// (there is a workspace and the file lives under it). `None` falls back to
     /// file-scoped behaviour.
+    ///
+    /// The root is the file's *project* (D41), not the workspace folder, so a
+    /// monorepo of marked apps answers the same way `glyph build` does. Every
+    /// workspace-wide query is scoped to it, which is right: another project's
+    /// `import lib` names its own `lib`, not this one.
     fn file_module(&self, uri: &Url) -> Option<(PathBuf, String)> {
-        let root = self.root.lock().expect("root mutex").clone()?;
+        let workspace = self.root.lock().expect("root mutex").clone()?;
         let path = uri.to_file_path().ok()?;
+        let root = project_root_for(&path, &workspace);
         let module = module_path_of(&root, &path)?;
         Some((root, module))
     }
@@ -784,13 +839,20 @@ impl Backend {
         }
     }
 
-    /// Resolve an imported `module_path` to its file under the workspace root and
-    /// locate the declaration named `name` in it (a `.glyph` whose path mirrors
-    /// the module path, e.g. `sub/b` → `<root>/sub/b.glyph`). `None` if there is
-    /// no workspace root, no such file (a `std/*` import has no project source),
-    /// or the declaration is not found.
-    fn resolve_cross_module(&self, module_path: &str, name: &str) -> Option<Location> {
-        let root = self.root.lock().expect("root mutex").clone()?;
+    /// Resolve an imported `module_path` to its file and locate the declaration
+    /// named `name` in it (a `.glyph` whose path mirrors the module path, e.g.
+    /// `sub/b` → `<root>/sub/b.glyph`). `None` if there is no workspace root, no
+    /// such file (a `std/*` import has no project source), or the declaration is
+    /// not found.
+    ///
+    /// The root is the *importing* file's project (D41), which is the root that
+    /// file's import paths are counted from.
+    fn resolve_cross_module(&self, from: &Url, module_path: &str, name: &str) -> Option<Location> {
+        let workspace = self.root.lock().expect("root mutex").clone()?;
+        let root = match from.to_file_path() {
+            Ok(path) => project_root_for(&path, &workspace),
+            Err(_) => workspace,
+        };
         let file = root.join(module_path).with_extension("glyph");
         let uri = Url::from_file_path(&file).ok()?;
         let text = self
@@ -908,6 +970,56 @@ pub fn run_stdio() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A uniquely named temp directory for the project-root tests.
+    fn tmp_dir(prefix: &str) -> PathBuf {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir()
+            .join(format!("glyph_lsp_{prefix}_{}_{n}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    /// The server resolves module paths the way `glyph build` does (D41): from
+    /// the file's marked project, not from the editor's workspace folder. If it
+    /// did not, go-to-definition would find nothing in a tree the compiler
+    /// builds without complaint.
+    #[test]
+    fn the_project_root_is_the_nearest_marked_ancestor() {
+        let workspace = tmp_dir("marked");
+        let app = workspace.join("apps").join("csvql");
+        std::fs::create_dir_all(app.join("src")).expect("app src");
+        std::fs::write(
+            app.join("package.json"),
+            "{ \"name\": \"csvql\", \"private\": true, \"glyph\": { \"src\": \"src\" } }\n",
+        )
+        .expect("marker");
+        let file = app.join("src").join("main.glyph");
+
+        let root = project_root_for(&file, &workspace);
+        assert_eq!(root, app.join("src"));
+        assert_eq!(module_path_of(&root, &file).as_deref(), Some("main"));
+        let _ = std::fs::remove_dir_all(&workspace);
+    }
+
+    /// With no marker anywhere, the workspace folder stays the root, which is
+    /// what every project had before D41.
+    #[test]
+    fn an_unmarked_tree_still_roots_at_the_workspace() {
+        let workspace = tmp_dir("unmarked");
+        let sub = workspace.join("sub");
+        std::fs::create_dir_all(&sub).expect("sub");
+        // A plain npm package is not a Glyph project root.
+        std::fs::write(sub.join("package.json"), "{ \"name\": \"plain\" }\n").expect("manifest");
+        let file = sub.join("b.glyph");
+
+        assert_eq!(project_root_for(&file, &workspace), workspace);
+        assert_eq!(module_path_of(&workspace, &file).as_deref(), Some("sub/b"));
+        let _ = std::fs::remove_dir_all(&workspace);
+    }
 
     #[test]
     fn module_path_of_maps_files_under_root() {

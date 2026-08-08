@@ -49,9 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.60</span>
+            <span class="rel-ver">0.1.61</span>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A directory can say it is a project</h3>
+            <p>A local import resolves from a root, and until now that root was whatever directory you handed to <code>glyph build</code>. That made a project uncombinable with anything: an app whose modules resolved perfectly on its own stopped resolving the moment you built the directory above it, and the failure named neither imports nor layout. A <code>package.json</code> carrying a <code>"glyph"</code> key now marks its directory as a resolution root, nearest one wins, so a tree of projects builds in one command and each project still builds alone.</p>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <code>D41</code>. A directory holding a <code>package.json</code> with a <code>"glyph"</code> key is a module-resolution root. The key already existed: <code>glyph init</code> writes it and <code>glyph publish</code> reads it, so this honours a marker the toolchain already had rather than inventing one. It amends <code>D15</code> and does not replace it, since imports are still slash-separated from a root and still never relative.</li>
+              <li><span class="tag added">Added</span> A project's imports resolve inside its own root only. A nested project cannot reach an enclosing one and an enclosing project cannot reach into a nested one, which is what <code>packages/foo</code> already means to anyone who has used a workspace. Reaching another project is what npm is for, and the error says so.</li>
+              <li><span class="tag fixed">Fixed</span> <code>glyph build</code> over a tree of projects builds every one of them. The whole <code>examples</code> directory, 105 modules across six apps and a corpus, now compiles and type-checks in a single invocation. It could not before.</li>
+              <li><span class="tag changed">Changed</span> With no marker anywhere, nothing moves: the directory you passed is still the only root. Every existing single-project build behaves exactly as it did.</li>
+              <li><span class="tag known">Known</span> A bare import naming nothing at all is still handed to <code>tsc</code> rather than rejected, because at the Glyph stage <code>import modle</code> and <code>import react</code> are the same shape and rejecting one would reject the other. The cross-project case is caught: importing a sibling project's module reports where that module actually lives and that npm is the way to reach it.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.60</span>
+                        <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
             <h3>The compiler stops blaming the wrong line</h3>

@@ -186,7 +186,17 @@ pub fn run_file(
     // A directory runs its `main.glyph`, matching `glyph build <dir>`: the two
     // commands a multi-module app needs are spelled the same way.
     let target: PathBuf = if file.is_dir() {
-        let main = file.join("main.glyph");
+        // A *project* directory runs the `main.glyph` at its resolution root
+        // (D41): `glyph run app` finds `app/src/main.glyph` when `app` carries a
+        // marker. A directory with no marker is not a project and gets no `src/`
+        // convention applied to it, so it still runs its own `main.glyph` —
+        // which is what `glyph build <dir>` roots at, and the two commands must
+        // agree.
+        let root_main = crate::config::project_src(file).map(|src| src.join("main.glyph"));
+        let main = match root_main {
+            Some(m) if m.is_file() => m,
+            _ => file.join("main.glyph"),
+        };
         if !main.is_file() {
             return Err(RunError::NoMainGlyph {
                 dir: file.to_path_buf(),
@@ -201,15 +211,20 @@ pub fn run_file(
         return Err(RunError::NotGlyph(file.to_path_buf()));
     }
 
-    // `src` is the program's directory; with `src` as the root the target's
-    // module path is just its file stem, which names its emitted `.ts`.
-    let src = file
-        .parent()
-        .filter(|p| !p.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
+    // `src` is the program's *project* resolution root: the nearest enclosing
+    // directory carrying a `package.json` with a `"glyph"` key, else the file's
+    // own directory (D41, P6). Climbing is what makes a nested entry file
+    // runnable — `glyph run app/src/queries/report.glyph` resolves `catalog` the
+    // same way `glyph build app` does, and it does so whether the path was typed
+    // relative or absolute (`project_for_file` compares canonicalized paths).
+    let placed = crate::config::project_for_file(file);
+    let src: &Path = placed.src.as_path();
+    let file: &Path = placed.file.as_path();
     let stem = file.file_stem().and_then(|s| s.to_str()).unwrap_or("main");
 
-    let target_rel = format!("{stem}.ts");
+    // The target's module path within its project names its emitted `.ts`; for a
+    // file sitting directly at the root this is still just the stem.
+    let target_rel = format!("{}.ts", crate::build::derive_module_path(src, file));
 
     // Cache the build so a repeated `glyph run` of an unchanged program skips
     // both the rebuild and the `tsc` type-check (the dominant per-invocation

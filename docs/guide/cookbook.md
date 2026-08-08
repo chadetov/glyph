@@ -72,6 +72,49 @@ No `else` arm, and none is needed: `fs.ErrorKind` is a closed set of six kinds
 and the checker knows it, so leaving one out is E0200 rather than a run-time
 throw.
 
+## Read stdin a line at a time
+
+`io.read_line` returns as soon as a full line has arrived, so the loop below
+answers each line while the person typing is still connected. It returns `None`
+at end of input, which is what ends the loop.
+
+```glyph
+import std/io
+import std/option { Some, None }
+import std/string
+
+fn main() -> void {
+  io.println("type a word, or Ctrl-D to stop")
+  loop {
+    let line = match io.read_line() {
+      Some(l) => l,
+      None => { break },
+    }
+    let word = string.trim(line)
+    match word == "" {
+      true => {},
+      false => { io.println("${word} has ${string.len(word)} characters") },
+    }
+  }
+}
+```
+
+A trailing `\r` is stripped, so a CRLF file and an LF file read the same, and
+input that ends without a newline still hands back that last line once.
+
+`read_to_string` drains the same buffer, so it returns whatever stdin has left.
+Call it first for the whole stream, or after a few `read_line`s to take the rest:
+
+```glyph
+let header = io.read_line()
+let body = io.read_to_string()
+```
+
+Two things an interactive program cannot do yet. There is no way to write without
+a newline, so a `> ` prompt has to be a line of its own, and nothing reports
+whether stdin is a terminal or a pipe, so a program that behaves differently for
+each has to be told by a flag.
+
 ## Parse untrusted JSON into a validated type
 
 ```glyph

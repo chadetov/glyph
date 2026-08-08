@@ -7039,3 +7039,111 @@ fn run_on_a_nested_file_resolves_its_project_siblings() {
     );
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn read_line_returns_a_line_before_stdin_closes() {
+    // The bug this pins: `read_line` used to slurp fd 0 to EOF, so an echo loop
+    // printed nothing until the writer went away and no interactive program was
+    // writable. Piping a complete file does not catch that (the whole 0.1.x line
+    // shipped with the defect because the harness only ever did that), so this is
+    // a timing test: write ONE line, leave stdin OPEN, and require the echo back.
+    if !js_toolchain_available() {
+        eprintln!("skipping interactive read_line run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("readline_interactive");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io\n\
+         fn main() -> number {\n\
+         \x20 loop {\n\
+         \x20   match io.read_line() {\n\
+         \x20     None => { break },\n\
+         \x20     Some(line) => { io.println(\"echo:${line}\") },\n\
+         \x20   }\n\
+         \x20 }\n\
+         \x20 return 0\n\
+         }\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "echo program should build: {:?}",
+        report.diagnostics
+    );
+    let entry = out.join("__glyph_run.ts");
+    std::fs::write(
+        &entry,
+        "import \"./.glyph-runtime/glyph-bootstrap.ts\";\n\
+         import { main } from \"./main.ts\";\n\
+         (async () => { process.exit(await main()); })();\n",
+    )
+    .expect("write entry");
+
+    let mut child = std::process::Command::new("tsx")
+        .arg("--tsconfig")
+        .arg(out.join("tsconfig.json"))
+        .arg(&entry)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .expect("spawn tsx");
+
+    // Stream stdout back over a channel so the assertion can time out instead of
+    // blocking forever when the fix regresses.
+    let stdout = child.stdout.take().expect("piped stdout");
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        use std::io::BufRead;
+        for line in std::io::BufReader::new(stdout).lines() {
+            match line {
+                Ok(l) => {
+                    if tx.send(l).is_err() {
+                        return;
+                    }
+                }
+                Err(_) => return,
+            }
+        }
+    });
+
+    {
+        use std::io::Write;
+        let stdin = child.stdin.as_mut().expect("piped stdin");
+        stdin.write_all(b"hello\n").expect("write a line");
+        stdin.flush().expect("flush");
+    }
+    // stdin is deliberately still open here. Node/tsx startup dominates, so the
+    // window is generous; what it must not require is EOF.
+    let first = rx
+        .recv_timeout(std::time::Duration::from_secs(20))
+        .expect("read_line must return a line while stdin is still open");
+    assert_eq!(first, "echo:hello", "the echoed line");
+
+    // A second line on the same open stream, proving the buffer keeps working
+    // rather than having simply handed back one slurped chunk.
+    {
+        use std::io::Write;
+        let stdin = child.stdin.as_mut().expect("piped stdin");
+        stdin.write_all(b"world\r\n").expect("write a CRLF line");
+        stdin.flush().expect("flush");
+    }
+    let second = rx
+        .recv_timeout(std::time::Duration::from_secs(20))
+        .expect("the second line must come back too");
+    assert_eq!(
+        second, "echo:world",
+        "CRLF input yields the same line as LF (the \\r is stripped)"
+    );
+
+    // Now close stdin: the loop sees `None` and the program exits 0.
+    drop(child.stdin.take());
+    let status = child.wait().expect("wait for the echo program");
+    assert_eq!(status.code(), Some(0), "program exits cleanly at EOF");
+    let _ = std::fs::remove_dir_all(&root);
+}

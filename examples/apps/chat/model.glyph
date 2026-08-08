@@ -1,0 +1,76 @@
+// The vocabulary the rest of the program speaks: who is connected, what a room
+// holds, what a successful command produced, and every way one can fail.
+//
+// Nothing here reads a file, parses a line, or prints. `protocol` turns text
+// into a `Command`, `server` turns a `Command` into `Event`s or a `ChatError`,
+// and `render` turns those into lines.
+module model
+
+import std/option { Option }
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+// A message posted to a room. `seq` is a server-wide logical clock, so the
+// transcript orders room posts and direct messages against each other without
+// reading a wall clock (which would make the fixture output unreproducible).
+pub type Message = { seq: int, room: string, author: string, text: string }
+
+// A message addressed to one nick. It never lands in a room's history, which is
+// why it is a separate type rather than a `Message` with a nullable room.
+pub type Direct = { seq: int, from: string, to: string, text: string }
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+
+pub type Room = { name: string, topic: string, members: Array<string>, history: Array<Message> }
+
+// `active` is the room a bare line goes to. It is an `Option` because a client
+// that has connected but joined nothing has no default, and "" would be a room
+// name the rest of the code would have to keep remembering is not a room name.
+pub type User = {
+  nick: string,
+  joined: Array<string>,
+  active: Option<string>,
+  inbox: Array<Direct>,
+}
+
+pub type Server = { users: Record<string, User>, rooms: Record<string, Room>, seq: int }
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+pub type RoomSummary = { name: string, topic: string, members: int, messages: int }
+
+// What a command actually did. The engine returns these instead of printing, so
+// the same transition can be rendered as a transcript, filtered to one user, or
+// counted, without the engine knowing which.
+pub type Event =
+  | Connected({ nick: string })
+  | Renamed({ from: string, to: string })
+  | Joined({ nick: string, room: string })
+  | Parted({ nick: string, room: string, reason: string })
+  | Posted({ message: Message })
+  | Delivered({ direct: Direct })
+  | TopicSet({ nick: string, room: string, topic: string })
+  | Roster({ room: string, members: Array<string> })
+  | Listed({ rooms: Array<RoomSummary> })
+  | Replayed({ room: string, messages: Array<Message> })
+  | Quit({ nick: string })
+
+// ---------------------------------------------------------------------------
+// Failures
+// ---------------------------------------------------------------------------
+
+pub type ChatError =
+  | UnknownUser({ nick: string })
+  | UnknownRoom({ room: string })
+  | NotInRoom({ nick: string, room: string })
+  | AlreadyJoined({ nick: string, room: string })
+  | NickTaken({ nick: string })
+  | NoActiveRoom({ nick: string })
+  | NotYourRoom({ nick: string, room: string })
+  | EmptyMessage({ nick: string })

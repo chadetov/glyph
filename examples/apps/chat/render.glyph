@@ -1,0 +1,203 @@
+// Everything that turns a value into text. Nothing below this module prints,
+// and this one does not print either: it returns lines, so `main` decides where
+// they go and a test can assert on them.
+module render
+
+import std/array
+import std/math
+import std/option { Some, None }
+import std/record
+import std/string
+import model
+import model { Server, Message, Direct, Event, RoomSummary, ChatError }
+import protocol
+import protocol { ProtocolError }
+
+// The width of the sequence-number gutter every transcript line carries.
+const GUTTER = 4
+
+fn gutter(seq: int) -> string {
+  return string.pad_start(number.to_string(seq), GUTTER)
+}
+
+// Server-side notices share a gutter of spaces, so the sequence numbers of real
+// messages line up in a column instead of being buried in the prose.
+fn notice(text: string) -> string {
+  // The blank gutter is bound first because a string literal cannot appear
+  // inside a `${...}` interpolation (v1 lexer limit).
+  let space = " "
+  let blank = string.repeat(space, GUTTER)
+  return "${blank}  * ${text}"
+}
+
+fn quoted(text: string) -> string {
+  return "\"${text}\""
+}
+
+@example say(7, "#general", "alice", "hi") == "   7  #general <alice> hi"
+fn say(seq: int, room: string, author: string, text: string) -> string {
+  return "${gutter(seq)}  ${room} <${author}> ${text}"
+}
+
+fn message_line(message: Message) -> string {
+  return say(message.seq, message.room, message.author, message.text)
+}
+
+fn direct_line(direct: Direct) -> string {
+  return "${gutter(direct.seq)}  [dm] ${direct.from} -> ${direct.to}: ${direct.text}"
+}
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+
+pub fn event_lines(event: Event) -> Array<string> {
+  return match event {
+    model.Connected({ nick }) => [notice("${nick} connected")],
+    model.Renamed({ from, to }) => [notice("${from} is now known as ${to}")],
+    model.Joined({ nick, room }) => [notice("${nick} joined ${room}")],
+    model.Parted({ nick, room, reason }) => [notice("${nick} left ${room} (${reason})")],
+    model.Posted({ message }) => [message_line(message)],
+    model.Delivered({ direct }) => [direct_line(direct)],
+    model.TopicSet({ nick, room, topic }) => [
+      notice("${nick} set the topic of ${room} to ${quoted(topic)}"),
+    ],
+    model.Roster({ room, members }) => [notice("${room}: ${roster(members)}")],
+    model.Listed({ rooms }) => room_lines(rooms),
+    model.Replayed({ room, messages }) => replay_lines(room, messages),
+    model.Quit({ nick }) => [notice("${nick} quit")],
+  }
+}
+
+// A comma-separated list, or the word that stands in for the empty one.
+@example listing(["a", "b"], "nothing") == "a, b"
+@example listing([], "nothing") == "nothing"
+fn listing(names: Array<string>, empty: string) -> string {
+  let separator = ", "
+  let joined = string.join(names, separator)
+  return match array.len(names) == 0 {
+    true => empty,
+    false => joined,
+  }
+}
+
+fn roster(members: Array<string>) -> string {
+  let count = number.to_string(array.len(members))
+  let nobody = "nobody"
+  let names = listing(members, nobody)
+  return match array.len(members) == 0 {
+    true => nobody,
+    false => "${names} (${count})",
+  }
+}
+
+fn replay_lines(room: string, messages: Array<Message>) -> Array<string> {
+  let count = number.to_string(array.len(messages))
+  let head = [notice("replaying ${count} from ${room}")]
+  return array.concat(head, array.map(messages, message_line))
+}
+
+// ---------------------------------------------------------------------------
+// Failures
+// ---------------------------------------------------------------------------
+
+pub fn chat_error(error: ChatError) -> string {
+  let text = match error {
+    model.UnknownUser({ nick }) => "nobody here is called ${nick}",
+    model.UnknownRoom({ room }) => "no room called ${room}",
+    model.NotInRoom({ nick, room }) => "${nick} is not in ${room}",
+    model.AlreadyJoined({ nick, room }) => "${nick} is already in ${room}",
+    model.NickTaken({ nick }) => "the nick ${nick} is taken",
+    model.NoActiveRoom({ nick }) => "${nick} is not in any room, so there is nowhere to send that",
+    model.NotYourRoom({ nick, room }) => "${room} belongs to ${nick}",
+    model.EmptyMessage({ nick }) => "${nick} sent an empty message",
+  }
+  return notice("! ${text}")
+}
+
+pub fn protocol_error(error: ProtocolError) -> string {
+  let text = match error {
+    protocol.UnknownCommand({ name }) => "no such command: /${name}",
+    protocol.MissingArgument({ command, argument }) => "/${command} needs a ${argument}",
+    protocol.BadCount({ command, raw }) => "/${command} wants a number, got ${quoted(raw)}",
+    protocol.BlankLine => "blank line",
+  }
+  return notice("? ${text}")
+}
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+fn widest(values: Array<string>) -> number {
+  return array.fold(
+    values,
+    0,
+    fn(w: number, v: string) -> number { return math.max(w, string.len(v)) },
+  )
+}
+
+fn room_lines(rooms: Array<RoomSummary>) -> Array<string> {
+  let width = widest(array.map(rooms, fn(r: RoomSummary) -> string { return r.name }))
+  return array.map(
+    rooms,
+    fn(r: RoomSummary) -> string {
+      let name = string.pad_end(r.name, width)
+      let members = string.pad_start(number.to_string(r.members), 3)
+      let messages = string.pad_start(number.to_string(r.messages), 4)
+      return notice("${name} ${members} here ${messages} msgs  ${r.topic}")
+    },
+  )
+}
+
+pub fn room_table(rooms: Array<RoomSummary>) -> Array<string> {
+  return array.concat(["rooms:"], room_lines(rooms))
+}
+
+// ---------------------------------------------------------------------------
+// One client's view
+// ---------------------------------------------------------------------------
+
+// Everything this nick could have seen, in the order the server produced it:
+// the history of every room it is in, plus the direct messages addressed to it.
+// The logical clock is what makes the interleaving well defined.
+type Seen = { seq: int, text: string }
+
+fn seen(seq: int, text: string) -> Seen {
+  return { seq: seq, text: text }
+}
+
+pub fn user_view(state: Server, nick: string) -> Array<string> {
+  let user = match record.get(state.users, nick) {
+    Some(found) => found,
+    None => { return [notice("nobody here is called ${nick}")] },
+  }
+  let rooms: Array<Seen> = array.flat_map(
+    user.joined,
+    fn(name: string) -> Array<Seen> {
+      return match record.get(state.rooms, name) {
+        Some(room) => array.map(
+          room.history,
+          fn(m: Message) -> Seen { return seen(m.seq, message_line(m)) },
+        ),
+        None => [],
+      }
+    },
+  )
+  let inbox: Array<Seen> = array.map(
+    user.inbox,
+    fn(d: Direct) -> Seen { return seen(d.seq, direct_line(d)) },
+  )
+  let merged = array.sort(
+    array.concat(rooms, inbox),
+    fn(a: Seen, b: Seen) -> number { return a.seq - b.seq },
+  )
+  let where_now = match user.active {
+    Some(room) => room,
+    None => "nowhere",
+  }
+  let nowhere = "no rooms"
+  let rooms_in = listing(user.joined, nowhere)
+  let header = ["${nick} is in ${rooms_in}, currently ${where_now}"]
+  return array.concat(header, array.map(merged, fn(s: Seen) -> string { return s.text }))
+}

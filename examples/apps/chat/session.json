@@ -1,0 +1,32 @@
+{
+  "title": "#general on a Tuesday",
+  "turns": [
+    { "from": "alice", "line": "/join general" },
+    { "from": "alice", "line": "/topic release day, be nice" },
+    { "from": "bob", "line": "/join #general" },
+    { "from": "bob", "line": "hey, is the build green?" },
+    { "from": "alice", "line": "green since 9am" },
+    { "from": "bob", "line": "/topic actually let me set this" },
+    { "from": "carol", "line": "hello?" },
+    { "from": "carol", "line": "/join #general" },
+    { "from": "carol", "line": "morning all" },
+    { "from": "carol", "line": "/dm alice can you review my patch" },
+    { "from": "alice", "line": "/dm dave you around?" },
+    { "from": "bob", "line": "/join #random" },
+    { "from": "bob", "line": "anyone for lunch" },
+    { "from": "bob", "line": "/msg #general back in a sec" },
+    { "from": "bob", "line": "/who #general" },
+    { "from": "carol", "line": "/history #general 3" },
+    { "from": "alice", "line": "/nick al" },
+    { "from": "al", "line": "renamed, still here" },
+    { "from": "carol", "line": "/nick bob" },
+    { "from": "bob", "line": "/rooms" },
+    { "from": "bob", "line": "/part #random calling it" },
+    { "from": "dave", "line": "/history #general" },
+    { "from": "dave", "line": "/dance" },
+    { "from": "dave", "line": "/msg #nowhere anyone there?" },
+    { "from": "dave", "line": "/quit" },
+    { "from": "carol", "line": "/part" },
+    { "from": "carol", "line": "still typing into nothing" }
+  ]
+}

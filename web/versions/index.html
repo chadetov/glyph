@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.61</span>
+            <span class="rel-ver">0.1.62</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A program can answer while you are still typing</h3>
+            <p>Building a chat client turned up something that had been true since <code>std/io</code> was written: <code>io.read_line</code> was never a line reader. It slurped stdin to end of input, split the result, and handed out the pieces. Piping a file works. Typing into it does not, so the program sat silent while you typed and every answer arrived at once after Ctrl-D. That made a whole category of program unwritable in Glyph, and three apps in the repository had been quietly shaped around it.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>io.read_line</code> returns as soon as a full line arrives and does not wait for stdin to close. stdin is read one chunk at a time into a shared buffer, so a prompt/read/respond loop answers while the writer is still connected. On <code>(printf 'a\n'; sleep 2; printf 'b\n')</code> the two lines now print 1ms and 1405ms in; before, both printed at the end.</li>
+              <li><span class="tag fixed">Fixed</span> A trailing <code>\r</code> is stripped, so CRLF input reads the same as LF, and input that ends without a newline still hands back that last line once before <code>None</code>.</li>
+              <li><span class="tag changed">Changed</span> <code>io.read_to_string</code> drains the same buffer instead of re-reading the descriptor, so <code>read_line</code> and then <code>read_to_string</code> gives you the rest. Called first it still returns all of stdin.</li>
+              <li><span class="tag fixed">Fixed</span> Three example apps became interactive with no change to them: minesweeper redraws the board between moves, the text adventure answers <code>look</code> while you type, and <code>minilang --repl</code> evaluates a line and prints the result before reading the next.</li>
+              <li><span class="tag known">Known</span> Two things an interactive program still cannot do. <code>std/io</code> has no write-without-a-newline, so a <code>&gt; </code> prompt has to be a line of its own, and nothing reports whether stdin is a terminal or a pipe, so a program that behaves differently for each has to be told by a flag.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.61</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

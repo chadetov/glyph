@@ -1,0 +1,308 @@
+// The engine. One command, from one client, against one server value produces a
+// new server value plus the events it caused, or a `ChatError`.
+//
+// `Server` is threaded, not mutated: `apply` takes a server and returns one, so
+// replaying a session is a fold and `--step N` is that fold stopped early. That
+// is also why there is no `mut` in this file.
+module server
+
+import std/array
+import std/option { Option, Some, None }
+import std/record
+import std/result { Result, Ok, Err }
+import model
+import model { Server, User, Room, Message, Direct, Event, RoomSummary, ChatError }
+import protocol
+import protocol { Command }
+
+pub type Applied = { server: Server, events: Array<Event> }
+
+// A room with no topic set says so, rather than rendering as an empty column.
+const NO_TOPIC = "(no topic)"
+
+pub fn empty() -> Server {
+  return { users: {}, rooms: {}, seq: 0 }
+}
+
+fn applied(state: Server, events: Array<Event>) -> Applied {
+  return { server: state, events: events }
+}
+
+// ---------------------------------------------------------------------------
+// Lookups
+// ---------------------------------------------------------------------------
+
+fn find_user(state: Server, nick: string) -> Result<User, ChatError> {
+  return match record.get(state.users, nick) {
+    Some(user) => Ok(user),
+    None => Err(model.UnknownUser({ nick: nick })),
+  }
+}
+
+fn find_room(state: Server, name: string) -> Result<Room, ChatError> {
+  return match record.get(state.rooms, name) {
+    Some(room) => Ok(room),
+    None => Err(model.UnknownRoom({ room: name })),
+  }
+}
+
+// A command that names no room means the room the client is standing in. A
+// client standing nowhere gets told so, instead of silently doing nothing.
+fn resolve(user: User, room: Option<string>) -> Result<string, ChatError> {
+  return match room {
+    Some(name) => Ok(name),
+    None => match user.active {
+      Some(name) => Ok(name),
+      None => Err(model.NoActiveRoom({ nick: user.nick })),
+    },
+  }
+}
+
+fn member_room(state: Server, user: User, room: Option<string>) -> Result<Room, ChatError> {
+  let name = resolve(user, room)?
+  let found = find_room(state, name)?
+  match array.contains(found.members, user.nick) {
+    true => {},
+    false => { return Err(model.NotInRoom({ nick: user.nick, room: name })) },
+  }
+  return Ok(found)
+}
+
+// ---------------------------------------------------------------------------
+// Updates
+// ---------------------------------------------------------------------------
+
+fn put_user(state: Server, user: User) -> Server {
+  return { ...state, users: record.set(state.users, user.nick, user) }
+}
+
+fn put_room(state: Server, room: Room) -> Server {
+  return { ...state, rooms: record.set(state.rooms, room.name, room) }
+}
+
+fn without(names: Array<string>, nick: string) -> Array<string> {
+  return array.filter(names, fn(name: string) -> bool { return name != nick })
+}
+
+// ---------------------------------------------------------------------------
+// Connection
+// ---------------------------------------------------------------------------
+
+// A client that has not been seen before is connected by the act of speaking,
+// which is what a transport does. It is a separate step from the command so the
+// transcript shows the connection on its own line.
+fn connect(state: Server, nick: string) -> Applied {
+  return match record.get(state.users, nick) {
+    Some(_) => applied(state, []),
+    None => {
+      let user: User = { nick: nick, joined: [], active: None, inbox: [] }
+      applied(put_user(state, user), [model.Connected({ nick: nick })])
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One handler per command
+// ---------------------------------------------------------------------------
+
+// A rename rewrites the membership lists but never the history: a message was
+// posted by the nick that posted it, and rewriting that would make the
+// transcript lie about what happened.
+fn do_nick(state: Server, from: string, to: string) -> Result<Applied, ChatError> {
+  let user = find_user(state, from)?
+  match record.has(state.users, to) {
+    true => { return Err(model.NickTaken({ nick: to })) },
+    false => {},
+  }
+  let moved: User = { ...user, nick: to }
+  let users = record.set(record.remove(state.users, from), to, moved)
+  let rooms = array.fold(
+    record.values(state.rooms),
+    state.rooms,
+    fn(acc: Record<string, Room>, room: Room) -> Record<string, Room> {
+      return match array.contains(room.members, from) {
+        false => acc,
+        true => record.set(
+          acc,
+          room.name,
+          { ...room, members: array.push(without(room.members, from), to) },
+        ),
+      }
+    },
+  )
+  return Ok(
+    applied({ users: users, rooms: rooms, seq: state.seq }, [model.Renamed({ from: from, to: to })]),
+  )
+}
+
+fn do_join(state: Server, from: string, name: string) -> Result<Applied, ChatError> {
+  let user = find_user(state, from)?
+  let room = match record.get(state.rooms, name) {
+    Some(existing) => existing,
+    None => { name: name, topic: NO_TOPIC, members: [], history: [] },
+  }
+  match array.contains(room.members, from) {
+    true => { return Err(model.AlreadyJoined({ nick: from, room: name })) },
+    false => {},
+  }
+  let joined: Room = { ...room, members: array.push(room.members, from) }
+  let moved: User = { ...user, joined: array.push(user.joined, name), active: Some(name) }
+  return Ok(
+    applied(put_user(put_room(state, joined), moved), [model.Joined({ nick: from, room: name })]),
+  )
+}
+
+fn do_part(state: Server, from: string, room: Option<string>, reason: string) -> Result<Applied, ChatError> {
+  let user = find_user(state, from)?
+  let found = member_room(state, user, room)?
+  let left: Room = { ...found, members: without(found.members, from) }
+  let remaining = without(user.joined, found.name)
+  let active = match array.len(remaining) == 0 {
+    true => None,
+    false => Some(remaining[array.len(remaining) - 1]),
+  }
+  let moved: User = { ...user, joined: remaining, active: active }
+  let next = put_user(put_room(state, left), moved)
+  return Ok(applied(next, [model.Parted({ nick: from, room: found.name, reason: reason })]))
+}
+
+fn do_post(state: Server, from: string, room: Option<string>, text: string) -> Result<Applied, ChatError> {
+  let user = find_user(state, from)?
+  match string_is_blank(text) {
+    true => { return Err(model.EmptyMessage({ nick: from })) },
+    false => {},
+  }
+  let found = member_room(state, user, room)?
+  let seq = state.seq + 1
+  let message: Message = { seq: seq, room: found.name, author: from, text: text }
+  let updated: Room = { ...found, history: array.push(found.history, message) }
+  let next = { ...put_room(state, updated), seq: seq }
+  return Ok(applied(next, [model.Posted({ message: message })]))
+}
+
+fn do_dm(state: Server, from: string, to: string, text: string) -> Result<Applied, ChatError> {
+  match string_is_blank(text) {
+    true => { return Err(model.EmptyMessage({ nick: from })) },
+    false => {},
+  }
+  let target = find_user(state, to)?
+  let seq = state.seq + 1
+  let direct: Direct = { seq: seq, from: from, to: to, text: text }
+  let moved: User = { ...target, inbox: array.push(target.inbox, direct) }
+  let next = { ...put_user(state, moved), seq: seq }
+  return Ok(applied(next, [model.Delivered({ direct: direct })]))
+}
+
+// The topic belongs to whoever opened the room. Everyone else gets told whose
+// room it is, which is a more useful answer than "denied".
+fn do_topic(state: Server, from: string, room: Option<string>, topic: string) -> Result<Applied, ChatError> {
+  let user = find_user(state, from)?
+  let found = member_room(state, user, room)?
+  let founder = found.members[0]
+  match founder == from {
+    true => {},
+    false => { return Err(model.NotYourRoom({ nick: founder, room: found.name })) },
+  }
+  let updated: Room = { ...found, topic: topic }
+  return Ok(
+    applied(
+      put_room(state, updated),
+      [model.TopicSet({ nick: from, room: found.name, topic: topic })],
+    ),
+  )
+}
+
+fn do_who(state: Server, from: string, room: Option<string>) -> Result<Applied, ChatError> {
+  let user = find_user(state, from)?
+  let name = resolve(user, room)?
+  let found = find_room(state, name)?
+  return Ok(applied(state, [model.Roster({ room: found.name, members: found.members })]))
+}
+
+fn do_history(state: Server, from: string, room: Option<string>, count: int) -> Result<Applied, ChatError> {
+  let user = find_user(state, from)?
+  let found = member_room(state, user, room)?
+  let total = array.len(found.history)
+  let start = match total > count {
+    true => total - count,
+    false => 0,
+  }
+  let recent: Array<Message> = array.slice(found.history, start)
+  return Ok(applied(state, [model.Replayed({ room: found.name, messages: recent })]))
+}
+
+fn summarize(room: Room) -> RoomSummary {
+  return {
+    name: room.name,
+    topic: room.topic,
+    members: array.len(room.members),
+    messages: array.len(room.history),
+  }
+}
+
+fn by_name(a: RoomSummary, b: RoomSummary) -> number {
+  return match a.name < b.name {
+    true => -1,
+    false => match a.name > b.name {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// Also the report `--rooms` prints, so the two never drift apart.
+pub fn summaries(state: Server) -> Array<RoomSummary> {
+  return array.sort(array.map(record.values(state.rooms), summarize), by_name)
+}
+
+fn do_rooms(state: Server) -> Result<Applied, ChatError> {
+  return Ok(applied(state, [model.Listed({ rooms: summaries(state) })]))
+}
+
+// Quitting takes the client out of every room it was in. Its posts stay: the
+// room history is a log, not a view of who is currently present.
+fn do_quit(state: Server, from: string) -> Result<Applied, ChatError> {
+  find_user(state, from)?
+  let rooms = array.fold(
+    record.values(state.rooms),
+    state.rooms,
+    fn(acc: Record<string, Room>, room: Room) -> Record<string, Room> {
+      return match array.contains(room.members, from) {
+        false => acc,
+        true => record.set(acc, room.name, { ...room, members: without(room.members, from) }),
+      }
+    },
+  )
+  let next: Server = { users: record.remove(state.users, from), rooms: rooms, seq: state.seq }
+  return Ok(applied(next, [model.Quit({ nick: from })]))
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn string_is_blank(text: string) -> bool {
+  return text == ""
+}
+
+fn dispatch(state: Server, from: string, command: Command) -> Result<Applied, ChatError> {
+  return match command {
+    protocol.Nick({ nick }) => do_nick(state, from, nick),
+    protocol.Join({ room }) => do_join(state, from, room),
+    protocol.Part({ room, reason }) => do_part(state, from, room, reason),
+    protocol.Say({ text }) => do_post(state, from, None, text),
+    protocol.Post({ room, text }) => do_post(state, from, Some(room), text),
+    protocol.Dm({ to, text }) => do_dm(state, from, to, text),
+    protocol.Topic({ room, topic }) => do_topic(state, from, room, topic),
+    protocol.Who({ room }) => do_who(state, from, room),
+    protocol.History({ room, count }) => do_history(state, from, room, count),
+    protocol.Rooms => do_rooms(state),
+    protocol.Quit => do_quit(state, from),
+  }
+}
+
+pub fn apply(state: Server, from: string, command: Command) -> Result<Applied, ChatError> {
+  let arrival = connect(state, from)
+  let done = dispatch(arrival.server, from, command)?
+  return Ok(applied(done.server, array.concat(arrival.events, done.events)))
+}

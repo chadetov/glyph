@@ -8,10 +8,10 @@ The whole directory builds in one command:
 glyph build examples --out /tmp/out
 ```
 
-Each of the six directories under `apps/` (`auth_api`, `csvql`, `depsolve`,
-`minilang`, `sheet`, `workflow`) is a program of its own whose modules import
-each other by bare name, so each one carries a `package.json` with a `"glyph"`
-key. That marker makes the directory its own module-resolution root (D41), so
+Each of the seven directories under `apps/` (`auth_api`, `chat`, `csvql`,
+`depsolve`, `minilang`, `sheet`, `workflow`) is a program of its own whose
+modules import each other by bare name, so each one carries a `package.json`
+with a `"glyph"` key. That marker makes the directory its own module-resolution root (D41), so
 `import catalog` inside `apps/csvql` finds `apps/csvql/catalog.glyph` no matter
 which enclosing directory you point `glyph build` at. Their output lands under
 `/tmp/out/apps/<name>/`.

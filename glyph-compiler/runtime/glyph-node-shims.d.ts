@@ -15,6 +15,15 @@ declare module "fs" {
   // `path` may be a file path or a file descriptor (`std/io` reads stdin via
   // fd 0).
   export function readFileSync(path: string | number, encoding: "utf8"): string;
+  // `std/io` reads stdin one chunk at a time through this, so a line is
+  // available before the writer closes the stream.
+  export function readSync(
+    fd: number,
+    buffer: GlyphBuffer,
+    offset: number,
+    length: number,
+    position: number | null,
+  ): number;
   export function writeFileSync(path: string, data: string, encoding: "utf8"): void;
   export function appendFileSync(path: string, data: string, encoding: "utf8"): void;
   export function existsSync(path: string): boolean;
@@ -134,11 +143,26 @@ interface GlyphBuffer extends Iterable<number> {
   readonly length: number;
   [index: number]: number;
   toString(encoding?: string): string;
+  subarray(start?: number, end?: number): GlyphBuffer;
 }
 declare const Buffer: {
   from(input: string, encoding: string): GlyphBuffer;
   from(bytes: ArrayLike<number> | Iterable<number>): GlyphBuffer;
+  alloc(size: number): GlyphBuffer;
 };
+
+// The incremental UTF-8 decoder `std/io` uses to hold a multi-byte character
+// that straddles two reads of stdin.
+declare module "string_decoder" {
+  export class StringDecoder {
+    constructor(encoding?: string);
+    write(buffer: GlyphBuffer): string;
+    end(buffer?: GlyphBuffer): string;
+  }
+}
+declare module "node:string_decoder" {
+  export * from "string_decoder";
+}
 
 declare module "node:sqlite" {
   export interface StatementSync {

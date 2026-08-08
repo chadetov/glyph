@@ -398,9 +398,14 @@ yet, so they stay untyped. That means a `match` on `string.index_of` with no
 ```
 io.println(message) -> void
 io.eprintln(message) -> void                // to stderr
-io.read_line() -> Option<string>
-io.read_to_string() -> string
+io.read_line() -> Option<string>            // one line, as soon as it arrives; None at EOF
+io.read_to_string() -> string               // the rest of stdin
 ```
+
+`read_line` does not wait for stdin to close, so an interactive loop (prompt,
+read, respond) works. It strips a trailing `\r`, and returns a final
+newline-less line once before `None`. `read_to_string` drains the same buffer:
+first call gets all of stdin, a call after some `read_line`s gets the rest.
 
 ### std/json
 

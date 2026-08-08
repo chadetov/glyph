@@ -1,0 +1,328 @@
+// chat — a chat server you can talk to, or replay.
+//
+// Runs lines through a room engine: nicks, joins, topics, room posts, direct
+// messages, scrollback. `--stdin` is a live session: you type `nick: message`
+// and the events that line caused print before the next line is read. Without
+// it the same engine replays a recorded session file. Both paths share one
+// `turn`, so what the transcript shows is what a live client would have seen.
+//
+// Nothing throws. An unparsable line, a room that does not exist, a message to
+// a nick nobody is using, and a bare line from a client that has joined nothing
+// are all values, each rendered in place.
+//
+// Usage:
+//
+//   glyph run examples/apps/chat/main.glyph
+//   glyph run examples/apps/chat/main.glyph --rooms
+//   glyph run examples/apps/chat/main.glyph --user bob
+//   glyph run examples/apps/chat/main.glyph --step 8
+//   glyph run examples/apps/chat/main.glyph --session session.json
+//   glyph run examples/apps/chat/main.glyph --stdin
+//
+// The default fixture directory is `examples/apps/chat`, so the first form
+// works from the repository root and prints the same output every time.
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/option { Option, Some, None }
+import std/path
+import std/result { Result, Ok, Err }
+import std/string
+import model { Server }
+import protocol
+import render
+import server
+import wire { SessionFile, Turn }
+
+const DEFAULT_DIR = "examples/apps/chat"
+
+const DEFAULT_SESSION = "session.json"
+
+const USAGE = "usage: chat [--dir DIR] [--session FILE | --stdin] [--rooms | --user NICK] [--step N]"
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+// `Transcript` prints what happened; `Rooms` and `View` print what the server
+// looked like afterwards. All three replay the same session first.
+type Mode =
+  | Transcript
+  | Rooms
+  | View({ nick: string })
+
+type Source =
+  | FromFile({ path: string })
+  | FromStdin
+
+type Args = { source: Source, mode: Mode, limit: Option<int> }
+
+type LoadError =
+  | Unreadable({ path: string, message: string })
+  | Malformed({ path: string, issues: Array<Issue> })
+
+fn value_at(argv: Array<string>, i: number, flag: string) -> Result<string, string> {
+  return match i + 1 < array.len(argv) {
+    true => Ok(argv[i + 1]),
+    false => Err("${flag} needs a value"),
+  }
+}
+
+fn parse_count(raw: string) -> Result<int, string> {
+  return match number.parse(raw) {
+    Ok(n) => match n >= 0 {
+      true => Ok(n),
+      false => Err("--step wants a count of 0 or more, got ${raw}"),
+    },
+    Err(_) => Err("--step wants a whole number, got ${raw}"),
+  }
+}
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let dir = DEFAULT_DIR
+  let session = DEFAULT_SESSION
+  let from_stdin = false
+  let mode: Mode = Transcript
+  let limit: Option<int> = None
+  let i = 0
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg {
+      "--stdin" => {
+        mut from_stdin = true
+        mut i = i + 1
+      },
+      "--rooms" => {
+        mut mode = Rooms
+        mut i = i + 1
+      },
+      "--dir" => {
+        mut dir = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      "--session" => {
+        mut session = value_at(argv, i, arg)?
+        mut i = i + 2
+      },
+      "--user" => {
+        mut mode = View({ nick: value_at(argv, i, arg)? })
+        mut i = i + 2
+      },
+      "--step" => {
+        mut limit = Some(parse_count(value_at(argv, i, arg)?)?)
+        mut i = i + 2
+      },
+      else => { return Err("unknown argument ${arg}") },
+    }
+  }
+  let source = match from_stdin {
+    true => FromStdin,
+    false => FromFile({ path: path.join([dir, session]) }),
+  }
+  return Ok({ source: source, mode: mode, limit: limit })
+}
+
+// ---------------------------------------------------------------------------
+// Loading a session
+// ---------------------------------------------------------------------------
+
+fn load_file(file: string) -> Result<SessionFile, LoadError> {
+  let text = match fs.read_text(file) {
+    Ok(t) => t,
+    Err(e) => { return Err(Unreadable({ path: file, message: e.message })) },
+  }
+  // Decode first, then validate with the type's own descriptor. The one-step
+  // `json.parse<SessionFile>(text)` also validates, but it routes through
+  // `SessionFile.schema`, which is a boolean guard, so every failure comes back
+  // as a single `expected SessionFile` with an empty path. `SessionFile.parse`
+  // reports the field that is actually wrong.
+  let decoded = match json.parse<unknown>(text) {
+    Ok(value) => value,
+    Err(issues) => { return Err(Malformed({ path: file, issues: issues })) },
+  }
+  return match SessionFile.parse(decoded) {
+    Ok(session) => Ok(session),
+    Err(issues) => Err(Malformed({ path: file, issues: issues })),
+  }
+}
+
+fn load_error_lines(error: LoadError) -> Array<string> {
+  return match error {
+    Unreadable({ path, message }) => ["cannot read ${path}: ${message}"],
+    Malformed({ path, issues }) => array.concat(
+      ["${path} is not a session file:"],
+      array.map(
+        issues,
+        fn(issue: Issue) -> string {
+          let dot = "."
+          // `Issue.path` is `Array<string | number>`, a type Glyph cannot spell,
+          // so every element goes through `string.from` before `join`.
+          let where_at = string.join(
+            array.map(issue.path, fn(p) -> string { return string.from(p) }),
+            dot,
+          )
+          return "  ${where_at}: ${issue.message}"
+        },
+      ),
+    ),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One turn
+// ---------------------------------------------------------------------------
+
+type Replay = { state: Server, lines: Array<string> }
+
+// One line from one client: the events it caused, or the reason it caused
+// none. A failed turn does not stop the session, exactly as a real server keeps
+// serving a client that mistyped a command. The lines are what that client's
+// screen would have gained, so a live session prints them and a replay
+// accumulates them.
+fn turn(state: Server, from: string, line: string) -> Replay {
+  let command = match protocol.parse(line) {
+    Ok(c) => c,
+    Err(e) => { return { state: state, lines: [render.protocol_error(e)] } },
+  }
+  return match server.apply(state, from, command) {
+    Ok(applied) => {
+      { state: applied.server, lines: array.flat_map(applied.events, render.event_lines) }
+    },
+    Err(e) => { state: state, lines: [render.chat_error(e)] },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// A live session
+// ---------------------------------------------------------------------------
+
+const LIVE_BANNER = "chat: type `nick: message`, one line at a time. Ctrl-D to end."
+
+const LIVE_HINT = "  ? lines are written `nick: message`"
+
+// The wire format a person types: `nick: line`, which is how a chat log is
+// usually written down. A line with no colon is not guessed at.
+fn client_line(text: string) -> Option<Turn> {
+  return match string.index_of(text, ":") {
+    None => None,
+    Some(at) => Some(
+      {
+        from: string.trim(string.slice(text, 0, at)),
+        line: string.trim(string.slice(text, at + 1)),
+      },
+    ),
+  }
+}
+
+// Read, apply, print, repeat. Each line is answered before the next is read,
+// so this is a chat client and not a transcript viewer: the person typing sees
+// the roster, the scrollback, and the errors while they are still typing.
+fn converse(limit: Option<int>) -> Server {
+  let state = server.empty()
+  let taken = 0
+  io.println(LIVE_BANNER)
+  loop {
+    match limit {
+      Some(n) => match taken >= n {
+        true => { break },
+        false => {},
+      },
+      None => {},
+    }
+    let text = match io.read_line() {
+      Some(l) => l,
+      None => { break },
+    }
+    match client_line(text) {
+      None => match string.trim(text) == "" {
+        true => {},
+        false => { io.println(LIVE_HINT) },
+      },
+      Some(sent) => {
+        let done = turn(state, sent.from, sent.line)
+        report(done.lines)
+        mut state = done.state
+        mut taken = taken + 1
+      },
+    }
+  }
+  return state
+}
+
+// ---------------------------------------------------------------------------
+// A recorded session
+// ---------------------------------------------------------------------------
+
+// The replay echoes each line before its events, because nobody typed them.
+fn step(current: Replay, recorded: Turn) -> Replay {
+  let echo = "${recorded.from}> ${recorded.line}"
+  let done = turn(current.state, recorded.from, recorded.line)
+  return { state: done.state, lines: array.concat(current.lines, array.concat([echo], done.lines)) }
+}
+
+fn replay(turns: Array<Turn>, limit: Option<int>) -> Replay {
+  let taken: Array<Turn> = match limit {
+    Some(n) => array.slice(turns, 0, n),
+    None => turns,
+  }
+  let seed: Replay = { state: server.empty(), lines: [] }
+  return array.fold(taken, seed, step)
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn report(lines: Array<string>) -> void {
+  for line in lines {
+    io.println(line)
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Ok(a) => a,
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      io.eprintln(USAGE)
+      return 2
+    },
+  }
+
+  let state: Server = match args.source {
+    FromStdin => converse(args.limit),
+    FromFile({ path }) => match load_file(path) {
+      Ok(session) => {
+        let done = replay(session.turns, args.limit)
+        let count = number.to_string(array.len(session.turns))
+        report(["${session.title} (${count} turns)", ""])
+        report(done.lines)
+        done.state
+      },
+      Err(e) => {
+        report(load_error_lines(e))
+        return 1
+      },
+    },
+  }
+
+  match args.mode {
+    Transcript => {},
+    Rooms => {
+      report([""])
+      report(render.room_table(server.summaries(state)))
+    },
+    View({ nick }) => {
+      report([""])
+      report(render.user_view(state, nick))
+    },
+  }
+  return 0
+}

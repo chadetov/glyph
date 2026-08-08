@@ -2568,6 +2568,61 @@ somewhere the user could not act on.
   display string**, so an absolute path typed on the command line ends up inside
   a structured diagnostic. Rendering it at the CLI boundary is the fix.
 
+### 0.1.62 — Shipped · A program can answer while you are still typing
+
+The chat dogfooding trip. `io.read_line` had never been a line reader: it called
+`readFileSync(0, "utf8")`, which returns when stdin closes, split the result and
+handed out the pieces. Piping a file works. Typing into it does not, so every
+program a person talks to was unwritable in Glyph, and the app that found this
+shipped as a session replayer with a comment in its source explaining why.
+
+- **`read_line` returns when a line arrives, not when stdin closes.** stdin is
+  read incrementally now: module state in `runtime/std/io.ts` holds a decoded
+  `pending` string, an `eof` flag, one reused 64 KiB `Buffer` and one
+  `StringDecoder`, and a private `fill()` does one `readSync(0, ...)` per call.
+  `read_line` returns the text before the first `"\n"` and fills only when no
+  newline is buffered. A trailing `"\r"` is stripped, so CRLF input yields the
+  same lines as LF, and input that ends without a newline hands back that last
+  partial line once before `None`. A read that reports `EAGAIN` on a non-blocking
+  tty backs off about 10ms and retries rather than spinning; any other read
+  failure degrades to empty input, so a program started with no stdin still
+  terminates. G81.
+- **`read_to_string` drains the same buffer** instead of re-reading fd 0, so
+  `read_line` and then `read_to_string` gives you the rest rather than losing
+  what the other call had buffered. Called first, it still returns all of stdin.
+  Its one-line doc changed from "all of stdin" to "the rest of stdin", which is
+  what it always should have said.
+- **Three apps already in the repository became interactive with no change to
+  them.** `minesweeper.glyph` redraws the board between moves, `adventure.glyph`
+  answers `look` while you type, and `minilang --repl` evaluates a line and
+  prints the result before reading the next. All three were shaped around the
+  old behaviour without anyone naming it.
+- **The regression test is a timing test.** A pipe-a-file test passes against the
+  broken implementation, so `read_line_returns_a_line_before_stdin_closes` runs
+  a Glyph echo loop with stdin held open, writes one line, and requires the echo
+  back within 20 seconds before writing a CRLF line and closing the stream.
+  Against the old `io.ts` it times out.
+- **The bundled Node shim gained three declarations** the runtime needs for
+  `tsc --strict` with no `@types/node` installed: `fs.readSync`, `Buffer.alloc`
+  with `subarray`, and a `string_decoder` module. Ambient types for the runtime's
+  own use; no Glyph surface changed.
+
+### Still open from this release
+
+- **`std/io` cannot write without a newline.** `println` and `eprintln` append
+  `"\n"` and are the whole write surface, so the `> ` prompt an interactive
+  program opens with is unwritable and the chat app prints a banner instead.
+  `io.print`/`io.eprint` is the answer and needs a decision about flushing, since
+  `process.stdout.write` on a pipe is buffered where `console.log` is not. G82.
+- **A program cannot tell a terminal from a pipe.** `std/process` has no `isTTY`,
+  so an app that behaves one way for a person and another for a piped file has to
+  be told by a flag. The chat app takes `--stdin`, and passing it with nothing
+  piped hangs rather than falling back. G83.
+- **The `EAGAIN` backoff is unproven on macOS**, where `readSync` on a pty blocks
+  and the retry path is never reached. It was measured not to burn CPU (15 idle
+  seconds at a pty prompt cost 0.00s of child CPU), but the branch itself is
+  exercised only where stdin is non-blocking.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

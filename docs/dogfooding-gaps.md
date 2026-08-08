@@ -22,13 +22,22 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled again after the adversarial review of the csvql round, which added one
-entry (G77, the match-arm binding that shadowed the `let` it assigned to) and
-closed it along with G74 in the same release, then again after G75 and after the
-auth_api boundary round (G79/G80), then the papercut batch: of 80 entries, 53 are fixed, 13 are partly fixed, 5 are decided or resolved, and 9 are open. G75
-was the largest thing still open: an imported record type lowered to `Ty::Unknown`,
-so field checking and the `for i, x` index type were both wrong across an import.
-It carried an identity across the boundary from that release on.
+Reconciled again after the chat round, which added three entries and closed the
+one it was about: of 83 entries, 54 are fixed, 13 are partly fixed, 5 are decided
+or resolved, and 11 are open. G81 is the one it closed, and it had been true since
+`std/io` was written: `read_line` returned only when stdin closed, so no program
+a person could talk to was writable in Glyph. The two it left open, G82 and G83,
+are what an interactive program still cannot do: write a prompt without a
+newline, and tell a terminal from a pipe.
+
+The reconciliation before it, after the adversarial review of the csvql round,
+which added one entry (G77, the match-arm binding that shadowed the `let` it
+assigned to) and closed it along with G74 in the same release, then again after
+G75 and after the auth_api boundary round (G79/G80), then the papercut batch,
+read 80 entries, 53 fixed, 13 partly fixed, 5 decided or resolved, and 9 open.
+G75 was the largest thing still open: an imported record type lowered to
+`Ty::Unknown`, so field checking and the `for i, x` index type were both wrong
+across an import. It carried an identity across the boundary from that release on.
 
 The reconciliation before it, after the csvql trip, which added two entries and
 closed one of them in the same release, read 76 entries, 50 fixed, 11 partly
@@ -2244,3 +2253,92 @@ salsa-memoized. Nobody had written the second query.
   Both are deleted, both files use the prelude `Issue`, and
   `glyph check examples/corpus/infer_output.glyph` goes from 15 TS2353 errors to
   clean under `tsc --strict`.
+
+## Round 18 — a chat client, and a stdin that only answered after you hung up
+
+The loop pointed at `examples/apps/chat/`: a chat server you can talk to. Six
+modules, a wire format, a room engine with nicks, joins, topics, direct messages
+and scrollback, a renderer, and a protocol parser. The engine came together the
+way the last few apps have. The client did not, and the note the author left in
+the source says why: the app shipped as a session replayer over a recorded JSON
+file, "because `io.read_line` blocks until stdin EOF".
+
+That is the whole finding, and it had been true since `std/io` was written. Every
+previous app that read stdin read a piped file, so nobody had noticed that
+`read_line` was not a line reader at all. It called
+`readFileSync(0, "utf8")` once, which returns when the writer closes the stream,
+split the result on newlines and handed them out from an array. Piping a file
+works. Typing into it does not: the program sits silent while you type, and every
+answer arrives at once after Ctrl-D. `docs/reference/stdlib.md` said "one line
+from stdin (None at EOF)", which reads as a line reader and is what the app was
+written against.
+
+The cost is bigger than one function. It made a whole category of program
+impossible to write in Glyph, and three apps already in this repository had been
+quietly shaped around it: `minesweeper.glyph` could not redraw between moves,
+`adventure.glyph` could not answer `look`, and `minilang --repl` was a REPL that
+evaluated nothing until you hung up. All three are interactive now, on a real
+pty, with no change to any of them. That is the tell that this was one defect and
+not three apps' worth of design.
+
+- **G81. [FIXED] `io.read_line` returned only at end of input, so no interactive
+  program could be written.** `read_line` went through `ensure_loaded`, which
+  called `readFileSync(0, "utf8")`: a single synchronous slurp of fd 0 that
+  returns when stdin closes. A prompt/read/respond loop compiled, type-checked
+  and ran, and answered nothing until the person typing pressed Ctrl-D, at which
+  point every response printed at once. The documented contract ("one line from
+  stdin") described the reader nobody had written. *Fixed by reading stdin
+  incrementally: module state holds a decoded `pending` string, an `eof` flag,
+  one reused 64 KiB `Buffer` and one `StringDecoder`, and a private `fill()` does
+  one `readSync(0, ...)` per call. `read_line` returns the text before the first
+  `"\n"` and fills only when no newline is buffered, so it returns as soon as a
+  line arrives rather than when the stream closes. A single trailing `"\r"` is
+  stripped, so CRLF input yields the same lines as LF; input that ends without a
+  newline hands back that last partial line once and then `None` forever. A read
+  that reports `EAGAIN` on a non-blocking tty backs off about 10ms through
+  `Atomics.wait` and retries rather than spinning, and any other read failure
+  degrades to empty input so a program started with no stdin at all still
+  terminates. `read_to_string` drains the same buffer instead of re-reading fd 0,
+  so `read_line` followed by `read_to_string` returns the rest rather than
+  losing what the other call had buffered. The bundled Node shim gained the three
+  declarations this needs (`fs.readSync`, `Buffer.alloc` plus
+  `GlyphBuffer.subarray`, and a `string_decoder` module) so the runtime still
+  type-checks with no `@types/node` installed.*
+
+  The regression test is a timing test, not a pipe-a-file test, because a
+  pipe-a-file test passes against the broken implementation:
+  `read_line_returns_a_line_before_stdin_closes` builds a Glyph echo loop, runs
+  it with stdin held open, writes one line and requires the echo back within
+  20 seconds, then writes a CRLF line and only then closes the stream. Against
+  the old `io.ts` it fails with a timeout. Measured by hand on
+  `(printf 'a\n'; sleep 2; printf 'b\n')`, the two lines now print 1ms and
+  1405ms in; before, both printed at the end. 200,000 piped lines are counted in
+  20-21ms, multi-byte UTF-8 split across a chunk boundary round-trips, and
+  idling 15 seconds at a pty prompt costs 0.00s of child CPU.
+
+- **G82. `std/io` cannot write without a newline, so a prompt cannot share a line
+  with the answer.** `println` and `eprintln` are the whole write surface, and
+  both append `"\n"`. The `> ` prompt every REPL and every interactive CLI opens
+  with is therefore unwritable: the cursor is always on the line below the
+  prompt, and the transcript of a session reads as alternating full lines rather
+  than as a conversation. The chat app works around it by printing a one-line
+  banner instead of a prompt, and `minilang --repl` prints nothing at all before
+  each read. This is not the shape of the interactive programs G81 just made
+  possible. An `io.print`/`io.eprint` pair is the obvious answer and needs a
+  decision about flushing, since `process.stdout.write` on a pipe is buffered
+  where `console.log` is not.
+
+- **G83. A program cannot tell whether stdin is a terminal or a pipe.** `std/process`
+  exposes `args`, `env`, `cwd` and `exit`, and nothing reports `isTTY`. So an app
+  that wants to behave one way when a person is typing and another way when a
+  file is piped in has to be told which by a flag: the chat app takes `--stdin`,
+  which the person running it must remember to pass, and passing it when nothing
+  is piped hangs the program rather than falling back. Every CLI that colours
+  output, draws a progress line, or prompts needs this predicate, and the
+  workaround is a flag whose default is wrong half the time.
+
+This trip closed the thing it found, which is the second time a round has done
+that. G82 and G83 are the two it left open, and both are the same shape as G81:
+they are the difference between a language that can pipe a file through a program
+and a language that can write the program a person talks to. No release carries
+the Next marker now; the next trip picks from what is open above.

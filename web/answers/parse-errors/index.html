@@ -48,6 +48,7 @@
         <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
         <a href="/answers/early-errors/"><span class="n">18</span> Caught earlier</a>
         <a href="/answers/parse-errors/" class="active"><span class="n">19</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">20</span> Programs you type into</a>
       </div>
     </div>
 
@@ -173,7 +174,7 @@ type        []            expected Signup (an object), got an array</pre>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. And a module that declares its own type called <code>Issue</code> shadows the prelude one inside the emitted file, which breaks the descriptors in that module; the fix is to reference the prelude type through an injected alias the way <code>Result</code> already is, and it has not landed.</p>
+          <p>Two edges. A field typed by something with no descriptor of its own, an unconstrained type parameter or a type imported from a hand-written <code>.d.ts</code>, still gets the flat check and a <code>"type"</code> issue; the compiler does not synthesize a descriptor for those, and running <code>glyph gen dts</code> on the declaration is what gives them one. A module that declares its own type called <code>Issue</code> used to shadow the prelude one inside the emitted file and break every descriptor in that module; since 0.1.60 that declaration is <code>E0110</code> at the line that names the type, so you find out where the problem is instead of reading a <code>tsc</code> error about generated code.</p>
         </div>
       </div>
 
@@ -182,9 +183,9 @@ type        []            expected Signup (an object), got an array</pre>
           <span class="dir">&larr; Previous</span>
           <span class="t">Why does Glyph catch what tsc catches, but earlier?</span>
         </a>
-        <a href="/playground/" class="nx cta">
-          <span class="dir">You've seen it &rarr;</span>
-          <span class="t">Now write some Glyph in the playground</span>
+        <a href="/answers/interactive-cli/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">Can I write a program someone types into?</span>
         </a>
       </nav>
     </article>

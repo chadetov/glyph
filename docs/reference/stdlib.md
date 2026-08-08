@@ -146,10 +146,20 @@ and does report E0200.
 io.println(message: string) -> void             // stdout, with newline
 io.eprintln(message: string) -> void            // stderr, with newline
 io.read_line() -> Option<string>                // one line from stdin (None at EOF)
-io.read_to_string() -> string                   // all of stdin
+io.read_to_string() -> string                   // the rest of stdin
 io.inspect(value: unknown) -> void              // pretty-print any value to stderr (debugging)
 io.render(value: unknown) -> string             // the same rendering as a string
 ```
+
+`read_line` returns as soon as a full line has arrived, so a prompt/read/respond
+loop answers while the writer is still connected. It does not wait for the
+stream to close. A trailing `\r` is stripped, so CRLF input yields the same
+lines as LF, and input that ends without a newline still hands back that last
+partial line once before `None`.
+
+`read_to_string` drains the same buffer, so it returns whatever stdin has left:
+call it first and you get all of stdin, call it after some `read_line`s and you
+get the rest.
 
 ## std/json
 

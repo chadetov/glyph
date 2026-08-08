@@ -1,0 +1,225 @@
+// The wire format: one line of text in, one `Command` out.
+//
+// This module knows nothing about server state. It can tell you that `/join`
+// was written without a room; it cannot tell you that `#general` does not
+// exist. That separation is why `parse` is testable with `@example` lines and
+// the engine is testable without a parser.
+module protocol
+
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+
+// A command a client sent. The four commands that name a room take an
+// `Option<string>`, where `None` means "the room I am currently in" — the
+// absence is a case the engine has to handle, not an empty string every later
+// function has to remember is not a room name.
+pub type Command =
+  | Nick({ nick: string })
+  | Join({ room: string })
+  | Part({ room: Option<string>, reason: string })
+  | Say({ text: string })
+  | Post({ room: string, text: string })
+  | Dm({ to: string, text: string })
+  | Topic({ room: Option<string>, topic: string })
+  | Who({ room: Option<string> })
+  | History({ room: Option<string>, count: int })
+  | Rooms
+  | Quit
+
+pub type ProtocolError =
+  | UnknownCommand({ name: string })
+  | MissingArgument({ command: string, argument: string })
+  | BadCount({ command: string, raw: string })
+  | BlankLine
+
+// How many messages `/history` replays when the client does not say.
+const DEFAULT_HISTORY = 10
+
+// ---------------------------------------------------------------------------
+// Text helpers
+// ---------------------------------------------------------------------------
+
+// A line cut into its first word and everything after it, both trimmed.
+type Split = { first: string, rest: string }
+
+fn split(first: string, rest: string) -> Split {
+  return { first: first, rest: rest }
+}
+
+@example split_first("  join  #general  now ") == split("join", "#general  now")
+@example split_first("quit") == split("quit", "")
+@example split_first("") == split("", "")
+fn split_first(text: string) -> Split {
+  let trimmed = string.trim(text)
+  return match string.index_of(trimmed, " ") {
+    Some(i) => split(string.slice(trimmed, 0, i), string.trim(string.slice(trimmed, i + 1))),
+    None => split(trimmed, ""),
+  }
+}
+
+// Room names are canonically `#`-prefixed, so a client that types `general`
+// means the same room as one that types `#general`.
+@example channel("general") == "#general"
+@example channel("#general") == "#general"
+fn channel(name: string) -> string {
+  return match string.starts_with(name, "#") {
+    true => name,
+    false => "#${name}",
+  }
+}
+
+// A leading `#`-word is the room the command is about; anything else means the
+// command is about the room the client is already in.
+type Addressed = { room: Option<string>, rest: string }
+
+fn addressed(room: Option<string>, rest: string) -> Addressed {
+  return { room: room, rest: rest }
+}
+
+@example optional_room("#general hello") == addressed(Some("#general"), "hello")
+@example optional_room("hello there") == addressed(None, "hello there")
+@example optional_room("") == addressed(None, "")
+fn optional_room(text: string) -> Addressed {
+  let cut = split_first(text)
+  return match string.starts_with(cut.first, "#") {
+    true => addressed(Some(cut.first), cut.rest),
+    false => addressed(None, string.trim(text)),
+  }
+}
+
+fn require(command: string, argument: string, value: string) -> Result<string, ProtocolError> {
+  return match string.len(value) == 0 {
+    true => Err(MissingArgument({ command: command, argument: argument })),
+    false => Ok(value),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One parser per command
+// ---------------------------------------------------------------------------
+
+fn parse_nick(rest: string) -> Result<Command, ProtocolError> {
+  let word = split_first(rest).first
+  let nick = require("nick", "nick", word)?
+  return Ok(Nick({ nick: nick }))
+}
+
+fn parse_join(rest: string) -> Result<Command, ProtocolError> {
+  let word = split_first(rest).first
+  let room = require("join", "room", word)?
+  return Ok(Join({ room: channel(room) }))
+}
+
+fn parse_part(rest: string) -> Result<Command, ProtocolError> {
+  let cut = optional_room(rest)
+  let reason = match string.len(cut.rest) == 0 {
+    true => "left",
+    false => cut.rest,
+  }
+  return Ok(Part({ room: cut.room, reason: reason }))
+}
+
+fn parse_post(rest: string) -> Result<Command, ProtocolError> {
+  let cut = split_first(rest)
+  let room = require("msg", "room", cut.first)?
+  let text = require("msg", "text", cut.rest)?
+  return Ok(Post({ room: channel(room), text: text }))
+}
+
+fn parse_dm(rest: string) -> Result<Command, ProtocolError> {
+  let cut = split_first(rest)
+  let to = require("dm", "nick", cut.first)?
+  let text = require("dm", "text", cut.rest)?
+  return Ok(Dm({ to: to, text: text }))
+}
+
+fn parse_topic(rest: string) -> Result<Command, ProtocolError> {
+  let cut = optional_room(rest)
+  let topic = require("topic", "topic", cut.rest)?
+  return Ok(Topic({ room: cut.room, topic: topic }))
+}
+
+fn parse_who(rest: string) -> Result<Command, ProtocolError> {
+  return Ok(Who({ room: optional_room(rest).room }))
+}
+
+fn parse_history(rest: string) -> Result<Command, ProtocolError> {
+  let cut = optional_room(rest)
+  let raw = split_first(cut.rest).first
+  let count = match string.len(raw) == 0 {
+    true => Ok(DEFAULT_HISTORY),
+    false => match number.parse(raw) {
+      Ok(n) => Ok(n),
+      Err(_) => Err(BadCount({ command: "history", raw: raw })),
+    },
+  }
+  return Ok(History({ room: cut.room, count: count? }))
+}
+
+// ---------------------------------------------------------------------------
+// The entry point
+// ---------------------------------------------------------------------------
+
+@example parse("hello everyone") == Ok(Say({ text: "hello everyone" }))
+@example parse("/join general") == Ok(Join({ room: "#general" }))
+@example parse("/msg #general hi there") == Ok(Post({ room: "#general", text: "hi there" }))
+@example parse("/who") == Ok(Who({ room: None }))
+@example parse("/history #general 3") == Ok(History({ room: Some("#general"), count: 3 }))
+@example parse("/join") == Err(MissingArgument({ command: "join", argument: "room" }))
+@example parse("/dance") == Err(UnknownCommand({ name: "dance" }))
+@example parse("   ") == Err(BlankLine)
+pub fn parse(raw: string) -> Result<Command, ProtocolError> {
+  let line = string.trim(raw)
+  match string.len(line) == 0 {
+    true => { return Err(BlankLine) },
+    false => {},
+  }
+  match string.starts_with(line, "/") {
+    true => {},
+    false => { return Ok(Say({ text: line })) },
+  }
+  let cut = split_first(string.slice(line, 1))
+  let name = string.lower(cut.first)
+  return match name {
+    "nick" => parse_nick(cut.rest),
+    "join" => parse_join(cut.rest),
+    "part" => parse_part(cut.rest),
+    "msg" => parse_post(cut.rest),
+    "dm" => parse_dm(cut.rest),
+    "topic" => parse_topic(cut.rest),
+    "who" => parse_who(cut.rest),
+    "history" => parse_history(cut.rest),
+    "rooms" => Ok(Rooms),
+    "quit" => Ok(Quit),
+    else => Err(UnknownCommand({ name: cut.first })),
+  }
+}
+
+// The canonical spelling of a command, so the transcript echoes what the server
+// understood rather than what the client happened to type.
+@example format(Join({ room: "#general" })) == "/join #general"
+@example format(Say({ text: "hi" })) == "hi"
+@example format(Who({ room: None })) == "/who"
+pub fn format(command: Command) -> string {
+  return match command {
+    Nick({ nick }) => "/nick ${nick}",
+    Join({ room }) => "/join ${room}",
+    Part({ room, reason }) => "/part${here(room)} ${reason}",
+    Say({ text }) => text,
+    Post({ room, text }) => "/msg ${room} ${text}",
+    Dm({ to, text }) => "/dm ${to} ${text}",
+    Topic({ room, topic }) => "/topic${here(room)} ${topic}",
+    Who({ room }) => "/who${here(room)}",
+    History({ room, count }) => "/history${here(room)} ${number.to_string(count)}",
+    Rooms => "/rooms",
+    Quit => "/quit",
+  }
+}
+
+fn here(room: Option<string>) -> string {
+  return match room {
+    Some(name) => " ${name}",
+    None => "",
+  }
+}

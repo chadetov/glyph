@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can I write a program someone types into? · Glyph</title>
+    <meta name="description" content="io.read_line returns as soon as a line arrives instead of waiting for stdin to close, so a REPL, a game loop, or a chat client answers while you are still typing." />
+    <link rel="canonical" href="https://glyphlang.io/answers/interactive-cli/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">18</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">19</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/" class="active"><span class="n">20</span> Programs you type into</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">20 &middot; Programs you type into</p>
+      <h1 class="q-title">Can I write a program someone types into?</h1>
+
+      <p class="short-answer">
+        Yes. <code>io.read_line</code> returns <strong>as soon as a full line arrives</strong>
+        and does not wait for stdin to close, so a REPL, a game loop, or a chat client
+        answers each line before it reads the next one. Until 0.1.62 it did wait, and that
+        is worth saying out loud, because it made every interactive program impossible.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          A line reader that only returns at end of input is a file reader wearing a line
+          reader's name. Piping a file through it works perfectly, which is why nothing
+          caught it: every app in the repository that read stdin read a pipe. Then someone
+          wrote a chat client, and it sat silent while they typed and printed every answer
+          at once after Ctrl-D.
+        </p>
+        <p>
+          That app shipped as a session replayer over a recorded JSON file, with a comment
+          in its source saying why. Three other apps had been shaped around the same thing
+          without anyone naming it: minesweeper could not redraw between moves, the text
+          adventure could not answer <code>look</code>, and a REPL evaluated nothing until
+          you hung up.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>The whole live-session loop of the chat app. Read, apply, print, repeat:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">examples/apps/chat/main.glyph</span>
+<pre>fn converse(limit: Option&lt;int&gt;) -&gt; Server {
+  let state = server.empty()
+  io.println(LIVE_BANNER)
+  loop {
+    let text = match io.read_line() {
+      Some(l) =&gt; l,
+      None =&gt; { break },
+    }
+    match client_line(text) {
+      None =&gt; { io.println(LIVE_HINT) },
+      Some(sent) =&gt; {
+        let done = turn(state, sent.from, sent.line)
+        report(done.lines)
+        mut state = done.state
+      },
+    }
+  }
+  return state
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Driven at a real terminal, with each line typed about 0.6 seconds apart and stdin
+          left open. The left column is milliseconds since the process started:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph run examples/apps/chat/main.glyph --stdin</span>
+<pre>1825ms | <span class="cm">bob: hey, is the build green?</span>
+1826ms |    1  #general &lt;bob&gt; hey, is the build green?
+2434ms | <span class="cm">alice: green since 9am</span>
+2435ms |    2  #general &lt;alice&gt; green since 9am
+3042ms | <span class="cm">bob: /who</span>
+3044ms |       * #general: alice, bob (2)
+3648ms | <span class="cm">carol: hello?</span>
+3649ms |       * ! carol is not in any room, so there is nowhere to send that</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          One to two milliseconds from typed line to answer. Before the fix, nothing printed
+          until 6460ms, which is when stdin closed. The first response in a full run lands
+          around 1.6 seconds in, and that is <code>tsx</code> starting up, not read latency.
+        </p>
+
+        <p class="block-label">The parts that bite in practice</p>
+        <p>
+          A trailing <code>\r</code> is stripped, so a CRLF file and an LF file give you the
+          same lines and you are not debugging an invisible character on Windows input.
+          Input that ends without a final newline still hands back that last line once
+          before <code>None</code>, so the last row of a file with no trailing newline is
+          not silently dropped. Multi-byte UTF-8 split across a read boundary is held and
+          completed rather than turning into replacement characters.
+        </p>
+        <p>
+          <code>read_to_string</code> drains the same buffer, so the two compose:
+          <code>read_line</code> for a header and then <code>read_to_string</code> for the
+          body gives you the rest, not a second copy and not an empty string. Called first,
+          it still returns all of stdin. 200,000 piped lines are counted in about 20ms, so
+          reading a line at a time is not a throughput tradeoff.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">A header line, then the body</span>
+<pre>let header = io.read_line()
+let body = io.read_to_string()</pre>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>io.read_line</code> returns when a line arrives, not when the stream closes, so prompt/read/respond loops work at a terminal and through a pipe alike. CRLF is normalized, a final unterminated line is delivered once, multi-byte characters survive chunk boundaries, and <code>read_to_string</code> takes the rest of the same buffer. A regression test holds stdin open and requires the echo back, because a test that pipes a file passes against the broken implementation too.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>Two things an interactive program still cannot do. <code>std/io</code> has no write-without-a-newline, so the <code>&gt; </code> prompt a REPL opens with has to be a line of its own; <code>io.print</code> is the answer and needs a decision about flushing. And nothing reports whether stdin is a terminal or a pipe, so a program that behaves differently for each has to be told by a flag: the chat app takes <code>--stdin</code>, and passing it with nothing piped hangs instead of falling back.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/parse-errors/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">When a parse fails, do I find out why?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/interactive-cli/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

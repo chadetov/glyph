@@ -3314,7 +3314,12 @@ impl<'a> Emitter<'a> {
             // needs the outer break after it.
             Stmt::Expr(Expr::Match { scrutinee, arms, .. }) => {
                 self.emit_match_dispatch(scrutinee, arms, term)?;
-                if matches!(term, ArmTerm::Break | ArmTerm::Assign) && break_on_fall {
+                // Regardless of `term`: the nested switch breaks its own arms,
+                // so control reaches here whenever any inner arm produced no
+                // value, and without a break it runs on into the outer switch's
+                // next case or its `default: throw`. When every inner arm does
+                // diverge this break is unreachable, which is valid.
+                if break_on_fall {
                     self.line("break;");
                 }
             }
@@ -3368,9 +3373,20 @@ impl<'a> Emitter<'a> {
             Stmt::Return(_) | Stmt::Break(_) | Stmt::Continue(_) => self.emit_stmt(stmt)?,
             // Any other tail (let/mut/for/loop) yields no value; emit it and, in
             // a `switch` case, break afterward.
+            //
+            // The break does not depend on `term`, for the same reason the empty
+            // block above breaks regardless of position: this tail produces no
+            // value, so return position emits no `return` either, and without a
+            // `break` the case runs on into whatever follows it — the next case,
+            // or the generated `default: throw new Error("non-exhaustive
+            // match")`. That threw at run time on a match that was exhaustive,
+            // in code that compiled clean and passed `tsc --strict`. In return
+            // position the arm instead breaks out of the switch and the function
+            // falls off its end, yielding `void`, which is what an arm with no
+            // value means.
             other => {
                 self.emit_stmt(other)?;
-                if matches!(term, ArmTerm::Break | ArmTerm::Assign) && break_on_fall {
+                if break_on_fall {
                     self.line("break;");
                 }
             }
@@ -3403,7 +3419,12 @@ impl<'a> Emitter<'a> {
                 // one: the nested arms only `break` themselves. When the nested
                 // match diverges (every arm returns/throws) this break is
                 // unreachable but valid.
-                if matches!(term, ArmTerm::Break | ArmTerm::Assign) && break_on_fall {
+                //
+                // Not conditional on `term`. In return position an inner arm
+                // that produces no value emits neither a `return` nor anything
+                // else, so control arrives here and would otherwise fall into
+                // the outer `default: throw new Error("non-exhaustive match")`.
+                if break_on_fall {
                     self.line("break;");
                 }
             }
@@ -7919,5 +7940,84 @@ mod tests {
         let b_pos = f.find("b();").expect("b in finally");
         let a_pos = f.find("a();").expect("a in finally");
         assert!(b_pos < a_pos, "LIFO: b before a: {f}");
+    }
+
+    /// A match arm whose last statement produces no value must still `break`
+    /// out of its `switch`, even in return position.
+    ///
+    /// A lambda body is a value block in return position, so an arm ending in a
+    /// `mut` emitted neither a `return` (there is no value) nor a `break`, and
+    /// the case ran straight on into the generated
+    /// `default: throw new Error("non-exhaustive match")`. The program compiled
+    /// clean, passed `tsc --strict`, and threw at run time on a match that was
+    /// exhaustive. Found by a Discord bot whose socket callback did exactly
+    /// this.
+    #[test]
+    fn a_valueless_arm_breaks_its_switch_in_return_position() {
+        let ts = emit(
+            "module x\npub fn go(flag: bool, n: int) -> void {\n\
+             \x20 let run = fn(v: bool) {\n\
+             \x20   match v {\n\
+             \x20     false => {},\n\
+             \x20     true => {\n\
+             \x20       mut n = n + 1\n\
+             \x20     },\n\
+             \x20   }\n\
+             \x20 }\n\
+             \x20 run(flag)\n\
+             \x20 return void\n\
+             }\n",
+        );
+        let arm = ts
+            .split("n = (n + 1);")
+            .nth(1)
+            .expect("the valueless arm is emitted");
+        let brk = arm.find("break;");
+        let dflt = arm.find("default:");
+        assert!(
+            brk.is_some() && (dflt.is_none() || brk < dflt),
+            "the arm must break before reaching `default: throw`, got: {ts}"
+        );
+    }
+
+    /// The same, one level down: a nested match in an arm body breaks only its
+    /// own arms, so the outer case needs its own break whatever the position.
+    #[test]
+    fn a_nested_match_breaks_the_outer_switch_in_return_position() {
+        let ts = emit(
+            "module x\npub fn go(flag: bool, n: int) -> void {\n\
+             \x20 let run = fn(v: bool) {\n\
+             \x20   match v {\n\
+             \x20     false => {},\n\
+             \x20     true => match v {\n\
+             \x20       false => { mut n = n + 1 },\n\
+             \x20       true => { mut n = n + 2 },\n\
+             \x20     },\n\
+             \x20   }\n\
+             \x20 }\n\
+             \x20 run(flag)\n\
+             \x20 return void\n\
+             }\n",
+        );
+        // Two switches; after the inner one closes, the outer case must break
+        // rather than fall into the outer `default: throw`.
+        let after_inner = ts
+            .split("n = (n + 2);")
+            .nth(1)
+            .expect("the inner arm is emitted");
+        let brk = after_inner.find("break;");
+        let dflt = after_inner.find("default:");
+        assert!(
+            brk.is_some(),
+            "the outer case must break after the nested switch, got: {ts}"
+        );
+        // The first `default:` after the inner arm belongs to the inner switch,
+        // and the outer break must come before the outer one. Counting breaks
+        // is the robust check: inner arm, inner default-guard, outer.
+        assert!(
+            after_inner.matches("break;").count() >= 2,
+            "expected a break for the inner arm and one for the outer case, got: {ts}"
+        );
+        let _ = dflt;
     }
 }

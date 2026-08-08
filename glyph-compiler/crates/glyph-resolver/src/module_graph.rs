@@ -113,7 +113,18 @@ impl StdlibStubs {
         );
         s.add(
             "std/io",
-            &["println", "eprintln", "read_line", "read_to_string", "inspect", "render"],
+            &[
+                "println",
+                "eprintln",
+                "print",
+                "eprint",
+                "is_terminal",
+                "stdin_is_terminal",
+                "read_line",
+                "read_to_string",
+                "inspect",
+                "render",
+            ],
         );
         s.add("std/json", &["parse", "stringify", "discriminant", "parse_with"]);
         s.add(
@@ -235,7 +246,7 @@ impl StdlibStubs {
         );
         s.add(
             "std/process",
-            &["args", "exit", "env", "cwd"],
+            &["args", "exit", "set_exit_code", "exit_code", "env", "cwd"],
         );
         // Property testing (Q11 -> Option A): `test.property` over a `Stream<T>`
         // generator. Invoked inside `@example`/`@doc @run` and executed at

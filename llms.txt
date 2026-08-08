@@ -18,10 +18,23 @@ npm install -g @glyphlang/glyph     # the compiler (CLI is `glyph`)
 npm install -g tsx typescript       # needed for `glyph run` and the `tsc` stage of `build`/`check`
 ```
 
+No global install needed. Every command below also works through `npx`, which is
+what to use in a sandbox that cannot install globally or does not keep an install
+between steps:
+
+```sh
+npx @glyphlang/glyph init my-app    # same CLI, nothing installed
+cd my-app && npx @glyphlang/glyph run
+```
+
+`glyph run` and the `tsc` stage still need `tsx` and `typescript` resolvable. In
+a project that has them in `devDependencies` a local `npm install` is enough;
+otherwise install them globally or run in a sandbox that already has them.
+
 ```sh
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
 glyph check [path]                  # type-check a file or tree without running it or writing output
-glyph run path.glyph [args...]      # type-check, compile, and run main(argv); hyphenated args reach the program, `--` before ones that collide with glyph's own flags
+glyph run [path] [args...]          # type-check, compile, and run main(argv); no path means the current project; hyphenated args reach the program, `--` before ones that collide with glyph's own flags
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict and @example/@doc @run by default)
 glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file, line/col, help) for tools/agents
 glyph build src/ --out dist/ --no-test # skip the @example / @doc @run / property tests

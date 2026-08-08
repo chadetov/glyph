@@ -2798,6 +2798,60 @@ entirely, and both did.
 - **Locally bound closures still cannot call each other.** G92.
 - **An `@example` must still fit on one line.** G93.
 
+### 0.1.66 — Shipped · Reading a key that may not be there
+
+The batch that had accumulated behind a publish hold, led by the first half of
+G39. A `Record<K, V>` has arbitrary keys, so `m.name` could not be checked and
+was typed `V` anyway; absent, the value was `undefined` under a type saying
+otherwise, and nothing reported it.
+
+- **E0224 rejects reading a key out of a map**, and points at `record.get`,
+  which returns `Option<V>`. Writes (`mut m[k] = v`) are untouched, because
+  building a map is safe. Array indexing is untouched too:
+  `noUncheckedIndexedAccess` was measured first and gives 589 errors across the
+  examples, almost all `argv[i]` in parsers that have just measured
+  `array.len`, and `T | undefined` is not expressible in Glyph, so a program
+  could not have fixed them. Zero E0224 across 124 modules. Half of G39; a map
+  arriving from another module or the stdlib is still unchecked.
+- **`==` is value equality on every type (D42).** It lowered to `===`
+  unconditionally, so it silently meant *reference* equality for records,
+  tagged unions and arrays: `Some("a") == Some("a")` was false with no
+  diagnostic, while the identical expression as an `@example` compared
+  structurally and passed. A test could report success on code that did not
+  work. Primitives still emit `===`, so ordinary comparisons are unchanged. G65.
+- **A match arm that produced no value could throw.** In a lambda it emitted
+  neither a `return` nor a `break`, so the case fell into the emitter's own
+  `default: throw new Error("non-exhaustive match")`. Twelve lines reproduce it;
+  it compiled clean, passed `tsc --strict`, and threw at run time on a match
+  that was exhaustive. G94.
+- **`glyph run` means the project you are standing in.** The four commands a new
+  user is handed ended in a usage error, because `run` required a PATH while
+  `check` already defaulted to the current directory.
+- **A scaffold pins the compiler that wrote it.** It recorded which TypeScript
+  built it and not which Glyph did, so `npm install` now makes a checkout
+  buildable with no global install, and a project says in a machine-readable way
+  that it depends on Glyph.
+- **`glyph check` and `glyph run` run the `@example` gate**, so a failing
+  colocated test can no longer turn `build` red while leaving the other two
+  green. `--no-test` opts out. G69. Checking a single file also builds only that
+  file's own project, not every project beneath it. G72.
+- **`std/io` can write without a newline and tell a terminal from a pipe**
+  (`print`, `eprint`, `is_terminal`, `stdin_is_terminal`), so a prompt can share
+  a line with its answer. G82, G83.
+- **`process.set_exit_code`** records the code a program will leave with without
+  stopping it, so a failure detected after `main` has returned can be reported
+  without tearing down work still in flight. G86.
+- **An annotation can wrap onto a line beginning with an operator**, so a long
+  `@example` no longer needs a helper function to fit. G93.
+- **`glyph fmt` no longer moves a comment written between two annotations into
+  the parameter list.** G96. **A bare `let _` discards** rather than declaring,
+  so two of them in one scope is no longer a `tsc` redeclaration error. G97.
+- **Agents are told they can run Glyph without installing it.** `AGENTS.md` gave
+  `npm install -g` and nothing else, which is not a route in a sandbox that
+  cannot install globally.
+- **`examples/apps/jobq`**, a durable job queue: HTTP API, SQLite store, workers,
+  retry with backoff, dead-lettering. The first app here to run `http.serve`.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

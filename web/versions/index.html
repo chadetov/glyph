@@ -49,8 +49,27 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.65</span>
+            <span class="rel-ver">0.1.66</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Reading a key that may not be there</h3>
+            <p>A <code>Record&lt;K, V&gt;</code> has arbitrary keys, so <code>m.name</code> cannot be checked, and it was typed <code>V</code> anyway. When the key was absent the value was <code>undefined</code> under a type saying otherwise, and nothing reported it: a mistyped column name read off a database row compiled clean, passed <code>tsc --strict</code>, and rendered as the text "undefined".</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <span class="tag">E0224</span> rejects reading a key out of a map and points at <code>record.get</code>, which returns <code>Option&lt;V&gt;</code>. Writing a key is untouched, because building a map is safe, and so is array indexing: a bound is a value a program can check with <code>array.len</code>, a map key is not.</li>
+              <li><span class="tag fixed">Fixed</span> <code>==</code> is value equality on every type. It lowered to <code>===</code> unconditionally, so it silently meant reference equality for records, tagged unions and arrays: <code>Some("a") == Some("a")</code> was false with no diagnostic, while the same expression written as an <code>@example</code> compared structurally and passed. A test could report success on code that did not work.</li>
+              <li><span class="tag fixed">Fixed</span> A match arm producing no value could throw the compiler's own "non-exhaustive match" at run time, on a match that was exhaustive.</li>
+              <li><span class="tag fixed">Fixed</span> <code>glyph run</code> with no path means the project you are standing in, so the four commands a new user is handed no longer end in a usage error. A scaffold now pins the compiler that wrote it, so <code>npm install</code> makes a checkout buildable with no global install.</li>
+              <li><span class="tag added">Added</span> <code>io.print</code>, <code>io.eprint</code>, <code>io.is_terminal</code>, <code>io.stdin_is_terminal</code>, <code>process.set_exit_code</code>, and <code>examples/apps/jobq</code>: a durable job queue with an HTTP API, a SQLite store and workers.</li>
+              <li><span class="tag known">Known</span> A map arriving from another module or the stdlib is still read unchecked, so <code>sqlite.Row</code> does not yet get E0224. That needs stdlib named types modelled as more than a field set.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.65</span>
+            <span class="rel-tag">Shipped</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -74,11 +74,18 @@ just as it resolves `"node:http"`.
 
 The common builtins type-check **out of the box**, with nothing installed:
 `glyph build` bundles ambient declarations for `fs`, `http`, `path`, `os`,
-`crypto`, and `url` (plus the `process` global) under their bare names. For the
+`crypto`, `url`, `net`, `timers`, `events`, `child_process`, `dns/promises` and
+`zlib` (plus the `process` global) under their bare names. For the
 full, exact Node surface, install `@types/node` in your project. The build
 detects it, prefers its complete typings, and skips the bundled shim, so there is
 no duplicate-declaration conflict and a builtin API the shim does not cover (say
 `os.uptime()`) type-checks the moment `@types/node` is present.
+
+Reach for a Node builtin only when the stdlib does not already cover what you
+want. `std/timers` schedules work, `std/websocket` opens a connection,
+`std/http` serves and fetches, `std/fs` reads and writes. Those are typed Glyph
+with no import path to get wrong, and they are the same on any host; the
+builtins are the escape hatch beneath them.
 
 ## Giving the type-checker types: `.types/`
 
@@ -99,7 +106,14 @@ into the build output and included in the `tsc` run. No registration step.
 
 You need `.types/` in two cases: a package that ships no types and has no
 `@types/...`, or a module you want to declare yourself without installing
-anything. An installed package that carries its own types does not need it (the
+anything.
+
+You should not need it to reach the platform. If you find yourself declaring a
+Node builtin or a host global by hand, that is a gap in Glyph rather than
+something to work around: the applications under `examples/apps/` contain no
+`.d.ts` and no `extern_ts`, and a CI check keeps it that way, so that the answer
+to a missing capability is to add it to the stdlib rather than to write the
+TypeScript that Glyph exists to replace. An installed package that carries its own types does not need it (the
 `node_modules` wiring above handles those), so reach for `.types/` only when
 there is nothing to resolve.
 

@@ -155,11 +155,10 @@ fn main(argv: Array<string>) -> number {
 }
 ```
 
-`net` is a Node builtin and imports like any other, but it is not one of the six
-the compiler ships ambient types for (`fs`, `http`, `path`, `os`, `crypto`,
-`url`). Install `@types/node` and the build prefers it, or write the piece you
-use into `.types/net.d.ts` beside your source. See
-[`external-imports.md`](external-imports.md).
+`net` is a Node builtin and imports like any other. The compiler ships ambient
+types for it, so nothing is installed and no declaration file is written. See
+[`external-imports.md`](external-imports.md) for the full list and for what to
+do about a package that ships no types.
 
 Two things to know about the shape.
 
@@ -179,9 +178,16 @@ mut server.on("error", fn(err) {
 })
 ```
 
-`examples/apps/chat` is a worked example: a chat server that holds several TCP
-clients at once, with the socket handling in `daemon.glyph` and the parts that
-do not touch the network kept separate and tested with `@example`.
+A program that schedules rather than listens uses `std/timers`
+(`timers.every`, `timers.after`, `timers.cancel`), and one that talks to a
+WebSocket uses `std/websocket`. Both keep the process alive the same way a
+listening socket does.
+
+Two worked examples: `examples/apps/chat` is a chat server holding several TCP
+clients at once, and `examples/apps/discord` is a gateway client with a
+heartbeat, resume, and reconnect backoff. Both keep the parts that do not touch
+the network separate and tested with `@example`, and neither contains a line of
+TypeScript.
 
 ## Next
 

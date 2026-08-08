@@ -7,46 +7,34 @@
 // parts (resume, zombie detection, backoff) are checked by `@example` rather
 // than by provoking a real outage.
 //
+// It is ordinary Glyph. `std/websocket` and `std/timers` cover what an earlier
+// version of this file reached for through six escapes to raw TypeScript and a
+// hand-written declaration file, because the host's `WebSocket` and its timers
+// are globals and Glyph resolves imported module names rather than ambient
+// globals. Every callback parameter below is typed, and there is no line in the
+// app that a TypeScript compiler would have to be trusted with.
+//
 // The connection lives in a `Conn` record threaded through top-level functions
 // rather than in closures over `let` bindings. It has to: `connect` schedules a
 // reconnect, which calls `connect` again, and a `let`-bound closure cannot be
 // named before the line that binds it, so the cycle is unwritable that way.
 // Passing one record round also means `grep -n "^\s*mut conn\."` lists every
 // piece of connection state that ever changes.
-//
-// This is the only file in the app that escapes to raw TypeScript, and it does
-// so for one reason: everything it reaches for is a JavaScript *global*, and
-// Glyph resolves imported module names rather than ambient globals. So the
-// `WebSocket` type, its constructor, and the fields of the events it delivers
-// all have to be named through `extern_ts`. `new WebSocket(url)` is E0103 for
-// the same reason, which is why the constructor is a string too.
-//
-// `grep -n extern_ts` is the list; it is deliberately not repeated here as a
-// count, because a hand-maintained one goes stale the next time a field is read
-// off an event, and this comment has already been wrong twice.
-//
-// What the escapes do not cost is the type. `extern_ts` in *type* position
-// names the real `WebSocket`, so `tsc` checks every call against it and
-// `sock.sendd(...)` is a compile error that names the type and the misspelling.
-// Only the construction and the event-field reads are untyped at the seam.
 module gateway
 
 import std/io
 import std/option { Option, Some, None }
 import std/process
-import timers { setInterval, clearInterval, setTimeout }
+import std/string
+import std/timers
+import std/timers { Timer }
+import std/websocket
+import std/websocket { Socket }
 import backoff
 import backoff { Backoff }
 import protocol
 import session
 import session { Session, Action, Step }
-
-// The global `WebSocket`, named for the type checker.
-type Socket = extern_ts("WebSocket")
-
-// What `setInterval` hands back. Nothing inspects it; it only goes back to
-// `clearInterval`.
-type Timer = extern_ts("object")
 
 // Everything about the current connection that outlives a single callback.
 type Conn = {
@@ -59,7 +47,7 @@ type Conn = {
   // Which connection attempt is the current one.
   //
   // A socket this bot has written off stays open at the TCP level until it is
-  // closed, and its listeners stay armed either way. Without an identity to
+  // closed, and its handlers stay registered either way. Without an identity to
   // compare against, a late frame or a delayed close from the abandoned socket
   // would be applied to the connection that replaced it: the worst version
   // tears down a healthy connection when a zombie finally times out. Each
@@ -93,10 +81,10 @@ fn connect(conn: Conn) {
   // treating further closes as the tail of the decision that scheduled it.
   mut conn.state = session.attempting(conn.state)
 
-  let sock: Socket = extern_ts("new WebSocket(conn.url)")
+  let sock = websocket.connect(conn.url)
   mut conn.socket = Some(sock)
 
-  mut sock.addEventListener("open", fn(_) {
+  websocket.on_open(sock, fn() {
     match current(conn, mine) {
       false => {},
       true => {
@@ -106,23 +94,26 @@ fn connect(conn: Conn) {
     }
   })
 
-  mut sock.addEventListener("message", fn(ev) {
+  websocket.on_message(sock, fn(text) {
     match current(conn, mine) {
       false => {},
-      true => advance(conn, session.receive(conn.state, protocol.read(text_of(ev)))),
+      true => advance(conn, session.receive(conn.state, protocol.read(text))),
     }
   })
 
-  mut sock.addEventListener("close", fn(ev) {
+  // The close code is what separates an outage worth waiting out from a
+  // rejection that will be rejected identically forever, so it is handed to the
+  // session rather than summarized here.
+  websocket.on_close(sock, fn(code, reason) {
     match current(conn, mine) {
       false => {},
-      true => advance(conn, session.disconnected(conn.state, close_code(ev), close_reason(ev))),
+      true => advance(conn, session.disconnected(conn.state, code, close_reason(reason))),
     }
   })
 
   // An error is always followed by a close, and the close is where the
   // reconnect is decided, so this only reports.
-  mut sock.addEventListener("error", fn(_) {
+  websocket.on_error(sock, fn() {
     match current(conn, mine) {
       false => {},
       true => say(conn, "socket error"),
@@ -130,9 +121,17 @@ fn connect(conn: Conn) {
   })
 }
 
-// Whether the socket a listener belongs to is still the one in use.
+// Whether the socket a handler belongs to is still the one in use.
 fn current(conn: Conn, generation: int) -> bool {
   return conn.generation == generation
+}
+
+// A close with no reason still needs something to print.
+fn close_reason(reason: string) -> string {
+  return match string.len(reason) == 0 {
+    true => "socket closed",
+    false => reason,
+  }
 }
 
 // A step from the protocol layer: adopt the new session, then do what it asked,
@@ -152,9 +151,9 @@ fn perform(conn: Conn, action: Action) {
     session.Note({ line }) => say(conn, line),
     session.StartHeartbeat({ interval }) => {
       stop_heartbeat(conn)
-      mut conn.heartbeat = Some(setInterval(fn() {
+      mut conn.heartbeat = Some(timers.every(interval, fn() {
         advance(conn, session.tick(conn.state))
-      }, interval))
+      }))
       say(conn, "heartbeat every ${number.to_string(interval)}ms")
     },
     session.StopHeartbeat => stop_heartbeat(conn),
@@ -176,25 +175,31 @@ fn schedule_reconnect(conn: Conn, resume: bool) {
   mut conn.retry = backoff.failed(conn.retry)
   let delay = backoff.wait_ms(conn.retry)
   say(conn, "reconnecting in ${number.to_string(delay)}ms (resume=${yes_no(resume)})")
-  let _ = setTimeout(fn() { connect(conn) }, delay)
+  let _ = timers.after(delay, fn() { connect(conn) })
 }
 
+// A send into a socket the network has just dropped reports rather than
+// throwing, so a frame racing a disconnect is a log line and not a crash on a
+// callback stack this program does not own.
 fn send(conn: Conn, frame: string) {
   match conn.socket {
-    Some(sock) => { mut sock.send(frame) },
+    Some(sock) => match websocket.send(sock, frame) {
+      true => {},
+      false => say(conn, "dropped a frame: the socket is not open"),
+    },
     None => say(conn, "dropped a frame: no socket"),
   }
 }
 
 // Hang up, and stop listening to what we hung up on. The generation bump is
-// what silences the listeners: they cannot be detached without holding each
+// what silences the handlers: they cannot be detached without holding each
 // closure, and a socket that closes later must not reach the session.
 fn close_socket(conn: Conn) {
   match conn.socket {
     Some(sock) => {
       mut conn.generation = conn.generation + 1
       mut conn.socket = None
-      mut sock.close()
+      websocket.close(sock)
     },
     None => {},
   }
@@ -203,7 +208,7 @@ fn close_socket(conn: Conn) {
 fn stop_heartbeat(conn: Conn) {
   match conn.heartbeat {
     Some(handle) => {
-      clearInterval(handle)
+      timers.cancel(handle)
       mut conn.heartbeat = None
     },
     None => {},
@@ -215,23 +220,6 @@ fn say(conn: Conn, line: string) {
     true => io.println(line),
     false => {},
   }
-}
-
-// A message event's payload. Node's WebSocket delivers a string for a text
-// frame, and the gateway sends nothing else.
-fn text_of(ev: unknown) -> string {
-  return extern_ts("String((ev as { data: unknown }).data)")
-}
-
-// A close event's code and reason. Which code it is decides whether this is an
-// outage to wait out or a rejection to stop on, so reporting a constant instead
-// would make a rejected token retry forever.
-fn close_code(ev: unknown) -> int {
-  return extern_ts("Number((ev as { code?: number }).code ?? 1006)")
-}
-
-fn close_reason(ev: unknown) -> string {
-  return extern_ts("String((ev as { reason?: string }).reason || \"socket closed\")")
 }
 
 fn yes_no(value: bool) -> string {

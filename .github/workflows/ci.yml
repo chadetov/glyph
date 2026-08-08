@@ -24,6 +24,12 @@ jobs:
       - name: Check the dogfooding gap list
         run: python3 scripts/check_gaps.py
 
+      # The claim discipline: an app that needs a hand-written `.d.ts` or an
+      # `extern_ts` string needs the language Glyph replaces. When one does, the
+      # answer is to extend the stdlib, not to add a declaration file.
+      - name: Check the apps are written in Glyph alone
+        run: python3 scripts/check_apps_are_glyph.py
+
   test:
     name: Test + type-check examples
     runs-on: ubuntu-latest

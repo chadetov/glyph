@@ -39,6 +39,8 @@
     "transpiler",
     "ai-agents",
     "agents",
+    "agentic-coding",
+    "coding-agents",
     "llm"
   ]
 }

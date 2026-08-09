@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 73 are fixed, 12 are partly fixed, 9 are
-decided or resolved, and 4 are open. That round re-ran an assignment the
+fixed two of them: of 98 entries, 76 are fixed, 13 are partly fixed, 9 are
+decided or resolved, and 0 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -1832,7 +1832,7 @@ several rounds that the backlog grew.
   and G57: a type that stops existing at a boundary takes every check downstream
   of it with it.
 
-- **G68. `json.parse<T>` reports one issue where `T.parse` reports paths.** The
+- **G68. [FIXED] `json.parse<T>` reports one issue where `T.parse` reports paths.** The
   emitter rewrites `json.parse<T>(text)` to `json.parse_with(text, T.schema)`
   (`glyph-emit/src/lib.rs:3230`), which is what made the call validating in the
   first place (G3). The cost was never recorded: `T.schema` is a single runtime
@@ -1849,7 +1849,11 @@ several rounds that the backlog grew.
 
   *Reproduced against 0.1.68.* A `Cfg` of `host: string, port: number` fed
   `{"host": 5, "port": "nope"}` reports 1 issue through `json.parse<Cfg>` and 2
-  through `json.parse<unknown>` then `Cfg.parse`.
+  through `json.parse<unknown>` then `Cfg.parse`. **Fixed in 0.1.69** by giving
+  the schema factory the descriptor's own `parse` alongside its guard, so the
+  one-step form reports what the two-step form does; an array threads the element
+  index, so a bad second row reports `1.host`. The `sheet` app's two-step
+  workaround, and the comment explaining it, are gone.
 
 - **G69. [FIXED] `glyph run` and `glyph check` never run `@example` blocks.** Both
   `run_examples` call sites are inside the `Build` arm, the text path and the
@@ -2517,7 +2521,7 @@ once are each announced under the right name.
   nothing, so presence is the whole check and there is no lie to refuse. All
   eight always-false branches are gone from the emitted examples tree.
 
-- **G89. A program cannot say that it does not terminate.** `daemon.serve` is a
+- **G89. [FIXED] A program cannot say that it does not terminate.** `daemon.serve` is a
   `pub fn serve(port: int)` whose doc comment has to explain in prose that the
   process is driven by socket events from there on. `main` has a `return 0` that
   is never reached in the normal case, and `main.glyph` carries a dead match arm
@@ -2586,6 +2590,10 @@ this round, and it is why the adversarial gateway exists.
 
   *Reproduced against 0.1.68.* `pub fn spin() -> never` is `[E0103] unresolved
   name never`, so the type the stdlib uses is not spellable in user code.
+  **Fixed in 0.1.69** as D43: a real bottom type, assignable to everything with
+  nothing but itself assignable to it. A `-> never` function owes no returned
+  value and a `never` arm drops out of the match join. See the correction above:
+  the chat daemon was the wrong example for it.
 
 - **G94. [FIXED] A match arm whose last statement produced no value fell
   through into the compiler's own "non-exhaustive match" throw.** The worst
@@ -2691,7 +2699,7 @@ this round, and it is why the adversarial gateway exists.
   and costs a new concept. Reopened as its own entry because the case that
   motivates it is not the case G5 was written about.
 
-- **G92. Locally bound closures cannot call each other.** `let a = fn() { b() }`
+- **G92. [FIXED] Locally bound closures cannot call each other.** `let a = fn() { b() }`
   followed by `let b = ...` is `[E0103] unresolved name b`: a `let` is in scope
   from its own line down and there is no local `fn` that hoists. Event-driven
   code is full of mutual reference and this one is not exotic: `connect`
@@ -2702,7 +2710,13 @@ this round, and it is why the adversarial gateway exists.
   name rather than at the rule.
 
   *Reproduced against 0.1.68.* `let a = fn() { b() }` before `let b` is
-  `[E0103] unresolved name b`.
+  `[E0103] unresolved name b`. **Fixed in 0.1.69**: each block registers the
+  `let` names it will declare before walking its statements, and a reference
+  reaches one only from deeper inside a nested function, where by the time it
+  runs the binding exists. A direct forward reference out of an initializer stays
+  the error it was. The hole TypeScript also has remains: a forward-referencing
+  closure *called* before the target's `let` runs throws at run time, and
+  `tsc --strict` does not catch that either.
 
 - **G93. [FIXED] An `@example` has to fit on one line.** Wrapping one is
   `[E0003] unexpected token: EqEq` pointing at the continuation. Examples of
@@ -2837,7 +2851,7 @@ the same state.
   diagnostic is genuinely good (it names the limitation and the fix), but three
   hoists in one app is friction rather than a papercut.
 
-- **G98. An `is` pattern narrows the scrutinee's *binding*, and using it any
+- **G98. [IMPROVED] An `is` pattern narrows the scrutinee's *binding*, and using it any
   other way fails as a `tsc` error rather than a Glyph one.** Writing
   `match row[col] { is string => Some(row[col]), else => None }` reports
   `Type 'Option<unknown>' is not assignable to type 'Option<string>'` pointing
@@ -3037,4 +3051,8 @@ scheduled off this list should be reproduced first.
   *Reproduced against 0.1.68.* `match record.get(row, col) { is string =>
   Some(record.get(row, col)), ... }` is `[TS2322] Type 'Option<Option<unknown>>'
   is not assignable to type 'Option<string>'`, a `tsc` error rather than a Glyph
-  one.
+  one. **Improved in 0.1.69, not closed.** A note attached during the `tsc` remap
+  states the rule, so an agent no longer has to reconstruct the compiler's model,
+  which is what the entry complained about. The title's claim stands: it is still
+  a `tsc` error. A Glyph *check* was assessed in 0.1.68 and declined, because the
+  detectable shape has a legitimate counterexample and would fire on correct code.

@@ -1178,15 +1178,31 @@ fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
     }
 }
 
-/// Whether a `glyph` executable is reachable on `PATH`.
+/// Whether the reader will still have a `glyph` command after this process
+/// exits.
 ///
-/// The scaffold's closing line names a command the reader can actually type.
-/// Through `npx @glyphlang/glyph init` there is no `glyph` on `PATH`, and the
-/// old message said `glyph run` to everyone.
+/// The scaffold's closing line names a command they can actually type. Reading
+/// `PATH` alone is not enough and the first version of this was wrong: `npx`
+/// puts its own `node_modules/.bin` on the child's `PATH`, so a run through
+/// `npx @glyphlang/glyph init` sees a `glyph` that vanishes the moment npx
+/// returns, and the reader gets command-not-found from the line we printed.
+/// A binary running out of an npx cache is by definition temporary, whatever
+/// `PATH` says.
 fn glyph_on_path() -> bool {
+    if running_from_npx_cache() {
+        return false;
+    }
     let Some(paths) = std::env::var_os("PATH") else {
         return false;
     };
     let exe = if cfg!(windows) { "glyph.exe" } else { "glyph" };
     std::env::split_paths(&paths).any(|dir| dir.join(exe).is_file())
+}
+
+/// Whether this executable was fetched by `npx` for this one invocation. npm
+/// stages such a package under a `_npx` directory in its cache.
+fn running_from_npx_cache() -> bool {
+    std::env::current_exe()
+        .map(|p| p.components().any(|c| c.as_os_str() == "_npx"))
+        .unwrap_or(false)
 }

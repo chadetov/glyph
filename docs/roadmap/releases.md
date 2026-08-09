@@ -2910,14 +2910,15 @@ E0111's explanation and one formatter regression test.
   message it would replace. Doing it properly means attaching a note during the
   `tsc` remap rather than adding a check.
 
-## 0.1.69 (Next, unreleased) — every open gap, and a client that can be bounded
+### 0.1.69 — Shipped · Every open gap, and a client that can be bounded
 
 Re-sequenced after re-reproducing each open entry against 0.1.68, then built
 as one release rather than five. The earlier order carried three items that had
 already closed (G87, G24, G48) and put the open ones behind partly-fixed ones.
 
-All six are done and the version has not been bumped: the release is prepared,
-not published.
+All six shipped. Published to npm on 2026-08-09 and smoke-tested from a clean
+npx cache in an isolated HOME, which is the check that has caught real problems
+here before, and caught one this time too (see the tail of this entry).
 
 - **G88, and it was three gaps wearing one number.** The always-false field
   check fired eight times across the examples tree. A field typed by an
@@ -2969,6 +2970,15 @@ not published.
 Also in this release: the npm README leads with `npx` instead of a global
 install, and `glyph init` stops telling a reader who arrived through `npx` to
 run a command they do not have.
+
+**Found by the post-release smoke test, fixed for 0.1.70.** `glyph init` names
+the command the reader can actually type, and the PATH check behind that was
+wrong for the case it was written for. `npx` puts its own `node_modules/.bin` on
+the child's PATH, so a run through `npx @glyphlang/glyph init` saw a `glyph`
+that disappeared the moment npx returned, and printed `glyph run` to exactly the
+reader who cannot use it. A binary running out of an npx cache is temporary
+whatever PATH says, so that is what it checks now. The lesson is the one the
+release memo already carries: run the published package, not the built one.
 
 The G63 investigation landed without the fix. Keeping a user's `Error` means
 aliasing the *compiler's* references rather than mangling the author's names,

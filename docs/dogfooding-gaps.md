@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 71 are fixed, 13 are partly fixed, 9 are
-decided or resolved, and 5 are open. That round re-ran an assignment the
+fixed two of them: of 98 entries, 72 are fixed, 13 are partly fixed, 9 are
+decided or resolved, and 4 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -2450,7 +2450,7 @@ once are each announced under the right name.
   which case the spec is wrong, or it can and this needs rewriting; nobody has
   established which, and this entry stays open until somebody does.
 
-- **G88. A record holding an opaque external value gets a `parse` that lies.**
+- **G88. [FIXED] A record holding an opaque external value gets a `parse` that lies.**
   Descriptors are emitted for every record type. For a field whose type the
   emitter has no descriptor for, the generated check is `field !== undefined`
   and the generated message is ``field `socket` must be Socket``. So `Conn.parse`
@@ -2476,7 +2476,16 @@ once are each announced under the right name.
   and it is made: a record with an unverifiable field may exist, but calling
   `parse` or `is` on it is a compile error naming the field. Holding a socket in
   a record is ordinary; being told at a boundary that the socket was validated
-  is what cannot ship. Planned for 0.1.70.
+  is what cannot ship. **Closed in 0.1.69.** Causes 1 and 2 by resolving an
+  imported descriptorless alias to its leaf, so a field typed by an imported
+  string-literal union keeps its membership check. Cause 3 by `E0304`: the
+  emitter's field check now answers one of three things rather than producing a
+  string either way (a real predicate, presence-only, or nothing), and `parse`
+  and `is` are refused at the call site when a field falls in the last bucket.
+  Declaring such a record stays legal, which is what keeps a socket in a record
+  ordinary. `unknown` turned out not to belong in the last bucket: it claims
+  nothing, so presence is the whole check and there is no lie to refuse. All
+  eight always-false branches are gone from the emitted examples tree.
 
 - **G89. A program cannot say that it does not terminate.** `daemon.serve` is a
   `pub fn serve(port: int)` whose doc comment has to explain in prose that the

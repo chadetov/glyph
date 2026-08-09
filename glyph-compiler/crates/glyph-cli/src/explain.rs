@@ -484,6 +484,27 @@ pub fn explain(code: &str) -> Option<&'static str> {
             `let`, a `return`, an argument, a template, and a `match` arm body. \
             A `?` inside an arm of a `match` that is nested in a larger \
             expression is E0302, a different rule with a different fix.",
+        "E0304" => "E0304: cannot validate a record with an unverifiable field\n\n\
+            `T.parse(v)` and `T.is(v)` report whether a value really is a `T`. \
+            When one of `T`'s fields has a type the compiler cannot check at \
+            runtime, the descriptor used to emit a branch that could never fire \
+            and a message naming the type it never checked, so `parse` returned \
+            `Ok` for a value it had not validated. That is the one thing a \
+            boundary must not do.\n\n\
+            Holding such a value is fine. A record with a socket field, an \
+            `extern_ts` type, or a generic tagged union compiles and is \
+            constructed normally. Only validating one is refused.\n\n\
+            The fix is to split the wire type from the domain type:\n\n\
+            Before:  type Conn = { id: number, sock: Socket }\n\
+             \x20        Conn.parse(body)                      // E0304\n\n\
+            After:   type Wire = { id: number }                // all checkable\n\
+             \x20        let w = Wire.parse(body)?\n\
+             \x20        let conn = { id: w.id, sock: open() }  // built, not parsed\n\n\
+            `unknown` is not this error. It claims nothing, so every value \
+            satisfies it and presence is the whole check.\n\n\
+            The rule propagates: a field whose type is a record with an \
+            unverifiable field, or an `Array`/`Option`/`Record` of one, is \
+            unverifiable for the same reason.",
         "E0310" => "E0310: no `main` to run\n\n\
             `glyph run` executes a program's entry point, `main(argv)`. The module \
             you pointed it at compiles fine but is a library — it exports functions \

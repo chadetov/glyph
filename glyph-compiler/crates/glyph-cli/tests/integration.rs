@@ -7551,3 +7551,88 @@ fn a_never_function_may_not_return_a_value() {
         report.diagnostics
     );
 }
+
+#[test]
+fn parse_is_refused_on_a_record_with_an_unverifiable_field() {
+    // G88 cause 3 / E0304. Descriptors are emitted for every record. For a
+    // field whose type the emitter cannot see into, the generated check was
+    // `field !== undefined` under the message ``field `sock` must be Socket``,
+    // so `parse` returned `Ok` for a value it had not validated. A boolean that
+    // is always true is useless; one that is always true under a message naming
+    // a type it never checked is worse, because `parse` is what a boundary is
+    // told to trust.
+    let root = unique_tmp("unverifiable");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         type Opaque = extern_ts(\"{ handle: number }\")\n\
+         pub type Conn = { id: number, sock: Opaque }\n\
+         pub fn make(n: number, s: Opaque) -> Conn {\n\
+        \x20 return { id: n, sock: s }\n\
+         }\n\
+         pub fn take(v: unknown) -> Result<Conn, Array<Issue>> {\n\
+        \x20 return Conn.parse(v)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
+    let all = report.diagnostics.join("\n");
+    assert!(all.contains("E0304"), "refuses the parse: {all}");
+    assert!(
+        all.contains("sock") && all.contains("Opaque"),
+        "names the field and its type: {all}"
+    );
+}
+
+#[test]
+fn an_unverifiable_field_is_only_refused_where_it_is_trusted() {
+    // Holding a socket in a record is ordinary and stays legal; the error is at
+    // the boundary, not the declaration. Without this the change would ban a
+    // shape every event-driven program uses.
+    let root = unique_tmp("holdok");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         type Opaque = extern_ts(\"{ handle: number }\")\n\
+         pub type Conn = { id: number, sock: Opaque }\n\
+         pub fn make(n: number, s: Opaque) -> Conn {\n\
+        \x20 return { id: n, sock: s }\n\
+         }\n\
+         pub fn id_of(c: Conn) -> number {\n\
+        \x20 return c.id\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
+    assert!(!report.has_errors(), "declaring one is fine: {:?}", report.diagnostics);
+}
+
+#[test]
+fn an_unknown_field_is_not_an_unverifiable_one() {
+    // `unknown` claims nothing, so every value satisfies it and presence is the
+    // whole check. Treating it as unverifiable would refuse the ordinary
+    // "give me this key, whatever it holds" boundary read, and the descriptor
+    // no longer emits a type branch that could never fire.
+    let root = unique_tmp("unknownok");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         @open\n\
+         pub type WithPayload = { payload: unknown }\n\
+         pub fn take(v: unknown) -> Result<WithPayload, Array<Issue>> {\n\
+        \x20 return WithPayload.parse(v)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "unknown parses: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    assert!(
+        !ts.contains("!((value as Record<string, unknown>).payload !== undefined)"),
+        "no branch that can never fire: {ts}"
+    );
+}

@@ -151,6 +151,18 @@ pub enum EmitError {
     /// feature.
     #[error("`?` cannot be used in this position")]
     TryInUnhoistablePosition { span: Span },
+    /// `T.parse`/`T.is` on a record holding a field whose type has no runtime
+    /// check. Declaring the record is fine; trusting one at a boundary is not.
+    /// The descriptor used to emit a branch that could never fire, under a
+    /// message naming the type it never checked, so `parse` reported success
+    /// for a value it had not validated.
+    #[error("cannot validate `{type_name}`: field `{field}` has type `{field_ty}`, which has no runtime check")]
+    UnverifiableDescriptorUse {
+        type_name: String,
+        field: String,
+        field_ty: String,
+        span: Span,
+    },
 }
 
 impl EmitError {
@@ -160,6 +172,7 @@ impl EmitError {
             EmitError::MisplacedElse { span } => *span,
             EmitError::TryInNestedExpressionMatch { span } => *span,
             EmitError::TryInUnhoistablePosition { span } => *span,
+            EmitError::UnverifiableDescriptorUse { span, .. } => *span,
         }
     }
 
@@ -170,6 +183,7 @@ impl EmitError {
             EmitError::MisplacedElse { .. } => "E0301",
             EmitError::TryInNestedExpressionMatch { .. } => "E0302",
             EmitError::TryInUnhoistablePosition { .. } => "E0303",
+            EmitError::UnverifiableDescriptorUse { .. } => "E0304",
         }
     }
 
@@ -188,6 +202,9 @@ impl EmitError {
             EmitError::TryInUnhoistablePosition { .. } => Some(
                 "Bind the operand first (`let r = f(x)?`) and use `r` here.",
             ),
+            EmitError::UnverifiableDescriptorUse { .. } => Some(
+                "Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it.",
+            ),
         }
     }
 
@@ -204,8 +221,29 @@ impl EmitError {
             EmitError::TryInUnhoistablePosition { .. } => Some(
                 "`?` expands to a `const` binding plus an early `return` placed before the statement it appears in, so it is only legal where such a statement can be inserted. A `match` scrutinee is one of the positions that is emitted as a plain expression.",
             ),
+            EmitError::UnverifiableDescriptorUse { .. } => Some(
+                "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is` on it, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
+            ),
         }
     }
+}
+
+
+/// What a record descriptor can say about one field at runtime.
+///
+/// The distinction E0304 rests on. A type that *names* something the emitter
+/// cannot see into (a host handle, an `extern_ts` type, a generic tagged union)
+/// makes the descriptor claim a shape it never checked. `unknown` is not that
+/// case: it claims nothing, every value satisfies it, so for a required field
+/// presence is the entire check and there is nothing to lie about.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum FieldCheck {
+    /// A real predicate over the value.
+    Deep(String),
+    /// The field is `unknown`: being there is all there is to check.
+    PresenceOnly,
+    /// Nothing can check it, and the declared type names something specific.
+    Unverifiable,
 }
 
 /// The discriminant field of an emitted tagged-union value. Single-sourced
@@ -1280,6 +1318,16 @@ impl<'a> Emitter<'a> {
                 }
             }
             None => {
+                // `unknown` (and anything the emitter cannot see into) has no
+                // predicate worth emitting: the old code wrote
+                // `else if (!(x !== undefined))`, a branch that can never fire,
+                // under a message naming a type it never checked. The
+                // missing-key check is the whole check; E0304 refuses the cases
+                // where that is not honest enough to call validation.
+                let presence_only = matches!(
+                    self.field_check(&field.ty, &access),
+                    FieldCheck::PresenceOnly | FieldCheck::Unverifiable
+                );
                 let check = self.field_value_check(&field.ty, &access);
                 let type_issue = format!(
                     "__issues.push({{ path: [\"{fname}\"], message: {}, code: \"type\" }});",
@@ -1289,9 +1337,19 @@ impl<'a> Emitter<'a> {
                     ))
                 );
                 if field.optional {
-                    self.line(&format!("if ({present} && !({check})) {{"));
+                    // An optional field with nothing to check needs no branch
+                    // at all: absent is fine and present is unconstrained.
+                    if !presence_only {
+                        self.line(&format!("if ({present} && !({check})) {{"));
+                        self.indent += 1;
+                        self.line(&type_issue);
+                        self.indent -= 1;
+                        self.line("}");
+                    }
+                } else if presence_only {
+                    self.line(&format!("if ({access} === undefined) {{"));
                     self.indent += 1;
-                    self.line(&type_issue);
+                    self.line(&missing_issue);
                     self.indent -= 1;
                     self.line("}");
                 } else {
@@ -3254,12 +3312,55 @@ impl<'a> Emitter<'a> {
     /// - anything else (an imported type, a bare generic parameter) conservatively
     ///   by "not undefined", the remaining shallow cases.
     fn field_value_check(&self, ty: &TypeExpr, access: &str) -> String {
+        match self.field_check(ty, access) {
+            FieldCheck::Deep(c) => c,
+            FieldCheck::PresenceOnly | FieldCheck::Unverifiable => {
+                format!("{access} !== undefined")
+            }
+        }
+    }
+
+    /// The deep predicate for `ty`, or `None` for the two cases that have none.
+    /// Used by the recursive arms, where an `unknown` element and an
+    /// unverifiable one are equally unusable as a sub-check.
+    fn field_value_check_opt(&self, ty: &TypeExpr, access: &str) -> Option<String> {
+        match self.field_check(ty, access) {
+            FieldCheck::Deep(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    /// The real check for a field of type `ty`, or `None` when there is nothing
+    /// to check it with.
+    ///
+    /// `None` is the honest answer for a type the emitter cannot see into: a
+    /// host handle, an `extern_ts` type, a bare `unknown`, a generic tagged
+    /// union (only generic *records* carry a descriptor). It propagates, so an
+    /// `Array<Socket>` is unverifiable even though its array-ness is checkable:
+    /// what a descriptor claims is the field's declared type, and checking half
+    /// of it while reporting all of it is the thing worth refusing.
+    ///
+    /// `field_value_check` substitutes the old presence floor so the emitted
+    /// code is unchanged for callers that only want a boolean. What changed is
+    /// that the caller can now *ask* whether the boolean means anything, which
+    /// is what E0304 is built on. Deciding it here rather than in a parallel
+    /// predicate is deliberate: an error that disagreed with the emitted check
+    /// would either refuse a checkable type or let a lie through.
+    fn field_check(&self, ty: &TypeExpr, access: &str) -> FieldCheck {
+        // `unknown` is satisfied by every value, so a required field of it is
+        // fully checked by being there. Emitting a type branch as well would be
+        // a branch that can never fire, which is what this whole change is about.
+        if is_named_type(ty, "unknown") {
+            return FieldCheck::PresenceOnly;
+        }
         // `int` is a whole `number`: the leaf check that `number` cannot express.
         if is_named_type(ty, "int") {
-            return format!("(typeof {access} === \"number\" && Number.isInteger({access}))");
+            return FieldCheck::Deep(format!(
+                "(typeof {access} === \"number\" && Number.isInteger({access}))"
+            ));
         }
         if let Some(jt) = js_typeof(ty) {
-            return format!("typeof {access} === \"{jt}\"");
+            return FieldCheck::Deep(format!("typeof {access} === \"{jt}\""));
         }
         match ty {
             TypeExpr::Path { segments, .. } if segments.len() == 1 => {
@@ -3268,15 +3369,15 @@ impl<'a> Emitter<'a> {
                     // A field typed as one of the enclosing generic descriptor's
                     // parameters: validate it with the checker threaded in at the
                     // call site, not a presence check.
-                    format!("{guard}({access})")
+                    FieldCheck::Deep(format!("{guard}({access})"))
                 } else if self.has_descriptor(name) {
-                    format!("{name}.is({access})")
+                    FieldCheck::Deep(format!("{name}.is({access})"))
                 } else if let Some(leaf) = self.resolve_alias_leaf(name) {
                     // A non-record type alias (`type Tier = "free" | "pro"`,
                     // `type Count = int`): resolve to its leaf so a field typed by
                     // the alias gets the same runtime check as the inline type
                     // (membership, isInteger, …), not a bare presence check.
-                    self.field_value_check(&leaf, access)
+                    self.field_check(&leaf, access)
                 } else if let Some(leaf) = self
                     .import_module_path(name)
                     .and_then(|m| self.resolve_imported_alias_leaf(&m, name))
@@ -3284,9 +3385,9 @@ impl<'a> Emitter<'a> {
                     // The same alias, imported from a sibling module. Without
                     // this the D30 membership check survives at home and
                     // evaporates across the import.
-                    self.field_value_check(&leaf, access)
+                    self.field_check(&leaf, access)
                 } else {
-                    format!("{access} !== undefined")
+                    FieldCheck::Unverifiable
                 }
             }
             // A namespaced reference to another project module's type
@@ -3297,16 +3398,16 @@ impl<'a> Emitter<'a> {
                 let ns = segments[0].as_ref();
                 let name = segments[1].as_ref();
                 if self.has_namespaced_descriptor(ns, name) {
-                    format!("{ns}.{name}.is({access})")
+                    FieldCheck::Deep(format!("{ns}.{name}.is({access})"))
                 } else if let Some(leaf) = self
                     .namespace_module_path(ns)
                     .and_then(|m| self.resolve_imported_alias_leaf(&m, name))
                 {
                     // `import catalog` then a field typed `catalog.ColType`:
                     // the same descriptorless alias reached through a namespace.
-                    self.field_value_check(&leaf, access)
+                    self.field_check(&leaf, access)
                 } else {
-                    format!("{access} !== undefined")
+                    FieldCheck::Unverifiable
                 }
             }
             TypeExpr::Generic { base, args, .. } => {
@@ -3316,28 +3417,34 @@ impl<'a> Emitter<'a> {
                 };
                 match (base_name, args.as_slice()) {
                     (Some("Array"), [elem]) => {
-                        let elem_check = self.field_value_check(elem, "__e");
-                        format!(
+                        let Some(elem_check) = self.field_value_check_opt(elem, "__e") else {
+                            return FieldCheck::Unverifiable;
+                        };
+                        FieldCheck::Deep(format!(
                             "Array.isArray({access}) && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})"
-                        )
+                        ))
                     }
                     (Some("Option"), [inner]) => {
                         let tag = format!("(({access}) as {{ tag?: unknown }}).tag");
                         let value = format!("(({access}) as {{ value?: unknown }}).value");
-                        let inner_check = self.field_value_check(inner, &value);
-                        format!(
+                        let Some(inner_check) = self.field_value_check_opt(inner, &value) else {
+                            return FieldCheck::Unverifiable;
+                        };
+                        FieldCheck::Deep(format!(
                             "(typeof {access} === \"object\" && {access} !== null && ({tag} === \"None\" || ({tag} === \"Some\" && {inner_check})))"
-                        )
+                        ))
                     }
                     // `Record<K, V>` is a structural object map: reject non-objects
                     // (a string, an array, null) and recurse the value type over
                     // every entry, so a `Record<string, number>` field can never
                     // bind to a string or an object whose values are not numbers.
                     (Some("Record"), [_key, value]) => {
-                        let value_check = self.field_value_check(value, "__v");
-                        format!(
+                        let Some(value_check) = self.field_value_check_opt(value, "__v") else {
+                            return FieldCheck::Unverifiable;
+                        };
+                        FieldCheck::Deep(format!(
                             "(typeof {access} === \"object\" && {access} !== null && !Array.isArray({access}) && Object.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))"
-                        )
+                        ))
                     }
                     // A field typed as a generic record (`Paginated<User>`): call
                     // its descriptor's `is` with a synthesized checker per type
@@ -3352,9 +3459,9 @@ impl<'a> Emitter<'a> {
                             .map(|a| self.checker_lambda(a))
                             .collect::<Vec<_>>()
                             .join(", ");
-                        format!("{gname}.is({access}, {checkers})")
+                        FieldCheck::Deep(format!("{gname}.is({access}, {checkers})"))
                     }
-                    _ => format!("{access} !== undefined"),
+                    _ => FieldCheck::Unverifiable,
                 }
             }
             // A function-typed field (`run: fn(x: number) -> number`) is
@@ -3362,7 +3469,7 @@ impl<'a> Emitter<'a> {
             // are unobservable at runtime, but function-ness is the sound floor
             // and strictly better than the old presence-only check (a `run: 5`
             // would have passed).
-            TypeExpr::Fn { .. } => format!("typeof {access} === \"function\""),
+            TypeExpr::Fn { .. } => FieldCheck::Deep(format!("typeof {access} === \"function\"")),
             // An inline record type (`{ a: number, b: T }`) as a field's type:
             // validate it is a non-null object and recurse into each field, so
             // the descriptor's recursion is not silently shallow here.
@@ -3373,7 +3480,9 @@ impl<'a> Emitter<'a> {
                 ];
                 for f in fields {
                     let sub = format!("({access} as Record<string, unknown>).{}", f.name);
-                    let c = self.field_value_check(&f.ty, &sub);
+                    let Some(c) = self.field_value_check_opt(&f.ty, &sub) else {
+                        return FieldCheck::Unverifiable;
+                    };
                     if f.optional {
                         let present = format!("\"{}\" in ({access} as object)", f.name);
                         checks.push(format!("(!({present}) || {c})"));
@@ -3381,22 +3490,22 @@ impl<'a> Emitter<'a> {
                         checks.push(c);
                     }
                 }
-                format!("({})", checks.join(" && "))
+                FieldCheck::Deep(format!("({})", checks.join(" && ")))
             }
             // A string-literal union field validates by membership: the value
             // must be one of the declared literals, not merely a string. This is
             // the leaf-value check that a bare `string` cannot express.
             TypeExpr::StringLiteralUnion { values, .. } => {
                 if values.is_empty() {
-                    return format!("typeof {access} === \"string\"");
+                    return FieldCheck::Deep(format!("typeof {access} === \"string\""));
                 }
                 let arms: Vec<String> = values
                     .iter()
                     .map(|v| format!("{access} === {}", escape_double_quoted(v)))
                     .collect();
-                format!("({})", arms.join(" || "))
+                FieldCheck::Deep(format!("({})", arms.join(" || ")))
             }
-            _ => format!("{access} !== undefined"),
+            _ => FieldCheck::Unverifiable,
         }
     }
 
@@ -3673,6 +3782,76 @@ impl<'a> Emitter<'a> {
     /// routing through the descriptor validates the shape instead. Returns `None`
     /// (so the caller emits the call normally) for any non-matching call —
     /// including a type argument with no descriptor, where the cast escape hatch
+
+    /// The first field of record type `name` that has no runtime check, if any.
+    ///
+    /// Drives E0304. A record whose field is itself such a record is
+    /// unverifiable too, which `field_value_check_opt` already gives for free:
+    /// a field typed by a descriptor-bearing record resolves to `T.is(...)`,
+    /// and that call is only as good as `T`'s own descriptor, so the walk
+    /// recurses into it here. `seen` stops a recursive type from spinning.
+    fn first_unverifiable_field(
+        &self,
+        name: &str,
+        seen: &mut std::collections::HashSet<String>,
+    ) -> Option<(String, String)> {
+        if !seen.insert(name.to_string()) {
+            return None; // recursive type: its own fields are checked once
+        }
+        let decl = self.module.items.iter().find_map(|d| match d {
+            Decl::Type(td) if td.name.as_ref() == name && td.generics.is_empty() => Some(td),
+            _ => None,
+        })?;
+        let TypeExpr::Record { fields, .. } = &decl.body else {
+            return None;
+        };
+        for f in fields {
+            // `PresenceOnly` is not an error: an `unknown` field claims
+            // nothing, so being there is the whole of what the descriptor said.
+            if self.field_check(&f.ty, "__x") == FieldCheck::Unverifiable {
+                return Some((f.name.to_string(), type_label(&f.ty)));
+            }
+            // A field typed by another local record is checked by that record's
+            // `is`, so the claim is only as strong as its descriptor.
+            if let TypeExpr::Path { segments, .. } = &f.ty {
+                if segments.len() == 1 {
+                    let inner = segments[0].as_ref();
+                    if self.has_descriptor(inner) {
+                        if let Some((sub, ty)) = self.first_unverifiable_field(inner, seen) {
+                            return Some((format!("{}.{sub}", f.name), ty));
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Refuse `T.parse`/`T.is` when `T` cannot be validated (E0304). Returns the
+    /// error to raise, or `None` when the call is fine or is not one of these.
+    fn unverifiable_descriptor_use(&self, callee: &Expr) -> Option<EmitError> {
+        let Expr::Member { object, field, optional: false, span } = callee else {
+            return None;
+        };
+        if field.as_ref() != "parse" && field.as_ref() != "is" {
+            return None;
+        }
+        let Expr::Ident { name, .. } = object.as_ref() else {
+            return None;
+        };
+        if !self.has_descriptor(name.as_ref()) {
+            return None;
+        }
+        let mut seen = std::collections::HashSet::new();
+        let (field_name, field_ty) = self.first_unverifiable_field(name.as_ref(), &mut seen)?;
+        Some(EmitError::UnverifiableDescriptorUse {
+            type_name: name.to_string(),
+            field: field_name,
+            field_ty,
+            span: *span,
+        })
+    }
+
     /// is the intended behavior.
     fn try_json_parse_validating(
         &self,
@@ -4025,6 +4204,9 @@ impl<'a> Emitter<'a> {
                 args,
                 ..
             } => {
+                if let Some(err) = self.unverifiable_descriptor_use(callee) {
+                    return Err(err);
+                }
                 if let Some(rewritten) = self.try_json_parse_validating(callee, type_args, args)? {
                     rewritten
                 } else if let Some(rewritten) =

@@ -37,7 +37,7 @@ salsa = "0.26"
 ariadne = "0.4"
 
 # Internal error types in compiler crates.
-thiserror = "1"
+thiserror = "2"
 
 # Snapshot tests (Phase 1 week 1 onwards).
 insta = { version = "1", features = ["yaml"] }

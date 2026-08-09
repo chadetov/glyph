@@ -14,7 +14,7 @@ jobs:
     name: Version consistency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Publish discipline: the workspace Cargo version, the six npm
       # package.json versions, and the launcher's optionalDependencies pins must
       # all agree, or a release ships half-bumped. Also flags (non-fatally) when
@@ -38,7 +38,7 @@ jobs:
     name: Test + type-check examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The Rust toolchain is pinned by rust-toolchain.toml; rustup installs it
       # on the first cargo invocation. Cache the registry + build dir to keep CI

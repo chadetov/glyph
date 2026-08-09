@@ -122,6 +122,10 @@ npm audit signatures
 # GitHub Release archives: SLSA build-provenance attestation
 gh attestation verify glyph-<version>-<platform>.tar.gz --repo chadetov/glyph
 
+# ...or against the provenance bundle attached to the release, with no network
+gh attestation verify glyph-<version>-<platform>.tar.gz \
+  --bundle v<version>.intoto.jsonl --repo chadetov/glyph
+
 # ...and a SHA-256 for each archive
 sha256sum -c SHA256SUMS
 ```

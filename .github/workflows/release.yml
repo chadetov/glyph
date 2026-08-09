@@ -164,9 +164,19 @@ jobs:
       # SLSA build provenance attestation over the archives (not the checksum
       # file). Links each archive to this workflow run + commit.
       - name: Attest build provenance
+        id: attest
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: "dist/glyph-*"
+
+      # The attestation above lives in GitHub's attestation store, which is what
+      # `gh attestation verify` reads. Nothing that only inspects the release
+      # assets can see it, which is why OpenSSF Scorecard read this project as
+      # having unsigned releases while the provenance was real. Attaching the
+      # bundle makes the same signature checkable by someone who downloaded a
+      # tarball and nothing else.
+      - name: Attach the provenance bundle to the release
+        run: cp "${{ steps.attest.outputs.bundle-path }}" "dist/${{ github.ref_name }}.intoto.jsonl"
 
       - name: Create the release with the binaries attached
         env:

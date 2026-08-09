@@ -20,6 +20,19 @@
 // named before the line that binds it, so the cycle is unwritable that way.
 // Passing one record round also means `grep -n "^\s*mut conn\."` lists every
 // piece of connection state that ever changes.
+//
+// The socket is a `resource type` (D25), so the compiler checks the part of its
+// lifetime that a socket program gets wrong: a handle that is created and then
+// not handed anywhere, and a handle that is taken back out and then not closed.
+// `grep -n owned gateway.glyph` is the whole ownership surface: two bindings
+// and two consuming parameters. What the compiler cannot see is the middle,
+// while the handle sits in `Conn.socket` waiting for an event that may never
+// arrive, because `owned` is checked inside a function body and a socket in an
+// event-driven program outlives every stack frame it passes through. The two
+// ends are what this file makes structural: `take_socket` is the only way to
+// get a handle back out of the record and it clears the field as it goes, so a
+// socket cannot be closed and left installed, or left installed and never
+// closed.
 module gateway
 
 import std/io
@@ -36,11 +49,19 @@ import protocol
 import session
 import session { Session, Action, Step }
 
+// The socket, as something with an owner.
+//
+// A WebSocket is the case D25 was written for: it has to be closed exactly
+// once, and the paths that forget are the ones nobody exercises. Marking it
+// `resource` is what lets `owned` be spelled on it at all, and what turns
+// "we close it in the reconnect path too" from a comment into E0206.
+resource type Wire = Socket
+
 // Everything about the current connection that outlives a single callback.
 type Conn = {
   url: string,
   verbose: bool,
-  socket: Option<Socket>,
+  socket: Option<Wire>,
   heartbeat: Option<Timer>,
   state: Session,
   retry: Backoff,
@@ -75,14 +96,21 @@ pub fn run(url: string, token: string, verbose: bool) {
 }
 
 fn connect(conn: Conn) {
+  // Whatever is still installed belongs to an attempt this one replaces. The
+  // session asks for a close before every reconnect it schedules, so normally
+  // there is nothing here; doing it anyway means a second socket cannot come
+  // into existence while the first one is still held, whatever route got here.
+  close_socket(conn)
+
   mut conn.generation = conn.generation + 1
   let mine = conn.generation
   // Whatever happens to this attempt is a fresh event, so the session stops
   // treating further closes as the tail of the decision that scheduled it.
   mut conn.state = session.attempting(conn.state)
 
-  let sock = websocket.connect(conn.url)
-  mut conn.socket = Some(sock)
+  // From here to `keep` below, this handle belongs to this function, and the
+  // compiler will not let the function end without giving it away.
+  let owned sock: Wire = websocket.connect(conn.url)
 
   websocket.on_open(sock, fn() {
     match current(conn, mine) {
@@ -119,6 +147,32 @@ fn connect(conn: Conn) {
       true => say(conn, "socket error"),
     }
   })
+
+  // The handlers above borrow the socket. This is the line that gives it away:
+  // the connection holds it from here, and the only way back out is
+  // `take_socket`, which hands it to something that has to close it.
+  keep(conn, sock)
+}
+
+// The connection takes the socket.
+fn keep(conn: Conn, owned sock: Wire) {
+  mut conn.socket = Some(sock)
+}
+
+// Take the installed socket, leaving nothing behind.
+//
+// Clearing the field here rather than at the call site is what makes the
+// record's slot and the handle the same fact: there is no order of statements
+// that closes a socket the connection is still pointing at.
+fn take_socket(conn: Conn) -> Option<Wire> {
+  let held = conn.socket
+  mut conn.socket = None
+  return held
+}
+
+// Hang up.
+fn hang_up(owned sock: Wire) {
+  websocket.close(sock)
 }
 
 // Whether the socket a handler belongs to is still the one in use.
@@ -194,12 +248,16 @@ fn send(conn: Conn, frame: string) {
 // Hang up, and stop listening to what we hung up on. The generation bump is
 // what silences the handlers: they cannot be detached without holding each
 // closure, and a socket that closes later must not reach the session.
+//
+// The `let owned` is where the handle becomes this function's responsibility
+// again. Adding a `return` above the `hang_up` line, or losing that line in a
+// refactor, is E0206 rather than a socket left open until the process dies.
 fn close_socket(conn: Conn) {
-  match conn.socket {
-    Some(sock) => {
+  match take_socket(conn) {
+    Some(held) => {
       mut conn.generation = conn.generation + 1
-      mut conn.socket = None
-      websocket.close(sock)
+      let owned sock: Wire = held
+      hang_up(sock)
     },
     None => {},
   }

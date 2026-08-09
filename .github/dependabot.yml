@@ -1,0 +1,25 @@
+# Dependency updates, in the two places this repo actually has dependencies:
+# the Rust workspace and the GitHub Actions the workflows run.
+#
+# The npm packages are deliberately absent. The launcher has no dependencies at
+# all (four files, no `dependencies` block) and the five platform packages carry
+# only a prebuilt binary, so there is nothing for a bot to bump there. Adding
+# them would produce a permanently empty checker.
+#
+# Actions are pinned by commit SHA, which is what keeps a moved tag from
+# changing what CI runs. Dependabot understands that form and rewrites the SHA
+# and its trailing version comment together, so pinning does not mean going
+# stale.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /glyph-compiler
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

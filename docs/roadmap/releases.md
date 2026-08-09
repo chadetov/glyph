@@ -4319,6 +4319,15 @@ land here until they're assigned a release.
 
 ---
 
+*Branch protection, and what it deliberately does not include.* `main` blocks
+force pushes and deletion, requires linear history, and applies all three to
+admins, so no token can rewrite or remove the branch's history. Required status
+checks are deliberately absent: GitHub blocks a direct push to a branch that
+requires them, and the checks cannot have run on a commit that has not been
+pushed, so enabling them would mean adopting pull requests. That is the same
+decision `Code-Review` and `CI-Tests` are waiting on, and it is a workflow
+change rather than a setting.
+
 *Supply-chain score, and what is left.* The first OpenSSF Scorecard run read
 3.6. Pinning all eighteen action references by commit, dropping every workflow's
 default token to read-only, and adding Dependabot took it to 5.4. The remaining

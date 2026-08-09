@@ -108,6 +108,16 @@ You need `.types/` in two cases: a package that ships no types and has no
 `@types/...`, or a module you want to declare yourself without installing
 anything.
 
+**Module declarations only.** A `declare var`, `declare function` or `declare
+class` in `.types/` declares a *global*, and Glyph resolves names from modules,
+so the global satisfies `tsc` and stays invisible to Glyph: using it is
+`[E0103] unresolved name`. This is the decision, not an oversight. Everything a
+Glyph program can reach is Glyph the compiler knows, with a runtime descriptor
+behind it, and the price is that the standard library is the one door for a new
+host capability. It also means `new` (D37) does not work on a global class. When
+you need a global the stdlib does not wrap, file it and it gets a typed wrapper,
+the way timers and WebSocket did.
+
 You should not need it to reach the platform. If you find yourself declaring a
 Node builtin or a host global by hand, that is a gap in Glyph rather than
 something to work around: the applications under `examples/apps/` contain no

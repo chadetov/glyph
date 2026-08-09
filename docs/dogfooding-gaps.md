@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 71 are fixed, 13 are partly fixed, 8 are
-decided or resolved, and 6 are open. That round re-ran an assignment the
+fixed two of them: of 98 entries, 71 are fixed, 13 are partly fixed, 9 are
+decided or resolved, and 5 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -2596,7 +2596,7 @@ this round, and it is why the adversarial gateway exists.
   stdlib does not wrap still has no way to name it. That is now a smaller hole
   with a clear remedy, and it is recorded as G95 rather than being closed here.
 
-- **G95. A host global the stdlib does not wrap is still unnameable.** The
+- **G95. [DECIDED - the resolver stays module-only] A host global the stdlib does not wrap is still unnameable.** The
   general form of G90, left open deliberately. `declare var`/`declare function`
   in `.types/` is not read by the resolver, so a global that Glyph ships no
   wrapper for can only be reached through `extern_ts`, which is `unknown` at the

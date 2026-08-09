@@ -111,12 +111,18 @@ pub fn greet(name: string) -> string {\n\
 \x20 return \"hello, ${name}\"\n\
 }\n";
 
-const TYPES_README: &str = "# Ambient type declarations\n\
+const TYPES_README: &str = "# Type declarations for modules you import\n\
 \n\
 Put `*.d.ts` files here to give the type-checker types for the npm packages and\n\
 Node builtins you import. Anything matching `.types/**/*.d.ts` is auto-discovered\n\
 when you build. For a worked example, see\n\
-<https://github.com/chadetov/glyph/blob/main/docs/guide/external-imports.md>.\n";
+<https://github.com/chadetov/glyph/blob/main/docs/guide/external-imports.md>.\n\
+\n\
+Module declarations only. A `declare var`, `declare function` or `declare class`\n\
+here is a global, and Glyph resolves names from modules, so the global satisfies\n\
+`tsc` and stays invisible to Glyph: using it is `[E0103] unresolved name`. A host\n\
+global the standard library does not wrap is a gap in the standard library, so\n\
+file it and it gets a typed wrapper the way timers and WebSocket did.\n";
 
 const GITIGNORE: &str = "dist/\n\
 node_modules/\n";

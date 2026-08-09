@@ -94,7 +94,17 @@ pub fn explain(code: &str) -> Option<&'static str> {
             an *existing* binding, so the name must already be introduced with `let`. \
             If `x` is unresolved here, add a preceding `let`:\n\n\
             Before:  mut total = 0\n\
-            After:   let total = 0\n         mut total = total + 5",
+            After:   let total = 0\n         mut total = total + 5\n\n\
+            A host global is the other case, and it is not a bug. Glyph resolves \
+            names from modules only, so a `declare var`/`declare function`/\
+            `declare class` in `<root>/.types/*.d.ts` satisfies `tsc` and stays \
+            invisible here. `.types/` is for *module* declarations, the types of \
+            npm packages and node builtins you import. A global the standard \
+            library does not wrap is a gap in the standard library: file it, and \
+            it gets a typed wrapper the way timers and WebSocket did. The trade \
+            is deliberate. Everything a program can reach is Glyph the compiler \
+            knows, with a runtime descriptor behind it, and the cost is that the \
+            standard library is the one door for a new host capability.",
         "E0104" => "E0104: unresolved module\n\n\
             An `import` names a module that does not exist in the project or the \
             standard library.\n\n\

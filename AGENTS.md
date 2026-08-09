@@ -33,7 +33,7 @@ otherwise install them globally or run in a sandbox that already has them.
 
 ```sh
 glyph init [dir]                    # scaffold a runnable starter (src/, .types/, package.json)
-glyph check [path]                  # type-check a file or tree without running it or writing output
+glyph check [path]                  # type-check a file or tree, writing nothing; runs the @example/@doc @run gate by default (--no-test to skip)
 glyph run [path] [args...]          # type-check, compile, and run main(argv); no path means the current project; hyphenated args reach the program, `--` before ones that collide with glyph's own flags
 glyph build src/ --out dist/        # compile a tree to TypeScript (tsc --strict and @example/@doc @run by default)
 glyph build src/ --out dist/ --json # emit diagnostics as JSON (code, severity, file, line/col, help) for tools/agents
@@ -309,7 +309,16 @@ another language, a `@doc` block). `glyph fmt` copies a multi-line `"""` literal
 through verbatim; a single-line one that interpolates comes back in the ordinary
 `"..."` spelling, same content.
 
-## The standard library (full surface)
+## The standard library
+
+Not detailed below, but shipped and importable: `std/task` (structured
+concurrency), `std/timers` (`after`, `every`, `cancel`, `unref`, `sleep`),
+`std/websocket` (`connect`, `on_open`, `on_message`, `on_close`, `on_error`,
+`send`, `close`, `is_open`), `std/store`, `std/path`, `std/math`, `std/random`,
+`std/crypto`, `std/encoding`, `std/log`, `std/set`, `std/collections`. Reach for
+these before declaring a Node builtin or a host global by hand: `std/timers` is
+how you schedule work, and `std/websocket` is how you open a connection.
+
 
 Call namespaced functions as `module.fn(...)`. Types and constructors come in via
 named imports. Signatures below are in Glyph terms.
@@ -411,6 +420,10 @@ yet, so they stay untyped. That means a `match` on `string.index_of` with no
 ```
 io.println(message) -> void
 io.eprintln(message) -> void                // to stderr
+io.print(message) -> void                   // no newline: a prompt shares its line
+io.eprint(message) -> void                  // to stderr, no newline
+io.is_terminal() -> bool                    // is stdout a terminal, not a pipe
+io.stdin_is_terminal() -> bool              // is a person typing, not a file piped in
 io.read_line() -> Option<string>            // one line, as soon as it arrives; None at EOF
 io.read_to_string() -> string               // the rest of stdin
 ```
@@ -528,6 +541,8 @@ arm; omit one and the build fails with E0200. Walk a tree with `read_dir` +
 ```
 process.args() -> Array<string>
 process.exit(code) -> never
+process.set_exit_code(code) -> void         // record the code, keep running
+process.exit_code() -> number               // what it will currently leave with
 process.env(name) -> Option<string>
 process.cwd() -> string
 ```
@@ -765,16 +780,28 @@ import http { createServer }
 
 ```ts
 const code = await main(process.argv.slice(2));
-process.exit(typeof code === "number" ? code : 0);
+process.exitCode = typeof code === "number" ? code : 0;
 ```
 
-That is: it **awaits `main`, then calls `process.exit`**. For a normal CLI this
-is exactly right. For a **long-running process** (a server, a watcher), `main`
-must not return until you want to exit. `http.serve` is built for this: it stays
-pending while the server listens, so `await http.serve(port, handler)` suspends
-`main` and the process stays alive until the server closes — no sleep hack. Any
-other long-running task follows the same shape: `await` a promise that resolves
-only on shutdown.
+It **awaits `main` and assigns the exit code**; it does not force the process to
+stop. The process leaves when nothing is left to wait for, which is Node's own
+rule. A CLI that computes and prints has nothing pending and exits the moment
+`main` returns, with that code.
+
+A **long-running process** (a server, a watcher, a bot) therefore does not need
+`main` to stay suspended. Start the work and return: a listening socket, a
+`timers.every` interval, or a pending promise all keep the process alive on
+their own. `await http.serve(port, handler)` also works, because it stays
+pending while the server listens.
+
+Two consequences worth knowing:
+
+- `main`'s `return 0` runs long before the first request arrives. It is the code
+  the process will eventually leave with, not a statement about when it leaves.
+- Anything that fails **after** `main` has returned has to report itself, because
+  `main`'s return value is already spent. `process.set_exit_code(1)` records a
+  failure without tearing down work still in flight; `process.exit(1)` stops
+  immediately. A listener that cannot bind its port is the usual case.
 
 ## Testing
 

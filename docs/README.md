@@ -12,7 +12,7 @@ Glyph is a TypeScript-family language designed so AI agents can read, write, and
 - `roadmap/releases.md` — **the live release roadmap and the single source of truth for current status.** The release carrying the **Next** marker is the committed target; everything shipped is marked done with its real scope, on the 0.1.x → 1.0 feature line (compiler shipped; now shipping to npm as `@glyphlang/glyph`). Read this first for "what's done, what's next."
 - `roadmap/overview.md` — the 12-step build-roadmap status table (higher-level, older framing than `releases.md`).
 - `implementation-plan.md` — the original sequence with a frozen day-by-day record of how the compiler was built. History, not live status.
-- `language/spec.md` — the numbered grammar decisions (D1–D32)
+- `language/spec.md` — the numbered grammar decisions (D1–D42)
 - `language/grammar-status.md` — production Rust parser status + the role of the archived tree-sitter grammar as a reference spec
 - `open-questions.md` — historical record of brainstorm resolutions (sessions 1, 2, 3) plus the original question framings
 - `autonomous-loop.md` — the unattended build-cycle brief: how to drive the implement/review/fix/commit/push routine on a schedule (cloud Routines), with the current stop-condition milestone

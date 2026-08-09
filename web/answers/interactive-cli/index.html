@@ -166,7 +166,7 @@ let body = io.read_to_string()</pre>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Two things an interactive program still cannot do. <code>std/io</code> has no write-without-a-newline, so the <code>&gt; </code> prompt a REPL opens with has to be a line of its own; <code>io.print</code> is the answer and needs a decision about flushing. And nothing reports whether stdin is a terminal or a pipe, so a program that behaves differently for each has to be told by a flag: the chat app takes <code>--stdin</code>, and passing it with nothing piped hangs instead of falling back.</p>
+          <p><code>io.print</code> and <code>io.eprint</code> write without a newline, so a REPL's <code>&gt; </code> prompt sits on the line the answer is typed on, and <code>io.is_terminal</code> / <code>io.stdin_is_terminal</code> tell a program whether it is talking to a person or a pipe, so a flag like the chat app's <code>--stdin</code> is no longer the only way to ask. What is still rough: a program that wants to redraw a screen has no cursor control, so a full-screen terminal UI still means writing the escape codes yourself.</p>
         </div>
       </div>
 

@@ -4,7 +4,7 @@ The step-3 deliverable is a tree-sitter grammar that encodes the Glyph syntactic
 
 ## Current state
 
-- The Rust parser handles every D-decision (D1–D32, including the post-1.0-brainstorm additions: `infer_output`, `extern_ts`, string-literal unions, `int`, and `typeof` value-derived types) and parses the example corpus end-to-end. AST snapshots are checked into `glyph-compiler/crates/glyph-parser/tests/snapshots/`.
+- The Rust parser handles every D-decision (D1–D42: the post-1.0-brainstorm additions `infer_output`, `extern_ts`, string-literal unions, `int` and `typeof` value-derived types, and the later language-completeness and interop decisions D33–D42) and parses the example corpus end-to-end. AST snapshots are checked into `glyph-compiler/crates/glyph-parser/tests/snapshots/`.
 - The tree-sitter grammar in `archive/grammar.js` is unchanged from step 3. It's still unverified (`tree-sitter generate` has never been run in this environment), and the scaffolding gaps below remain.
 - When the Rust parser and the tree-sitter grammar disagree on an ambiguity, the Rust parser is canonical and `docs/language/spec.md` records the resolution.
 

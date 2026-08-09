@@ -4021,6 +4021,6 @@ land here until they're assigned a release.
 
 ---
 
-*Sequencing note:* 0.1.5 is committed; the 0.1.6/0.1.7 split and the rolling lane
-are a proposal, ordered by dependency (warning tier before must-use, etc.). We
-re-sort at each release boundary.
+*Sequencing note:* the release carrying the **Next** marker above is the committed
+target. Everything past it is a proposal ordered by dependency, and it gets
+re-sorted at each release boundary.

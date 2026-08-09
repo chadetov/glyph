@@ -128,9 +128,10 @@ running anything.
 path.glyph` does exactly that: it type-checks the file in the context of its
 directory, runs `tsc --strict` over the emitted TypeScript, writes nothing, and
 never starts your program. It also accepts a directory. `--no-tsc` stops after
-the Glyph stages when you want the fast answer and no toolchain. The one thing
-it does not do that `glyph build` does is run your `@example` and `@doc @run`
-tests, because running them would run your code.
+the Glyph stages when you want the fast answer and no toolchain. It runs your `@example` and `@doc @run`
+tests too, the same gate `glyph build` uses, so it cannot report a clean tree
+that `build` would fail. Pass `--no-test` when you want the answer without
+executing anything.
 
 **`T.parse` accepts a value I expected it to reject.** A field typed by an
 imported `.d.ts` type is checked for presence only until you materialize that

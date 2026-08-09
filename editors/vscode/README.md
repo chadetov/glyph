@@ -11,8 +11,10 @@ types, go-to-definition, completion, and format-on-save.
   into the `glyph` binary) and wires it over stdio. It provides:
   - diagnostics (parse / resolve / typecheck errors, with their `E0xxx` codes),
   - hover types,
-  - go-to-definition (within a file; cross-module lands with workspace support),
+  - go-to-definition, following imports across modules,
+  - find-references and rename, workspace-wide,
   - completion (keywords, in-scope declarations, prelude names),
+  - document and workspace symbols,
   - document formatting (the canonical `glyph fmt` layout).
 
 ## Prerequisites
@@ -45,5 +47,4 @@ The server is plain CommonJS (`extension.js`), so there is no compile step.
 
 ## Not yet
 
-Rename and find-references (v1.1), member completion after `.`, and the
-cross-module / workspace features (a single open file is analyzed today).
+Member completion after `.`.

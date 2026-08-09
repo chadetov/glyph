@@ -187,7 +187,7 @@ already there).
 7. `applyEdit` RPC for structured edits (Q29)
 8. Workspace symbol index for discoverability (Q12)
 
-Rename and find-references stay deferred to v1.1 (the original rescoping holds).
+**Update (0.1.11): rename and find-references shipped, workspace-wide** (see `docs/roadmap/releases.md` §0.1.11). The scope debate below is kept as the record of how it was decided.
 
 ## What the original strategy said
 

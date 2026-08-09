@@ -202,15 +202,15 @@
         <div class="callout">
           <p style="margin:0 0 10px;"><strong>Deliberately deferred or awaiting a design decision:</strong></p>
           <p style="margin:0;">
-            A <strong>must-use warning</strong> for a dropped <code>Result</code> awaits a warning severity
-            level (today diagnostics are errors-only, and a hard error would break valid code).
-            <strong>Rejecting implicit-<code>any</code> closures</strong> in Glyph's own checker needs real
-            contextual inference to avoid false positives on validly-typed callbacks.
-            <strong>Ergonomic FFI</strong> (using a complex-typed TS library without a per-library
-            adapter) and <strong>JSX prop spreading</strong> are the biggest interop questions, tracked in
+            Rejecting implicit-<code>any</code> closures in Glyph's own checker needs contextual
+            inference to avoid false positives on validly-typed callbacks.
+            Ergonomic FFI, using a complex-typed TS library without a per-library adapter, is the
+            largest interop question still open, tracked in
             <a href="https://github.com/chadetov/glyph/blob/main/docs/open-questions.md">open questions</a>.
-            A record-payload variant in first position of a union declaration still needs a parser fix.
-          </p>
+            A map that arrives from another module or the standard library is still read unchecked,
+            so E0224 does not yet reach a <code>sqlite.Row</code>, and the two-binding
+            <code>for i, x in xs</code> still loses its element types.
+            </p>
         </div>
         <a href="/answers/" class="backlink">&larr; See the engineer questions these fixes came from</a>
       </section>

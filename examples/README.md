@@ -8,8 +8,8 @@ The whole directory builds in one command:
 glyph build examples --out /tmp/out
 ```
 
-Each of the eight directories under `apps/` (`auth_api`, `chat`, `csvql`,
-`depsolve`, `discord`, `minilang`, `sheet`, `workflow`) is a program of its own whose
+Each of the nine directories under `apps/` (`auth_api`, `chat`, `csvql`,
+`depsolve`, `discord`, `jobq`, `minilang`, `sheet`, `workflow`) is a program of its own whose
 modules import each other by bare name, so each one carries a `package.json`
 with a `"glyph"` key. That marker makes the directory its own module-resolution root (D41), so
 `import catalog` inside `apps/csvql` finds `apps/csvql/catalog.glyph` no matter
@@ -29,7 +29,7 @@ import one of `apps/csvql`.
 Checking a single file compiles every `.glyph` in its project (G72), so
 `glyph check examples/01_validator.glyph` reports its siblings' errors too.
 
-The four hard-case example programs locked in step 2 (see `archive/SESSION_1.md`). These are the seed corpus for the transpiler test suite (step 4). Step 6 dogfooding (the fridge shopping list) grows this directory to ~30–50 example programs per the brainstorm Q2 resolution.
+The five hard-case programs at the top level are the seed corpus for the transpiler test suite; the originals are recorded in `archive/SESSION_1.md`. Everything under `apps/` came later, from building real programs and fixing whatever the language lacked.
 
 | File | Stresses | Pillars |
 |---|---|---|
@@ -62,6 +62,25 @@ stdlib and fixing whatever the language lacked along the way.
 | `bracket.glyph` | Single-elimination tournament bracket: the whole tournament is one recursive value (a `Match` of two `Slot`s, each an entrant, a bye, or another `Match`), so advancing a winner is a read, not a write into a parallel table | Abstraction + verifiability |
 | `shortlink.glyph` | URL shortener you can point a browser at: an HTML form, base62 codes, a 302 redirect with click counting, a stats page, and escaped server-rendered output. No `extern/` shim and no Node import: `std/http`'s `html`, `redirect`, and `form` carry the whole wire | Verifiability + greppability |
 | `settle.glyph` | Group expense splitter: split evenly, by exact shares, or by weights, in whole cents with a documented rule for the leftover, then compute the fewest payments that settle everyone up. Its ledger round-trips through `WireLedger.parse` at the boundary | Verifiability + abstraction |
+
+### Multi-module apps
+
+Each is a directory carrying a `package.json` with a `"glyph"` key, so it is its
+own module-resolution root (D41) and builds standalone or as part of the tree.
+None of them contains a line of TypeScript: no `.d.ts`, no `extern_ts`, enforced
+by `scripts/check_apps_are_glyph.py`.
+
+| Directory | What it is | Stresses |
+|---|---|---|
+| `auth_api` | Signup/login HTTP API with sessions | Boundary validation, hashing, errors-as-values |
+| `chat` | Chat **server** holding several TCP clients at once | Long-lived sockets, line framing over TCP, per-client routing |
+| `csvql` | SQL-ish query engine over CSV files | Lexing, planning, joins, aggregate rollups |
+| `depsolve` | Dependency resolver with conflict and cycle reporting | Recursive types, backtracking, diagnostics |
+| `discord` | Discord gateway client: handshake, heartbeat, resume | WebSocket, timers, reconnect backoff, `owned` sockets (D25) |
+| `jobq` | Durable job queue: HTTP API, SQLite store, workers | Persistence, retry with backoff, dead-lettering, state transitions |
+| `minilang` | Interpreter for a small language, with a REPL | Parsing, evaluation, interactive stdin |
+| `sheet` | Spreadsheet with formulas and dependency order | Topological evaluation, cycle detection |
+| `workflow` | State-machine runner over a JSON definition | Wire/domain type split, optional fields, exhaustive transitions |
 
 ## `corpus/` — self-contained regression programs
 

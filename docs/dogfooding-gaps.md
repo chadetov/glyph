@@ -2465,7 +2465,18 @@ once are each announced under the right name.
 
   *Reproduced against 0.1.68.* A record with a field typed
   `extern_ts("{ handle: number }")` accepts a string in that field and returns
-  `Ok`.
+  `Ok`. Measuring the whole examples tree found the always-false branch eight
+  times, from three causes rather than one: a field typed by a **stdlib named
+  type** (`amount: Decimal`, so money at a boundary is a presence check), a
+  field typed by an **imported string-literal union** (`kind: ColType`, the D30
+  membership check lost across a module, the same hole G76 closed for `match`),
+  and a field whose type genuinely has no runtime check (`Socket`, an
+  `extern_ts` type, `unknown`). The first two are bugs with one correct answer
+  and are planned for 0.1.69. The third was the decision this entry recorded,
+  and it is made: a record with an unverifiable field may exist, but calling
+  `parse` or `is` on it is a compile error naming the field. Holding a socket in
+  a record is ordinary; being told at a boundary that the socket was validated
+  is what cannot ship. Planned for 0.1.70.
 
 - **G89. A program cannot say that it does not terminate.** `daemon.serve` is a
   `pub fn serve(port: int)` whose doc comment has to explain in prose that the
@@ -2601,7 +2612,13 @@ this round, and it is why the adversarial gateway exists.
 
   *Reproduced against 0.1.68.* `declare var GLOBAL_TOKEN: string;` in
   `src/.types/globals.d.ts` and a use of `GLOBAL_TOKEN` is `[E0103] unresolved
-  name GLOBAL_TOKEN`.
+  name GLOBAL_TOKEN`. **Decided: the narrow answer.** The resolver stays
+  module-only, and a host global Glyph ships no wrapper for is a stdlib gap to
+  be filled on demand, as was done for timers and WebSocket. Everything
+  reachable stays typed Glyph that the stdlib vetted, and the cost is accepted:
+  D37's `new` on a global class stays unavailable. What remains is to stop the
+  `.types/` documentation implying ambient declarations resolve, and to say that
+  in the diagnostic rather than leaving a bare E0103. Planned for 0.1.69.
 
 - **G91. [HALF FIXED] An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
   this and deferred the lenient forms deliberately, on the grounds that the

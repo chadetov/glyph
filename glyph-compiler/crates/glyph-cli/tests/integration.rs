@@ -7409,3 +7409,46 @@ fn read_line_returns_a_line_before_stdin_closes() {
     assert_eq!(status.code(), Some(0), "program exits cleanly at EOF");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn imported_literal_union_field_keeps_its_membership_check() {
+    // G88 cause 2. A field typed by a local `"text" | "int"` union gets a
+    // membership check; the same union imported from a sibling module resolved
+    // to no descriptor and fell to `!== undefined`, which accepts any string.
+    // That is D30's guarantee evaporating at a module boundary, the same hole
+    // G76 closed for `match` exhaustiveness.
+    //
+    // This goes through the whole project build rather than the emitter alone,
+    // because the fix has two halves: the cross-module alias map is collected
+    // here and consumed there.
+    let root = unique_tmp("impunion");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(&src, "cat.glyph", "module cat\npub type ColType = \"text\" | \"int\"\n");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import cat { ColType }\n\
+         pub type Local = \"a\" | \"b\"\n\
+         pub type Row = { local_kind: Local, imported_kind: ColType }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+
+    assert!(
+        ts.contains(r#".imported_kind === "text""#) && ts.contains(r#".imported_kind === "int""#),
+        "imported literal union checks membership: {ts}"
+    );
+    assert!(
+        !ts.contains("!((value as Record<string, unknown>).imported_kind !== undefined)"),
+        "and emits no branch that can never fire: {ts}"
+    );
+    // The local one was always right; this guards against fixing one by
+    // breaking the other.
+    assert!(
+        ts.contains(r#".local_kind === "a""#),
+        "local literal union still checks membership: {ts}"
+    );
+}

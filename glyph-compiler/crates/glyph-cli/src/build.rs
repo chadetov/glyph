@@ -503,6 +503,15 @@ fn build_project_inner_with(
     // narrowing, or `json.parse<T>`; a module-local scan sees nothing for the
     // import and would fall back to a bare `!== undefined` presence check.
     let mut plain_descriptors: std::collections::BTreeSet<(String, String)> = Default::default();
+    // The other half: exported non-generic types that emit *no* descriptor (a
+    // string-literal union, an alias to a primitive). The emitter resolves a
+    // local one through its alias chain and gives the field a real check; an
+    // imported one resolved to nothing and fell to `!== undefined`, so
+    // `kind: ColType` accepted any string once the type crossed a module.
+    let mut descriptorless_aliases: std::collections::BTreeMap<
+        (String, String),
+        glyph_ast::TypeExpr,
+    > = Default::default();
     for (module_path, sf) in &entries {
         let parsed = parse_module(&db, *sf);
         let Some(ast) = parsed.module() else { continue };
@@ -522,8 +531,13 @@ fn build_project_inner_with(
                     generic_descriptor_arities
                         .insert((module_path.clone(), td.name.to_string()), td.generics.len());
                 }
-                if td.is_public && glyph_emit::emits_plain_descriptor(td) {
-                    plain_descriptors.insert((module_path.clone(), td.name.to_string()));
+                if td.is_public && td.generics.is_empty() {
+                    if glyph_emit::emits_plain_descriptor(td) {
+                        plain_descriptors.insert((module_path.clone(), td.name.to_string()));
+                    } else {
+                        descriptorless_aliases
+                            .insert((module_path.clone(), td.name.to_string()), td.body.clone());
+                    }
                 }
             }
         }
@@ -708,6 +722,7 @@ fn build_project_inner_with(
             record_payload_variants: &record_payload_variants,
             generic_descriptor_arities: &generic_descriptor_arities,
             plain_descriptors: &plain_descriptors,
+            descriptorless_aliases: &descriptorless_aliases,
         };
         match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(output) => {

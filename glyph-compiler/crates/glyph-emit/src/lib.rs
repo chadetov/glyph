@@ -409,6 +409,17 @@ pub struct EmitContext<'a> {
     /// emitted boundary check is weaker than the type declares.
     /// Empty for a single-module build (no imported descriptors).
     pub plain_descriptors: &'a std::collections::BTreeSet<(String, String)>,
+    /// `(module path, type name) -> body` for every *non-generic* exported type
+    /// across the project that emits **no** runtime descriptor: a string-literal
+    /// union (D30), an alias to a primitive (`type Count = int`), an alias to
+    /// another such alias. A module-local scan resolves these through
+    /// `resolve_alias_leaf`, so a field typed by a local `"text" | "int"` gets a
+    /// membership check; the same type imported from a sibling resolved to
+    /// nothing and fell to the `!== undefined` floor, which accepts any string.
+    /// That is the D30 guarantee evaporating at a module boundary, the same hole
+    /// G76 closed for `match` exhaustiveness.
+    /// Empty for a single-module build (no imported aliases).
+    pub descriptorless_aliases: &'a std::collections::BTreeMap<(String, String), TypeExpr>,
 }
 
 impl<'a> EmitContext<'a> {
@@ -421,6 +432,7 @@ impl<'a> EmitContext<'a> {
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
+            descriptorless_aliases: &EMPTY_ALIASES,
         }
     }
 }
@@ -430,6 +442,10 @@ static EMPTY_VARIANTS: std::sync::LazyLock<std::collections::BTreeSet<(String, S
 
 static EMPTY_DESCRIPTORS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
+
+static EMPTY_ALIASES: std::sync::LazyLock<
+    std::collections::BTreeMap<(String, String), TypeExpr>,
+> = std::sync::LazyLock::new(Default::default);
 
 static EMPTY_ARITIES: std::sync::LazyLock<std::collections::BTreeMap<(String, String), usize>> =
     std::sync::LazyLock::new(std::collections::BTreeMap::new);
@@ -3060,6 +3076,70 @@ impl<'a> Emitter<'a> {
     /// `where` predicate. Returns `None` for a name that is not a local alias,
     /// and guards against a cycle. The returned leaf is never a followable
     /// alias, so `field_value_check` on it terminates.
+
+    /// The project module an imported *name* came from, or `None` for a
+    /// module-local name. Mirrors the walk in `has_descriptor`.
+    fn import_module_path(&self, name: &str) -> Option<String> {
+        let &sym_id = self.resolved.symbols.by_name.get(name)?;
+        let sym = self.resolved.symbols.table.get(sym_id)?;
+        let SymbolKind::ImportNamed { path, .. } = &sym.kind else {
+            return None;
+        };
+        Some(
+            path.segments
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<_>>()
+                .join("/"),
+        )
+    }
+
+    /// Resolve a type imported from a sibling module to the leaf a field check
+    /// can be built from, following alias hops *inside that module*. The local
+    /// twin is `resolve_alias_leaf`; without this one a `"text" | "int"` union
+    /// keeps its membership check at home and loses it the moment it is
+    /// imported, so the boundary check is weaker than the type declares.
+    /// Stops at a type that has its own descriptor (that path is already
+    /// handled) and guards against a cycle.
+    fn resolve_imported_alias_leaf(&self, module_path: &str, name: &str) -> Option<TypeExpr> {
+        let mut current = name.to_string();
+        let mut seen = std::collections::HashSet::new();
+        loop {
+            if !seen.insert(current.clone()) {
+                return None; // cyclic alias
+            }
+            let body = self
+                .ctx
+                .descriptorless_aliases
+                .get(&(module_path.to_string(), current.clone()))?;
+            match body {
+                // Another bare name in the same module: follow it, unless it
+                // has a descriptor of its own.
+                TypeExpr::Path { segments, .. } if segments.len() == 1 => {
+                    let next = segments[0].as_ref().to_string();
+                    if self
+                        .ctx
+                        .plain_descriptors
+                        .contains(&(module_path.to_string(), next.clone()))
+                    {
+                        return None;
+                    }
+                    if !self
+                        .ctx
+                        .descriptorless_aliases
+                        .contains_key(&(module_path.to_string(), next.clone()))
+                    {
+                        // A prelude type (`int`, `string`) or a name this module
+                        // does not export: the body is already the leaf.
+                        return Some(body.clone());
+                    }
+                    current = next;
+                }
+                other => return Some(other.clone()),
+            }
+        }
+    }
+
     fn resolve_alias_leaf(&self, name: &str) -> Option<TypeExpr> {
         let alias_body = |n: &str| -> Option<TypeExpr> {
             self.module.items.iter().find_map(|d| match d {
@@ -3197,6 +3277,14 @@ impl<'a> Emitter<'a> {
                     // the alias gets the same runtime check as the inline type
                     // (membership, isInteger, …), not a bare presence check.
                     self.field_value_check(&leaf, access)
+                } else if let Some(leaf) = self
+                    .import_module_path(name)
+                    .and_then(|m| self.resolve_imported_alias_leaf(&m, name))
+                {
+                    // The same alias, imported from a sibling module. Without
+                    // this the D30 membership check survives at home and
+                    // evaporates across the import.
+                    self.field_value_check(&leaf, access)
                 } else {
                     format!("{access} !== undefined")
                 }
@@ -3210,6 +3298,13 @@ impl<'a> Emitter<'a> {
                 let name = segments[1].as_ref();
                 if self.has_namespaced_descriptor(ns, name) {
                     format!("{ns}.{name}.is({access})")
+                } else if let Some(leaf) = self
+                    .namespace_module_path(ns)
+                    .and_then(|m| self.resolve_imported_alias_leaf(&m, name))
+                {
+                    // `import catalog` then a field typed `catalog.ColType`:
+                    // the same descriptorless alias reached through a namespace.
+                    self.field_value_check(&leaf, access)
                 } else {
                     format!("{access} !== undefined")
                 }
@@ -5571,6 +5666,7 @@ mod tests {
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
+            descriptorless_aliases: &EMPTY_ALIASES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -6039,6 +6135,7 @@ mod tests {
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &arities,
             plain_descriptors: &EMPTY_DESCRIPTORS,
+            descriptorless_aliases: &EMPTY_ALIASES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -6158,6 +6255,7 @@ mod tests {
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
+            descriptorless_aliases: &EMPTY_ALIASES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -7974,6 +8072,7 @@ mod tests {
             record_payload_variants: &EMPTY_VARIANTS,
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &descriptors,
+            descriptorless_aliases: &EMPTY_ALIASES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(

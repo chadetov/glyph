@@ -3002,6 +3002,14 @@ were listed in.
 
 ### 0.1.71 — Shipped · The `any` the manifesto forbids
 
+Published 2026-08-10 and smoke-tested from a clean npx cache in an isolated
+HOME. The published binary reports `E0200` on the `match string.index_of` with
+no `None` arm, which is the shape that built with `0 error(s)` and threw one
+release earlier. First release to go through the pull-request workflow end to
+end, and the required checks earned it: they blocked two merges on a temp-file
+race that reproduced roughly never locally, and held a dependency bump
+(`ariadne` 0.6) that would not compile.
+
 **G39, phase 2.** The entry describes this as unchecked member access in
 general, and reproducing it narrows the danger a long way. A misspelled
 `array.lenn`, `s.slyce`, or `string.repeeat` does *not* build: `tsc` catches all

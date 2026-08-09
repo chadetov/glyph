@@ -7489,3 +7489,65 @@ fn json_parse_of_a_type_reports_the_same_field_paths_as_its_parse() {
         "still the validating form: {ts}"
     );
 }
+
+#[test]
+fn never_is_spellable_and_behaves_as_a_bottom_type() {
+    // G89/D43. `std/process.exit` was typed `-> never`, so the concept existed
+    // and only user code could not name it. A `serve` that is driven by socket
+    // events from then on had to say so in a doc comment, keep a `return` that
+    // is never reached, and carry a dead `match` arm to stay exhaustive.
+    let root = unique_tmp("never");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/array\n\
+         import std/process\n\
+         pub fn serve(port: int) -> never {\n\
+        \x20 loop {\n\
+        \x20 }\n\
+         }\n\
+         pub fn main(argv: Array<string>) -> number {\n\
+        \x20 return match array.len(argv) {\n\
+        \x20   0 => serve(8080),\n\
+        \x20   else => process.exit(2),\n\
+        \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+
+    // It emits verbatim: `never` means the same thing on both sides.
+    assert!(
+        ts.contains("export function serve(port: number): never {"),
+        "never emits verbatim: {ts}"
+    );
+    // `main` returns `number` while both arms are `never`, so the arm join
+    // takes the other side and no unreachable `return 0` is owed.
+    assert!(
+        ts.contains("export function main(argv: Array<string>): number {"),
+        "a never-typed arm joins with the declared return: {ts}"
+    );
+}
+
+#[test]
+fn a_never_function_may_not_return_a_value() {
+    // The other half of a bottom type: nothing is assignable to it.
+    let root = unique_tmp("neverbad");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\npub fn bad() -> never {\n  return 1\n}\n",
+    );
+    let report =
+        build_project_inner(&src, &root.join("out"), false).expect("build runs");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0204")),
+        "returning a value where `never` is declared is a type error: {:?}",
+        report.diagnostics
+    );
+}

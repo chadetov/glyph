@@ -147,7 +147,7 @@ pub(crate) const JS_GLOBALS: &[&str] = &[
 pub(crate) const PRELUDE_GLOBALS: &[&str] = &[
     // Ambient values from runtime/glyph-prelude.d.ts.
     "par", "print", "assert", "number", // Primitive type names (see prelude.rs).
-    "string", "int", "bigint", "bool", "void", "unknown",
+    "string", "int", "bigint", "bool", "void", "unknown", "never",
     // Ambient *types* the emitter writes on its own initiative. A module-local
     // declaration of one of these wins over the ambient prelude and breaks the
     // emitted code, so it is the same failure E0110 already names for JS
@@ -191,7 +191,7 @@ impl ShadowOrigin {
 pub(crate) fn is_primitive_type_name(name: &str) -> bool {
     matches!(
         name,
-        "string" | "number" | "int" | "bigint" | "bool" | "void" | "unknown"
+        "string" | "number" | "int" | "bigint" | "bool" | "void" | "unknown" | "never"
     )
 }
 
@@ -239,7 +239,7 @@ mod tests {
     fn flags_prelude_globals() {
         for w in [
             "number", "par", "assert", "print", "string", "int", "bigint", "bool", "void",
-            "unknown", "Issue",
+            "unknown", "never", "Issue",
         ] {
             assert_eq!(
                 shadowed_global(w),

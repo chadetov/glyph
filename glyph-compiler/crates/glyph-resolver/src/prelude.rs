@@ -52,6 +52,7 @@ pub fn build_prelude() -> Prelude {
         ("bool", PreludeKind::Bool),
         ("void", PreludeKind::Void),
         ("unknown", PreludeKind::UnknownTop),
+        ("never", PreludeKind::Never),
         // Generic container types
         ("Result", PreludeKind::Result),
         ("Option", PreludeKind::Option),
@@ -92,7 +93,7 @@ mod tests {
     #[test]
     fn primitive_types_present() {
         let p = build_prelude();
-        for name in ["string", "number", "bool", "void", "unknown"] {
+        for name in ["string", "number", "bool", "void", "unknown", "never"] {
             assert!(p.lookup(name).is_some(), "missing prelude type: {name}");
         }
     }

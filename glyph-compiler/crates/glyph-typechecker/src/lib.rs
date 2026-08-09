@@ -54,6 +54,7 @@ pub fn display_ty(ty: &Ty) -> String {
     match ty {
         Ty::Unknown => "?".to_string(),
         Ty::UnknownTop => "unknown".to_string(),
+        Ty::Never => "never".to_string(),
         Ty::Prim(p) => p.as_str().to_string(),
         Ty::Named { path, .. } if !path.is_empty() => {
             path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")

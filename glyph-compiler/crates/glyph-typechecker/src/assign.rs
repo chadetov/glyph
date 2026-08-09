@@ -3046,6 +3046,17 @@ fn definitely_incompatible(found: &Ty, expected: &Ty) -> bool {
     if matches!(expected, Ty::UnknownTop) {
         return false;
     }
+    // `never` is the bottom type (D43): no value has it, so an expression of it
+    // fits wherever a value is wanted, and nothing but itself fits into it.
+    // Without the first arm a call to a non-returning function could not sit in
+    // a `match` arm beside arms that produce a value, which is the whole point
+    // of naming the type.
+    if matches!(found, Ty::Never) {
+        return false;
+    }
+    if matches!(expected, Ty::Never) {
+        return true;
+    }
     if !ty_is_decidable(found) || !ty_is_decidable(expected) {
         return false;
     }
@@ -3310,7 +3321,12 @@ fn ty_is_decidable(ty: &Ty) -> bool {
 /// and `void` both mean "no value is owed", so a body whose tail `match` has a
 /// valueless arm is left alone.
 fn ty_requires_value(ty: &Ty) -> bool {
-    !ty.is_unknown() && !matches!(ty, Ty::Prim(Primitive::Void))
+    // `never` owes no value for the opposite reason `void` does not: not that
+    // the caller wants nothing back, but that the body never gets to the point
+    // of returning. A `-> never` body is a loop or a call to another `-> never`.
+    !ty.is_unknown()
+        && !matches!(ty, Ty::Prim(Primitive::Void))
+        && !matches!(ty, Ty::Never)
 }
 
 
@@ -3325,6 +3341,16 @@ fn ty_requires_value(ty: &Ty) -> bool {
 /// rejected by the caller before this runs.
 fn join_ty(a: &Ty, b: &Ty) -> Ty {
     if a == b {
+        return a.clone();
+    }
+    // An arm that does not return (it calls `process.exit`, or a `-> never` of
+    // your own) contributes nothing to the join, so the other arm's type is the
+    // match's type. This is what deletes the dead arm kept only to keep a match
+    // exhaustive.
+    if matches!(a, Ty::Never) {
+        return b.clone();
+    }
+    if matches!(b, Ty::Never) {
         return a.clone();
     }
     if let (

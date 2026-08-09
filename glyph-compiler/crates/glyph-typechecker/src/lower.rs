@@ -424,6 +424,7 @@ impl<'a> Lowerer<'a> {
             PreludeKind::Bool => Ty::Prim(Primitive::Bool),
             PreludeKind::Void => Ty::Prim(Primitive::Void),
             PreludeKind::UnknownTop => Ty::UnknownTop,
+            PreludeKind::Never => Ty::Never,
             PreludeKind::Result
             | PreludeKind::Option
             | PreludeKind::Array

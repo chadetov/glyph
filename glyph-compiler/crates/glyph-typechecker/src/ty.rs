@@ -38,6 +38,13 @@ pub enum Ty {
     /// compiler's "haven't figured it out yet" placeholder).
     UnknownTop,
 
+    /// `never` — the bottom type (D43). No value has it, so it is assignable to
+    /// everything and nothing but itself is assignable to it. A function
+    /// declared to return it does not return: the `return` a caller would
+    /// otherwise need after calling it is unreachable, and a `match` arm that
+    /// ends in one needs no value.
+    Never,
+
     /// A named type referenced by symbol id. The actual definition lives in
     /// the resolver's symbol table; the typechecker fetches it on demand.
     /// `path` is the original lexical path for diagnostics (e.g. `["http", "Response"]`
@@ -233,6 +240,7 @@ pub(crate) fn ty_display(ty: &Ty) -> String {
     match ty {
         Ty::Prim(p) => p.as_str().to_string(),
         Ty::UnknownTop => "unknown".to_string(),
+        Ty::Never => "never".to_string(),
         Ty::Named { path, .. } if !path.is_empty() => {
             path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(".")
         }

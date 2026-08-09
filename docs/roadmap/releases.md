@@ -3004,6 +3004,14 @@ are the feature.
 
 ### 0.1.70 — Shipped · An index that is wrong, and a type that can be called Error
 
+Published 2026-08-09 and smoke-tested from a clean npx cache in an isolated
+HOME. That check confirmed the previous release's own finding is fixed in
+production: `glyph init` reached through `npx` now says `npm install && npx
+glyph run` rather than naming a command the reader does not have. The
+provenance bundle attached to this release verifies offline with
+`gh attestation verify --bundle`, and rejects a tampered archive, which is the
+half of Signed-Releases that Scorecard could not see before.
+
 - **G30, the index-safety half.** `cells[999]` type-checked clean, passed
   `tsc --strict`, and handed back `undefined` where the compiler had promised a
   `Cell`, which then travelled until something dereferenced it somewhere else.

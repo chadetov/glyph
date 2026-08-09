@@ -4113,6 +4113,24 @@ land here until they're assigned a release.
 
 ---
 
+*Supply-chain score, and what is left.* The first OpenSSF Scorecard run read
+3.6. Pinning all eighteen action references by commit, dropping every workflow's
+default token to read-only, and adding Dependabot took it to 5.4. The remaining
+zeros, in rough order of value:
+
+- **Signed-Releases (0).** The SLSA attestation is real but lives in GitHub's
+  attestation store, so the check cannot see it. Attaching the provenance bundle
+  to the release as an asset would fix it, and takes effect on the next release.
+- **SAST (0).** No CodeQL workflow. It covers both Rust and TypeScript here.
+- **Code-Review (0) and CI-Tests (unmeasured).** Both read pull requests, and
+  this repo commits straight to `main`. Changing that is a process decision, not
+  a config one.
+- **Branch-Protection (0).** A repository setting, so it needs an owner rather
+  than a commit.
+- **Contributors (0)** wants people from two or more organisations, and
+  **Fuzzing (0)** wants a recognised fuzzing setup; the repo has a fuzz target
+  but it is not registered with one.
+
 *Release note:* the Socket badge URL carries the package version, so a bump
 touches it too. `check_versions.py` fails when it falls behind rather than
 leaving it to be noticed by a reader looking at a report for a version they are

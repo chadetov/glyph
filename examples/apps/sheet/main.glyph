@@ -669,21 +669,18 @@ const BAD_SYNTAX = "#SYNTAX!"
 const CYCLE = "#CYCLE!"
 
 // What a cell holds after recalculation. `Empty` is a real case rather than a
-// null, and `Cellerr` carries the code every downstream cell propagates.
+// null, and `Error` carries the code every downstream cell propagates.
 //
-// The names are not the ones this wanted. A spreadsheet's value union reads
-// `Number / Text / Empty / Error`, but both `Number` and `Error` are rejected by
-// E0110: a variant constructor emits as a top-level `export function`, and the
-// TypeScript generated from this very module calls `new Error(...)` 139 times
-// and `Number.isInteger` 23 times, so either name would rebind a global the
-// emitter depends on. E0110 is the improvement: it says that at the declaration
-// instead of letting the build go green and mean something else. The rename is
-// still forced.
+// These are the names the domain wanted, and for two releases they were not
+// available: a variant constructor emits as a top-level `export function`, so
+// `Number` and `Error` each rebound a global the emitted module depends on, and
+// E0110 took both names away. The module captures those globals under private
+// aliases now (G63), so the union reads the way a spreadsheet reads.
 type Value =
-  | Num({ value: number })
+  | Number({ value: number })
   | Text({ value: string })
   | Empty
-  | Cellerr({ code: string })
+  | Error({ code: string })
 
 // The declared extent of the sheet. A reference outside it is `#REF!`.
 type Grid = { rows: int, cols: int }
@@ -694,7 +691,7 @@ fn in_bounds(g: Grid, a: Addr) -> bool {
 
 fn is_error(v: Value) -> bool {
   return match v {
-    Cellerr({ code }) => true,
+    Error({ code }) => true,
     else => false,
   }
 }
@@ -704,19 +701,19 @@ fn is_error(v: Value) -> bool {
 // the caller propagates the original code rather than inventing one.
 fn as_number(v: Value) -> Result<number, Value> {
   return match v {
-    Num({ value }) => Ok(value),
+    Number({ value }) => Ok(value),
     Empty => Ok(0),
-    Text({ value }) => Err(Cellerr({ code: BAD_VALUE })),
-    Cellerr({ code }) => Err(Cellerr({ code: code })),
+    Text({ value }) => Err(Error({ code: BAD_VALUE })),
+    Error({ code }) => Err(Error({ code: code })),
   }
 }
 
 fn is_truthy(v: Value) -> bool {
   return match v {
-    Num({ value }) => value != 0,
+    Number({ value }) => value != 0,
     Text({ value }) => string.len(value) > 0,
     Empty => false,
-    Cellerr({ code }) => false,
+    Error({ code }) => false,
   }
 }
 
@@ -754,9 +751,9 @@ fn format_fixed(x: number, places: int) -> string {
 fn display(v: Value) -> string {
   return match v {
     Empty => "",
-    Num({ value }) => format_fixed(value, DECIMALS),
+    Number({ value }) => format_fixed(value, DECIMALS),
     Text({ value }) => value,
-    Cellerr({ code }) => code,
+    Error({ code }) => code,
   }
 }
 
@@ -764,8 +761,8 @@ fn display(v: Value) -> string {
 // which is the convention every spreadsheet uses.
 fn aligns_right(v: Value) -> bool {
   return match v {
-    Num({ value }) => true,
-    Cellerr({ code }) => true,
+    Number({ value }) => true,
+    Error({ code }) => true,
     else => false,
   }
 }
@@ -790,7 +787,7 @@ fn range_cells(from: Addr, to: Addr) -> Array<Addr> {
 
 fn cell_value(a: Addr, g: Grid, values: Record<string, Value>) -> Value {
   return match in_bounds(g, a) {
-    false => Cellerr({ code: BAD_REF }),
+    false => Error({ code: BAD_REF }),
     true => match record.get(values, format_ref(a)) {
       Some(v) => v,
       None => Empty,
@@ -800,14 +797,14 @@ fn cell_value(a: Addr, g: Grid, values: Record<string, Value>) -> Value {
 
 fn evaluate(e: Expr, g: Grid, values: Record<string, Value>) -> Value {
   return match e {
-    NumberLit({ value }) => Num({ value: value }),
+    NumberLit({ value }) => Number({ value: value }),
     TextLit({ value }) => Text({ value: value }),
     CellRef({ addr }) => cell_value(addr, g, values),
     // A range is only meaningful as a function argument; on its own it has no
     // single value.
-    RangeRef({ from, to }) => Cellerr({ code: BAD_VALUE }),
+    RangeRef({ from, to }) => Error({ code: BAD_VALUE }),
     Negate({ operand }) => match as_number(evaluate(operand, g, values)) {
-      Ok(n) => Num({ value: 0 - n }),
+      Ok(n) => Number({ value: 0 - n }),
       Err(err) => err,
     },
     Binary({ op, left, right }) => arithmetic(
@@ -829,14 +826,14 @@ fn arithmetic(op: string, l: Value, r: Value) -> Value {
     Err(err) => { return err },
   }
   return match op {
-    "+" => Num({ value: a + b }),
-    "-" => Num({ value: a - b }),
-    "*" => Num({ value: a * b }),
+    "+" => Number({ value: a + b }),
+    "-" => Number({ value: a - b }),
+    "*" => Number({ value: a * b }),
     "/" => match b == 0 {
-      true => Cellerr({ code: DIV_ZERO }),
-      false => Num({ value: a / b }),
+      true => Error({ code: DIV_ZERO }),
+      false => Number({ value: a / b }),
     },
-    else => Cellerr({ code: BAD_NAME }),
+    else => Error({ code: BAD_NAME }),
   }
 }
 
@@ -860,7 +857,7 @@ fn numbers_in(vs: Array<Value>) -> Array<number> {
   let out: Array<number> = []
   for v in vs {
     match v {
-      Num({ value }) => { mut out.push(value) },
+      Number({ value }) => { mut out.push(value) },
       else => {},
     }
   }
@@ -876,7 +873,7 @@ fn sum_of(ns: Array<number>) -> number {
 // B5 is zero.
 fn eval_if(args: Array<Expr>, g: Grid, values: Record<string, Value>) -> Value {
   match array.len(args) == 3 {
-    false => { return Cellerr({ code: BAD_VALUE }) },
+    false => { return Error({ code: BAD_VALUE }) },
     true => {},
   }
   let test = evaluate(args[0], g, values)
@@ -908,28 +905,28 @@ fn apply(name: string, vs: Array<Value>) -> Value {
   let ns = numbers_in(vs)
   let count = array.len(ns)
   return match name {
-    "SUM" => Num({ value: sum_of(ns) }),
-    "COUNT" => Num({ value: count }),
+    "SUM" => Number({ value: sum_of(ns) }),
+    "COUNT" => Number({ value: count }),
     "AVG" => match count == 0 {
-      true => Cellerr({ code: DIV_ZERO }),
-      false => Num({ value: sum_of(ns) / count }),
+      true => Error({ code: DIV_ZERO }),
+      false => Number({ value: sum_of(ns) / count }),
     },
     "MIN" => match count == 0 {
-      true => Cellerr({ code: BAD_VALUE }),
-      false => Num(
+      true => Error({ code: BAD_VALUE }),
+      false => Number(
         { value: array.fold(ns, ns[0], fn(a: number, b: number) -> number { math.min(a, b) }) },
       ),
     },
     "MAX" => match count == 0 {
-      true => Cellerr({ code: BAD_VALUE }),
-      false => Num(
+      true => Error({ code: BAD_VALUE }),
+      false => Number(
         { value: array.fold(ns, ns[0], fn(a: number, b: number) -> number { math.max(a, b) }) },
       ),
     },
     "CONCAT" => Text(
       { value: string.join(array.map(vs, fn(v: Value) -> string { display(v) }), "") },
     ),
-    else => Cellerr({ code: BAD_NAME }),
+    else => Error({ code: BAD_NAME }),
   }
 }
 
@@ -961,7 +958,7 @@ fn parse_literal(input: string) -> Value {
     false => match looks_numeric(trimmed) {
       false => Text({ value: input }),
       true => match number.parse(trimmed) {
-        Ok(n) => Num({ value: n }),
+        Ok(n) => Number({ value: n }),
         Err(_) => Text({ value: input }),
       },
     },
@@ -1172,7 +1169,7 @@ fn recalculate(s: Sheet) -> Record<string, Value> {
   let plan = topo_sort(keys, dependency_map(s))
   let values: Record<string, Value> = {}
   for k in plan.cyclic {
-    mut values[k] = Cellerr({ code: CYCLE })
+    mut values[k] = Error({ code: CYCLE })
   }
   for k in plan.order {
     let computed = match record.get(s.cells, k) {
@@ -1180,7 +1177,7 @@ fn recalculate(s: Sheet) -> Record<string, Value> {
       Some(c) => match c {
         Constant({ input, value }) => value,
         Formula({ input, expr }) => evaluate(expr, s.grid, values),
-        Broken({ input, error }) => Cellerr({ code: BAD_SYNTAX }),
+        Broken({ input, error }) => Error({ code: BAD_SYNTAX }),
       },
     }
     mut values[k] = computed
@@ -1530,7 +1527,7 @@ fn error_summary(s: Sheet, values: Record<string, Value>) -> Array<string> {
   for k in ordered_keys(s) {
     let v = value_at(values, k)
     match v {
-      Cellerr({ code }) => {
+      Error({ code }) => {
         let raw = match record.get(s.cells, k) {
           Some(c) => cell_input(c),
           None => "",

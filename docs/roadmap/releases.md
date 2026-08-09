@@ -3026,7 +3026,11 @@ are the feature.
   nothing emits exactly what it did before. Only four of the five could be
   freed: `Array` is also a Glyph type name, so a local `type Array` redefines
   how the module spells an array rather than shadowing a global, and no capture
-  fixes that. It stays reserved with E0110 naming the prelude origin.
+  fixes that. It stays reserved with E0110 naming the prelude origin. The app
+  that reported the gap was updated in the same pass: `sheet` reads
+  `Number | Text | Empty | Error` now, and needed 162 captured references to
+  do it, which is the 139 `new Error(...)` and 23 `Number.isInteger` the entry
+  counted two releases ago.
 - **Clippy runs in CI**, which found a test that never ran, another registered
   twice, and two doc comments detached from their functions. **CodeQL** covers
   the Rust, the TypeScript and the workflows.

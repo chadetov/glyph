@@ -1787,7 +1787,12 @@ several rounds that the backlog grew.
   spells an array, and no capture can help because the name that changed meaning
   is the one the author writes. It stays reserved, and E0110 now names the
   prelude origin, which is the accurate reason. `Record` is reserved for the
-  same reason. Closing it the old way meant
+  same reason. The app that reported this was updated in the same
+  pass: `sheet`'s value union reads `Number | Text | Empty | Error` instead of
+  `Num | Text | Empty | Cellerr`, and the comment explaining that the rename was
+  forced is gone because it no longer is. That module alone needed 162 captured
+  references, which is the 139 `new Error(...)` and 23 `Number.isInteger` the
+  entry counted, and its output is unchanged. Closing it the old way meant
   mangling Glyph names in the emitter, which changes what every
   emitted identifier looks like and therefore what a stack trace, a `grep` over
   `dist/`, and a hand-written `extern/` shim see. That is an architecture

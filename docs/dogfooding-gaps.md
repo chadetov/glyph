@@ -1817,6 +1817,10 @@ several rounds that the backlog grew.
   descriptor's issues through, or the guide has to say which form to reach for
   when the error message is going to a human.
 
+  *Reproduced against 0.1.68.* A `Cfg` of `host: string, port: number` fed
+  `{"host": 5, "port": "nope"}` reports 1 issue through `json.parse<Cfg>` and 2
+  through `json.parse<unknown>` then `Cfg.parse`.
+
 - **G69. [FIXED] `glyph run` and `glyph check` never run `@example` blocks.** Both
   `run_examples` call sites are inside the `Build` arm, the text path and the
   JSON path (`glyph-cli/src/main.rs:284` and `:344`). So a colocated test that
@@ -2459,6 +2463,10 @@ once are each announced under the right name.
   `parse` report the unverifiable field. All three are better than the current
   one.
 
+  *Reproduced against 0.1.68.* A record with a field typed
+  `extern_ts("{ handle: number }")` accepts a string in that field and returns
+  `Ok`.
+
 - **G89. A program cannot say that it does not terminate.** `daemon.serve` is a
   `pub fn serve(port: int)` whose doc comment has to explain in prose that the
   process is driven by socket events from there on. `main` has a `return 0` that
@@ -2515,6 +2523,9 @@ The first was caught by the cooperative mock. The other three were not, and
 could not have been: a mock written by the author of the client only tests the
 parts of the protocol the author read. That is the lesson worth keeping from
 this round, and it is why the adversarial gateway exists.
+
+  *Reproduced against 0.1.68.* `pub fn spin() -> never` is `[E0103] unresolved
+  name never`, so the type the stdlib uses is not spellable in user code.
 
 - **G94. [FIXED] A match arm whose last statement produced no value fell
   through into the compiler's own "non-exhaustive match" throw.** The worst
@@ -2588,6 +2599,10 @@ this round, and it is why the adversarial gateway exists.
   guarantee that anything reachable is typed Glyph, at the cost of the stdlib
   being the bottleneck for every new host capability.
 
+  *Reproduced against 0.1.68.* `declare var GLOBAL_TOKEN: string;` in
+  `src/.types/globals.d.ts` and a use of `GLOBAL_TOKEN` is `[E0103] unresolved
+  name GLOBAL_TOKEN`.
+
 - **G91. [HALF FIXED] An `Option<T>` field cannot be read from ordinary JSON.** G5 recorded
   this and deferred the lenient forms deliberately, on the grounds that the
   tagged encoding is "the canonical wire format". That holds while Glyph owns
@@ -2619,6 +2634,9 @@ this round, and it is why the adversarial gateway exists.
   record. That is arguably the better structure and it is what this app does,
   but the language forces it without saying so and the diagnostic points at a
   name rather than at the rule.
+
+  *Reproduced against 0.1.68.* `let a = fn() { b() }` before `let b` is
+  `[E0103] unresolved name b`.
 
 - **G93. [FIXED] An `@example` has to fit on one line.** Wrapping one is
   `[E0003] unexpected token: EqEq` pointing at the continuation. Examples of
@@ -2949,3 +2967,8 @@ Five of roughly ten entries examined this week were stale or mis-scoped. That is
 the finding worth keeping: a gap list is a record of what was true when it was
 written, and an entry that has not been re-run is a claim, not a fact. Anything
 scheduled off this list should be reproduced first.
+
+  *Reproduced against 0.1.68.* `match record.get(row, col) { is string =>
+  Some(record.get(row, col)), ... }` is `[TS2322] Type 'Option<Option<unknown>>'
+  is not assignable to type 'Option<string>'`, a `tsc` error rather than a Glyph
+  one.

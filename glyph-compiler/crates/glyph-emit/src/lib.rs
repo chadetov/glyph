@@ -1017,7 +1017,7 @@ impl<'a> Emitter<'a> {
         self.line("},");
         self.used_schema.set(true);
         self.line(&format!(
-            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
+            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v), (v: unknown): {RESULT_TY}<{name}, Issue[]> => {name}.parse(v)),"
         ));
         self.indent -= 1;
         self.line("};");
@@ -1190,7 +1190,7 @@ impl<'a> Emitter<'a> {
         if !is_generic {
             self.used_schema.set(true);
             self.line(&format!(
-                "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
+                "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v), (v: unknown): {RESULT_TY}<{name}, Issue[]> => {name}.parse(v)),"
             ));
         }
         // D24 `@redact`: a `redact(value)` that returns a serialization-safe copy
@@ -1486,7 +1486,7 @@ impl<'a> Emitter<'a> {
         // Q8/Q40 `T.schema`: a `Schema<T>` built from the `is` guard.
         self.used_schema.set(true);
         self.line(&format!(
-            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v)),"
+            "schema: {SCHEMA_FACTORY}<{name}>(\"{name}\", (v): v is {name} => {name}.is(v), (v: unknown): {RESULT_TY}<{name}, Issue[]> => {name}.parse(v)),"
         ));
         self.indent -= 1;
         self.line("};");
@@ -6039,12 +6039,16 @@ mod tests {
     #[test]
     fn record_descriptor_emits_a_schema_member() {
         let ts = emit("module x\npub type User = { id: string }\n");
-        // `T.schema` is a `Schema<T>` built by the prelude factory from the `is`
-        // guard (referenced by name in a lazy closure, since `this` is not the
-        // descriptor object inside the object literal).
+        // `T.schema` is a `Schema<T>` built by the prelude factory from both
+        // halves of the descriptor, referenced by name in lazy closures since
+        // `this` is not the descriptor object inside the object literal. The
+        // deep `parse` is what gives `json.parse<T>` the same field paths
+        // `T.parse` reports (G68); built from the guard alone the schema could
+        // only answer yes or no and every failure read `expected User`.
         assert!(
             ts.contains(
-                "schema: __glyph_schema<User>(\"User\", (v): v is User => User.is(v)),"
+                "schema: __glyph_schema<User>(\"User\", (v): v is User => User.is(v), \
+                 (v: unknown): __GlyphResult<User, Issue[]> => User.parse(v)),"
             ),
             "{ts}"
         );

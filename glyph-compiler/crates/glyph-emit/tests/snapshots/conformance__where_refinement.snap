@@ -21,7 +21,7 @@ export const Amount = {
       ? __glyph_ok(value as Amount)
       : __glyph_err([{ path: [], message: "expected Amount (int where value >= 0)", code: "refinement" }]);
   },
-  schema: __glyph_schema<Amount>("Amount", (v): v is Amount => Amount.is(v)),
+  schema: __glyph_schema<Amount>("Amount", (v): v is Amount => Amount.is(v), (v: unknown): __GlyphResult<Amount, Issue[]> => Amount.parse(v)),
 };
 
 export type Rating = number;
@@ -37,7 +37,7 @@ export const Rating = {
       ? __glyph_ok(value as Rating)
       : __glyph_err([{ path: [], message: "expected Rating (int where (value >= 1) && (value <= 5))", code: "refinement" }]);
   },
-  schema: __glyph_schema<Rating>("Rating", (v): v is Rating => Rating.is(v)),
+  schema: __glyph_schema<Rating>("Rating", (v): v is Rating => Rating.is(v), (v: unknown): __GlyphResult<Rating, Issue[]> => Rating.parse(v)),
 };
 
 export type NonEmpty = string;
@@ -53,5 +53,5 @@ export const NonEmpty = {
       ? __glyph_ok(value as NonEmpty)
       : __glyph_err([{ path: [], message: "expected NonEmpty (string where value.length > 0)", code: "refinement" }]);
   },
-  schema: __glyph_schema<NonEmpty>("NonEmpty", (v): v is NonEmpty => NonEmpty.is(v)),
+  schema: __glyph_schema<NonEmpty>("NonEmpty", (v): v is NonEmpty => NonEmpty.is(v), (v: unknown): __GlyphResult<NonEmpty, Issue[]> => NonEmpty.parse(v)),
 };

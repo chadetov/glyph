@@ -39,5 +39,5 @@ export const User = {
     }
     return __issues.length === 0 ? __glyph_ok(value as User) : __glyph_err(__issues);
   },
-  schema: __glyph_schema<User>("User", (v): v is User => User.is(v)),
+  schema: __glyph_schema<User>("User", (v): v is User => User.is(v), (v: unknown): __GlyphResult<User, Issue[]> => User.parse(v)),
 };

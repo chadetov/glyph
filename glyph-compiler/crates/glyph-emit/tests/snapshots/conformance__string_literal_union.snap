@@ -35,7 +35,7 @@ export const Plan = {
     }
     return __issues.length === 0 ? __glyph_ok(value as Plan) : __glyph_err(__issues);
   },
-  schema: __glyph_schema<Plan>("Plan", (v): v is Plan => Plan.is(v)),
+  schema: __glyph_schema<Plan>("Plan", (v): v is Plan => Plan.is(v), (v: unknown): __GlyphResult<Plan, Issue[]> => Plan.parse(v)),
 };
 
 export function label(t: Tier): string {

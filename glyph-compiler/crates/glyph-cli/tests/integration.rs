@@ -7452,3 +7452,40 @@ fn imported_literal_union_field_keeps_its_membership_check() {
         "local literal union still checks membership: {ts}"
     );
 }
+
+#[test]
+fn json_parse_of_a_type_reports_the_same_field_paths_as_its_parse() {
+    // G68. `json.parse<T>(text)` is rewritten to `json.parse_with(text,
+    // T.schema)`, and the schema was built from the descriptor's boolean guard
+    // alone, so every field-level failure collapsed to one issue reading
+    // `expected T`. The two-step form (`json.parse<unknown>` then `T.parse`)
+    // named the field and its path for the same fixture, and the one-step form
+    // is the one the guide teaches.
+    let root = unique_tmp("jsonpaths");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/json\n\
+         pub type Cfg = { host: string, port: number }\n\
+         pub fn load(text: string) -> Result<Cfg, Array<Issue>> {\n\
+        \x20 return json.parse<Cfg>(text)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+
+    // The schema carries the descriptor's own parse, not just its guard.
+    assert!(
+        ts.contains("(v: unknown): __GlyphResult<Cfg, Issue[]> => Cfg.parse(v)"),
+        "schema threads the deep parser: {ts}"
+    );
+    // And the rewrite still routes through the schema (G3's validation).
+    assert!(
+        ts.contains("json.parse_with(text, Cfg.schema)"),
+        "still the validating form: {ts}"
+    );
+}

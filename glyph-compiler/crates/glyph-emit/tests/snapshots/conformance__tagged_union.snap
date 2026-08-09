@@ -30,7 +30,7 @@ export const Shape = {
       ? __glyph_ok(value)
       : __glyph_err([{ path: [], message: "expected Shape" }]);
   },
-  schema: __glyph_schema<Shape>("Shape", (v): v is Shape => Shape.is(v)),
+  schema: __glyph_schema<Shape>("Shape", (v): v is Shape => Shape.is(v), (v: unknown): __GlyphResult<Shape, Issue[]> => Shape.parse(v)),
 };
 
 export function area(s: Shape): number {

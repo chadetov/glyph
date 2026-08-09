@@ -39,7 +39,7 @@ export const Account = {
     }
     return __issues.length === 0 ? __glyph_ok(value as Account) : __glyph_err(__issues);
   },
-  schema: __glyph_schema<Account>("Account", (v): v is Account => Account.is(v)),
+  schema: __glyph_schema<Account>("Account", (v): v is Account => Account.is(v), (v: unknown): __GlyphResult<Account, Issue[]> => Account.parse(v)),
 };
 
 export function next_id(cur: bigint): bigint {

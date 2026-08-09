@@ -65,29 +65,34 @@ top-level declaration using one silently rebinds it and the program means
 something other than what it says.
 
 Checked on top-level `fn`, `type`, `const`, `component`, and **tagged-union
-variant names**. Variants are the surface that bites: a union with an `Error`
-variant emits `export function Error(...)` at module top level, and the
-`new Error(...)` the compiler emits below it then calls the variant.
+variant names**.
 
-### JavaScript and TypeScript globals the emitted TypeScript refers to
+### JavaScript globals: no longer reserved
 
-| Name | Where the emitted module uses it |
-|------|----------------------------------|
-| `Object` | `Object.keys` / `Object.entries` / `Object.values` in record descriptors and `for ... in` lowering |
-| `Array` | `Array<T>` in type positions, `Array.isArray` in descriptors |
-| `Promise` | every `async fn`'s emitted return type |
-| `Number` | `Number.isInteger` in the `int` boundary check (D31) |
-| `Error` | `new Error(...)` in `?` lowering, non-exhaustive-match fallthrough, and descriptor `parse` |
-| `Record` | `Record<string, unknown>` in emitted field access and in `redact` |
+`Object`, `Promise`, `Number` and `Error` used to be on this list, because a
+union with an `Error` variant emits `export function Error(...)` at module top
+level and the `new Error(...)` the compiler writes below it then called the
+variant. They are free now. A module that declares one of them captures the real
+global first (`const __glyph_Error = globalThis.Error;`) and the emitter's own
+references go through that alias, so a spreadsheet cell can be
+`Number | Text | Empty | Error` and read the way its domain reads.
 
-`Record` is a TypeScript built-in utility type rather than a runtime global, but
-it fails the same way and for the same reason, so it lives on this list.
+Nothing changes for a module that shadows nothing, which is almost all of them:
+the capture lines are only emitted where a name is actually taken.
 
-The list is derived from the emitter, not from a general list of JavaScript
-globals: `Date`, `Math`, `JSON`, `Symbol`, and the rest are free, because
-nothing Glyph emits mentions them. A test in `reserved.rs` greps `glyph-emit`
-and fails when a new global reference appears without a matching entry, so the
-table above and the compiler cannot drift apart.
+### Still reserved, and only one
+
+| Name | Why |
+|------|-----|
+| `Array` | `Array<string>` is how every Glyph program spells an array. A local `type Array` does not merely shadow a global the compiler uses, it redefines a language type for the rest of the module, and capturing cannot help because the name that changed meaning is the one *you* write. |
+
+`Record` is likewise a Glyph type name (`Record<K, V>`) and is reserved for the
+same reason.
+
+A test in `reserved.rs` greps `glyph-emit` for the `self.g("X")` calls every
+global reference goes through, and fails when one appears that the capture list
+does not cover. A global the emitter starts using without an entry would shadow
+silently again, which is the defect this whole section exists for.
 
 ### Prelude globals
 

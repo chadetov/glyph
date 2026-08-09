@@ -6012,12 +6012,13 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
-fn a_variant_named_after_a_js_global_fails_at_its_declaration() {
-    // The gap this pins: `emit_variant_constructor` writes `export function
-    // Error(...)` straight from the Glyph name, so every `new Error(...)` the
-    // emitter writes below it in the same module called the variant instead.
-    // The build used to reach `tsc`, which pointed at the `match` with TS7009 /
-    // TS2345. Glyph now owns the diagnostic, and it lands on the declaration.
+fn a_variant_named_after_a_js_global_keeps_its_name() {
+    // G63. `emit_variant_constructor` writes `export function Error(...)`
+    // straight from the Glyph name, so every `new Error(...)` the emitter wrote
+    // below it called the variant instead. That was first a `tsc` error in the
+    // wrong place, then an E0110 that took the name away from the author.
+    // A spreadsheet cell really is `Number | Text | Empty | Error`, so the name
+    // stays and the module captures the global the compiler needs instead.
     let root = unique_tmp("shadowglobal");
     let src = root.join("src");
     write_file(
@@ -6040,29 +6041,32 @@ fn a_variant_named_after_a_js_global_fails_at_its_declaration() {
          }\n",
     );
 
-    let report = build_project_inner(&src, &root.join("out"), false).expect("build ran");
-    assert!(report.has_errors(), "diags: {:?}", report.diagnostics);
-    let diag = report
-        .diagnostics
-        .iter()
-        .find(|d| d.contains("E0110"))
-        .unwrap_or_else(|| panic!("no E0110; diagnostics were: {:?}", report.diagnostics));
+    let out = root.join("out");
+    let report = build_project_inner(&src, &out, false).expect("build ran");
+    assert!(!report.has_errors(), "compiles now: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
 
-    // The mechanism is named, because misattribution is the whole defect.
+    // The author's name survives verbatim, which is the half that matters for
+    // grep: `grep "Error"` finds the variant, not a mangled stand-in.
     assert!(
-        diag.contains("shadow") && diag.contains("JavaScript global"),
-        "the diagnostic must explain the shadowing: {diag}"
+        ts.contains("function Error("),
+        "the variant keeps its name: {ts}"
     );
-    // The span is the declaration on line 4, not the `match` arm on line 9.
+    // The compiler's own reference goes through the captured global instead.
     assert!(
-        diag.contains("main:4:"),
-        "expected the variant declaration position (line 4): {diag}"
+        ts.contains("const __glyph_Error = globalThis.Error;"),
+        "the module captures the real Error: {ts}"
     );
     assert!(
-        !diag.contains("main:9:"),
-        "must not point at the match arm: {diag}"
+        ts.contains("throw new __glyph_Error("),
+        "the emitter's throw uses the capture: {ts}"
     );
-    assert!(report.emitted.is_empty(), "emitted: {:?}", report.emitted);
+    assert!(
+        !ts.contains("throw new Error("),
+        "and never the shadowed name: {ts}"
+    );
+    // And the program actually emits, which the old behaviour never let it do.
+    assert!(!report.emitted.is_empty(), "emitted nothing: {:?}", report.emitted);
 }
 
 #[test]
@@ -6475,7 +6479,9 @@ fn a_reserved_or_shadowing_declaration_is_reported_exactly_once() {
     write_file(
         &src,
         "shadow.glyph",
-        "module shadow\npub type Value = | Num(number) | Error(string)\n",
+        // `Array` is the one that stays reserved: it is a Glyph prelude type, so a
+        // local declaration redefines how the module spells an array.
+        "module shadow\npub type Array = { items: number }\n",
     );
     write_file(&src, "reserved.glyph", "module reserved\nfn switch() {}\n");
 
@@ -7634,5 +7640,53 @@ fn an_unknown_field_is_not_an_unverifiable_one() {
     assert!(
         !ts.contains("!((value as Record<string, unknown>).payload !== undefined)"),
         "no branch that can never fire: {ts}"
+    );
+}
+
+#[test]
+fn a_module_that_shadows_a_global_still_gets_working_descriptors() {
+    // G63, the harder half. `Error` alone only proves the `?`/match throw path.
+    // A record descriptor reaches for `Object.keys` and `Array.isArray`, so a
+    // module that shadows those has to keep working too.
+    let root = unique_tmp("shadowdesc");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         pub type Object = { id: number, tags: Array<string> }\n\
+         pub type Number = { n: number }\n\
+         pub fn take(v: unknown) -> Result<Object, Array<Issue>> {\n\
+        \x20 return Object.parse(v)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "clean: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+
+    // The author's names survive.
+    assert!(ts.contains("export type Object = "), "kept `Object`: {ts}");
+    assert!(ts.contains("export type Number = "), "kept `Number`: {ts}");
+    // The descriptor's own machinery goes through the captures.
+    assert!(
+        ts.contains("const __glyph_Object = globalThis.Object;"),
+        "captured Object: {ts}"
+    );
+    assert!(
+        ts.contains("__glyph_Object.keys("),
+        "the descriptor's key check uses the capture: {ts}"
+    );
+    assert!(
+        !ts.contains(" Object.keys("),
+        "and never the shadowed name: {ts}"
+    );
+    // Only what is actually shadowed is captured. This module cannot declare
+    // `Array` (it stays reserved as a Glyph type name), so `Array.isArray`
+    // emits plain, and a module that shadows nothing emits exactly what it
+    // always did.
+    assert!(
+        ts.contains("Array.isArray(") && !ts.contains("__glyph_Array"),
+        "an unshadowed global is left alone: {ts}"
     );
 }

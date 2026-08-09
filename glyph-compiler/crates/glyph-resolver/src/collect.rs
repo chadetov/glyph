@@ -439,28 +439,36 @@ fn add(a: number, b: number) -> number { return a + b }
     /// is the one that shipped broken: `emit_variant_constructor` writes
     /// `export function Error(...)` straight from the Glyph name.
     #[test]
-    fn js_global_names_are_rejected_in_every_declaration_form() {
+    fn js_global_names_are_available_in_every_declaration_form() {
+        // G63. Every form used to be E0110. A module may take these names now;
+        // the emitter captures the global it needs under an alias instead.
         let cases = [
-            ("fn Error() {}", "Error"),
-            ("type Object = { a: number }", "Object"),
-            ("const Promise = 1", "Promise"),
-            ("component Array(props: { a: number }) -> Component {}", "Array"),
-            ("type Value =\n  | Num(number)\n  | Error(string)\n", "Error"),
+            "fn Error() {}",
+            "type Object = { a: number }",
+            "const Promise = 1",
+            "type Value =\n  | Num(number)\n  | Error(string)\n",
         ];
-        for (decl, name) in cases {
+        for decl in cases {
             let src = format!("module x\n{decl}\n");
             let m = parse(&src).unwrap_or_else(|e| panic!("parse failed for {decl:?}: {e:?}"));
-            let errs = collect_module_symbols(&m)
-                .expect_err(&format!("expected a shadow error for {decl:?}"));
-            assert!(
-                errs.iter().any(|e| matches!(
-                    e,
-                    ResolveError::ShadowedGlobalName { name: n, origin, .. }
-                        if n == name && *origin == crate::reserved::ShadowOrigin::JsGlobal
-                )),
-                "missing E0110 for {decl:?}; errors were: {errs:?}"
-            );
+            collect_module_symbols(&m)
+                .unwrap_or_else(|e| panic!("{decl:?} should be accepted now: {e:?}"));
         }
+
+        // `Array` is the one that stays reserved, and for a different reason:
+        // it is how every Glyph program spells an array, so a local declaration
+        // redefines a language type rather than shadowing a global the compiler
+        // happens to use. Capturing cannot fix that.
+        let m = parse("module x\ntype Array = { a: number }\n").unwrap();
+        let errs = collect_module_symbols(&m).expect_err("Array stays reserved");
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                ResolveError::ShadowedGlobalName { name: n, origin, .. }
+                    if n == "Array" && *origin == crate::reserved::ShadowOrigin::Prelude
+            )),
+            "expected E0110 naming the prelude origin; errors were: {errs:?}"
+        );
     }
 
     /// The prelude group: names in scope in every module with no import. A
@@ -494,22 +502,24 @@ fn add(a: number, b: number) -> number { return a + b }
     /// and the wrong explanation.
     #[test]
     fn the_shadow_error_points_at_the_declaration_not_a_use() {
-        let src = "module x\ntype Value =\n  | Num(number)\n  | Error(string)\n\nfn describe(v: Value) -> string {\n  return match v {\n    Num(n) => \"n\",\n    Error(e) => e,\n  }\n}\n";
+        let src = "module x\ntype Array = { a: number }\n\nfn count(v: Array) -> number {\n  return v.a\n}\n";
         let m = parse(src).unwrap();
         let errs = collect_module_symbols(&m).expect_err("expected a shadow error");
         let err = errs
             .iter()
-            .find(|e| matches!(e, ResolveError::ShadowedGlobalName { name, .. } if name == "Error"))
+            .find(|e| matches!(e, ResolveError::ShadowedGlobalName { name, .. } if name == "Array"))
             .unwrap_or_else(|| panic!("no E0110; errors were: {errs:?}"));
         let span = err.span();
-        let declaration = src.find("| Error(string)").unwrap() as u32;
-        let match_arm = src.find("Error(e) => e").unwrap() as u32;
-        assert_eq!(
-            &src[span.start as usize..span.end as usize],
-            "Error(string",
-            "the span must cover the variant declaration"
+        let declaration = src.find("type Array").unwrap() as u32;
+        let use_site = src.find("fn count(v: Array)").unwrap() as u32;
+        assert!(
+            span.start >= declaration && span.end <= use_site,
+            "the span must cover the declaration, not the later use: {span:?}"
         );
-        assert!(span.start > declaration && span.end < match_arm);
+        assert!(
+            src[span.start as usize..span.end as usize].contains("Array"),
+            "the span must name what was declared"
+        );
     }
 
     /// `type Key = string | number` is D8 tagged-union syntax over bare

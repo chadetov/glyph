@@ -1,0 +1,9 @@
+module m
+
+pub type Array = {
+  items: number,
+}
+
+pub fn count(a: Array) -> number {
+  return a.items
+}

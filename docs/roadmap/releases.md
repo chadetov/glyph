@@ -3016,6 +3016,17 @@ are the feature.
   here, which lies in the same way but panics at the bad index rather than
   letting `undefined` travel. `array.get(xs, i) -> Option<T>` is the safe read.
   All 323 examples pass unchanged with the check on.
+- **G63.** A domain type may be called `Error` again. A union with an `Error`
+  variant emitted `export function Error(...)` at module top level, and the
+  `new Error(...)` the compiler wrote below it called the variant, so the name
+  was taken away by E0110 and the spreadsheet app carried `Cellerr`. A module
+  that shadows one of the globals the emitter uses now captures the real one
+  (`const __glyph_Error = globalThis.Error;`) and the compiler's own references
+  go through that. The author's name emits verbatim, and a module that shadows
+  nothing emits exactly what it did before. Only four of the five could be
+  freed: `Array` is also a Glyph type name, so a local `type Array` redefines
+  how the module spells an array rather than shadowing a global, and no capture
+  fixes that. It stays reserved with E0110 naming the prelude origin.
 - **Clippy runs in CI**, which found a test that never ran, another registered
   twice, and two doc comments detached from their functions. **CodeQL** covers
   the Rust, the TypeScript and the workflows.

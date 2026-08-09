@@ -23,7 +23,7 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 77 are fixed, 12 are partly fixed, 9 are
+fixed two of them: of 98 entries, 78 are fixed, 11 are partly fixed, 9 are
 decided or resolved, and 0 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -1742,7 +1742,7 @@ carrying a G-number or were stdlib shape, and those are with the trip in
 release and are half closed. The other six are open, which is the first time in
 several rounds that the backlog grew.
 
-- **G63. [HALF FIXED] A top-level declaration silently shadowed a global the
+- **G63. [FIXED] A top-level declaration silently shadowed a global the
   emitted module depends on.** Every top-level Glyph name reaches the emitted
   module verbatim, including a tagged union's variant constructors, and nothing
   checked it against the names that module already uses. `type Value = |
@@ -1768,7 +1768,7 @@ several rounds that the backlog grew.
   was filed: you still cannot name a type or variant `Error`, `Number`,
   `Object`, `Array`, or `Promise`. `E0110` turns a silent miscompile into a
   clear rename request, which is the verifiability half, and the app still
-  carries `Cellerr` instead of the `Error` its domain wanted. **The approach is settled and it is not mangling** (investigated 0.1.69).
+  carries `Cellerr` instead of the `Error` its domain wanted. **Closed in 0.1.70, by the approach settled in 0.1.69 and not by mangling.**
   Renaming the user's declaration would trade one greppability loss for
   another. The narrow fix keeps the name the author wrote and aliases the
   *compiler's own* references instead: a module that declares a colliding
@@ -1778,7 +1778,16 @@ several rounds that the backlog grew.
   legal in *type* position too, which was the half in doubt. The cost is
   53 emission sites across five globals that have to route through a
   helper reading module state, in the crate where a mistake is a silent
-  miscompile, so it earns its own release. Closing it the old way meant
+  miscompile, so it earned its own release, which is this one. Every
+  emitter-internal reference now goes through one accessor, and the drift test
+  follows that accessor rather than the literal `X.member` text routing removed.
+  One thing the investigation did not anticipate: of the five, only four can be
+  freed. `Array` is also a Glyph *prelude type*, so `type Array` does not shadow
+  a global the compiler happens to use, it redefines how the rest of the module
+  spells an array, and no capture can help because the name that changed meaning
+  is the one the author writes. It stays reserved, and E0110 now names the
+  prelude origin, which is the accurate reason. `Record` is reserved for the
+  same reason. Closing it the old way meant
   mangling Glyph names in the emitter, which changes what every
   emitted identifier looks like and therefore what a stack trace, a `grep` over
   `dist/`, and a hand-written `extern/` shim see. That is an architecture

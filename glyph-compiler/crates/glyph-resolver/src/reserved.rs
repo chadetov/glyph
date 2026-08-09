@@ -106,18 +106,31 @@ pub(crate) fn is_reserved_ts_word(name: &str) -> bool {
 /// Rejecting `fn path` in a module that never imports `std/path` would make
 /// E0110's "this declaration would shadow it" claim false.
 pub(crate) fn shadowed_global(name: &str) -> Option<ShadowOrigin> {
-    if JS_GLOBALS.contains(&name) {
-        return Some(ShadowOrigin::JsGlobal);
-    }
+    // `JS_GLOBALS` is deliberately not rejected any more. A domain type really
+    // is called `Error` sometimes: a spreadsheet cell is
+    // `Number | Text | Empty | Error`, and taking the name away made the app
+    // carry `Cellerr`. The emitter captures the global it needs under a private
+    // alias in any module that shadows one, so the author keeps the name and
+    // the compiler keeps the global. The list stays here because the emitter
+    // reads it to know what to capture, and a drift test keeps it in step.
     if PRELUDE_GLOBALS.contains(&name) {
         return Some(ShadowOrigin::Prelude);
     }
     None
 }
 
-/// JavaScript globals the emitted TypeScript refers to. Keep in step with
-/// `glyph-emit`; see [`shadowed_global`].
-pub(crate) const JS_GLOBALS: &[&str] = &[
+/// JavaScript globals the emitted TypeScript refers to.
+///
+/// These are no longer forbidden as declaration names. A module that shadows
+/// one captures the real global under a private alias and the emitter's own
+/// references go through that, so the author keeps the name (G63). The list is
+/// public because `glyph-emit` reads it to know what to capture, and the drift
+/// test below greps the emitter to keep the two in step: a global the emitter
+/// starts referencing without an entry here would shadow silently again.
+///
+/// `Array` is the exception and is *also* in `PRELUDE_GLOBALS`, which still
+/// rejects it: it is a Glyph type name, not merely a global the compiler uses.
+pub const JS_GLOBALS: &[&str] = &[
     // `Object.keys` / `Object.entries` / `Object.values` in record descriptors
     // and `for ... in` lowering.
     "Object",
@@ -156,9 +169,18 @@ pub(crate) const PRELUDE_GLOBALS: &[&str] = &[
     // `Issue[]` in every descriptor's `parse` return type and in the record
     // descriptor's `const __issues: Issue[] = []`.
     "Issue",
+    // `Array` is the one JavaScript global that is also a Glyph prelude *type*.
+    // The other four the emitter references (`Object`, `Error`, `Number`,
+    // `Promise`) mean nothing in Glyph, so a module may take those names and the
+    // emitter captures the global it needs under an alias. `Array` is different:
+    // `Array<string>` is how every Glyph program spells an array, so a local
+    // `type Array` does not merely shadow a global the compiler uses, it
+    // redefines a language type for the rest of the module. Capturing cannot
+    // help with that, because the name the *author* writes is the one that
+    // changed meaning.
+    "Array",
     // `Record` is emitted the same way but is not a prelude name: it is a
-    // TypeScript built-in, so it sits in JS_GLOBALS with `Array`/`Promise`/
-    // `Error`, and E0110 names that origin instead of this one.
+    // TypeScript built-in, and is left available for the same reason `Error` is.
     //
     // Deliberately absent, on the `Date` precedent: `Schema`, `Component`,
     // `Option`. The emitter only ever writes those because the *user* wrote
@@ -222,17 +244,22 @@ mod tests {
     }
 
     #[test]
-    fn flags_js_globals_the_emitter_references() {
-        for w in ["Error", "Number", "Object", "Array", "Promise", "Record"] {
+    fn js_globals_the_emitter_references_are_available_as_names() {
+        // G63. These were rejected; a module may take them now, and the emitter
+        // captures the real global under an alias. `Array` is the exception and
+        // is covered by the prelude test below: it is a Glyph type name.
+        for w in ["Error", "Number", "Object", "Promise"] {
             assert_eq!(
                 shadowed_global(w),
-                Some(ShadowOrigin::JsGlobal),
-                "{w} should be flagged as a JS global"
+                None,
+                "{w} should be available as a declaration name"
             );
         }
-        // `Date` is not emitted by the compiler, so it stays legal (see
-        // JS_GLOBALS). If this flips, the corpus calendar module needs renaming.
-        assert_eq!(shadowed_global("Date"), None);
+        assert_eq!(
+            shadowed_global("Array"),
+            Some(ShadowOrigin::Prelude),
+            "Array stays reserved: it is how Glyph spells an array"
+        );
     }
 
     #[test]
@@ -354,12 +381,50 @@ mod tests {
             }
         }
 
+        // Every global the emitter writes now goes through `self.g("X")`, which
+        // returns the captured alias in a module that shadows `X` (G63). That
+        // call is the precise signal: scanning for it finds exactly the set the
+        // emitter depends on, where the old scan read literal `X.member` text
+        // that routing removed.
+        let mut routed: Vec<(String, String)> = Vec::new();
+        for entry in std::fs::read_dir(&emit_src).expect("read glyph-emit/src") {
+            let path = entry.expect("dir entry").path();
+            if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+                continue;
+            }
+            let full = std::fs::read_to_string(&path).expect("read emit source");
+            let src = match full.find("\n#[cfg(test)]") {
+                Some(i) => full[..i].to_string(),
+                None => full,
+            };
+            let mut rest = src.as_str();
+            while let Some(i) = rest.find("self.g(\"") {
+                rest = &rest[i + 8..];
+                if let Some(j) = rest.find('"') {
+                    routed.push((
+                        rest[..j].to_string(),
+                        path.file_name().unwrap().to_string_lossy().into_owned(),
+                    ));
+                }
+            }
+        }
+        let unlisted: Vec<_> = routed
+            .iter()
+            .filter(|(g, _)| !JS_GLOBALS.contains(&g.as_str()))
+            .collect();
+        assert!(
+            unlisted.is_empty(),
+            "glyph-emit routes a global through `self.g(..)` that JS_GLOBALS does not list, \
+             so no module would capture it and a declaration of that name would shadow it \
+             again: {unlisted:?}"
+        );
+
         // Guard the scanner itself: if it stops finding anything, it stops
         // guarding anything.
         for expected in ["Object", "Array", "Promise", "Number", "Error"] {
             assert!(
-                seen.iter().any(|(g, _)| g == expected),
-                "the drift scan found no `{expected}` in glyph-emit's emitted strings; \
+                routed.iter().any(|(g, _)| g == expected),
+                "the drift scan found no `self.g(\"{expected}\")` in glyph-emit; \
                  the scanner is broken, not the emitter"
             );
         }

@@ -1,3 +1,0 @@
-code = "E0110"
-pillar = "greppability"
-title = "A type named Error, shadowing the one the runtime uses"

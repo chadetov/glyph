@@ -1,0 +1,3 @@
+code = "E0110"
+pillar = "greppability"
+title = "A local type named Array, quietly taking the name for the rest of the module"

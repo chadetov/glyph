@@ -24,10 +24,16 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 COMPILER = ROOT / "glyph-compiler"
 
 CANDIDATES = ("target/release/glyph", "target/debug/glyph")
+# What actually goes into the release binary. Test sources are deliberately
+# excluded: `cargo build --release` does not compile them, so editing one leaves
+# the binary correct while making it look older than the tree. That false
+# positive is worse than useless, because the whole point of this check is that
+# a failure means something.
 WATCHED = (
     ("crates", "*.rs"),
     ("runtime", "*"),
 )
+EXCLUDED_PARTS = ("tests", "benches", "examples")
 
 
 def newest_input() -> tuple[float, pathlib.Path | None]:
@@ -37,10 +43,13 @@ def newest_input() -> tuple[float, pathlib.Path | None]:
         if not base.exists():
             continue
         for p in base.rglob(pattern):
-            if p.is_file():
-                m = p.stat().st_mtime
-                if m > newest:
-                    newest, where = m, p
+            if not p.is_file():
+                continue
+            if any(part in EXCLUDED_PARTS for part in p.relative_to(base).parts[:-1]):
+                continue
+            m = p.stat().st_mtime
+            if m > newest:
+                newest, where = m, p
     for name in ("Cargo.toml", "Cargo.lock"):
         p = COMPILER / name
         if p.exists() and p.stat().st_mtime > newest:

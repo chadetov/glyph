@@ -8,10 +8,14 @@ Glyph has to keep failing with the code it names, or the guarantee it documents
 is gone.
 
 This is the evidence behind the four pillars. A case that stops being
-demonstrable gets deleted, not softened. One already was: an `await` in a
+demonstrable gets deleted, not softened. Two already have been. An `await` in a
 synchronous function looked like a good case until it turned out `tsc` rejects
 that too, so the two programs were not equivalent and the case was proving
-nothing.
+nothing. And a local type named `Error` was a case until G63 made it legal: the
+emitter captures the global it needs under an alias now, so the author keeps the
+name. The gate caught that the moment the guarantee went away, which is what it
+is for. `Array` replaced it, and for a different reason: it is not merely a
+global the compiler uses, it is how every Glyph program spells an array.
 
 Run them:
 
@@ -29,7 +33,7 @@ python3 scripts/check_catches.py
 | `unverifiable-parse` | A `value is Conn` guard that only checks a field is present, so `parse` returns a typed value it never validated | `E0304` | verifiability |
 | `imported-record-field-typo` | A field read off a value that arrived as `any` from an untyped boundary | `E0210` | verifiability |
 | `unvalidated-boundary-read` | `const user: User = JSON.parse(body)`, where the annotation launders `any` | `TS18046` | verifiability |
-| `shadowed-global` | A local type named `Error`, shadowing the global for the rest of the module | `E0110` | greppability |
+| `shadowed-array-type` | A local type named `Array`, taking the name for the rest of the module | `E0110` | greppability |
 
 `unvalidated-boundary-read` is the one whose rejection comes from the `tsc` back
 end rather than a Glyph code, and it is in the list on purpose. Glyph has no

@@ -322,6 +322,24 @@ const SCHEMA_FACTORY: &str = "__glyph_schema";
 /// Aliased to never collide with a user type.
 const INFER_OUTPUT_ALIAS: &str = "__GlyphInferOutput";
 
+/// The JavaScript globals the emitter writes into its own output.
+///
+/// One list, defined in the resolver because the drift test that keeps it in
+/// step with this file lives beside it. A module that declares one of these as
+/// a top-level name used to be rejected (E0110), because `export function
+/// Error(...)` shadows the `Error` the emitted `?` lowering and descriptor
+/// throws depend on. A domain type is allowed to be called `Error`: a
+/// spreadsheet cell really is `Number | Text | Empty | Error`. So instead of
+/// taking the name away from the author, the module captures the global under a
+/// private alias and the emitter's own references go through that. The author's
+/// name emits verbatim, which is the half that matters for grep.
+use glyph_resolver::JS_GLOBALS as EMITTER_GLOBALS;
+
+/// `Error` -> `__glyph_Error`. Only ever used in a module that shadows it.
+fn global_alias(name: &str) -> String {
+    format!("__glyph_{name}")
+}
+
 /// The prelude tagged-union constructors (`std/result`, `std/option`). Their
 /// discriminant tags are fixed by the runtime regardless of whether the
 /// scrutinee's type resolved, so the `match` lowering treats them as variant
@@ -506,6 +524,37 @@ pub fn emit_module(
     emit_module_mapped(module, resolved, types, prelude, ctx).map(|o| o.ts)
 }
 
+/// Which `EMITTER_GLOBALS` this module shadows with a top-level declaration.
+///
+/// Covers every name that reaches the emitted module's top level: a `fn`,
+/// `type`, `const` or `component`, and a tagged union's variant constructors,
+/// which are emitted as top-level `const`/`function` declarations of their own.
+fn shadowed_globals_of(module: &Module) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let mut note = |name: &str| {
+        if EMITTER_GLOBALS.contains(&name) {
+            out.insert(name.to_string());
+        }
+    };
+    for item in &module.items {
+        match item {
+            Decl::Fn(f) => note(f.name.as_ref()),
+            Decl::Const(c) => note(c.name.as_ref()),
+            Decl::Component(c) => note(c.name.as_ref()),
+            Decl::Type(td) => {
+                note(td.name.as_ref());
+                if let TypeExpr::Union { variants, .. } = &td.body {
+                    for v in variants {
+                        note(v.name.as_ref());
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
 /// The emitted TypeScript plus a coarse source map back to Glyph spans, for
 /// remapping `tsc` diagnostics onto the original `.glyph` source.
 pub struct EmitOutput {
@@ -522,6 +571,7 @@ pub fn emit_module_mapped(
     prelude: &Prelude,
     ctx: EmitContext,
 ) -> Result<EmitOutput, EmitError> {
+    let shadowed = Rc::new(shadowed_globals_of(module));
     let mut e = Emitter {
         out: String::new(),
         indent: 0,
@@ -530,6 +580,7 @@ pub fn emit_module_mapped(
         used_schema: Rc::new(Cell::new(false)),
         used_result: Rc::new(Cell::new(false)),
         used_infer_output: Rc::new(Cell::new(false)),
+        shadowed_globals: shadowed,
         desc_param_guards: RefCell::new(Vec::new()),
             assign_target: RefCell::new(None),
         return_cast: None,
@@ -573,6 +624,10 @@ struct Emitter<'a> {
     /// the one injected mapped-type alias (`__GlyphInferOutput`) it lowers to.
     /// Shared across sub-emitters via the `Rc<Cell>` like the flags above.
     used_infer_output: Rc<Cell<bool>>,
+    /// The `EMITTER_GLOBALS` this module shadows with a top-level declaration.
+    /// Empty for almost every module, which is why the capture is conditional:
+    /// a module that shadows nothing emits exactly what it emitted before.
+    shadowed_globals: Rc<BTreeSet<String>>,
     /// Type-parameter guard bindings in scope while a *generic* record
     /// descriptor's field checks are generated: `(param name, guard var)` pairs
     /// such as `("T", "__is_T")`. A field typed `T` is validated by calling its
@@ -633,6 +688,20 @@ struct Emitter<'a> {
 }
 
 impl<'a> Emitter<'a> {
+    /// How this module must spell a JavaScript global the emitter writes.
+    ///
+    /// `Error` normally, `__glyph_Error` in a module that declares its own
+    /// `Error`. Every emitter-internal reference goes through here, so adding a
+    /// new global reference without adding it to `EMITTER_GLOBALS` is caught by
+    /// the drift test rather than by a user whose type is named `Number`.
+    fn g(&self, name: &str) -> String {
+        if self.shadowed_globals.contains(name) {
+            global_alias(name)
+        } else {
+            name.to_string()
+        }
+    }
+
     /// A fresh sub-emitter at the given indent, inheriting the temporary
     /// counter so synthesized names don't repeat. Used to render a lambda body
     /// or a value-position `match` into its own string before splicing it in.
@@ -645,6 +714,7 @@ impl<'a> Emitter<'a> {
             used_schema: Rc::clone(&self.used_schema),
             used_result: Rc::clone(&self.used_result),
             used_infer_output: Rc::clone(&self.used_infer_output),
+            shadowed_globals: Rc::clone(&self.shadowed_globals),
             // Descriptor field checks are generated on the main emitter, never a
             // sub-emitter (lambda/IIFE) body, so a sub starts with no guards.
             desc_param_guards: RefCell::new(Vec::new()),
@@ -740,6 +810,27 @@ impl<'a> Emitter<'a> {
         // payload out of the parse result's wire form, so it depends on no
         // in-scope type name. `tsc` reduces `__GlyphInferOutput<Shape>` at each
         // call site; unused when no `infer_output` was rendered.
+        // A module that shadows a global the emitter depends on captures the
+        // real one first, so the author keeps the name and the compiler keeps
+        // the global. `globalThis` is what makes this work: by the time these
+        // run, the module's own `Error` is hoisted and a bare `Error` would
+        // already mean the user's.
+        if !self.shadowed_globals.is_empty() {
+            let mut captures = String::new();
+            for name in self.shadowed_globals.iter() {
+                let alias = global_alias(name);
+                // `Array` and `Promise` are written in type position too, and a
+                // `const` is not a type. Each gets a type alias as well.
+                if name == "Array" || name == "Promise" {
+                    captures.push_str(&format!(
+                        "type {alias}<T> = globalThis.{name}<T>;\n"
+                    ));
+                }
+                captures.push_str(&format!("const {alias} = globalThis.{name};\n"));
+            }
+            captures.push('\n');
+            self.out.insert_str(0, &captures);
+        }
         if self.used_infer_output.get() {
             self.out.insert_str(
                 0,
@@ -857,7 +948,7 @@ impl<'a> Emitter<'a> {
                 // Glyph's `async fn -> T` awaits to `T`; TS annotates the
                 // wrapper, so the emitted return type is `Promise<T>`.
                 let ret = match &f.return_ty {
-                    Some(te) if f.is_async => format!(": Promise<{}>", self.ty(te)?),
+                    Some(te) if f.is_async => format!(": {}<{}>", self.g("Promise"), self.ty(te)?),
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
@@ -1125,10 +1216,11 @@ impl<'a> Emitter<'a> {
         let mut checks: Vec<String> = field_checks.clone();
         if let Some(allowed) = &allowed_keys {
             if allowed.is_empty() {
-                checks.push("Object.keys(value as object).length === 0".to_string());
+                checks.push(format!("{}.keys(value as object).length === 0", self.g("Object")));
             } else {
                 checks.push(format!(
-                    "Object.keys(value as object).every((__k: string) => {allowed})"
+                    "{}.keys(value as object).every((__k: string) => {allowed})",
+                    self.g("Object")
                 ));
             }
         }
@@ -1142,11 +1234,17 @@ impl<'a> Emitter<'a> {
         // true for a value that is not a record at all.
         if checks.is_empty() {
             self.line(
-                "return typeof value === \"object\" && value !== null && !Array.isArray(value);",
+                &format!(
+                    "return typeof value === \"object\" && value !== null && !{}.isArray(value);",
+                    self.g("Array")
+                ),
             );
         } else {
             self.line(
-                "return typeof value === \"object\" && value !== null && !Array.isArray(value)",
+                &format!(
+                    "return typeof value === \"object\" && value !== null && !{}.isArray(value)",
+                    self.g("Array")
+                ),
             );
             self.indent += 1;
             for (i, c) in checks.iter().enumerate() {
@@ -1179,7 +1277,7 @@ impl<'a> Emitter<'a> {
             "parse{decl_generics}({entry_params}): {RESULT_TY}<{self_ty}, Issue[]> {{"
         ));
         self.indent += 1;
-        self.line("if (Array.isArray(value)) {");
+        self.line(&format!("if ({}.isArray(value)) {{", self.g("Array")));
         self.indent += 1;
         self.line(&format!(
             "return {ERR_CTOR}([{{ path: [], message: \"expected {name} (an object), got an array\", code: \"type\" }}]);"
@@ -1206,7 +1304,7 @@ impl<'a> Emitter<'a> {
         self.desc_param_guards.borrow_mut().clear();
         if let Some(allowed) = &allowed_keys {
             let cond = if allowed.is_empty() { "false" } else { allowed.as_str() };
-            self.line("for (const __k of Object.keys(value as object)) {");
+            self.line(&format!("for (const __k of {}.keys(value as object)) {{", self.g("Object")));
             self.indent += 1;
             self.line(&format!(
                 "if (!({cond})) __issues.push({{ path: [__k], message: \"unexpected field `\" + __k + \"`\", code: \"unexpected\" }});"
@@ -1912,7 +2010,7 @@ impl<'a> Emitter<'a> {
                         let pairs = if self.iter_is_array(&f.iter) {
                             format!("{iter}.entries()")
                         } else {
-                            format!("Object.entries({iter})")
+                            format!("{}.entries({iter})", self.g("Object"))
                         };
                         format!("for (const [{k}, {v}] of {pairs}) ")
                     }
@@ -2791,7 +2889,8 @@ impl<'a> Emitter<'a> {
         // unlisted value (value-match exhaustiveness is not yet checked).
         let has_catch_all = arms.iter().any(is_catch_all);
         if !has_catch_all {
-            self.line("default: throw new Error(\"non-exhaustive match\");");
+            let err = self.g("Error");
+            self.line(&format!("default: throw new {err}(\"non-exhaustive match\");"));
         }
         self.indent -= 1;
         self.line("}");
@@ -2874,7 +2973,10 @@ impl<'a> Emitter<'a> {
         self.indent += 1;
         match else_arm {
             Some(arm) => self.emit_arm_body(&arm.body, term, false)?,
-            None => self.line("throw new Error(\"non-exhaustive match\");"),
+            None => {
+                let err = self.g("Error");
+                self.line(&format!("throw new {err}(\"non-exhaustive match\");"))
+            }
         }
         self.indent -= 1;
         self.line("}");
@@ -2949,7 +3051,10 @@ impl<'a> Emitter<'a> {
         self.indent += 1;
         match else_arm {
             Some(arm) => self.emit_arm_body(&arm.body, term, false)?,
-            None => self.line("throw new Error(\"non-exhaustive match\");"),
+            None => {
+                let err = self.g("Error");
+                self.line(&format!("throw new {err}(\"non-exhaustive match\");"))
+            }
         }
         self.indent -= 1;
         self.line("}");
@@ -3041,7 +3146,8 @@ impl<'a> Emitter<'a> {
                     Some("Record") => {
                         let rec = self.ty(ty).ok()?;
                         Some(format!(
-                            "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !Array.isArray(__x))({m})"
+                            "((__x: unknown): __x is {rec} => typeof __x === \"object\" && __x !== null && !{}.isArray(__x))({m})",
+                            self.g("Array")
                         ))
                     }
                     // Element-check the array so `is Array<E>` is as sound as the
@@ -3050,11 +3156,12 @@ impl<'a> Emitter<'a> {
                     Some("Array") => match args.as_slice() {
                         [elem] => match self.is_check(elem, "__e") {
                             Some(ec) => Some(format!(
-                                "Array.isArray({m}) && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {ec})"
+                                "{}.isArray({m}) && ({m} as ReadonlyArray<unknown>).every((__e: unknown) => {ec})",
+                                self.g("Array")
                             )),
-                            None => Some(format!("Array.isArray({m})")),
+                            None => Some(format!("{}.isArray({m})", self.g("Array"))),
                         },
-                        _ => Some(format!("Array.isArray({m})")),
+                        _ => Some(format!("{}.isArray({m})", self.g("Array"))),
                     },
                     // `is Paginated<User>` on a generic descriptor: call its `is`
                     // with the type arguments (to narrow) and a synthesized checker
@@ -3372,7 +3479,8 @@ impl<'a> Emitter<'a> {
         // `int` is a whole `number`: the leaf check that `number` cannot express.
         if is_named_type(ty, "int") {
             return FieldCheck::Deep(format!(
-                "(typeof {access} === \"number\" && Number.isInteger({access}))"
+                "(typeof {access} === \"number\" && {}.isInteger({access}))",
+                self.g("Number")
             ));
         }
         if let Some(jt) = js_typeof(ty) {
@@ -3437,7 +3545,8 @@ impl<'a> Emitter<'a> {
                             return FieldCheck::Unverifiable;
                         };
                         FieldCheck::Deep(format!(
-                            "Array.isArray({access}) && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})"
+                            "{}.isArray({access}) && ({access} as ReadonlyArray<unknown>).every((__e: unknown) => {elem_check})",
+                            self.g("Array")
                         ))
                     }
                     (Some("Option"), [inner]) => {
@@ -3459,7 +3568,9 @@ impl<'a> Emitter<'a> {
                             return FieldCheck::Unverifiable;
                         };
                         FieldCheck::Deep(format!(
-                            "(typeof {access} === \"object\" && {access} !== null && !Array.isArray({access}) && Object.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))"
+                            "(typeof {access} === \"object\" && {access} !== null && !{arr}.isArray({access}) && {obj}.values({access} as Record<string, unknown>).every((__v: unknown) => {value_check}))",
+                            arr = self.g("Array"),
+                            obj = self.g("Object")
                         ))
                     }
                     // A field typed as a generic record (`Paginated<User>`): call
@@ -4326,7 +4437,7 @@ impl<'a> Emitter<'a> {
                 // An async arrow returns a Promise, so an annotated return type
                 // wraps in `Promise<T>` exactly like an async `fn` declaration.
                 let ret = match return_ty {
-                    Some(te) if *is_async => format!(": Promise<{}>", self.ty(te)?),
+                    Some(te) if *is_async => format!(": {}<{}>", self.g("Promise"), self.ty(te)?),
                     Some(te) => format!(": {}", self.ty(te)?),
                     None => String::new(),
                 };
@@ -4750,7 +4861,7 @@ impl<'a> Emitter<'a> {
                 // `Promise<T>`, matching what the declaration path writes for an
                 // `async fn` and what an async lambda's inferred type is.
                 let ret = if *is_async {
-                    format!("Promise<{ret}>")
+                    format!("{}<{ret}>", self.g("Promise"))
                 } else {
                     ret
                 };

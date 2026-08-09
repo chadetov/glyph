@@ -47,6 +47,41 @@ impl ModuleMap {
     }
 }
 
+
+/// The `is`-narrowing note (G98).
+///
+/// `match row[col] { is string => Some(row[col]), else => None }` is a `tsc`
+/// error, not a Glyph one, and the message it produces (`Type 'Option<unknown>'
+/// is not assignable to type 'Option<string>'`) points at the whole match and
+/// says nothing about why. The rule is that `is` narrows the *binding* it
+/// matches on; an arm that re-reads the scrutinee instead of using the bound
+/// name gets the unnarrowed type back.
+///
+/// A note rather than a check. The detectable condition has a legitimate
+/// counterexample (`match f() { is string => "yes", else => "no" }` tests the
+/// type without using the value), so a check would fire on correct code. A note
+/// attached to a failure that already happened cannot.
+fn is_narrowing_note(code: &str, glyph_source: &str, span: Span) -> Option<&'static str> {
+    if code != "TS2322" {
+        return None;
+    }
+    let start = (span.start as usize).min(glyph_source.len());
+    let end = (span.end as usize).min(glyph_source.len());
+    let text = glyph_source.get(start..end)?;
+    if !text.contains("match") {
+        return None;
+    }
+    let has_is_arm = text.lines().any(|l| {
+        let l = l.trim_start();
+        l.starts_with("is ") && l.contains("=>")
+    });
+    has_is_arm.then_some(
+        "`is` narrows the binding it matches on, not the expression behind it. An arm \
+         that re-reads the scrutinee (`row[col]` again rather than the bound name) sees \
+         the unnarrowed type. Bind it first: `let v = row[col]`, then `match v`.",
+    )
+}
+
 /// Rewrite `tsc`'s output, mapping each error whose file is one of our generated
 /// modules back onto its Glyph source. Lines that don't parse as a located error
 /// or don't belong to a known module are kept as-is.
@@ -65,6 +100,7 @@ pub fn remap_tsc_output(raw: &str, maps: &[ModuleMap], with_color: bool) -> Stri
                         span,
                         err.code,
                         err.message,
+                        is_narrowing_note(err.code, &m.glyph_source, span),
                         with_color,
                     ));
                     if !out.ends_with('\n') {
@@ -105,7 +141,7 @@ pub fn remap_tsc_to_diagnostics(raw: &str, maps: &[ModuleMap]) -> Vec<Diagnostic
                 "tsc",
                 err.message.to_string(),
                 None,
-                None,
+                is_narrowing_note(err.code, &m.glyph_source, span),
             )),
             None => {
                 let at = Pos {
@@ -198,6 +234,31 @@ mod tests {
 
     fn span(start: u32, end: u32) -> Span {
         Span::new(start, end)
+    }
+
+    #[test]
+    fn is_narrowing_note_fires_only_where_it_explains_something() {
+        // G98. The note attaches to a TS2322 whose Glyph span holds a `match`
+        // with an `is` arm, which is the shape whose message says nothing about
+        // why. It is a note and not a check precisely because the shape has a
+        // legitimate counterexample; a note on a failure that already happened
+        // cannot fire on correct code.
+        let with_is = "pub fn pick(r: Row) -> Option<string> {\n  return match r.v {\n    is string => Some(r.v),\n    else => None,\n  }\n}\n";
+        assert!(
+            is_narrowing_note("TS2322", with_is, span(0, with_is.len() as u32)).is_some(),
+            "fires on a match with an `is` arm"
+        );
+        // A different tsc error over the same source is not about narrowing.
+        assert!(
+            is_narrowing_note("TS2339", with_is, span(0, with_is.len() as u32)).is_none(),
+            "only TS2322"
+        );
+        // A TS2322 with no `is` arm in range gets no note.
+        let no_is = "pub fn f() -> string {\n  return match n {\n    0 => \"a\",\n    else => \"b\",\n  }\n}\n";
+        assert!(
+            is_narrowing_note("TS2322", no_is, span(0, no_is.len() as u32)).is_none(),
+            "no `is` arm, no note"
+        );
     }
 
     #[test]

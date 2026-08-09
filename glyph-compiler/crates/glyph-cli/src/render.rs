@@ -133,6 +133,7 @@ pub fn render_tsc_error(
     span: Span,
     code: &str,
     message: &str,
+    note: Option<&str>,
     with_color: bool,
 ) -> String {
     build_report(
@@ -143,7 +144,7 @@ pub fn render_tsc_error(
         message,
         code,
         Some("This is a TypeScript back-end error mapped to your Glyph source. The generated `.ts` is in the build output if you need the exact position."),
-        None,
+        note,
         with_color,
         Severity::Error,
     )

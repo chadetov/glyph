@@ -1,0 +1,60 @@
+name: Scorecard
+
+# OpenSSF Scorecard: an automated read of this repo's supply-chain posture
+# (release signing, provenance, branch protection, pinned actions, token
+# permissions, and so on). It scores work that is already done here rather than
+# asking for new work: releases are published with npm provenance and SLSA
+# attestations, and CI gates every push.
+#
+# `publish_results: true` is what makes the score readable by the badge in the
+# README. It also makes the score public, which is the point: a supply-chain
+# claim nobody can check is worth nothing.
+
+on:
+  # Re-score when branch protection changes, since that is one of the checks.
+  branch_protection_rule:
+  schedule:
+    - cron: "0 6 * * 1"
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      # Upload the SARIF to code scanning.
+      security-events: write
+      # Needed by publish_results to attest the run.
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run the analysis
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      # Kept for 5 days so a score change can be read against the run that
+      # produced it, rather than guessed at from the badge alone.
+      - name: Upload the results as an artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload the results to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

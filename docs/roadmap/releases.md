@@ -4113,6 +4113,11 @@ land here until they're assigned a release.
 
 ---
 
+*Release note:* the Socket badge URL carries the package version, so a bump
+touches it too. `check_versions.py` fails when it falls behind rather than
+leaving it to be noticed by a reader looking at a report for a version they are
+not installing.
+
 *Sequencing note:* the release carrying the **Next** marker above is the committed
 target. Everything past it is a proposal ordered by dependency, and it gets
 re-sorted at each release boundary.

@@ -6,6 +6,11 @@ Hard-fails (exit 1) when the workspace Cargo version, the six npm package.json
 versions, and the launcher's five optionalDependencies pins are not all equal.
 A mismatch there is how a broken or half-published release happens.
 
+Also hard-fails when a version-pinned badge URL in a README points at a version
+that is not the current one. Socket's badge URL carries the version, so it is a
+string that silently goes stale on the next release and shows a reader a report
+for a package they are not about to install.
+
 Best-effort notice (never fails the build) when the published npm `latest` is
 behind the repo version, so a stale package like the one a reviewer once hit two
 versions behind is at least visible in CI.
@@ -53,6 +58,26 @@ def published_latest() -> str | None:
         return None
 
 
+# A README badge whose URL carries the package version. One entry per URL shape;
+# the version is whatever the last path segment is.
+PINNED_BADGES = (
+    ("README.md", "https://badge.socket.dev/npm/package/@glyphlang/glyph/"),
+    ("npm/glyph/README.md", "https://badge.socket.dev/npm/package/@glyphlang/glyph/"),
+)
+
+
+def stale_badges(repo: str) -> list[str]:
+    bad: list[str] = []
+    for rel, prefix in PINNED_BADGES:
+        path = ROOT / rel
+        if not path.exists():
+            continue
+        for m in re.finditer(re.escape(prefix) + r"([0-9]+\.[0-9]+\.[0-9]+)", path.read_text()):
+            if m.group(1) != repo:
+                bad.append(f"{rel}: badge points at {m.group(1)}, repo is {repo}")
+    return bad
+
+
 def main() -> int:
     repo = cargo_version()
     versions = npm_versions()
@@ -63,6 +88,14 @@ def main() -> int:
         for k, v in mismatched.items():
             print(f"  {k} = {v}")
         print("bump every package.json (version + optionalDependencies) to match Cargo.")
+        return 1
+
+    stale = stale_badges(repo)
+    if stale:
+        print("a version-pinned badge URL is out of date:")
+        for s in stale:
+            print(f"  {s}")
+        print("bump the version in the badge URL, or switch it to an unpinned one.")
         return 1
 
     print(f"version consistency OK: all {len(versions)} version strings are {repo}")

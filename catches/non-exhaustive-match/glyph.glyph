@@ -1,0 +1,11 @@
+module m
+
+pub type Status = "todo" | "doing" | "done" | "archived"
+
+pub fn label(s: Status) -> string {
+  return match s {
+    "todo" => "not started",
+    "doing" => "in progress",
+    "done" => "finished",
+  }
+}

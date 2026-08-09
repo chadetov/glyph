@@ -1,0 +1,3 @@
+module catalog
+
+pub type ColType = "text" | "int" | "real" | "bool"

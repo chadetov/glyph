@@ -1,0 +1,10 @@
+module m
+
+pub type Error = {
+  code: number,
+  detail: string,
+}
+
+pub fn describe(e: Error) -> string {
+  return "${number.to_string(e.code)}: ${e.detail}"
+}

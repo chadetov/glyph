@@ -1,0 +1,3 @@
+code = "E0304"
+pillar = "verifiability"
+title = "A validator that reports success for a field it never checked"

@@ -1,0 +1,11 @@
+module m
+
+import catalog { ColType }
+
+pub fn width(c: ColType) -> number {
+  return match c {
+    "text" => 32,
+    "int" => 8,
+    "real" => 8,
+  }
+}

@@ -1,0 +1,7 @@
+module m
+
+import lib { Sheet }
+
+pub fn row_count(s: Sheet) -> number {
+  return s.rowz
+}

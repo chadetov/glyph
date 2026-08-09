@@ -1,0 +1,12 @@
+module m
+
+type Socket = extern_ts("{ handle: number }")
+
+pub type Conn = {
+  id: number,
+  sock: Socket,
+}
+
+pub fn take(v: unknown) -> Result<Conn, Array<Issue>> {
+  return Conn.parse(v)
+}

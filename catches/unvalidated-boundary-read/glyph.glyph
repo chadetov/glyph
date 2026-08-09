@@ -1,0 +1,10 @@
+module m
+
+pub type User = {
+  id: number,
+  email: string,
+}
+
+pub fn email_of(body: unknown) -> string {
+  return body.email
+}

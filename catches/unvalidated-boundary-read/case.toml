@@ -1,0 +1,4 @@
+code = "TS18046"
+pillar = "verifiability"
+title = "A field read off a value that was never checked"
+note = "The rejection arrives from the tsc back end rather than a Glyph code, and that is the point: TypeScript accepts the program because `JSON.parse` hands back `any` and an annotation launders it. Glyph has no `any` and no cast, so the boundary value stays `unknown` and there is no spelling that gets past it. `User.parse(body)` is the way through."

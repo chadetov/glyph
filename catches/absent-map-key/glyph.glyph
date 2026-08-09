@@ -1,0 +1,5 @@
+module m
+
+pub fn name_of(row: Record<string, string>) -> string {
+  return row.naem
+}

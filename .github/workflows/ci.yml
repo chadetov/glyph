@@ -101,3 +101,12 @@ jobs:
           set -e
           python3 scripts/check_scaffold_docs.py
           python3 scripts/check_docs_compile.py
+
+      # The evidence behind the four pillars, checked in both directions. The
+      # TypeScript in each case has to keep passing `tsc --strict` or the case
+      # proves nothing, and the Glyph has to keep failing with the code it names
+      # or the guarantee it documents is gone.
+      - name: Check what Glyph catches that tsc does not
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: python3 scripts/check_catches.py

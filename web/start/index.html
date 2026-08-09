@@ -54,7 +54,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
 
       <div class="detail">
         <p class="block-label">2 &middot; Scaffold a project</p>
-        <p><code>glyph init</code> creates a runnable starter: a <code>src/main.glyph</code>, a <code>package.json</code>, and a <code>.gitignore</code>.</p>
+        <p><code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/</code> for any ambient declarations, a <code>package.json</code>, and a <code>.gitignore</code>. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.</p>
       </div>
       <div class="code">
         <span class="cap">terminal</span>
@@ -68,15 +68,18 @@ cd hello</pre>
         <span class="cap">src/main.glyph</span>
 <pre>module main
 
+import std/io
+
 fn main(argv: Array&lt;string&gt;) -&gt; number {
-  print("hello from glyph")
+  io.println("hello from glyph")
   return 0
 }</pre>
       </div>
       <div class="detail">
         <p>
           Two things to notice: a program runs its <code>main(argv)</code>, and <code>main</code>
-          returns a <code>number</code> (the process exit code).
+          returns a <code>number</code>, the process exit code. Returning sets that code without
+          forcing the process to stop, so a program that starts a server keeps serving.
         </p>
 
         <p class="block-label">3 &middot; Run it</p>

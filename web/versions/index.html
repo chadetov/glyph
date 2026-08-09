@@ -49,8 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.69</span>
+            <span class="rel-ver">0.1.70</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An index that is wrong, and a type that can be called Error</h3>
+            <p>Two entries that had been sitting on decisions rather than on work. Both were measured before anything was written, and in both cases the options already on the table lost to one that was not.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> An out-of-range index says so. <code>cells[999]</code> type-checked clean, passed <code>tsc --strict</code>, and handed back <code>undefined</code> where the compiler had promised a value, which then travelled until something dereferenced it somewhere else. Glyph was worse than Rust here, which tells the same lie in the type but stops at the bad index. <code>xs[i]</code> keeps its type and the read is bounds-checked, so out of range throws with the index and the length. <code>array.get(xs, i)</code> returns <code>Option</code> when absence is something the program handles.</li>
+              <li><span class="tag fixed">Fixed</span> A domain type may be called <code>Error</code> again. A union with an <code>Error</code> variant emitted a top-level function that captured every <code>new Error(...)</code> the compiler wrote below it, so the name was taken away. A module that shadows one of those globals now captures the real one under a private alias, and the author's name emits verbatim. The spreadsheet example reads <code>Number | Text | Empty | Error</code> again, which needed 162 captured references. <code>Array</code> is the exception and stays reserved: it is how every Glyph program spells an array, so a local one redefines a language type rather than shadowing a global.</li>
+              <li><span class="tag added">Added</span> <code>cargo clippy</code> gates every push, and <strong>CodeQL</strong> analyses the Rust, the TypeScript and the workflows. Turning clippy on found a test that never ran, another registered twice, and two doc comments detached from the functions they documented.</li>
+              <li><span class="tag improved">Improved</span> Supply chain: every GitHub Action pinned by commit, every workflow read-only by default, Dependabot on the Rust and Actions dependencies, and the release now attaches its provenance bundle so the attestation is checkable without a network call. Two advisories cleared.</li>
+            </ul>
+            <p><strong>One behaviour change to know about.</strong> A program that read past the end of an array and carried on with <code>undefined</code> now throws at that read. That is the point, and it is the only way existing code can behave differently after this upgrade.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.69</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

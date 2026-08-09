@@ -3002,7 +3002,7 @@ typed `Heap<T>` is unverifiable and E0304 now refuses to parse a record holding
 one. That is the honest floor rather than the feature; generic union descriptors
 are the feature.
 
-## 0.1.70 (unreleased) — an index that is wrong says so
+### 0.1.70 — Shipped · An index that is wrong, and a type that can be called Error
 
 - **G30, the index-safety half.** `cells[999]` type-checked clean, passed
   `tsc --strict`, and handed back `undefined` where the compiler had promised a

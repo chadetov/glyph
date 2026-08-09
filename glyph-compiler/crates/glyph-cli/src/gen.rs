@@ -535,8 +535,24 @@ enum HelperOutcome {
 /// Write `script` to a temp file, run it with `runner <script> <arg>`, and parse
 /// its stdout as JSON. NODE_PATH is set to the global module root so a global
 /// install of the helper's dependency is resolvable.
+/// A unique path for one helper invocation.
+///
+/// Keyed on the process id *and* a counter. The process id alone is not enough:
+/// Rust runs tests as threads in one process, so concurrent calls shared a file
+/// and the first to finish deleted it out from under the next.
+fn helper_temp_path(name: &str) -> std::path::PathBuf {
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let seq = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    std::env::temp_dir().join(format!("{name}-{}-{seq}.mjs", std::process::id()))
+}
+
 fn run_helper(script: &str, name: &str, runner: &str, arg: &Path) -> HelperOutcome {
-    let helper = std::env::temp_dir().join(format!("{name}-{}.mjs", std::process::id()));
+    // The process id alone is not unique enough. Rust runs tests as threads in
+    // one process, so two concurrent `gen` calls named the same file, and the
+    // first to finish deleted it while the second was still starting node:
+    // `Cannot find module '/tmp/glyph-ts-to-schema-4630.mjs'`. A counter makes
+    // the name unique per call, which is what the path always needed to be.
+    let helper = helper_temp_path(name);
     if let Err(e) = std::fs::write(&helper, script) {
         return HelperOutcome::Io(format!("cannot write helper: {e}"));
     }
@@ -2443,5 +2459,46 @@ mod tests {
         }
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod helper_race_tests {
+    use super::*;
+
+    /// The helper's temp path must be unique per call, not per process.
+    ///
+    /// Rust runs tests as threads in one process, so a path keyed only on the
+    /// process id gave every concurrent `gen` the same file: the first to
+    /// finish deleted it while the next was still starting node, and four
+    /// `dts_*` tests failed together in CI with `Cannot find module
+    /// '/tmp/glyph-ts-to-schema-4630.mjs'`. It reproduced roughly never on a
+    /// fast local disk, which is why this drives the collision directly instead
+    /// of running the real tests and hoping.
+    #[test]
+    fn concurrent_helper_runs_do_not_share_a_temp_path() {
+        use std::collections::HashSet;
+        use std::sync::{Arc, Mutex};
+
+        let seen: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
+        let mut handles = Vec::new();
+        for _ in 0..16 {
+            let seen = Arc::clone(&seen);
+            handles.push(std::thread::spawn(move || {
+                // `run_helper` writes the script, runs it, then removes it. A
+                // runner that does not exist returns before any of that matters,
+                // so this exercises the naming without needing node installed.
+                let path = helper_temp_path("glyph-race-probe");
+                seen.lock().unwrap().insert(path.to_string_lossy().into_owned());
+            }));
+        }
+        for h in handles {
+            h.join().expect("thread panicked");
+        }
+        assert_eq!(
+            seen.lock().unwrap().len(),
+            16,
+            "sixteen concurrent calls must produce sixteen distinct paths"
+        );
     }
 }

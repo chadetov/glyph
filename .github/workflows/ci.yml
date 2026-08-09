@@ -83,3 +83,21 @@ jobs:
           cargo build -q
           BIN="$(pwd)/target/debug/glyph"
           "$BIN" build ../examples --out "$RUNNER_TEMP/dist"
+
+      # The docs run against the compiler, not against a reader's memory. Both
+      # of these need a built `glyph`, so they live here rather than in the
+      # versions job.
+      #
+      # Prose rots in two directions. A snippet can stop compiling because the
+      # language moved under it, and a snippet can look wrong while being
+      # correct, which is how someone comes to "fix" working documentation.
+      # `glyph init` drifting from the page that walks through it is the third
+      # case, and compiling cannot catch it: the wrong first-run snippet
+      # compiled fine for months.
+      - name: Check the docs against the compiler
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: |
+          set -e
+          python3 scripts/check_scaffold_docs.py
+          python3 scripts/check_docs_compile.py

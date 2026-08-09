@@ -69,3 +69,7 @@ playground/pkg/
 # Local working notes (research, drafts, scratch analysis). Never committed —
 # like CLAUDE.md and feedbacks/, this is a private working channel.
 /notes/
+
+# Python bytecode from the check scripts
+__pycache__/
+*.pyc

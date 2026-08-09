@@ -139,7 +139,7 @@ declare module "leftpad" {
 
 `src/main.glyph`:
 
-```glyph
+```glyph needs-deps
 module main
 
 import std/io
@@ -187,7 +187,7 @@ npm install zod
 
 `src/main.glyph`:
 
-```glyph
+```glyph needs-deps
 module main
 
 import zod { z }

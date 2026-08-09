@@ -22,6 +22,10 @@ glyph run
 # hello from glyph
 ```
 
+Four files: `src/main.glyph`, a `src/.types/README.md` saying where ambient
+declarations go, a `package.json` pinning the compiler and the `typescript` and
+`tsx` it runs through, and a `.gitignore`.
+
 `glyph run` type-checked the program, compiled it to TypeScript, and executed
 its `main(argv)`. `main` returns a `number`, the process exit code. Returning
 sets the code; the process leaves when nothing is left to wait for, so a program

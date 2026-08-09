@@ -158,6 +158,8 @@ pub fn resolve_module(
         symbols: &symbols,
         prelude,
         scopes: Vec::new(),
+        pending: Vec::new(),
+        fn_depth: 0,
         resolutions: ResolutionMap::new(),
         errors: Vec::new(),
         qualified_type_refs: Vec::new(),
@@ -268,6 +270,15 @@ struct Resolver<'a> {
     prelude: &'a Prelude,
     /// Stack of local scopes. Each scope maps name → defining-site span start.
     scopes: Vec<HashMap<Ident, u32>>,
+    /// Per-block `let` bindings that have been *seen* but not yet initialized:
+    /// name → (defining-site span start, the function nesting depth of the block
+    /// that declares it). A reference reaches one of these only from deeper
+    /// inside a nested function, which is how `let a = fn() { b() }` before
+    /// `let b` resolves while a direct `let a = b` stays an error (G92).
+    pending: Vec<HashMap<Ident, (u32, u32)>>,
+    /// How many function bodies enclose the walker right now. A lambda body is
+    /// depth+1 relative to the block that holds its `let`.
+    fn_depth: u32,
     resolutions: ResolutionMap,
     errors: Vec<ResolveError>,
     qualified_type_refs: Vec<QualifiedTypeRef>,
@@ -276,10 +287,33 @@ struct Resolver<'a> {
 impl Resolver<'_> {
     fn push_scope(&mut self) {
         self.scopes.push(HashMap::new());
+        self.pending.push(HashMap::new());
     }
 
     fn pop_scope(&mut self) {
         self.scopes.pop();
+        self.pending.pop();
+    }
+
+    /// A `let` this block declares further down. Visible only from inside a
+    /// nested function body, where by the time it runs the binding exists.
+    fn bind_pending(&mut self, name: Ident, def_span: Span) {
+        let depth = self.fn_depth;
+        if let Some(top) = self.pending.last_mut() {
+            top.insert(name, (def_span.start, depth));
+        }
+    }
+
+    /// A forward reference that is legal because it is written inside a function
+    /// that cannot run before the binding is initialized. Returns the defining
+    /// span start, matching `lookup_local`.
+    fn lookup_pending(&self, name: &str) -> Option<u32> {
+        for scope in self.pending.iter().rev() {
+            if let Some(&(start, declared_at)) = scope.get(name) {
+                return (self.fn_depth > declared_at).then_some(start);
+            }
+        }
+        None
     }
 
     fn bind_local(&mut self, name: Ident, def_span: Span) {
@@ -319,7 +353,7 @@ impl Resolver<'_> {
     /// let-vs-mut hint (D: `mut` reassigns an existing binding; it is not
     /// `let mut`).
     fn resolve_name_ref_ctx(&mut self, name: &Ident, ref_span: Span, mut_target: bool) {
-        if let Some(start) = self.lookup_local(name) {
+        if let Some(start) = self.lookup_local(name).or_else(|| self.lookup_pending(name)) {
             self.resolutions
                 .insert(ref_span, ResolvedRef::Local(start));
             return;
@@ -435,6 +469,15 @@ impl Resolver<'_> {
     fn walk_block(&mut self, block: &Block) {
         // Each block gets a nested scope so `let` bindings inside don't leak.
         self.push_scope();
+        // Every `let` this block will declare is registered up front as pending,
+        // so a lambda written before one of them can still name it (G92). The
+        // binding only becomes ordinary once its initializer has been walked, so
+        // a direct forward reference stays the error it was.
+        for s in &block.stmts {
+            if let Stmt::Let(l) = s {
+                self.bind_pending(l.name.clone(), l.span);
+            }
+        }
         for s in &block.stmts {
             self.walk_stmt(s);
         }
@@ -449,6 +492,9 @@ impl Resolver<'_> {
                 }
                 self.walk_expr(&l.value);
                 // Binding is visible *after* the initializer (sequential let).
+                if let Some(top) = self.pending.last_mut() {
+                    top.remove(&l.name);
+                }
                 self.bind_local(l.name.clone(), l.span);
             }
             Stmt::Mut(m) => match &m.kind {
@@ -594,7 +640,9 @@ impl Resolver<'_> {
                 if let Some(rt) = return_ty {
                     self.walk_type_expr(rt);
                 }
+                self.fn_depth += 1;
                 self.walk_block(body);
+                self.fn_depth -= 1;
                 self.pop_scope();
             }
             Expr::Jsx(j) => self.walk_jsx(j),
@@ -1056,5 +1104,38 @@ type Bundle = { finding: Finding }
 "#;
         let (_, errs) = resolve(src);
         assert!(errs.is_empty(), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn locally_bound_closures_can_call_each_other() {
+        // G92. `let a = fn() { b() }` before `let b` was `unresolved name b`, so
+        // two closures could not refer to each other and event-driven code (a
+        // connect that schedules a reconnect that calls connect) had to be
+        // lifted to top-level functions with the shared state threaded through.
+        let (_, errs) = resolve(
+            "module m\npub fn run() -> number {\n  let a = fn() -> number { return b() }\n  let b = fn() -> number { return 1 }\n  return a()\n}\n",
+        );
+        assert!(errs.is_empty(), "mutual closures resolve: {errs:?}");
+    }
+
+    #[test]
+    fn a_direct_forward_reference_is_still_an_error() {
+        // The binding is reachable only from inside a nested function, where it
+        // cannot be read before it exists. Read straight out of the initializer
+        // it stays the error it was, because that one really would hit the
+        // temporal dead zone.
+        let (_, errs) = resolve(
+            "module m\npub fn run() -> number {\n  let a = b\n  let b = 1\n  return a\n}\n",
+        );
+        assert!(!errs.is_empty(), "direct forward reference still rejected");
+    }
+
+    #[test]
+    fn an_undefined_name_inside_a_closure_is_still_an_error() {
+        // Guard against the pending set swallowing genuine typos.
+        let (_, errs) = resolve(
+            "module m\npub fn run() -> number {\n  let a = fn() -> number { return zzz() }\n  return a()\n}\n",
+        );
+        assert!(!errs.is_empty(), "unknown name inside a closure still reported");
     }
 }

@@ -58,7 +58,7 @@ jobs:
       # for the examples type-check. `glyph gen dts` supports both the classic
       # (5/6) and 7.x native compilers, so its test exercises the classic path
       # here; the native path is covered separately.
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
       - run: npm install -g tsx typescript@6

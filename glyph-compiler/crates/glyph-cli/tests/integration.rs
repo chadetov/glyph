@@ -7690,3 +7690,59 @@ fn a_module_that_shadows_a_global_still_gets_working_descriptors() {
         "an unshadowed global is left alone: {ts}"
     );
 }
+
+#[test]
+fn a_match_on_a_trailing_optional_stdlib_call_is_checked() {
+    // G39 phase 2, and the case the entry was really about. `string.index_of`
+    // returns `Option<number>`, but it takes a trailing optional argument and
+    // the arity check compared one number against one number, so modeling it
+    // would have reported a false error on every two-argument call. Unmodeled,
+    // its result was `Unknown`, D9 exhaustiveness never ran, and a `match` with
+    // no `None` arm built clean and threw `non-exhaustive match` at run time.
+    let root = unique_tmp("optarity");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/string\n\
+         pub fn at(s: string) -> number {\n\
+        \x20 return match string.index_of(s, \"x\") {\n\
+        \x20   Some(i) => i,\n\
+        \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "the missing `None` arm is a compile error now: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn omitting_a_trailing_optional_argument_is_still_legal() {
+    // The other half. Modeling these was blocked because an exact arity check
+    // rejects the two-argument form, so the check now reads a minimum and a
+    // maximum: both spellings compile, and a third argument too many does not.
+    let root = unique_tmp("optok");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/array\n\
+         import std/string\n\
+         pub fn a(s: string) -> string {\n\
+        \x20 return string.slice(s, 1)\n\
+         }\n\
+         pub fn b(s: string) -> string {\n\
+        \x20 return string.slice(s, 1, 3)\n\
+         }\n\
+         pub fn c(xs: Array<number>) -> Array<number> {\n\
+        \x20 return array.slice(xs, 1)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
+    assert!(!report.has_errors(), "both spellings compile: {:?}", report.diagnostics);
+}

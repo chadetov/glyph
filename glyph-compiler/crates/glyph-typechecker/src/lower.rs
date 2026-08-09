@@ -193,6 +193,7 @@ impl<'a> Lowerer<'a> {
                         // `fn(owned x: T)` type syntax is forward-compatible.
                         owned: false,
                         ty: self.lower(&p.ty),
+                optional: false,
                     })
                     .collect(),
                 return_ty: Arc::new(
@@ -257,6 +258,7 @@ impl<'a> Lowerer<'a> {
                 name: Some(p.name.clone()),
                 owned: p.owned,
                 ty: self.lower(&p.ty),
+                optional: false,
             })
             .collect();
         let return_ty = return_ty

@@ -1031,7 +1031,20 @@ One is different in kind, and it is the one fixed here.
   work bounded and much smaller than modeling the stdlib from its `.d.ts`:
   teach the signature model optional parameters, model the six that take an
   optional trailing argument, then walk one level into a callback's return for
-  `map`/`flat_map`/`zip`.* The chosen direction is
+  `map`/`flat_map`/`zip`.*
+
+  *Phase 2 shipped in 0.1.71, and it is the six, not the nine.* `FnParam` gained
+  an `optional` flag and the arity check reads a minimum and a maximum instead of
+  one number, so `string.index_of`, `string.slice`, `string.pad_start`,
+  `string.pad_end`, `array.slice` and `json.stringify` are modeled. The case this
+  entry was really about is closed: a `match` on `string.index_of` with no `None`
+  arm is `E0200` at compile time rather than a throw at run time on a clean
+  build. `map`/`flat_map`/`zip` were attempted and reverted, and the reason is
+  worth keeping: a callback parameter modeled as `fn(T) -> U` rejects
+  `array.map(items, async fn(n: number) -> number { ... })`, which is legitimate
+  and appears in the examples, because assignability compares `is_async` (D40).
+  Modeling them needs a callback type that admits both, which is a decision about
+  colorless async through a callback rather than more table entries.* The chosen direction is
   the hand-written table, grown: `stdlib_fn_ty` now models the fixed-arity half
   of `std/string` and `std/array` (returns, plus `Array<T>` where the element
   type has to travel), and there is now a shape model for a stdlib *named* type

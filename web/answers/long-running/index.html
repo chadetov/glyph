@@ -186,8 +186,8 @@ pub fn feed(buffered: string, chunk: string) -&gt; Framed {</pre>
           about a <code>RECONNECT</code>, a missed heartbeat, or a rejected token
           is a pure function from a session and one event to a new session and a
           list of actions. One module carries those actions out on a real socket.
-          That is why the reconnect logic, which is the part that is genuinely
-          hard to get right, is checked by <code>@example</code> rather than by
+          That is why the reconnect logic, which is the hard part to get
+          right, is checked by <code>@example</code> rather than by
           unplugging a network cable:
         </p>
       </div>
@@ -216,11 +216,11 @@ pub fn disconnected(current: Session, code: int, reason: string) -&gt; Step {</p
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit.</p>
+          <p>Returning from <code>main</code> sets the exit code without stopping the process, so servers, watchers and event loops run. A program that only computes still exits the moment <code>main</code> returns, with the same code, so nothing about short programs changed. Node builtins like <code>net</code> are ordinary imports, and a program that throws during setup still terminates, now after its diagnostic has reached a piped stderr rather than possibly being truncated by the exit. <code>std/timers</code> schedules work (<code>after</code>, <code>every</code>, <code>cancel</code>, <code>unref</code>) and <code>std/websocket</code> opens a connection, so neither needs a hand-written declaration.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Two rough edges. Nothing sets the exit code for you once <code>main</code> has returned, so a listener that fails to bind exits 0 unless the program calls <code>process.exit</code> itself; that is easy to forget and the compiler cannot yet warn about it. And there is no way to write down that a function does not return: <code>serve</code> explains it in a comment, and <code>main</code> carries a <code>return 0</code> that is never reached. A <code>-&gt; never</code> return type would let the compiler say it instead.</p>
+          <p>A listener that fails to bind after <code>main</code> has returned exits 0 unless the program says otherwise: <code>process.set_exit_code(1)</code> records the failure without tearing down work still in flight, and <code>process.exit(1)</code> stops immediately. The compiler cannot yet warn that you forgot. And there is still no way to write down that a function does not return, so a server's <code>main</code> carries a <code>return 0</code> that is never reached.</p>
         </div>
       </div>
 

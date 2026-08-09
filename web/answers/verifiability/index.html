@@ -410,7 +410,7 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
       </div>
 
       <div class="code">
-        <span class="cap">reading a key that may not be there &mdash; now E0224</span>
+        <span class="cap">reading a key that may not be there: now E0224</span>
 <pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
   return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
 }</pre>
@@ -452,7 +452,7 @@ fn same() -&gt; bool {
         <span class="cap">exhaustiveness that evaporated inside a loop</span>
 <pre>for t in tiers {
   match t {
-    "free" =&gt; ...          <span class="cm">// "pro" unhandled — once merely a warning to add `else`</span>
+    "free" =&gt; ...          <span class="cm">// "pro" unhandled: once merely a warning to add `else`</span>
   }
 }</pre>
       </div>

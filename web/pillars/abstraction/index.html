@@ -162,7 +162,7 @@ fn origin() -&gt; Point {
       <div class="detail">
         <p class="block-label"><span class="ex-label">05</span> One primitive per job</p>
         <p>
-          When a concept genuinely needs its own tool, Glyph gives it exactly one. Shared mutable
+          When a concept needs its own tool, Glyph gives it exactly one. Shared mutable
           state lives in a <code>std/store</code>. A file or socket handle that must be closed once is
           an <code>owned</code> resource. Iteration is <code>for x in xs</code>. Each is a single,
           named, purpose-built primitive, not a pattern you re-derive from a grab-bag of

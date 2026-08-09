@@ -106,7 +106,7 @@ fn use_counter() -&gt; StateHandle&lt;number&gt; {
           JSX prop spreading works too: <code>&lt;input {...register("email")} /&gt;</code> lowers
           to an object spread in the props, so the react-hook-form idiom needs no adapter. Zod's
           value-derived types are first-class: <code>type FormData = z.infer&lt;typeof schema&gt;</code>
-          works directly, no escape hatch. The one thing that genuinely differs: a component takes a
+          works directly, no escape hatch. The one thing that differs: a component takes a
           single props record, not multiple positional params. See
           <a href="/answers/imports/">using your libraries</a> and the
           <a href="/hardening/">hardening page</a> for exactly where that boundary is.

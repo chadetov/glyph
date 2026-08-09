@@ -400,7 +400,7 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
       </div>
 
       <div class="detail">
-        <p class="block-label">Three more, found by building with it</p>
+        <p class="block-label">Four more, found by building with it</p>
         <p>
           Each of these compiled clean and passed <code>tsc --strict</code>, and
           each was found by writing an application rather than by reading the
@@ -467,6 +467,35 @@ fn same() -&gt; bool {
         </p>
       </div>
 
+      <div class="code">
+        <span class="cap">a <code>parse</code> that reported success without checking: now E0304</span>
+<pre>type Conn = { id: number, sock: Socket }
+
+Conn.parse(body)   <span class="cm">// Ok. `sock` was never checked, and the message said it was</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Every record type carries a runtime descriptor. For a field whose type
+          the compiler cannot see into, a socket or anything reached through
+          <code>extern_ts</code>, the generated check was "is it present" while
+          the reported message read <code>field `sock` must be Socket</code>. A
+          boolean that is always true is useless. One that is always true under a
+          message naming a type nothing checked is worse, because
+          <code>parse</code> is the thing a boundary is told to trust.
+        </p>
+        <p>
+          Holding a socket in a record is ordinary and still compiles.
+          Validating one is now refused where it is written, naming the field and
+          its type, and the refusal follows the shape: through a nested record,
+          an <code>Array</code>, an <code>Option</code>. The fix it asks for is
+          the split you would have written anyway, a wire type whose fields are
+          all checkable, then a domain record you build from it.
+          <code>unknown</code> is not caught by this, because it claims nothing
+          and presence really is the whole check.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
@@ -475,7 +504,7 @@ fn same() -&gt; bool {
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types. Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike; a misspelled bare arm trips <code>E0103</code> as well, one stage earlier, so you get both lines for the same name. When <code>E0200</code> lists what you missed it quotes the names for a module-local union and leaves them bare for an imported one, which is a formatting split between two code paths and nothing more. Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is assignability (passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is still a <code>tsc</code> error, not a Glyph one) and an <code>interface</code>'s member list. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
+          <p>A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types. Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> has no descriptor to validate through, and <code>parse</code> on a record holding one is now refused (<code>E0304</code>) rather than reporting a success it did not check; materialize it with <code>glyph gen dts</code> to get a type that validates. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike; a misspelled bare arm trips <code>E0103</code> as well, one stage earlier, so you get both lines for the same name. When <code>E0200</code> lists what you missed it quotes the names for a module-local union and leaves them bare for an imported one, which is a formatting split between two code paths and nothing more. Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is assignability (passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is still a <code>tsc</code> error, not a Glyph one) and an <code>interface</code>'s member list. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
         </div>
       </div>
 

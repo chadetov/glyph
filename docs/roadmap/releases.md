@@ -2910,82 +2910,56 @@ E0111's explanation and one formatter regression test.
   message it would replace. Doing it properly means attaching a note during the
   `tsc` remap rather than adding a check.
 
-## Planned: the six open gaps first
+## 0.1.69 (Next, unreleased) — every open gap at once
 
-Re-sequenced after re-reproducing every open entry against 0.1.68. The previous
-order carried three items that had already closed (G87, G24, G48) and put the
-open ones behind partly-fixed ones. This order works the open list first, one
-risky change per release.
+Re-sequenced after re-reproducing each open entry against 0.1.68, then built
+as one release rather than five. The earlier order carried three items that had
+already closed (G87, G24, G48) and put the open ones behind partly-fixed ones.
 
-The investigation changed the shape of the work. **G88 is three gaps wearing one
-number.** The always-false field check fires eight times across the examples
-tree, from three different causes, and only the third needed a decision:
+All six are done and the version has not been bumped: the release is prepared,
+not published.
 
-1. A field typed by a **stdlib named type** gets no descriptor, so
-   `amount: Decimal` on a wire record is a presence check. Money at a boundary
-   is not validated, which is the opposite of what the finance answer says.
-2. A field typed by an **imported string-literal union** (D30) gets no
-   membership check, so `kind: ColType` accepts any string once the type
-   crosses a module. Same hole G76 closed for `match`, still open for records.
-3. A field whose type genuinely has no runtime check (`Socket`, an `extern_ts`
-   type, `unknown`).
-
-The first two are bugs with one correct answer. The third was a decision, and it
-is made: **a record with an unverifiable field may exist, but calling `parse` or
-`is` on it is a compile error.** Holding a socket in a record is ordinary; being
-told at a boundary that the socket was validated is the thing that cannot ship.
-
-### 0.1.69 — Next · Descriptors that check what they claim
-
-- **G88, causes 1 and 2.** Thread the descriptor for a stdlib named type and the
-  membership check for an imported string-literal union into a record's field
-  check. Eight always-false branches in the examples tree go to real checks, and
-  the emitted message stops naming a type nothing verified.
-- **G95 is decided, and it is the narrow answer.** The resolver stays
-  module-only: a host global Glyph ships no wrapper for is a stdlib gap to be
-  filled on demand, not something `.types/` can reach. Everything reachable
-  stays typed Glyph the stdlib vetted. This costs D37's `new` on a global class,
-  which stays unavailable. The work is to stop `.types/` documentation implying
-  otherwise, and to say so in the diagnostic instead of a bare E0103.
-
-### 0.1.70 — Refusing to parse what cannot be checked
-
-- **G88, cause 3.** A new error code: `parse` and `is` on a record holding a
-  field with no runtime check are refused at the call site, naming the field and
-  its type. Declaring the record is still fine. Three call sites in the examples
-  change, and each one is the wire/domain split the error is asking for.
-
-One risky change, alone in its release, because it is the one that can reject
-code that compiles today.
-
-### 0.1.71 — Messages that name the rule
-
-- **G68.** `json.parse<T>(text)` routes through `T.schema`, a single checker, so
-  every field failure collapses to one issue reading `expected T`. The two-step
-  form reports two issues with paths for the same fixture. Thread the
-  descriptor's issues through the rewrite so the one-step form the guide teaches
-  stops being the one that says less.
-- **G98.** Attach a note during the `tsc` remap when a TS2322 lands on a `match`
-  with an `is` arm, saying that `is` narrows the binding. This is the fix the
-  0.1.68 assessment named. A note has none of the false-positive problem that
-  made a check the wrong answer, because it explains a failure rather than
-  causing one.
-
-### 0.1.72 — Locally bound closures can call each other
-
+- **G88, and it was three gaps wearing one number.** The always-false field
+  check fired eight times across the examples tree. A field typed by an
+  imported string-literal union lost its D30 membership check the moment the
+  type crossed a module, the same hole G76 closed for `match`. A field whose
+  type the emitter cannot see into got `field !== undefined` under a message
+  naming the type it never checked, so `parse` returned `Ok` for a value it had
+  not validated. The first is fixed by resolving an imported descriptorless
+  alias to its leaf. The second is `E0304`: the field check now answers a real
+  predicate, presence-only, or nothing, and `parse`/`is` are refused at the call
+  site on the last. Declaring such a record stays legal, so holding a socket in
+  one is still ordinary. `unknown` turned out not to be the third case at all,
+  because it claims nothing and presence is the whole check. All eight branches
+  are gone.
+- **G68.** `json.parse<T>` collapsed every field failure into one issue reading
+  `expected T`, while the two-step form named the field and its path for the
+  same input. The schema factory now carries the descriptor's own `parse`, so
+  the one-step form the guide teaches reports what the two-step form does, and
+  an array prefixes the element index.
+- **G98.** A note during the `tsc` remap says that `is` narrows the binding, so
+  a TS2322 over a re-read scrutinee explains itself. This is the fix the 0.1.68
+  assessment named when it declined a *check*: the shape has a legitimate
+  counterexample, and a note on a failure that already happened cannot fire on
+  correct code.
 - **G92.** A name used inside a nested function body resolves against the whole
-  enclosing block, so `let a = fn() { b() }` before `let b` is legal. This is
-  what JavaScript already does with `const` and a closure, and what the emitted
-  code would already have run correctly. Direct references in an initializer
-  keep today's rule.
+  enclosing block, so two locally bound closures can call each other. A direct
+  forward reference out of an initializer stays an error. The remaining hole is
+  TypeScript's own: a forward-referencing closure called before the target's
+  `let` runs throws `ReferenceError` at runtime, and `tsc --strict` does not
+  catch that either.
+- **G89 (D43).** `never` is spellable in user code and behaves as a bottom type.
+  A `main` that dispatches to a non-returning `serve` on one arm and
+  `process.exit` on the other needs no unreachable `return` and no dead arm.
+- **G95, decided.** The resolver stays module-only: a host global the stdlib
+  does not wrap is a stdlib gap, filled on demand. Everything reachable stays
+  Glyph the compiler knows. `--explain E0103`, the scaffolded `.types/README.md`
+  and the imports guide all say so, and the cost is stated: `new` (D37) does not
+  work on a global class.
 
-### 0.1.73 — A program can say it does not terminate
-
-- **G89.** `never` becomes a prelude type spellable in user code, as a new
-  D-decision. `std/process.exit` is already typed `-> never`, so the concept
-  exists and only user code cannot name it. A `fn serve(port: int) -> never`
-  deletes an unreachable `return`, deletes a dead `match` arm kept only for
-  exhaustiveness, and puts in the signature what a doc comment currently asserts.
+Also in this release: the npm README leads with `npx` instead of a global
+install, and `glyph init` stops telling a reader who arrived through `npx` to
+run a command they do not have.
 
 ### After the open list
 
@@ -2995,6 +2969,12 @@ request), G78 (multi-module app in an enclosing tree), G79, G27, then G39, G37,
 G30 and G18. G30's two questions (a counted range for `for`, and `xs[i]` typing
 as `Unknown`) are decisions, not implementation, and are owed an answer before
 that slot.
+
+New this release, worth its own entry when it comes up: a **generic tagged
+union** carries no runtime descriptor (only generic *records* do), so a field
+typed `Heap<T>` is unverifiable and E0304 now refuses to parse a record holding
+one. That is the honest floor rather than the feature; generic union descriptors
+are the feature.
 
 ## Road to 1.0
 

@@ -6,10 +6,25 @@
 [![downloads](https://img.shields.io/npm/dm/@glyphlang/glyph.svg)](https://www.npmjs.com/package/@glyphlang/glyph)
 [![license](https://img.shields.io/npm/l/@glyphlang/glyph.svg)](https://github.com/chadetov/glyph)
 
-Glyph is a statically typed language that **transpiles to TypeScript**, designed from the ground up so AI agents can read, write, and modify code safely. It looks almost like TypeScript — you read it on day one, no tutorial — but the differences are deliberate: each one closes a hole an agent falls through and `tsc --strict` waves past.
+Glyph is a statically typed language that **transpiles to TypeScript**, built so AI agents can read, write, and modify code safely. It looks almost like TypeScript, so you read it on day one with no tutorial. Where it differs, each difference closes a hole an agent falls through and `tsc --strict` waves past.
+
+## Try it without installing anything
+
+```sh
+npx @glyphlang/glyph init my-app
+cd my-app
+npm install
+npx glyph run
+# hello from glyph
+```
+
+That scaffolds four files, pins the compiler in `devDependencies`, and runs the program. Anyone who clones the project builds it with `npm install` and nothing global.
+
+Prefer it on your PATH:
 
 ```sh
 npm install -g @glyphlang/glyph
+glyph init my-app && cd my-app && glyph run
 ```
 
 > **Website:** [glyphlang.io](https://glyphlang.io) &nbsp;·&nbsp; **Try it in the browser:** [playground](https://glyphlang.io/playground/) &nbsp;·&nbsp; **Pointing an agent at it?** [glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)
@@ -18,13 +33,13 @@ npm install -g @glyphlang/glyph
 
 ## The problem it solves
 
-An AI agent will happily write TypeScript that compiles clean and breaks at runtime. It reaches for `any` at a boundary, casts an `unknown`, forgets a `switch` case, and drops a `Promise` on the floor — and `tsc --strict` stays green the whole time. On a large codebase it can't even reliably *find* where something is defined, because overloads, decorators, namespace merging, and barrel re-exports scatter one symbol across many places.
+An AI agent will happily write TypeScript that compiles clean and breaks at runtime. It reaches for `any` at a boundary, casts an `unknown`, forgets a `switch` case, drops a `Promise` on the floor, and `tsc --strict` stays green the whole time. On a large codebase it cannot even reliably *find* where something is defined, because overloads, decorators, namespace merging, and barrel re-exports scatter one symbol across many places.
 
-Glyph removes those hazards at the language level. The bugs an agent ships don't compile here.
+Glyph removes those hazards at the language level. The bugs an agent ships do not compile here.
 
 ## See it
 
-Glyph reads like TypeScript, but there's no `any`, `match` must cover every case, and a type you declare is *actually checked at runtime*:
+Glyph reads like TypeScript, but there is no `any`, `match` must cover every case, and a type you declare is *actually checked at runtime*:
 
 ```glyph
 type User = {
@@ -44,34 +59,33 @@ fn handle(body: unknown) -> string {
 
 That compiles to clean, readable TypeScript you can commit, run anywhere TS runs, and mix with any npm package.
 
-## Why teams pick it
+## What's different
 
-- **No `any`, no erasure.** What the types say is true when the code runs. Every record type generates a runtime validator (`User.parse(x)`), so untrusted input is typed only after it's checked.
-- **Exhaustive by default.** `match` over a union — or over `number`/`string` — must handle every case, or it doesn't compile. Add a variant and every unhandled site lights up.
-- **Errors are values.** `Result` and the `?` operator instead of thrown exceptions; drop a `Result` and you get a warning, because a discarded error is a swallowed failure.
-- **Greppable.** One name, one declaration form. `grep "fn parseUser"` finds the definition — always. No overloads, decorators, or barrel files.
-- **Stable diffs.** One canonical format, one element per line, trailing commas, no reflow. A one-line change is a one-line diff — so agent edits stay reviewable.
-- **Generate, don't hand-write.** `glyph gen openapi spec.yaml --client` emits a typed HTTP client and server stubs; `glyph gen zod` / `gen dts` turn existing schemas into checked Glyph types.
-- **Talks to real databases.** Import any npm client by name. Class-based clients (`new Pool`, `new MongoClient`) construct with `new`, and SQLite is built in via `std/sqlite`. A row comes back untrusted, so you `Row.parse` it into a typed record, and the schema-versus-code mismatch a cast would hide is caught at the boundary. See the [databases guide](https://github.com/chadetov/glyph/blob/main/docs/guide/databases.md).
+- **No `any`, no erasure.** What the types say is true when the code runs. Every record type generates a runtime validator (`User.parse(x)`), so untrusted input is typed only after it has been checked, and a failure names the field and its path.
+- **Exhaustive by default.** `match` over a union, or over `number`/`string`, must handle every case or it does not compile. Add a variant and every unhandled site lights up.
+- **Errors are values.** `Result` and the `?` operator instead of thrown exceptions. Drop a `Result` and you get a warning, because a discarded error is a swallowed failure.
+- **Greppable.** One name, one declaration form. `grep "fn parseUser"` finds the definition every time. No overloads, decorators, or barrel files.
+- **Stable diffs.** One canonical format, one element per line, trailing commas, no reflow. A one-line change is a one-line diff, so agent edits stay reviewable.
+- **Generate, don't hand-write.** `glyph gen openapi spec.yaml --client` emits a typed HTTP client and server stubs. `glyph gen zod` and `gen dts` turn existing schemas into checked Glyph types.
+- **Talks to real databases.** Import any npm client by name. Class-based clients (`new Pool`, `new MongoClient`) construct with `new`, and SQLite is built in via `std/sqlite`. A row comes back untrusted, so you `Row.parse` it into a typed record and the schema-versus-code mismatch a cast would hide is caught at the boundary. See the [databases guide](https://github.com/chadetov/glyph/blob/main/docs/guide/databases.md).
 
-## Quickstart
+## The commands
 
 ```sh
 glyph init my-app          # scaffold a project
-cd my-app
 glyph run                  # build + type-check + execute
 glyph build --check        # emit TypeScript, verified with tsc --strict
 glyph fmt                  # one canonical layout
 glyph --explain E0200      # long-form help for any diagnostic
 ```
 
-Glyph ships as a single prebuilt binary per platform (macOS, Linux, Windows — Intel and ARM). No postinstall download, no toolchain to set up. Running or type-checking uses your local `tsx`/`tsc`.
+Glyph ships as a single prebuilt binary per platform (macOS, Linux, and Windows, on Intel and ARM). No postinstall download and no toolchain to set up. Running or type-checking uses your local `tsx`/`tsc`.
 
 ## Built for agents
 
-Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — a single file that takes it from zero to correct, runnable Glyph: the canonical program shape, the full stdlib surface, the common gotchas, and the complete diagnostic catalogue with one-line fixes. Agents that write Glyph get compile-time feedback precise enough to self-correct.
+Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)**, a single file that takes it from zero to correct, runnable Glyph: the canonical program shape, the full stdlib surface, the common gotchas, and the complete diagnostic catalogue with one-line fixes. Agents writing Glyph get compile-time feedback precise enough to self-correct.
 
-**Model Context Protocol.** For an agent that speaks MCP, `glyph mcp` runs a server over stdio that gives it five queries: type-check a file for coded diagnostics, the inferred type at a cursor, where a name is defined (following imports), every reference to a symbol across the project, and symbol search. It runs the same analysis the editor uses, so the agent's answers match the compiler. Point any MCP client at `glyph mcp <project>`; details at [glyphlang.io/mcp](https://glyphlang.io/mcp/).
+**Model Context Protocol.** For an agent that speaks MCP, `glyph mcp` runs a server over stdio that answers five queries: type-check a file for coded diagnostics, the inferred type at a cursor, where a name is defined (following imports), every reference to a symbol across the project, and symbol search. It runs the same analysis the editor uses, so the agent's answers match the compiler. Point any MCP client at `glyph mcp <project>`; details at [glyphlang.io/mcp](https://glyphlang.io/mcp/).
 
 **Editors.** `glyph lsp` is a full language server (diagnostics, hover, go-to-definition, completion, symbols, workspace-wide find-references and rename, formatting) that any LSP client can drive over stdio. A VS Code extension ships ready-made.
 
@@ -82,15 +96,15 @@ Point your coding agent at **[glyphlang.io/llms.txt](https://glyphlang.io/llms.t
 | Your first program in 10 minutes | [Start Here](https://glyphlang.io/start/) |
 | The whole language in five minutes | [the tour](https://github.com/chadetov/glyph/blob/main/docs/guide/tour.md) |
 | Try it without installing | [playground](https://glyphlang.io/playground/) |
-| Straight-talking answers to engineer questions | [glyphlang.io/answers](https://glyphlang.io/answers/) |
+| Straight answers to engineer questions | [glyphlang.io/answers](https://glyphlang.io/answers/) |
 | The four pillars, in depth | [glyphlang.io/pillars/verifiability](https://glyphlang.io/pillars/verifiability/) |
 | Source, issues, roadmap | [github.com/chadetov/glyph](https://github.com/chadetov/glyph) |
 
 ## Status
 
-Glyph is an **early preview** and moves fast. The compiler toolchain — `build`, `run`, `fmt`, `gen`, `regen`, `--explain` — works end to end, and every release is type-checked against `tsc --strict`. It is not yet recommended for production; it's ready for you to try, break, and tell us about. Every version's changes are at [glyphlang.io/versions](https://glyphlang.io/versions/).
+Glyph is an **early preview** and moves fast. The compiler toolchain (`build`, `run`, `fmt`, `gen`, `regen`, `--explain`) works end to end, and every release is type-checked against `tsc --strict`. It is not ready for production yet. It is ready for you to try and to tell us where it breaks. Every version's changes are at [glyphlang.io/versions](https://glyphlang.io/versions/).
 
-**Stability while pre-1.0:** the language can still change between 0.1.x releases. We hold two lines: your code stays runnable (it always compiles to plain TypeScript you own, so there's a permanent escape hatch), and when syntax does change we aim to make `glyph fmt` migrate it for you. Full policy: [docs/stability.md](https://github.com/chadetov/glyph/blob/main/docs/stability.md).
+**Stability while pre-1.0:** the language can still change between 0.1.x releases. Two lines hold. Your code stays runnable, because it always compiles to plain TypeScript you own, which is a permanent escape hatch. And when syntax does change we aim to make `glyph fmt` migrate it for you. Full policy: [docs/stability.md](https://github.com/chadetov/glyph/blob/main/docs/stability.md).
 
 ## Verifying your download
 

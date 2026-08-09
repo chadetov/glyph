@@ -828,20 +828,33 @@ fn main() {
                     for path in &report.skipped {
                         eprintln!("skipped {} (already exists)", path.display());
                     }
-                    // Point at the shortest thing that works. Scaffolding into
-                    // a new directory, that is `cd <dir> && glyph run`; in place
-                    // (`glyph init` with no argument) there is nothing to `cd`
-                    // into, so it is just `glyph run`.
+                    // Point at the shortest thing that works *for this reader*.
+                    // Someone who arrived through `npx @glyphlang/glyph init`
+                    // has no `glyph` on PATH, so telling them to run `glyph run`
+                    // sends them to a command-not-found. The scaffold pins the
+                    // compiler in devDependencies precisely so `npx glyph` works
+                    // after an install, which is the path to name when there is
+                    // nothing on PATH.
+                    let on_path = glyph_on_path();
+                    let cd = match report.root.as_os_str().is_empty()
+                        || report.root == std::path::Path::new(".")
+                    {
+                        true => String::new(),
+                        false => format!("cd {} && ", report.root.display()),
+                    };
                     let next = if report.runnable {
-                        match report.root.as_os_str().is_empty() || report.root == std::path::Path::new(".") {
-                            true => "Run it with `glyph run`.".to_string(),
-                            false => format!(
-                                "Run it with `cd {} && glyph run`.",
-                                report.root.display()
-                            ),
+                        match on_path {
+                            true => format!("Run it with `{cd}glyph run`."),
+                            false => format!("Run it with `{cd}npm install && npx glyph run`."),
                         }
                     } else {
-                        format!("Build it with `glyph build {} --out dist`.", report.root.join("src").display())
+                        let target = report.root.join("src").display().to_string();
+                        match on_path {
+                            true => format!("Build it with `glyph build {target} --out dist`."),
+                            false => format!(
+                                "Build it with `{cd}npm install && npx glyph build src --out dist`."
+                            ),
+                        }
                     };
                     eprintln!(
                         "glyph init: {} file(s) created, {} skipped. {next}",
@@ -1163,4 +1176,17 @@ fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
             )
         }
     }
+}
+
+/// Whether a `glyph` executable is reachable on `PATH`.
+///
+/// The scaffold's closing line names a command the reader can actually type.
+/// Through `npx @glyphlang/glyph init` there is no `glyph` on `PATH`, and the
+/// old message said `glyph run` to everyone.
+fn glyph_on_path() -> bool {
+    let Some(paths) = std::env::var_os("PATH") else {
+        return false;
+    };
+    let exe = if cfg!(windows) { "glyph.exe" } else { "glyph" };
+    std::env::split_paths(&paths).any(|dir| dir.join(exe).is_file())
 }

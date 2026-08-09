@@ -23,7 +23,7 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 76 are fixed, 13 are partly fixed, 9 are
+fixed two of them: of 98 entries, 77 are fixed, 12 are partly fixed, 9 are
 decided or resolved, and 0 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -750,7 +750,7 @@ on a decision in `docs/roadmap/releases.md`.
   arm body that is a synthetic one-statement block now prints as `X => { break }`
   through the same helper a one-statement lambda body already used, and the
   `INLINE_MAX` exemption is gone (see G54).*
-- **G30. [HALF FIXED] Two decisions the trip surfaced.** `for` has nothing in the
+- **G30. [FIXED] Two decisions the trip surfaced.** `for` has nothing in the
   stdlib that produces a counted range, so the most common bounded loop cannot
   use the keyword D21 built for bounded loops and gets hand-rolled from
   `loop`/`match`/`break` instead, which costs greppability. And `xs[i]` types as
@@ -777,7 +777,22 @@ on a decision in `docs/roadmap/releases.md`.
   deleted from `bracket.glyph` and `minesweeper.glyph`, all 16 call sites read
   `array.range(n)` or `array.range_from(lo, hi)`, and the emitted `.ts` for both
   apps is byte-identical to what the hand-rolled helpers produced. The
-  index-safety half is untouched and stays open beside G39.*
+  index-safety half is closed too, and not the way the options listed. Turning
+  on `noUncheckedIndexedAccess` was measured at 428 errors across the examples
+  and our own stdlib, and buys a diagnostic that arrives as a mapped `tsc` error
+  rather than a Glyph one; making `xs[i]` return `Option<T>` changes how every
+  one of 437 index expressions is written. What shipped instead: `xs[i]` keeps
+  its `T` and the emitted read is bounds-checked, so out of range it throws a
+  `RangeError` naming the index and the length. Glyph had been *worse* than the
+  language it borrows that contract from: Rust's `xs[i]` lies in the type and
+  panics at the bad index, while Glyph's lay in the type and returned
+  `undefined`, which then travelled until something dereferenced it somewhere
+  else. `array.get(xs, i) -> Option<T>` is the safe read, modeled so the `Some`
+  binding carries the element type. All 323 examples still pass with the check
+  on, which says the same thing twice: nothing was relying on an out-of-range
+  read, and the check costs nothing in practice. What it does not do is make the
+  type honest, so the fuller fixes stay on the table if the runtime failure ever
+  proves too late.*
 
 ## Round 7 — an expense report CLI (a ledger, a parser, and money)
 

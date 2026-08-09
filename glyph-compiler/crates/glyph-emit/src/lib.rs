@@ -1400,6 +1400,23 @@ impl<'a> Emitter<'a> {
         }
     }
 
+/// An assignment target, rendered without the bounds check a read gets.
+    ///
+    /// `mut xs[i] = v` has to emit `xs[i] = v`; wrapping the target would
+    /// produce `__glyph_index(xs, i) = v`, which is not assignable. Writing
+    /// past the end of an array is also not the bug G30 is about: it grows the
+    /// array rather than handing back a value that was never there.
+    fn lvalue(&mut self, e: &Expr) -> Result<String, EmitError> {
+        match e {
+            Expr::Index { object, index, .. } => Ok(format!(
+                "{}[{}]",
+                self.expr(object)?,
+                self.expr(index)?
+            )),
+            other => self.expr(other),
+        }
+    }
+
     fn emit_import(&mut self, im: &ImportDecl) -> Result<(), EmitError> {
         let path = im
             .path
@@ -1834,7 +1851,7 @@ impl<'a> Emitter<'a> {
                     target,
                     value: Expr::Match { scrutinee, arms, .. },
                 } => {
-                    let t = self.expr(target)?;
+                    let t = self.lvalue(target)?;
                     // Same shadowing guard as the `let` case: an arm binding
                     // that shares a name with the lvalue would make the arm's
                     // `const` the thing assigned.
@@ -1859,7 +1876,7 @@ impl<'a> Emitter<'a> {
                     // `emit_value` hoists any `?` in the RHS (like `let`),
                     // emitting the unwrap before this assignment; the target
                     // is a plain lvalue and needs no hoisting.
-                    let t = self.expr(target)?;
+                    let t = self.lvalue(target)?;
                     let v = self.emit_value(value)?;
                     self.line(&format!("{t} = {v};"));
                 }
@@ -4129,7 +4146,10 @@ impl<'a> Emitter<'a> {
             }
             Expr::Index { object, index, .. } => {
                 let (obj, awaited) = self.emit_await_spine(object)?;
-                Ok((format!("{obj}[{}]", self.expr(index)?), awaited))
+                Ok((
+                    format!("__glyph_index({obj}, {})", self.expr(index)?),
+                    awaited,
+                ))
             }
             // Spine bottom (an identifier, a literal, a parenthesized
             // expression): no call here, so no `await` is inserted.
@@ -4238,8 +4258,14 @@ impl<'a> Emitter<'a> {
                 let dot = if *optional { "?." } else { "." };
                 format!("{}{dot}{field}", self.expr(object)?)
             }
+            // A read goes through the bounds check (G30); an assignment target
+            // does not, and is emitted by `lvalue` below.
             Expr::Index { object, index, .. } => {
-                format!("{}[{}]", self.expr(object)?, self.expr(index)?)
+                format!(
+                    "__glyph_index({}, {})",
+                    self.expr(object)?,
+                    self.expr(index)?
+                )
             }
             // Glyph async is colorless: a call's declared type is its awaited
             // type and `await` may syntactically wrap a whole method chain

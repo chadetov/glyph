@@ -21,6 +21,10 @@ declare function print(message: string): void;
 /// operator means; `===` alone made it reference equality for those.
 declare function __glyph_eq(a: unknown, b: unknown): boolean;
 
+/// A bounds-checked read (G30). Typed to preserve exactly what `c[k]` would
+/// have, so wrapping an index changes when it fails and not what it is.
+declare function __glyph_index<C, K extends keyof C>(container: C, index: K): C[K];
+
 /// Assert a condition (D26 `@doc @run` blocks). A false condition throws,
 /// failing the build that runs the doc example.
 declare function assert(condition: boolean): void;

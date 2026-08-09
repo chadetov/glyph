@@ -3002,6 +3002,31 @@ typed `Heap<T>` is unverifiable and E0304 now refuses to parse a record holding
 one. That is the honest floor rather than the feature; generic union descriptors
 are the feature.
 
+## 0.1.70 (unreleased) — an index that is wrong says so
+
+- **G30, the index-safety half.** `cells[999]` type-checked clean, passed
+  `tsc --strict`, and handed back `undefined` where the compiler had promised a
+  `Cell`, which then travelled until something dereferenced it somewhere else.
+  The two options on the table were measured and both rejected:
+  `noUncheckedIndexedAccess` is 428 errors across the examples and our own
+  stdlib for a diagnostic that arrives as a mapped `tsc` error, and returning
+  `Option<T>` from `xs[i]` rewrites 437 index expressions. What shipped keeps
+  `xs[i]` typed `T` and bounds-checks the emitted read, so out of range throws a
+  `RangeError` naming the index and the length. Glyph had been worse than Rust
+  here, which lies in the same way but panics at the bad index rather than
+  letting `undefined` travel. `array.get(xs, i) -> Option<T>` is the safe read.
+  All 323 examples pass unchanged with the check on.
+- **Clippy runs in CI**, which found a test that never ran, another registered
+  twice, and two doc comments detached from their functions. **CodeQL** covers
+  the Rust, the TypeScript and the workflows.
+- Supply-chain hygiene: every action pinned by commit, workflows read-only by
+  default, Dependabot on, and the release now attaches its provenance bundle so
+  the attestation is checkable without the network.
+
+The type still says `T`, so this changes when you find out rather than making
+the type honest. The fuller fixes stay on the table if the runtime failure ever
+proves too late.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code

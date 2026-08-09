@@ -34,6 +34,17 @@ export function zip<A, B, C>(
   return out;
 }
 
+/// The element at `i`, or `None` when there is no such element. The safe
+/// counterpart to `xs[i]`, which is typed `T` and throws out of range (G30).
+/// Reach for this when the index may be out of bounds and the absence is
+/// something the program handles rather than a bug.
+export function get<T>(xs: ReadonlyArray<T>, i: number): Option<T> {
+  if (!Number.isInteger(i) || i < 0 || i >= xs.length) {
+    return None;
+  }
+  return Some(xs[i] as T);
+}
+
 export function len<T>(xs: ReadonlyArray<T>): number {
   return xs.length;
 }

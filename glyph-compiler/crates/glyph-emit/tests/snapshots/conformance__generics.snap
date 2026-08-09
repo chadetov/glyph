@@ -9,5 +9,5 @@ export function identity<T>(v: T): T {
 }
 
 export function first<T>(xs: Array<T>): T {
-  return xs[0];
+  return __glyph_index(xs, 0);
 }

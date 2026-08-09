@@ -1425,6 +1425,13 @@ impl Assigner<'_> {
                 vec![of(xs.clone()), unknown()],
                 self.stdlib_option_ty(elem())?,
             ),
+            // `get(xs, i) -> Option<T>`: the element type rides on parameter 0
+            // the same way `find`'s does, so the `Some(x)` binding of a match
+            // over it carries a real type instead of `Unknown`.
+            "get" => (
+                vec![of(xs.clone()), of(Ty::Prim(Primitive::Number))],
+                self.stdlib_option_ty(elem())?,
+            ),
             // `fold(xs, init, f) -> A`: the accumulator type comes from `init`,
             // not from the element type, so `A` sits on the second parameter.
             "fold" => {

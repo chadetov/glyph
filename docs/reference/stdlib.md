@@ -59,12 +59,20 @@ None                                            // the absent value (a constant)
 
 Operations are value-oriented: they return new arrays and never mutate the input.
 
+`xs[i]` is typed `T` and is bounds-checked at run time: out of range it throws a
+`RangeError` naming the index and the length, rather than handing back a value
+that was never there. The type still says `T`, which is the same contract Rust's
+`xs[i]` has, so the check is about *when* you find out rather than about the
+type telling the whole truth. Reach for `array.get` when the index may be out of
+range and the absence is something the program handles.
+
 ```
 array.find<T>(xs, predicate: fn(T) -> bool) -> Option<T>
 array.filter<T>(xs, predicate: fn(T) -> bool) -> Array<T>
 array.map<T, U>(xs, f: fn(T) -> U) -> Array<U>
 array.zip<A, B, C>(a, b, f: fn(A, B) -> C) -> Array<C>
 array.len<T>(xs) -> number
+array.get<T>(xs, i: number) -> Option<T>   // the element at `i`, `None` when out of range
 array.push<T>(xs, x: T) -> Array<T>             // returns a new array with x appended
 array.concat<T>(a, b) -> Array<T>
 array.reverse<T>(xs) -> Array<T>

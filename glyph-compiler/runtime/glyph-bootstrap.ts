@@ -53,6 +53,28 @@ function print(message: string): void {
  * properties are skipped: a value's methods (a `Result`'s `map`, say) are
  * behaviour rather than data, and they differ per instance.
  */
+// A bounds-checked array read (G30).
+//
+// `xs[i]` is typed `T`, and out of range JavaScript hands back `undefined`,
+// which then travels until something dereferences it and fails somewhere else
+// entirely. Rust's `xs[i]` tells the same lie in the type and panics at the bad
+// index; this makes Glyph do the same, so the failure names the mistake instead
+// of describing its consequence three frames later.
+//
+// Only arrays are checked. Anything else (a record used as a map, a string)
+// passes straight through, because reading a key that may be absent is already
+// E0224 at compile time.
+function __glyph_index(container: unknown, index: unknown): unknown {
+  if (Array.isArray(container) && typeof index === "number") {
+    if (!Number.isInteger(index) || index < 0 || index >= container.length) {
+      throw new RangeError(
+        `index ${index} is out of range for an array of length ${container.length}`,
+      );
+    }
+  }
+  return (container as Record<string, unknown>)[index as unknown as string];
+}
+
 function __glyph_eq(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) {
@@ -82,3 +104,4 @@ g.par = par;
 g.print = print;
 g.assert = assert;
 g.__glyph_eq = __glyph_eq;
+g.__glyph_index = __glyph_index;

@@ -2989,9 +2989,16 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.75, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.76, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
+
+Every entry below was reproduced against the shipped compiler before it was
+written down, which changed two of them. G39 turned out to be far narrower than
+its gap entry reads, and the four language items turned out to differ in kind
+rather than only in topic: one is a silent wrong answer, one is an uncatchable
+crash, and two are ergonomics. They are ordered by that, not by the order they
+were listed in.
 
 #### 0.1.71 — the `any` the manifesto forbids
 
@@ -3032,12 +3039,58 @@ depending on import style. **G79**: the remaining half is that a descriptor does
 not synthesize a check for a type it has no descriptor for, which is its
 documented soundness limit and now interacts with E0304.
 
-#### 0.1.73 — the language items behind the ergonomics
+#### 0.1.73 — a mutation that loses an update
 
-`Result` ergonomics, `Option` propagation, typed exception boundaries at the
-host seam, and safe concurrent mutation. These are four separate decisions
-rather than one release's work, and each needs a written option set before it is
-scheduled. Splitting them across 0.1.73 and 0.1.74 is likely.
+**Decided.** All four language items below were reproduced on 2026-08-09 and
+their options settled, and the evidence reordered them: what was a list became a
+severity ranking, and the silent one goes first.
+
+    let a = bump(c)
+    let b = bump(c)      // both read c.n, both write it
+
+Builds clean, prints `expected 2, got 1`. A lost update, silently, which is the
+class this language exists to remove.
+
+**The rule: a `mut` whose read and write straddle an `await` is an error.**
+Local, decidable without whole-program analysis, and it catches exactly the
+failure above. Rejected: forbidding `mut` on any binding captured by more than
+one live task (needs escape analysis, and false positives on correct code are
+worse than the rule is worth), and an `owned`-style marker for shared mutable
+state (bigger, and still available if the narrow rule proves too narrow). A new
+D-decision when it lands.
+
+#### 0.1.74 — a host call that throws cannot be contained
+
+    fn risky() -> number {
+      return extern_ts("(() => { throw new Error('host blew up'); })()")
+    }
+
+`tsc --strict` passes and the process dies. There is no `try`, no `catch`, and
+no way to contain a throwing host call, which means no Glyph program can be
+robust against a library that throws, and every npm package throws.
+
+**The answer: `host.attempt(fn() -> T) -> Result<T, HostError>`**, a stdlib
+function rather than syntax. Same reasoning that chose `array.range(n)` over a
+`..` operator: a function costs no grammar and forecloses no later decision. If
+it turns out to be written constantly, a `try` expression becomes sugar over it.
+Rejected: making every interop call return a `Result`, which rewrites every call
+site to guard a case most of them do not have.
+
+#### Riding along: the two ergonomics items
+
+Neither earns a release of its own, and both are decided.
+
+**`?` on an `Option`, inside a function returning `Option<T>`.** Today it is
+`E0201`, so every optional chain is a nested `match`. The rule is one sentence,
+the lowering mirrors the `Result` case exactly, and E0201 already exists to
+police the misuse. A new D-decision when it lands.
+
+**`?` across two error types stays explicit.** `E0203` fires when a
+`Result<_, int>` is propagated into a `Result<_, string>`, and the fix is
+`.map_err(...)` before the `?`. Rejected: converting implicitly through a
+declared conversion the way Rust's `?` does, because it changes an error's type
+at a character that does not look like a conversion. The work is to make E0203
+quote both types and name `.map_err` as the fix.
 
 #### 0.1.75 — the host boundary the stdlib cannot type
 

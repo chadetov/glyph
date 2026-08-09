@@ -200,11 +200,9 @@ fn build_report(
     // mirrors `canonical_bytes`'s tolerance in glyph-db — production
     // code prefers a usable-if-imperfect diagnostic over a panic.
     let range = clamp_range(raw_range, source);
-    // Use the *clamped* start for the report's primary offset too. If
-    // we passed the raw `span.start` (which could be past-end), the
-    // report's location header would render as `path:?:?` even though
-    // the clamp salvaged the label range.
-    let start = range.start;
+    // The report's primary span is the *clamped* one. Passing the raw span
+    // (whose start could be past-end) would render the location header as
+    // `path:?:?` even though the clamp salvaged the label range.
     let mut label = Label::new((path_owned.clone(), range.clone()))
         .with_message(message.to_string());
     if with_color {
@@ -223,7 +221,9 @@ fn build_report(
     let config = Config::default()
         .with_color(with_color)
         .with_index_type(IndexType::Byte);
-    let mut builder = Report::build(report_kind, path_owned.clone(), start)
+    // ariadne 0.6 takes the primary span itself rather than an id plus an
+    // offset, so the span is built the same way the label's is.
+    let mut builder = Report::build(report_kind, (path_owned.clone(), range.clone()))
         .with_code(code)
         .with_message(format!("{stage}: {message}"))
         .with_label(label)

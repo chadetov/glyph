@@ -34,7 +34,7 @@ repository = "https://github.com/chadetov/glyph"
 salsa = "0.26"
 
 # Error rendering (Elm-quality bar per brainstorm Q6 resolution).
-ariadne = "0.4"
+ariadne = "0.6"
 
 # Internal error types in compiler crates.
 thiserror = "2"

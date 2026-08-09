@@ -81,6 +81,32 @@ web/              the glyphlang.io site (static, deployed via GitHub Pages)
 npm/              the published npm launcher + per-platform binary packages
 ```
 
+## Branching
+
+Trunk-based, with short-lived branches. `main` is always releasable and is
+protected: no force pushes, no deletion, linear history, and those apply to
+admins too.
+
+Work happens on a branch named for what it is:
+
+| Prefix | For |
+|---|---|
+| `gap/g39-stdlib-signatures` | an entry in the dogfooding gap list |
+| `release/0.1.71` | a version bump and its notes |
+| `fix/npx-path-detection` | a defect found outside the loop |
+| `docs/reserved-words` | documentation only |
+
+**Keep a pull request to one gap, usually one to three commits.** That is not
+tidiness: CI verifies the branch's *head*, not every commit on it, so a long
+branch puts commits on `main` that were never built on their own. Short branches
+keep that window to a commit or two, which is what makes `git bisect` trustworthy.
+
+**Merges are rebase-only.** Squash and merge commits are disabled on the
+repository. Squashing would collapse a planned sequence into one commit and
+delete the history this project deliberately writes; merge commits would break
+the linear history `main` requires. Rebase keeps both, at the cost of new SHAs
+for every commit, which matters when you tag (see below).
+
 ## Commits and PRs
 
 - **Imperative, concise subject lines** ("Fix nested match lowering"), under ~70
@@ -89,6 +115,18 @@ npm/              the published npm launcher + per-platform binary packages
   what the change deliberately does *not* do.
 - Keep each commit a coherent unit; group by theme, not by file.
 - Run `cargo test --workspace` before pushing.
+
+Three checks must pass before a pull request can merge, and they run in about two
+minutes: **Version consistency**, **Test + type-check examples**, and **Links,
+HTML, and sub-nav**. CodeQL and Scorecard run on `main` and on a schedule rather
+than blocking a merge, because they take considerably longer than the change
+usually deserves.
+
+Reviews are not required, for a reason worth stating rather than leaving as an
+apparent oversight: GitHub does not let an author approve their own pull request,
+so on a single-maintainer repository a review requirement means either nothing
+merges or an admin bypasses it, and the second is theatre. When a second
+maintainer arrives, this is the first setting to revisit.
 
 ## Sign your commits (DCO)
 

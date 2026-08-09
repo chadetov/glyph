@@ -4319,6 +4319,26 @@ land here until they're assigned a release.
 
 ---
 
+*The release ritual, in the order the branching strategy requires.*
+
+    1. branch   release/0.1.NN     bump the versions, the notes, the counts
+    2. PR       CI verifies all eleven version strings agree before `main` sees them
+    3. merge    rebase onto main
+    4. tag      from main, after the merge
+    5. push     the tag; release.yml publishes
+
+Step 4 must follow step 3, and the reason is specific to rebase merging: a rebase
+gives every commit a **new SHA** on `main`. A tag placed on the release branch
+before merging would point at a commit that no longer exists in `main`'s history,
+so the published artifacts would build from a SHA nobody can `git log` to.
+
+Release prep goes through a pull request because it is the change with the
+highest ratio of purely mechanical to catastrophic-if-wrong: eleven version
+strings that must agree, plus the badge URL, the versions page and the README
+counts. `check_versions.py` checks exactly that, and it should run before `main`
+has the commit rather than after. Two releases have shipped broken from this
+step already.
+
 *Branch protection, and what it deliberately does not include.* `main` blocks
 force pushes and deletion, requires linear history, and applies all three to
 admins, so no token can rewrite or remove the branch's history. Required status

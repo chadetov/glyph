@@ -15,10 +15,87 @@ step 7. Full session log in `archive/glyph_step6_session.md`.
 
 Dogfooding did not stop there. It is now a standing loop: one app per release,
 each one written to find something. `examples/apps/` holds the apps and
-[`docs/dogfooding-gaps.md`](../dogfooding-gaps.md) is the live list, thirteen rounds
-deep. **Read it, not this paragraph, for what is open.** Each round's fix and its
-unfixed findings are written up per release in
-[`releases.md`](releases.md).
+[`docs/dogfooding-gaps.md`](../dogfooding-gaps.md) is the live list. **Read it,
+not this paragraph, for what is open.** Each round's fix and its unfixed
+findings are written up per release in [`releases.md`](releases.md).
+
+## The loop
+
+A round is not "ship an app." It is "find the next thing the language cannot do,
+and close it." The app is the instrument, not the product.
+
+**0. Build the compiler, then check it is the one you built.**
+`python3 scripts/check_binary_fresh.py`. A binary older than the crate sources
+or the runtime does not fail loudly, it fails plausibly. One built before the
+node shims landed reported `Cannot find name 'net'` against a correct file,
+which reads exactly like a gap and would have been written up as one.
+
+**1. Pick an app that has to do something no existing app does.** A round that
+re-treads a solved shape finds nothing. Look at the table in
+[`examples/README.md`](../../examples/README.md) and go somewhere else.
+
+**2. Write it in Glyph, and stop at the first thing Glyph cannot do.**
+
+This is the rule the loop lives or dies on, so it is stated as a prohibition:
+**do not work around a gap.** Not with a hand-written `.d.ts`, not with
+`extern_ts`, not by restructuring the program into a shape that dodges the
+problem, not by narrowing the app until the problem is out of scope. Stop where
+you are and report.
+
+A finished app that routed around three gaps has taught us nothing and hidden
+three gaps, and it looks like a success, which is worse than looking like a
+failure. An app that stops on line 40 with one clear reproduction has done the
+entire job of the round. Two rounds were lost to this before it was written
+down: one shipped a session replayer instead of the multi-client server that was
+asked for, and one shipped a chat app whose sockets were typed by a
+hand-written `net.d.ts` sitting inside the app. Both built clean. Both were
+worth less than stopping would have been.
+
+`scripts/check_apps_are_glyph.py` catches the TypeScript-shaped workarounds. It
+cannot catch a program quietly reshaped to avoid a gap, so that one is on
+whoever is writing.
+
+**3. Write the gap down before fixing anything.** What you were trying to write,
+what you expected, what happened, and the smallest program that reproduces it.
+The reproduction is the part that survives; the prose around it goes stale.
+
+**4. The orchestrator decides what happens next, not the agent that found it.**
+Fix now, defer to a named release, or decide it is not a defect. An agent that
+hits a fork reports the options and the tradeoff. See the sub-agent rules in the
+repo's working notes.
+
+**5. Re-check the premise before implementing anything older than a few
+releases.** Gaps rot: the compiler moves under them. A reconciliation pass found
+five of ten entries either already fixed, closable with no code change, or
+resting on a premise that had stopped being true. Reproduce the gap against the
+compiler you just built. If it does not reproduce, the round's work is marking
+the entry, not writing a fix.
+
+**6. Fix it with a test that fails without the fix, and prove that it does.**
+Revert the fix, watch the test fail, put it back. A test written after a fix,
+never seen red, is a test that might assert nothing. The same applies to
+reviewing an agent's work: "I added `owned` to the socket" is a claim. Breaking
+the discipline on purpose and getting `E0206` back is evidence.
+
+**7. Resume the app from where it stopped**, and keep going until the next gap
+or until it is done.
+
+**8. Reconcile before the release.** Markers and counts in the gap list
+(`scripts/check_gaps.py`), the release entry in
+[`releases.md`](releases.md), the docs that state current status, and the
+engineer Q&A on the site for anything user-visible. Three releases once shipped
+with no site update at all.
+
+## The gates a round runs
+
+| Gate | What it stops |
+|---|---|
+| `check_binary_fresh.py` | Verifying against a compiler older than the code, which invents gaps |
+| `check_apps_are_glyph.py` | An app that reaches for TypeScript instead of reporting the gap |
+| `check_docs_compile.py` | A doc snippet that no longer compiles, and one that looks broken but is fine |
+| `check_scaffold_docs.py` | A first-run walkthrough drifting from what `glyph init` writes |
+| `check_gaps.py` | Status markers and counts falling behind the compiler |
+| `check_versions.py`, `check_site.py` | Version skew across the packages; broken links and sub-nav |
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

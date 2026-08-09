@@ -3000,7 +3000,7 @@ rather than only in topic: one is a silent wrong answer, one is an uncatchable
 crash, and two are ergonomics. They are ordered by that, not by the order they
 were listed in.
 
-#### 0.1.71 — the `any` the manifesto forbids
+### 0.1.71 — Shipped · The `any` the manifesto forbids
 
 **G39, phase 2.** The entry describes this as unchecked member access in
 general, and reproducing it narrows the danger a long way. A misspelled
@@ -3030,6 +3030,22 @@ So the work is bounded, and smaller than "model the stdlib from its `.d.ts`":
 teach the signature model optional parameters, model the six, then walk one
 level into a callback's return for the three. That closes the silent-green class
 and leaves the diagnostic-quality half for 0.1.72.
+
+**Shipped, and it is the six rather than the nine.** `FnParam` gained an
+`optional` flag and the arity check now reads a minimum and a maximum, so the six
+trailing-optional functions are modeled and the silent-green case is closed: a
+`match` on `string.index_of` with no `None` arm is `E0200` at compile time. All
+124 modules in the examples tree still build, which is the thing that mattered:
+modeling these could have produced a false arity error on every call that omits
+the last argument, and did not.
+
+`map`/`flat_map`/`zip` were attempted and reverted. A callback modeled as
+`fn(T) -> U` rejects `array.map(items, async fn(n: number) -> number { ... })`,
+which is legitimate and appears in the examples, because assignability compares
+`is_async` (D40). Closing them needs a callback type that admits a sync and an
+async function alike, which is a decision about colorless async through a
+callback, not more table entries. It moves to 0.1.72 beside the other
+diagnostic-quality work.
 
 #### 0.1.72 — a typo answers in Glyph's own voice
 

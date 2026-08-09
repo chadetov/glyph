@@ -185,6 +185,17 @@ pub struct FnParam {
     /// an `owned` parameter is the consume.
     pub owned: bool,
     pub ty: Ty,
+    /// May be omitted at the call site.
+    ///
+    /// Always `false` for a Glyph `fn`: the language has no optional parameter.
+    /// It exists for the standard library, where several functions take a
+    /// trailing argument that TypeScript declares optional (`array.slice`,
+    /// `string.index_of`, `json.stringify`, …). Before this, modeling them at
+    /// all reported a false arity error on every call that omitted the last
+    /// argument, so they were left unmodeled, and a value out of one of them
+    /// was `Unknown`: a `match` over `string.index_of` skipped D9 exhaustiveness
+    /// and threw at run time on a build that reported no errors (G39).
+    pub optional: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

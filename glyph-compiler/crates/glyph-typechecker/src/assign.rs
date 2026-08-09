@@ -707,16 +707,24 @@ impl Assigner<'_> {
                 // to `self.errors`).
                 let callee_ty = self.tm.get(callee.span()).clone();
                 let call_ty = if let Ty::Fn { params, return_ty, .. } = &callee_ty {
-                    // Arity check: Glyph `fn`/`component` parameters are all
-                    // required (no optional or variadic params in v1) and call
-                    // arguments carry no spread, so `params.len() != args.len()`
-                    // is always a real error. Without this the `zip`s below
-                    // silently truncate to the shorter side, so extra or missing
-                    // arguments are never seen and arity is delegated entirely to
-                    // `tsc` (a hole in the verifiability pillar).
-                    if params.len() != args.len() {
+                    // Arity check. A Glyph `fn`/`component` has no optional or
+                    // variadic parameter and a call carries no spread, so for
+                    // user code this is still an exact comparison. The standard
+                    // library is the exception: several of its functions take a
+                    // trailing argument TypeScript declares optional, and
+                    // comparing one number against one number reported a false
+                    // error on every call that omitted it, which is why they
+                    // were left unmodeled and their results were `Unknown`
+                    // (G39). Required parameters set the floor, the whole list
+                    // the ceiling.
+                    let required = params.iter().filter(|p| !p.optional).count();
+                    if args.len() < required || args.len() > params.len() {
                         self.errors.push(TypeError::ArgumentCountMismatch {
-                            expected: params.len(),
+                            expected: if args.len() < required {
+                                required
+                            } else {
+                                params.len()
+                            },
                             found: args.len(),
                             span: *span,
                         });
@@ -1107,6 +1115,7 @@ impl Assigner<'_> {
                 name: None,
                 owned: false,
                 ty: Ty::Unknown,
+                optional: false,
             }],
             return_ty: Arc::new(self.stdlib_result_ty(parsed, issues)?),
             is_async: false,
@@ -1118,6 +1127,18 @@ impl Assigner<'_> {
     /// the arity is modeled) so this never introduces a new argument-type
     /// diagnostic; the value it adds is the decidable `Result<T, E>` return.
     fn stdlib_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        // `json.stringify(value, options?)` -> string. The sixth and last of the
+        // trailing-optional functions G39 named: modelable now that the arity
+        // check understands a minimum and a maximum, so its result stops being
+        // `Unknown` and a program that matches or concatenates it is checked.
+        if (module_key, field) == ("std/json", "stringify") {
+            return Some(Ty::Fn {
+                params: vec![required(Ty::Unknown), optional(Ty::Unknown)],
+                return_ty: Arc::new(Ty::Prim(Primitive::String)),
+                is_async: false,
+            });
+        }
+
         // Option-returning accessors for untrusted request input. Modeling the
         // return as `Option<string>` gives the caller a `match` the
         // exhaustiveness checker understands, so a missing header or query
@@ -1133,6 +1154,7 @@ impl Assigner<'_> {
                     name: None,
                     owned: false,
                     ty: Ty::Unknown,
+                optional: false,
                 })
                 .collect();
             return Some(Ty::Fn {
@@ -1151,6 +1173,7 @@ impl Assigner<'_> {
                     name: None,
                     owned: false,
                     ty: Ty::Unknown,
+                optional: false,
                 }],
                 return_ty: Arc::new(return_ty),
                 is_async: false,
@@ -1174,6 +1197,7 @@ impl Assigner<'_> {
                     name: None,
                     owned: false,
                     ty: Ty::Prim(Primitive::Number),
+                optional: false,
                 })
                 .collect();
             return Some(Ty::Fn {
@@ -1192,6 +1216,7 @@ impl Assigner<'_> {
                     name: None,
                     owned: false,
                     ty: Ty::Prim(Primitive::String),
+                optional: false,
                 })
                 .collect();
             return Some(Ty::Fn {
@@ -1215,6 +1240,7 @@ impl Assigner<'_> {
                     name: None,
                     owned: false,
                     ty: Ty::Unknown,
+                optional: false,
                 })
                 .collect();
             return Some(Ty::Fn {
@@ -1331,6 +1357,7 @@ impl Assigner<'_> {
                 name: None,
                 owned: false,
                 ty: Ty::Unknown,
+                optional: false,
             })
             .collect();
         Some(Ty::Fn {
@@ -1369,6 +1396,45 @@ impl Assigner<'_> {
             "contains" | "starts_with" | "ends_with" => (2, Ty::Prim(Primitive::Bool)),
             "repeat" => (2, string()),
             "replace_all" => (3, string()),
+            // The three with a trailing optional argument. `index_of` is the one
+            // G39 was really about: unmodeled, its `Option<number>` was
+            // `Unknown`, so a `match` over it skipped D9 exhaustiveness and a
+            // missing `None` arm threw at run time on a clean build.
+            "index_of" => {
+                return Some(Ty::Fn {
+                    params: vec![
+                        required(Ty::Unknown),
+                        required(Ty::Unknown),
+                        optional(Ty::Unknown),
+                    ],
+                    return_ty: Arc::new(
+                        self.stdlib_option_ty(Ty::Prim(Primitive::Number))?,
+                    ),
+                    is_async: false,
+                })
+            }
+            "slice" => {
+                return Some(Ty::Fn {
+                    params: vec![
+                        required(Ty::Unknown),
+                        required(Ty::Unknown),
+                        optional(Ty::Unknown),
+                    ],
+                    return_ty: Arc::new(string()),
+                    is_async: false,
+                })
+            }
+            "pad_start" | "pad_end" => {
+                return Some(Ty::Fn {
+                    params: vec![
+                        required(Ty::Unknown),
+                        required(Ty::Unknown),
+                        optional(Ty::Unknown),
+                    ],
+                    return_ty: Arc::new(string()),
+                    is_async: false,
+                })
+            }
             _ => return None,
         };
         Some(Ty::Fn {
@@ -1406,11 +1472,22 @@ impl Assigner<'_> {
             name: None,
             owned: false,
             ty: Ty::Unknown,
+                optional: false,
         };
         let of = |ty: Ty| FnParam {
             name: None,
             owned: false,
             ty,
+            optional: false,
+        };
+        // A trailing argument the caller may omit. Modeling these is what lets
+        // the six stdlib functions that take one be modeled at all (G39).
+        #[allow(unused)]
+        let opt = |ty: Ty| FnParam {
+            name: None,
+            owned: false,
+            ty,
+            optional: true,
         };
         let (params, ret): (Vec<FnParam>, Ty) = match field {
             "len" => (unknown_params(1), Ty::Prim(Primitive::Number)),
@@ -1428,6 +1505,19 @@ impl Assigner<'_> {
             // `get(xs, i) -> Option<T>`: the element type rides on parameter 0
             // the same way `find`'s does, so the `Some(x)` binding of a match
             // over it carries a real type instead of `Unknown`.
+            // The trailing-optional member of `std/array`, modelable now that the
+            // arity check understands a minimum and a maximum (G39).
+            "slice" => {
+                return Some(Ty::Fn {
+                    params: vec![
+                        of(xs.clone()),
+                        required(Ty::Prim(Primitive::Number)),
+                        optional(Ty::Prim(Primitive::Number)),
+                    ],
+                    return_ty: Arc::new(xs),
+                    is_async: false,
+                })
+            }
             "get" => (
                 vec![of(xs.clone()), of(Ty::Prim(Primitive::Number))],
                 self.stdlib_option_ty(elem())?,
@@ -1479,11 +1569,22 @@ impl Assigner<'_> {
             name: None,
             owned: false,
             ty: Ty::Unknown,
+                optional: false,
         };
         let of = |ty: Ty| FnParam {
             name: None,
             owned: false,
             ty,
+            optional: false,
+        };
+        // A trailing argument the caller may omit. Modeling these is what lets
+        // the six stdlib functions that take one be modeled at all (G39).
+        #[allow(unused)]
+        let opt = |ty: Ty| FnParam {
+            name: None,
+            owned: false,
+            ty,
+            optional: true,
         };
         let (params, ret): (Vec<FnParam>, Ty) = match field {
             "get" => (
@@ -2856,6 +2957,7 @@ impl Assigner<'_> {
                                     name: Some(p.name.clone()),
                                     owned: false,
                                     ty: self.lowerer.lower(&p.ty),
+                optional: false,
                                 })
                                 .collect(),
                             return_ty: Arc::new(
@@ -3354,12 +3456,24 @@ fn stdlib_variant_payload(ty: &Ty, variant: &Ident) -> Option<Ty> {
 /// `n` parameters of unmodeled type — the arity-only shape most of the stdlib
 /// table uses, so a modeled return never drags a new argument-type diagnostic
 /// in with it.
+/// A required parameter of the given type.
+fn required(ty: Ty) -> FnParam {
+    FnParam { name: None, owned: false, ty, optional: false }
+}
+
+/// A parameter the caller may omit. Only the standard library has these; a
+/// Glyph `fn` cannot declare one.
+fn optional(ty: Ty) -> FnParam {
+    FnParam { name: None, owned: false, ty, optional: true }
+}
+
 fn unknown_params(n: usize) -> Vec<FnParam> {
     (0..n)
         .map(|_| FnParam {
             name: None,
             owned: false,
             ty: Ty::Unknown,
+                optional: false,
         })
         .collect()
 }
@@ -3463,6 +3577,19 @@ fn collect_type_param_bindings(param: &Ty, arg: &Ty, out: &mut HashMap<Ident, Ty
         (Ty::Param { name, .. }, concrete) if !concrete.is_unknown() => {
             out.entry(name.clone()).or_insert_with(|| concrete.clone());
         }
+        // A callback's declared return type binds a parameter the same way a
+        // container's element type does. `array.map(xs, fn(x: T) -> U { .. })`
+        // could not bind `U` before, so `map` was left unmodeled and its result
+        // was `Unknown`: the third of G39's three callback cases.
+        (
+            Ty::Fn { params: pparams, return_ty: pret, .. },
+            Ty::Fn { params: aparams, return_ty: aret, .. },
+        ) => {
+            for (pp, ap) in pparams.iter().zip(aparams.iter()) {
+                collect_type_param_bindings(&pp.ty, &ap.ty, out);
+            }
+            collect_type_param_bindings(pret, aret, out);
+        }
         (Ty::App { base: pbase, args: pargs }, Ty::App { base: abase, args: aargs }) => {
             collect_type_param_bindings(pbase, abase, out);
             for (p, a) in pargs.iter().zip(aargs.iter()) {
@@ -3493,6 +3620,7 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                     name: p.name.clone(),
                     owned: p.owned,
                     ty: substitute_type_params(&p.ty, subst),
+                    optional: p.optional,
                 })
                 .collect(),
             return_ty: Arc::new(substitute_type_params(return_ty, subst)),

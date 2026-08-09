@@ -13,6 +13,12 @@ name: CodeQL
 on:
   push:
     branches: [main]
+  # Also on pull requests, so the analysis runs on a change *before* it lands.
+  # Without this the scan only ever sees `main`, which OpenSSF Scorecard reports
+  # as "0 commits out of 3 are checked with a SAST tool": the tool is configured
+  # and the commits went past it unscanned. It costs about two minutes and runs
+  # beside the other checks rather than after them.
+  pull_request:
   schedule:
     - cron: "0 7 * * 1"
 

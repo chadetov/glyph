@@ -170,6 +170,12 @@ impl SymbolTable {
     pub fn len(&self) -> usize {
         self.symbols.len()
     }
+
+    /// Whether the table holds nothing. Paired with `len` so a caller can ask
+    /// the question directly rather than comparing a count to zero.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 /// Convenience helper: build a prelude symbol with a zero span and the given

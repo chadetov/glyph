@@ -1312,6 +1312,12 @@ fn is_external_module(names: &std::collections::BTreeSet<String>, path: &str) ->
     false
 }
 
+/// The last path component of a `/`-separated relative path (`sub/mod.ts` ->
+/// `mod.ts`). Emitted module rels always use `/`.
+fn file_basename(rel: &str) -> String {
+    rel.rsplit('/').next().unwrap_or(rel).to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1484,10 +1490,4 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         assert_ne!(fp1, fp2, "a symlinked extern shim must bust the fingerprint");
     }
-}
-
-/// The last path component of a `/`-separated relative path (`sub/mod.ts` ->
-/// `mod.ts`). Emitted module rels always use `/`.
-fn file_basename(rel: &str) -> String {
-    rel.rsplit('/').next().unwrap_or(rel).to_string()
 }

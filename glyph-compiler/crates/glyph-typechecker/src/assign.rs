@@ -2364,16 +2364,21 @@ impl Assigner<'_> {
                         has_catch_all = true;
                     }
                 }
+                // Not collapsed into the arm pattern on purpose: a non-`Path`
+                // `ty` has to fall through to the conservative skip below, and
+                // matching `ty: TypeExpr::Path { .. }` in the arm would need a
+                // second arm to say the same thing.
+                #[allow(clippy::collapsible_match)]
                 Pattern::IsType { ty, .. } => {
                     // `is TypeName` (D9) guard. The inner TypeExpr is
                     // typically a `Path` — extract the last segment as
                     // the variant name when possible.
                     if let TypeExpr::Path { segments, .. } = ty {
-                        if let Some(name) = segments.last() {
-                            if variants.iter().any(|v| v == name) {
-                                covered.insert(name.clone());
-                                continue;
-                            }
+                        if let Some(name) =
+                            segments.last().filter(|n| variants.iter().any(|v| v == *n))
+                        {
+                            covered.insert(name.clone());
+                            continue;
                         }
                     }
                     // Non-Path TypeExpr (e.g., `is fn(x) -> y`) or a
@@ -5687,7 +5692,6 @@ fn outer() -> string {
 
     // ----- G6a: member-access field checking -----
 
-    #[test]
     /// A `for` binding carries the iterand's element type, so D30
     /// exhaustiveness survives a loop.
     ///
@@ -5770,6 +5774,7 @@ fn outer() -> string {
         );
     }
 
+    #[test]
     fn member_typo_on_a_record_is_flagged() {
         // `u.naem` on a `User` record (no such field) is an UnknownField error.
         let src = r#"module x

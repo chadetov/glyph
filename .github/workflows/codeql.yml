@@ -1,0 +1,54 @@
+name: CodeQL
+
+# Static analysis over the three things this repo actually ships: the Rust
+# compiler, the TypeScript runtime and site scripts, and the workflows
+# themselves. Findings land in the repository's code-scanning tab.
+#
+# This is the check `cargo clippy` does not do. Clippy reads one crate at a
+# time and mostly asks whether code is idiomatic; CodeQL follows data across
+# functions and files and asks where untrusted input reaches something that
+# matters. On a compiler the interesting answer is usually about the paths that
+# read a source file or shell out to `tsc`.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 7 * * 1"
+
+permissions: read-all
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: rust
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3
+        with:
+          category: "/language:${{ matrix.language }}"

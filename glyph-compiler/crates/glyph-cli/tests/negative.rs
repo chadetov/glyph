@@ -6,7 +6,7 @@
 //! what a user sees. No `tsc`/`tsx` is needed — these never reach emission.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use glyph_cli::build::build_project_inner;

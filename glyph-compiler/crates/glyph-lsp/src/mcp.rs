@@ -172,7 +172,7 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
         None => Value::Null,
         Some(Definition::Here(start, _)) => {
             let index = LineIndex::new(&text);
-            location_value(&path, root, &text, &index, start, start)
+            location_value(FileCtx { path: &path, root, text: &text }, &index, start, start)
         }
         Some(Definition::InModule { module_path, name }) => {
             // The import path is counted from the *importing* file's project
@@ -186,7 +186,7 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
             let (start, end) = crate::analysis::find_symbol_span(&outline_of(&ftext), &name)
                 .ok_or_else(|| format!("`{name}` is not defined in module `{module_path}`"))?;
             let index = LineIndex::new(&ftext);
-            location_value(&file, root, &ftext, &index, start, end)
+            location_value(FileCtx { path: &file, root, text: &ftext }, &index, start, end)
         }
     };
     Ok(to_json(&value))
@@ -216,13 +216,14 @@ fn tool_references(args: &Value, root: &Path) -> Result<String, String> {
                 let Some(fa) = analyze_full(&ftext) else {
                     continue;
                 };
-                push_occurrences(&mut out, &fpath, root, &ftext, &fa, &fm, &module, &name);
+                let file = FileCtx { path: &fpath, root, text: &ftext };
+                push_occurrences(&mut out, file, &fa, &fm, &module, &name);
             }
         }
         Some(SymbolTarget::Local) => {
             let index = LineIndex::new(&text);
             for (s, e) in a.references(offset, &text, true) {
-                out.push(location_value(&path, root, &text, &index, s, e));
+                out.push(location_value(FileCtx { path: &path, root, text: &text }, &index, s, e));
             }
         }
         None => {}
@@ -239,19 +240,11 @@ fn tool_symbols(args: &Value, root: &Path) -> Result<String, String> {
     let mut out: Vec<Value> = Vec::new();
     for (fpath, ftext) in workspace_files(root) {
         let index = LineIndex::new(&ftext);
+        let file = FileCtx { path: &fpath, root, text: &ftext };
         for top in outline_of(&ftext) {
-            push_symbol(&mut out, &query, &fpath, root, &ftext, &index, &top, None);
+            push_symbol(&mut out, &query, file, &index, &top, None);
             for child in &top.children {
-                push_symbol(
-                    &mut out,
-                    &query,
-                    &fpath,
-                    root,
-                    &ftext,
-                    &index,
-                    child,
-                    Some(top.name.as_str()),
-                );
+                push_symbol(&mut out, &query, file, &index, child, Some(top.name.as_str()));
             }
         }
     }
@@ -262,26 +255,22 @@ fn tool_symbols(args: &Value, root: &Path) -> Result<String, String> {
 /// into `out` as location values.
 fn push_occurrences(
     out: &mut Vec<Value>,
-    fpath: &Path,
-    root: &Path,
-    ftext: &str,
+    file: FileCtx<'_>,
     fa: &Analysis,
     file_module: &str,
     sym_module: &str,
     name: &str,
 ) {
-    let index = LineIndex::new(ftext);
-    for (s, e) in fa.global_occurrences(file_module, sym_module, name, ftext, true) {
-        out.push(location_value(fpath, root, ftext, &index, s, e));
+    let index = LineIndex::new(file.text);
+    for (s, e) in fa.global_occurrences(file_module, sym_module, name, file.text, true) {
+        out.push(location_value(file, &index, s, e));
     }
 }
 
 fn push_symbol(
     out: &mut Vec<Value>,
     query: &str,
-    fpath: &Path,
-    root: &Path,
-    ftext: &str,
+    file: FileCtx<'_>,
     index: &LineIndex,
     sym: &OutlineSymbol,
     container: Option<&str>,
@@ -292,7 +281,7 @@ fn push_symbol(
     let mut value = json!({
         "name": sym.name,
         "kind": outline_kind_str(sym.kind),
-        "location": location_value(fpath, root, ftext, index, sym.span.0, sym.span.1),
+        "location": location_value(file, index, sym.span.0, sym.span.1),
     });
     if let Some(c) = container {
         value["container"] = json!(c);
@@ -342,17 +331,26 @@ fn position(args: &Value) -> Result<(u32, u32), String> {
     Ok((line, character))
 }
 
+/// One file, as every location-producing helper here needs it: where it is,
+/// what project it belongs to, and its text. The three always travel together
+/// and were threaded separately through five call sites, which is what pushed
+/// two of them past clippy's argument limit.
+#[derive(Clone, Copy)]
+struct FileCtx<'a> {
+    path: &'a Path,
+    root: &'a Path,
+    text: &'a str,
+}
+
 fn location_value(
-    file: &Path,
-    root: &Path,
-    text: &str,
+    file: FileCtx<'_>,
     index: &LineIndex,
     start: u32,
     end: u32,
 ) -> Value {
     json!({
-        "path": display_path(root, file),
-        "range": range_json(index, text, start, end),
+        "path": display_path(file.root, file.path),
+        "range": range_json(index, file.text, start, end),
     })
 }
 

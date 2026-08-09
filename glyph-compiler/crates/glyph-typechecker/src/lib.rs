@@ -8,20 +8,20 @@
 //!
 //! Implements (Phase 1 week 3, planned):
 //! - D5  `mut` is syntactic only (grammar restricts; typechecker does NOT
-//!       verify method-call mutation per Q7 resolution)
+//!   verify method-call mutation per Q7 resolution)
 //! - D7  type expressions; nominal newtypes (no general refinement types in
-//!       v1 per Q15 resolution; mapped types deferred to v1.1 per Q1)
+//!   v1 per Q15 resolution; mapped types deferred to v1.1 per Q1)
 //! - D8  runtime descriptor emission for every type declaration (Q8 core)
 //! - D9  exhaustive match: per-scrutinee checkers (tagged-union variant
-//!       set with arbitrary-depth single-payload recursion, prelude
-//!       `Result`/`Option`, array length coverage, and `bool`). Not the
-//!       general Maranget matrix — products of independent refutable
-//!       columns are conservatively treated as covered (deferred to v1.1).
+//!   set with arbitrary-depth single-payload recursion, prelude
+//!   `Result`/`Option`, array length coverage, and `bool`). Not the
+//!   general Maranget matrix — products of independent refutable
+//!   columns are conservatively treated as covered (deferred to v1.1).
 //! - D16 `void` type and value
 //! - D24 `@redact` metadata propagates with the type's runtime descriptor
 //! - D25 `owned` single-consumption analysis across paths (manifesto carve-out)
 //! - D27 annotation dispatch table (recognizes `@example`, `@pure`, `@redact`,
-//!       `@doc`, etc.; unknown annotations are a hard error)
+//!   `@doc`, etc.; unknown annotations are a hard error)
 //!
 //! Phase 1 week 7: error-message audit. Elm-quality bar per Q6 resolution.
 

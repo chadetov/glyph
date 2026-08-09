@@ -11,7 +11,7 @@
 //!
 //! Deferred to week 1 day 3+:
 //! - D22  template literal `${expr}` interpolation lexing (current pass treats
-//!        `"${x}"` as an opaque string)
+//!   `"${x}"` as an opaque string)
 //! - JSX `<` recognition (D6 — the parser decides; lexer only emits `LAngle`)
 //!
 //! Architecture:

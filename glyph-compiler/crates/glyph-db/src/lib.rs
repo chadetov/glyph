@@ -2108,13 +2108,10 @@ fn use_helper(x: number) -> number { return helper(x) }
         );
         db.set_project(vec![("lib".to_string(), lib)]);
         let diags = import_diagnostics(&db, app);
-        assert!(matches!(
-            diags.errors().iter().find(|e| matches!(
+        assert!(diags.errors().iter().find(|e| matches!(
                 e,
                 ResolveError::UnknownExportedName { name, .. } if name == "bogus"
-            )),
-            Some(_)
-        ), "expected UnknownExportedName(bogus); got: {:?}", diags.errors());
+            )).is_some(), "expected UnknownExportedName(bogus); got: {:?}", diags.errors());
     }
 
     #[test]

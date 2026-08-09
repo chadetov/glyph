@@ -294,7 +294,7 @@ impl Analysis {
         for (span, ty) in self.types.iter() {
             if (span.start as usize) <= offset && offset < (span.end as usize) {
                 let width = span.end - span.start;
-                if best.as_ref().map_or(true, |(w, _)| width < *w) {
+                if best.as_ref().is_none_or(|(w, _)| width < *w) {
                     best = Some((width, display_ty(ty)));
                 }
             }
@@ -363,7 +363,7 @@ impl Analysis {
         for (span, r) in self.resolved.resolutions.iter() {
             if (span.start as usize) <= offset && offset < (span.end as usize) {
                 let width = span.end - span.start;
-                if best.as_ref().map_or(true, |(w, _)| width < *w) {
+                if best.as_ref().is_none_or(|(w, _)| width < *w) {
                     best = Some((width, r));
                 }
             }
@@ -415,7 +415,7 @@ impl Analysis {
         for (span, r) in self.resolved.resolutions.iter() {
             if (span.start as usize) <= offset && offset < (span.end as usize) {
                 let width = span.end - span.start;
-                if best.as_ref().map_or(true, |(w, _, _)| width < *w) {
+                if best.as_ref().is_none_or(|(w, _, _)| width < *w) {
                     best = Some((width, (span.start, span.end), r));
                 }
             }
@@ -567,7 +567,7 @@ impl Analysis {
         for (span, r) in self.resolved.resolutions.iter() {
             if (span.start as usize) <= offset && offset < (span.end as usize) {
                 let width = span.end - span.start;
-                if best.as_ref().map_or(true, |(w, _)| width < *w) {
+                if best.as_ref().is_none_or(|(w, _)| width < *w) {
                     best = Some((width, r));
                 }
             }

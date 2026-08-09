@@ -363,7 +363,8 @@ mod tests {
                  the scanner is broken, not the emitter"
             );
         }
-        for expected in ["Issue"] {
+        {
+            let expected = "Issue";
             assert!(
                 seen_prelude.iter().any(|(g, _)| g == expected),
                 "the drift scan found no `{expected}` in glyph-emit's emitted strings; \

@@ -69,6 +69,15 @@ jobs:
       # instead of running.
       - run: echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
 
+      # Lints before tests: a clippy finding is usually cheaper to read than a
+      # test failure, and this is a compiler, so the lints that matter are the
+      # ones about correctness rather than style. Turning this on found a test
+      # that never ran (no `#[test]`), another registered twice, and two doc
+      # comments detached from the functions they documented.
+      - name: Clippy
+        working-directory: glyph-compiler
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
       - name: Workspace tests
         working-directory: glyph-compiler
         run: cargo test --workspace --locked

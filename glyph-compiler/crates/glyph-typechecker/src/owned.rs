@@ -558,7 +558,7 @@ impl OwnedChecker<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
     use crate::assign::assign_types;
     use crate::TypeError;
     use glyph_resolver::{build_prelude, collect_module_symbols, resolve_module};

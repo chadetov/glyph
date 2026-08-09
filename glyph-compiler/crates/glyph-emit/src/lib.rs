@@ -3123,18 +3123,6 @@ impl<'a> Emitter<'a> {
             .contains(&(module_path, name.to_string()))
     }
 
-    /// Resolve a module-local *descriptorless* type alias to its leaf body, so a
-    /// field typed by the alias validates like the inline type. Follows a chain
-    /// of alias hops (`type A = B; type B = "x" | "y"`), stopping at any type
-    /// that `has_descriptor` accepts (a record, a tagged union, or a D39 refined
-    /// primitive — each resolves through its own descriptor instead) and at any
-    /// type that is not a local alias at all (a prelude type, a literal union,
-    /// etc.). Stopping at a refined alias is load-bearing: resolving through it
-    /// to the base type would emit the base leaf-check and silently drop the
-    /// `where` predicate. Returns `None` for a name that is not a local alias,
-    /// and guards against a cycle. The returned leaf is never a followable
-    /// alias, so `field_value_check` on it terminates.
-
     /// The project module an imported *name* came from, or `None` for a
     /// module-local name. Mirrors the walk in `has_descriptor`.
     fn import_module_path(&self, name: &str) -> Option<String> {
@@ -3198,6 +3186,17 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// Resolve a module-local *descriptorless* type alias to its leaf body, so a
+    /// field typed by the alias validates like the inline type. Follows a chain
+    /// of alias hops (`type A = B; type B = "x" | "y"`), stopping at any type
+    /// that `has_descriptor` accepts (a record, a tagged union, or a D39 refined
+    /// primitive — each resolves through its own descriptor instead) and at any
+    /// type that is not a local alias at all (a prelude type, a literal union,
+    /// etc.). Stopping at a refined alias is load-bearing: resolving through it
+    /// to the base type would emit the base leaf-check and silently drop the
+    /// `where` predicate. Returns `None` for a name that is not a local alias,
+    /// and guards against a cycle. The returned leaf is never a followable
+    /// alias, so `field_value_check` on it terminates.
     fn resolve_alias_leaf(&self, name: &str) -> Option<TypeExpr> {
         let alias_body = |n: &str| -> Option<TypeExpr> {
             self.module.items.iter().find_map(|d| match d {
@@ -3776,13 +3775,6 @@ impl<'a> Emitter<'a> {
         Ok(format!("{targs}({})", a.join(", ")))
     }
 
-    /// Rewrite `json.parse<T>(text)` to the validating `json.parse_with(text,
-    /// T.schema)` when `T` is a local type with a runtime descriptor (G3). The
-    /// plain `json.parse<T>` casts the decoded JSON to `T` without checking it;
-    /// routing through the descriptor validates the shape instead. Returns `None`
-    /// (so the caller emits the call normally) for any non-matching call —
-    /// including a type argument with no descriptor, where the cast escape hatch
-
     /// The first field of record type `name` that has no runtime check, if any.
     ///
     /// Drives E0304. A record whose field is itself such a record is
@@ -3852,6 +3844,12 @@ impl<'a> Emitter<'a> {
         })
     }
 
+    /// Rewrite `json.parse<T>(text)` to the validating `json.parse_with(text,
+    /// T.schema)` when `T` is a local type with a runtime descriptor (G3). The
+    /// plain `json.parse<T>` casts the decoded JSON to `T` without checking it;
+    /// routing through the descriptor validates the shape instead. Returns `None`
+    /// (so the caller emits the call normally) for any non-matching call —
+    /// including a type argument with no descriptor, where the cast escape hatch
     /// is the intended behavior.
     fn try_json_parse_validating(
         &self,
@@ -6170,7 +6168,7 @@ mod tests {
             ),
             "{ts}"
         );
-        assert_eq!(ts.matches("__glyph_err").count() > 1, true, "{ts}");
+        assert!(ts.matches("__glyph_err").count() > 1, "{ts}");
     }
 
     #[test]

@@ -340,6 +340,11 @@ impl Printer {
             // A blank line before every declaration (and after the module
             // line), except between two consecutive imports, which cluster.
             let is_import = matches!(decl, Decl::Import(_));
+            // Left as two separate reasons rather than clippy's minimal
+            // `!(out.is_empty() || is_import && prev_was_import)`: the point is
+            // that a blank line is skipped at the start of the file, and again
+            // between two imports, and the negation reads as those two rules.
+            #[allow(clippy::nonminimal_bool)]
             if !self.out.is_empty() && !(is_import && prev_was_import) {
                 self.push("\n");
             }

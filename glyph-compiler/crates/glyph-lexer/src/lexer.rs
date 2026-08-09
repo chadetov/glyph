@@ -426,7 +426,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn advance(&mut self) {
-        if self.pos < self.source.as_bytes().len() {
+        if self.pos < self.source.len() {
             self.pos += 1;
         }
     }

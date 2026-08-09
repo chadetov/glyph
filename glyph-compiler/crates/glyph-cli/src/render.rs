@@ -345,7 +345,11 @@ mod tests {
         assert_eq!(clamp_range(0..3, s), 0..3);
         assert_eq!(clamp_range(0..100, s), 0..3);
         assert_eq!(clamp_range(100..200, s), 3..3);
-        // Inverted span clamps to an empty range at start.
-        assert_eq!(clamp_range(2..1, s), 2..2);
+        // Inverted span clamps to an empty range at start. The reversed range
+        // is the input under test, so clippy's warning about it is the thing
+        // this line exists to exercise.
+        #[allow(clippy::reversed_empty_ranges)]
+        let inverted = 2..1;
+        assert_eq!(clamp_range(inverted, s), 2..2);
     }
 }

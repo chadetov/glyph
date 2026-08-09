@@ -940,7 +940,7 @@ fn main() {
                 Err(PublishError::AuditFailed(stale)) => {
                     eprintln!("glyph publish: audit-currency check failed (Q22):");
                     for s in &stale {
-                        eprintln!("  - {}", publish::describe_stale(&s));
+                        eprintln!("  - {}", publish::describe_stale(s));
                     }
                     eprintln!(
                         "glyph publish: review the imports above and update `glyph.imports.*.last_reviewed`, \

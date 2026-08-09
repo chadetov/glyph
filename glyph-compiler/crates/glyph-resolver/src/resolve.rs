@@ -132,6 +132,12 @@ impl ResolutionMap {
         self.by_span.len()
     }
 
+    /// Whether the map holds nothing. Paired with `len` so a caller can ask
+    /// the question directly rather than comparing a count to zero.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Iterate over every recorded resolution. Used by tests and by the
     /// typechecker, which needs to know "what each name in scope actually
     /// pointed at."
@@ -918,7 +924,7 @@ mod tests {
     fn fn_param_resolves_to_local() {
         let (rm, errs) = resolve("module x\nfn id(a: number) -> number { return a }\n");
         assert!(errs.is_empty(), "errors: {errs:?}");
-        assert!(rm.resolutions.len() > 0, "should have resolved `a` ref");
+        assert!(!rm.resolutions.is_empty(), "should have resolved `a` ref");
         // Find the resolved entry that's a Local.
         let any_local = rm
             .resolutions

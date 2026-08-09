@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.76, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.75, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3059,22 +3059,59 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.74 — a host call that throws cannot be contained
+#### 0.1.74 — the host boundary, and the app that will tell us what it needs
+
+Two halves of one theme: give the stdlib the host calls an app currently makes
+raw, and then deliberately step outside the stdlib to find what is still
+missing.
+
+**`std/net`, `std/dns`, `std/tls`, `std/url`, `std/bytes`.** The driver is
+concrete: `chat/daemon.glyph` imports node's `net` directly and holds an opaque
+`Socket`, which E0304 now refuses to validate. It is also the only raw host call
+in the entire examples tree, so wrapping it closes the last one.
+
+**The dogfood round is an application built on real npm packages.** Nothing in
+`examples/apps/` uses one today, which means the 1.0 interop gate ("can a
+working engineer use their existing npm dependencies without a hand-written
+adapter") has never been tested by an app, only by guides.
+
+##### Why a host-throw construct is *not* scheduled here
+
+It was, and the evidence removed it. A throwing host call is uncatchable today:
 
     fn risky() -> number {
       return extern_ts("(() => { throw new Error('host blew up'); })()")
     }
 
-`tsc --strict` passes and the process dies. There is no `try`, no `catch`, and
-no way to contain a throwing host call, which means no Glyph program can be
-robust against a library that throws, and every npm package throws.
+`tsc --strict` passes and the process dies. Two designs were worked through
+before either was written down, and both are recorded because the second was
+nearly built:
 
-**The answer: `host.attempt(fn() -> T) -> Result<T, HostError>`**, a stdlib
-function rather than syntax. Same reasoning that chose `array.range(n)` over a
-`..` operator: a function costs no grammar and forecloses no later decision. If
-it turns out to be written constantly, a `try` expression becomes sugar over it.
-Rejected: making every interop call return a `Result`, which rewrites every call
-site to guard a case most of them do not have.
+- **`host.attempt(fn() -> T) -> Result<T, HostError>` is wrong**, and testing
+  the lowering is what showed it. A stdlib function cannot see whether its
+  argument is async, so `attempt` over a rejecting async call returns **`Ok`**
+  and the rejection escapes unhandled. That is a boundary reporting success for
+  something it never checked, the same defect E0304 exists to prevent, and it is
+  worse than the crash it replaces because a crash is loud. Splitting it into
+  `attempt`/`attempt_async` moves the error to whoever picks; awaiting
+  unconditionally makes it async-only, and a sync `fn` calling an async one is a
+  `tsc` error, so sync host calls would lose containment entirely.
+- **A `try` expression works** (the compiler can see async-ness and lower
+  accordingly) **and is not justified yet.** Twenty-six rounds produced exactly
+  two host-throw incidents, and both were fixed in the library rather than by
+  catching: `pool` dying on an unhandled rejection became `pool_settled`, and
+  Node's `writeHead` throwing `ERR_INVALID_CHAR` on an emoji from a form field
+  (which took a whole server down, reachable by any visitor) became
+  `sanitize_header_value`. The apps make one raw host call between them. Adding
+  mandatory grammar at every host seam to catch a class the stdlib has absorbed
+  twice is ceremony bought with evidence that points the other way.
+
+So the construct waits for the npm app. If that app reaches for containment
+forty times, it will be designed against what it actually needed. Two notes to
+carry into that decision: `try` must be mandatory at the seam or it gives back
+the silent crash, and `HostError` has to carry the thrown value
+(`{ message: string, value: unknown }`) because JavaScript can throw anything and
+claiming `{ message: string }` is a shape nothing checked.
 
 #### Riding along: the two ergonomics items
 
@@ -3092,13 +3129,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.75 — the host boundary the stdlib cannot type
-
-`std/net`, `std/dns`, `std/tls`, `std/url`, `std/bytes`. The concrete driver:
-`chat/daemon.glyph` imports node's `net` directly and holds an opaque `Socket`,
-which E0304 now refuses to validate. A Glyph-native socket is descriptor-backed.
-
-#### 0.1.76 — finish what is half-built
+#### 0.1.75 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

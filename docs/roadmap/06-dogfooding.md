@@ -86,6 +86,16 @@ or until it is done.
 engineer Q&A on the site for anything user-visible. Three releases once shipped
 with no site update at all.
 
+## The next round is chosen, and why
+
+An application built on **real npm packages**. Nothing in `examples/apps/` uses
+one, which means the 1.0 interop gate has only ever been tested by guides. It is
+also what decides whether Glyph needs a construct for containing a throwing host
+call: that was scheduled, then unscheduled, because twenty-six rounds produced
+two host-throw incidents and the library absorbed both. An app that actually
+depends on npm is the only thing that can settle it, and settling it by writing
+the app is the method that has beaten reasoning from first principles twice.
+
 ## The gates a round runs
 
 | Gate | What it stops |

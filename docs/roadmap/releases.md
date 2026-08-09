@@ -2989,12 +2989,86 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-The partly-fixed entries follow, in the order the earlier plan had them: G63
-(names a module already owns), G52 (`std/http` cannot bound or observe a
-request), G78 (multi-module app in an enclosing tree), G79, G27, then G39, G37,
-G30 and G18. G30's two questions (a counted range for `for`, and `xs[i]` typing
-as `Unknown`) are decisions, not implementation, and are owed an answer before
-that slot.
+G63, G52 and G30 are done. What follows is the plan through 0.1.75, and it puts
+the language before the library on purpose: every new stdlib module widens the
+surface where a type Glyph has lost leaks, so the leak is worth closing first.
+
+#### 0.1.71 — the `any` the manifesto forbids
+
+**G39, phase 2.** The entry describes this as unchecked member access in
+general, and reproducing it narrows the danger a long way. A misspelled
+`array.lenn`, `s.slyce`, or `string.repeeat` does *not* build: `tsc` catches all
+three with TS2551. The diagnostic is a back-end error rather than a Glyph one,
+which is worth fixing and is not urgent.
+
+What is urgent is the one shape that builds clean and fails at run time:
+
+    return match string.index_of(s, "x") {
+      Some(i) => i,
+    }
+
+No `None` arm, `glyph build` reports `0 error(s)`, and the program throws
+`non-exhaustive match` on the first input that does not contain an `x`. It
+happens because the checker cannot model `index_of`, so the scrutinee is
+`Unknown` and D9 exhaustiveness never runs.
+
+That surface is exactly nine functions: `array.slice`, `string.slice`,
+`string.index_of`, `string.pad_start`, `string.pad_end` and `json.stringify`
+(each takes an optional trailing argument, and the arity check compares one
+number against one number, so modeling them today would report a false error on
+every call that omits it), plus `array.map`, `flat_map` and `zip` (each takes
+its element type from a callback the checker does not walk into).
+
+So the work is bounded, and smaller than "model the stdlib from its `.d.ts`":
+teach the signature model optional parameters, model the six, then walk one
+level into a callback's return for the three. That closes the silent-green class
+and leaves the diagnostic-quality half for 0.1.72.
+
+#### 0.1.72 — a typo answers in Glyph's own voice
+
+**G27**: `string.repeeat(...)` is checked against the resolver seed the way a
+named import already is, so the same typo stops giving two different experiences
+depending on import style. **G79**: the remaining half is that a descriptor does
+not synthesize a check for a type it has no descriptor for, which is its
+documented soundness limit and now interacts with E0304.
+
+#### 0.1.73 — the language items behind the ergonomics
+
+`Result` ergonomics, `Option` propagation, typed exception boundaries at the
+host seam, and safe concurrent mutation. These are four separate decisions
+rather than one release's work, and each needs a written option set before it is
+scheduled. Splitting them across 0.1.73 and 0.1.74 is likely.
+
+#### 0.1.75 — the host boundary the stdlib cannot type
+
+`std/net`, `std/dns`, `std/tls`, `std/url`, `std/bytes`. The concrete driver:
+`chat/daemon.glyph` imports node's `net` directly and holds an opaque `Socket`,
+which E0304 now refuses to validate. A Glyph-native socket is descriptor-backed.
+
+#### 0.1.76 — finish what is half-built
+
+WebSocket binary messages, a WebSocket server, connection options and
+subprotocols, WebSocket integration tests, and `std/sse`.
+
+#### After that, the loop decides
+
+`std/channel`, `std/queue`, `std/lock`, signals and graceful shutdown,
+`std/compress`, `std/multipart`, URL encoding, `std/db`, `std/transaction`,
+`std/cli`, `std/config`, `std/metrics`, `std/tracing`, a first-class test
+framework, `std/mock`, `std/cache`, `std/job`, `std/observable`. All plausible,
+none scheduled. The rule that has worked for twenty-six rounds is that an
+application asks for the next module, and the ones nothing asks for do not get
+written.
+
+**Deliberately not planned:** `std/jwt`, `std/email`, `std/mime`, `std/auth`.
+Good npm packages exist, they are not host boundaries, and `glyph gen dts`
+already materializes their types. Shipping our own would be parity-chasing, and
+parity is not the bet.
+
+Already covered, so off the list entirely: `std/uuid` and secure random
+(`crypto.random_uuid`/`random_hex`), `std/env` (`process.env`), `std/text`
+(`std/string`), `std/assert` (the prelude `assert`), `std/serialize`
+(descriptors plus `std/json`), and every G30 item, which shipped in 0.1.70.
 
 New this release, worth its own entry when it comes up: a **generic tagged
 union** carries no runtime descriptor (only generic *records* do), so a field

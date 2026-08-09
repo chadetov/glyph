@@ -1012,7 +1012,19 @@ One is different in kind, and it is the one fixed here.
   growing the hand-written `stdlib_fn_ty` table), so it is recorded in
   `docs/roadmap/releases.md` and not fixed here.
 
-  *Phase 1 landed; the entry stays open for phase 2.* The chosen direction is
+  *Phase 1 landed; the entry stays open for phase 2.*
+  **Scoped for 0.1.71 by reproducing it (2026-08-09), and the danger is much
+  narrower than this entry reads.** A misspelled `array.lenn`, `s.slyce` or
+  `string.repeeat` does not build: `tsc` catches all three with TS2551. That is
+  a diagnostic-quality problem, not a correctness one, and it belongs with G27.
+  The correctness half is one shape: `match string.index_of(s, "x") { Some(i) =>
+  i, }` with no `None` arm reports `0 error(s)` and throws `non-exhaustive
+  match` at run time, because the scrutinee is `Unknown` so D9 never runs. The
+  surface is exactly the nine unmodeled functions named below, which makes the
+  work bounded and much smaller than modeling the stdlib from its `.d.ts`:
+  teach the signature model optional parameters, model the six that take an
+  optional trailing argument, then walk one level into a callback's return for
+  `map`/`flat_map`/`zip`.* The chosen direction is
   the hand-written table, grown: `stdlib_fn_ty` now models the fixed-arity half
   of `std/string` and `std/array` (returns, plus `Array<T>` where the element
   type has to travel), and there is now a shape model for a stdlib *named* type

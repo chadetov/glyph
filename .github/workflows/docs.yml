@@ -11,12 +11,11 @@ on:
       - "scripts/check_site.py"
       - "npm/glyph/README.md"
       - ".github/workflows/docs.yml"
+  # No `paths` filter on pull requests, deliberately. This job is a required
+  # check, and a required check that only runs for some paths never reports on
+  # the others, so those pull requests wait for it forever. It costs a couple of
+  # seconds, which is cheaper than the deadlock.
   pull_request:
-    paths:
-      - "web/**"
-      - "playground/**"
-      - "scripts/check_site.py"
-      - "npm/glyph/README.md"
 
 # Least privilege by default: the workflow-level token can only read.
 # Jobs that need more (Pages, provenance, npm publish) ask for it themselves.

@@ -49,8 +49,25 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.70</span>
+            <span class="rel-ver">0.1.71</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The last place a type went missing</h3>
+            <p>One shape built with <code>0 error(s)</code> and threw at run time, and it had been there since the standard library was first modeled.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>match</code> on <code>string.index_of</code> with no <code>None</code> arm is a compile error. It used to build clean and throw <code>non-exhaustive match</code> on the first input that did not contain the search string, because the function could not be modeled and its result was therefore untyped, so the exhaustiveness check never ran. Six standard-library functions were in that position for the same reason: each takes a trailing argument the caller may omit, and the arity check compared one number against one number, so modeling them would have reported an error on every call that omitted it. Parameters can be optional now and the check reads a minimum and a maximum, so <code>string.index_of</code>, <code>string.slice</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>array.slice</code> and <code>json.stringify</code> all carry their real return types.</li>
+              <li><span class="tag improved">Improved</span> Diagnostics render through ariadne 0.6. The location header gains spaces inside its brackets; nothing else about the output changes.</li>
+              <li><span class="tag fixed">Fixed</span> Two concurrency defects, both found by running the tests on a slower machine than a laptop. A helper script was named from the process id alone, so parallel <code>gen</code> calls shared one file and the first to finish deleted it out from under the next. And a concurrent <code>run</code> of the same program could report a directory swap as an IO error, when the directory it was writing to had been correct when it chose it.</li>
+            </ul>
+            <p><strong>Nothing behaves differently at run time.</strong> Every one of the 124 modules in the examples tree builds unchanged; what changed is that four call shapes that used to reach run time now stop at the compiler.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.70</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

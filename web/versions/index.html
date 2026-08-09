@@ -49,13 +49,35 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.68</span>
+            <span class="rel-ver">0.1.69</span>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
+            <h3>Every open gap, and a client that can be bounded</h3>
+            <p>Each open entry was re-run against the previous release before anything was written, which changed the work: one of them turned out to be three separate gaps under a single number, and another had already closed.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> A <code>parse</code> could report success for a field it never checked. Every record type carries a runtime validator, and for a field whose type the compiler cannot see into (a socket, anything reached through <code>extern_ts</code>) the generated check was "is it present" while the message read <code>field `sock` must be Socket</code>. Validating such a record is now <code>E0304</code>, refused where it is written and naming the field. Declaring one is untouched, so holding a socket in a record is still ordinary. <code>unknown</code> is not caught by this: it claims nothing, so presence really is the whole check.</li>
+              <li><span class="tag fixed">Fixed</span> A string-literal union lost its exhaustiveness the moment it crossed a module. <code>kind: ColType</code> accepted any string once the type was imported, which is the same hole that was closed for <code>match</code> a few releases ago and was still open for record fields.</li>
+              <li><span class="tag fixed">Fixed</span> An HTTP client can bound and observe a request. <code>http.send</code> takes the whole request as one record carrying a timeout and a redirect policy, and the timeout aborts rather than racing a timer against a call that stays in flight. <code>Response.url</code> is where the response actually came from, so a followed redirect is visible. <code>http.head</code> is there too.</li>
+              <li><span class="tag fixed">Fixed</span> <code>json.parse&lt;T&gt;</code> reports the same field paths <code>T.parse</code> does. It collapsed every field failure into one issue reading <code>expected T</code>, and the one-step form is the one the guide teaches.</li>
+              <li><span class="tag fixed">Fixed</span> Two locally bound closures can call each other, so event-driven code stops having to lift both to top level and thread the shared state through a record.</li>
+              <li><span class="tag added">Added</span> <code>never</code> is spellable. A function that runs until the process is killed says so in its signature instead of a doc comment, and drops the unreachable <code>return</code> and the dead <code>match</code> arm it needed to stay exhaustive.</li>
+              <li><span class="tag improved">Improved</span> A <code>tsc</code> error over an <code>is</code> arm that re-reads its scrutinee now explains that <code>is</code> narrows the binding, rather than reporting only the type mismatch it caused.</li>
+              <li><span class="tag improved">Improved</span> <code>.types/</code> says what it can and cannot do. A <code>declare var</code> there is a global, and Glyph resolves names from modules, so it satisfies <code>tsc</code> and stays invisible. A host global the standard library does not wrap is a gap in the standard library.</li>
+            </ul>
+            <p><strong>Two changes can reject code that compiled before.</strong> <code>E0304</code> refuses to validate a record holding a field nothing can check, and <code>Response</code> gained a required <code>url</code> field, so a response built by hand needs it. Both are the kind of change the pre-1.0 line allows, and both are a compile error rather than a surprise at run time.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.68</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
             <h3>Null is absence, and a loop keeps its type</h3>
-            <p>A wire type could not read the payload it was written for. <code>field?: T</code> accepted an omitted key and a present value, and rejected an explicit <code>null</code> &mdash; which is what every real API sends. A Discord gateway frame carries <code>"s": null</code> in every HELLO.</p>
+            <p>A wire type could not read the payload it was written for. <code>field?: T</code> accepted an omitted key and a present value, and rejected an explicit <code>null</code>, which is what every real API sends. A Discord gateway frame carries <code>"s": null</code> in every HELLO.</p>
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> An optional field treats a JSON <code>null</code> as absent. The declared type is <code>T</code>, and <code>null</code> is not a value of <code>T</code>, so a key holding null is a key holding no value. <code>glyph gen openapi</code> had documented exactly this mapping while the runtime did not implement it, so a generated type rejected the payload it was generated from. <code>Option&lt;T&gt;</code>'s tagged encoding is untouched.</li>
               <li><span class="tag fixed">Fixed</span> A <code>for</code> binding carries the iterand's element type, so exhaustiveness survives a loop. A <code>match</code> over a string-literal union inside a <code>for</code> went from "a string match can never be exhaustive, add an <code>else</code>" to "missing variants <code>pro</code>": from advice to switch the check off, to advice to satisfy it.</li>

@@ -352,8 +352,21 @@ pub fn run_file(
         }
     }
 
+    // The entrypoint is written into the shared, fingerprint-keyed `out`, which
+    // a concurrent run of the same program may be swapping its own staging into
+    // at this instant. That run removes `out` before its rename, so a write
+    // landing in between fails with `NotFound` through no fault of this one:
+    // the directory it is writing to was correct when it was chosen. Recreate
+    // and retry rather than reporting a race as an IO error, which is how this
+    // surfaced in CI as `concurrent run raced: Err(Io(...NotFound...))`.
     let entry = out.join("__glyph_run.ts");
-    std::fs::write(&entry, entrypoint_source(stem))?;
+    if let Err(e) = std::fs::write(&entry, entrypoint_source(stem)) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            return Err(e.into());
+        }
+        std::fs::create_dir_all(&out)?;
+        std::fs::write(&entry, entrypoint_source(stem))?;
+    }
 
     // Run from the caller's cwd (program-relative paths resolve there), but
     // point `tsx` at the generated tsconfig so `std/*` resolves.

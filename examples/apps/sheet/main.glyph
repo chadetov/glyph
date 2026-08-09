@@ -1431,15 +1431,7 @@ fn read_json_text(p: string) -> Result<string, LoadError> {
 // crash three functions later.
 fn load_sheet(p: string) -> Result<Sheet, LoadError> {
   let text = read_json_text(p)?
-  // Decoded first, then validated by the type's own descriptor. The one-step
-  // `json.parse<SheetFile>(text)` also rejects a bad fixture, but it routes
-  // through `SheetFile.schema`, whose only answer is "expected SheetFile";
-  // `SheetFile.parse` names the field that is wrong.
-  let decoded = match json.parse<unknown>(text) {
-    Ok(v) => v,
-    Err(issues) => { return Err(Invalid({ path: p, issues: issues })) },
-  }
-  let file = match SheetFile.parse(decoded) {
+  let file = match json.parse<SheetFile>(text) {
     Ok(f) => f,
     Err(issues) => { return Err(Invalid({ path: p, issues: issues })) },
   }
@@ -1461,11 +1453,7 @@ fn load_sheet(p: string) -> Result<Sheet, LoadError> {
 
 fn load_script(p: string) -> Result<ScriptFile, LoadError> {
   let text = read_json_text(p)?
-  let decoded = match json.parse<unknown>(text) {
-    Ok(v) => v,
-    Err(issues) => { return Err(Invalid({ path: p, issues: issues })) },
-  }
-  return match ScriptFile.parse(decoded) {
+  return match json.parse<ScriptFile>(text) {
     Ok(f) => Ok(f),
     Err(issues) => Err(Invalid({ path: p, issues: issues })),
   }

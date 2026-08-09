@@ -1360,6 +1360,17 @@ of truth. On the async path it was a preprocessor with opinions.
   local server: a 300ms budget against a 3s endpoint returns the abort message
   and the whole program finishes in 1.7s, a `manual` redirect reports 302 with
   its `location`, and a followed one reports the final URL.*
+
+  *Revisited the apps afterwards, which the loop asks for and this round nearly
+  skipped.* `linkcheck` carried the `task.race` workaround this entry named; it
+  now sends one bounded request, and the timeout aborts instead of leaving the
+  loser in flight. That surfaced a second thing: the app could not tell a slow
+  site from a dead one, because both arrived as `status: 0`. `HttpError` grew a
+  `kind` (`"timeout" | "network" | "status"`) on the `FsError.kind` model, and
+  the checker models the field, so `match e.kind` is held to D30 exhaustiveness
+  rather than reporting E0218 and advising a catch-all. The app also reports
+  where a redirect landed now, instead of the literal `"?"` it had to print
+  while `Response` carried no URL.
 - **G53. [FIXED] `task.pool` is fail-fast with no settled variant.** `pool` is
   `Promise.all` over workers, so one rejection abandons the rest, and
   `all_settled` is unbounded. `pool_settled` is a few lines and turns a
@@ -2515,6 +2526,16 @@ once are each announced under the right name.
   user code. A `-> never` return type would delete the dead arm, delete the
   unreachable `return`, and let the compiler state what the comment currently
   asserts.
+
+  *Correction, made when the apps were revisited after `never` shipped.* The
+  entry mis-read its own example. `daemon.serve` installs a listener and
+  **returns**; the process outlives it because the event loop still has work,
+  not because the function diverges, and the file's own comment says so ("`main`
+  has already returned by the time this fires"). So `main`'s `return 0` is
+  reached, and annotating `serve` as `-> never` would state something false.
+  `never` is right and shipped as D43, and `std/process.exit` is a genuine one;
+  the chat daemon is simply not a place to spend it. What a non-returning
+  function looks like is a `loop` with no break, or a call to another `-> never`.
 
 The round found two compiler defects and fixed both, and left four entries open
 that are about the language rather than about the build. The uncomfortable one

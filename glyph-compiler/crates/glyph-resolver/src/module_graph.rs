@@ -244,7 +244,7 @@ impl StdlibStubs {
                 // The bounded client (G52): one request record, a timeout that
                 // aborts, a redirect policy, and HEAD.
                 "send", "head", "fetch_of",
-                "Request", "Response", "HttpError", "Handler", "Fetch", "RedirectPolicy",
+                "Request", "Response", "HttpError", "HttpErrorKind", "Handler", "Fetch", "RedirectPolicy",
             ],
         );
         s.add(

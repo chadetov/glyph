@@ -699,7 +699,8 @@ A `fetch`-based client and a small server, both errors-as-values.
 ```
 type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
 type Response = { status: number, headers: Record<string, string>, body: unknown, url: string }
-type HttpError = { status: number, message: string }
+type HttpErrorKind = "timeout" | "network" | "status"
+type HttpError = { status: number, message: string, kind: HttpErrorKind }
 type RedirectPolicy = "follow" | "manual" | "error"
 type Fetch = { url: string, method: string, body: Option<unknown>, timeout_ms: number, redirect: RedirectPolicy }
 type Handler  = fn(Request) -> Result<Response, string>         // may be async
@@ -714,6 +715,14 @@ key order.
 constructor always fills it in, and a client call reports the response headers it
 received with the names lowercased, so a program never has to check whether the
 header set is there before reading it.
+
+`HttpError.kind` says *why*, the way `FsError.kind` does, so a caller matches on
+it instead of parsing a message. `timeout` is a request this client aborted for
+outliving its budget, `network` is one that never got an answer (DNS, refused
+connection), and `status` is a response that arrived and was not ok. Before it
+existed a slow site and a dead one both arrived as `status: 0`. The checker
+models the field, so `match e.kind` is held to D30 exhaustiveness: drop an arm
+and you get `E0200` naming the kind you missed.
 
 `Response.url` is where the response actually came from. After a followed
 redirect that is where you landed rather than where you asked, which is the only

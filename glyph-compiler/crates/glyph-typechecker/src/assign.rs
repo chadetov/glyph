@@ -3229,7 +3229,10 @@ fn is_map_ty(ty: &Ty) -> bool {
 pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
     matches!(
         (module, name),
-        ("fs", "FsError") | ("fs", "FileInfo") | ("fs", "ErrorKind")
+        ("fs", "FsError")
+            | ("fs", "FileInfo")
+            | ("fs", "ErrorKind")
+            | ("http", "HttpError")
     )
     .then(|| stdlib_named(module, name))
 }
@@ -3267,6 +3270,23 @@ fn stdlib_type_fields(ty: &Ty) -> Option<Vec<RecordField>> {
             ("is_file", Ty::Prim(Primitive::Bool)),
             ("size", Ty::Prim(Primitive::Number)),
             ("modified", Ty::Prim(Primitive::Number)),
+        ],
+        // `kind` is a string-literal union rather than a tagged one, so it
+        // needs no variant table: D30 exhaustiveness reads the members straight
+        // off the type. Without this a caller matching `e.kind` gets E0218
+        // ("a string match can never be exhaustive") and is told to add a
+        // catch-all, which is advice to switch the check off.
+        ("http", "HttpError") => vec![
+            ("status", Ty::Prim(Primitive::Number)),
+            ("message", Ty::Prim(Primitive::String)),
+            (
+                "kind",
+                Ty::StringLiteralUnion(vec![
+                    "timeout".to_string(),
+                    "network".to_string(),
+                    "status".to_string(),
+                ]),
+            ),
         ],
         _ => return None,
     };

@@ -66,8 +66,6 @@ import std/result { Result, Ok, Err }
 import std/set
 import std/string
 import std/task
-import std/time
-import std/time { Duration }
 
 // ---------------------------------------------------------------------------
 // Domain
@@ -488,33 +486,47 @@ fn check_in_page(text: string, slug: string, file: string) -> Outcome {
 
 const TIMEOUT_MS = 8000
 
+// The request carries its own budget. Racing a sleep against the fetch used to
+// report a timeout while leaving the request in flight; `timeout_ms` aborts it.
 async fn check_external(url: string) -> Outcome {
-  return await task.race([fn() { fetch_outcome(url) }, fn() { timeout_outcome() }])
-}
-
-async fn fetch_outcome(url: string) -> Outcome {
-  return match await http.get(url) {
-    Ok(response) => from_status(response.status),
-    // A non-2xx status arrives as an `Err` carrying the status; a thrown fetch
-    // (DNS failure, refused connection) arrives with status 0.
-    Err(e) => match e.status == 0 {
-      true => NetworkFail({ message: first_line(e.message) }),
-      false => from_status(e.status),
+  let req: http.Fetch = {
+    url: url,
+    method: "GET",
+    body: None,
+    timeout_ms: TIMEOUT_MS,
+    redirect: "follow",
+  }
+  return match await http.send(req) {
+    Ok(response) => from_response(url, response),
+    // Why it failed is a value, not a string to parse: a slow site and a dead
+    // one both arrived as status 0 before `kind` existed.
+    Err(e) => match e.kind {
+      "timeout" => TimedOut,
+      "network" => NetworkFail({ message: first_line(e.message) }),
+      "status" => from_status(e.status),
     },
   }
 }
 
-async fn timeout_outcome() -> Outcome {
-  await time.sleep(Duration.ms(TIMEOUT_MS))
-  return TimedOut
+// Redirects are followed, so a 3xx never lands here. `response.url` is where
+// the response came from, so a link that moved is reported as moved rather than
+// as a plain 200 at the address that no longer serves it.
+fn from_response(asked: string, response: http.Response) -> Outcome {
+  return match response.url == asked {
+    true => from_status(response.status),
+    false => match response.url == EMPTY {
+      true => from_status(response.status),
+      false => Redirect({ code: response.status, location: response.url }),
+    },
+  }
 }
 
 fn from_status(code: int) -> Outcome {
   return match code < 300 {
     true => Alive({ code: code }),
     false => match code < 400 {
-      // `std/http` follows redirects and does not expose the response URL or
-      // headers, so this arm is only reachable if a 3xx ever surfaces directly.
+      // Reached only if a 3xx surfaces directly; a followed redirect is caught
+      // by `from_response` above, which knows where it landed.
       true => Redirect({ code: code, location: "?" }),
       false => match code < 500 {
         true => ClientError({ code: code }),

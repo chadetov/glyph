@@ -48,7 +48,15 @@ export type Response = {
   url: string;
 };
 
-export type HttpError = { status: number; message: string };
+/// Why a request failed, following `FsError.kind`: the reason is a value you
+/// match on, not a string you parse. `timeout` is the request this client
+/// aborted because it outlived its budget; `network` is one that never got an
+/// answer (DNS, refused connection); `status` is a response that arrived and
+/// was not ok. A caller that must tell "the site is slow" from "the site is
+/// gone" had no way to before, because both were `status: 0`.
+export type HttpErrorKind = "timeout" | "network" | "status";
+
+export type HttpError = { status: number; message: string; kind: HttpErrorKind };
 
 /// What to do with a 3xx. `follow` is fetch's default and what `get`/`post` do.
 /// `manual` returns the redirect response itself, so `status` and the
@@ -354,7 +362,7 @@ async function request(
       if (bounds.redirect === "manual" && res.status >= 300 && res.status < 400) {
         return Ok({ status: res.status, headers, body: parsed, url: res.url });
       }
-      return Err({ status: res.status, message: text });
+      return Err({ status: res.status, message: text, kind: "status" });
     }
     return Ok({ status: res.status, headers, body: parsed, url: res.url });
   } catch (e: unknown) {
@@ -362,10 +370,11 @@ async function request(
       return Err({
         status: 0,
         message: `request to ${url} exceeded ${bounds.timeout_ms}ms and was aborted`,
+        kind: "timeout",
       });
     }
     const message = (e as { message?: string } | null)?.message ?? String(e);
-    return Err({ status: 0, message });
+    return Err({ status: 0, message, kind: "network" });
   } finally {
     if (timer !== undefined) {
       clearTimeout(timer);

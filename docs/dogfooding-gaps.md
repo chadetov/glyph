@@ -11,6 +11,13 @@ Later trips appended their own rounds below, so the file is both a backlog and a
 record of what each app found. The numbered `G` entries are the backlog; the
 per-round sections are history and stay as written.
 
+**A `G` entry's marker is the only live status here.** The round and
+reconciliation narratives are past tense on purpose: each says what was true
+when it was written, not what is true now. A narrative that reads as a
+present-tense claim about an entry is a tense bug, not a status, and the fix is
+the tense. `scripts/check_gaps.py` reconciles markers and counts; it cannot read
+prose, which is why two of these went stale unnoticed.
+
 ## Reading the markers
 
 A `G` entry carries its status in brackets after the number. No bracket means
@@ -91,8 +98,8 @@ a number and a `match e.kind` on an `fs.FsError` is held to E0200; added the
 `async fn(...) -> T` function type as D40; rewrote D12 to describe both string
 spellings the lexer actually accepts; and closed the codepoint half of G50 as a
 decision (Glyph indexes UTF-16 code units and ships no codepoint accessor). G39
-is the one entry left open, and it is the phase-2 half of its own claim:
-hard-erroring on the `Unknown`s that remain at the stdlib boundary.
+was the one entry left open at that point, and it was the phase-2 half of its own
+claim: hard-erroring on the `Unknown`s that remain at the stdlib boundary.
 
 The reconciliation before it, after the descriptor, range, and formatter batch
 (G41, G30, G62), read 62 entries, 44 fixed, 10 partly fixed, 4 decided or
@@ -105,8 +112,8 @@ and `minesweeper.glyph`, the two identity re-wrap `match`es around
 `Bracket.parse`/`SeedFile.parse` are now `.map_err(...)`, and the five
 `\n`-escaped HTML builders in `shortlink.glyph` are D12 multi-line strings that
 survive `glyph fmt --check`. Every emitted `.ts` file is byte-identical before
-and after, so nothing about what those apps print changed. G30 keeps its
-index-safety half open beside G39.
+and after, so nothing about what those apps print changed. G30 still had its
+index-safety half open beside G39 at that point; it closed in 0.1.70.
 
 The reconciliation before it, after the CLI and docs batch (G28, G42, G36, G55)
 and the adversarial review of it, which added G61 and G62, read 62 entries, 42

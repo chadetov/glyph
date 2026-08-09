@@ -3075,6 +3075,34 @@ in the entire examples tree, so wrapping it closes the last one.
 working engineer use their existing npm dependencies without a hand-written
 adapter") has never been tested by an app, only by guides.
 
+That round carries one hypothesis to confirm or kill: **`std/ai`**. The proposal
+was `tokenize`, `count_tokens`, `truncate`, `chunk`, plus `llm.generate` and
+`llm.embed`, driven by a real shape:
+
+    let tokens = ai.count_tokens(prompt)
+    match tokens > context_limit {
+      true => { mut prompt = ai.truncate(prompt, context_limit) },
+      false => {},
+    }
+
+It is **not scheduled**, for three reasons. Token counting is model-specific:
+GPT's BPE, Claude's tokenizer and Llama's SentencePiece give different answers
+for the same string, so a `count_tokens` that does not name a model is wrong for
+every model but one, and shipping several means megabytes of vocabulary tables
+in a compiler's standard library. `llm.generate`/`llm.embed` are a network
+client for a third-party API with per-vendor auth, streaming and rate limits,
+which is the profile already rejected for `std/jwt` and `std/email`: good npm
+packages exist and `gen dts` types them. And there is a positioning cost, which
+is the one that would be hardest to undo: shipping `llm.generate` in the stdlib
+makes the language look like it is *for* AI plumbing rather than *safe under* AI
+authorship.
+
+What the example actually shows is a **boundary with a rule** (`tokens >
+context_limit`), and `where` refinements plus descriptors already express that.
+So the npm round builds against a real LLM SDK from npm and reports what Glyph
+lacks. If the answer is `count_tokens`, it will come with the tokenizer it
+needs and the reason.
+
 ##### Why a host-throw construct is *not* scheduled here
 
 It was, and the evidence removed it. A throwing host call is uncatchable today:

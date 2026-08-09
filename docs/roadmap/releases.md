@@ -2910,7 +2910,7 @@ E0111's explanation and one formatter regression test.
   message it would replace. Doing it properly means attaching a note during the
   `tsc` remap rather than adding a check.
 
-## 0.1.69 (Next, unreleased) — every open gap at once
+## 0.1.69 (Next, unreleased) — every open gap, and a client that can be bounded
 
 Re-sequenced after re-reproducing each open entry against 0.1.68, then built
 as one release rather than five. The earlier order carried three items that had
@@ -2957,9 +2957,25 @@ not published.
   and the imports guide all say so, and the cost is stated: `new` (D37) does not
   work on a global class.
 
+- **G52, the bound half.** A client could not put a bound on a request:
+  no timeout, no redirect policy, no `head`, and no final URL, so a redirect was
+  invisible. `http.send` takes the whole request as one `Fetch` record carrying
+  `timeout_ms` and a `"follow" | "manual" | "error"` policy, because an optional
+  trailing argument is the one shape the checker cannot model. The timeout
+  aborts the request instead of racing a timer against it, which is what left
+  the loser in flight before. `Response.url` is where the response came from, so
+  a followed redirect is visible.
+
 Also in this release: the npm README leads with `npx` instead of a global
 install, and `glyph init` stops telling a reader who arrived through `npx` to
 run a command they do not have.
+
+The G63 investigation landed without the fix. Keeping a user's `Error` means
+aliasing the *compiler's* references rather than mangling the author's names,
+and both halves of that were checked against `tsc --strict` including
+`globalThis.Array<T>` in type position, which was the half in doubt. It is 53
+emission sites in the crate where a mistake is a silent miscompile, so it earns
+its own release rather than a corner of this one.
 
 ### After the open list
 

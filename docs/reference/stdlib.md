@@ -698,8 +698,10 @@ A `fetch`-based client and a small server, both errors-as-values.
 
 ```
 type Request  = { url: string, method: string, headers: Record<string, string>, body: unknown, raw: string }
-type Response = { status: number, headers: Record<string, string>, body: unknown }
+type Response = { status: number, headers: Record<string, string>, body: unknown, url: string }
 type HttpError = { status: number, message: string }
+type RedirectPolicy = "follow" | "manual" | "error"
+type Fetch = { url: string, method: string, body: Option<unknown>, timeout_ms: number, redirect: RedirectPolicy }
 type Handler  = fn(Request) -> Result<Response, string>         // may be async
 ```
 
@@ -713,6 +715,11 @@ constructor always fills it in, and a client call reports the response headers i
 received with the names lowercased, so a program never has to check whether the
 header set is there before reading it.
 
+`Response.url` is where the response actually came from. After a followed
+redirect that is where you landed rather than where you asked, which is the only
+way a client can tell it was redirected at all. It is empty on a response a
+handler builds, because nothing was fetched.
+
 Client (async; `await` them):
 
 ```
@@ -721,6 +728,59 @@ http.post(url: string, body) -> Result<Response, HttpError>
 http.put(url: string, body) -> Result<Response, HttpError>
 http.patch(url: string, body) -> Result<Response, HttpError>
 http.del(url: string) -> Result<Response, HttpError>    // `del`, not `delete` (reserved word)
+http.head(url: string) -> Result<Response, HttpError>   // status and headers, no body fetched
+http.send(f: Fetch) -> Result<Response, HttpError>      // the bounded form
+http.fetch_of(url: string, method: string) -> Fetch     // a Fetch with the defaults get/post use
+```
+
+`get` and friends follow redirects and wait forever, which is fine for a script
+and not for a service. `send` takes the whole request as one record so it can
+carry a `timeout_ms` and a `redirect` policy:
+
+```glyph
+module main
+
+import std/http
+import std/io
+import std/option { None }
+
+async fn main(argv: Array<string>) -> number {
+  let req: http.Fetch = {
+    url: "https://example.com/slow",
+    method: "GET",
+    body: None,
+    timeout_ms: 2000,
+    redirect: "manual",
+  }
+  return match await http.send(req) {
+    Ok(r) => io_status(r),
+    Err(e) => io_fail(e),
+  }
+}
+
+fn io_status(r: http.Response) -> number {
+  io.println("status ${number.to_string(r.status)} from ${r.url}")
+  return 0
+}
+
+fn io_fail(e: http.HttpError) -> number {
+  io.println(e.message)
+  return 1
+}
+```
+
+The timeout aborts the request rather than abandoning it. Racing a timer against
+the call with `task.race` resolves the caller while the request stays in flight,
+which is the thing `std/task`'s scope rule exists to prevent. `timeout_ms` of `0`
+means no timeout. A `manual` redirect hands back the 3xx itself, so `status` and
+the `location` header are readable; `error` fails the call instead.
+
+Building a `Fetch` by hand needs the annotation (`let req: http.Fetch = ...`),
+because an unannotated `"manual"` infers as `string`. `fetch_of` avoids that:
+
+```
+let req = http.fetch_of(url, "GET")
+mut req.timeout_ms = 2000
 ```
 
 Server:

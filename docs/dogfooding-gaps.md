@@ -23,7 +23,7 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 72 are fixed, 13 are partly fixed, 9 are
+fixed two of them: of 98 entries, 73 are fixed, 12 are partly fixed, 9 are
 decided or resolved, and 4 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -1338,7 +1338,7 @@ of truth. On the async path it was a preprocessor with opinions.
   after. What `Array<Array<Option<string>>>` would still buy is a scanner whose
   discriminator genuinely can match empty; that is a narrower case than this
   entry claimed, and it stays parked against `captures` agreeing with it.*
-- **G52. [HALF FIXED] `std/http` cannot bound or observe a request.** `Response` is
+- **G52. [FIXED] `std/http` cannot bound or observe a request.** `Response` is
   `{ status, body }` with no headers and no final URL, so a redirect is
   invisible; `RequestInit` is `{ method }` with no timeout and no redirect
   policy; there is no `head`. The app's `task.race` timeout workaround leaves the
@@ -1348,9 +1348,18 @@ of truth. On the async path it was a preprocessor with opinions.
   `Response` now carries a required `headers` field, the client fills it from the
   fetch response with the names lowercased, and the server writes it to the wire
   (`html`, `redirect`, and `with_header` build it; `form` reads a form-encoded
-  request body). The bound half is untouched: still no timeout, no redirect
-  policy, no `head`, and no final URL after a redirect, so a client still cannot
-  see that it was redirected, only that it landed somewhere.*
+  request body). The bound half is fixed in 0.1.69.
+  `Response` carries `url`, the address the response actually came from, so a
+  followed redirect is visible as landing somewhere other than where you asked.
+  `http.send(f: Fetch)` takes the whole request as one record carrying
+  `timeout_ms` and a `redirect` policy (`"follow" | "manual" | "error"`, a D30
+  union), because an optional trailing argument is the one shape the checker
+  cannot model. The timeout aborts through an `AbortController` rather than
+  racing a timer, so the loser does not stay in flight, which is what the
+  `task.race` workaround got wrong. `http.head` is there too. Verified against a
+  local server: a 300ms budget against a 3s endpoint returns the abort message
+  and the whole program finishes in 1.7s, a `manual` redirect reports 302 with
+  its `location`, and a followed one reports the final URL.*
 - **G53. [FIXED] `task.pool` is fail-fast with no settled variant.** `pool` is
   `Promise.all` over workers, so one rejection abandons the rest, and
   `all_settled` is unbounded. `pool_settled` is a few lines and turns a
@@ -1733,8 +1742,18 @@ several rounds that the backlog grew.
   was filed: you still cannot name a type or variant `Error`, `Number`,
   `Object`, `Array`, or `Promise`. `E0110` turns a silent miscompile into a
   clear rename request, which is the verifiability half, and the app still
-  carries `Cellerr` instead of the `Error` its domain wanted. Closing it for
-  real means mangling Glyph names in the emitter, which changes what every
+  carries `Cellerr` instead of the `Error` its domain wanted. **The approach is settled and it is not mangling** (investigated 0.1.69).
+  Renaming the user's declaration would trade one greppability loss for
+  another. The narrow fix keeps the name the author wrote and aliases the
+  *compiler's own* references instead: a module that declares a colliding
+  name emits `const __glyph_Error = globalThis.Error;` at the top, and the
+  emitter's internal uses go through it. Both halves were checked against
+  `tsc --strict`: the value capture works, and `globalThis.Array<T>` is
+  legal in *type* position too, which was the half in doubt. The cost is
+  53 emission sites across five globals that have to route through a
+  helper reading module state, in the crate where a mistake is a silent
+  miscompile, so it earns its own release. Closing it the old way meant
+  mangling Glyph names in the emitter, which changes what every
   emitted identifier looks like and therefore what a stack trace, a `grep` over
   `dist/`, and a hand-written `extern/` shim see. That is an architecture
   decision and it has not been made.

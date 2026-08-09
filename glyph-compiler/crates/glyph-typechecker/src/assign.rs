@@ -1183,6 +1183,24 @@ impl Assigner<'_> {
             });
         }
 
+        // `fetch_of(url, method)` builds the request record `send` takes. Modeled
+        // so the record a program threads through carries its type, and a
+        // misspelled field on it is a Glyph error rather than a `tsc` one.
+        if let ("std/http", "fetch_of") = (module_key, field) {
+            let params = (0..2)
+                .map(|_| FnParam {
+                    name: None,
+                    owned: false,
+                    ty: Ty::Prim(Primitive::String),
+                })
+                .collect();
+            return Some(Ty::Fn {
+                params,
+                return_ty: Arc::new(stdlib_named("http", "Fetch")),
+                is_async: false,
+            });
+        }
+
         // Response constructors that do not return a `Result`. Modeled so a
         // handler's `Ok(http.html(...))` is checked against its declared
         // `Result<Response, string>` here, rather than only by `tsc` on the
@@ -1219,6 +1237,21 @@ impl Assigner<'_> {
         // (arity, ok, err, is_async)
         let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
             ("std/http", "get") => (
+                1,
+                stdlib_named("http", "Response"),
+                stdlib_named("http", "HttpError"),
+                true,
+            ),
+            // The bounded form: one `Fetch` record carrying the timeout and the
+            // redirect policy, rather than optional trailing arguments the
+            // checker cannot model.
+            ("std/http", "send") => (
+                1,
+                stdlib_named("http", "Response"),
+                stdlib_named("http", "HttpError"),
+                true,
+            ),
+            ("std/http", "head") => (
                 1,
                 stdlib_named("http", "Response"),
                 stdlib_named("http", "HttpError"),

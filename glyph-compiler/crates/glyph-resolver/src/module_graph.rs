@@ -241,7 +241,10 @@ impl StdlibStubs {
                 "get", "post", "put", "patch", "del", "json", "text", "html", "redirect",
                 "with_header", "serve", "query", "path", "form",
                 "raw", "header", "query_param", "segments",
-                "Request", "Response", "HttpError", "Handler",
+                // The bounded client (G52): one request record, a timeout that
+                // aborts, a redirect policy, and HEAD.
+                "send", "head", "fetch_of",
+                "Request", "Response", "HttpError", "Handler", "Fetch", "RedirectPolicy",
             ],
         );
         s.add(

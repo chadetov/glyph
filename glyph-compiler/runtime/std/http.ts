@@ -41,9 +41,52 @@ export type Response = {
   status: number;
   headers: Record<string, string>;
   body: unknown;
+  /// The URL the response actually came from. After a followed redirect this is
+  /// where you landed, not where you asked, which is the only way a client can
+  /// tell it was redirected at all. Empty for a response a handler builds:
+  /// nothing has been fetched.
+  url: string;
 };
 
 export type HttpError = { status: number; message: string };
+
+/// What to do with a 3xx. `follow` is fetch's default and what `get`/`post` do.
+/// `manual` returns the redirect response itself, so `status` and the
+/// `location` header are readable. `error` fails the call instead.
+export type RedirectPolicy = "follow" | "manual" | "error";
+
+/// One request, spelled out. `send` takes this rather than a pile of optional
+/// arguments: an optional trailing parameter is exactly the shape Glyph's
+/// checker cannot model, and a request that cannot be bounded is not a request
+/// you can ship. `timeout_ms` of 0 means no timeout.
+export type Fetch = {
+  url: string;
+  method: string;
+  body: Option<unknown>;
+  timeout_ms: number;
+  redirect: RedirectPolicy;
+};
+
+/// A `Fetch` with the defaults `get` uses: follow redirects, no timeout, no
+/// body. Build on it rather than writing all five fields every time.
+export function fetch_of(url: string, method: string): Fetch {
+  return { url, method, body: None, timeout_ms: 0, redirect: "follow" };
+}
+
+/// Issue a request under the bounds it carries. A timeout aborts the request
+/// rather than abandoning it: `task.race` leaves the loser in flight, which is
+/// the thing `std/task`'s own scope rule exists to prevent.
+export async function send(f: Fetch): Promise<Result<Response, HttpError>> {
+  return request(f.url, f.method, f.body.tag === "Some" ? f.body.value : undefined, {
+    timeout_ms: f.timeout_ms,
+    redirect: f.redirect,
+  });
+}
+
+/// A HEAD request: the status and headers with no body fetched.
+export async function head(url: string): Promise<Result<Response, HttpError>> {
+  return request(url, "HEAD", undefined, { timeout_ms: 0, redirect: "follow" });
+}
 
 export async function get(url: string): Promise<Result<Response, HttpError>> {
   return request(url, "GET", undefined);
@@ -68,7 +111,7 @@ export async function del(url: string): Promise<Result<Response, HttpError>> {
 
 /// Build an `application/json` response.
 export function json(status: number, body: unknown): Response {
-  return { status, headers: { "content-type": "application/json" }, body };
+  return { status, headers: { "content-type": "application/json" }, body, url: "" };
 }
 
 // ---------------------------------------------------------------------------
@@ -83,19 +126,19 @@ export type Handler = (
 
 /// Build a `text/plain` response.
 export function text(status: number, body: string): Response {
-  return { status, headers: { "content-type": "text/plain; charset=utf-8" }, body };
+  return { status, headers: { "content-type": "text/plain; charset=utf-8" }, body, url: "" };
 }
 
 /// Build a `text/html` response, so a browser renders the markup instead of
 /// showing it as source.
 export function html(status: number, body: string): Response {
-  return { status, headers: { "content-type": "text/html; charset=utf-8" }, body };
+  return { status, headers: { "content-type": "text/html; charset=utf-8" }, body, url: "" };
 }
 
 /// Build a redirect: the given status (302, 301, 303, 307, 308) and a
 /// `location` header pointing at `location`. The body is empty.
 export function redirect(status: number, location: string): Response {
-  return { status, headers: { location }, body: "" };
+  return { status, headers: { location }, body: "", url: "" };
 }
 
 /// A copy of `resp` with one more header set (replacing any header of the same
@@ -111,7 +154,7 @@ export function with_header(resp: Response, name: string, value: string): Respon
     }
   }
   headers[name] = value;
-  return { status: resp.status, headers, body: resp.body };
+  return { status: resp.status, headers, body: resp.body, url: resp.url };
 }
 
 /// The URL query string parsed into a record (`/x?a=1&b=2` -> `{ a: "1", b: "2" }`).
@@ -275,27 +318,58 @@ async function request(
   url: string,
   method: string,
   body: unknown,
+  bounds: { timeout_ms: number; redirect: RedirectPolicy } = {
+    timeout_ms: 0,
+    redirect: "follow",
+  },
 ): Promise<Result<Response, HttpError>> {
+  // An `AbortController` cancels the request itself. Racing a timer against the
+  // promise would resolve the caller while the request stayed in flight, which
+  // is the workaround this replaces.
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (bounds.timeout_ms > 0) {
+    timer = setTimeout(() => controller.abort(), bounds.timeout_ms);
+  }
   try {
-    const init: RequestInit = { method };
+    const init: RequestInit = {
+      method,
+      redirect: bounds.redirect,
+      signal: controller.signal,
+    };
     if (body !== undefined) {
       init.body = JSON.stringify(body);
       init.headers = { "content-type": "application/json" };
     }
     const res = await fetch(url, init);
-    const text = await res.text();
+    const text = method === "HEAD" ? "" : await res.text();
     const parsed: unknown = text === "" ? null : parse_body(text);
-    if (!res.ok) {
-      return Err({ status: res.status, message: text });
-    }
     const headers: Record<string, string> = {};
     res.headers.forEach((value, key) => {
       headers[key.toLowerCase()] = value;
     });
-    return Ok({ status: res.status, headers, body: parsed });
+    if (!res.ok) {
+      // A `manual` redirect lands here (3xx is not ok), and the caller asked to
+      // see it, so hand back the response rather than an error.
+      if (bounds.redirect === "manual" && res.status >= 300 && res.status < 400) {
+        return Ok({ status: res.status, headers, body: parsed, url: res.url });
+      }
+      return Err({ status: res.status, message: text });
+    }
+    return Ok({ status: res.status, headers, body: parsed, url: res.url });
   } catch (e: unknown) {
+    if (controller.signal.aborted) {
+      return Err({
+        status: 0,
+        message: `request to ${url} exceeded ${bounds.timeout_ms}ms and was aborted`,
+      });
+    }
     const message = (e as { message?: string } | null)?.message ?? String(e);
     return Err({ status: 0, message });
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
   }
 }
 

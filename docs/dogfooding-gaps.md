@@ -23,8 +23,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 70 are fixed, 14 are partly fixed, 7 are
-decided or resolved, and 7 are open. That round re-ran an assignment the
+fixed two of them: of 98 entries, 71 are fixed, 13 are partly fixed, 8 are
+decided or resolved, and 6 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -688,7 +688,7 @@ on a decision in `docs/roadmap/releases.md`.
   formatter tests; D14 records the guarantee.* The remaining edge is placement,
   not loss: a comment is always emitted on its own line, so one written at the
   end of a code line moves to the line above the next item.
-- **G24. [HALF FIXED] `?` is rejected in an expression-form `match` arm.**
+- **G24. [FIXED] `?` is rejected in an expression-form `match` arm.**
   `=> f(x)?` fails while `=> { return f(x)? }` and `=> return Ok(f(x)?)` both
   compile. One call site in the emitter uses `self.expr` where every other
   statement position uses `self.emit_value`. A missed call site, not a design.
@@ -2431,7 +2431,7 @@ once are each announced under the right name.
   "the exit code" in four guide pages, and that is now only true of programs
   that finish inside `main`.
 
-- **G87. `owned` (D25) is unusable for sockets, the case it was specced for.**
+- **G87. [RESOLVED] `owned` (D25) is unusable for sockets, the case it was specced for.**
   The manifesto grants exactly one carve-out from "no linear types" and names
   its justification: files, sockets, database connections, locks, the forgotten
   `.close()`. This round wrote the canonical version of that workload, a server
@@ -2902,3 +2902,50 @@ assessed and deliberately left alone.
   attaching a note during the tsc remap, when the error is known to involve a
   match with an `is` arm, which is real plumbing rather than a check. Recorded
   rather than forced.
+
+## Round 26: verifying the list instead of trusting it
+
+Three entries had already turned out stale this week, so the rest were checked
+against the compiler rather than read. Ten were exercised; two more were wrong.
+
+**Wrong, and now closed:**
+
+- **G24 is fixed.** `?` inside an expression-form `match` arm builds clean. The
+  entry has been half-fixed since the batch that added E0008/E0222/E0223, and
+  the remaining half closed at some point without anyone re-running it.
+
+- **G87's premise is false, which resolves it.** The entry, and the adversarial
+  review that sharpened it, both held that `owned` cannot reach a socket because
+  it requires a `resource` type and a socket arrives from an ambient `.d.ts` as
+  an opaque foreign type that "cannot be declared `resource`". It can:
+
+  ```
+  resource type Conn = Socket
+
+  fn shut(owned c: Conn) -> void { return void }
+  ```
+
+  builds, and the discipline is enforced end to end over that imported handle. A
+  handle that is never consumed is **E0206** ("not consumed on every path"), one
+  consumed twice is **E0207** ("used after it was consumed"), and the correct
+  program compiles clean. D25 works for the case the manifesto wrote it for.
+
+  So the fork the entry left open ("either D25 is unusable, or the app took the
+  easy road") resolves to the second. By the entry's own standard that makes
+  `examples/apps/discord` wrong to ship as it is: an example that ignores the
+  language's one carve-out from "no linear types" teaches every reader that the
+  carve-out is optional. Rewriting its socket layer onto `owned` is the work
+  this closes into, and it is app work rather than compiler work.
+
+**Confirmed still real**, each reproduced: G20 (a nested string literal in
+`${...}` is E0002), G27 (an unknown stdlib member still leaks TS2551), G68
+(`json.parse<User>` reports one issue where `User.parse` reports two, with
+paths), G88 (a record holding an opaque field still emits ``field `socket` must
+be Socket`` under a check that is only `!== undefined`), G89 (`never` is an
+unresolved name), G92 (a `let`-bound closure cannot call one declared below it),
+G95 (`structuredClone` is an unresolved name), and G98.
+
+Five of roughly ten entries examined this week were stale or mis-scoped. That is
+the finding worth keeping: a gap list is a record of what was true when it was
+written, and an entry that has not been re-run is a claim, not a fact. Anything
+scheduled off this list should be reproduced first.

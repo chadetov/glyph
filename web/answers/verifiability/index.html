@@ -399,15 +399,83 @@ fn seed_order(size: int) -&gt; Array&lt;int&gt; { … }
 <span class="del">    "failures": ["bracket example #16: …"] } }</span></pre>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Three more, found by building with it</p>
+        <p>
+          Each of these compiled clean and passed <code>tsc --strict</code>, and
+          each was found by writing an application rather than by reading the
+          compiler. They are the same failure in three places: the types said one
+          thing and the program did another.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">reading a key that may not be there &mdash; now E0224</span>
+<pre>fn name_of(row: Record&lt;string, string&gt;) -&gt; string {
+  return row.naem          <span class="cm">// a typo. compiled, and returned undefined</span>
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          A map's keys are arbitrary, so the compiler cannot know the key is
+          there. Typing the read as <code>string</code> stated something it had
+          not checked, and the value printed as the text "undefined". It is now a
+          compile error pointing at <code>record.get</code>, which returns
+          <code>Option&lt;V&gt;</code> so the absent case has somewhere to go.
+          Writing a key is untouched, and so is array indexing: a bound is a
+          value a program can check, a map key is not.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">a test that passed while the code failed</span>
+<pre><span class="cm">@example wrap("a") == wrap("a")   // passed: deep equality</span>
+fn same() -&gt; bool {
+  return wrap("a") == wrap("a")   <span class="cm">// false. no diagnostic</span>
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>==</code> was documented as value equality and lowered to
+          <code>===</code>, which is <em>reference</em> equality the moment either
+          side is a record, a tagged union, or an array. The same expression
+          compared structurally in a test and by identity in the program beside
+          it, so a test could report success on code that did not work.
+          <code>==</code> is now value equality everywhere; primitives still
+          compile to <code>===</code>, so ordinary comparisons are unchanged.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">exhaustiveness that evaporated inside a loop</span>
+<pre>for t in tiers {
+  match t {
+    "free" =&gt; ...          <span class="cm">// "pro" unhandled — once merely a warning to add `else`</span>
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The loop binding carried no element type, so a <code>match</code> over a
+          string-literal union degraded to a match over <code>string</code> and
+          the compiler advised adding a catch-all. It now names the variant you
+          have not handled, which is advice to satisfy the check rather than to
+          switch it off.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Exhaustive <code>match</code> over sealed unions (yours and the standard library's, such as <code>fs.ErrorKind</code>) <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), a typo'd variant arm caught as a compile error with a nearest-variant suggestion (<code>E0220</code>) instead of a silent catch-all, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, and <code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included.</p>
+          <p>Exhaustive <code>match</code> over sealed unions (yours and the standard library's, such as <code>fs.ErrorKind</code>) <em>and</em> over <code>number</code>/<code>string</code> (<code>E0218</code>), a typo'd variant arm caught as a compile error with a nearest-variant suggestion (<code>E0220</code>) instead of a silent catch-all, <code>Result</code> + the <code>?</code> operator with error-type checking, a warning when a <code>Result</code> is discarded (<code>E0217</code>), <code>@redact</code> PII masking on the type descriptor, runtime type descriptors, reading a key out of a map rejected (E0224), <code>==</code> as value equality on every type, a <code>for</code> binding that keeps its element type, and <code>@example</code> / <code>@doc @run</code> tests that run on every build, <code>--json</code> included.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike; a misspelled bare arm trips <code>E0103</code> as well, one stage earlier, so you get both lines for the same name. When <code>E0200</code> lists what you missed it quotes the names for a module-local union and leaves them bare for an imported one, which is a formatting split between two code paths and nothing more. Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is assignability (passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is still a <code>tsc</code> error, not a Glyph one) and an <code>interface</code>'s member list. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
+          <p>A map that arrives from another module or the standard library is still read unchecked, so E0224 does not yet cover a <code>sqlite.Row</code>, and the two-binding <code>for i, x in xs</code> still loses its types. Deeper flow-narrowing is on the roadmap. The stdlib return types the checker models cover the fixed-arity half of <code>std/string</code> and <code>std/array</code>; the six functions with an optional trailing argument (<code>array.slice</code>, <code>string.slice</code>, <code>string.index_of</code>, <code>string.pad_start</code>, <code>string.pad_end</code>, <code>json.stringify</code>) and <code>array.map</code>/<code>flat_map</code>/<code>zip</code> are still untyped, so a value straight out of one of those needs an annotation before you iterate it with an index. A type imported from another Glyph module now validates through its own descriptor, as does a <code>where</code> refinement in field position; a type imported from a plain <code>.d.ts</code> still only gets a presence check until you materialize it with <code>glyph gen dts</code>. The typo check (<code>E0220</code>) now covers a union declared in the module and one reached through a namespace import (<code>model.Nooo(_)</code>) alike; a misspelled bare arm trips <code>E0103</code> as well, one stage earlier, so you get both lines for the same name. When <code>E0200</code> lists what you missed it quotes the names for a module-local union and leaves them bare for an imported one, which is a formatting split between two code paths and nothing more. Types cross a module boundary intact now: unions keep their exhaustiveness, tagged and string-literal alike, and a record keeps its field set, so a typo'd field on an imported record is <code>E0210</code> naming that record's own type and <code>for i, x</code> over one of its array fields binds a number with no annotation. What does not cross yet is assignability (passing a <code>catalog.Sheet</code> where a <code>table.Row</code> is expected is still a <code>tsc</code> error, not a Glyph one) and an <code>interface</code>'s member list. The example runner shells out to <code>tsx</code>, so a project that has examples and no <code>tsx</code> on <code>PATH</code> fails the build rather than skipping quietly; that is deliberate, but it means an offline build needs <code>tsx</code> installed or <code>--no-test</code>. Async context used to be the one rule Glyph left to <code>tsc</code>; an <code>await</code> in a plain <code>fn</code> is now <code>E0222</code> against your own source, with the top-level <code>const</code> initializer the one case still allowed. That and two other rules that moved up a stage are in <a href="/answers/early-errors/">caught earlier</a>.</p>
         </div>
       </div>
 

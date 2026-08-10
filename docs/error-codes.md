@@ -42,7 +42,7 @@ below.
 | `E0102` | Barrel file: only imports, no declarations (D15) |
 | `E0103` | Unresolved name |
 | `E0104` | Unresolved import: a local import naming no module under the project root. A local import path resolves from the project root, the nearest directory holding a `package.json` with a `"glyph"` key, else the directory passed to `glyph build`/`glyph run` (D15/D41), not from the importing file's directory. When a file with that name exists elsewhere under the root the message says where, and when it belongs to a different project the message says that instead |
-| `E0105` | Name not exported by the imported module (reported for a named import, `import lib { Secret }`, and for a type written through a namespace import, `import lib` plus a `lib.Secret` annotation; a value read through a namespace is still a `tsc` error) |
+| `E0105` | Name not exported by the imported module (reported for a named import, `import lib { Secret }`, and for a name written through a namespace import, `import lib` plus either a `lib.Secret` annotation or a `lib.secret()` call) |
 | `E0106` | Unused import (warning) |
 | `E0107` | Unused variable binding (warning) |
 | `E0108` | Unreachable code after `return`/`break`/`continue` (warning) |

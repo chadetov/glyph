@@ -322,15 +322,57 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
         </p>
       </div>
 
+      <p class="block-label">The same typo, two answers</p>
+      <div class="detail">
+        <p>
+          A misspelled standard-library function used to get a different answer depending
+          on how you had written the import, which is the kind of inconsistency that
+          teaches you not to trust either answer.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">the named import, always an E0105</span>
+<pre>import std/string { repeeat }
+<span class="del">[E0105] import: `repeeat` is not exported by `std/string`</span></pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">the namespace read, before 0.1.72</span>
+<pre>import std/string
+string.repeeat(s, 2)
+<span class="del">[TS2551] Property 'repeeat' does not exist on type ... Did you mean 'repeat'?</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          The first spelling was checked against the module's export list during
+          resolution. The second was not checked at all, so it fell through to
+          <code>tsc</code>, which saw a property access on an object and answered in those
+          terms. Both spellings go through the export list now, and both say
+          <code>E0105</code>, naming the member and the module it is missing from.
+        </p>
+        <p>
+          Switching it on immediately found something nobody was looking for: a test
+          fixture had been calling <code>fs.write</code>, where the function is
+          <code>write_text</code>. It had passed for months because that fixture runs with
+          type-checking off, and nothing else in the compiler looked at namespace members.
+          The export list is now the authority for both spellings, so a separate check
+          keeps it in step with what the runtime actually exports. That check was written,
+          then deliberately broken to confirm it failed, which is how we found its first
+          version had been silently checking nothing.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, and <code>E0104</code> for a local import that names no module under the build root. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, and <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Five edges. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it.</p>
+          <p>Six edges. <code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it.</p>
         </div>
       </div>
 

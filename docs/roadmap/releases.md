@@ -4409,12 +4409,19 @@ step already.
 
 *Branch protection, and what it deliberately does not include.* `main` blocks
 force pushes and deletion, requires linear history, and applies all three to
-admins, so no token can rewrite or remove the branch's history. Required status
-checks are deliberately absent: GitHub blocks a direct push to a branch that
-requires them, and the checks cannot have run on a commit that has not been
-pushed, so enabling them would mean adopting pull requests. That is the same
-decision `Code-Review` and `CI-Tests` are waiting on, and it is a workflow
-change rather than a setting.
+admins, so no token can rewrite or remove the branch's history. Three checks are
+required before a merge: version consistency, the examples build, and the site
+links. Requiring them is what forced the move to pull requests, since GitHub
+blocks a direct push to a branch whose checks cannot have run yet.
+
+Required reviews are off, and that is not an oversight. A one-person repository
+that requires a second approver either stops merging or grows a
+self-approval habit, and the second is worse than not requiring one. The checks
+are the reviewer here.
+
+Requiring the checks paid for itself in the first week: it caught a workflow
+whose `paths` filter meant a required check could never report on a
+documentation-only change, which deadlocked its own merge.
 
 *Supply-chain score, and what is left.* The first OpenSSF Scorecard run read
 3.6. Pinning all eighteen action references by commit, dropping every workflow's
@@ -4424,12 +4431,14 @@ zeros, in rough order of value:
 - **Signed-Releases (0).** The SLSA attestation is real but lives in GitHub's
   attestation store, so the check cannot see it. Attaching the provenance bundle
   to the release as an asset would fix it, and takes effect on the next release.
-- **SAST (0).** No CodeQL workflow. It covers both Rust and TypeScript here.
-- **Code-Review (0) and CI-Tests (unmeasured).** Both read pull requests, and
-  this repo commits straight to `main`. Changing that is a process decision, not
-  a config one.
-- **Branch-Protection (0).** A repository setting, so it needs an owner rather
-  than a commit.
+- **SAST.** CodeQL runs over Rust, TypeScript, and the workflows, on pull
+  requests as well as `main`. Scanning only `main` is what the check reads as
+  "0 commits out of 3 are checked.
+- **Code-Review and CI-Tests.** Both read pull requests. The repo went to a
+  trunk-based pull-request workflow with three required checks, so both now have
+  something to measure.
+- **Branch-Protection.** Enabled: no force pushes, no deletion, linear history,
+  admins included.
 - **Contributors (0)** wants people from two or more organisations, and
   **Fuzzing (0)** wants a recognised fuzzing setup; the repo has a fuzz target
   but it is not registered with one.

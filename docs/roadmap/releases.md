@@ -3055,11 +3055,13 @@ async function alike, which is a decision about colorless async through a
 callback, not more table entries. It moves to 0.1.72 beside the other
 diagnostic-quality work.
 
-#### 0.1.72 — a typo answers in Glyph's own voice
+### 0.1.72 — a typo answers in Glyph's own voice
 
 **G27**: `string.repeeat(...)` is checked against the resolver seed the way a
 named import already is, so the same typo stops giving two different experiences
-depending on import style. **G79**: the remaining half is that a descriptor does
+depending on import style. **Done**: recorded during resolution and checked
+against the same export list, which also required a gate keeping that list in
+step with the runtime, since it is now the authority for both spellings. **G79**: the remaining half is that a descriptor does
 not synthesize a check for a type it has no descriptor for, which is its
 documented soundness limit and now interacts with E0304.
 

@@ -733,8 +733,17 @@ on a decision in `docs/roadmap/releases.md`.
   against the same seed. The same typo gets two experiences depending on import
   style, and the absolute path in a remapped TS error is a second, separable
   defect. *The path half is fixed: a `tsc` error now remaps onto a relative Glyph
-  module path. Member access is still unchecked against the resolver seed, so the
-  typo still surfaces as a TS2339 rather than an E-code.*
+  module path. The member half is fixed in 0.1.72: a `ns.name` read where `ns` is
+  a namespace import is recorded during resolution and held to the same export
+  list a named import is, so `string.repeeat(...)` is `E0105` naming the member
+  and the module rather than a TS2339. It is keyed on the object resolving to a
+  module, which keeps a local binding sharing a namespace's name out of it.
+  Turning it on found two things nothing else had: the seed list is now the
+  authority for both spellings, so a name it omits turns a working call into an
+  error, and a test fixture had been calling `fs.write` where the function is
+  `write_text`, passing because it ran under `--no-tsc`. A gate keeps the seed
+  and the runtime's exports in step, negative-tested after its first version
+  silently checked nothing.*
 - **G28. [FIXED] There is no `glyph check <file>`.** `build` rejects a non-directory
   source, so the only door into type checking a single file is running it.
   *`glyph check [path]` ships. It takes a `.glyph` file or a directory, reuses

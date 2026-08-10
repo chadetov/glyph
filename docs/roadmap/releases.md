@@ -3214,6 +3214,20 @@ typed `Heap<T>` is unverifiable and E0304 now refuses to parse a record holding
 one. That is the honest floor rather than the feature; generic union descriptors
 are the feature.
 
+**Also in 0.1.72.** The callback parameters of `array.filter`, `find`, `any`,
+`sort`, and `fold` are modeled, so passing an `async fn` where a predicate goes
+is `E0211` pointing at the callback instead of a TS2322 about
+`Promise<boolean>` pointing at the whole statement.
+
+`map`, `flat_map`, and `zip` were written the same way and then parked, because
+the model that closes them also rejects `par.all(array.map(items, async fn ...))`,
+which is Glyph's own concurrency idiom and has an integration test covering it.
+That idiom passes an `Array<Promise<T>>`, and Glyph has no spelling for a
+pending value: `await e` types as `e` and D40 leaves `Promise<T>` deliberately
+invisible. The consequence is recorded as **G99**: with those three unmodeled,
+`array.map(xs, some_async_fn)` compiles, passes `tsc --strict`, and prints
+`[object Promise]`. Closing it is a decision about whether a pending value gets
+a type, not a table entry, so it is the owner's call and not scheduled here.
 ### 0.1.70 — Shipped · An index that is wrong, and a type that can be called Error
 
 Published 2026-08-09 and smoke-tested from a clean npx cache in an isolated

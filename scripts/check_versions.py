@@ -78,9 +78,41 @@ def stale_badges(repo: str) -> list[str]:
     return bad
 
 
+def stale_lockfile(repo: str) -> list[str]:
+    """Workspace crates in Cargo.lock still carrying an older version.
+
+    `cargo` writes each workspace member's version into the lockfile, so a bump
+    that edits `[workspace.package]` and stops there leaves the lock behind. CI
+    builds with `--locked`, which refuses to update it, so the whole job fails on
+    a line that says nothing about versions: "cannot update the lock file ...
+    because --locked was passed". The fix is `cargo update --workspace
+    --offline`, and the point of checking here is that the message says so.
+    """
+    lock = ROOT / "glyph-compiler" / "Cargo.lock"
+    if not lock.exists():
+        return []
+    bad: list[str] = []
+    for block in lock.read_text().split("[[package]]"):
+        name = re.search(r'(?m)^name = "(glyph[a-z-]*)"', block)
+        ver = re.search(r'(?m)^version = "([^"]+)"', block)
+        # Only workspace members carry a `path`-less local source: a registry
+        # crate named `glyph-*` would have a `source =` line.
+        if name and ver and "source =" not in block and ver.group(1) != repo:
+            bad.append(f"Cargo.lock: {name.group(1)} = {ver.group(1)}")
+    return bad
+
+
 def main() -> int:
     repo = cargo_version()
     versions = npm_versions()
+
+    stale_lock = stale_lockfile(repo)
+    if stale_lock:
+        print(f"Cargo.lock is behind the workspace version ({repo}):")
+        for s in stale_lock:
+            print(f"  {s}")
+        print("run: cd glyph-compiler && cargo update --workspace --offline")
+        return 1
 
     mismatched = {k: v for k, v in versions.items() if v != repo}
     if mismatched:

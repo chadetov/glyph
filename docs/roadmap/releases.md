@@ -4407,6 +4407,13 @@ counts. `check_versions.py` checks exactly that, and it should run before `main`
 has the commit rather than after. Two releases have shipped broken from this
 step already.
 
+0.1.72 added a twelfth thing to that list the hard way. `cargo` writes each
+workspace member's version into `Cargo.lock`, so bumping `[workspace.package]`
+and stopping there leaves the lock a release behind. CI builds with `--locked`,
+which refuses to update it, and the failure is a clippy step reporting "cannot
+update the lock file ... because `--locked` was passed" with no mention of
+versions at all. `check_versions.py` reads the lockfile now and names the fix.
+
 *Branch protection, and what it deliberately does not include.* `main` blocks
 force pushes and deletion, requires linear history, and applies all three to
 admins, so no token can rewrite or remove the branch's history. Three checks are

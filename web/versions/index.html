@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.71</span>
+            <span class="rel-ver">0.1.72</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A typo answers in Glyph&rsquo;s own voice</h3>
+            <p>The same misspelling used to get two different answers depending on which way you had written the import.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <code>string.repeeat(s, 2)</code> is <code>[E0105] import: `repeeat` is not exported by `std/string`</code>. Writing <code>import std/string { repeeat }</code> had always been that error, because a named import is checked against the module&rsquo;s export list; reading the same name off a namespace was left to the back end, which answered <code>TS2551</code> about a property. Namespace member reads are recorded during resolution now and held to the same list. Turning it on found a test fixture that had been calling <code>fs.write</code> for months, where the function is <code>write_text</code>: it ran with type-checking off, and nothing else looked.</li>
+              <li><span class="tag improved">Improved</span> Passing an <code>async fn</code> where <code>array.filter</code>, <code>find</code>, <code>any</code>, <code>sort</code>, or <code>fold</code> want a callback is <code>E0211</code> pointing at the callback, instead of a TypeScript error about <code>Promise&lt;boolean&gt;</code> pointing at the whole statement.</li>
+            </ul>
+            <p><strong>One known edge, written down rather than papered over.</strong> <code>array.map</code>, <code>flat_map</code>, and <code>zip</code> still accept an <code>async</code> callback and hand back an array of pending values, which prints as <code>[object Promise]</code>. The modeling that would stop it also rejects <code>par.all(array.map(items, async fn ...))</code>, Glyph&rsquo;s own way of running work concurrently, because an array of pending values has no spelling in the language. That is a decision about the type system, not a missing table entry, so it is open.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.71</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

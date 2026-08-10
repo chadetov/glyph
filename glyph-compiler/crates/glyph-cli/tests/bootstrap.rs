@@ -156,3 +156,75 @@ fn agents_md_inlines_every_diagnostic_code() {
          (add a row to the 'Diagnostic codes' table, then re-mirror to llms.txt)"
     );
 }
+
+/// The resolver's export seed lists every name the runtime actually exports.
+///
+/// The seed decides two checks: `import std/fs { write }` (E0105) and, since
+/// G27, `fs.write(...)` through a namespace. A name the runtime exports but the
+/// seed omits turns a working call into an error, and until the namespace check
+/// existed the gap was invisible: nothing named-imports most of these. That is
+/// how a test fixture came to call `fs.write` where the function is
+/// `write_text`, under `--no-tsc`, passing for months.
+#[test]
+fn the_resolver_seed_lists_every_runtime_export() {
+    use std::collections::BTreeSet;
+
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let seed_src = std::fs::read_to_string(root.join("crates/glyph-resolver/src/module_graph.rs"))
+        .expect("read module_graph.rs");
+
+    let mut missing: Vec<String> = Vec::new();
+    for entry in std::fs::read_dir(root.join("runtime/std")).expect("read runtime/std") {
+        let path = entry.expect("dir entry").path();
+        if path.extension().and_then(|e| e.to_str()) != Some("ts") {
+            continue;
+        }
+        let stem = path.file_stem().unwrap().to_string_lossy().into_owned();
+        let key = format!("std/{stem}");
+        // Only modules the seed already claims to describe.
+        if !seed_src.contains(&format!("\"{key}\"")) {
+            continue;
+        }
+        // The seed for one module is the `&[ ... ]` slice after its key.
+        let after = match seed_src.split_once(&format!("\"{key}\"")) {
+            Some((_, rest)) => rest,
+            None => continue,
+        };
+        // The slice ends at `],`, not `];` — getting this wrong made the check
+        // silently skip every module, which is why it is negative-tested.
+        let block = match after.split_once("],") {
+            Some((b, _)) => b,
+            None => panic!("{key}: could not find the end of its seed list"),
+        };
+        let listed: BTreeSet<&str> = block
+            .split('"')
+            .skip(1)
+            .step_by(2)
+            .collect();
+
+        let src = std::fs::read_to_string(&path).expect("read runtime module");
+        for line in src.lines() {
+            let name = line
+                .strip_prefix("export function ")
+                .or_else(|| line.strip_prefix("export async function "))
+                .or_else(|| line.strip_prefix("export type "))
+                .or_else(|| line.strip_prefix("export const "));
+            let Some(rest) = name else { continue };
+            let ident: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if ident.is_empty() || listed.contains(ident.as_str()) {
+                continue;
+            }
+            missing.push(format!("{key}: {ident}"));
+        }
+    }
+
+    assert!(
+        missing.is_empty(),
+        "the runtime exports names the resolver seed does not list, so importing or \
+         calling them is a false E0105: {missing:?}. Add them to the module's entry in \
+         `module_graph.rs`."
+    );
+}

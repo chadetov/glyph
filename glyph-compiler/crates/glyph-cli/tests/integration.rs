@@ -5478,7 +5478,7 @@ fn check_never_executes_the_program() {
              import std/fs\n\
              fn main(argv: Array<string>) -> number {{\n\
              \x20 io.println(\"SENTINEL-STDOUT\")\n\
-             \x20 let _ = fs.write({:?}, \"ran\")\n\
+             \x20 let _ = fs.write_text({:?}, \"ran\")\n\
              \x20 return 0\n\
              }}\n",
             sentinel.to_string_lossy()
@@ -7745,4 +7745,57 @@ fn omitting_a_trailing_optional_argument_is_still_legal() {
     );
     let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
     assert!(!report.has_errors(), "both spellings compile: {:?}", report.diagnostics);
+}
+
+#[test]
+fn a_misspelled_stdlib_member_is_a_glyph_error() {
+    // G27. `import std/string { repeeat }` was already E0105, because named
+    // imports are checked against the resolver seed. `string.repeeat(...)` was
+    // a TS2339 from the back end, so one typo had two experiences depending on
+    // which spelling of the import you had used. A member read out of a
+    // namespace import is now recorded during resolution and held to the same
+    // export list, and the resolution is what keeps a local binding that shares
+    // a namespace's name out of it.
+    let root = unique_tmp("nsmember");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/string\n\
+         pub fn go(s: string) -> string {\n\
+        \x20 return string.repeeat(s, 2)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build runs");
+    let all = report.diagnostics.join("\n");
+    assert!(all.contains("E0105"), "a Glyph code, not a TS one: {all}");
+    assert!(
+        all.contains("repeeat") && all.contains("std/string"),
+        "names the member and the module: {all}"
+    );
+    assert!(!all.contains("TS2339"), "and never reaches tsc: {all}");
+}
+
+#[test]
+fn a_real_stdlib_member_through_a_namespace_still_compiles() {
+    // The guard on the guard: every `std/*` namespace call in the examples tree
+    // goes through this path, so a seed list that is missing a real export
+    // would turn a working program into an error. It was missing one when this
+    // landed, in a test fixture that called `fs.write` where the function is
+    // `fs.write_text`, which nothing had caught because `--no-tsc` was set.
+    let root = unique_tmp("nsmemberok");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/array\n\
+         import std/string\n\
+         pub fn go(s: string) -> number {\n\
+        \x20 return array.len(string.split(s, \",\"))\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
+    assert!(!report.has_errors(), "real members compile: {:?}", report.diagnostics);
 }

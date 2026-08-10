@@ -592,7 +592,20 @@ impl Resolver<'_> {
                     self.walk_expr(a);
                 }
             }
-            Expr::Member { object, .. } => self.walk_expr(object),
+            Expr::Member { object, field, span, .. } => {
+                self.walk_expr(object);
+                // `string.repeeat(...)`: a member read out of a namespace
+                // import is the same question a named import already answers
+                // with E0105, and it used to reach `tsc` as a TS2339 instead,
+                // so one typo had two experiences depending on import style
+                // (G27). Recorded here and checked against the module's exports
+                // a stage later, exactly like a qualified *type* reference.
+                // Keyed on the object resolving to a module, so a local binding
+                // that happens to share a namespace's name is not touched.
+                if let Expr::Ident { span: obj_span, .. } = object.as_ref() {
+                    self.record_qualified_ref(*obj_span, field.clone(), *span);
+                }
+            }
             Expr::Index { object, index, .. } => {
                 self.walk_expr(object);
                 self.walk_expr(index);
@@ -866,6 +879,32 @@ impl Resolver<'_> {
         self.qualified_type_refs.push(QualifiedTypeRef {
             module: path.clone(),
             name: segments[1].clone(),
+            span,
+        });
+    }
+
+    /// The value-position twin of `note_qualified_type_ref`: a `ns.name` read
+    /// where `ns` is a namespace import. Recorded against the same list, so one
+    /// export check covers both spellings and they cannot drift apart.
+    ///
+    /// `obj_span` is the head identifier's span, which is what carries the
+    /// resolution; `span` is the whole member expression, which is what the
+    /// diagnostic should underline.
+    fn record_qualified_ref(&mut self, obj_span: Span, field: Ident, span: Span) {
+        let Some(ResolvedRef::Module(id)) = self.resolutions.get(obj_span) else {
+            return;
+        };
+        let Some(sym) = self.symbols.table.get(id) else {
+            return;
+        };
+        let (SymbolKind::ImportNamespace { path } | SymbolKind::ImportAlias { path, .. }) =
+            &sym.kind
+        else {
+            return;
+        };
+        self.qualified_type_refs.push(QualifiedTypeRef {
+            module: path.clone(),
+            name: field,
             span,
         });
     }

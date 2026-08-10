@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 98 entries, 78 are fixed, 11 are partly fixed, 9 are
-decided or resolved, and 0 are open. That round re-ran an assignment the
+fixed two of them: of 99 entries, 79 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 1 is open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -2298,7 +2298,7 @@ salsa-memoized. Nobody had written the second query.
   `.ci-examples` copy that excluded `apps/`; both collapsed into a single
   `glyph build ../examples`.*
 
-- **G79. [HALF FIXED] A boundary rejection said which field was wrong but never
+- **G79. [FIXED] A boundary rejection said which field was wrong but never
   which rule, and a record accepted an array.** Every failing field in a record
   descriptor's `parse` pushed the same string, whatever went wrong:
   ``field `password` is missing or has the wrong type``. Absent, present-but-failing-its-`where`-predicate, and
@@ -2335,13 +2335,14 @@ salsa-memoized. Nobody had written the second query.
   and its transcript answers a posted JSON array with `expected SignupBody (an
   object), got an array`.*
 
-  What is not proved is the split this entry exists for. A refined field now
-  reports `expected Password (string)` with `code: "type"` for `42` and
-  `expected Password (string where value.length >= 8)` with `code: "refinement"`
-  for `"short"`, but only in unit assertions. No `examples/apps/auth_api`
-  transcript step posts a wrong-typed password, so the `code == "refinement"`
-  branch has never been seen answering 400 where the old code answered 422. The
-  bar for this entry is an app, so it stays half closed until that step exists.
+  The split this entry exists for is proved in the app, not only in unit
+  assertions. Re-running the transcript in 0.1.72: `POST /signup short password`
+  answers **422** `weak_password` with `expected Password (string where
+  (value.length >= 8) && (value.length <= 128))`, and `POST /signup password 42`
+  answers **400** `bad_request` with `expected Password (string)`. Two statuses
+  chosen off the classification rather than off message text. The entry had gone
+  stale on its own last paragraph: the transcript step was added, and nothing
+  came back to reconcile the claim that it was missing.
 
 - **G80. [FIXED] A module-local type named `Issue` shadows the prelude one and
   breaks every descriptor in that module.** A descriptor's `parse` annotates its
@@ -2928,6 +2929,25 @@ the same state.
   at the whole match, which does not say that the narrowing applies to a binding
   and that the fix is to bind it with `let` first. The rule is right; the
   diagnostic makes an agent reconstruct the compiler's model before it can act.
+
+- **G99. `array.map` with an `async` callback compiles clean and prints
+  `[object Promise]`.** `array.map(xs, some_async_fn)` type-checks, passes `tsc
+  --strict`, and produces an `Array<Promise<T>>` that `string.from` will happily
+  render, because `map`'s result was `Unknown` and `string.from` takes an
+  `unknown`. The five predicate-taking array functions do not have this problem:
+  their callbacks return a concrete `boolean` or `number`, so `tsc` rejects a
+  promise there, and as of 0.1.72 their callback parameters are modeled so the
+  rejection is `E0211` at the argument rather than a TS2322 about
+  `Promise<boolean>`. It is exactly `map`, `flat_map`, and `zip` that are
+  exposed, because their callback's return is a free type variable that a
+  promise satisfies. Modeling the callback as a synchronous `fn(T) -> U` closes
+  it and was written and tested, but it also rejects
+  `par.all(array.map(items, async fn(n: number) -> number { ... }))`, which is
+  Glyph's own concurrency idiom and has an integration test. The idiom depends
+  on an `Array<Promise<T>>` that Glyph has no way to spell: `await e` types as
+  `e`, and there is deliberately no user-visible `Promise<T>` (D40). So closing
+  this needs a decision about the type of a pending value, not a table entry.
+  Reproduced 0.1.72.
 
 ## Round 23: reading a key that may not be there
 

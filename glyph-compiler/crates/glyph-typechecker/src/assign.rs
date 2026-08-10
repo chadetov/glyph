@@ -1456,9 +1456,21 @@ impl Assigner<'_> {
     /// An `Unknown` argument leaves `T` unbound, which still leaves the return an
     /// `Array` — enough for the `for` lowering.
     ///
-    /// Deliberately absent: `slice` (an optional trailing argument, as in
-    /// `stdlib_string_fn_ty`), and `map`/`flat_map`/`zip`, whose element type
-    /// comes from the callback's return — a position the unifier does not walk.
+    /// `map`, `flat_map`, and `zip` carry a *second* parameter `U`, which comes
+    /// from the callback's return rather than from any argument's own type.
+    /// `collect_type_param_bindings` walks into `Ty::Fn` on both sides, so
+    /// `array.map(names, dup)` binds `T = string` from parameter 0 and `U =
+    /// string` from the callback's return.
+    ///
+    /// Writing the callback as a *synchronous* `fn(T) -> U` is the point of
+    /// modeling them, not a limitation of it. D40 holds `fn` and `async fn`
+    /// apart, and `xs.map(async_f)` is an `Array<Promise<U>>` in JavaScript:
+    /// before this, `array.map(xs, some_async_fn)` compiled clean, passed `tsc
+    /// --strict`, and printed `[object Promise]`, because the result was
+    /// `Unknown` and `string.from` takes an `unknown`. That silent green is what
+    /// an unmodeled signature bought. The async spelling is `std/task`: map to
+    /// an `Array<async fn() -> T>` and hand it to `task.all`, which is the
+    /// example D40 itself uses.
     fn stdlib_array_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
         if module_key != "std/array" {
             return None;
@@ -1489,17 +1501,41 @@ impl Assigner<'_> {
             ty,
             optional: true,
         };
+        // `fn(T) -> bool`, the shape `filter`, `find`, and `any` all take.
+        let pred = || Ty::Fn {
+            params: vec![FnParam {
+                name: None,
+                owned: false,
+                ty: elem(),
+                optional: false,
+            }],
+            return_ty: Arc::new(Ty::Prim(Primitive::Bool)),
+            is_async: false,
+        };
         let (params, ret): (Vec<FnParam>, Ty) = match field {
             "len" => (unknown_params(1), Ty::Prim(Primitive::Number)),
-            "any" | "contains" => (unknown_params(2), Ty::Prim(Primitive::Bool)),
+            "any" => (vec![of(xs.clone()), of(pred())], Ty::Prim(Primitive::Bool)),
+            "contains" => (unknown_params(2), Ty::Prim(Primitive::Bool)),
             "index_of" => (
                 unknown_params(2),
                 self.stdlib_option_ty(Ty::Prim(Primitive::Number))?,
             ),
             "reverse" => (vec![of(xs.clone())], xs),
-            "push" | "concat" | "filter" | "sort" => (vec![of(xs.clone()), unknown()], xs),
+            "push" | "concat" => (vec![of(xs.clone()), unknown()], xs),
+            "filter" => (vec![of(xs.clone()), of(pred())], xs),
+            "sort" => (
+                vec![
+                    of(xs.clone()),
+                    of(Ty::Fn {
+                        params: vec![of(elem()), of(elem())],
+                        return_ty: Arc::new(Ty::Prim(Primitive::Number)),
+                        is_async: false,
+                    }),
+                ],
+                xs,
+            ),
             "find" => (
-                vec![of(xs.clone()), unknown()],
+                vec![of(xs.clone()), of(pred())],
                 self.stdlib_option_ty(elem())?,
             ),
             // `get(xs, i) -> Option<T>`: the element type rides on parameter 0
@@ -1522,15 +1558,21 @@ impl Assigner<'_> {
                 vec![of(xs.clone()), of(Ty::Prim(Primitive::Number))],
                 self.stdlib_option_ty(elem())?,
             ),
-            // `fold(xs, init, f) -> A`: the accumulator type comes from `init`,
-            // not from the element type, so `A` sits on the second parameter.
             "fold" => {
                 let acc = Ty::Param {
                     name: Ident::from("A"),
                     owner: ParamOwner::Unresolved,
                 };
                 (
-                    vec![unknown(), of(acc.clone()), unknown()],
+                    vec![
+                        of(xs.clone()),
+                        of(acc.clone()),
+                        of(Ty::Fn {
+                            params: vec![of(acc.clone()), of(elem())],
+                            return_ty: Arc::new(acc.clone()),
+                            is_async: false,
+                        }),
+                    ],
                     acc,
                 )
             }
@@ -6620,6 +6662,45 @@ fn label(s: Status) -> string {
         // `Array<string>` with no annotation.
         let (m, _, tm) = type_map_of(
             "module x\nimport std/array\nfn short(s: string) -> bool { return true }\n             fn f(names: Array<string>) -> void {\n  let kept = array.filter(names, short)\n  return void\n}\n",
+        );
+        let ty = tm.get(first_let_value_span_anywhere(&m));
+        assert!(
+            matches!(ty, Ty::App { args, .. } if args.first() == Some(&Ty::Prim(Primitive::String))),
+            "got {ty:?}"
+        );
+    }
+
+    #[test]
+    fn an_async_callback_to_an_array_predicate_is_a_glyph_error() {
+        // `array.filter(xs, some_async_fn)` was a back-end TS2322 talking about
+        // `Promise<boolean>` and pointing at the whole `let`. The callback
+        // parameters of the five predicate-taking array functions are modeled as
+        // synchronous, so the mismatch is E0211 at the argument instead.
+        for call in [
+            "array.filter(names, slow)",
+            "array.find(names, slow)",
+            "array.any(names, slow)",
+        ] {
+            let errs = errors_of(&format!(
+                "module x\nimport std/array\n\
+                 async fn slow(s: string) -> bool {{ return true }}\n\
+                 fn f(names: Array<string>) -> void {{\n  let out = {call}\n  return void\n}}\n"
+            ));
+            assert!(
+                errs.iter()
+                    .any(|e| matches!(e, TypeError::ArgumentTypeMismatch { .. })),
+                "{call} should be an argument-type mismatch: {errs:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_synchronous_predicate_still_satisfies_an_array_function() {
+        // The other direction of the same modeling: the shape everyone writes
+        // must keep compiling, and `filter` must keep returning the element type.
+        let (m, _, tm) = type_map_of(
+            "module x\nimport std/array\nfn short(s: string) -> bool { return true }\n\
+             fn f(names: Array<string>) -> void {\n  let kept = array.filter(names, short)\n  return void\n}\n",
         );
         let ty = tm.get(first_let_value_span_anywhere(&m));
         assert!(

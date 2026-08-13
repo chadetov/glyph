@@ -6,7 +6,19 @@
 //! it up front: it reports each tool's resolved version against a minimum, with
 //! per-tool remediation, and exits 0 only if everything is satisfied. `--json`
 //! prints the same as a machine-readable object.
+//!
+//! It also reports **Glyph's own version against the registry**, because nothing
+//! else did. A pinned project (which is what `glyph init` now writes) never
+//! learns that a release happened, and the only channel that could tell it was a
+//! website you have to already know about. `doctor` is the right home for the
+//! check: it is a command you run to ask questions, so a network call is
+//! expected here in a way it never would be in `build`.
+//!
+//! **An available update is not a broken toolchain.** It never changes the exit
+//! code. `doctor` runs in CI, and a green pipeline must not turn red because
+//! someone published a release ten minutes ago.
 
+use crate::registry::{self, Latest};
 use std::process::Command;
 
 /// A checked tool and the verdict.
@@ -40,8 +52,21 @@ impl Check {
     }
 }
 
+/// What the registry says about this binary, for the report.
+enum Release {
+    /// Running the newest published version.
+    Current,
+    /// A newer version exists.
+    Update { latest: String },
+    /// The registry was not reachable, or the check was skipped.
+    Unknown { why: &'static str },
+}
+
 /// Run `doctor`. Returns the process exit code (0 iff every tool is satisfied).
-pub fn run(json: bool) -> i32 {
+///
+/// `offline` skips the registry lookup entirely, for an air-gapped machine or a
+/// CI job that should make no network calls at all.
+pub fn run(json: bool, offline: bool) -> i32 {
     let checks = vec![
         check("node", Some(18), "Install Node 18+ from https://nodejs.org"),
         check("tsx", None, "npm install -g tsx"),
@@ -49,17 +74,37 @@ pub fn run(json: bool) -> i32 {
     ];
 
     let all_ok = checks.iter().all(Check::ok);
+    let release = release_status(offline);
 
     if json {
-        print_json(&checks, all_ok);
+        print_json(&checks, all_ok, &release);
     } else {
-        print_human(&checks, all_ok);
+        print_human(&checks, all_ok, &release);
     }
 
+    // Deliberately independent of `release`: see the module comment.
     if all_ok {
         0
     } else {
         1
+    }
+}
+
+fn release_status(offline: bool) -> Release {
+    if offline {
+        return Release::Unknown {
+            why: "skipped (--offline)",
+        };
+    }
+    match registry::latest() {
+        Latest::Unknown(why) => Release::Unknown { why },
+        Latest::Known(latest) => match registry::is_newer(&latest, registry::current()) {
+            Some(true) => Release::Update { latest },
+            Some(false) => Release::Current,
+            None => Release::Unknown {
+                why: "unexpected npm output",
+            },
+        },
     }
 }
 
@@ -116,7 +161,19 @@ fn parse_major(s: &str) -> Option<u32> {
     None
 }
 
-fn print_human(checks: &[Check], all_ok: bool) {
+fn print_human(checks: &[Check], all_ok: bool, release: &Release) {
+    println!("glyph — {}", registry::current());
+    match release {
+        Release::Current => println!("  [ok]       the newest published release"),
+        Release::Update { latest } => {
+            println!(
+                "  [update]   {latest} is published — `glyph upgrade` moves this project to it"
+            );
+            println!("             what changed: {}", registry::RELEASE_NOTES);
+        }
+        Release::Unknown { why } => println!("  [unknown]  could not check for updates ({why})"),
+    }
+    println!();
     println!("glyph doctor — JavaScript toolchain");
     for c in checks {
         let min = c
@@ -145,7 +202,25 @@ fn print_human(checks: &[Check], all_ok: bool) {
     }
 }
 
-fn print_json(checks: &[Check], all_ok: bool) {
+fn print_json(checks: &[Check], all_ok: bool, release: &Release) {
+    let glyph = match release {
+        Release::Current => format!(
+            "{{ \"version\": \"{}\", \"status\": \"ok\", \"latest\": \"{}\" }}",
+            registry::current(),
+            registry::current()
+        ),
+        Release::Update { latest } => format!(
+            "{{ \"version\": \"{}\", \"status\": \"update\", \"latest\": \"{latest}\", \
+             \"notes\": \"{}\" }}",
+            registry::current(),
+            registry::RELEASE_NOTES
+        ),
+        Release::Unknown { why } => format!(
+            "{{ \"version\": \"{}\", \"status\": \"unknown\", \"latest\": null, \
+             \"reason\": \"{why}\" }}",
+            registry::current()
+        ),
+    };
     let tools: Vec<String> = checks
         .iter()
         .map(|c| {
@@ -161,7 +236,10 @@ fn print_json(checks: &[Check], all_ok: bool) {
             )
         })
         .collect();
-    println!("{{ \"ok\": {all_ok}, \"tools\": [ {} ] }}", tools.join(", "));
+    println!(
+        "{{ \"ok\": {all_ok}, \"glyph\": {glyph}, \"tools\": [ {} ] }}",
+        tools.join(", ")
+    );
 }
 
 #[cfg(test)]

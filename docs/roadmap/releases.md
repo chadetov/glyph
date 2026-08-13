@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.75, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.76, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3065,7 +3065,66 @@ step with the runtime, since it is now the authority for both spellings. **G79**
 not synthesize a check for a type it has no descriptor for, which is its
 documented soundness limit and now interacts with E0304.
 
-#### 0.1.73 — a mutation that loses an update
+#### 0.1.73 — Landed on main · A project changes compiler on purpose
+
+**Next.** Found by reading `glyph-hello`, the outside app above. Its
+`package.json` said `"@glyphlang/glyph": "^0.1.72"`, which our own `glyph init`
+wrote, and the caret is wrong in a way that took an outside project to make
+obvious. On a `0.x` version npm's caret still floats the patch, so that range
+accepts every later 0.1.x. Set that beside what `docs/stability.md` promises out
+loud, that a 0.1.x release "may reject code that previously compiled (that is
+usually the point)", and the scaffold we ship was arranging for a stranger's
+green build to go red on an `npm install` run for an unrelated reason.
+
+He also had no committed lockfile, because nothing told him to commit one, and
+no way to learn a release had happened, because nothing in the CLI has ever
+mentioned one. The three failures are the same failure: **there was no path from
+"a new Glyph exists" to "this project is on it."** Fixing four of the five links
+would have left the chain broken, so all five landed together.
+
+- **`glyph init` pins exactly.** `SCAFFOLD_GLYPH` drops the `^`. A test asserts
+  the pin is exact *and* that it is not a range, because the second is the thing
+  that regresses silently.
+- **`glyph doctor` reports this compiler against the registry**, with the release
+  notes URL when a newer one exists. Three rules hold it in place: an available
+  release never changes the exit code (doctor runs in CI, and a publish ten
+  minutes ago is not a broken toolchain), only commands that exist to answer
+  questions may look (`doctor` and `upgrade`, never `build`/`run`/`check`), and
+  not reaching the registry is reported, not failed.
+- **`glyph upgrade`** rewrites the one pin, runs `npm install`, and prints what to
+  read. `--dry-run`, `--to <version>` (including backwards), `--no-install`. It
+  reads a caret as well as an exact pin, so every project scaffolded before this
+  release can be moved onto an exact one, which is the population that needs it.
+- **`glyph init` says to commit the lockfile.** An exact pin buys a reproducible
+  build only if the lockfile is committed too, and the scaffold's `.gitignore`
+  not listing it is not a hint anyone reads.
+- **The release notes are reachable from the CLI**, from both `doctor` and
+  `upgrade`, rather than from a website you have to already know about.
+
+**No HTTP client was added, and that was the design constraint.** The compiler
+has no network dependency at all and this release does not give it one: npm is
+already required (it is how Glyph is installed, and `gen` already shells out to
+`npm root -g`), so `npm view` answers the only registry question we have without
+pulling a TLS stack into a compiler that had none. `--fetch-retries=0` and a
+3-second fetch timeout matter more than they look: npm's defaults retry with
+backoff, so an offline `doctor` would have sat for most of a minute before
+admitting it could not connect. Measured: npm absent reports in 9ms, an
+unreachable registry in 0.93s, both exit 0.
+
+Verified on the app that prompted it. `glyph upgrade` moved `glyph-hello` from
+`^0.1.72` to an exact pin as a **one-line diff**, `npm install` wrote the
+lockfile it never had, and the pinned compiler builds it green. Rewriting the
+pin textually rather than re-serializing the manifest is what keeps that diff to
+one line: `package.json` belongs to the developer, and a formatter's opinion is
+not ours to impose during an upgrade.
+
+Docs updated in the same pass: `docs/stability.md` gains the section this is
+really about, `getting-started` gains both commands, `AGENTS.md` and both
+`llms.txt` mirrors tell an agent not to widen a pin to make an install resolve,
+and `web/answers/upgrades/` is answer 22, "Will a new Glyph release break my
+build?"
+
+#### 0.1.74 — a mutation that loses an update
 
 **Decided.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
@@ -3085,7 +3144,7 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.74 — the host boundary, and the app that will tell us what it needs
+#### 0.1.75 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3183,7 +3242,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.75 — finish what is half-built
+#### 0.1.76 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

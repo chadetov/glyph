@@ -20,11 +20,13 @@ pub mod gen;
 pub mod publish;
 pub mod doctor;
 pub mod regen;
+pub mod registry;
 pub mod render;
 pub mod run;
 pub mod runtime;
 pub mod sourcemap;
 pub mod tscmap;
+pub mod upgrade;
 
 pub use build::{build_project, BuildError, BuildReport};
 pub use check::{check_path, CheckError, CheckReport};

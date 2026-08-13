@@ -154,10 +154,18 @@ fn a_scaffold_pins_the_compiler_that_wrote_it() {
     scaffold(&dir).expect("scaffold");
 
     let manifest = std::fs::read_to_string(dir.join("package.json")).expect("read manifest");
-    let expected = format!("\"@glyphlang/glyph\": \"^{}\"", env!("CARGO_PKG_VERSION"));
+    let expected = format!("\"@glyphlang/glyph\": \"{}\"", env!("CARGO_PKG_VERSION"));
     assert!(
         manifest.contains(&expected),
         "the scaffold must pin its own compiler version, got:\n{manifest}"
+    );
+    // Exact, not a caret. `^0.1.72` accepts every later 0.1.x, and this line
+    // ships new diagnostics in patch releases by policy, so a caret lets an
+    // unrelated `npm install` turn a green build red. Moving the pin is
+    // `glyph upgrade`.
+    assert!(
+        !manifest.contains("\"@glyphlang/glyph\": \"^"),
+        "the compiler pin must not float across the 0.1.x line, got:\n{manifest}"
     );
     assert!(
         manifest.contains("\"typescript\"") && manifest.contains("\"tsx\""),

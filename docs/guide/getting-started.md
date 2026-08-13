@@ -86,7 +86,8 @@ one-line count. A sibling module that failed to compile does not stop the run
 | `glyph fmt --check [path]` | Check formatting for CI: writes nothing, exits non-zero if any file is unformatted |
 | `glyph canonical <file>` | Print the agent canonical view (stable line numbers + per-declaration fingerprints) |
 | `glyph publish [dir]` | Audit-gate, build, and type-check a package for `npm publish` |
-| `glyph doctor` | Check the JavaScript toolchain (node/tsx/tsc present + new enough) |
+| `glyph doctor` | Check the JavaScript toolchain (node/tsx/tsc present + new enough), and report this compiler against the latest published release. `--offline` skips the registry lookup |
+| `glyph upgrade [dir]` | Move the project's pinned Glyph version to the latest release and `npm install` it. `--to <version>` for a specific one, `--dry-run` to preview |
 | `glyph lsp` | Run the language server (an editor extension spawns this) |
 | `glyph llms` | Print the agent bootstrap (the `AGENTS.md` reference) offline; alias `glyph docs` |
 | `glyph --explain <code>` | Long-form explanation and fix for an error code |
@@ -95,6 +96,24 @@ The scaffolded `package.json` pins `typescript` and `tsx` in `devDependencies`,
 so after `glyph init` you can run `npm install` in the project to get a
 consistent toolchain locally (instead of, or in addition to, the global install
 above) — everyone on the team then builds against the same TypeScript.
+
+It pins Glyph itself the same way, and **exactly**, with no `^`. Before 1.0 a
+0.1.x release may add a diagnostic that rejects code which compiled yesterday,
+which is usually the point of the release; a floating range would let that reach
+you through an `npm install` you ran for some unrelated reason. Commit the
+`package-lock.json` alongside it and a clone builds with the toolchain you
+tested. When you want a newer compiler, ask for one:
+
+```sh
+glyph doctor            # is there a newer release?
+glyph upgrade --dry-run # what would change
+glyph upgrade           # move the pin and install it
+glyph build src --out dist
+```
+
+`glyph upgrade` rewrites one line of `package.json` and runs `npm install`. It
+prints the release-notes link, and building after it is on you: a new release is
+allowed to report diagnostics the project did not have before.
 
 `glyph build` type-checks and runs your `@example`s by default; `--no-tsc`
 skips the `tsc` pass and `--no-test` skips the examples. `--no-tsc` is the same

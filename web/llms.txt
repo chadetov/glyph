@@ -46,7 +46,14 @@ glyph gen zod schemas.ts --out src/     # generate committed Glyph types from zo
 glyph llms                          # reprint this bootstrap offline (alias: glyph docs)
 glyph --explain E0204               # long-form explanation + fix for any error code
 glyph mcp [root]                    # run an MCP server (stdio) exposing analysis to an agent as tools
+glyph doctor                        # check node/tsx/tsc, and this compiler against the latest release (--offline to skip the lookup)
+glyph upgrade [dir]                 # move the project's exact Glyph pin to the latest release and npm install it (--to <version>, --dry-run)
 ```
+
+A project pins its compiler exactly (`"@glyphlang/glyph": "0.1.x"`, no `^`),
+because a 0.1.x release may add a diagnostic that rejects code which compiled
+before. Do not widen that pin to a range to make an install resolve; move it with
+`glyph upgrade` and rebuild.
 
 `glyph run` builds the whole directory the file sits in, so it reports exactly
 the diagnostics `glyph build` would report on that tree, warnings included. They

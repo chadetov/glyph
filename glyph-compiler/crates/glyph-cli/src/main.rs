@@ -171,12 +171,38 @@ enum Command {
     #[command(visible_aliases = ["docs", "cheatsheet"])]
     Llms,
     /// Check that the JavaScript toolchain (`node`/`tsx`/`tsc`) `glyph run` and
-    /// `build --check` need is present and new enough. Exits non-zero if not.
+    /// `build --check` need is present and new enough, and report this compiler's
+    /// version against the latest published one. Exits non-zero if a tool is
+    /// missing or outdated; an available Glyph release never changes the exit
+    /// code.
     #[command(alias = "verify")]
     Doctor {
         /// Emit the report as a JSON object.
         #[arg(long)]
         json: bool,
+        /// Skip the registry lookup and make no network call.
+        #[arg(long)]
+        offline: bool,
+    },
+    /// Move this project's pinned Glyph version to a newer release.
+    ///
+    /// `glyph init` pins the compiler exactly, so a project never changes
+    /// compiler by accident; this is how it changes on purpose. Rewrites the
+    /// `@glyphlang/glyph` entry in `package.json`, runs `npm install`, and points
+    /// at the release notes, because a 0.1.x release may reject code that
+    /// compiled before.
+    Upgrade {
+        #[arg(value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+        /// Upgrade to this exact version instead of the latest published one.
+        #[arg(long, value_name = "VERSION")]
+        to: Option<String>,
+        /// Rewrite the pin but do not run `npm install`.
+        #[arg(long)]
+        no_install: bool,
+        /// Report what would change and write nothing.
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Print a file's canonical agent view (Q32): the `glyph fmt` layout with
     /// stable `Lddd` line numbers and a per-declaration content fingerprint.
@@ -809,8 +835,62 @@ fn main() {
             print!("{}", glyph_cli::LLMS_BOOTSTRAP);
             std::process::exit(0);
         }
-        Some(Command::Doctor { json }) => {
-            std::process::exit(glyph_cli::doctor::run(json));
+        Some(Command::Doctor { json, offline }) => {
+            std::process::exit(glyph_cli::doctor::run(json, offline));
+        }
+        Some(Command::Upgrade {
+            dir,
+            to,
+            no_install,
+            dry_run,
+        }) => {
+            let dir = dir.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::upgrade::run(&dir, to, !no_install, dry_run) {
+                Ok(report) if report.already => {
+                    eprintln!(
+                        "glyph upgrade: {} already pins {}. Nothing to do.",
+                        report.manifest.display(),
+                        report.to
+                    );
+                    std::process::exit(0);
+                }
+                Ok(report) if dry_run => {
+                    eprintln!(
+                        "glyph upgrade: would move {} from {} to {} (nothing written).",
+                        report.manifest.display(),
+                        report.from,
+                        report.to
+                    );
+                    std::process::exit(0);
+                }
+                Ok(report) => {
+                    eprintln!(
+                        "glyph upgrade: {} now pins {} (was {}).",
+                        report.manifest.display(),
+                        report.to,
+                        report.from
+                    );
+                    if !report.installed {
+                        eprintln!("glyph upgrade: run `npm install` to install it.");
+                    }
+                    // A 0.1.x release is allowed to reject code that compiled
+                    // before, so moving the pin is not the last step. Say what
+                    // to read and what to run before trusting the upgrade.
+                    eprintln!(
+                        "glyph upgrade: what changed: {}",
+                        glyph_cli::registry::RELEASE_NOTES
+                    );
+                    eprintln!(
+                        "glyph upgrade: build before you commit; a new release may report \
+                         diagnostics this project did not have."
+                    );
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("glyph upgrade: {e}");
+                    std::process::exit(2);
+                }
+            }
         }
         Some(Command::Init { dir, template }) => {
             let dir = dir.unwrap_or_else(|| std::path::PathBuf::from("."));
@@ -860,6 +940,17 @@ fn main() {
                         "glyph init: {} file(s) created, {} skipped. {next}",
                         report.created.len(),
                         report.skipped.len(),
+                    );
+                    // The pin above is exact, which only buys a reproducible
+                    // build if the lockfile is committed too. A scaffolded
+                    // project whose lockfile stays untracked resolves its whole
+                    // toolchain afresh on every clone, which is the thing the
+                    // exact pin exists to prevent. The `.gitignore` written
+                    // here deliberately does not list `package-lock.json`; say
+                    // so, because "it isn't ignored" is not a hint anyone reads.
+                    eprintln!(
+                        "glyph init: commit `package-lock.json` once you have run `npm install` \
+                         so a clone builds with the toolchain you tested."
                     );
                     std::process::exit(0);
                 }

@@ -72,7 +72,16 @@ const SCAFFOLD_TSX: &str = "^4.19.0";
 ///
 /// Tracked against the compiler's own version so a scaffold never asks for a
 /// release older than the binary that wrote it.
-const SCAFFOLD_GLYPH: &str = concat!("^", env!("CARGO_PKG_VERSION"));
+///
+/// **Exact, not a caret.** A caret on a `0.x` version still floats the patch
+/// (`^0.1.72` accepts every 0.1.x), and the stability policy says plainly that
+/// 0.1.x releases may "reject code that previously compiled (that is usually the
+/// point)". Those two together mean a scaffolded project's build can go red on
+/// an `npm install` run for an unrelated reason, with no change to its source.
+/// A caret advertises a semver compatibility this line does not offer, so the
+/// pin is exact and moving it is `glyph upgrade`, a thing the developer does on
+/// purpose.
+const SCAFFOLD_GLYPH: &str = env!("CARGO_PKG_VERSION");
 
 const MAIN_GLYPH: &str = "module main\n\
 \n\

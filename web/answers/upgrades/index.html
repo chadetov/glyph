@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Will a new Glyph release break my build? · Glyph</title>
+    <meta name="description" content="A Glyph project pins its compiler exactly, so a release never reaches you by accident. glyph doctor tells you one exists and glyph upgrade moves you to it." />
+    <link rel="canonical" href="https://glyphlang.io/answers/upgrades/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">18</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">19</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">20</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">21</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/" class="active"><span class="n">22</span> Upgrades</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">22 &middot; Upgrades</p>
+      <h1 class="q-title">Will a new Glyph release break my build?</h1>
+
+      <p class="short-answer">
+        Not without you asking for it. A Glyph project pins its compiler to an
+        <strong>exact version</strong>, so a release published this morning does not reach
+        your build this afternoon. Before 1.0 a release is allowed to add a diagnostic that
+        rejects code which compiled yesterday, and that is usually the point of the
+        release, so the decision to take one is yours and it is one command.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Most tools you pin with a caret, because a patch release is a bug fix.
+          A compiler before 1.0 is not that. Glyph's whole job is to reject programs, and
+          getting better at it means new errors: a stricter check on an import, an
+          exhaustiveness hole that used to slip through, an arity the checker had not
+          modeled. Those releases are the good ones. They are also exactly the ones you do
+          not want arriving through an <code>npm install</code> you ran to add a date
+          library.
+        </p>
+        <p>
+          So <code>glyph init</code> writes no <code>^</code>. On a <code>0.x</code>
+          version a caret still floats the patch, which is the trap:
+          <code>^0.1.9</code> quietly accepts every later 0.1.x.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">package.json, as scaffolded</span>
+<pre>"devDependencies": {
+  <span class="cm">// exact. no caret, no tilde.</span>
+  "@glyphlang/glyph": "0.1.72",
+  "typescript": "^6.0.0",
+  "tsx": "^4.19.0"
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Commit the <code>package-lock.json</code> next to it and a fresh clone builds
+          with the toolchain you tested, not with whatever shipped since.
+        </p>
+
+        <p class="block-label">The other half</p>
+        <p>
+          A pin has one obvious failure mode: you sit on an old compiler for a year and
+          never find out. Nothing on your machine would tell you, and a website you have to
+          remember to visit is not a channel. So the compiler tells you, when you ask it
+          anything about your setup:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph doctor</span>
+<pre>glyph &mdash; 0.1.72
+  [update]   0.1.73 is published &mdash; `glyph upgrade` moves this project to it
+             what changed: https://glyphlang.io/versions/
+
+glyph doctor &mdash; JavaScript toolchain
+  [ok]       node: v22.1.0
+  [ok]       tsx: tsx v4.19.0
+  [ok]       tsc: Version 6.0.2
+All good. `glyph run` and `glyph build --check` are ready.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Finding a newer release <em>never</em> changes the exit code, so this is safe to
+          run in CI. A published release is not a broken toolchain, and a green pipeline
+          should not go red because somebody shipped ten minutes ago. If the machine is
+          offline the check says so and moves on; <code>--offline</code> skips it entirely
+          and makes no network call at all.
+        </p>
+        <p>
+          Nothing else reaches the registry. <code>build</code>, <code>run</code> and
+          <code>check</code> never do. A compiler that phones home on every build is a
+          different product.
+        </p>
+
+        <p class="block-label">Taking the upgrade</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">One line changes, and you decide when</span>
+<pre>$ glyph upgrade --dry-run
+glyph upgrade: would move /app/package.json from 0.1.72 to 0.1.73 (nothing written).
+
+$ glyph upgrade
+glyph upgrade: /app/package.json now pins 0.1.73 (was 0.1.72).
+glyph upgrade: what changed: https://glyphlang.io/versions/
+glyph upgrade: build before you commit; a new release may report diagnostics
+               this project did not have.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          It rewrites one line and runs <code>npm install</code>. It does not touch your
+          source, and it does not pretend the upgrade is finished: building afterwards is
+          the point, because the release you just took is allowed to have opinions your
+          code has not met yet. <code>--to &lt;version&gt;</code> names a specific one,
+          including an older one when you want to go back, and <code>--no-install</code>
+          leaves the install to you.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/long-running/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Can I write a server, or does the process just exit?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/upgrades/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

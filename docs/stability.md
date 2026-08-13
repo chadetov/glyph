@@ -32,6 +32,34 @@ freezing it early.
 - **Diagnostics are addressable.** Every error and warning carries a stable code
   (`E0xxx`) and a one-line fix; `glyph --explain <code>` gives the long form.
 
+## You upgrade on purpose, never by accident
+
+Read the first bullet above again: a 0.1.x release may reject code that compiled
+before. That is only safe if you decide when to take one, so a Glyph project
+pins the compiler **exactly**.
+
+`glyph init` writes the version of the compiler that scaffolded the project into
+`devDependencies` as an exact version, with no `^`. A caret on a `0.x` version
+still floats the patch (`^0.1.9` accepts every later 0.1.x), which would mean a
+build going red on an `npm install` you ran for an unrelated reason, with no
+change to your source. Commit your
+`package-lock.json` too, and a fresh clone builds with the toolchain you tested
+rather than whatever shipped since.
+
+Pinning has an obvious failure mode: a project can sit on an old compiler
+forever without knowing it. Two commands close that.
+
+```sh
+glyph doctor     # reports your version against the latest published release
+glyph upgrade    # moves the pin to it and runs npm install
+```
+
+`glyph doctor` asks npm (add `--offline` to skip the lookup entirely). Finding a
+newer release never changes its exit code, so this is safe in CI. `glyph upgrade`
+rewrites the one line and prints the release-notes link; `--dry-run` shows what
+would change, and `--to <version>` names a specific one, including an older one
+if you need to go back. Build before you commit the result.
+
 ## How we try to make upgrades cheap
 
 - **`glyph fmt` as a migrator.** When a purely syntactic change lands, the goal is
@@ -48,9 +76,9 @@ Releases are cut when meaningful work lands, not on a fixed calendar, and the
 milestones on the [roadmap](roadmap/releases.md)). A minor bump (0.2.0, 0.3.0)
 marks a milestone actually reached, not a date. Every release is a `v*` git tag
 that triggers the publish workflow, so the npm version and the tagged source
-always match (CI hard-fails otherwise). If you need a predictable base, pin a
-version; the published versions are immutable and never yanked out from under a
-build.
+always match (CI hard-fails otherwise). A scaffolded project is already on a
+predictable base, since the pin is exact; published versions are immutable and
+never yanked out from under a build.
 
 ## Deprecation policy
 

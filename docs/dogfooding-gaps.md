@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 101 entries, 79 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 3 are open. That round re-ran an assignment the
+fixed two of them: of 106 entries, 79 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 8 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3221,3 +3221,146 @@ the restriction, and `terminal_score` (`src/xox.glyph:198`) is the shape it
 produces at its worst, a nested boolean `match` standing in for a two-branch
 conditional. Recorded as evidence, not as a proposal: the pillar case for one
 branching construct is unchanged.
+
+## Round 28: five apps at once, and two of them stopped on the same missing type
+
+Five rounds run concurrently, each on an app shape no existing app covers, each
+told to stop at the first thing Glyph could not express. Every finding below was
+re-reproduced by the orchestrator against 0.1.72 before being written down; one
+finding the rounds reported was checked and rejected (see the end).
+
+Three of the five never reached a running program, which is the loop working.
+The two that reached furthest, `sitegen` (marked + gray-matter) and `logmerge`
+(a k-way streaming merge), both got real work done before stopping.
+
+**The convergence is the result.** `pngmeta` (a PNG chunk reader) and `totp` (an
+RFC 6238 authenticator) were assigned different apps, ran in different processes,
+and stopped on the same sentence: Glyph has no bytes.
+
+- **G102. There is no byte type, so no binary file, no real HMAC, and no
+  bytes/text bridge.** Every external boundary in the standard library is
+  string-in, string-out, so there is no spelling anywhere for "these octets".
+  `std/fs` is `read_text`/`write_text`/`append_text`, all `"utf8"`;
+  `fs.read_bytes` is `[E0105] not exported by std/fs`. `std/encoding`'s six
+  functions are all `string -> string`, so `hex_decode` returns UTF-8 text and
+  neither direction crosses to bytes. `std/crypto` is
+  `hmac_sha256(key: string, input: string) -> string`, and there is no SHA-1 at
+  all, which is the algorithm RFC 6238 defaults to and every authenticator ships.
+  `std/websocket` documents its own version of this ("bytes is not served by this
+  module yet"). A PNG's first byte is `0x89`, not valid UTF-8 alone, so the file
+  cannot be read at all; a TOTP key is base32-decoded arbitrary octets and its
+  message is an eight-byte counter that is mostly NUL, so neither argument can be
+  formed even if SHA-1 existed. The compiler's own suite confirms the only route
+  is the escape hatch: `buffer_byte_boundary_typechecks_with_the_shim`
+  (`glyph-cli/tests/integration.rs:2668`) crosses it with three
+  `extern_ts("Array.from(Buffer.from(...))")` calls, which is what an app under
+  `examples/apps/` may not contain. **What is not the problem:** the arithmetic.
+  D36's operators all work, and `((d[0] << 24) | (d[1] << 16) | (d[2] << 8) |
+  d[3]) >>> 0` returning `4294967295` was verified, as were RFC 4648 base32
+  decode and RFC 4226 dynamic truncation against published vectors, both written
+  in ordinary Glyph over `Array<int>`. Only the octets are missing. `std/bytes`
+  is already scheduled beside `std/net`/`std/dns`/`std/tls`/`std/url`; these two
+  rounds say it does not belong in that bundle, because it is the one item that
+  blocks whole classes of program rather than one host boundary. Adjacent and
+  already-documented: hex literals still do not parse (`0xff` is `[E0002]`),
+  which is a known deferral but unusually painful here, since a 256-entry CRC32
+  table written in decimal is unreadable.
+  *Reproduced against 0.1.72.*
+
+- **G103. `glyph gen dts` reports success for a file that cannot compile.** The
+  namespace flattener joins a qualified name by concatenation, so a
+  `namespace Tokens { interface List }` becomes `TokensList` and collides with a
+  genuine top-level `TokensList` in the same `.d.ts`. Both are emitted into one
+  module, `gen` prints `2 type(s) written` and exits 0, and no note mentions it;
+  the next `glyph build` is `[E0100] name TokensList declared more than once`.
+  On the real `marked` package this arrives after 48 notes, none of them about
+  this. The docs describe the *cross-file* version of this case as handled
+  ("kept first-wins", with a note); the within-file collision between a
+  flattened name and a top-level one is neither first-wins nor noted. Eight lines
+  reproduce it:
+
+      export declare namespace Tokens { interface List { ordered: boolean; } }
+      export interface TokensList { count: number; }
+
+  A generator that reports green for output it never compiled is the class this
+  language exists to remove, so the exit code matters as much as the collision.
+  *Reproduced against 0.1.72.*
+
+- **G104. `glyph gen dts` silently ignores a relative import that carries a file
+  extension.** Three sibling files differing only in the specifier:
+  `export * from "./a.ts"` and `export * from "./a.js"` each materialize **zero**
+  types and fail with the OpenAPI generator's message ("expected
+  `components.schemas` (OpenAPI 3), `definitions` (Swagger 2)...") against a
+  TypeScript input, while `export * from "./a"` materializes cleanly. It is not
+  barrel-specific: a type *reference* through an extension-carrying import
+  degrades to a note, writes a file, and exits 0, leaving output that will not
+  compile. The blast radius is the point: `.js` in a relative specifier is
+  **mandatory** under `moduleResolution: nodenext`, so every ESM-authored typed
+  package is in this class, and `date-fns` uses `.ts` under
+  `allowImportingTsExtensions`. Both fail, so `glyph gen dts date-fns` produces
+  nothing. Pointing `gen dts` at a leaf file works but requires knowing the
+  package's internal layout, which is what the by-name form exists to spare you.
+  The diagnostic naming OpenAPI keys for a `.d.ts` input is a second, smaller
+  defect on the same path.
+  *Reproduced against 0.1.72.*
+
+- **G105. A file can only be read whole, and there is no async iteration.** A
+  streaming merge that never holds more than one line per source cannot be
+  written. `std/fs` has no open/read-at-offset/close and no line iterator.
+  `std/io.read_line` does exactly the right thing (chunked `readSync` into a
+  `StringDecoder`) but is hardwired to fd 0 through one module-level
+  `pending`/`eof`/`chunk` triple, so it cannot be pointed at a file or
+  instantiated twice, which is what k-way merging needs. The Node builtin is not
+  a way round it either: the shims declare `readSync` but not
+  `openSync`/`closeSync` (`[TS2305]`), and `readSync` is unreachable regardless
+  because its buffer needs `Buffer` (`[E0103] unresolved name`, per G95) and its
+  `position` needs a `null` the language deliberately has no spelling for. There
+  is no `for await`, no generator, no `yield`, and nothing matching
+  `AsyncIterable`/`asyncIterator`/`createReadStream` anywhere in the runtime.
+  **`std/stream` is not related to this**: it is the property-testing sampler
+  (`Stream<T> = { sample: (i: number) => T }`, with `ints`/`bools`/`from`), so
+  the obvious name for the I/O abstraction is already taken and any design here
+  has to decide what to call it. The only expressible version of the app is
+  `read_text` plus `array.sort`, which is the memory shape the round existed to
+  avoid.
+  *Reproduced against 0.1.72.*
+
+- **G106. E0106 calls an import dead when only an `@example` uses it.** A module
+  whose `@example` annotations reference `Some`/`None`, a union's constructors,
+  or `math.floor` gets `[E0106] unused import` for each, in the same build where
+  those examples compile, run, and pass. Removing the import to satisfy the lint
+  makes the examples fail with `[E0103] unresolved name`, so there is no
+  warning-free spelling. This contradicts a documented requirement: `glyph llms`
+  states that an `@example` must import the constructors it compares against.
+  Four lines reproduce it:
+
+      module repro
+      import std/option { Option, Some, None }
+      @example wrap(1) == Some(1)
+      pub fn wrap(n: number) -> Option<number> { Some(n) }
+
+  Two independent rounds hit it, which is a fair signal of how often a test-only
+  import occurs in practice. The lint's own justification is greppability ("no
+  dead imports"), and an import an `@example` needs is not dead.
+  *Reproduced against 0.1.72.*
+
+**Checked and rejected, so it does not become an entry.** A round reported that
+`int / int` yields a fraction: a function declared `-> int` returning
+`59 / 30` gives `1.9666666666666666` with no diagnostic. It reproduces, but D31
+says in as many words that `int` "is a boundary-validated refinement, not a
+static type" and that `let x: int = 3.5` is deliberately not a compile error.
+Documented v1 behaviour, correctly labelled as such by the round that found it.
+Recorded here rather than silently dropped, so the next round that trips over it
+finds the answer instead of re-filing it.
+
+**One infrastructure blocker, which is not a compiler gap.**
+`scripts/check_apps_are_glyph.py` walks `APPS.rglob("*")` with no `node_modules`
+exclusion, and the root `.gitignore` does not cover
+`examples/apps/*/node_modules/`. Installing a single npm package produced 3,977
+gate failures, all of them vendored library files. The gate's intent is that an
+app must not carry *hand-written* TypeScript, and a vendored dependency is not
+that. Consequence to decide before changing it: the examples tree is built as a
+whole by `repo_examples_emit_typescript_without_diagnostics`, so an
+npm-dependent app makes CI need `npm install` per app or an exclusion. That is a
+scope decision for the owner, not a fix, and it currently blocks the round the
+roadmap says is next.

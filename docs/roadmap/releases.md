@@ -3150,15 +3150,64 @@ Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
 missing.
 
-**`std/net`, `std/dns`, `std/tls`, `std/url`, `std/bytes`.** The driver is
+**`std/net`, `std/dns`, `std/tls`, `std/url`.** The driver is
 concrete: `chat/daemon.glyph` imports node's `net` directly and holds an opaque
 `Socket`, which E0304 now refuses to validate. It is also the only raw host call
 in the entire examples tree, so wrapping it closes the last one.
+
+**`std/bytes` was in that list and has been pulled out of it**, because round 28
+showed it is not a peer of the other four. Two apps assigned different problems,
+running in different processes, stopped on the same sentence: a PNG reader that
+cannot read a file whose first byte is `0x89`, and an RFC 6238 authenticator that
+cannot form either argument to an HMAC. The other four modules each wrap one host
+boundary. This one is a missing *type*, and without it binary formats and real
+cryptography are both unwritable, whatever else ships. It goes first and on its
+own. The shape it has to cover is known from those two rounds and is wider than a
+`Bytes` alias: a file read as octets, a bytes/text bridge in `std/encoding` (whose
+six functions are all `string -> string` today), and a `std/crypto` that takes and
+returns bytes rather than text, including the SHA-1 that RFC 6238 defaults to.
+What is *not* needed is arithmetic: D36's operators, base32 decode and RFC 4226
+dynamic truncation were all written in ordinary Glyph over `Array<int>` and
+verified against published vectors. Recorded as G102.
 
 **The dogfood round is an application built on real npm packages.** Nothing in
 `examples/apps/` uses one today, which means the 1.0 interop gate ("can a
 working engineer use their existing npm dependencies without a hand-written
 adapter") has never been tested by an app, only by guides.
+
+**Round 28 ran that round twice and the answer splits cleanly.** The *import*
+path passes: `import date-fns { addDays, format, parseISO }` type-checked against
+date-fns's own overloads with no adapter and no stub, a hyphenated package name
+parses, `gray-matter`'s `export =` CommonJS shape resolves through the named-import
+form, and `marked` correctly forced an `await` by returning
+`string | Promise<string>`. The *generator* is where it fails, twice, and both are
+silent-green rather than loud. `gen dts` emits two declarations of one name when a
+flattened namespace collides with a top-level type, prints `2 type(s) written`,
+exits 0, and leaves a file that fails `glyph build` (G103). And it ignores any
+relative import carrying a file extension, so a barrel of `export * from "./a.js"`
+materializes **zero** types with a message about OpenAPI keys (G104). The second
+is the wider one: `.js` in a relative specifier is mandatory under
+`moduleResolution: nodenext`, so every ESM-authored typed package is in that class.
+Both must close before this round can be called run, because `gen dts` is the
+answer the interop story names.
+
+**And the round cannot be committed at all yet.** `scripts/check_apps_are_glyph.py`
+walks `APPS.rglob("*")` with no `node_modules` exclusion, and the root
+`.gitignore` does not cover `examples/apps/*/node_modules/`, so one `npm install`
+produced 3,977 gate failures on vendored files. The gate means "an app must not
+carry hand-written TypeScript", and a vendored dependency is not that. The
+exclusion is easy; the consequence needs a decision, because
+`repo_examples_emit_typescript_without_diagnostics` builds the examples tree as a
+whole, so an npm-dependent app means CI runs `npm install` per app or that app
+leaves the tree build. Owner's call, and it gates the round.
+
+**Also from round 28, both smaller and both real.** A file can only be read whole
+and there is no async iteration anywhere, so a streaming pipeline is unwritable;
+note that `std/stream` is already the property-testing sampler, so the obvious
+name is taken and a design here has to pick another (G105). And `E0106` calls an
+import dead when only an `@example` uses it, contradicting the documented rule
+that an example must import what it compares against, with no warning-free
+spelling available (G106). Two independent rounds hit that one.
 
 That round carries one hypothesis to confirm or kill: **`std/ai`**. The proposal
 was `tokenize`, `count_tokens`, `truncate`, `chunk`, plus `llm.generate` and

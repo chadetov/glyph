@@ -30,14 +30,19 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 99 entries, 79 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 1 is open. That round re-ran an assignment the
+fixed two of them: of 101 entries, 79 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 3 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
 language rather than the build, and G87 is the sharpest of them: `owned`, the
 manifesto's one carve-out from "no linear types", turns out not to reach
 sockets, which is the case it was written for.
+
+The two most recent entries (G100, G101) did not come from a dogfooding round at
+all. They came from reading an application someone outside the project wrote, and
+they are recorded here because the file is the backlog regardless of who found
+the gap. See "Round 27" at the end.
 
 The round before it, the chat *engine*, added three entries and closed the one
 it was about. G81 had been true since `std/io` was written: `read_line`
@@ -3146,3 +3151,73 @@ scheduled off this list should be reproduced first.
   which is what the entry complained about. The title's claim stands: it is still
   a `tsc` error. A Glyph *check* was assessed in 0.1.68 and declined, because the
   detectable shape has a legitimate counterexample and would fire on correct code.
+## Round 27: an app from outside the project
+
+Not a dogfooding round. `github.com/canpolatoral/glyph-hello` is a tic-tac-toe
+game written by someone with no connection to the project: the whole engine in
+Glyph (rules, minimax, position evaluation, board rendering), the DOM in 301
+lines of hand-written vanilla JS, an HTTP server and a terminal client in Glyph
+on top of the shared engine. 1,485 lines, one commit, and **no TypeScript
+anywhere** in it. `src/.types/` holds the scaffold README and nothing else.
+
+It builds green on 0.1.72 (14 `@example`s pass, four modules, no diagnostics,
+`tsc --strict` passes, `glyph fmt --check` reports four already formatted), and
+green was not taken as the finding. Bundling the engine and searching it
+exhaustively: playing the `Perfect` level as O against every legal X line is 593
+terminal positions and **zero losses**, as X is 94 positions and zero losses, and
+across all 5,478 reachable positions none of the three difficulty levels ever
+returned an illegal move. The engine is correct, first commit, by an outside
+author.
+
+What it found is two stdlib gaps and one documentation gap, and one measurement
+worth keeping.
+
+- **G100. `std/array` has no `max`, `min`, `max_by`, `min_by`, or `sum`, so
+  argmax is hand-written at every search.** `std/math` has the scalar `min`/`max`
+  only. This app writes the same fold five times (`src/xox.glyph` lines 219, 230,
+  254, 289 and 319): once to take the maximum of the child scores, once for the
+  minimum, once to find the best-scoring move, once to find the best score before
+  filtering ties. Picking the highest-scoring element of an array is the core
+  operation of every search, every ranking and every scheduler, and the fold that
+  does it is four lines of `match acc` ceremony each time. `max_by`/`min_by`
+  taking a key function is the shape that closes it; `max`/`min`/`sum` over
+  `Array<number>` are the trivial cases of the same thing.
+  *Reproduced against 0.1.72.*
+
+- **G101. `array.fold` cannot stop early, so every short-circuiting accumulation
+  is hand-written index recursion.** The app's requirements ask for alpha-beta
+  pruning, which is exactly a fold that stops when the window closes. Alpha-beta
+  *is* expressible today: a pair of mutually recursive functions threading an
+  index (`ab_max(kids, i, alpha, beta)` calling `ab_max(kids, i + 1, a, beta)`
+  only when the cutoff does not fire) compiles, passes `tsc --strict`, and
+  returns the textbook answer on the standard test tree. But it takes four
+  functions and an explicit cursor to say what `fold_while` says in one call, and
+  the version that reads naturally (`array.fold` over the moves) silently
+  evaluates every branch, which for a search is the difference between pruning
+  and not pruning. A `fold_while`/`try_fold` whose callback returns a continue-or-
+  stop is the missing piece. Not a soundness bug: the hand-written form is
+  correct, just long.
+  *Reproduced against 0.1.72.*
+
+**The documentation gap, which is not a `G` entry because nothing is broken.**
+The author's `specs/requirements.md` records, as a decision taken before the
+build, that "the emitted code uses bare `std/*` specifiers that a build step must
+rewrite." That is wrong, and the way it is wrong is our fault. `glyph build`
+emits `dist/tsconfig.json` carrying `"paths": { "std/*": [...] }`, and any
+bundler that reads a neighbouring tsconfig resolves the specifiers with no
+rewriting at all: `esbuild dist/xox.ts --bundle --format=esm` produces 20.8 kb of
+ESM with zero `node:` imports and zero `process` references, and it runs in a
+bare realm. So an engine in a Web Worker works today. But `docs/guide/deployment.md`
+says only that "a front-end build (via React interop) bundles like any other
+TypeScript", which does not cover a plain module bundled for a worker, and an
+outside developer read the emitted imports, drew the pessimistic conclusion, and
+wrote it into his spec as settled. The fix is a worked browser/worker example in
+the deployment guide that names the tsconfig and shows the esbuild line.
+
+**The measurement.** 31 of this app's 70 `match` expressions are
+`match <bool> { true => ..., false => ... }`, which is 44%. That is the first
+number we have for what D9 costs at the keyboard from someone who did not choose
+the restriction, and `terminal_score` (`src/xox.glyph:198`) is the shape it
+produces at its worst, a nested boolean `match` standing in for a two-branch
+conditional. Recorded as evidence, not as a proposal: the pillar case for one
+branching construct is unchanged.

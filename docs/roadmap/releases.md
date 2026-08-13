@@ -3228,6 +3228,65 @@ invisible. The consequence is recorded as **G99**: with those three unmodeled,
 `array.map(xs, some_async_fn)` compiles, passes `tsc --strict`, and prints
 `[object Promise]`. Closing it is a decision about whether a pending value gets
 a type, not a table entry, so it is the owner's call and not scheduled here.
+
+## glyph-hello — the first application written outside the project
+
+Read on 2026-08-13, against 0.1.72. `github.com/canpolatoral/glyph-hello` is a
+tic-tac-toe game by an author with no connection to this project. Every dogfood
+round in this file so far was ours, which means every round's findings were found
+by someone who already knew where the walls are. This one was not, and that is
+what makes it worth its own section.
+
+The shape is the shape we have been arguing for: the entire engine in Glyph
+(rules, minimax, position evaluation, board rendering), an HTTP server and a
+terminal client in Glyph on top of that one engine, and the DOM in 301 lines of
+hand-written vanilla JS. 1,485 lines, one commit, and **no TypeScript in the
+repository at all**. `src/.types/` contains the scaffold README and nothing else,
+so the rule that an app needing a `.d.ts` proves Glyph unnecessary held without
+anyone enforcing it.
+
+It builds green, and green was not the check. Bundling the engine and searching
+it exhaustively: the `Perfect` level as O against every legal line is 593
+terminal positions and zero losses, as X it is 94 and zero, and across all 5,478
+reachable positions none of the three difficulty levels ever returned an illegal
+move. An outside author got a provably correct game engine out of this language
+on the first commit. That is the strongest evidence the project has that the
+thing works for somebody who is not us.
+
+Three findings, all recorded in `docs/dogfooding-gaps.md` under Round 27.
+
+- **G100: `std/array` has no `max`, `min`, `max_by`, `min_by` or `sum`.** The app
+  hand-writes the same fold five times, because argmax over an array is what
+  every search does and we make people spell it out in four lines of `match acc`.
+  `max_by`/`min_by` taking a key function is the shape that closes it. Small, and
+  the clearest single ergonomic win an outside reader has pointed at.
+- **G101: `array.fold` cannot stop early.** Their spec asks for alpha-beta
+  pruning. Alpha-beta *is* writable today, verified: mutually recursive functions
+  threading an index compile, pass `tsc --strict`, and return the right answer.
+  But it takes four functions and an explicit cursor to say what a `fold_while`
+  says in one call, and the version that reads naturally evaluates every branch,
+  which in a search is the difference between pruning and not.
+- **A deployment-guide gap, no code involved.** Their spec records as settled
+  that "the emitted code uses bare `std/*` specifiers that a build step must
+  rewrite". It is not true: `dist/tsconfig.json` carries the `paths` map, and
+  `esbuild dist/xox.ts --bundle --format=esm` yields 20.8 kb of ESM with no
+  `node:` imports and no `process` references, which runs in a bare realm. An
+  engine in a Web Worker works today. `docs/guide/deployment.md` only says a
+  front-end build "via React interop" bundles like any other TypeScript, so an
+  outside developer read the emitted imports, concluded the pessimistic thing,
+  and wrote it into his requirements as a decision. A worked browser and worker
+  example naming the tsconfig and the esbuild line is the fix.
+
+One measurement to carry forward without acting on it: 31 of the app's 70 `match`
+expressions are `match <bool> { true => ..., false => ... }`, 44%. First number
+we have for what D9 costs at the keyboard from someone who did not choose the
+restriction. The pillar case for a single branching construct is unchanged; the
+number is worth knowing when the next person raises it.
+
+Nothing here carries the **Next** marker. G100 and G101 are stdlib additions
+small enough to ride along with whichever release is open when they get picked
+up; the guide fix is documentation and needs no release at all.
+
 ### 0.1.70 — Shipped · An index that is wrong, and a type that can be called Error
 
 Published 2026-08-09 and smoke-tested from a clean npx cache in an isolated

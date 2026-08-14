@@ -2952,7 +2952,14 @@ the same state.
   on an `Array<Promise<T>>` that Glyph has no way to spell: `await e` types as
   `e`, and there is deliberately no user-visible `Promise<T>` (D40). So closing
   this needs a decision about the type of a pending value, not a table entry.
-  Reproduced 0.1.72.
+
+  *Reproduced against 0.1.74.* Re-run when the staleness gate flagged the
+  entry: `array.map([1, 2, 3], double)` over an `async fn` still builds with no
+  diagnostics and a clean `tsc --strict`, and still prints
+  `[object Promise],[object Promise],[object Promise]`. The premise holds
+  unchanged, and the three modeled-callback fixes since have not touched it,
+  because they covered the predicate-taking functions whose callbacks return a
+  concrete type.
 
 ## Round 23: reading a key that may not be there
 
@@ -3490,7 +3497,7 @@ the class this language exists to remove.
   `no diagnostics` and `tsc --strict passed`. The same loop over the same
   declared `Array<string>` emits `w.keys.entries()` when the value came from a
   non-generic `parse`, so two spellings of one idiom disagreed at run time.
-  **Fixed in 0.1.75:** `iter_shape` now answers Array, Record, or Unknown as
+  **Fixed in 0.1.74:** `iter_shape` now answers Array, Record, or Unknown as
   three distinct cases, and Unknown emits `__glyph_pairs(it)`, a bootstrap helper
   that reads `Array.isArray` at run time. The compiler cannot always know the
   shape; the runtime always can. A settled type keeps its direct emit, so no
@@ -3509,7 +3516,7 @@ the class this language exists to remove.
   decision's problem one layer in. Typing it means modelling the per-parameter
   checker arity that the emitter already writes, so the two would agree by
   construction the way the non-generic pair already does.
-  *Reproduced against 0.1.75.*
+  *Reproduced against 0.1.74.*
 
 - **G111. [FIXED] A stdlib type imported by name lost the field table the
   namespaced spelling gets, switching off two checks.** `import std/http {
@@ -3527,7 +3534,7 @@ the class this language exists to remove.
   check off. This is the class CLAUDE.md records as settled twice already
   (0.1.56, 0.1.57) and calls wrong on arrival, and `lower.rs` states the rule in
   its own doc comment three functions above the bug: a guarantee must not depend
-  on which legal spelling brought the type into scope. **Fixed in 0.1.75:** the
+  on which legal spelling brought the type into scope. **Fixed in 0.1.74:** the
   `ImportNamed` arm consults `stdlib_modeled_type` before falling through, so
   both spellings lower to the same `Ty`.
 
@@ -3549,7 +3556,7 @@ the class this language exists to remove.
   (`import gray-matter { read }`) compiles and runs, which is what
   `examples/apps/sitegen` uses, with a source comment saying why.
 
-  **Fixed in 0.1.76**, and D15 now names four import forms:
+  **Fixed in 0.1.74**, and D15 now names four import forms:
   `import express { default as app }`. The `as` is legal only after `default`,
   never for an arbitrary imported name, so general renaming stays closed and a
   name in the file still matches the name at its source; `grep 'default as'`
@@ -3578,7 +3585,7 @@ the class this language exists to remove.
   globals Glyph has no types for. So any package whose types touch `Intl` is
   import-only, never boundary-validated.
 
-  **Fixed in 0.1.76** by the answer this repo already documents for a host global
+  **Fixed in 0.1.74** by the answer this repo already documents for a host global
   the stdlib does not wrap: `std/intl` wraps it, the way timers and WebSocket
   were. Twelve functions covering plurals, ordinals, numbers, fixed decimals,
   currency, percent, lists, relative time, dates, collation and locale

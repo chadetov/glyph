@@ -92,6 +92,26 @@ function __glyph_eq(a: unknown, b: unknown): boolean {
   return ak.every((k) => Object.prototype.hasOwnProperty.call(bo, k) && __glyph_eq(ao[k], bo[k]));
 }
 
+// The key/value pairs of `for k, v in it`, chosen by what `it` actually is.
+//
+// An array's pairs are `it.entries()`, whose index is a NUMBER; a record's are
+// `Object.entries(it)`, whose key is a STRING. The emitter picks between them
+// from the iterand's static type and used to fall back to the record form when
+// that type was unknown, which is a silent miscompile: the loop index arrived
+// as a string, so `index + 1` computed `"01"` in a build reporting no
+// diagnostics and a clean `tsc --strict`. A value whose type Glyph cannot see
+// (the `Ok` payload of a generic record's `parse`, for one) took that path.
+//
+// The compiler cannot always know the shape. The runtime always can, so when
+// the static type does not settle it, this decides. Typed iterands keep their
+// direct `.entries()` / `Object.entries(...)` emit and never reach here.
+function __glyph_pairs(it: unknown): Iterable<[unknown, unknown]> {
+  if (Array.isArray(it)) {
+    return it.entries() as Iterable<[unknown, unknown]>;
+  }
+  return Object.entries(it as Record<string, unknown>) as Iterable<[unknown, unknown]>;
+}
+
 function assert(condition: boolean): void {
   if (!condition) {
     throw new Error("assertion failed");
@@ -105,3 +125,4 @@ g.print = print;
 g.assert = assert;
 g.__glyph_eq = __glyph_eq;
 g.__glyph_index = __glyph_index;
+g.__glyph_pairs = __glyph_pairs;

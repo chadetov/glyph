@@ -1,0 +1,119 @@
+module trie
+
+import std/array
+import std/record
+import std/string
+import std/option { Option, Some, None }
+
+// A prefix tree keyed by string. Every node is the same generic record, so the
+// type is recursive through `children`.
+pub type Trie<V> = { children: Record<string, Trie<V>>, value: Option<V> }
+
+pub type Hit<V> = { key: string, value: V }
+
+pub fn empty<V>() -> Trie<V> {
+  return { children: {}, value: None }
+}
+
+pub fn insert<V>(t: Trie<V>, key: string, value: V) -> Trie<V> {
+  match string.len(key) == 0 {
+    true => { return { children: t.children, value: Some(value) } },
+    false => void,
+  }
+  let head = string.slice(key, 0, 1)
+  let rest = string.slice(key, 1)
+  let child = match record.get(t.children, head) {
+    Some(existing) => existing,
+    None => empty<V>(),
+  }
+  return { children: record.set(t.children, head, insert(child, rest, value)), value: t.value }
+}
+
+pub fn get<V>(t: Trie<V>, key: string) -> Option<V> {
+  return match node_at(t, key) {
+    None => None,
+    Some(node) => node.value,
+  }
+}
+
+// Every key/value pair under `prefix`, in key order. An unknown prefix is an
+// empty array, not an error.
+pub fn with_prefix<V>(t: Trie<V>, prefix: string) -> Array<Hit<V>> {
+  return match node_at(t, prefix) {
+    None => [],
+    Some(node) => collect(node, prefix),
+  }
+}
+
+pub fn keys<V>(t: Trie<V>) -> Array<string> {
+  return array.map(collect(t, ""), fn(h: Hit<V>) -> string { h.key })
+}
+
+fn sample() -> Trie<number> {
+  let t = empty<number>()
+  mut t = insert(t, "car", 1)
+  mut t = insert(t, "cart", 2)
+  mut t = insert(t, "cab", 3)
+  mut t = insert(t, "dog", 4)
+  return t
+}
+
+// A prefix that is itself a stored key is included in its own results.
+@example matching_keys("ca") == ["cab", "car", "cart"]
+@example matching_keys("car") == ["car", "cart"]
+@example matching_keys("d") == ["dog"]
+// A prefix nobody stored, and a prefix that walks off the tree entirely.
+@example matching_keys("z") == []
+@example matching_keys("carts") == []
+fn matching_keys(prefix: string) -> Array<string> {
+  return array.map(with_prefix(sample(), prefix), fn(h: Hit<number>) -> string { h.key })
+}
+
+@example matching_values("ca") == [3, 1, 2]
+fn matching_values(prefix: string) -> Array<number> {
+  return array.map(with_prefix(sample(), prefix), fn(h: Hit<number>) -> number { h.value })
+}
+
+// A prefix of a stored word is not a stored word.
+@example get(sample(), "car") == Some(1)
+@example get(sample(), "ca") == None
+@example keys(sample()) == ["cab", "car", "cart", "dog"]
+fn stored_words() -> number {
+  return array.len(keys(sample()))
+}
+
+fn node_at<V>(t: Trie<V>, key: string) -> Option<Trie<V>> {
+  match string.len(key) == 0 {
+    true => { return Some(t) },
+    false => void,
+  }
+  let head = string.slice(key, 0, 1)
+  return match record.get(t.children, head) {
+    None => None,
+    Some(child) => node_at(child, string.slice(key, 1)),
+  }
+}
+
+fn collect<V>(t: Trie<V>, path: string) -> Array<Hit<V>> {
+  let out: Array<Hit<V>> = []
+  match t.value {
+    Some(value) => { mut out.push({ key: path, value: value }) },
+    None => void,
+  }
+  let heads = array.sort(
+    record.keys(t.children),
+    fn(a: string, b: string) -> number {
+      match a < b {
+        true => -1,
+        false => 1,
+      }
+    },
+  )
+  for head in heads {
+    match record.get(t.children, head) {
+      Some(child) => { mut out = array.concat(out, collect(child, "${path}${head}")) },
+      None => void,
+    }
+  }
+  return out
+}

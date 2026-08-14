@@ -687,6 +687,18 @@ struct Emitter<'a> {
     ctx: EmitContext<'a>,
 }
 
+/// What a two-binding `for` is iterating, as far as the type checker settled it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum IterShape {
+    /// The prelude `Array<T>`: pairs are `it.entries()`, index is a number.
+    Array,
+    /// A record or map-like object: pairs are `Object.entries(it)`, key is a string.
+    Record,
+    /// Not settled statically. Decided at run time rather than guessed, because
+    /// guessing wrong changes what the program computes.
+    Unknown,
+}
+
 impl<'a> Emitter<'a> {
     /// How this module must spell a JavaScript global the emitter writes.
     ///
@@ -2004,13 +2016,27 @@ impl<'a> Emitter<'a> {
                     // `for k, v in it` over key/value pairs. An array's pairs are
                     // `it.entries()` — the index is a NUMBER. A record is a plain
                     // object, so its pairs are `Object.entries(it)` — the key is a
-                    // STRING. The two differ (numeric vs string index), so pick by
-                    // the iterand type, defaulting to a record when it is unknown.
+                    // STRING.
+                    //
+                    // The two differ, so a wrong guess is a wrong program, not a
+                    // style choice. This used to default to the record form when
+                    // the iterand's type was unknown, which made the index a
+                    // string at run time in a build reporting no diagnostics and
+                    // a clean `tsc --strict`: `index + 1` computed `"01"`. A
+                    // value Glyph cannot see the type of takes that path, and
+                    // the `Ok` payload of a generic record's `parse` is one.
+                    //
+                    // A known type still emits the direct form. An unknown one
+                    // defers to the run time, which knows exactly what the value
+                    // is when the compiler does not.
                     [k, v] => {
-                        let pairs = if self.iter_is_array(&f.iter) {
-                            format!("{iter}.entries()")
-                        } else {
-                            format!("{}.entries({iter})", self.g("Object"))
+                        let pairs = match self.iter_shape(&f.iter) {
+                            IterShape::Array => format!("{iter}.entries()"),
+                            IterShape::Record => format!("{}.entries({iter})", self.g("Object")),
+                            // Written bare, like `__glyph_index` and
+                            // `__glyph_eq`: a Glyph runtime global the bootstrap
+                            // installs, not a JS one a module could shadow.
+                            IterShape::Unknown => format!("__glyph_pairs({iter})"),
                         };
                         format!("for (const [{k}, {v}] of {pairs}) ")
                     }
@@ -2305,12 +2331,31 @@ impl<'a> Emitter<'a> {
     /// type (e.g. a value narrowed by an `is Array<..>` arm, before flow
     /// narrowing tracks it) answers false and falls back to the record form.
     fn iter_is_array(&self, iter: &Expr) -> bool {
-        matches!(
-            self.types.get(iter.span()),
-            Ty::App { base, .. }
-                if matches!(base.as_ref(), Ty::Named { path, .. }
-                    if path.last().map(|n| n.as_ref()) == Some("Array"))
-        )
+        matches!(self.iter_shape(iter), IterShape::Array)
+    }
+
+    /// What a two-binding `for`'s iterand is, as far as the checker can tell.
+    ///
+    /// The three answers are genuinely different, and collapsing `Unknown` into
+    /// either of the others is how a loop index silently became a string. A
+    /// record type answers `Record`; the prelude `Array` answers `Array`;
+    /// anything the checker did not resolve answers `Unknown` and is settled at
+    /// run time instead of guessed here.
+    fn iter_shape(&self, iter: &Expr) -> IterShape {
+        let ty = self.types.get(iter.span());
+        if matches!(&ty, Ty::App { base, .. }
+            if matches!(base.as_ref(), Ty::Named { path, .. }
+                if path.last().map(|n| n.as_ref()) == Some("Array")))
+        {
+            return IterShape::Array;
+        }
+        match &ty {
+            Ty::Unknown => IterShape::Unknown,
+            // A `Ty::Imported` crosses a module boundary with no shape attached,
+            // so it is no more settled than `Unknown`.
+            Ty::Imported { .. } => IterShape::Unknown,
+            _ => IterShape::Record,
+        }
     }
 
     fn union_variant_names(&self, ty: &Ty) -> Option<Vec<String>> {
@@ -6725,6 +6770,64 @@ mod tests {
         let ts = emit("module x\npub fn f(cb: fn(string) -> number) -> void {\n  return void\n}\n");
         assert!(ts.contains("(a0: string) => number"), "{ts}");
         assert!(!ts.contains("Promise"), "{ts}");
+    }
+
+    #[test]
+    fn a_for_over_an_iterand_of_unknown_type_decides_its_protocol_at_run_time() {
+        // An array's pairs bind a NUMBER index, a record's bind a STRING key,
+        // so guessing wrong changes what the program computes. This used to
+        // default to the record form whenever the checker had not settled the
+        // type, which made `index + 1` evaluate `"0" + 1 === "01"` in a build
+        // reporting no diagnostics and a clean `tsc --strict`. The `Ok` payload
+        // of a generic record's `parse` is untyped today and took exactly that
+        // path.
+        //
+        // A settled type still emits directly; only the unsettled one defers.
+        let ts = emit(
+            "module m\n\
+             type Wire<V> = { keys: Array<string>, values: Array<V> }\n\
+             import std/result { Ok, Err }\n\
+             import std/io\n\
+             fn f(raw: unknown) -> void {\n\
+             \x20 match Wire.parse<number>(raw) {\n\
+             \x20\x20\x20 Ok(w) => {\n\
+             \x20\x20\x20\x20\x20 for i, k in w.keys { io.println(k) }\n\
+             \x20\x20\x20 },\n\
+             \x20\x20\x20 Err(_e) => void,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            ts.contains("__glyph_pairs(w.keys)"),
+            "an unsettled iterand must decide at run time, not silently take the \
+             record form; got:\n{ts}"
+        );
+        assert!(
+            !ts.contains("Object.entries(w.keys)"),
+            "the record form binds a string index and is a miscompile here; got:\n{ts}"
+        );
+    }
+
+    #[test]
+    fn a_for_over_a_known_array_or_record_still_emits_directly() {
+        // The run-time helper is the fallback, not the new default: a type the
+        // checker did settle must keep its direct emit, or every typed loop pays
+        // for the one that could not be typed.
+        let arr = emit(
+            "module m\n\
+             import std/io\n\
+             fn f(xs: Array<string>) -> void { for i, x in xs { io.println(x) } }\n",
+        );
+        assert!(arr.contains("xs.entries()"), "got:\n{arr}");
+        assert!(!arr.contains("__glyph_pairs"), "got:\n{arr}");
+
+        let rec = emit(
+            "module m\n\
+             import std/io\n\
+             fn f(r: Record<string, string>) -> void { for k, v in r { io.println(v) } }\n",
+        );
+        assert!(rec.contains("Object.entries(r)"), "got:\n{rec}");
+        assert!(!rec.contains("__glyph_pairs"), "got:\n{rec}");
     }
 
     #[test]

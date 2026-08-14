@@ -25,6 +25,11 @@ declare function __glyph_eq(a: unknown, b: unknown): boolean;
 /// have, so wrapping an index changes when it fails and not what it is.
 declare function __glyph_index<C, K extends keyof C>(container: C, index: K): C[K];
 
+/// The key/value pairs of a `for k, v in it` whose iterand type the emitter
+/// could not settle statically. An array yields a numeric index, a record a
+/// string key, decided at run time.
+declare function __glyph_pairs(it: unknown): Iterable<[any, any]>;
+
 /// Assert a condition (D26 `@doc @run` blocks). A false condition throws,
 /// failing the build that runs the doc example.
 declare function assert(condition: boolean): void;

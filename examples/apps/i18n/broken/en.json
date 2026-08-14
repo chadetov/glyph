@@ -1,0 +1,19 @@
+{
+  "locale": "en",
+  "simple": {
+    "greeting": "Hello, {name}",
+    "cart_total": "Your cart totals {amount}",
+    "signed_in_as": "Signed in as {name} ({email})",
+    "discount_applied": "A discount of {rate} was applied"
+  },
+  "plural": {
+    "unread": {
+      "one": "You have {count} unread message",
+      "other": "You have {count} unread messages"
+    },
+    "files_deleted": {
+      "one": "Deleted {count} file",
+      "other": "Deleted {count} files"
+    }
+  }
+}

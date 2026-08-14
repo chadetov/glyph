@@ -1,0 +1,195 @@
+// catalog — message catalogues loaded from JSON, one file per locale.
+//
+// A catalogue file is untrusted input, so it crosses the boundary through
+// `CatalogueFile.parse` and is then checked against the reference locale: every
+// key present, the same placeholder set, and exactly the plural categories the
+// locale's CLDR rules can select. A catalogue that fails is a load error, not a
+// string that renders wrong in production.
+module catalog
+
+import std/array
+import std/option { Some, None }
+import std/record
+import std/string
+import pattern
+import plural
+
+// The wire shape of `locales/<tag>.json`. `simple` holds one pattern per key;
+// `plural` holds one pattern per CLDR category per key.
+pub type CatalogueFile = {
+  locale: string,
+  simple: Record<string, string>,
+  plural: Record<string, Record<string, string>>,
+}
+
+// A message is either a single pattern or a set keyed by plural category.
+pub type Message =
+  | Simple({ text: string })
+  | Plural({ forms: Record<string, string> })
+
+pub type Catalogue = { locale: string, messages: Record<string, Message> }
+
+pub type Defect =
+  | MissingKey({ locale: string, key: string })
+  | ExtraKey({ locale: string, key: string })
+  | WrongKind({ locale: string, key: string })
+  | PlaceholderMismatch({ locale: string, key: string, expected: string, found: string })
+  | MissingCategory({ locale: string, key: string, category: string })
+  | UnusableCategory({ locale: string, key: string, category: string })
+
+pub fn describe(issue: Defect) -> string {
+  return match issue {
+    MissingKey({ locale, key }) => "${locale}: missing key `${key}`",
+    ExtraKey({ locale, key }) => "${locale}: key `${key}` is not in the reference catalogue",
+    WrongKind({ locale, key }) => "${locale}: key `${key}` is plural in one catalogue and simple in the other",
+    PlaceholderMismatch({ locale, key, expected, found }) => "${locale}: key `${key}` uses placeholders [${found}], reference uses [${expected}]",
+    MissingCategory({ locale, key, category }) => "${locale}: key `${key}` has no `${category}` form",
+    UnusableCategory({ locale, key, category }) => "${locale}: key `${key}` declares `${category}`, which `${locale}` never selects",
+  }
+}
+
+// Turn a validated wire file into a catalogue keyed by message name.
+pub fn from_file(file: CatalogueFile) -> Catalogue {
+  let messages: Record<string, Message> = {}
+  for key, text in file.simple {
+    mut messages = record.set<Message>(messages, key, Simple({ text: text }))
+  }
+  for key, forms in file.plural {
+    mut messages = record.set<Message>(messages, key, Plural({ forms: forms }))
+  }
+  return { locale: file.locale, messages: messages }
+}
+
+// The lookup order for a tag: the tag itself, its base language, then the
+// reference locale. Each step appears once, in order.
+@example chain("pl-PL", "en") == ["pl-PL", "pl", "en"]
+@example chain("pl", "en") == ["pl", "en"]
+@example chain("en", "en") == ["en"]
+@example chain("en-GB", "en") == ["en-GB", "en"]
+@example chain("pt-BR", "en") == ["pt-BR", "pt", "en"]
+pub fn chain(locale: string, reference: string) -> Array<string> {
+  let steps = [locale, plural.base_language(locale), reference]
+  let out: Array<string> = []
+  for step in steps {
+    mut out = match array.contains(out, step) {
+      true => out,
+      false => array.push(out, step),
+    }
+  }
+  return out
+}
+
+// Resolve a key through the fallback chain, reporting which locale answered.
+pub type Hit = { locale: string, message: Message }
+
+pub fn lookup(catalogues: Record<string, Catalogue>, locale: string, reference: string, key: string) -> Option<Hit> {
+  for step in chain(locale, reference) {
+    let found = match record.get<Catalogue>(catalogues, step) {
+      None => None,
+      Some(cat) => match record.get<Message>(cat.messages, key) {
+        None => None,
+        Some(message) => Some({ locale: step, message: message }),
+      },
+    }
+    match found {
+      Some(hit) => { return Some(hit) },
+      None => void,
+    }
+  }
+  return None
+}
+
+fn placeholder_key(text: string) -> string {
+  return string.join(pattern.placeholders(text), ",")
+}
+
+// One representative pattern from a message, for placeholder comparison.
+fn sample(message: Message) -> string {
+  return match message {
+    Simple({ text }) => text,
+    Plural({ forms }) => match record.get<string>(forms, "other") {
+      Some(text) => text,
+      None => string.join(record.values<string>(forms), " "),
+    },
+  }
+}
+
+fn is_plural(message: Message) -> bool {
+  return match message {
+    Simple({ text: _ }) => false,
+    Plural({ forms: _ }) => true,
+  }
+}
+
+// Check one catalogue against the reference: same kind, same placeholder set,
+// and exactly the plural categories this locale can select. A base-language
+// catalogue must also carry every key (`complete`); a regional overlay such as
+// `pl-PL` is allowed to define a subset and let the chain supply the rest.
+pub fn validate(reference: Catalogue, other: Catalogue, complete: bool) -> Array<Defect> {
+  let issues: Array<Defect> = []
+  for key, ref_message in reference.messages {
+    mut issues = match record.get<Message>(other.messages, key) {
+      None => match complete {
+        true => array.push(issues, MissingKey({ locale: other.locale, key: key })),
+        false => issues,
+      },
+      Some(message) => array.concat(issues, compare(other.locale, key, ref_message, message)),
+    }
+  }
+  for key, _message in other.messages {
+    mut issues = match record.has<Message>(reference.messages, key) {
+      true => issues,
+      false => array.push(issues, ExtraKey({ locale: other.locale, key: key })),
+    }
+  }
+  return issues
+}
+
+fn compare(locale: string, key: string, ref_message: Message, message: Message) -> Array<Defect> {
+  let issues: Array<Defect> = []
+  mut issues = match is_plural(ref_message) == is_plural(message) {
+    true => issues,
+    false => array.push(issues, WrongKind({ locale: locale, key: key })),
+  }
+  let expected = placeholder_key(sample(ref_message))
+  let found = placeholder_key(sample(message))
+  mut issues = match expected == found {
+    true => issues,
+    false => array.push(
+      issues,
+      PlaceholderMismatch({ locale: locale, key: key, expected: expected, found: found }),
+    ),
+  }
+  mut issues = array.concat(issues, check_categories(locale, key, message))
+  return issues
+}
+
+fn check_categories(locale: string, key: string, message: Message) -> Array<Defect> {
+  return match message {
+    Simple({ text: _ }) => [],
+    Plural({ forms }) => {
+      let issues: Array<Defect> = []
+      let usable = plural.categories_for(locale)
+      let names = array.map(
+        usable,
+        fn(c: plural.PluralCategory) -> string { plural.category_name(c) },
+      )
+      for name in names {
+        mut issues = match record.has<string>(forms, name) {
+          true => issues,
+          false => array.push(issues, MissingCategory({ locale: locale, key: key, category: name })),
+        }
+      }
+      for name, _form in forms {
+        mut issues = match array.contains(names, name) {
+          true => issues,
+          false => array.push(
+            issues,
+            UnusableCategory({ locale: locale, key: key, category: name }),
+          ),
+        }
+      }
+      issues
+    },
+  }
+}

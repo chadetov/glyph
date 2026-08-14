@@ -1,0 +1,72 @@
+// Which failures are worth trying again, and which are the caller's fault.
+//
+// This is the decision a resilient client gets wrong most often. Retrying a 401
+// does nothing but multiply the audit-log noise; retrying a 400 sends the same
+// bad body five times. A 503 or a timeout, on the other hand, is exactly the
+// case retrying exists for. Keeping it a pure function of the status (or of the
+// transport error) means the rule is one grep away and every case is covered by
+// an `@example`, with no network involved.
+module classify
+
+import std/http
+
+pub type Decision =
+  | Retry
+  | Fatal
+
+// A response arrived. 2xx never reaches here; everything else is judged on the
+// status alone.
+//
+// Overload, rate limit, and gateway failures are transient by definition.
+@example of_status(408) == Retry
+@example of_status(425) == Retry
+@example of_status(429) == Retry
+@example of_status(500) == Retry
+@example of_status(502) == Retry
+@example of_status(503) == Retry
+@example of_status(504) == Retry
+//
+// A 4xx that describes the request is the caller's bug and repeats identically.
+@example of_status(400) == Fatal
+@example of_status(401) == Fatal
+@example of_status(403) == Fatal
+@example of_status(404) == Fatal
+@example of_status(409) == Fatal
+@example of_status(422) == Fatal
+//
+// An unrecognised 5xx is still a server problem.
+@example of_status(599) == Retry
+@example of_status(501) == Retry
+pub fn of_status(status: int) -> Decision {
+  return match status {
+    408 => Retry,
+    425 => Retry,
+    429 => Retry,
+    else => match status >= 500 {
+      true => Retry,
+      false => Fatal,
+    },
+  }
+}
+
+// The transport failed before a status existed. A request that outlived its
+// budget and one that never got an answer are both worth another go; a `status`
+// error carries a real status, so it goes back through `of_status`.
+@example of_error({ status: 0, message: "aborted", kind: "timeout" }) == Retry
+@example of_error({ status: 0, message: "ECONNREFUSED", kind: "network" }) == Retry
+@example of_error({ status: 503, message: "unavailable", kind: "status" }) == Retry
+@example of_error({ status: 401, message: "unauthorized", kind: "status" }) == Fatal
+pub fn of_error(e: http.HttpError) -> Decision {
+  return match e.kind {
+    "timeout" => Retry,
+    "network" => Retry,
+    "status" => of_status(e.status),
+  }
+}
+
+pub fn label(d: Decision) -> string {
+  return match d {
+    Retry => "retryable",
+    Fatal => "fatal",
+  }
+}

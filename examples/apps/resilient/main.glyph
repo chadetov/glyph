@@ -1,0 +1,162 @@
+// The demo: run the policy against a service that really does misbehave.
+//
+// It starts the flaky server in this same process, then walks five scenarios
+// the library exists for: a request that fails twice and recovers, one that is
+// rejected outright and must not be retried, an upstream that stays down until
+// the breaker gives up on it, a fan-out held to four requests in flight, and a
+// deadline that fires while a request is still running.
+module main
+
+import std/array
+import std/http
+import std/io
+import std/process
+import std/result { Result, Ok, Err }
+import std/task
+import std/time
+import std/timers
+import backoff
+import breaker
+import client
+import server
+
+const PORT = 8787
+
+fn base() -> string {
+  return "http://127.0.0.1:${number.to_string(PORT)}"
+}
+
+fn describe(answer: Result<http.Response, client.Failure>) -> string {
+  return match answer {
+    Ok(response) => "ok ${number.to_string(response.status)}",
+    Err(f) => "gave up: ${client.why(f)} after ${number.to_string(f.attempts)} attempt(s), last was ${f.message}",
+  }
+}
+
+// Racing a wall-clock deadline against a request that is still in flight.
+//
+// `task.race` answers as soon as either side settles, but the losing side keeps
+// running: the socket is still open after this returns. That is why the client
+// bounds each attempt with `Fetch.timeout_ms` instead, which aborts the request
+// rather than abandoning it. This function is here to show the difference.
+async fn with_deadline(url: string, ms: int) -> Result<http.Response, string> {
+  let request = async fn() -> Result<http.Response, string> {
+    let answer = await http.get(url)
+    return match answer {
+      Ok(response) => Ok(response),
+      Err(e) => Err(e.message),
+    }
+  }
+  let deadline = async fn() -> Result<http.Response, string> {
+    await timers.sleep(ms)
+    return Err("deadline of ${number.to_string(ms)}ms fired first")
+  }
+  return await task.race([request, deadline])
+}
+
+async fn scenario_retry() -> void {
+  io.println("")
+  io.println("1. an upstream that fails twice, then recovers")
+  let c = client.create(backoff.standard(), breaker.standard(), 7, 500, 5000)
+  let started = time.now()
+  let answer = await client.get(c, "${base()}/flaky")
+  io.println("   ${describe(answer)}")
+  io.println(
+    "   breaker: ${client.state_label(c)}, elapsed ${number.to_string(time.now() - started)}ms",
+  )
+}
+
+async fn scenario_fatal() -> void {
+  io.println("")
+  io.println("2. a 401, which no amount of retrying will fix")
+  let c = client.create(backoff.standard(), breaker.standard(), 7, 500, 5000)
+  let started = time.now()
+  let answer = await client.get(c, "${base()}/unauthorized")
+  io.println("   ${describe(answer)}")
+  io.println("   elapsed ${number.to_string(time.now() - started)}ms, one request and no waiting")
+}
+
+async fn scenario_breaker() -> void {
+  io.println("")
+  io.println("3. an upstream that is simply down")
+  let c = client.create(
+    { base_ms: 20, cap_ms: 80, max_retries: 2 },
+    breaker.standard(),
+    7,
+    300,
+    5000,
+  )
+  for call in array.range(4) {
+    let answer = await client.get(c, "${base()}/down")
+    io.println(
+      "   call ${number.to_string(call + 1)}: ${describe(answer)} [breaker ${client.state_label(c)}]",
+    )
+  }
+  io.println("   the last calls cost nothing: the breaker answered them")
+}
+
+async fn scenario_pool() -> void {
+  io.println("")
+  io.println("4. twelve requests, at most four in flight")
+  server.reset_peak()
+  let c = client.create(backoff.standard(), breaker.standard(), 11, 1000, 10000)
+  let urls = array.map(
+    array.range(12),
+    fn(i: number) -> string { "${base()}/ok?n=${number.to_string(i)}" },
+  )
+  let tasks = array.map(
+    urls,
+    fn(url: string) -> async fn() -> string {
+      return async fn() -> string {
+        let answer = await client.get(c, url)
+        return describe(answer)
+      }
+    },
+  )
+  let started = time.now()
+  let outcomes = await task.pool(4, tasks)
+  let ok_count = array.len(array.filter(outcomes, fn(o: string) -> bool { o == "ok 200" }))
+  io.println(
+    "   ${number.to_string(ok_count)}/12 ok in ${number.to_string(time.now() - started)}ms",
+  )
+  io.println(
+    "   peak concurrent requests the server saw: ${number.to_string(server.peak_in_flight())}",
+  )
+}
+
+async fn scenario_deadline() -> void {
+  io.println("")
+  io.println("5. deadlines: per attempt, and over the whole call")
+  // A patient breaker, so the thing that stops this call is the clock and not
+  // the failure count.
+  let c = client.create(
+    { base_ms: 50, cap_ms: 200, max_retries: 5 },
+    { threshold: 10, cooldown_ms: 500 },
+    3,
+    150,
+    600,
+  )
+  let started = time.now()
+  let answer = await client.get(c, "${base()}/slow")
+  io.println("   ${describe(answer)}")
+  io.println("   elapsed ${number.to_string(time.now() - started)}ms against a 600ms deadline")
+  let raced = await with_deadline("${base()}/slow", 120)
+  let raced_label = match raced {
+    Ok(r) => "ok ${number.to_string(r.status)}",
+    Err(e) => e,
+  }
+  io.println("   racing a bare request against a 120ms deadline: ${raced_label}")
+}
+
+pub async fn main(argv: Array<string>) -> number {
+  let _ = http.serve(PORT, server.handle)
+  await timers.sleep(150)
+  io.println("resilient: policy over a flaky upstream on port ${number.to_string(PORT)}")
+  await scenario_retry()
+  await scenario_fatal()
+  await scenario_breaker()
+  await scenario_pool()
+  await scenario_deadline()
+  io.println("")
+  process.exit(0)
+}

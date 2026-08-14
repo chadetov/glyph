@@ -1,0 +1,9 @@
+{
+  "name": "sitegen",
+  "private": true,
+  "glyph": {},
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^16.4.0"
+  }
+}

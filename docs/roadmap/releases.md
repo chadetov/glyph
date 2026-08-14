@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.77, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.78, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3329,7 +3329,33 @@ the list of things the reader cannot follow is now classes, TypeScript utility
 types, and host globals. The direct-import path needs no generation and is
 unaffected, so this bites only boundary validation.
 
-#### 0.1.75 — a mutation that loses an update
+#### 0.1.75 — the output is portable, but it is not deployable
+
+**Next.** Round 32: the outside app came back with 3,377 lines of Glyph, a Web
+Worker AI, 198 passing examples, and a **487-line build tool** it had to write to
+get that output into a browser. Every step in that file is something the compiler
+did not do. Three of them are ours to fix.
+
+**G114 is the one that is a defect rather than a gap.** The emitter puts
+type-only names in a value import list, so `import { Option, Some, None } from
+"std/option"` reaches a runtime where `Option` has no binding. `tsc` elides such
+names, which is why every build is green; a type-stripper does not, and the
+result is a hard ESM link error. It is also `[TS1484]` under
+`verbatimModuleSyntax`, against our own `runtime/std/*.ts` as well as emitted
+code. Emitting `import type` for a name the source module exports as a type is
+the fix, and `docs/guide/deployment.md` needs the honest version of "bundles like
+any other TypeScript": true for a bundler that elides unused type imports, false
+for the stripper-based toolchains that are now common.
+
+**G115 is the deployability half.** A program importing five std modules gets 31
+in its output, `sqlite` and `http` and `fs` among them, which a browser worker
+must not carry; and the runtime lands in `.glyph-runtime`, a path component most
+static hosts hide. Tree-shaking and a rename answer both **if** a bundler is in
+the pipeline. The app deliberately took the no-npm-dependency path, so it wrote
+the graph walk and the rename itself. A `--target browser` emitting pruned,
+relative-specifier ESM is what removes that file.
+
+#### 0.1.76 — a mutation that loses an update
 
 **Decided.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
@@ -3349,7 +3375,7 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.76 — the host boundary, and the app that will tell us what it needs
+#### 0.1.77 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3499,7 +3525,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.77 — finish what is half-built
+#### 0.1.78 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

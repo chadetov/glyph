@@ -91,10 +91,24 @@ jobs:
         # examples/apps/<name>/ carries a `package.json` with a `"glyph"` key, so
         # it is its own module-resolution root (D41) and its bare-name imports
         # resolve the same way here as they do when the app is built on its own.
+        #
+        # An app may depend on real npm packages: proving a working engineer can
+        # use their existing dependencies is the 1.0 interop gate, and an app is
+        # the only thing that has ever tested it. Its `node_modules` is not
+        # committed, and the tree build has no way to skip a project, so anything
+        # declaring dependencies is installed first. The loop is a no-op for the
+        # apps that declare none, which today is all of them.
         run: |
           set -e
           cargo build -q
           BIN="$(pwd)/target/debug/glyph"
+          for manifest in ../examples/apps/*/package.json; do
+            app="$(dirname "$manifest")"
+            if node -e "const p=JSON.parse(require('fs').readFileSync('$manifest','utf8')); process.exit(Object.keys(p.dependencies || {}).length ? 0 : 1)"; then
+              echo "installing dependencies for $app"
+              (cd "$app" && npm install --no-audit --no-fund --loglevel=error)
+            fi
+          done
           "$BIN" build ../examples --out "$RUNNER_TEMP/dist"
 
       # The docs run against the compiler, not against a reader's memory. Both

@@ -106,6 +106,7 @@ the app is the method that has beaten reasoning from first principles twice.
 | `check_scaffold_docs.py` | A first-run walkthrough drifting from what `glyph init` writes |
 | `check_gaps.py` | Status markers and counts falling behind the compiler |
 | `check_versions.py`, `check_site.py` | Version skew across the packages; broken links and sub-nav |
+| `check_clippy.py` | A lint finding no local build or test would show, which fails CI after the push |
 
 ## Updates from brainstorm session 1 (2026-05-26)
 

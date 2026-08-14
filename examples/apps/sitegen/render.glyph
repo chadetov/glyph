@@ -1,0 +1,62 @@
+module render
+
+import std/array
+import std/string
+import post { Post }
+
+// Front matter is author-supplied text, so everything from it is escaped before
+// it reaches a page. The post body is not: `marked` already produced HTML.
+fn escape(text: string) -> string {
+  let amp = string.replace_all(text, "&", "&amp;")
+  let lt = string.replace_all(amp, "<", "&lt;")
+  let gt = string.replace_all(lt, ">", "&gt;")
+  return string.replace_all(gt, "\"", "&quot;")
+}
+
+fn layout(title: string, body: string) -> string {
+  return """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>${title}</title>
+</head>
+<body>
+${body}
+</body>
+</html>
+"""
+}
+
+fn tag_list(tags: Array<string>) -> string {
+  let escaped = array.map(tags, fn(t: string) -> string { escape(t) })
+  return string.join(escaped, ", ")
+}
+
+pub fn page(p: Post) -> string {
+  let title = escape(p.meta.title)
+  let body = """<article>
+<h1>${title}</h1>
+<p class="meta">${escape(p.meta.date)} &middot; ${tag_list(p.meta.tags)}</p>
+${p.html}
+</article>
+<p><a href="index.html">index</a></p>
+"""
+  return layout(title, body)
+}
+
+pub fn index(posts: Array<Post>) -> string {
+  let items = array.map(
+    posts,
+    fn(p: Post) -> string {
+      let title = escape(p.meta.title)
+      let date = escape(p.meta.date)
+      return "  <li><a href=\"${p.slug}.html\">${title}</a> <small>${date}</small></li>"
+    },
+  )
+  let body = """<h1>Posts</h1>
+<ul>
+${string.join(items, "\n")}
+</ul>
+"""
+  return layout("Posts", body)
+}

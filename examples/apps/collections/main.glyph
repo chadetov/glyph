@@ -1,0 +1,121 @@
+module main
+
+import std/array
+import std/io
+import std/string
+import std/option { Some, None }
+import std/result { Result, Ok, Err }
+import cache
+import heap
+import pipeline
+import trie
+
+fn join_numbers(values: Array<number>) -> string {
+  let parts = array.map(values, fn(n: number) -> string { number.to_string(n) })
+  return string.join(parts, ", ")
+}
+
+fn show_heap(argv: Array<string>) -> void {
+  io.println("heap")
+  let lengths = array.map(argv, fn(s: string) -> number { string.len(s) })
+  let filled = array.fold(
+    lengths,
+    heap.create(fn(a: number, b: number) -> number { a - b }),
+    fn(h: heap.Heap<number>, n: number) -> heap.Heap<number> { heap.push(h, n) },
+  )
+  let ordered = join_numbers(heap.drain(filled))
+  io.println("  argument lengths, shortest first: ${ordered}")
+}
+
+fn show_cache() -> void {
+  io.println("cache")
+  let sessions = cache.create<string, number>(2)
+  cache.put(sessions, "ana", 1)
+  cache.put(sessions, "bo", 2)
+  let touched = match cache.get(sessions, "ana") {
+    Some(id) => number.to_string(id),
+    None => "missing",
+  }
+  cache.put(sessions, "cy", 3)
+  io.println("  touched ana -> ${touched}")
+  let survivors = string.join(cache.keys(sessions), ", ")
+  io.println("  survivors, oldest first: ${survivors}")
+  let evicted = match cache.get(sessions, "bo") {
+    Some(_) => "still here",
+    None => "evicted",
+  }
+  io.println("  bo is ${evicted}")
+}
+
+// A cache whose values are heaps: one generic record nested inside another,
+// spelled across two modules.
+fn show_nested() -> void {
+  io.println("nested")
+  let latencies = cache.create<string, heap.Heap<number>>(2)
+  for host in ["alpha", "beta"] {
+    cache.put(latencies, host, heap.create(fn(a: number, b: number) -> number { a - b }))
+  }
+  let alpha = match cache.get(latencies, "alpha") {
+    Some(h) => heap.push(heap.push(h, 42), 7),
+    None => heap.create(fn(a: number, b: number) -> number { a - b }),
+  }
+  cache.put(latencies, "alpha", alpha)
+  let sorted = match cache.get(latencies, "alpha") {
+    Some(h) => join_numbers(heap.drain(h)),
+    None => "none",
+  }
+  io.println("  alpha latencies, fastest first: ${sorted}")
+}
+
+fn show_trie() -> void {
+  io.println("trie")
+  let commands = array.fold(
+    ["build", "build-fast", "check", "run"],
+    trie.empty<string>(),
+    fn(t: trie.Trie<string>, name: string) -> trie.Trie<string> {
+      trie.insert(t, name, "glyph ${name}")
+    },
+  )
+  let hits = array.map(
+    trie.with_prefix(commands, "bu"),
+    fn(h: trie.Hit<string>) -> string { h.value },
+  )
+  let hit_line = string.join(hits, ", ")
+  io.println("  commands starting with 'bu': ${hit_line}")
+  let missing = array.len(trie.with_prefix(commands, "zz"))
+  io.println("  commands starting with 'zz': ${number.to_string(missing)}")
+}
+
+fn show_pipeline() -> void {
+  io.println("pipeline")
+  let good = pipeline.try_map(
+    ["1", "2", "3"],
+    fn(s: string) -> Result<number, string> { number.parse(s) },
+  )
+  let good_line = match good {
+    Ok(values) => join_numbers(values),
+    Err(errors) => "failed: ${number.to_string(array.len(errors))}",
+  }
+  io.println("  all good: ${good_line}")
+  let mixed = pipeline.try_map_located(
+    ["1", "x", "3", "y"],
+    fn(s: string) -> Result<number, string> { number.parse(s) },
+  )
+  let mixed_line = match mixed {
+    Ok(values) => join_numbers(values),
+    Err(failures) => {
+      let positions = array.map(failures, fn(f: pipeline.Failure<string>) -> number { f.index })
+      "every bad position: ${join_numbers(positions)}"
+    },
+  }
+  io.println("  ${mixed_line}")
+}
+
+fn main(argv: Array<string>) -> number {
+  show_heap(argv)
+  show_cache()
+  show_nested()
+  show_trie()
+  show_pipeline()
+  return 0
+}

@@ -1,0 +1,9 @@
+module post
+
+// The front matter of a `.md` file is untrusted: it is whatever YAML the author
+// typed. `FrontMatter.parse` is the only way it becomes typed, so every field
+// below is checked before the renderer can read it.
+pub type FrontMatter = { title: string, date: string, tags: Array<string> }
+
+// A post that made it past the boundary, with its rendered body.
+pub type Post = { slug: string, meta: FrontMatter, html: string }

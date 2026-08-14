@@ -1,0 +1,42 @@
+module load
+
+import std/array
+import std/result { Result, Ok, Err }
+import std/string
+import post { FrontMatter, Post }
+import marked { marked }
+// gray-matter's documented entry point is its callable default export,
+// `matter(text)`. Glyph's three import forms all emit a named or namespace
+// import, so that call is unreachable: `import gray-matter { matter }` is
+// TS2595 ("can only be imported by using a default import") and
+// `import gray-matter as matter` is TS2349 ("has no call signatures"). `read`
+// is a named export of the same module and does the file read itself.
+import gray-matter { read }
+
+pub type LoadError = { slug: string, message: string }
+
+pub fn slug_of(filename: string) -> string {
+  return string.replace_all(filename, ".md", "")
+}
+
+fn describe(issues: Array<Issue>) -> string {
+  let lines = array.map(issues, fn(i: Issue) -> string { return "${i.path}: ${i.message}" })
+  return string.join(lines, "; ")
+}
+
+// The one untrusted boundary in the program: a `.md` file's front matter is
+// whatever YAML its author typed, so it only becomes a `FrontMatter` through
+// `FrontMatter.parse`.
+pub async fn load_post(dir: string, filename: string) -> Result<Post, LoadError> {
+  let slug = slug_of(filename)
+  let parsed = read("${dir}/${filename}")
+
+  let meta = match FrontMatter.parse(parsed.data) {
+    Ok(m) => m,
+    Err(issues) => { return Err({ slug: slug, message: "bad front matter: ${describe(issues)}" }) },
+  }
+
+  let html = await marked(parsed.content)
+
+  return Ok({ slug: slug, meta: meta, html: html })
+}

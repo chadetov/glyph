@@ -1,0 +1,160 @@
+// The layer a real service puts in front of a flaky upstream.
+//
+// Everything policy-shaped lives in `backoff`, `breaker`, and `classify`, which
+// are pure and covered by `@example`. This module is the part that cannot be:
+// it holds the breaker's state, reads the clock, issues the request, and
+// sleeps. Keeping the split sharp is the point. A reviewer checks the decisions
+// in the pure modules and checks only the wiring here.
+//
+// Two clocks bound a call. `attempt_timeout_ms` is how long any one request may
+// take, and `deadline_ms` is how long the whole call may take including every
+// retry and every sleep between them. They are different bounds and a client
+// that only has the first will happily spend a minute on five slow attempts.
+module client
+
+import std/http
+import std/math
+import std/option { None }
+import std/random
+import std/result { Result, Ok, Err }
+import std/store
+import std/time
+import std/timers
+import backoff
+import breaker
+import breaker { Blocked, Pass }
+import classify
+import classify { Fatal, Retry }
+
+// Why a call gave up, and how much work it cost. `attempts` counts requests
+// actually sent, so a call the breaker rejected reports zero.
+pub type Failure = { message: string, attempts: int, gave_up: GaveUp }
+
+pub type GaveUp =
+  // The status or transport error is not one retrying can fix.
+  | NotRetryable
+  // Out of retries under the policy.
+  | Exhausted
+  // Out of wall-clock time.
+  | DeadlineExceeded
+  // The breaker was open, so nothing was sent.
+  | CircuitOpen
+
+pub type Client = {
+  policy: backoff.Policy,
+  breaker_config: breaker.Config,
+  state: store.Store<breaker.State>,
+  rng: random.Rng,
+  attempt_timeout_ms: int,
+  deadline_ms: int,
+}
+
+pub fn create(
+  policy: backoff.Policy,
+  breaker_config: breaker.Config,
+  seed: int,
+  attempt_timeout_ms: int,
+  deadline_ms: int,
+) -> Client {
+  return {
+    policy: policy,
+    breaker_config: breaker_config,
+    state: store.create(breaker.initial()),
+    rng: random.seeded(seed),
+    attempt_timeout_ms: attempt_timeout_ms,
+    deadline_ms: deadline_ms,
+  }
+}
+
+pub fn state_label(c: Client) -> string {
+  return breaker.label(c.state.get())
+}
+
+pub fn why(f: Failure) -> string {
+  return match f.gave_up {
+    NotRetryable => "not retryable",
+    Exhausted => "retries exhausted",
+    DeadlineExceeded => "deadline exceeded",
+    CircuitOpen => "circuit open",
+  }
+}
+
+pub async fn get(c: Client, url: string) -> Result<http.Response, Failure> {
+  let started = time.now()
+  let retry = 0
+  let sent = 0
+  loop {
+    let gate = breaker.admit(c.breaker_config, c.state.get(), time.now())
+    match gate {
+      Blocked(b) => {
+        mut c.state.set(b.next)
+        return Err(
+          { message: "breaker open, request not sent", attempts: sent, gave_up: CircuitOpen },
+        )
+      },
+      Pass(p) => { mut c.state.set(p.next) },
+    }
+
+    // The overall deadline caps the per-attempt budget, so the last attempt
+    // cannot run past the moment the caller stopped caring.
+    let remaining = c.deadline_ms - (time.now() - started)
+    match remaining <= 0 {
+      true => {
+        return Err(
+          {
+            message: "no time left before the first byte",
+            attempts: sent,
+            gave_up: DeadlineExceeded,
+          },
+        )
+      },
+      false => {},
+    }
+    let budget = math.min(c.attempt_timeout_ms, remaining)
+
+    let request: http.Fetch = {
+      url: url,
+      method: "GET",
+      body: None,
+      timeout_ms: budget,
+      redirect: "follow",
+    }
+    let answer = await http.send(request)
+    mut sent = sent + 1
+
+    let message = match answer {
+      Ok(response) => match response.status < 400 {
+        true => {
+          mut c.state.set(breaker.on_success(c.state.get()))
+          return Ok(response)
+        },
+        false => "HTTP ${number.to_string(response.status)}",
+      },
+      Err(e) => "${e.kind}: ${e.message}",
+    }
+    let decision = match answer {
+      Ok(response) => classify.of_status(response.status),
+      Err(e) => classify.of_error(e),
+    }
+    mut c.state.set(breaker.on_failure(c.breaker_config, c.state.get(), time.now()))
+
+    match decision {
+      Fatal => { return Err({ message: message, attempts: sent, gave_up: NotRetryable }) },
+      Retry => {},
+    }
+
+    mut retry = retry + 1
+    match backoff.may_retry(c.policy, retry) {
+      true => {},
+      false => { return Err({ message: message, attempts: sent, gave_up: Exhausted }) },
+    }
+
+    let wait = backoff.jittered_ms(c.policy, retry, c.rng.next())
+    let left = c.deadline_ms - (time.now() - started)
+    match wait >= left {
+      true => { return Err({ message: message, attempts: sent, gave_up: DeadlineExceeded }) },
+      false => {},
+    }
+    await timers.sleep(wait)
+  }
+}

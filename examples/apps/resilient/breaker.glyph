@@ -1,0 +1,140 @@
+// A circuit breaker: stop asking an upstream that is plainly down.
+//
+// Retrying is the right answer to one failed request and the wrong answer to a
+// dead service, because every client's retries arrive together and keep it
+// dead. The breaker is the memory that turns the second case off: after
+// `threshold` consecutive failures it opens and rejects immediately, and after
+// `cooldown_ms` it lets exactly one probe through to find out whether the
+// outage is over.
+//
+// The state is a tagged union rather than a string plus two counters, so the
+// fields that only make sense in one state (`failures` while closed, the moment
+// it opened while open) cannot be read in the others. Every transition is a
+// pure function of the state, the outcome, and the clock, so the whole state
+// machine is covered by `@example` with no network and no waiting.
+module breaker
+
+pub type Config = {
+  // Consecutive failures that trip it.
+  threshold: int,
+  // How long it stays open before allowing a probe.
+  cooldown_ms: int,
+}
+
+pub type State =
+  // Requests flow. `failures` is the consecutive-failure run so far.
+  | Closed({ failures: int })
+  // Requests are rejected without being sent, until `cooldown_ms` after
+  // `opened_at_ms`.
+  | Open({ opened_at_ms: int })
+  // One probe is in flight. Its outcome decides which way the breaker goes.
+  | HalfOpen
+
+// What `admit` decided, and the state to carry forward. A probe leaving an
+// `Open` breaker moves it to `HalfOpen`, so the decision and the state change
+// arrive together and a caller cannot take the one without the other.
+pub type Gate =
+  | Pass({ next: State })
+  | Blocked({ next: State })
+
+pub fn standard() -> Config {
+  return { threshold: 3, cooldown_ms: 500 }
+}
+
+pub fn initial() -> State {
+  return Closed({ failures: 0 })
+}
+
+// May a request go out now?
+//
+// A closed breaker passes everything.
+@example admit(standard(), initial(), 0) == Pass({ next: Closed({ failures: 0 }) })
+//
+// An open one blocks until the cooldown has elapsed, then converts the next
+// caller into the probe.
+@example admit(standard(), Open({ opened_at_ms: 1000 }), 1100) == Blocked({ next: Open({ opened_at_ms: 1000 }) })
+@example admit(standard(), Open({ opened_at_ms: 1000 }), 1499) == Blocked({ next: Open({ opened_at_ms: 1000 }) })
+@example admit(standard(), Open({ opened_at_ms: 1000 }), 1500) == Pass({ next: HalfOpen })
+//
+// While a probe is out, nothing else gets through.
+@example admit(standard(), HalfOpen, 9999) == Blocked({ next: HalfOpen })
+pub fn admit(config: Config, state: State, now_ms: int) -> Gate {
+  return match state {
+    Closed(_) => Pass({ next: state }),
+    HalfOpen => Blocked({ next: HalfOpen }),
+    Open(o) => match now_ms - o.opened_at_ms >= config.cooldown_ms {
+      true => Pass({ next: HalfOpen }),
+      false => Blocked({ next: state }),
+    },
+  }
+}
+
+// A request came back healthy.
+//
+// Success clears the failure run, and a successful probe closes the breaker.
+@example on_success(Closed({ failures: 2 })) == Closed({ failures: 0 })
+@example on_success(HalfOpen) == Closed({ failures: 0 })
+@example on_success(Open({ opened_at_ms: 7 })) == Open({ opened_at_ms: 7 })
+pub fn on_success(state: State) -> State {
+  return match state {
+    Closed(_) => Closed({ failures: 0 }),
+    HalfOpen => Closed({ failures: 0 }),
+    Open(_) => state,
+  }
+}
+
+// A request came back a failure the breaker counts.
+//
+// The run has to reach the threshold; two failures out of three leave it shut.
+@example on_failure(standard(), Closed({ failures: 0 }), 100) == Closed({ failures: 1 })
+@example on_failure(standard(), Closed({ failures: 1 }), 100) == Closed({ failures: 2 })
+@example on_failure(standard(), Closed({ failures: 2 }), 100) == Open({ opened_at_ms: 100 })
+//
+// A failed probe re-opens for a fresh cooldown, counted from now.
+@example on_failure(standard(), HalfOpen, 2000) == Open({ opened_at_ms: 2000 })
+//
+// A failure reported while already open does not extend the cooldown.
+@example on_failure(standard(), Open({ opened_at_ms: 50 }), 300) == Open({ opened_at_ms: 50 })
+pub fn on_failure(config: Config, state: State, now_ms: int) -> State {
+  return match state {
+    Closed(c) => match c.failures + 1 >= config.threshold {
+      true => Open({ opened_at_ms: now_ms }),
+      false => Closed({ failures: c.failures + 1 }),
+    },
+    HalfOpen => Open({ opened_at_ms: now_ms }),
+    Open(_) => state,
+  }
+}
+
+pub fn label(state: State) -> string {
+  return match state {
+    Closed(c) => "closed(${number.to_string(c.failures)})",
+    Open(_) => "open",
+    HalfOpen => "half-open",
+  }
+}
+
+// A whole sequence of outcomes, replayed against a clock that ticks `step_ms`
+// per outcome. This is the state machine as a reviewer reads it: give it a run
+// of failures and read off where it lands.
+//
+// Three failures trip it, and the fourth changes nothing.
+@example replay(standard(), [false, false, false], 100) == Open({ opened_at_ms: 300 })
+@example replay(standard(), [false, false, false, false], 100) == Open({ opened_at_ms: 300 })
+//
+// A success inside the run resets the count, so the run never reaches three.
+@example replay(standard(), [false, false, true, false, false], 100) == Closed({ failures: 2 })
+//
+// Nothing bad happened at all.
+@example replay(standard(), [true, true, true], 100) == Closed({ failures: 0 })
+pub fn replay(config: Config, outcomes: Array<bool>, step_ms: int) -> State {
+  let state = initial()
+  for i, ok in outcomes {
+    let now = (i + 1) * step_ms
+    mut state = match ok {
+      true => on_success(state),
+      false => on_failure(config, state, now),
+    }
+  }
+  return state
+}

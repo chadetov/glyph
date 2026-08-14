@@ -1,0 +1,23 @@
+{
+  "locale": "pl",
+  "simple": {
+    "greeting": "Czesc, {imie}",
+    "cart_total": "Twoj koszyk to {amount}",
+    "signed_in_as": "Zalogowano jako {name} ({email})",
+    "rabat": "Naliczono rabat {rate}"
+  },
+  "plural": {
+    "unread": {
+      "one": "Masz {count} nieprzeczytana wiadomosc",
+      "few": "Masz {count} nieprzeczytane wiadomosci",
+      "other": "Masz {count} nieprzeczytanej wiadomosci"
+    },
+    "files_deleted": {
+      "one": "Usunieto {count} plik",
+      "two": "Usunieto {count} pliki",
+      "few": "Usunieto {count} pliki",
+      "many": "Usunieto {count} plikow",
+      "other": "Usunieto {count} pliku"
+    }
+  }
+}

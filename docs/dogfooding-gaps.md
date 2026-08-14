@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 108 entries, 81 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 8 are open. That round re-ran an assignment the
+fixed two of them: of 113 entries, 83 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 11 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3458,3 +3458,132 @@ G103 was the case where nothing was said at all.
   widened, or make the whole type unmaterializable, is a design call with a real
   verifiability trade in it.
   *Reproduced against 0.1.74.*
+
+## Round 31: four apps, and a loop index that was a string
+
+Four rounds at once on shapes the tree does not cover: a static site generator
+on real npm packages, a resilient HTTP client, a generic collections library, and
+a localized message formatter. Three of the four produced a working app; every
+finding below was re-reproduced by the orchestrator before being written down,
+and two were fixed in the same pass.
+
+The severe one is not the one that looks severe. `sitegen`'s finding blocks a
+whole class of npm package, which is loud. `collections` found a program that
+computes the wrong number while both Glyph and `tsc` report success, which is
+the class this language exists to remove.
+
+- **G109. [FIXED] A `for k, v` over an iterand whose type the checker had not
+  settled silently took the record protocol, so the index arrived as a string.**
+  An array's pairs are `it.entries()` (index is a **number**); a record's are
+  `Object.entries(it)` (key is a **string**). The emitter chose by the iterand's
+  static type and, per its own comment, defaulted "to a record when it is
+  unknown". Guessing wrong there is not a style choice, it changes what the
+  program computes:
+
+      type Wire<V> = { keys: Array<string>, values: Array<V> }
+      match Wire.parse<number>(raw) {
+        Ok(w) => { for index, key in w.keys { io.println("next=${index + 1}") } },
+        ...
+      }
+
+  prints `next=01` and `next=11` instead of `1` and `2`, from a build reporting
+  `no diagnostics` and `tsc --strict passed`. The same loop over the same
+  declared `Array<string>` emits `w.keys.entries()` when the value came from a
+  non-generic `parse`, so two spellings of one idiom disagreed at run time.
+  **Fixed in 0.1.75:** `iter_shape` now answers Array, Record, or Unknown as
+  three distinct cases, and Unknown emits `__glyph_pairs(it)`, a bootstrap helper
+  that reads `Array.isArray` at run time. The compiler cannot always know the
+  shape; the runtime always can. A settled type keeps its direct emit, so no
+  typed loop pays for this. `Ty::Imported` counts as unsettled, since a type
+  crossing a module boundary carries no shape.
+
+- **G110. The `Ok` payload of a *generic* record's `parse` is opaque to the
+  checker.** The cause behind G109 rather than a duplicate of it, and still open.
+  `descriptor_member_ty` returns `None` when `td.generics` is non-empty, with the
+  reason recorded in its own doc comment: a generic record's descriptor takes one
+  runtime checker per type parameter, so its arity differs from the non-generic
+  form. The consequence is broader than the loop: a field typo on the parsed
+  value produces **no Glyph diagnostic** (it falls through to a `tsc` TS2339
+  mapped to the whole enclosing function), where the non-generic path gives
+  `[E0210] type `PlainWire` has no field `keyz`` at the field. That is the G75
+  decision's problem one layer in. Typing it means modelling the per-parameter
+  checker arity that the emitter already writes, so the two would agree by
+  construction the way the non-generic pair already does.
+  *Reproduced against 0.1.75.*
+
+- **G111. [FIXED] A stdlib type imported by name lost the field table the
+  namespaced spelling gets, switching off two checks.** `import std/http {
+  HttpError }` and `import std/http` + `http.HttpError` are both legal, and they
+  disagreed:
+
+      | spelling                | `e.nope`        | match over all 3 literals |
+      | named                   | no Glyph error  | E0218, "add an `else`"    |
+      | namespaced              | E0210           | compiles, exhaustive      |
+
+  `stdlib_type_path` keys the field tables on a two-segment path, and a named
+  import has one segment, so `HttpError.kind` typed `Unknown` and the D30
+  string-literal union that makes the match exhaustive was never found. The
+  advice E0218 then gives is to add a catch-all, which is advice to switch the
+  check off. This is the class CLAUDE.md records as settled twice already
+  (0.1.56, 0.1.57) and calls wrong on arrival, and `lower.rs` states the rule in
+  its own doc comment three functions above the bug: a guarantee must not depend
+  on which legal spelling brought the type into scope. **Fixed in 0.1.75:** the
+  `ImportNamed` arm consults `stdlib_modeled_type` before falling through, so
+  both spellings lower to the same `Ty`.
+
+- **G112. Glyph has no default-import form, so a CommonJS `export =` callable
+  package is unreachable.** The single widest interop gap found so far. A package
+  whose export *is* a function (`module.exports = f`) cannot be called at all;
+  all three D15 import spellings fail:
+
+      import pkg { pkg }        -> [TS2595] can only be imported by using a default import
+      import pkg as p           -> [TS2349] This expression is not callable
+      import pkg { default as p } -> [E0002] parse: expected `}`, found As
+
+  Verified against a minimal `export =` package and against **express**, where
+  `import express { express }` is `[TS2724] '"express"' has no exported member
+  named 'express'`. The reach is most of the pre-ESM registry: express, lodash,
+  debug, chalk@4, minimist, commander, and `gray-matter`'s documented
+  `matter(text)` entry point. **The gap is exactly the default binding**: a
+  *named* export reached through the same `export =` namespace
+  (`import gray-matter { read }`) compiles and runs, which is what
+  `examples/apps/sitegen` uses, with a source comment saying why. D15 forbids
+  re-export and has no default form; adding one is a spec decision.
+  *Reproduced against 0.1.75.*
+
+- **G113. `Intl` is unreachable, so CLDR plural data has no route.** A host
+  global, and Glyph resolves names from modules, so `new Intl.PluralRules(loc,
+  {})` is `[E0103] unresolved name `Intl``. That much is the documented D-stance
+  (G95). What the round adds is which side of the line each thing falls:
+  **method forms pass through and are type-checked** (`value.toLocaleString(loc,
+  { style: "currency", currency: c })` and `a.localeCompare(b, loc)` work today
+  and a bogus option is a real `[TS2769]` against `Intl.NumberFormatOptions`), so
+  locale-aware number, percent, currency and collation are all available and
+  **undocumented**; nothing under `runtime/std/` mentions them. What has no
+  method form has no route at all: `Intl.PluralRules`, `NumberFormat` (as a
+  reusable formatter), `ListFormat`, `RelativeTimeFormat`, `Collator`,
+  `DateTimeFormat`, `Segmenter`. The app hand-wrote `en` and `pl` plural rules;
+  a real one needs ~200 rule sets. The npm answer works as a direct import
+  (`intl-messageformat` builds and runs under `tsc --strict`) but **cannot be
+  materialized**: `glyph gen dts intl-messageformat` writes 28 types and the
+  result does not compile, because its declarations reference the `Intl.*`
+  globals Glyph has no types for. So any package whose types touch `Intl` is
+  import-only, never boundary-validated.
+  *Reproduced against 0.1.75.*
+
+**Refining G108 with evidence from this round.** The entry says `gen dts` fails
+on marked because the reader handles only `interface`/`type` declarations. That
+is right for `Lexer`/`Parser`/`Renderer`/`Tokenizer`/`Hooks` and for
+`Omit`/`Pick`, but **`RegExp` is neither**: it is a TypeScript global reached from
+an ordinary `interface` the reader does handle
+(`interface Rules { block: Record<string, RegExp> }`). So the gap is wider than
+"classes and computed types" and includes host types referenced from shapes that
+otherwise materialize cleanly. `Promise` degraded to `unknown` rather than
+erroring, which is D40 working as designed.
+
+**Two small ones, neither blocking.** `string.from` over an `Array<Issue>`
+renders `[object Object],[object Object]`, so a validation failure has to be
+mapped field-by-field to read. And `path.join` takes an array
+(`path.join([dir, name])`) where `string.join` takes a separator
+(`string.join(parts, sep)`); `glyph llms` does not list `std/path` at all, so the
+shape is only discoverable by reading the runtime.

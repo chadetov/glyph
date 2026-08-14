@@ -158,6 +158,7 @@ impl<'a> Lowerer<'a> {
                             // three legal import spellings agree.
                             SymbolKind::ImportNamed { original, path } => self
                                 .imported_prelude_container(original)
+                                .or_else(|| self.imported_stdlib_modeled_ty(path, original))
                                 .or_else(|| {
                                     self.imported_string_literal_union(path, original)
                                 })
@@ -282,6 +283,36 @@ impl<'a> Lowerer<'a> {
             Decl::Component(c) => self.lower_callable_signature(&c.params, c.return_ty.as_ref(), false),
             Decl::Import(_) | Decl::Type(_) | Decl::Const(_) | Decl::Interface(_) => Ty::Unknown,
         }
+    }
+
+    /// The `Ty` for a stdlib type brought into scope **by name**
+    /// (`import std/http { HttpError }`), matching what the namespaced spelling
+    /// (`import std/http` + `http.HttpError`) already produces via
+    /// `stdlib_path_ty`.
+    ///
+    /// Without it the named spelling lowered to a `Ty::Imported`, which the
+    /// field tables in `assign` cannot key on: they read a two-segment path, and
+    /// a named import has one segment. The consequence was not a missing
+    /// convenience but two checks silently switched off. `e.kind` on an
+    /// `HttpError` typed `Unknown`, so a `match` covering all three of its
+    /// literals was E0218 "non-exhaustive, add an `else`" — advice to disable
+    /// the check — while the same body under the other spelling compiled. And
+    /// `e.nope` produced no Glyph diagnostic at all, falling through to a
+    /// `tsc` TS2339 where the other spelling gives E0210.
+    ///
+    /// This is the class the module already states as a rule three doc comments
+    /// up: a guarantee must not depend on which legal spelling brought the type
+    /// into scope.
+    fn imported_stdlib_modeled_ty(
+        &self,
+        path: &glyph_ast::ModulePath,
+        original: &Ident,
+    ) -> Option<Ty> {
+        let key: Vec<&str> = path.segments.iter().map(|s| s.as_ref()).collect();
+        let ["std", module] = key.as_slice() else {
+            return None;
+        };
+        crate::assign::stdlib_modeled_type(module, original.as_ref())
     }
 
     /// The `Ty` for `ns.Name` when `ns` is a namespace import of a stdlib

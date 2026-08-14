@@ -1,0 +1,71 @@
+// The flaky upstream the demo runs against.
+//
+// A resilience library is only worth anything against a service that actually
+// misbehaves, so the demo brings its own: an endpoint that fails twice and then
+// recovers, one that is permanently down, one that rejects you outright, and
+// one that is slower than any sensible deadline. It also counts how many
+// requests are in flight at once, which is how the concurrency limiter gets
+// checked rather than asserted.
+module server
+
+import std/http
+import std/store
+import std/timers
+
+const HITS = store.create(0)
+
+const IN_FLIGHT = store.create(0)
+
+const PEAK_IN_FLIGHT = store.create(0)
+
+pub fn peak_in_flight() -> int {
+  return PEAK_IN_FLIGHT.get()
+}
+
+pub fn reset_peak() -> void {
+  mut PEAK_IN_FLIGHT.set(0)
+  mut HITS.set(0)
+}
+
+fn enter() -> void {
+  mut IN_FLIGHT.update(fn(n: int) -> int { n + 1 })
+  let now = IN_FLIGHT.get()
+  match now > PEAK_IN_FLIGHT.get() {
+    true => { mut PEAK_IN_FLIGHT.set(now) },
+    false => {},
+  }
+}
+
+fn leave() -> void {
+  mut IN_FLIGHT.update(fn(n: int) -> int { n - 1 })
+}
+
+// `/flaky` answers 503 for its first two calls and 200 after that, so a client
+// with any retries at all gets through and one without does not.
+const RECOVER_AFTER = 2
+
+pub async fn handle(req: http.Request) -> Result<http.Response, string> {
+  enter()
+  defer leave()
+  let route = http.path(req)
+  return match route {
+    "/flaky" => {
+      mut HITS.update(fn(n: int) -> int { n + 1 })
+      match HITS.get() > RECOVER_AFTER {
+        true => Ok(http.text(200, "recovered after ${number.to_string(HITS.get())} calls")),
+        false => Ok(http.text(503, "warming up")),
+      }
+    },
+    "/down" => Ok(http.text(503, "upstream unavailable")),
+    "/unauthorized" => Ok(http.text(401, "who are you")),
+    "/slow" => {
+      await timers.sleep(400)
+      Ok(http.text(200, "eventually"))
+    },
+    "/ok" => {
+      await timers.sleep(60)
+      Ok(http.text(200, "fine"))
+    },
+    else => Ok(http.text(404, "no such route")),
+  }
+}

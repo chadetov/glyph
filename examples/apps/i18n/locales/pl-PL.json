@@ -1,0 +1,7 @@
+{
+  "locale": "pl-PL",
+  "simple": {
+    "greeting": "Dzien dobry, {name}"
+  },
+  "plural": {}
+}

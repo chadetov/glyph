@@ -1,0 +1,77 @@
+// How long to wait before the next attempt.
+//
+// The schedule is exponential with a ceiling: retry 1 waits `base_ms`, and each
+// further retry doubles until it hits `cap_ms`. That is the part a reviewer
+// wants to read off the code without running it, so it is a pure function of
+// the policy and the retry number.
+//
+// Jitter is separate on purpose. `delay_ms` is the schedule; `jittered_ms`
+// spreads a fleet of clients across it so they do not all come back in the same
+// millisecond after an outage. Full jitter (a uniform draw over [0, delay]) is
+// the variant here: the fraction comes in as an argument, so the schedule stays
+// testable without an RNG.
+module backoff
+
+import std/math
+
+// `base_ms` is the first retry's delay, `cap_ms` the ceiling it grows to, and
+// `max_retries` how many retries follow the initial attempt.
+pub type Policy = { base_ms: int, cap_ms: int, max_retries: int }
+
+pub fn standard() -> Policy {
+  return { base_ms: 100, cap_ms: 2000, max_retries: 4 }
+}
+
+// The un-jittered delay before retry `retry`, where retry 1 is the first one
+// after the initial attempt. Retry 0 is the initial attempt itself and waits
+// nothing.
+@example delay_ms(standard(), 0) == 0
+@example delay_ms(standard(), 1) == 100
+@example delay_ms(standard(), 2) == 200
+@example delay_ms(standard(), 3) == 400
+@example delay_ms(standard(), 4) == 800
+//
+// The ceiling holds however many retries follow.
+@example delay_ms(standard(), 5) == 1600
+@example delay_ms(standard(), 6) == 2000
+@example delay_ms(standard(), 30) == 2000
+pub fn delay_ms(policy: Policy, retry: int) -> int {
+  match retry <= 0 {
+    true => { return 0 },
+    false => {},
+  }
+  let delay = policy.base_ms
+  let step = 1
+  loop {
+    match step >= retry {
+      true => { break },
+      false => {},
+    }
+    match delay >= policy.cap_ms {
+      true => { break },
+      false => {},
+    }
+    mut delay = delay * 2
+    mut step = step + 1
+  }
+  return math.min(delay, policy.cap_ms)
+}
+
+// Full jitter: a uniform draw over [0, delay]. `fraction` is the draw, in
+// [0, 1); the caller supplies it so the schedule is testable without an RNG.
+@example jittered_ms(standard(), 3, 0.0) == 0
+@example jittered_ms(standard(), 3, 0.5) == 200
+@example jittered_ms(standard(), 3, 0.25) == 100
+@example jittered_ms(standard(), 0, 0.9) == 0
+pub fn jittered_ms(policy: Policy, retry: int, fraction: number) -> int {
+  let full = delay_ms(policy, retry)
+  return math.floor(fraction * full)
+}
+
+// Whether one more retry is still allowed under the policy.
+@example may_retry(standard(), 1) == true
+@example may_retry(standard(), 4) == true
+@example may_retry(standard(), 5) == false
+pub fn may_retry(policy: Policy, retry: int) -> bool {
+  return retry <= policy.max_retries
+}

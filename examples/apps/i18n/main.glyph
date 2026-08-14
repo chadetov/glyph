@@ -1,0 +1,280 @@
+// i18n — a localized message formatter and a demo CLI.
+//
+// Loads one catalogue per locale from JSON, validates each one against the
+// reference locale before anything renders, and then formats messages: named
+// placeholders, CLDR plural selection, locale-aware numbers and currency, and a
+// `pl-PL` to `pl` to `en` fallback chain.
+//
+// Usage:
+//
+//   glyph run examples/apps/i18n/main.glyph
+//   glyph run examples/apps/i18n/main.glyph --locale pl-PL
+//   glyph run examples/apps/i18n/main.glyph --check
+//   glyph run examples/apps/i18n/main.glyph --dir examples/apps/i18n/broken --check
+//
+// The default catalogue directory is `examples/apps/i18n/locales`, so the first
+// form works from the repository root and prints the same output every time.
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/option { Some, None }
+import std/path
+import std/record
+import std/result { Ok, Err }
+import std/string
+import catalog
+import catalog { Catalogue, CatalogueFile }
+import format
+import render
+import render { Bundle }
+
+const DEFAULT_DIR = "examples/apps/i18n/locales"
+
+const REFERENCE = "en"
+
+const USAGE = "usage: i18n [--dir DIR] [--locale TAG] [--check]"
+
+type Args = { dir: string, locale: string, check: bool }
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let args: Args = { dir: DEFAULT_DIR, locale: "en-US", check: false }
+  let i = 0
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => void,
+    }
+    let flag = argv[i]
+    let value = match i + 1 < array.len(argv) {
+      true => argv[i + 1],
+      false => "",
+    }
+    match flag {
+      "--check" => {
+        mut args = { dir: args.dir, locale: args.locale, check: true }
+        mut i = i + 1
+      },
+      "--dir" => match value == "" {
+        true => { return Err("--dir needs a directory") },
+        false => {
+          mut args = { dir: value, locale: args.locale, check: args.check }
+          mut i = i + 2
+        },
+      },
+      "--locale" => match value == "" {
+        true => { return Err("--locale needs a tag") },
+        false => {
+          mut args = { dir: args.dir, locale: value, check: args.check }
+          mut i = i + 2
+        },
+      },
+      else => { return Err("unknown argument `${flag}`") },
+    }
+  }
+  return Ok(args)
+}
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+fn issue_text(issues: Array<Issue>) -> string {
+  let parts = array.map(
+    issues,
+    fn(issue: Issue) -> string {
+      let at = string.join(array.map(issue.path, fn(seg) -> string { string.from(seg) }), ".")
+      match at == "" {
+        true => issue.message,
+        false => "${at}: ${issue.message}",
+      }
+    },
+  )
+  return string.join(parts, "; ")
+}
+
+// The catalogue file is untrusted input, so it becomes a `Catalogue` only
+// through `json.parse<CatalogueFile>`, which checks the whole shape.
+fn load_file(file_path: string) -> Result<Catalogue, string> {
+  let text = match fs.read_text(file_path) {
+    Err(e) => { return Err("${file_path}: ${e.message}") },
+    Ok(t) => t,
+  }
+  let wire = match json.parse<CatalogueFile>(text) {
+    Err(issues) => { return Err("${file_path}: ${issue_text(issues)}") },
+    Ok(w) => w,
+  }
+  return Ok(catalog.from_file(wire))
+}
+
+fn json_names(dir: string) -> Result<Array<string>, string> {
+  let entries = match fs.read_dir(dir) {
+    Err(e) => { return Err("${dir}: ${e.message}") },
+    Ok(list) => list,
+  }
+  let json_only = array.filter(
+    entries,
+    fn(name: string) -> bool { string.ends_with(name, ".json") },
+  )
+  return Ok(
+    array.sort(
+      json_only,
+      fn(a: string, b: string) -> number {
+        match a < b {
+          true => -1,
+          false => match a == b {
+            true => 0,
+            false => 1,
+          },
+        }
+      },
+    ),
+  )
+}
+
+type Loaded = { catalogues: Record<string, Catalogue>, errors: Array<string> }
+
+fn load_dir(dir: string) -> Result<Loaded, string> {
+  let names = json_names(dir)?
+  let catalogues: Record<string, Catalogue> = {}
+  let errors: Array<string> = []
+  for name in names {
+    match load_file(path.join([dir, name])) {
+      Err(message) => { mut errors = array.push(errors, message) },
+      Ok(cat) => { mut catalogues = record.set<Catalogue>(catalogues, cat.locale, cat) },
+    }
+  }
+  return Ok({ catalogues: catalogues, errors: errors })
+}
+
+// A base-language catalogue (`pl`) must cover every reference key; a regional
+// one (`pl-PL`) is an overlay and may define a subset.
+fn is_base(locale: string) -> bool {
+  return !string.contains(locale, "-")
+}
+
+fn check_all(loaded: Loaded) -> Array<string> {
+  let problems = loaded.errors
+  return match record.get<Catalogue>(loaded.catalogues, REFERENCE) {
+    None => array.push(problems, "no `${REFERENCE}` catalogue: nothing to validate against"),
+    Some(reference) => {
+      let out = problems
+      for locale, cat in loaded.catalogues {
+        mut out = match locale == REFERENCE {
+          true => out,
+          false => array.concat(
+            out,
+            array.map(
+              catalog.validate(reference, cat, is_base(locale)),
+              fn(d: catalog.Defect) -> string { catalog.describe(d) },
+            ),
+          ),
+        }
+      }
+      out
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Demo
+// ---------------------------------------------------------------------------
+
+const COUNTS = [0, 1, 2, 5, 12, 22, 112]
+
+fn show(label: string, result: Result<render.Rendered, render.Failure>) -> void {
+  match result {
+    Err(f) => io.println("  ${label}  !! ${render.explain(f)}"),
+    Ok(r) => match r.fell_back {
+      true => io.println("  ${label}  ${r.text}   [via ${r.locale}]"),
+      false => io.println("  ${label}  ${r.text}"),
+    },
+  }
+}
+
+fn base_language(locale: string) -> string {
+  let parts = string.split(locale, "-")
+  return match parts {
+    [] => locale,
+    [head, ..._] => string.lower(head),
+  }
+}
+
+fn currency_for(locale: string) -> string {
+  return match base_language(locale) {
+    "pl" => "PLN",
+    "de" => "EUR",
+    else => "USD",
+  }
+}
+
+fn demo(bundle: Bundle, locale: string) -> void {
+  let steps = string.join(catalog.chain(locale, REFERENCE), " -> ")
+  let code = currency_for(locale)
+  io.println("locale ${locale}   chain: ${steps}")
+  io.println("")
+  io.println(" messages")
+  show("greeting    ", render.text(bundle, locale, "greeting", { name: "Ada" }))
+  show(
+    "signed_in_as",
+    render.text(bundle, locale, "signed_in_as", { name: "Ada", email: "ada@example.com" }),
+  )
+  show("cart_total  ", render.money(bundle, locale, "cart_total", 1234.5, code))
+  show(
+    "discount    ",
+    render.text(bundle, locale, "discount_applied", { rate: format.percent(locale, 0.075) }),
+  )
+  io.println("")
+  io.println(" plurals")
+  for count in COUNTS {
+    let label = "unread ${string.pad_start(number.to_string(count), 3)}"
+    show(label, render.counted(bundle, locale, "unread", count, {}))
+  }
+  io.println("")
+  io.println(" numbers")
+  io.println("  decimal   ${format.decimal(locale, 1234567.89)}")
+  io.println("  fixed(3)  ${format.fixed(locale, 1234567.8, 3)}")
+  io.println("  percent   ${format.percent(locale, 0.075)}")
+  io.println("  currency  ${format.currency(locale, 1234.5, code)}")
+}
+
+fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Err(message) => {
+      io.eprintln(message)
+      io.eprintln(USAGE)
+      return 2
+    },
+    Ok(a) => a,
+  }
+  let loaded = match load_dir(args.dir) {
+    Err(message) => {
+      io.eprintln(message)
+      return 1
+    },
+    Ok(l) => l,
+  }
+  let problems = check_all(loaded)
+  match array.len(problems) > 0 {
+    true => {
+      io.eprintln("catalogue validation failed:")
+      for problem in problems {
+        io.eprintln("  ${problem}")
+      }
+      return 1
+    },
+    false => void,
+  }
+  let count = array.len(record.keys<Catalogue>(loaded.catalogues))
+  match args.check {
+    true => {
+      io.println("${number.to_string(count)} catalogue(s) in ${args.dir}: ok")
+      return 0
+    },
+    false => void,
+  }
+  demo({ catalogues: loaded.catalogues, reference: REFERENCE }, args.locale)
+  return 0
+}

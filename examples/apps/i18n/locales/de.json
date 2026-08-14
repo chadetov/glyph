@@ -1,0 +1,19 @@
+{
+  "locale": "de",
+  "simple": {
+    "greeting": "Hallo, {name}",
+    "cart_total": "Dein Warenkorb betraegt {amount}",
+    "signed_in_as": "Angemeldet als {name} ({email})",
+    "discount_applied": "Ein Rabatt von {rate} wurde angewendet"
+  },
+  "plural": {
+    "unread": {
+      "one": "Du hast {count} ungelesene Nachricht",
+      "other": "Du hast {count} ungelesene Nachrichten"
+    },
+    "files_deleted": {
+      "one": "{count} Datei geloescht",
+      "other": "{count} Dateien geloescht"
+    }
+  }
+}

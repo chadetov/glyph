@@ -1,0 +1,9 @@
+{
+  "locale": "de",
+  "simple": {
+    "greeting": ["Hallo, {name}"]
+  },
+  "plural": {
+    "unread": "Du hast {count} ungelesene Nachrichten"
+  }
+}

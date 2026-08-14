@@ -1,0 +1,90 @@
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/result { Ok, Err }
+import std/string
+import load
+import post { Post }
+import render
+
+// Static site generator: read `content/*.md`, validate each file's front matter
+// at the boundary, render the body with `marked`, and write an index page plus
+// a page per post into `site/`.
+async fn main(argv: Array<string>) -> number {
+  let content_dir = match argv {
+    [dir, ..._] => dir,
+    else => "content",
+  }
+  let out_dir = match argv {
+    [_, dir, ..._] => dir,
+    else => "site",
+  }
+
+  let entries = match fs.read_dir(content_dir) {
+    Ok(names) => names,
+    Err(e) => {
+      io.eprintln("sitegen: cannot read ${content_dir}: ${e.message}")
+      return 1
+    },
+  }
+
+  let sources = array.filter(entries, fn(name: string) -> bool { string.ends_with(name, ".md") })
+
+  let posts: Array<Post> = []
+  let failures = 0
+
+  for name in sources {
+    match await load.load_post(content_dir, name) {
+      Ok(p) => { mut posts = array.push(posts, p) },
+      Err(e) => {
+        io.eprintln("sitegen: ${e.slug}: ${e.message}")
+        mut failures = failures + 1
+      },
+    }
+  }
+
+  let ordered = array.sort(
+    posts,
+    fn(a: Post, b: Post) -> number {
+      match a.meta.date < b.meta.date {
+        true => 1,
+        false => -1,
+      }
+    },
+  )
+
+  match fs.make_dir(out_dir) {
+    Ok(_) => void,
+    Err(e) => {
+      io.eprintln("sitegen: cannot create ${out_dir}: ${e.message}")
+      return 1
+    },
+  }
+
+  for p in ordered {
+    match fs.write_text("${out_dir}/${p.slug}.html", render.page(p)) {
+      Ok(_) => void,
+      Err(e) => {
+        io.eprintln("sitegen: cannot write ${p.slug}: ${e.message}")
+        mut failures = failures + 1
+      },
+    }
+  }
+
+  match fs.write_text("${out_dir}/index.html", render.index(ordered)) {
+    Ok(_) => void,
+    Err(e) => {
+      io.eprintln("sitegen: cannot write index: ${e.message}")
+      mut failures = failures + 1
+    },
+  }
+
+  io.println("sitegen: ${number.to_string(array.len(ordered))} page(s) written to ${out_dir}")
+
+  return match failures > 0 {
+    true => 1,
+    false => 0,
+  }
+}

@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.77, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.78, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3192,7 +3192,72 @@ classes (`Lexer`, `Parser`, `Renderer`), TypeScript utility types (`Omit`,
 next thing standing between `gen dts` and a package a working engineer would
 call usable.
 
-#### 0.1.75 — a mutation that loses an update
+#### 0.1.75 — Landed on main · A loop index that was a string
+
+**Next.** Round 31 ran four apps at once. The finding that mattered was not the
+one that looked worst.
+
+**G109: a `for k, v` could compute the wrong number in a green build.** An
+array's pairs bind a **number** index (`it.entries()`); a record's bind a
+**string** key (`Object.entries(it)`). The emitter chose by the iterand's static
+type and, per its own comment, defaulted "to a record when it is unknown". So
+
+    match Wire.parse<number>(raw) {
+      Ok(w) => { for index, key in w.keys { io.println("next=${index + 1}") } },
+    }
+
+printed `next=01` and `next=11` instead of `1` and `2`, out of a build reporting
+`no diagnostics` and `tsc --strict passed`. The identical loop over the identical
+declared `Array<string>` emitted `.entries()` when the value came from a
+*non-generic* `parse`, so two spellings of one idiom disagreed at run time. This
+is the silent-miscompile class, and it is the one the whole project exists to
+remove.
+
+**The fix is to stop guessing.** `iter_shape` answers Array, Record or Unknown as
+three cases rather than two, and Unknown emits `__glyph_pairs(it)`, a bootstrap
+helper that reads `Array.isArray` where the compiler could not. A settled type
+keeps its direct emit, so no typed loop pays anything for the one that could not
+be typed. `Ty::Imported` is treated as unsettled, because a type crossing a
+module boundary carries no shape with it. The regression test was watched failing
+against the old behaviour before it was kept, and a second test pins that known
+arrays and records still emit directly.
+
+**G111: a stdlib type imported by name lost two checks.** `import std/http {
+HttpError }` and `import std/http` + `http.HttpError` are both legal and they
+disagreed: under the named spelling a bogus field produced no Glyph diagnostic at
+all (only a `tsc` TS2339), and a `match` covering all three of `kind`'s literals
+was `E0218 non-exhaustive`, whose advice is to add a catch-all, which is advice
+to switch the check off. `stdlib_type_path` keys the field tables on a
+two-segment path and a named import has one, so the D30 string-literal union that
+makes the match exhaustive was never found.
+
+This is the class CLAUDE.md records as already settled twice, in 0.1.56 and
+0.1.57, and calls wrong on arrival, and `lower.rs` states the rule in a doc
+comment three functions above the bug. The `ImportNamed` arm now consults
+`stdlib_modeled_type` before falling through, so both spellings lower to the same
+`Ty`.
+
+**Found and not fixed, each recorded with a reproduction.** **G110**, the cause
+behind G109: a generic record's `parse` returns a payload the checker cannot see
+into, so a field typo on it is a `tsc` error mapped to the whole function where
+the non-generic path gives E0210 at the field. Typing it means modelling the
+per-parameter checker arity the emitter already writes. **G112**, the widest
+interop gap yet: Glyph has no default-import form, so a CommonJS `export =`
+*callable* package cannot be called at all, which is express, lodash, debug,
+chalk@4, commander and most of the pre-ESM registry; a *named* export through the
+same namespace works, so the gap is exactly the default binding, and closing it
+is a D15 decision. **G113**: `Intl` is a host global with no route, so CLDR
+plural data is unreachable, though `value.toLocaleString(...)` and
+`a.localeCompare(...)` pass through and are type-checked today, which is
+undocumented.
+
+Four apps landed and the whole examples tree builds: `sitegen` (marked +
+gray-matter, the first app in the tree on real npm dependencies), `resilient`
+(retry, backoff, circuit breaker, concurrency limiting, 51 examples), `collections`
+(generic `Heap`/`Cache`/`Trie` plus a fallible pipeline, 23 examples), and `i18n`
+(CLDR plurals, fallback chains, locale formatting, 25 examples).
+
+#### 0.1.76 — a mutation that loses an update
 
 **Decided.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
@@ -3212,7 +3277,7 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.76 — the host boundary, and the app that will tell us what it needs
+#### 0.1.77 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3362,7 +3427,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.77 — finish what is half-built
+#### 0.1.78 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

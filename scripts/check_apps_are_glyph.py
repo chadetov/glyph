@@ -19,6 +19,14 @@ Hard-fails (exit 1) when an app contains:
 `examples/.types/` is deliberately out of scope. It stubs `react` and a fake
 `api/users` for the numbered examples, standing in for npm packages a real
 project installs and gets types from. That is a fixture, not a language gap.
+
+`node_modules/` is out of scope too, and for a sharper reason. The rule is that
+an app must not carry TypeScript *its author wrote*; a vendored dependency is
+not that. Before this exclusion existed, installing one npm package into an app
+produced 3,977 failures here, all of them library files nobody in this repo
+typed, which made the rule read as "an app may not have dependencies" and
+blocked the npm-interop dogfood round outright. Using a typed npm package is the
+thing Glyph is supposed to be good at, so the gate must not forbid it.
 """
 
 from __future__ import annotations
@@ -33,6 +41,11 @@ APPS = ROOT / "examples" / "apps"
 EXTERN = re.compile(r"\bextern_ts\s*\(")
 
 
+def vendored(path: pathlib.Path) -> bool:
+    """Is this inside an installed dependency rather than the app's own source?"""
+    return "node_modules" in path.parts
+
+
 def main() -> int:
     if not APPS.is_dir():
         print(f"missing {APPS.relative_to(ROOT)}")
@@ -41,7 +54,7 @@ def main() -> int:
     problems: list[str] = []
 
     for path in sorted(APPS.rglob("*")):
-        if not path.is_file():
+        if not path.is_file() or vendored(path):
             continue
         rel = path.relative_to(ROOT)
         if path.suffix in {".ts", ".js", ".mjs", ".cjs"} or path.name.endswith(".d.ts"):
@@ -51,6 +64,8 @@ def main() -> int:
             )
 
     for path in sorted(APPS.rglob("*.glyph")):
+        if vendored(path):
+            continue
         rel = path.relative_to(ROOT)
         for n, line in enumerate(path.read_text().splitlines(), 1):
             # The word appears in prose in a couple of file headers explaining

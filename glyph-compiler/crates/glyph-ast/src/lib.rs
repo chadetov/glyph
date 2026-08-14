@@ -95,6 +95,7 @@ pub struct ImportDecl {
     /// `import std/http` → `ImportKind::Namespace`
     /// `import std/result { Ok, Err }` → `ImportKind::Named(vec![Ok, Err])`
     /// `import std/http as h` → `ImportKind::Aliased(h)`
+    /// `import express { default as app }` → `ImportKind::Default(app)`
     pub path: ModulePath,
     pub kind: ImportKind,
     pub span: Span,
@@ -105,6 +106,23 @@ pub enum ImportKind {
     Namespace,
     Named(Vec<Ident>),
     Aliased(Ident),
+    /// `import express { default as app }`: the module's *default* export bound
+    /// to a local name.
+    ///
+    /// A CommonJS package whose export is a function (`module.exports = f`, so
+    /// `export = f` in its `.d.ts`) has nothing else to import: express, lodash,
+    /// debug, chalk@4 and most of the pre-ESM registry are entirely this. The
+    /// other three forms all emit a named or namespace import, which `tsc`
+    /// rejects with TS2595 or leaves uncallable, so those packages were
+    /// unreachable.
+    ///
+    /// The `as` is legal only after `default`, never for an arbitrary name, so
+    /// this does not open general named-import renaming: a name in the file
+    /// still matches the name at the source, which is what makes an import
+    /// greppable. Binding it through the *aliased* form instead was rejected —
+    /// that would give one spelling two meanings depending on the package's
+    /// module format, which is the defect G111 was fixed to remove.
+    Default(Ident),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

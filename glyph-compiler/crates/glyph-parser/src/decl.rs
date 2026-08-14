@@ -471,13 +471,28 @@ fn parse_import(p: &mut Cursor) -> Result<ImportDecl, ParseError> {
     let path = parse_dotted_path(p, import_span, /* allow_scope */ true)?;
 
     let kind = if matches!(p.peek(), Token::LBrace) {
-        // `import path { Name1, Name2 }`
         p.advance();
-        let names = p.parse_comma_separated(&Token::RBrace, true, |p| {
-            Ok(p.expect_ident("imported name")?.0)
-        })?;
-        p.expect(&Token::RBrace, "`}`")?;
-        ImportKind::Named(names)
+        // `import path { default as name }`: the module's default export.
+        // `default` is not a keyword, so this is recognized as the identifier
+        // `default` followed by `as`, and only in that position. Anywhere else
+        // `default` is an ordinary name and `as` after an imported name is
+        // still an error, so general renaming stays closed.
+        if matches!(p.peek(), Token::Identifier(n) if &**n == "default")
+            && matches!(p.peek_at(1), Some(Token::As))
+        {
+            p.advance();
+            p.advance();
+            let (local, _) = p.expect_ident("name after `default as`")?;
+            p.expect(&Token::RBrace, "`}` (a default import binds one name)")?;
+            ImportKind::Default(local)
+        } else {
+            // `import path { Name1, Name2 }`
+            let names = p.parse_comma_separated(&Token::RBrace, true, |p| {
+                Ok(p.expect_ident("imported name")?.0)
+            })?;
+            p.expect(&Token::RBrace, "`}`")?;
+            ImportKind::Named(names)
+        }
     } else if matches!(p.peek(), Token::As) {
         // `import path as alias`
         p.advance();
@@ -631,5 +646,68 @@ mod annotation_tests {
         };
         assert_eq!(ann.raw_args, "f(1) == 1");
         assert_eq!(m.items.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod import_tests {
+    use glyph_ast::{Decl, ImportKind};
+
+    fn import_kind(src: &str) -> ImportKind {
+        let m = crate::parse(src).expect("parse");
+        match &m.items[0] {
+            Decl::Import(i) => i.kind.clone(),
+            other => panic!("expected an import, got {other:?}"),
+        }
+    }
+
+    /// `default as name` binds a module's default export, which is the only
+    /// thing a CommonJS `export =` callable package has to import.
+    #[test]
+    fn default_as_binds_the_modules_default_export() {
+        let kind = import_kind("module x\nimport express { default as app }\n");
+        match kind {
+            ImportKind::Default(local) => assert_eq!(local.as_ref(), "app"),
+            other => panic!("expected a default import, got {other:?}"),
+        }
+    }
+
+    /// The `as` is legal only after `default`. General named-import renaming
+    /// stays closed, because a local name that differs from the source name is
+    /// what makes an import ungreppable.
+    #[test]
+    fn as_after_an_ordinary_imported_name_is_still_an_error() {
+        assert!(crate::parse("module x\nimport pkg { thing as other }\n").is_err());
+    }
+
+    /// `default` is not a keyword, so it stays usable as an ordinary imported
+    /// name. Only `default` immediately followed by `as` is the new form.
+    #[test]
+    fn default_without_as_is_an_ordinary_imported_name() {
+        let kind = import_kind("module x\nimport pkg { default }\n");
+        match kind {
+            ImportKind::Named(names) => {
+                assert_eq!(names.len(), 1);
+                assert_eq!(names[0].as_ref(), "default");
+            }
+            other => panic!("expected a named import, got {other:?}"),
+        }
+    }
+
+    /// The other three forms are untouched.
+    #[test]
+    fn the_three_existing_import_forms_still_parse() {
+        assert!(matches!(
+            import_kind("module x\nimport std/http\n"),
+            ImportKind::Namespace
+        ));
+        assert!(matches!(
+            import_kind("module x\nimport std/http as h\n"),
+            ImportKind::Aliased(_)
+        ));
+        assert!(matches!(
+            import_kind("module x\nimport std/result { Ok, Err }\n"),
+            ImportKind::Named(_)
+        ));
     }
 }

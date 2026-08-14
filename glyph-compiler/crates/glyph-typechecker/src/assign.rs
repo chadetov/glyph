@@ -688,7 +688,10 @@ impl Assigner<'_> {
                 self.tm.insert(*span, Ty::Unknown);
             }
             Expr::Call {
-                callee, args, span, ..
+                callee,
+                args,
+                span,
+                type_args,
             } => {
                 self.walk_expr(callee);
                 for a in args {
@@ -706,6 +709,15 @@ impl Assigner<'_> {
                 // before the per-argument checks (which read `self.tm` and push
                 // to `self.errors`).
                 let callee_ty = self.tm.get(callee.span()).clone();
+                // `T.parse<A>(v)` on a generic record: the member alone has no
+                // signature (its descriptor arity depends on the parameters),
+                // so the instantiation is read from the call's own type args.
+                if matches!(callee_ty, Ty::Unknown) {
+                    if let Some(ty) = self.generic_descriptor_parse_ty(callee, type_args) {
+                        self.tm.insert(*span, ty);
+                        return;
+                    }
+                }
                 let call_ty = if let Ty::Fn { params, return_ty, .. } = &callee_ty {
                     // Arity check. A Glyph `fn`/`component` has no optional or
                     // variadic parameter and a call carries no spread, so for
@@ -1122,11 +1134,109 @@ impl Assigner<'_> {
         })
     }
 
+    /// The type of `T.parse<A, B>(value)` for a **generic** record `T`:
+    /// `Result<T<A, B>, Array<Issue>>`.
+    ///
+    /// `descriptor_member_ty` handles the non-generic case and stops at a
+    /// generic one, because a generic descriptor takes one runtime checker per
+    /// type parameter, so `T.parse` has no single signature to give the member.
+    /// That is still true, and it is why this reads the *call* instead: the
+    /// instantiation only exists once the explicit type arguments are written.
+    ///
+    /// Leaving it `Unknown` was not a missing convenience. The parsed value's
+    /// fields were invisible, so a typo on one produced no Glyph diagnostic (a
+    /// `tsc` TS2339 mapped to the whole enclosing function, where the
+    /// non-generic path gives E0210 at the field), and the emitter could not
+    /// tell an `Array` field from a record, which made a `for k, v` over one
+    /// bind a string index in a build reporting no diagnostics (G109).
+    ///
+    /// Requires the type arguments to be written explicitly and to match the
+    /// declaration's arity. `parse` takes an `unknown`, so there is nothing to
+    /// infer them from, and guessing would put a wrong shape behind a boundary
+    /// check, which is worse than leaving it opaque.
+    fn generic_descriptor_parse_ty(&self, callee: &Expr, type_args: &[TypeExpr]) -> Option<Ty> {
+        if type_args.is_empty() {
+            return None;
+        }
+        let Expr::Member { object, field, .. } = callee else {
+            return None;
+        };
+        if field.as_ref() != "parse" {
+            return None;
+        }
+        let Expr::Ident { span, .. } = object.as_ref() else {
+            return None;
+        };
+        let ResolvedRef::Module(id) = self.resolved.resolutions.get(*span)? else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(id)?;
+        let SymbolKind::Type { decl_idx } = sym.kind else {
+            return None;
+        };
+        let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
+            return None;
+        };
+        if td.generics.len() != type_args.len() {
+            return None;
+        }
+        // Same eligibility as the non-generic path: a descriptor exists for a
+        // record, for a tagged union no variant shadows, and for a refined
+        // primitive. Typing a `parse` the emitter does not write would be a
+        // signature for a member that is not there.
+        let has_descriptor = match &td.body {
+            TypeExpr::Record { .. } => true,
+            TypeExpr::Union { variants, .. } => {
+                variants.iter().all(|v| v.name.as_ref() != td.name.as_ref())
+            }
+            _ => td.refinement.is_some(),
+        };
+        if !has_descriptor {
+            return None;
+        }
+        let args: Vec<Ty> = type_args.iter().map(|a| self.lowerer.lower(a)).collect();
+        let parsed = Ty::App {
+            base: Arc::new(Ty::Named {
+                symbol: SymbolRef(id.0),
+                path: vec![td.name.clone()],
+            }),
+            args,
+        };
+        let issue_id = self.lowerer.prelude.lookup("Issue")?;
+        let issues = self.stdlib_array_ty(Ty::Named {
+            symbol: SymbolRef(issue_id.0),
+            path: vec![Ident::from("Issue")],
+        })?;
+        self.stdlib_result_ty(parsed, issues)
+    }
+
     /// The signature of a modeled stdlib TS-wrapper function, or `None` for any
     /// function not in the v1 table. Parameter types are left `Unknown` (only
     /// the arity is modeled) so this never introduces a new argument-type
     /// diagnostic; the value it adds is the decidable `Result<T, E>` return.
     fn stdlib_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
+        // The CLDR plural category is the reason `std/intl` exists. Modeling the
+        // return as the closed six-member literal union is what makes a `match`
+        // over it exhaustive without a catch-all (D30); as a bare `string` it
+        // would be E0218, whose advice is to add an `else`, and an `else` over a
+        // plural category is how a locale's `few` silently renders as `other`.
+        if module_key == "std/intl"
+            && matches!(field, "plural_category" | "ordinal_category")
+        {
+            return Some(Ty::Fn {
+                params: vec![required(Ty::Unknown), required(Ty::Unknown)],
+                return_ty: Arc::new(Ty::StringLiteralUnion(vec![
+                    "zero".to_string(),
+                    "one".to_string(),
+                    "two".to_string(),
+                    "few".to_string(),
+                    "many".to_string(),
+                    "other".to_string(),
+                ])),
+                is_async: false,
+            });
+        }
+
         // `json.stringify(value, options?)` -> string. The sixth and last of the
         // trailing-optional functions G39 named: modelable now that the arity
         // check understands a minimum and a maximum, so its result stops being
@@ -3772,6 +3882,90 @@ mod tests {
         let (resolved, _errs) = resolve_module(&m, syms, &prelude);
         let (_tm, ty_errs) = assign_types(&m, &resolved, &prelude);
         ty_errs
+    }
+
+    #[test]
+    fn a_generic_records_parse_is_typed_from_the_calls_type_arguments() {
+        // `T.parse` on a generic record has no signature of its own (its
+        // descriptor takes one runtime checker per type parameter), so the
+        // instantiation is read from the call. Leaving it `Unknown` made the
+        // parsed value's fields invisible: a typo produced no Glyph diagnostic
+        // at all, only a `tsc` TS2339 pointed at the whole enclosing function,
+        // while the non-generic spelling gave E0210 at the field.
+        let errs = errors_of(
+            "module x\n\
+             import std/result { Ok, Err }\n\
+             type Wire<V> = { keys: Array<string>, values: Array<V> }\n\
+             fn f(raw: unknown) -> string {\n\
+             \x20 return match Wire.parse<number>(raw) {\n\
+             \x20\x20\x20 Ok(w) => w.keyz,\n\
+             \x20\x20\x20 Err(_e) => \"\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "a typo on a generic-parsed value must be a Glyph error, not left to \
+             `tsc`: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_generic_parse_without_explicit_type_arguments_stays_unknown() {
+        // There is nothing to infer them from: `parse` takes an `unknown`.
+        // Guessing an instantiation would put a wrong shape behind a boundary
+        // check, which is worse than staying opaque, so an un-annotated call
+        // reports nothing rather than reporting something wrong.
+        let errs = errors_of(
+            "module x\n\
+             import std/result { Ok, Err }\n\
+             type Wire<V> = { keys: Array<string>, values: Array<V> }\n\
+             fn f(raw: unknown) -> string {\n\
+             \x20 return match Wire.parse(raw) {\n\
+             \x20\x20\x20 Ok(w) => w.keyz,\n\
+             \x20\x20\x20 Err(_e) => \"\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::UnknownField { .. })),
+            "no type arguments means no instantiation to check against: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_match_over_a_plural_category_is_exhaustive_over_the_six_cldr_names() {
+        // The reason `std/intl` wraps `Intl` rather than exposing it: as a bare
+        // `string` this match would be E0218, whose advice is to add an `else`,
+        // and an `else` over a plural category is how a locale's `few` silently
+        // renders as `other`.
+        let all_six = "module x\n\
+             import std/intl\n\
+             fn label(n: number) -> string {\n\
+             \x20 return match intl.plural_category(\"pl\", n) {\n\
+             \x20\x20\x20 \"zero\" => \"z\",\n    \"one\" => \"o\",\n    \"two\" => \"t\",\n\
+             \x20\x20\x20 \"few\" => \"f\",\n    \"many\" => \"m\",\n    \"other\" => \"x\",\n\
+             \x20 }\n\
+             }\n";
+        let errs = errors_of(all_six);
+        assert!(
+            !errs.iter().any(|e| matches!(
+                e,
+                TypeError::NonExhaustiveMatch { .. } | TypeError::NonExhaustiveValueMatch { .. }
+            )),
+            "covering all six categories needs no catch-all: {errs:?}"
+        );
+
+        // And a missing one is still reported, by name.
+        let missing_zero = all_six.replace("    \"zero\" => \"z\",\n", "");
+        let errs = errors_of(&missing_zero);
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::NonExhaustiveMatch { .. } | TypeError::NonExhaustiveValueMatch { .. }
+            )),
+            "a missing category must be reported: {errs:?}"
+        );
     }
 
     #[test]

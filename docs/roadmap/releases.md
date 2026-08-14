@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.78, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.79, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3257,7 +3257,71 @@ gray-matter, the first app in the tree on real npm dependencies), `resilient`
 (generic `Heap`/`Cache`/`Trie` plus a fallible pipeline, 23 examples), and `i18n`
 (CLDR plurals, fallback chains, locale formatting, 25 examples).
 
-#### 0.1.76 — a mutation that loses an update
+#### 0.1.76 — Landed on main · The three round 31 left open
+
+**Next.** Round 31 recorded three findings it deliberately did not fix. All
+three are closed here, and one of them changes the spec.
+
+**G112: no default-import form (D15 now names four).** A CommonJS package whose
+export *is* a function had nothing Glyph could import. All three existing forms
+emit a named or namespace import, which `tsc` answers with TS2595 or leaves
+uncallable, so express, lodash, debug, chalk@4, commander and `gray-matter`'s own
+`matter(text)` were unreachable. The new form is
+`import express { default as app }`.
+
+`as` is legal **only** after `default`, never for an arbitrary imported name, so
+this does not open general renaming: a name in the file still matches the name at
+its source, and `grep 'default as'` finds every default import in a tree.
+Binding the default through the *aliased* form was the tempting alternative and
+was rejected, because it gives one spelling two meanings depending on the
+package's module format, which is precisely the class G111 was fixed to remove
+one release earlier. Verified end to end against gray-matter, whose documented
+entry point now runs.
+
+**G110: a generic record's `parse` had no type.** The member still has none, and
+that part of the original reasoning was right: a generic descriptor takes one
+runtime checker per type parameter, so `T.parse` has no single signature to give.
+The instantiation is read from the **call**, where the explicit type arguments
+are, so `Wire.parse<number>(raw)` types as `Result<Wire<number>, Array<Issue>>`
+and a field typo is `[E0210]` at the field instead of a `tsc` TS2339 pointed at
+the whole enclosing function. Explicit arguments are required: `parse` takes an
+`unknown`, so there is nothing to infer them from, and a guessed instantiation
+would put a wrong shape behind a boundary check, which is worse than staying
+opaque.
+
+That also closes the previous release's miscompile at its source rather than at
+the fallback. With the shape known, the loop emits `.entries()` directly and
+never reaches the run-time helper. The helper stays for iterands that are still
+genuinely unknown, and the test for it was rewritten to use one, since the case
+it originally used is typed now.
+
+**G113: `Intl` had no route, so CLDR plural data was unreachable.** Closed the
+way this repo already documents for a host global the stdlib does not wrap:
+`std/intl` wraps it, as timers and WebSocket were. Twelve functions across
+plurals, ordinals, numbers, fixed decimals, currency, percent, lists, relative
+time, dates, collation and locale negotiation.
+
+The wrapping earns its keep instead of forwarding: `plural_category` returns the
+**string-literal union** of the six CLDR categories, so a match over it is
+exhaustive with no catch-all and a missing one is named
+(`[E0200] ... missing variants "zero"`). Handed back as a bare `string` it would
+have been E0218, whose advice is to add an `else`, and an `else` over a plural
+category is how a locale's `few` silently renders as `other`. An app branching on
+`n == 1` is wrong in most of the world; the host has the ~200 correct tables and
+now Glyph can reach them. Verified against real data: Polish 1/3/5 select
+one/few/many.
+
+Two gates caught mistakes on the way in, which is them working: a new emitter
+global routed as a shadowable JS one, and a new stdlib module whose exports were
+not yet in `docs/reference/stdlib.md`.
+
+**Still open from round 31.** G108 grows rather than shrinks: a package whose
+declarations reference `Intl.*` cannot be materialized by `gen dts` either, so
+the list of things the reader cannot follow is now classes, TypeScript utility
+types, and host globals. The direct-import path needs no generation and is
+unaffected, so this bites only boundary validation.
+
+#### 0.1.77 — a mutation that loses an update
 
 **Decided.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
@@ -3277,7 +3341,7 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.77 — the host boundary, and the app that will tell us what it needs
+#### 0.1.78 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3427,7 +3491,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.78 — finish what is half-built
+#### 0.1.79 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

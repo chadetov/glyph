@@ -197,6 +197,28 @@ impl StdlibStubs {
         s.add("std/sqlite", &["Db", "Row", "open"]);
         // Exact base-10 fixed-point arithmetic (money) over BigInt, no floats.
         s.add("std/decimal", &["Decimal", "decimal", "from_int", "zero"]);
+        // Locale-aware plurals, numbers, money, dates, lists and collation.
+        // `Intl` is a namespace global, so no method form reached it and CLDR
+        // plural data had no route at all; an app guessing `n == 1` is wrong in
+        // most of the world. `plural_category` answers a string-literal union so
+        // a `match` over it is exhaustive without a catch-all (D30).
+        s.add(
+            "std/intl",
+            &[
+                "plural_category",
+                "ordinal_category",
+                "format_number",
+                "format_fixed",
+                "format_currency",
+                "format_percent",
+                "format_list",
+                "relative_time",
+                "format_date",
+                "format_datetime",
+                "compare",
+                "best_locale",
+            ],
+        );
         // Scheduling. A global in JavaScript, so this module is the only way a
         // Glyph program can reach it, and every long-running program needs one.
         s.add(

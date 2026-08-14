@@ -55,6 +55,7 @@ pub fn fix_project(src: &Path) -> Result<FixReport, String> {
                     .map(|s| vec![s.to_string()])
                     .unwrap_or_default(),
                 ImportKind::Aliased(a) => vec![a.to_string()],
+                ImportKind::Default(local) => vec![local.to_string()],
                 ImportKind::Named(ns) => ns.iter().map(|n| n.to_string()).collect(),
             };
             if !names.is_empty() && names.iter().all(|n| unused.contains(n)) {

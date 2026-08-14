@@ -99,6 +99,10 @@ fn main(argv: Array<string>) -> number {
   head (`x.method(...)`) is fluent. You write the natural thing either way.
 - Imports are either **named** (`import std/result { Ok, Err }` brings names into
   scope) or **namespaced** (`import std/array` then `array.map(...)`).
+- An npm package whose export *is* a function (`module.exports = f`: express,
+  lodash, debug, chalk@4, commander, `gray-matter`'s `matter(text)`) is imported
+  with `import express { default as app }`. `as` is legal only after `default`;
+  renaming an ordinary imported name is still an error.
 
 ## Syntax cheat-sheet
 

@@ -140,6 +140,10 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/taint.ts"),
     ),
     (
+        ".glyph-runtime/std/intl.ts",
+        include_str!("../../../runtime/std/intl.ts"),
+    ),
+    (
         ".glyph-runtime/std/timers.ts",
         include_str!("../../../runtime/std/timers.ts"),
     ),

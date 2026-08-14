@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 115 entries, 87 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 9 are open. That round re-ran an assignment the
+fixed two of them: of 117 entries, 87 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 11 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3708,3 +3708,68 @@ type-stripper "is a hard ESM link error in a browser". Running that path against
 had already solved it. The fix is still right, and it was not the favour to them
 it appeared to be. Worth recording because the next person reading G114 will make
 the same inference.
+
+## Round 33: reading the outside author's session log
+
+The author of `glyph-hello` shared the agent session that built Ultimate Tic Tac
+Toe: 9,090 lines covering 14 agents and roughly 9.4M tokens, producing 3,377
+lines of Glyph. It is the first record we have of what writing Glyph *feels like*
+from outside, in real time, rather than what the result looks like.
+
+**The headline number is how little went wrong.** Across the whole build the
+compiler produced **eleven** diagnostics: eight `E0105`, two `E0106`, one
+`E0103`. For 3,377 lines of a rules engine and an alpha-beta search, written by
+agents that had never seen the language, that is the manifesto's bet paying off
+rather than a list of complaints. What follows is the friction that remained.
+
+- **G116. `E0105` says the name is wrong and never says what is right, so an
+  agent guesses.** All eight of the session's `E0105`s are one agent hunting a
+  single function in `std/random`, in order: `int`, `next`, `float`, `number`,
+  `range`, `int_range`, `between`, `shuffle`. The module exports exactly one
+  name, `seeded`. Eight build round-trips to find it. The message is accurate
+  every time ("`int` is not exported by `std/random`") and its help is "Check the
+  spelling, and that the module actually exports this name" — advice that cannot
+  be acted on without the list. **The resolver is holding that list already**;
+  producing the error is what proves it. Naming the module's exports, or the
+  nearest matches, collapses eight round-trips into one. For a human this is an
+  annoyance solved by opening the docs; for an agent, which is who this language
+  is for, each guess is a whole build cycle.
+  *Reproduced against 0.1.75.*
+
+- **G117. The most-recommended loop idiom is the slowest one, and nothing says
+  so.** The session's own benchmark concluded that idiomatic
+  `array.map`/`filter`/`fold` closures cost 4.5x to 20x in the search hot path,
+  and it recommended rewriting the scanners as `for i in array.range(n)` with
+  `mut` accumulators. Measured here over the same scanning shape (81 cells,
+  200k rounds, one build, warm):
+
+      for c in cells (direct)                40 ms
+      array.filter + closure                 72 ms   1.8x
+      for i in array.range(n) + cells[i]    168 ms   4.2x
+
+  **The recommendation is the slowest of the three.** Closures are not the
+  problem. `array.range(n)` allocates an n-element array on every call, and
+  `cells[i]` emits `__glyph_index(cells, i)`, a helper doing `Array.isArray` plus
+  a bounds check per element, so an index loop pays an allocation and a call the
+  other two forms do not. Substituting `<` for `==` changed nothing, so the
+  `__glyph_eq` helper is inlined by V8 and is not a cost here.
+
+  Two things follow. `docs/guide/performance.md` says function calls, records and
+  closures "are ordinary JS values and operations", which is true and is not the
+  guidance a reader needs; it says nothing about iteration form, and there is no
+  benchmark in the repo covering these idioms. And `for x in array.range(a)` is
+  an obvious lowering target: a counting `for` allocates nothing and is the shape
+  every reader expects it to already be. Until then the fastest advice is the
+  plainest one, `for c in cells`, which nothing currently tells anyone.
+
+  Their measurement and this one disagree in direction, and both can be right:
+  theirs timed whole engine functions doing more per element. What is not in
+  dispute is that the performance of the three idioms is not predictable from
+  the docs, and that an outside team spent a benchmark harness finding out.
+  *Reproduced against 0.1.75.*
+
+**Already recorded, and now confirmed from outside.** The session hit `E0106`
+twice on imports its `@example`s needed, which is G106. Their own reference
+notes it as a limitation ("an `@example` that compares against a prelude
+constructor must import it"), so an outside reader has written our lint's
+contradiction into their notes as a known cost of using the language.

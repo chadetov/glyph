@@ -3691,5 +3691,20 @@ compiler did not do for them. Three are real.
   *Reproduced against 0.1.74.*
 
 **Their pin is still `^0.1.72`**, from the scaffold before the exact-pin change,
-so this app is exactly the population `glyph upgrade` reads a caret for. Nothing
-about it broke across 0.1.72 to 0.1.74: it builds clean on both.
+so this app is exactly the population `glyph upgrade` reads a caret for.
+
+**Re-verified against the published 0.1.75, and the result is worth keeping.**
+A fresh `npm install` in their checkout resolved that caret straight to 0.1.75,
+silently, which is the floating-pin hazard happening to a real project rather
+than to a test case. Nothing broke: 198 `@example` tests pass, `tsc --strict` is
+clean, and their own browser build tool runs both paths end to end, worker smoke
+test included (`AI chose board 4 cell 4 (legal: yes, depth 4, 3061 nodes)`). So
+three releases moved under an outside application with no regression.
+
+**One assumption checked and found false, before it reached them.** G114 looked
+like it must unblock their `--strip` fallback, since their comment says a bare
+type-stripper "is a hard ESM link error in a browser". Running that path against
+**0.1.74**, before the fix, it works: their tool prunes exports itself, so they
+had already solved it. The fix is still right, and it was not the favour to them
+it appeared to be. Worth recording because the next person reading G114 will make
+the same inference.

@@ -49,8 +49,26 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.72</span>
+            <span class="rel-ver">0.1.73</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A project changes compiler on purpose</h3>
+            <p>A new release could reach your build through an <code>npm install</code> you ran for something else. Now it cannot, and you can still find out one exists.</p>
+            <ul class="changelist">
+              <li><span class="tag changed">Changed</span> <code>glyph init</code> pins the compiler exactly, with no <code>^</code>. On a <code>0.x</code> version a caret still floats the patch, so <code>^0.1.72</code> accepted every later 0.1.x &mdash; and a 0.1.x release may add a diagnostic that rejects code which compiled yesterday, which is usually the point of the release. Those two together meant a green build could go red without a line of your source changing.</li>
+              <li><span class="tag added">Added</span> <code>glyph upgrade</code> moves the pin and runs <code>npm install</code>. <code>--dry-run</code> shows what would change, <code>--to &lt;version&gt;</code> names one (including an older one), <code>--no-install</code> leaves the install to you. It reads a caret as well as an exact pin, so a project scaffolded before this release can be moved onto one.</li>
+              <li><span class="tag added">Added</span> <code>glyph doctor</code> reports this compiler against the published one and links the release notes. Finding a newer release never changes its exit code, so it stays safe in CI, and <code>--offline</code> skips the lookup entirely.</li>
+              <li><span class="tag added">Added</span> <code>glyph init</code> says to commit your <code>package-lock.json</code>, because an exact pin only buys a reproducible build if the lockfile is committed too.</li>
+            </ul>
+            <p><strong>No network dependency was added to the compiler, and that was the constraint.</strong> It has never had an HTTP client and still does not: npm is already required to install Glyph at all, so <code>npm view</code> answers the one registry question without pulling a TLS stack into a compiler that had none. Retries are off and the timeout is three seconds, because npm&rsquo;s defaults would leave an offline <code>doctor</code> waiting most of a minute. Only <code>doctor</code> and <code>upgrade</code> ever look; <code>build</code>, <code>run</code> and <code>check</code> never do.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.72</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

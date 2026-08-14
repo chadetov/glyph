@@ -58,6 +58,12 @@ enum Release {
     Current,
     /// A newer version exists.
     Update { latest: String },
+    /// Running a build newer than anything published: a local dev build, or a
+    /// release between its version bump and its publish. Distinguished from
+    /// `Current` because saying "the newest published release" of a build that
+    /// is ahead of the registry is false, and this is the state every dev build
+    /// and every pre-publish CI run is in.
+    Ahead { latest: String },
     /// The registry was not reachable, or the check was skipped.
     Unknown { why: &'static str },
 }
@@ -98,12 +104,26 @@ fn release_status(offline: bool) -> Release {
     }
     match registry::latest() {
         Latest::Unknown(why) => Release::Unknown { why },
-        Latest::Known(latest) => match registry::is_newer(&latest, registry::current()) {
-            Some(true) => Release::Update { latest },
-            Some(false) => Release::Current,
-            None => Release::Unknown {
-                why: "unexpected npm output",
-            },
+        Latest::Known(latest) => classify(&latest, registry::current()),
+    }
+}
+
+/// Which of the three orderings this binary stands in against the registry.
+///
+/// Pure so the three cases are pinned by tests: two of them are only reachable
+/// in production for a few minutes around a publish, and the third only once a
+/// release has actually shipped, so none of them is exercised by ordinary use.
+fn classify(latest: &str, current: &str) -> Release {
+    match registry::is_newer(latest, current) {
+        Some(true) => Release::Update {
+            latest: latest.to_string(),
+        },
+        Some(false) if latest == current => Release::Current,
+        Some(false) => Release::Ahead {
+            latest: latest.to_string(),
+        },
+        None => Release::Unknown {
+            why: "unexpected npm output",
         },
     }
 }
@@ -171,6 +191,9 @@ fn print_human(checks: &[Check], all_ok: bool, release: &Release) {
             );
             println!("             what changed: {}", registry::RELEASE_NOTES);
         }
+        Release::Ahead { latest } => {
+            println!("  [ok]       ahead of the registry, where the newest is {latest}")
+        }
         Release::Unknown { why } => println!("  [unknown]  could not check for updates ({why})"),
     }
     println!();
@@ -215,6 +238,10 @@ fn print_json(checks: &[Check], all_ok: bool, release: &Release) {
             registry::current(),
             registry::RELEASE_NOTES
         ),
+        Release::Ahead { latest } => format!(
+            "{{ \"version\": \"{}\", \"status\": \"ahead\", \"latest\": \"{latest}\" }}",
+            registry::current()
+        ),
         Release::Unknown { why } => format!(
             "{{ \"version\": \"{}\", \"status\": \"unknown\", \"latest\": null, \
              \"reason\": \"{why}\" }}",
@@ -244,7 +271,30 @@ fn print_json(checks: &[Check], all_ok: bool, release: &Release) {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_major;
+    use super::{classify, parse_major, Release};
+
+    #[test]
+    fn classifies_this_binary_against_the_registry() {
+        // Behind: the case the whole registry check exists to report.
+        assert!(matches!(
+            classify("0.1.73", "0.1.72"),
+            Release::Update { ref latest } if latest == "0.1.73"
+        ));
+        // Level.
+        assert!(matches!(classify("0.1.73", "0.1.73"), Release::Current));
+        // Ahead. Every dev build and every release between its version bump and
+        // its publish sits here, and calling it `Current` printed a plain
+        // falsehood ("the newest published release") for that whole window.
+        assert!(matches!(
+            classify("0.1.72", "0.1.73"),
+            Release::Ahead { ref latest } if latest == "0.1.72"
+        ));
+        // Numeric, not lexical: the case a string compare gets backwards.
+        assert!(matches!(classify("0.1.100", "0.1.99"), Release::Update { .. }));
+        assert!(matches!(classify("0.1.99", "0.1.100"), Release::Ahead { .. }));
+        // Unreadable answer is reported, never guessed in either direction.
+        assert!(matches!(classify("garbage", "0.1.73"), Release::Unknown { .. }));
+    }
 
     #[test]
     fn parses_major_from_common_version_strings() {

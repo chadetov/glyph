@@ -7,7 +7,7 @@ A statically typed, transpile-to-TypeScript language designed so AI agents can r
 [![CI](https://github.com/chadetov/glyph/actions/workflows/ci.yml/badge.svg)](https://github.com/chadetov/glyph/actions/workflows/ci.yml)
 [![install size](https://packagephobia.com/badge?p=@glyphlang/glyph)](https://packagephobia.com/result?p=@glyphlang/glyph)
 [![license](https://img.shields.io/npm/l/@glyphlang/glyph.svg)](https://github.com/chadetov/glyph)
-[![Socket Badge](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.72)](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.72)
+[![Socket Badge](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.73)](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.73)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chadetov/glyph/badge)](https://scorecard.dev/viewer/?uri=github.com/chadetov/glyph)
 
 Glyph looks almost like TypeScript. A TS developer reads a Glyph file on day one without a tutorial. The differences are deliberate and small in number, and every one of them exists to make code an agent can reason about correctly, edit without breakage, and explain back to a human without lying.

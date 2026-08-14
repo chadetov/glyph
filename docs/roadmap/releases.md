@@ -3433,6 +3433,16 @@ decision in one place instead of being silently missed by one pass.
 
 #### 0.1.78 — the host boundary, and the app that will tell us what it needs
 
+**The committed Next marker is on G102 (bytes), which sits above this.** Three
+reasons, recorded so the next session does not have to re-derive them. It
+unblocks 0.1.79's binary frames, which cannot ship without it. It is the only
+open item that makes whole categories of program unwritable rather than awkward:
+two apps in one round stopped dead on it, a PNG reader and an RFC 6238
+authenticator, and neither could be worked around. And it was already pulled out
+of this release's module list for exactly that reason, without the ordering being
+updated to match. The four modules below and the npm dogfood round they exist to
+enable follow it.
+
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
 missing.
@@ -3585,6 +3595,15 @@ quote both types and name `.map_err` as the fix.
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.
+
+**Blocked in part, and the roadmap did not say so.** "WebSocket binary messages"
+needs a byte representation, and there is none: `runtime/std/websocket.ts` says
+so in its own header ("Binary frames are decoded as UTF-8 text ... a program that
+needs the bytes is not served by this module yet"), and G102 records that no
+external boundary in the standard library crosses to bytes at all. So this
+release cannot be finished as written until **G102** lands. Either bytes come
+first, or 0.1.79 ships without its binary half and the item stays open. The
+server, options, subprotocols, integration tests and `std/sse` are unaffected.
 
 #### After that, the loop decides
 

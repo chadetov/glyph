@@ -2337,10 +2337,6 @@ impl<'a> Emitter<'a> {
     /// `Object.entries(it)` (string key) for a two-binding `for`. An unknown
     /// type (e.g. a value narrowed by an `is Array<..>` arm, before flow
     /// narrowing tracks it) answers false and falls back to the record form.
-    fn iter_is_array(&self, iter: &Expr) -> bool {
-        matches!(self.iter_shape(iter), IterShape::Array)
-    }
-
     /// What a two-binding `for`'s iterand is, as far as the checker can tell.
     ///
     /// The three answers are genuinely different, and collapsing `Unknown` into

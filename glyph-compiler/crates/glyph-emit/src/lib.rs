@@ -935,7 +935,22 @@ impl<'a> Emitter<'a> {
         let mut out = String::new();
         for (names, module) in [(&result, "std/result"), (&option, "std/option")] {
             if !names.is_empty() {
-                let list = names.iter().copied().collect::<Vec<_>>().join(", ");
+                // `Result` and `Option` are `export type` in the runtime, so
+                // they carry the inline `type` modifier here for the same
+                // reason a written-out named import does: without it the name
+                // survives type stripping and fails to link (G114). The
+                // constructors are real values and stay bare.
+                let list = names
+                    .iter()
+                    .map(|n| {
+                        if glyph_resolver::is_stdlib_type_only(module, n) {
+                            format!("type {n}")
+                        } else {
+                            (*n).to_string()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 out.push_str(&format!("import {{ {list} }} from \"{module}\";\n"));
             }
         }
@@ -1542,6 +1557,7 @@ impl<'a> Emitter<'a> {
         // `<out>/extern/`; it emits a relative specifier like a sibling so the
         // same resolution finds it (this is the sanctioned way to reach
         // hand-written TypeScript without a relative import in Glyph source).
+        let module_path = path.clone();
         let spec = if self.ctx.project_modules.contains(&path) || path.starts_with("extern/") {
             relative_specifier(self.ctx.module_path, &path)
         } else {
@@ -1549,9 +1565,26 @@ impl<'a> Emitter<'a> {
         };
         let line = match &im.kind {
             ImportKind::Named(names) => {
+                // A standard-library name the runtime declares with `export
+                // type` has no runtime binding, so it must carry the inline
+                // `type` modifier. `tsc` elides such a name from a value import
+                // list, which is why the un-marked form type-checks; a type
+                // *stripper* leaves it, and the import then fails to link
+                // against a module that really has no such export (G114). The
+                // inline modifier is the spelling a tool with no type
+                // information can act on.
+                //
+                // A Glyph-declared type needs no marker: it emits a runtime
+                // descriptor `const` under its own name, so the binding exists.
                 let names = names
                     .iter()
-                    .map(|n| n.as_ref())
+                    .map(|n| {
+                        if self.import_name_is_type_only(&module_path, n.as_ref()) {
+                            format!("type {}", n.as_ref())
+                        } else {
+                            n.as_ref().to_string()
+                        }
+                    })
                     .collect::<Vec<_>>()
                     .join(", ");
                 format!("import {{ {names} }} from \"{spec}\";")
@@ -2337,6 +2370,27 @@ impl<'a> Emitter<'a> {
     /// `Object.entries(it)` (string key) for a two-binding `for`. An unknown
     /// type (e.g. a value narrowed by an `is Array<..>` arm, before flow
     /// narrowing tracks it) answers false and falls back to the record form.
+    /// Whether an imported name has no runtime binding in its source module, so
+    /// its import must carry the inline `type` modifier (G114).
+    ///
+    /// Two populations. The hand-written standard library declares names with
+    /// `export type` and ships no value for them. And a Glyph type emits a
+    /// runtime descriptor `const` under its own name **only when it has one**:
+    /// a record, a tagged union, a refined primitive. A plain alias
+    /// (`type Board = Array<Cell>`) emits `export type Board` alone, so
+    /// importing it by name across modules has the same problem.
+    ///
+    /// Anything else — a function, a const, a variant constructor — is a value
+    /// and must stay bare, because marking it `type` would elide the import and
+    /// remove a binding the program needs.
+    fn import_name_is_type_only(&self, module_path: &str, name: &str) -> bool {
+        if glyph_resolver::is_stdlib_type_only(module_path, name) {
+            return true;
+        }
+        let key = (module_path.to_string(), name.to_string());
+        self.ctx.descriptorless_aliases.contains_key(&key)
+    }
+
     /// What a two-binding `for`'s iterand is, as far as the checker can tell.
     ///
     /// The three answers are genuinely different, and collapsing `Unknown` into
@@ -6688,8 +6742,12 @@ mod tests {
         let ts = emit(
             "module x\npub fn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\npub fn g() -> Option<number> {\n  return None\n}\n",
         );
-        assert!(ts.contains("import { Ok, Result } from \"std/result\";"), "{ts}");
-        assert!(ts.contains("import { None, Option } from \"std/option\";"), "{ts}");
+        // `Result` and `Option` carry the inline `type` modifier: the runtime
+        // declares them with `export type`, so without it the name survives type
+        // stripping and the import fails to link (G114). The constructors are
+        // real values and stay bare.
+        assert!(ts.contains("import { Ok, type Result } from \"std/result\";"), "{ts}");
+        assert!(ts.contains("import { None, type Option } from \"std/option\";"), "{ts}");
     }
 
     #[test]
@@ -6775,6 +6833,45 @@ mod tests {
         let ts = emit("module x\npub fn f(cb: fn(string) -> number) -> void {\n  return void\n}\n");
         assert!(ts.contains("(a0: string) => number"), "{ts}");
         assert!(!ts.contains("Promise"), "{ts}");
+    }
+
+    #[test]
+    fn a_type_only_stdlib_import_carries_the_inline_type_modifier() {
+        // `Option` is `export type` in the runtime, so it has no runtime
+        // binding. Emitted bare, `tsc` elides it and the build is green, while
+        // a type *stripper* leaves it and the import fails to link against a
+        // module with no such export (G114). The inline modifier is the
+        // spelling a tool with no type information can act on.
+        //
+        // A Glyph-declared type is not affected and must not be marked: it
+        // emits a runtime descriptor `const` under its own name.
+        let ts = emit(
+            "module m\n\
+             import std/option { Option, Some, None }\n\
+             pub fn first(xs: Array<string>) -> Option<string> {\n\
+             \x20 return match xs { [] => None, [h, ..._r] => Some(h), }\n\
+             }\n",
+        );
+        assert!(
+            ts.contains("import { type Option, Some, None } from \"std/option\";"),
+            "the type-only name must carry `type`, the value names must not; got:\n{ts}"
+        );
+    }
+
+    #[test]
+    fn only_the_standard_library_needs_the_type_modifier() {
+        // A Glyph-declared type ships a runtime descriptor `const` under its own
+        // name, so an import of it has a real binding and must NOT be marked:
+        // marking it would elide the import and lose `Point.parse`. Only the
+        // hand-written standard library has names with no value behind them,
+        // which is why the table is scoped to `std/*`.
+        assert!(glyph_resolver::is_stdlib_type_only("std/option", "Option"));
+        assert!(glyph_resolver::is_stdlib_type_only("std/result", "Result"));
+        assert!(!glyph_resolver::is_stdlib_type_only("std/option", "Some"));
+        assert!(!glyph_resolver::is_stdlib_type_only("std/array", "map"));
+        // A project module, whatever the name.
+        assert!(!glyph_resolver::is_stdlib_type_only("shapes", "Point"));
+        assert!(!glyph_resolver::is_stdlib_type_only("shapes", "Option"));
     }
 
     #[test]

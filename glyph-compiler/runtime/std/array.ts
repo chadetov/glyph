@@ -2,7 +2,7 @@
 // runtime behavior matches the Glyph stdlib signatures; `find` returns the
 // prelude `Option` rather than `undefined`.
 
-import { Option, Some, None } from "./option";
+import { type Option, Some, None } from "./option";
 
 export function find<T>(xs: ReadonlyArray<T>, predicate: (x: T) => boolean): Option<T> {
   for (const x of xs) {

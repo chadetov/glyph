@@ -26,6 +26,7 @@ mod collect;
 mod error;
 mod lints;
 mod module_graph;
+mod stdlib_types;
 mod prelude;
 mod reserved;
 mod resolve;
@@ -39,6 +40,7 @@ pub use module_graph::{
     path_key, verify_imports, verify_local_imports, verify_qualified_type_refs, CompositeGraph,
     ModuleExports, ModuleGraph, ModuleResolution, ModuleSite, StdlibStubs,
 };
+pub use stdlib_types::{is_stdlib_type_only, stdlib_type_only_pairs};
 pub use prelude::{build_prelude, Prelude};
 pub use resolve::{
     resolve_module, QualifiedTypeRef, ResolutionMap, ResolvedModule, ResolvedRef,

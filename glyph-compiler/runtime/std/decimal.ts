@@ -11,7 +11,7 @@
 // `price.add(tax).to_string()`. Construction validates its input and returns a
 // `Result`, so a malformed amount is a handled value, never a silent `NaN`.
 
-import { Err, Ok, Result } from "./result";
+import { Err, Ok, type Result } from "./result";
 
 export type Decimal = {
   add: (other: Decimal) => Decimal;

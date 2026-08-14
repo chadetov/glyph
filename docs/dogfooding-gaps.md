@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 115 entries, 86 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 10 are open. That round re-ran an assignment the
+fixed two of them: of 115 entries, 87 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 9 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3635,8 +3635,8 @@ Glyph output into a browser. They took the no-npm-dependencies path deliberately
 so a bundler was not on the table; every step in that file is a thing the
 compiler did not do for them. Three are real.
 
-- **G114. The emitter puts type-only names in a value import list, which is a
-  hard ESM link error once types are stripped.** `import std/option { Option,
+- **G114. [FIXED] The emitter puts type-only names in a value import list,
+  which is a hard ESM link error once types are stripped.** `import std/option { Option,
   Some, None }` emits `import { Option, Some, None } from "std/option"`, and
   `Option` is `export type` in the runtime, so it has no runtime binding.
   `import std/option { Option }` alone emits an import whose every name is a
@@ -3660,7 +3660,21 @@ compiler did not do for them. Three are real.
   a reader the output "bundles like any other TypeScript", which holds for a
   bundler that elides unused type imports (esbuild does) and not for the
   stripper-based toolchains that are now common.
-  *Reproduced against 0.1.74.*
+
+  **Fixed in 0.1.75.** Every emitted import now marks a name with no runtime
+  binding using the inline `type` modifier, which is the spelling a tool with no
+  type information can act on. Two populations needed it, and the second was
+  missed on the first pass: the hand-written standard library, whose 25
+  `export type` names across 16 modules are listed in `stdlib_types.rs` and
+  reconciled against the runtime by a gate that fails in **both** directions (a
+  name missing from the table emits unmarked and will not link; a value name
+  wrongly in it would be elided and lose a binding); and **a Glyph plain alias**,
+  which emits `export type Board = Array<Cell>` with no descriptor `const`,
+  unlike a record or tagged union which ships one under its own name. The second
+  came from checking the fix against the app that found the gap rather than
+  against a repro. The runtime's own sources were fixed too, so
+  `verbatimModuleSyntax` is now clean over the whole emitted tree, including
+  `glyph-hello`'s 3,377 lines.
 
 - **G115. `glyph build` materializes the whole standard library, under a
   directory name a static host hides.** The engine imports five std modules;

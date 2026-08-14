@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.74</span>
+            <span class="rel-ver">0.1.75</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The emitted imports survive having their types stripped</h3>
+            <p>Found by an application built outside this project: a tic-tac-toe game whose engine and AI are 3,377 lines of Glyph running in a Web Worker.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A name with no runtime binding is no longer emitted as a value import.</strong> <code>import std/option { Option, Some, None }</code> emitted <code>import { Option, Some, None }</code>, and <code>Option</code> is a type: it has nothing behind it at run time. <code>tsc</code> quietly drops such a name, which is why every build was green. A type <em>stripper</em> does not, and the import then fails to link against a module that genuinely has no such export. Every emitted import now marks those names <code>import { type Option, Some, None }</code>, which is the spelling a tool with no type information can act on.</li>
+            </ul>
+            <p>This affected two kinds of name. The standard library declares 25 of them across 16 modules, and a table now lists them with a check that fails in both directions: a name missing from it emits unmarked and will not link, and a value name wrongly added would be dropped and take a binding the program needs with it. The second kind was missed on the first attempt and found by re-testing against the application rather than the reduced case: a Glyph <strong>plain alias</strong> like <code>type Board = Array&lt;Cell&gt;</code> emits a type and nothing else, where a record or tagged union also ships a validator under the same name.</p>
+            <p>If you build with a bundler that already elides unused type imports, such as esbuild, nothing changes for you. If you use a stripper (<code>swc</code>, <code>node --strip-types</code>, Bun) or set <code>verbatimModuleSyntax</code>, this is the difference between an output that links and one that does not. The whole emitted tree, runtime included, is now clean under <code>verbatimModuleSyntax</code>.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.74</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -12,8 +12,8 @@
 // form `import std/json { parse }; parse<T>(...)` is not rewritten; use the
 // `json.parse<T>` namespace form to get validation.)
 
-import { Result, Ok, Err } from "./result";
-import { Option, Some, None } from "./option";
+import { type Result, Ok, Err } from "./result";
+import { type Option, Some, None } from "./option";
 
 export function parse<T>(text: string): Result<T, Array<Issue>> {
   try {

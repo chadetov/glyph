@@ -14,7 +14,7 @@
 // `stdlib_type_fields` / `stdlib_union_variants` (glyph-typechecker); a field or
 // a kind added here has to be added there too.
 
-import { Result, Ok, Err } from "./result";
+import { type Result, Ok, Err } from "./result";
 import {
   appendFileSync,
   existsSync,

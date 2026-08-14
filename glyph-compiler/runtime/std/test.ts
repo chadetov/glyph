@@ -7,8 +7,8 @@
 // counterexample. Compose it with `@example` as
 // `@example test.property(pred, stream.ints()) == Ok(void)`.
 
-import { Result, Ok, Err } from "./result";
-import { Stream } from "./stream";
+import { type Result, Ok, Err } from "./result";
+import { type Stream } from "./stream";
 
 export function property<T>(
   predicate: (x: T) => boolean,

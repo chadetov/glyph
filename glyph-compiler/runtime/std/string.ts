@@ -16,7 +16,7 @@
 // `regex.split(pattern, text)` take their subject second. Every parameter of
 // both pairs is a `string`, so swapping them compiles and runs.
 
-import { Option, Some, None } from "./option";
+import { type Option, Some, None } from "./option";
 
 export function from(value: unknown): string {
   return String(value);

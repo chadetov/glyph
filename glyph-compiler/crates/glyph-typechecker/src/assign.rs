@@ -243,6 +243,7 @@ pub fn assign_types_with_resolver(
     // per-parameter `owned` flags), so it must run after assignment fills the
     // map rather than interleaved with it.
     errors.extend(crate::owned::check_owned(module, resolved, prelude, &tm));
+    errors.extend(crate::concurrency::check_await_straddle(module));
     (tm, errors)
 }
 

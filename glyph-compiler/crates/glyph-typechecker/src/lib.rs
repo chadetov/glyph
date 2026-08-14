@@ -28,6 +28,7 @@
 #![forbid(unsafe_code)]
 
 pub mod assign;
+pub mod concurrency;
 pub mod lower;
 pub mod owned;
 pub mod ty;
@@ -183,6 +184,20 @@ pub enum TypeError {
     OwnedRequiresResourceType {
         name: String,
         ty: String,
+        span: Span,
+    },
+
+    /// A `mut` whose read and write straddle an `await`: the value written was
+    /// read before a suspension point, so another task may have written in
+    /// between and this write silently discards it.
+    ///
+    /// `read_at` points at the read, `span` at the write, because the fix is
+    /// almost always to move the read after the `await` rather than to remove
+    /// the write.
+    #[error("`{place}` is read before an `await` and written after it, so a concurrent write in between is lost")]
+    MutAcrossAwait {
+        place: String,
+        read_at: Span,
         span: Span,
     },
 
@@ -421,6 +436,7 @@ impl TypeError {
             TypeError::QuestionErrorTypeMismatch { span, .. } => *span,
             TypeError::TypeMismatch { span, .. } => *span,
             TypeError::OwnedRequiresResourceType { span, .. } => *span,
+            TypeError::MutAcrossAwait { span, .. } => *span,
             TypeError::OwnedNotConsumed { span, .. } => *span,
             TypeError::OwnedUsedAfterMove { span, .. } => *span,
             TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
@@ -453,6 +469,7 @@ impl TypeError {
             TypeError::QuestionErrorTypeMismatch { .. } => "E0203",
             TypeError::TypeMismatch { .. } => "E0204",
             TypeError::OwnedRequiresResourceType { .. } => "E0205",
+            TypeError::MutAcrossAwait { .. } => "E0225",
             TypeError::OwnedNotConsumed { .. } => "E0206",
             TypeError::OwnedUsedAfterMove { .. } => "E0207",
             TypeError::NonExhaustiveArrayMatch { .. } => "E0208",
@@ -498,6 +515,9 @@ impl TypeError {
             }
             TypeError::OwnedRequiresResourceType { .. } => {
                 "`owned` is only for `resource`-marked types. Drop `owned`, or mark the type `resource`."
+            }
+            TypeError::MutAcrossAwait { .. } => {
+                "Move the read after the `await`, so the value written is the one that is current when it is written."
             }
             TypeError::OwnedNotConsumed { .. } => {
                 "Consume the handle on every path (move it into an `owned` parameter) before the function returns."

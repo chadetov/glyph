@@ -919,6 +919,7 @@ machine-readably. The full catalogue:
 | E0222 | `await` outside an `async fn` | Mark the enclosing callable `async fn` (a sync lambda is its own context) |
 | E0223 | A `match` arm produces no value while the match is used as a value | End the arm with an expression, or `return` from it |
 | E0224 | Reading a key out of a `Record<K, V>` map, where the key may not be there | `record.get(m, k)` returns `Option<V>`; `record.has(m, k)` tests for it. Writing (`mut m[k] = v`) is fine |
+| E0225 | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost | Move the read after the `await`. A local counter across an `await` is fine and is not reported |
 | E0300 | Construct not supported by the emitter | Use a supported form |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a match nested inside a larger expression | Bind the match first (`let x = match ...`), then use `?` |

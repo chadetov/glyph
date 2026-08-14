@@ -49,8 +49,31 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.76</span>
+            <span class="rel-ver">0.1.77</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A lost update is now a compile error</h3>
+            <p>Two of these running at once both read <code>0</code>, both write <code>1</code>, and you get <code>1</code> instead of <code>2</code> &mdash; from a build reporting no diagnostics and a clean <code>tsc --strict</code>.</p>
+            <div class="code">
+              <span class="cap">Rejected as of 0.1.77 (D43, E0225)</span>
+<pre>async fn bump(c: Counter) -&gt; number {
+  let before = c.n
+  await timers.sleep(1)     <span class="cm">// another task can run here</span>
+  mut c.n = before + 1      <span class="cm">// and its write is silently discarded</span>
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong>E0225</strong>: a field of a parameter read before an <code>await</code> and written after it. The fix is to move the read after the <code>await</code>, so the value written is the one that is current when it is written.</li>
+            </ul>
+            <p><strong>The rule is narrow, and the narrowness is the design.</strong> It fires only through a <em>parameter</em>, which is the only thing a caller can also have handed to another task, and only on a field write, since rebinding a whole parameter changes this function&rsquo;s copy rather than the caller&rsquo;s record. A local counter across an <code>await</code> &mdash; <code>mut rounds = rounds + 1</code> in an async loop &mdash; cannot be raced by anything and is not reported. An earlier draft of the check flagged two such lines in a real app in this repo; a false positive on an ordinary counter is exactly what teaches people a check is noise, so it was narrowed until the whole example tree, 145 modules, was clean while the failing case still failed.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.76</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

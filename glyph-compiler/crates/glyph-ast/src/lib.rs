@@ -956,3 +956,133 @@ mod tests {
         assert_eq!(render_object_key("a\"b"), "\"a\\\"b\"");
     }
 }
+
+/// Structural traversal helpers.
+///
+/// Every analysis over the tree needs "visit the sub-expressions of this
+/// expression" and "visit the blocks this statement owns", and each one that
+/// hand-writes the match re-derives the same 19-variant list. `owned.rs` has one
+/// such match; the third copy of a traversal is where a new `Expr` variant
+/// starts getting missed by one pass and not the others. These are that list,
+/// written once, with no wildcard arm so a new variant forces a decision here.
+pub mod visit {
+    use super::*;
+
+    /// Call `f` on each direct sub-expression of `e`. Not recursive: a caller
+    /// that wants the whole subtree recurses inside `f`, which is what lets one
+    /// helper serve both "find any await" and "collect every read".
+    pub fn child_exprs<'a>(e: &'a Expr, f: &mut impl FnMut(&'a Expr)) {
+        match e {
+            Expr::Number { .. }
+            | Expr::String { .. }
+            | Expr::Bool { .. }
+            | Expr::Void { .. }
+            | Expr::Ident { .. }
+            | Expr::Extern { .. } => {}
+            Expr::TemplateString { parts, .. } => {
+                for p in parts {
+                    if let TemplatePart::Expr { value, .. } = p {
+                        f(value);
+                    }
+                }
+            }
+            Expr::Binary { left, right, .. } => {
+                f(left);
+                f(right);
+            }
+            Expr::Unary { operand, .. } | Expr::Postfix { operand, .. } => f(operand),
+            Expr::Call { callee, args, .. } | Expr::New { callee, args, .. } => {
+                f(callee);
+                for a in args {
+                    f(a);
+                }
+            }
+            Expr::Member { object, .. } => f(object),
+            Expr::Index { object, index, .. } => {
+                f(object);
+                f(index);
+            }
+            Expr::Await { expr, .. } => f(expr),
+            Expr::Array { elements, .. } => {
+                for el in elements {
+                    match el {
+                        ArrayElem::Expr(v) | ArrayElem::Spread(v) => f(v),
+                    }
+                }
+            }
+            Expr::Object { fields, .. } => {
+                for field in fields {
+                    match field {
+                        ObjectField::KeyValue { value, .. }
+                        | ObjectField::Spread { value, .. } => f(value),
+                    }
+                }
+            }
+            Expr::Match { scrutinee, arms, .. } => {
+                f(scrutinee);
+                for arm in arms {
+                    if let MatchArmBody::Expr(v) = &arm.body {
+                        f(v);
+                    }
+                }
+            }
+            Expr::Lambda { .. } => {}
+            Expr::Jsx(_) => {}
+        }
+    }
+
+    /// Call `f` on each block an expression owns (a lambda body, a `match` arm
+    /// written as a block). Separate from `child_exprs` because a block is a new
+    /// scope and most analyses treat it differently from a sub-expression.
+    pub fn child_blocks<'a>(e: &'a Expr, f: &mut impl FnMut(&'a Block)) {
+        match e {
+            Expr::Lambda { body, .. } => f(body),
+            Expr::Match { arms, .. } => {
+                for arm in arms {
+                    if let MatchArmBody::Block(b) = &arm.body {
+                        f(b);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Call `f` on each expression a statement holds directly.
+    pub fn stmt_exprs<'a>(s: &'a Stmt, f: &mut impl FnMut(&'a Expr)) {
+        match s {
+            Stmt::Let(l) => f(&l.value),
+            Stmt::Mut(m) => match &m.kind {
+                MutKind::Assign { target, value } => {
+                    f(target);
+                    f(value);
+                }
+                MutKind::MethodCall { call } => f(call),
+            },
+            Stmt::Return(r) => {
+                if let Some(v) = &r.value {
+                    f(v);
+                }
+            }
+            Stmt::For(fo) => f(&fo.iter),
+            Stmt::Expr(e) => f(e),
+            Stmt::Defer(d) => f(&d.expr),
+            Stmt::Loop(_) | Stmt::Break(_) | Stmt::Continue(_) => {}
+        }
+    }
+
+    /// Call `f` on each block a statement owns.
+    pub fn stmt_blocks<'a>(s: &'a Stmt, f: &mut impl FnMut(&'a Block)) {
+        match s {
+            Stmt::For(fo) => f(&fo.body),
+            Stmt::Loop(l) => f(&l.body),
+            Stmt::Let(_)
+            | Stmt::Mut(_)
+            | Stmt::Return(_)
+            | Stmt::Expr(_)
+            | Stmt::Defer(_)
+            | Stmt::Break(_)
+            | Stmt::Continue(_) => {}
+        }
+    }
+}

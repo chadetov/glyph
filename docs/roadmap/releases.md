@@ -3394,9 +3394,9 @@ Direct iteration stays fastest at 33 ms, because indexing still costs the bounds
 check that turns an off-the-end read into an error, and the guide now says which
 to reach for instead of leaving it to a benchmark harness.
 
-#### 0.1.77 — a mutation that loses an update
+#### 0.1.77 — Shipped · A mutation that loses an update
 
-**Decided.** All four language items below were reproduced on 2026-08-09 and
+**Published 2026-08-14.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
 severity ranking, and the silent one goes first.
 
@@ -3413,6 +3413,23 @@ one live task (needs escape analysis, and false positives on correct code are
 worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
+
+**Shipped as D43 / E0225, and the narrowing was found by running it.** The first
+draft fired on any place read before an `await` and written after, which flagged
+`mut failures = failures + ...` and `mut rounds = rounds + 1` in
+`examples/apps/jobq` — ordinary local accumulators in an async function that
+nothing else can reach. The rule now requires the write to go *through a
+parameter* and to touch a field, since a parameter is the only thing a caller can
+also have handed to another task, and rebinding a parameter whole changes this
+function's copy rather than the caller's record. With that, the whole examples
+tree (145 modules) is clean and the failing case still fails. Six tests pin both
+directions, including the two false positives verbatim.
+
+The pass needed a traversal, and rather than hand-write a fourth copy of the
+19-variant `Expr` match (`owned.rs` has one, and the file itself notes a third
+copy of a similar walk as a cleanup worth doing), it went into `glyph-ast` as a
+shared `visit` module with no wildcard arm, so a new AST variant forces a
+decision in one place instead of being silently missed by one pass.
 
 #### 0.1.78 — the host boundary, and the app that will tell us what it needs
 

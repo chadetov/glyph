@@ -4662,6 +4662,43 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **Inline the index bounds check before trying to prove it away.** After 0.1.76
+  closed G117's allocation, the same benchmark is 33 ms for `for c in cells`,
+  62 ms for `array.filter`, and 61 ms for an index loop. What is left of the gap
+  is `__glyph_index`, and the interesting part is what that cost is made of.
+  `glyph-emit/src/lib.rs` emits the helper for **every** `Expr::Index` with no
+  specialization, and the helper takes `unknown`, so every array read in a
+  program funnels through one generic keyed-load site that sees every array shape
+  in the program. On top of the megamorphic access it pays `Array.isArray`,
+  `typeof` and `Number.isInteger` per element, and the call itself stops V8 from
+  treating the read as an element load at all.
+
+  That splits into two changes, and they should not be attempted in one release.
+  **Inlining the check at the site needs no analysis and is sound everywhere**,
+  and it restores a monomorphic element access, which additionally lets V8 run
+  its own bounds-check elimination over a counted loop, which it cannot do
+  through an opaque call. **Eliding the check where the compiler can prove the
+  index is in range** is the second change: strictly more work, strictly less
+  general, and worth building only if inlining does not close the gap. Measure
+  after the first before scoping the second, because if the first is enough then
+  the second buys nothing a user can see.
+
+  The proof obligation for the second, if it is ever needed, is that the bound is
+  tied to that array's length, the binding is not rebound, and the array is not
+  mutated in the body. Glyph is unusually well placed for the last one, since
+  `mut xs.push(x)` is syntactically required and greppable; the real limit is
+  aliasing through calls, so a first version has to be intraprocedural and bail
+  when the array is passed anywhere. **Removing the check is not on the table**
+  under either change: it is what makes `xs[i]` typed as `T` honest, and dropping
+  it re-opens G30 rather than reverting it.
+
+  One thing not to adopt along the way. `for i in 0..xs.length` is not Glyph and
+  should not become it: G30 decided that `..` is language surface costing grammar
+  and foreclosing later decisions, where a function costs nothing and reads
+  beside `slice`. Taking the range syntax to make an optimizer's analysis easier
+  would be paying for it in the wrong currency. And whatever lands, `for c in
+  cells` stays the advice, because it is fastest, clearest, and needs no analysis
+  to be either.
 - **`std/encoding`'s six functions are silent on malformed input.**
   `base64_decode("!!!")` is `""` and no error, because `Buffer.from` skips any
   character outside the alphabet, and a decode of bytes that are not valid UTF-8

@@ -3268,7 +3268,15 @@ and stopped on the same sentence: Glyph has no bytes.
   in ordinary Glyph over `Array<int>`. Only the octets are missing. `std/bytes`
   is already scheduled beside `std/net`/`std/dns`/`std/tls`/`std/url`; these two
   rounds say it does not belong in that bundle, because it is the one item that
-  blocks whole classes of program rather than one host boundary. Adjacent and
+  blocks whole classes of program rather than one host boundary. **It now carries
+  the roadmap's Next marker**, and a third reason arrived after those two: 0.1.79
+  cannot ship "WebSocket binary messages" without it, which `websocket.ts` states
+  in its own header. The shape needed is wider than a `Bytes` alias: a file read
+  as octets, a bytes/text bridge in `std/encoding` (whose six functions are all
+  `string -> string`), and a `std/crypto` taking and returning bytes, including
+  the SHA-1 RFC 6238 defaults to. What is *not* needed is arithmetic — D36's
+  operators, base32 decode and RFC 4226 dynamic truncation were all written in
+  ordinary Glyph over `Array<int>` and verified against published vectors. Adjacent and
   already-documented: hex literals still do not parse (`0xff` is `[E0002]`),
   which is a known deferral but unusually painful here, since a 256-entry CRC32
   table written in decimal is unreadable.

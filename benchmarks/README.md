@@ -46,3 +46,15 @@ pip install tiktoken    # for real token counts (otherwise the proxy is used)
 - Line counts exclude blank lines and comments. The point is to measure semantic density, not coding style.
 - Diff stability is measured on Glyph's own pipeline (`diff_stability.sh`): a controlled one-line Glyph edit is rebuilt through the transpiler and the changed lines in the emitted TypeScript are counted, confirming the pipeline does not amplify a small edit and that `glyph fmt` adds no churn. A cross-language formatter race is intentionally avoided as uninformative (Prettier, Black, and rustfmt are already diff-stable).
 - Honesty over flattery: these are structural metrics (density, verifiability, diff locality). They are the *drivers* the manifesto bets make agents more productive; the productivity claim itself is a hypothesis to be validated with a real agent study (future work), not asserted here.
+
+## Micro-benchmarks (`micro/`)
+
+Single-question measurements that answer a specific design call, kept so the
+claim in a guide can be re-run rather than trusted. These are not part of the
+per-commit measure script and produce no `results/*.json`.
+
+- `bytes_vs_buffer.mjs` — `std/bytes`'s hand-written hex/base64/base32 codecs
+  against node's `Buffer` on the same octets, at three sizes. Also measures
+  validating *after* a native decode, which is what separates the cost of the
+  refusal guarantee from the cost of not delegating. The table it produces is in
+  `docs/guide/performance.md`. Run with `npx tsx benchmarks/micro/bytes_vs_buffer.mjs`.

@@ -4699,6 +4699,35 @@ land here until they're assigned a release.
   would be paying for it in the wrong currency. And whatever lands, `for c in
   cells` stays the advice, because it is fastest, clearest, and needs no analysis
   to be either.
+- **`std/bytes` codecs need a native fast path, and the reason is not the one
+  0.1.78 gave.** Benchmarked after the fact
+  (`benchmarks/micro/bytes_vs_buffer.mjs`), the hand-written codecs are 40x to
+  100x slower than `Buffer` on a megabyte: `to_base64` 135 ms against 1.2 ms,
+  `to_hex` 160 ms against 4 ms, `from_base64` 40 ms against 0.5 ms, `to_base32`
+  170 ms with no equivalent to compare against. At 32 bytes, which is a key or a
+  token, everything is under two microseconds and none of it matters. The
+  UTF-8 bridge is unaffected, since `from_text`/`to_text` are `TextEncoder` and
+  `TextDecoder` and already native.
+
+  **The release notes implied writing the codecs out was what bought the
+  refusal, and the measurement does not support that.** Validating *after* a
+  native decode is nearly free: node's hex decoder stops at the first bad pair
+  and its base64 decoder skips anything outside the alphabet, so in both cases
+  the decoded length falls short of what the input claims and an O(1) comparison
+  catches it. A fully checked `Buffer` hex decode measured 2.3 ms against the
+  unchecked 2.1 ms. Two wrinkles, both cheap and both verified against the 13
+  cases `bytes.from_base64` already answers: node accepts base64url characters
+  under `"base64"`, which two native `indexOf` scans rule out, and a final
+  character carrying bits past the end of the data survives the length check, so
+  the last group is re-encoded and compared. So the guarantee costs almost
+  nothing and the JS loop costs everything.
+
+  What the JS implementation actually buys is the bare realm, which is worth
+  keeping. The fix is a delegating fast path: use `Buffer` where it exists, fall
+  back to the current implementation where it does not, and keep the refusal on
+  both paths. Encode has no validation to do at all, so on node it should simply
+  delegate. Until then `docs/guide/performance.md` carries the table and says to
+  reach for `Buffer` through `extern_ts` when encoding megabytes.
 - **`std/encoding`'s six functions are silent on malformed input.**
   `base64_decode("!!!")` is `""` and no error, because `Buffer.from` skips any
   character outside the alphabet, and a decode of bytes that are not valid UTF-8

@@ -47,6 +47,48 @@ Before 0.1.76 it built the range as a real array first, which made the idiom tha
 reads like a counting loop the slowest of the three by a factor of nearly three;
 if you are on an older release, that rewrite is worth doing by hand.
 
+## Encoding bytes
+
+`std/bytes` writes its hex, base64, base64url and base32 codecs out in
+TypeScript rather than calling node's `Buffer`, which is what lets the module run
+somewhere `Buffer` does not exist, such as a Web Worker. On small inputs that
+costs nothing you can measure. On large ones it costs a great deal, and you
+should know where the line is.
+
+One megabyte, per operation, warm (`benchmarks/micro/bytes_vs_buffer.mjs`):
+
+| | `std/bytes` | node `Buffer` | |
+|---|---|---|---|
+| `to_hex` | 160 ms | 4 ms | 40x |
+| `from_hex` | 11 ms | 2 ms | 5x |
+| `to_base64` | 135 ms | 1.2 ms | 100x |
+| `from_base64` | 40 ms | 0.5 ms | 80x |
+| `to_base32` | 170 ms | no equivalent | |
+| `from_text` / `to_text` | 0.4 ms | 0.7 ms | within noise |
+
+At 32 bytes, which is the size of a key or a token, every one of these is under
+two microseconds and the ratios are between 1x and 7x. **Encoding a key, a
+hash, a nonce or a header is free at any ratio.** The numbers above only matter
+when the payload is large.
+
+**The UTF-8 bridge is not affected.** `from_text` and `to_text` use
+`TextEncoder` and `TextDecoder`, which are native, so they are competitive with
+`Buffer` in both directions and there is nothing to avoid.
+
+**If you are encoding megabytes on node, reach for `Buffer` through
+`extern_ts` for now.** Base64-encoding a 1 MB attachment costs about a tenth of
+a second through `std/bytes` and about a millisecond through `Buffer`. A
+delegating fast path, native where `Buffer` exists and the current
+implementation everywhere else, is on the roadmap.
+
+Worth being precise about what the slowness buys, because it is not the
+validation. Validating a decode *after* a native one, by checking that the
+decoded length matches what the input claims, costs almost nothing: a fully
+checked `Buffer` hex decode is 2.3 ms against the unchecked 2.1 ms, and a
+checked base64 decode is within noise of the raw one. So refusing malformed
+input is nearly free. What costs is the loop over 6-bit groups in JavaScript.
+The reason to keep that loop is the bare realm, not the guarantee.
+
 ## Where the cost actually is
 
 The descriptor a `type` generates is the one place Glyph adds runtime work you

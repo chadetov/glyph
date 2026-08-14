@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.78, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.79, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3363,7 +3363,34 @@ the pipeline. The app deliberately took the no-npm-dependency path, so it wrote
 the graph walk and the rename itself. A `--target browser` emitting pruned,
 relative-specifier ESM is what removes that file.
 
-#### 0.1.76 — a mutation that loses an update
+#### 0.1.76 — tell the agent what the answer is
+
+**Next.** From reading the outside author's session log (round 33), which is the
+first record of what writing Glyph feels like in real time rather than what the
+result looks like. Eleven diagnostics across 3,377 lines is the headline; these
+two are what is left.
+
+**G116: `E0105` withholds the answer it is holding.** Eight of the session's
+eleven diagnostics are one agent hunting a single function in `std/random` —
+`int`, `next`, `float`, `number`, `range`, `int_range`, `between`, `shuffle` —
+where the module exports exactly one name, `seeded`. Every message is correct and
+none is actionable: "check the spelling" cannot be acted on without the list, and
+the resolver has the list, because producing the error is what proves it. Naming
+the exports, or the nearest matches, turns eight build cycles into one. For a
+human this is an annoyance solved by opening the docs; for an agent, which is who
+this language is for, each guess costs a whole build.
+
+**G117: the most-recommended loop idiom is the slowest one.** Measured over a
+scanning shape: `for c in cells` 40 ms, `array.filter` with a closure 72 ms,
+`for i in array.range(n)` with `cells[i]` **168 ms**. The session's own benchmark
+recommended the third. `array.range(n)` allocates an n-element array per call and
+indexing goes through a bounds-checking helper, so the index loop pays both.
+Lowering `for x in array.range(a)` to a counting `for` removes the allocation and
+makes the idiom what every reader already assumes it is. `performance.md` needs
+the iteration guidance it does not currently carry, and the repo has no benchmark
+over these idioms, which is why an outside team had to write one.
+
+#### 0.1.77 — a mutation that loses an update
 
 **Decided.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
@@ -3383,7 +3410,7 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.77 — the host boundary, and the app that will tell us what it needs
+#### 0.1.78 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3533,7 +3560,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.78 — finish what is half-built
+#### 0.1.79 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

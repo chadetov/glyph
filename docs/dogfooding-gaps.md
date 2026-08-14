@@ -3188,7 +3188,8 @@ worth keeping.
   does it is four lines of `match acc` ceremony each time. `max_by`/`min_by`
   taking a key function is the shape that closes it; `max`/`min`/`sum` over
   `Array<number>` are the trivial cases of the same thing.
-  *Reproduced against 0.1.72.*
+  *Reproduced against 0.1.78: all four are `[E0105] not exported by std/array`,
+  and `max` is answered with `(did you mean `map`?)`.*
 
 - **G101. `array.fold` cannot stop early, so every short-circuiting accumulation
   is hand-written index recursion.** The app's requirements ask for alpha-beta
@@ -3203,7 +3204,8 @@ worth keeping.
   and not pruning. A `fold_while`/`try_fold` whose callback returns a continue-or-
   stop is the missing piece. Not a soundness bug: the hand-written form is
   correct, just long.
-  *Reproduced against 0.1.72.*
+  *Reproduced against 0.1.78: `array.fold_while` is `[E0105] not exported by
+  std/array`.*
 
 **The documentation gap, which is not a `G` entry because nothing is broken.**
 The author's `specs/requirements.md` records, as a decision taken before the
@@ -3411,7 +3413,15 @@ and stopped on the same sentence: Glyph has no bytes.
   has to decide what to call it. The only expressible version of the app is
   `read_text` plus `array.sort`, which is the memory shape the round existed to
   avoid.
-  *Reproduced against 0.1.72.*
+  *Reproduced against 0.1.78: `fs.open` and `fs.read_line_at` are both `[E0105]
+  not exported by std/fs`, and the runtime still contains no `asyncIterator`,
+  `AsyncIterable`, `createReadStream` or generator. One clause of the premise has
+  changed and the finding survives it: `readSync`'s buffer no longer needs a
+  `Buffer` the language cannot name, because 0.1.78 shipped `std/bytes`. What is
+  still missing is `openSync`/`closeSync` in the shim, a `position` that can be
+  null, and any iteration protocol at all, so the streaming shape stays
+  unwritable. `std/stream` is still the property-testing sampler, so the naming
+  problem is unchanged.*
 
 - **G106. E0106 calls an import dead when only an `@example` uses it.** A module
   whose `@example` annotations reference `Some`/`None`, a union's constructors,
@@ -3426,6 +3436,12 @@ and stopped on the same sentence: Glyph has no bytes.
       import std/option { Option, Some, None }
       @example wrap(1) == Some(1)
       pub fn wrap(n: number) -> Option<number> { Some(n) }
+
+  *Reproduced against 0.1.78: `import std/option { Some, None }` used only by
+  two `@example` lines is two `[E0106] unused import` warnings, in a build whose
+  examples pass. The same module with the constructors also used in the body is
+  warning-free, which is what pins the finding to the `@example` reference not
+  counting as a use.*
 
   Two independent rounds hit it, which is a fair signal of how often a test-only
   import occurs in practice. The lint's own justification is greppability ("no
@@ -3483,7 +3499,8 @@ which is the infrastructure round 28 left blocked.
   0.1.60 closed for single-project builds ("the compiler stops blaming the wrong
   line"); the multi-project path kept it, and it only shows when two projects
   share a module name, which for `main.glyph` is every app in the tree.
-  *Reproduced against 0.1.72.*
+  *Reproduced against 0.1.78, verbatim: two projects each with a `main.glyph`,
+  the error in `beta`, and the diagnostic quoting `alpha`'s `import std/io`.*
 
 ## Round 30: what is left between `gen dts` and a usable `marked`
 

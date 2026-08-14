@@ -49,8 +49,38 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.77</span>
+            <span class="rel-ver">0.1.78</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Bytes</h3>
+            <p>Two applications written independently, one a PNG reader and one an authenticator, stopped on the same sentence: Glyph had no bytes. Every boundary in the standard library was string-in, string-out, so a file whose first byte is <code>0x89</code> could not be read and an HMAC could not be given a real key.</p>
+            <div class="code">
+              <span class="cap">Now writable</span>
+<pre>let key = bytes.from_base32(secret)?
+let mac = crypto.hmac_sha1_bytes(key, counter)
+let png = fs.read_bytes(path)?
+match bytes.starts_with(png, signature) { <span class="cm">// 137 80 78 71 13 10 26 10</span>
+  true =&gt; read_chunks(png),
+  false =&gt; Err("not a PNG"),
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong><code>std/bytes</code></strong>: an immutable sequence of octets, a <code>Uint8Array</code> at run time so it hands to a host API unwrapped. The sequence operations take their names from this type&rsquo;s peers in <code>std/array</code> and <code>std/string</code>: <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>, <code>join</code>, <code>equals</code>, <code>index_of</code>, <code>starts_with</code>. Hex, base64, base64url and base32 codecs, and a UTF-8 bridge in both directions.</li>
+              <li><span class="tag added">Added</span> <strong><code>fs.read_bytes</code>, <code>write_bytes</code>, <code>append_bytes</code></strong>: a file read and written undecoded. <code>read_text</code> on a PNG replaces every byte that is not valid UTF-8 with U+FFFD and reports success.</li>
+              <li><span class="tag added">Added</span> <strong>A <code>_bytes</code> form of every digest and HMAC in <code>std/crypto</code></strong>, plus SHA-1 for the protocols that specify it, <code>hmac_sha512</code>, <code>random_bytes</code>, and <code>timing_safe_equal</code>. Which form you pick changes the answer: a key with a byte that is not valid UTF-8 loses that byte on the way through a string, so the text form of a real key computes a different MAC than the specification says.</li>
+            </ul>
+            <p><strong>Every decode returns a <code>Result</code> that names the position it rejected.</strong> This is the expensive half and the reason to use the module. Node&rsquo;s <code>Buffer</code> is silent on malformed input: <code>Buffer.from("zz", "hex")</code> is an empty buffer and no error, base64 decoding skips any character outside the alphabet so a base64url string decodes to quietly wrong bytes, and <code>toString("utf8")</code> substitutes U+FFFD and reports success, which turns a truncated read into plausible-looking text. Every codec here is written out instead and refuses all three. <code>to_text</code> scans to find the first byte that cannot start or continue a valid sequence, so you get <code>not valid UTF-8 at 2</code> rather than a verdict.</p>
+            <p>Writing the codecs out bought something that was not the motive: the module reaches for no host API at all, only <code>Uint8Array</code>, <code>TextEncoder</code> and <code>TextDecoder</code>, so a bundle that touches only <code>std/bytes</code> runs in a Web Worker.</p>
+            <p><strong>What a published vector proves is only what its inputs exercise.</strong> The codecs are pinned against RFC 4648 and the HMAC against RFC 6238. Breaking <code>hmac_sha1_bytes</code> on purpose, to route its key through a string, left the RFC 6238 assertion passing, because that vector&rsquo;s secret is ASCII and survives the trip unchanged. The test now also pins an HMAC over a key containing <code>0xff</code>, where the string route gives <code>4ab779f0&hellip;</code> instead of <code>c543ef42&hellip;</code>.</p>
+            <p>Reading a big-endian integer out of a header is still arithmetic you write, and hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as text; the type it was missing now exists.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.77</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

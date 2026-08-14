@@ -3431,7 +3431,7 @@ copy of a similar walk as a cleanup worth doing), it went into `glyph-ast` as a
 shared `visit` module with no wildcard arm, so a new AST variant forces a
 decision in one place instead of being silently missed by one pass.
 
-#### 0.1.78 — Landed on main · Bytes
+#### 0.1.78 — Shipped · Bytes
 
 `std/bytes`, and the three boundaries that had no way to carry octets. Closes
 **G102**, which two apps in one round stopped dead on: a PNG reader that could

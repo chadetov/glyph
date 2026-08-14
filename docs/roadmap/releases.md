@@ -3065,9 +3065,9 @@ step with the runtime, since it is now the authority for both spellings. **G79**
 not synthesize a check for a type it has no descriptor for, which is its
 documented soundness limit and now interacts with E0304.
 
-#### 0.1.73 — Landed on main · A project changes compiler on purpose
+#### 0.1.73 — Shipped · A project changes compiler on purpose
 
-**Next.** Found by reading `glyph-hello`, the outside app above. Its
+**Published 2026-08-14.** Found by reading `glyph-hello`, the outside app above. Its
 `package.json` said `"@glyphlang/glyph": "^0.1.72"`, which our own `glyph init`
 wrote, and the caret is wrong in a way that took an outside project to make
 obvious. On a `0.x` version npm's caret still floats the patch, so that range
@@ -3123,6 +3123,18 @@ really about, `getting-started` gains both commands, `AGENTS.md` and both
 `llms.txt` mirrors tell an agent not to widen a pin to make an install resolve,
 and `web/answers/upgrades/` is answer 22, "Will a new Glyph release break my
 build?"
+
+**One defect the release cut found in the release's own feature.** Because the
+repo version had always equalled npm's `latest`, `doctor`'s update branch had
+only ever been unit-tested; the live path had returned `Current` every time it
+had ever run. Exercising it properly (a binary stamped 0.1.71 against the real
+registry) confirmed the branch renders and the JSON is well-formed, and turned
+up the neighbouring case: a build *ahead* of the registry was also classified
+`Current`, so it printed "the newest published release" while being newer than
+anything published. That is every dev build, and every release between its
+version bump and its publish. There is now an `Ahead` state that says which
+version the registry actually has, and the classifier is a pure function with
+all four orderings pinned by a test that was watched failing before it passed.
 
 #### 0.1.74 — a mutation that loses an update
 

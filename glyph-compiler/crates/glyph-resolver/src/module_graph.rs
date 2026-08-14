@@ -364,6 +364,10 @@ pub fn verify_imports(module: &Module, graph: &dyn ModuleGraph) -> Vec<ResolveEr
                     errors.push(ResolveError::UnknownExportedName {
                         name: n.to_string(),
                         module: path_key(&imp.path),
+                        suggestion: crate::error::export_suggestion(
+                            n,
+                            exports.names.iter().map(|e| e.as_ref()),
+                        ),
                         span: imp.span,
                     });
                 }
@@ -485,6 +489,10 @@ pub fn verify_qualified_type_refs(
             errors.push(ResolveError::UnknownExportedName {
                 name: r.name.to_string(),
                 module: path_key(&r.module),
+                suggestion: crate::error::export_suggestion(
+                    &r.name,
+                    exports.names.iter().map(|e| e.as_ref()),
+                ),
                 span: r.span,
             });
         }

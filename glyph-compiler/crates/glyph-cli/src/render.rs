@@ -301,6 +301,7 @@ mod tests {
         let err = ResolveError::UnknownExportedName {
             name: "bogus".to_string(),
             module: "lib".to_string(),
+            suggestion: String::new(),
             span: Span::new(9, 14),
         };
         let source = "module x\nimport lib { bogus }\n";
@@ -325,6 +326,7 @@ mod tests {
         let err = ResolveError::UnknownExportedName {
             name: "bogus".to_string(),
             module: "lib".to_string(),
+            suggestion: String::new(),
             span: Span::new(import_start as u32, import_end as u32),
         };
         let out = render_resolve_error("app.glyph", source, &err, false);

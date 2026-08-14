@@ -65,10 +65,21 @@ pub enum ResolveError {
         span: Span,
     },
 
-    #[error("`{name}` is not exported by `{module}`")]
+    /// `suggestion` is pre-rendered by `export_suggestion` and carries the
+    /// module's actual exports, or the nearest one when the name is close.
+    ///
+    /// It lives in the message rather than the help because the help is the same
+    /// sentence for every instance of this error and the useful part is not.
+    /// An outside agent hunting one function in `std/random` spent eight builds
+    /// on `int`, `next`, `float`, `number`, `range`, `int_range`, `between` and
+    /// `shuffle`; the module exports exactly `seeded`, and the resolver was
+    /// holding that list the whole time, since checking against it is what
+    /// produced each error (G116).
+    #[error("`{name}` is not exported by `{module}`{suggestion}")]
     UnknownExportedName {
         name: String,
         module: String,
+        suggestion: String,
         span: Span,
     },
 
@@ -314,5 +325,122 @@ mod tests {
         assert!(unresolved("float").help().unwrap().contains("`number`"));
         assert!(unresolved("any").help().unwrap().contains("`unknown`"));
         assert!(unresolved("Promise").help().unwrap().contains("async fn"));
+    }
+}
+
+/// The parenthetical that turns "that name is wrong" into "here is the right
+/// one". Empty when the module exports nothing we can name.
+///
+/// A near-miss gets a single suggestion, because one obviously-intended name is
+/// more useful than a list to read. Everything else gets the list, capped so a
+/// wide module does not bury the message.
+pub fn export_suggestion<'a>(wanted: &str, mut exports: impl Iterator<Item = &'a str>) -> String {
+    const MAX_LISTED: usize = 8;
+    let mut names: Vec<&str> = Vec::new();
+    for e in exports.by_ref() {
+        names.push(e);
+    }
+    if names.is_empty() {
+        return String::new();
+    }
+    names.sort_unstable();
+
+    // A near miss: one edit for a typo, two for a transposition plus a slip.
+    // Scaled down for short names so `int` does not "match" `abs`.
+    let budget = match wanted.len() {
+        0..=3 => 1,
+        4..=7 => 2,
+        _ => 3,
+    };
+    let best = names
+        .iter()
+        .map(|n| (edit_distance(wanted, n), *n))
+        .filter(|(d, _)| *d <= budget)
+        .min_by_key(|(d, n)| (*d, n.len()));
+    if let Some((_, name)) = best {
+        return format!(" (did you mean `{name}`?)");
+    }
+
+    if names.len() <= MAX_LISTED {
+        format!(" (exports: {})", names.join(", "))
+    } else {
+        let rest = names.len() - MAX_LISTED;
+        format!(
+            " (exports: {}, and {rest} more)",
+            names[..MAX_LISTED].join(", ")
+        )
+    }
+}
+
+/// Levenshtein distance, two rows rather than a full matrix.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    if a.is_empty() {
+        return b.len();
+    }
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut cur = vec![0usize; b.len() + 1];
+    for (i, ca) in a.iter().enumerate() {
+        cur[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            cur[j + 1] = (prev[j] + cost).min(prev[j + 1] + 1).min(cur[j] + 1);
+        }
+        std::mem::swap(&mut prev, &mut cur);
+    }
+    prev[b.len()]
+}
+
+#[cfg(test)]
+mod suggestion_tests {
+    use super::export_suggestion;
+
+    /// The case that produced the entry: an agent hunting one function in
+    /// `std/random` spent eight builds on names that do not exist, while the
+    /// module exports exactly `seeded` and the resolver held that list.
+    #[test]
+    fn a_module_with_few_exports_names_them_all() {
+        let s = export_suggestion("int", ["Rng", "seeded"].into_iter());
+        assert_eq!(s, " (exports: Rng, seeded)");
+        // Every guess from the real session ends the search on the first build.
+        for wanted in ["next", "float", "number", "range", "int_range", "between", "shuffle"] {
+            let s = export_suggestion(wanted, ["Rng", "seeded"].into_iter());
+            assert!(s.contains("seeded"), "`{wanted}` must be told the answer: {s}");
+        }
+    }
+
+    /// A typo gets the one obviously-intended name rather than a list to read.
+    #[test]
+    fn a_near_miss_suggests_the_intended_name() {
+        let s = export_suggestion("repeeat", ["repeat", "split", "trim"].into_iter());
+        assert_eq!(s, " (did you mean `repeat`?)");
+        let s = export_suggestion("fliter", ["filter", "find", "fold"].into_iter());
+        assert_eq!(s, " (did you mean `filter`?)");
+    }
+
+    /// A short name must not "match" an unrelated short name: `int` against
+    /// `abs` is three edits over three characters, which a flat budget would
+    /// have accepted.
+    #[test]
+    fn a_short_name_does_not_match_an_unrelated_one() {
+        let s = export_suggestion("int", ["abs", "max", "min"].into_iter());
+        assert!(s.starts_with(" (exports:"), "expected a list, got {s}");
+    }
+
+    /// A wide module lists a capped set rather than burying the message.
+    #[test]
+    fn a_wide_module_caps_the_list_and_says_how_many_remain() {
+        let names = ["a1", "b2", "c3", "d4", "e5", "f6", "g7", "h8", "i9", "j10"];
+        let s = export_suggestion("zzzzzz", names.into_iter());
+        assert!(s.contains("and 2 more"), "got {s}");
+        assert!(s.contains("a1, b2"), "got {s}");
+    }
+
+    /// Nothing to suggest is silence, not an empty parenthetical.
+    #[test]
+    fn a_module_with_no_exports_suggests_nothing() {
+        let s = export_suggestion("anything", std::iter::empty());
+        assert_eq!(s, "");
     }
 }

@@ -49,8 +49,24 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.75</span>
+            <span class="rel-ver">0.1.76</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Tell the agent what the answer is</h3>
+            <p>From reading a session log an outside author shared: 14 agents and 3,377 lines of Glyph, in which the compiler produced eleven diagnostics total. Eight of the eleven were one agent guessing.</p>
+            <ul class="changelist">
+              <li><span class="tag improved">Improved</span> <strong>An unknown import now names the answer.</strong> Hunting one function in <code>std/random</code> cost eight builds: <code>int</code>, <code>next</code>, <code>float</code>, <code>number</code>, <code>range</code>, <code>int_range</code>, <code>between</code>, <code>shuffle</code>. The module exports exactly <code>seeded</code>, and the compiler knew that every time, because checking against the list is what produced each error. It says so now: <code>`int` is not exported by `std/random` (exports: Rng, seeded)</code>. A near miss gets the intended name instead &mdash; <code>string.repeeat</code> is <code>(did you mean `repeat`?)</code>.</li>
+              <li><span class="tag fixed">Fixed</span> <strong><code>for i in array.range(n)</code> no longer builds an array to count with.</strong> It was the slowest of the three ways to scan a collection, by a factor of nearly three, and it is the one that reads like a counting loop. It lowers to a real counting <code>for</code> now, with both bounds evaluated once.</li>
+            </ul>
+            <p>Counting a match over 81 elements, 200,000 rounds: <code>for c in cells</code> 33 ms, <code>array.filter</code> with a closure 62 ms, <code>for i in array.range(...)</code> 61 ms &mdash; down from 168. Iterate the collection directly when you do not need the index; indexing costs a bounds check per element, which is what turns an off-the-end read into an error rather than an <code>undefined</code> three frames later. The closure is not the thing to avoid. The performance guide now carries this table, which it did not before, and an outside team wrote a benchmark harness to find it out.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.75</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

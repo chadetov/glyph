@@ -51,6 +51,23 @@ pub enum GenError {
         #[source]
         source: std::io::Error,
     },
+    /// Two distinct source types flatten onto one Glyph type name.
+    ///
+    /// `sanitize_type` drops every non-alphanumeric character, so it is
+    /// many-to-one: `Tokens.List`, `tokens_list` and `TokensList` all become
+    /// `TokensList`. Glyph modules are flat and every top-level name must be
+    /// unique (E0100), so one of them has to be named something else, and
+    /// picking automatically would invent a name that appears in no source
+    /// (ungreppable) and could renumber when the source gains a type
+    /// (diff-unstable). So the generator stops and the developer names it.
+    #[error("`{flat}` is produced by {} different types in {source_label}:\n{}\n\nNothing was written. Give one of them a Glyph name:\n  {suggestion}", sources.len(), sources.iter().map(|s| format!("             `{s}`")).collect::<Vec<_>>().join("\n"))]
+    NameCollision {
+        flat: String,
+        sources: Vec<String>,
+        source_label: String,
+        suggestion: String,
+    },
+
     /// A generated snippet failed to parse. This is a generator bug, not user
     /// error; we surface the offending source so it is diagnosable.
     #[error("internal: generated Glyph did not parse ({reason}).\n--- generated ---\n{source_text}")]
@@ -91,6 +108,7 @@ pub fn openapi(
     out_dir: &Path,
     client: bool,
     handlers: bool,
+    renames: &Renames,
 ) -> Result<GenReport, GenError> {
     let raw = std::fs::read_to_string(spec_path).map_err(|e| GenError::Read {
         path: spec_path.to_path_buf(),
@@ -120,6 +138,7 @@ pub fn openapi(
     if handlers {
         regen.push_str(" --handlers");
     }
+    regen.push_str(&rename_flags(renames));
 
     let mut gen = Generator::default();
     let (imports, trailer) = if client || handlers {
@@ -137,7 +156,73 @@ pub fn openapi(
     } else {
         (String::new(), String::new())
     };
-    render_and_write(gen, schemas, module_name, source_label, regen, imports, trailer, out_dir)
+    render_and_write(gen, schemas, module_name, source_label, regen, imports, trailer, out_dir, renames)
+}
+
+/// Explicit `source type name -> Glyph type name` overrides, from `--rename`.
+///
+/// Keyed on the source's own identity (`Tokens.List`), which is what the
+/// collision error prints and what stays stable as the package changes.
+pub type Renames = std::collections::BTreeMap<String, String>;
+
+/// Rewrite the schema keys the developer named, so the rest of the pipeline
+/// (and the collision check) sees the chosen name.
+fn apply_renames(schemas: Vec<(String, Value)>, renames: &Renames) -> Vec<(String, Value)> {
+    if renames.is_empty() {
+        return schemas;
+    }
+    schemas
+        .into_iter()
+        .map(|(name, schema)| match renames.get(&name) {
+            Some(chosen) => (chosen.clone(), schema),
+            None => (name, schema),
+        })
+        .collect()
+}
+
+/// Fail if two source types would be written under one Glyph name.
+///
+/// Grouped by the *emitted* name, and every colliding source is listed rather
+/// than just the pair, so one run resolves the whole file instead of surfacing
+/// the next collision after each fix.
+fn check_name_collisions(
+    schemas: &[(String, Value)],
+    source_label: &str,
+    regen_cmd: &str,
+) -> Result<(), GenError> {
+    let mut by_flat: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
+    for (raw, _) in schemas {
+        by_flat.entry(sanitize_type(raw)).or_default().push(raw.clone());
+    }
+    for (flat, sources) in by_flat {
+        if sources.len() > 1 {
+            // Suggest renaming a source whose own spelling is not already the
+            // emitted name: that one is the surprise, and leaving the
+            // straightforwardly-named type alone keeps the diff small.
+            let target = sources
+                .iter()
+                .find(|s| *s != &flat)
+                .unwrap_or(&sources[0]);
+            let suggestion = format!("{regen_cmd} --rename {target}=<GlyphName>");
+            return Err(GenError::NameCollision {
+                flat,
+                sources,
+                source_label: source_label.to_string(),
+                suggestion,
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Format `--rename` pairs back into the recorded command, so `glyph regen`
+/// replays the developer's choice instead of failing on the collision again.
+fn rename_flags(renames: &Renames) -> String {
+    renames
+        .iter()
+        .map(|(k, v)| format!(" --rename {k}={v}"))
+        .collect()
 }
 
 /// Turn a schema map into a formatted, self-validated `.glyph` file on disk.
@@ -154,8 +239,17 @@ fn render_and_write(
     imports: String,
     trailer: String,
     out_dir: &Path,
+    renames: &Renames,
 ) -> Result<GenReport, GenError> {
     let module_name = &module_name;
+    // The uniqueness check belongs *here*, on the names about to be written.
+    // The `.d.ts` reader has its own check, but it runs on the dotted source
+    // identity (`Tokens.List`), where distinct types are still distinct; the
+    // flattening that can merge them happens after, in this process. Checking
+    // upstream of the only step that creates duplicates is how `gen` came to
+    // report success for a file that could not compile.
+    let schemas = apply_renames(schemas, renames);
+    check_name_collisions(&schemas, &source_label, &regen_cmd)?;
     let body = gen.emit_module(module_name, &source_label, &regen_cmd, schemas, &imports, &trailer);
 
     // Canonicalize + self-validate: parse the generated source and reprint it.
@@ -206,7 +300,7 @@ const TS_TO_SCHEMA: &str = include_str!("../../../runtime/tools/ts-to-schema.mjs
 /// interop work, the committed opt-in materialization). Either way the resolved
 /// declarations flow through the same node helper and mapper as `gen openapi`.
 /// `node` must be on PATH and the `typescript` package resolvable.
-pub fn dts(target: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
+pub fn dts(target: &Path, out_dir: &Path, renames: &Renames) -> Result<GenReport, GenError> {
     // A path that exists as a file is a literal `.d.ts`; anything else is read
     // as a package name and resolved from `node_modules`. This keeps the
     // original file-path behavior byte-identical and adds package resolution
@@ -214,16 +308,25 @@ pub fn dts(target: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
     if target.is_file() {
         let module_name = sanitize_module(stem_of(target));
         let source_label = target.display().to_string();
-        let regen = format!("glyph gen dts {} --out {}", target.display(), out_dir.display());
-        return dts_from_file(target, module_name, source_label, regen, out_dir);
+        let regen = format!(
+            "glyph gen dts {} --out {}{}",
+            target.display(),
+            out_dir.display(),
+            rename_flags(renames)
+        );
+        return dts_from_file(target, module_name, source_label, regen, out_dir, renames);
     }
 
     let pkg = target.to_string_lossy().into_owned();
     let resolved = resolve_package_dts(&pkg)?;
     let module_name = sanitize_module(package_module_name(&pkg));
     let source_label = format!("{pkg} ({})", resolved.display());
-    let regen = format!("glyph gen dts {pkg} --out {}", out_dir.display());
-    dts_from_file(&resolved, module_name, source_label, regen, out_dir)
+    let regen = format!(
+        "glyph gen dts {pkg} --out {}{}",
+        out_dir.display(),
+        rename_flags(renames)
+    );
+    dts_from_file(&resolved, module_name, source_label, regen, out_dir, renames)
 }
 
 /// The shared core: run the TypeScript-to-JSON-Schema helper on a resolved
@@ -234,6 +337,7 @@ fn dts_from_file(
     source_label: String,
     regen: String,
     out_dir: &Path,
+    renames: &Renames,
 ) -> Result<GenReport, GenError> {
     let doc = match run_helper(TS_TO_SCHEMA, "glyph-ts-to-schema", "node", dts_path) {
         HelperOutcome::Ok(v) => v,
@@ -263,6 +367,7 @@ fn dts_from_file(
         String::new(),
         String::new(),
         out_dir,
+        renames,
     )?;
     // Surface the reader's warnings (e.g. a same-named type in two files, which
     // first-wins would silently bind to the wrong shape) as gen notes.
@@ -465,20 +570,29 @@ const ZOD_TO_SCHEMA: &str = include_str!("../../../runtime/tools/zod-to-schema.m
 /// so the module is executed), converts each exported schema to JSON Schema, and
 /// feeds the same mapper as `gen openapi`/`dts`. `tsx` must be on PATH and `zod`
 /// resolvable from the module's project.
-pub fn zod(target: &Path, out_dir: &Path) -> Result<GenReport, GenError> {
+pub fn zod(target: &Path, out_dir: &Path, renames: &Renames) -> Result<GenReport, GenError> {
     if target.is_file() {
         let module_name = sanitize_module(stem_of(target));
         let source_label = target.display().to_string();
-        let regen = format!("glyph gen zod {} --out {}", target.display(), out_dir.display());
-        return zod_from_module(target, module_name, source_label, regen, out_dir);
+        let regen = format!(
+            "glyph gen zod {} --out {}{}",
+            target.display(),
+            out_dir.display(),
+            rename_flags(renames)
+        );
+        return zod_from_module(target, module_name, source_label, regen, out_dir, renames);
     }
 
     let pkg = target.to_string_lossy().into_owned();
     let resolved = resolve_package_zod_module(&pkg)?;
     let module_name = sanitize_module(package_module_name(&pkg));
     let source_label = format!("{pkg} ({})", resolved.display());
-    let regen = format!("glyph gen zod {pkg} --out {}", out_dir.display());
-    zod_from_module(&resolved, module_name, source_label, regen, out_dir)
+    let regen = format!(
+        "glyph gen zod {pkg} --out {}{}",
+        out_dir.display(),
+        rename_flags(renames)
+    );
+    zod_from_module(&resolved, module_name, source_label, regen, out_dir, renames)
 }
 
 /// The shared core: run the zod-to-JSON-Schema helper on a resolved module and
@@ -489,6 +603,7 @@ fn zod_from_module(
     source_label: String,
     regen: String,
     out_dir: &Path,
+    renames: &Renames,
 ) -> Result<GenReport, GenError> {
     let doc = match run_helper(ZOD_TO_SCHEMA, "glyph-zod-to-schema", "tsx", file) {
         HelperOutcome::Ok(v) => v,
@@ -517,6 +632,7 @@ fn zod_from_module(
         String::new(),
         String::new(),
         out_dir,
+        renames,
     )
 }
 
@@ -2240,7 +2356,7 @@ mod tests {
         )
         .unwrap();
 
-        let report = openapi(&spec, &dir.join("out"), false, false).expect("gen succeeds");
+        let report = openapi(&spec, &dir.join("out"), false, false, &Renames::new()).expect("gen succeeds");
         assert_eq!(report.type_count, 1);
         assert!(report.out_file.ends_with("orders.glyph"));
         let text = std::fs::read_to_string(&report.out_file).unwrap();
@@ -2269,7 +2385,7 @@ mod tests {
         )
         .unwrap();
 
-        match dts(&src, &dir.join("out")) {
+        match dts(&src, &dir.join("out"), &Renames::new()) {
             Ok(report) => {
                 let text = std::fs::read_to_string(&report.out_file).unwrap();
                 assert!(text.starts_with("module acct"), "got:\n{text}");
@@ -2294,6 +2410,125 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// Two source types that flatten onto one Glyph name must stop the
+    /// generator, not produce a file that cannot compile.
+    ///
+    /// `sanitize_type` is many-to-one, and it runs *after* the `.d.ts` reader's
+    /// own uniqueness check, which sees the still-distinct dotted names. Before
+    /// this check existed, `gen` printed `2 type(s) written`, exited 0, emitted
+    /// `type TokensList` twice, and the next `glyph build` was E0100. `marked`
+    /// ships exactly this shape (`Tokens.List` beside a top-level `TokensList`).
+    #[test]
+    fn dts_refuses_to_write_two_types_under_one_name() {
+        let dir = std::env::temp_dir().join(format!("glyph-dts-collide-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("collide.d.ts");
+        std::fs::write(
+            &src,
+            "export declare namespace Tokens { interface List { ordered: boolean; } }\n\
+             export interface TokensList { count: number; }\n",
+        )
+        .unwrap();
+        let out = dir.join("out");
+
+        match dts(&src, &out, &Renames::new()) {
+            Err(GenError::NameCollision { flat, sources, .. }) => {
+                assert_eq!(flat, "TokensList");
+                assert!(
+                    sources.contains(&"Tokens.List".to_string())
+                        && sources.contains(&"TokensList".to_string()),
+                    "both sources must be named so one run resolves it; got {sources:?}"
+                );
+                // Refusing means refusing: no half-written file left behind.
+                assert!(
+                    !out.join("collide.glyph").exists(),
+                    "nothing may be written when the generator refuses"
+                );
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            other => panic!("expected a name collision, got {other:?}"),
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// `--rename` resolves the collision, and the choice is recorded in the
+    /// header so `glyph regen` replays it instead of failing all over again.
+    #[test]
+    fn dts_rename_resolves_a_collision_and_is_recorded_for_regen() {
+        let dir = std::env::temp_dir().join(format!("glyph-dts-rename-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let src = dir.join("collide.d.ts");
+        std::fs::write(
+            &src,
+            "export declare namespace Tokens { interface List { ordered: boolean; } }\n\
+             export interface TokensList { count: number; }\n",
+        )
+        .unwrap();
+        let mut renames = Renames::new();
+        renames.insert("Tokens.List".to_string(), "ListToken".to_string());
+
+        match dts(&src, &dir.join("out"), &renames) {
+            Ok(report) => {
+                let text = std::fs::read_to_string(&report.out_file).unwrap();
+                assert!(text.contains("type ListToken"), "got:\n{text}");
+                assert!(text.contains("type TokensList"), "got:\n{text}");
+                assert!(
+                    text.contains("--rename Tokens.List=ListToken"),
+                    "the choice must survive regeneration; got:\n{text}"
+                );
+                assert!(glyph_parser::parse(&text).is_ok(), "must compile: {text}");
+            }
+            Err(GenError::NodeMissing)
+            | Err(GenError::TypescriptMissing)
+            | Err(GenError::TypescriptUnsupported) => {}
+            Err(e) => panic!("unexpected gen dts error: {e}"),
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A relative specifier carrying a runtime extension must still find the
+    /// declaration file its types live in.
+    ///
+    /// `moduleResolution: nodenext` makes the extension mandatory, so every
+    /// ESM-authored package writes `export * from "./x.js"`; TypeScript 5's
+    /// `allowImportingTsExtensions` adds `./x.ts`, which is what `date-fns`
+    /// uses. Both used to resolve to nothing, so a barrel materialized **zero**
+    /// types and failed with a message about OpenAPI keys.
+    #[test]
+    fn dts_follows_a_reexport_whose_specifier_carries_an_extension() {
+        let dir = std::env::temp_dir().join(format!("glyph-dts-ext-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.d.ts"), "export interface Alpha { name: string; }\n").unwrap();
+        std::fs::write(dir.join("b.d.mts"), "export interface Beta { flag: boolean; }\n").unwrap();
+
+        // `.js`/`.ts` map to `a.d.ts`; `.mjs` maps to `b.d.mts`, not `b.d.ts`.
+        for (spec, wanted) in [("./a.js", "Alpha"), ("./a.ts", "Alpha"), ("./b.mjs", "Beta")] {
+            let stem = format!("barrel{}", wanted);
+            let entry = dir.join(format!("{stem}.d.ts"));
+            std::fs::write(&entry, format!("export * from \"{spec}\";\n")).unwrap();
+
+            match dts(&entry, &dir.join("out"), &Renames::new()) {
+                Ok(report) => {
+                    let text = std::fs::read_to_string(&report.out_file).unwrap();
+                    assert!(
+                        text.contains(&format!("type {wanted}")),
+                        "`{spec}` must resolve to its declaration file; got:\n{text}"
+                    );
+                }
+                Err(GenError::NodeMissing)
+                | Err(GenError::TypescriptMissing)
+                | Err(GenError::TypescriptUnsupported) => {}
+                Err(e) => panic!("unexpected gen dts error for `{spec}`: {e}"),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn dts_walks_namespaces_and_generics() {
         // The shape real SDKs ship: a `declare namespace` of interfaces, a bare
@@ -2315,7 +2550,7 @@ mod tests {
         )
         .unwrap();
 
-        match dts(&src, &dir.join("out")) {
+        match dts(&src, &dir.join("out"), &Renames::new()) {
             Ok(report) => {
                 let text = std::fs::read_to_string(&report.out_file).unwrap();
                 // Namespaced types materialize under their qualified (sanitized)
@@ -2356,7 +2591,7 @@ mod tests {
         )
         .unwrap();
 
-        match dts(&src, &dir.join("out")) {
+        match dts(&src, &dir.join("out"), &Renames::new()) {
             Ok(report) => {
                 let text = std::fs::read_to_string(&report.out_file).unwrap();
                 assert!(text.contains("type Page<T>"), "generic decl keeps <T>; got:\n{text}");
@@ -2406,7 +2641,7 @@ mod tests {
         )
         .unwrap();
 
-        match dts(&dir.join("index.d.ts"), &dir.join("out")) {
+        match dts(&dir.join("index.d.ts"), &dir.join("out"), &Renames::new()) {
             Ok(report) => {
                 let text = std::fs::read_to_string(&report.out_file).unwrap();
                 assert!(text.contains("type Customer"), "re-exported type; got:\n{text}");
@@ -2442,7 +2677,7 @@ mod tests {
         )
         .unwrap();
 
-        match zod(&src, &dir.join("out")) {
+        match zod(&src, &dir.join("out"), &Renames::new()) {
             Ok(report) => {
                 let text = std::fs::read_to_string(&report.out_file).unwrap();
                 assert!(text.contains("type Account = {"), "got:\n{text}");

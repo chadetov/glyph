@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.76, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.77, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3136,7 +3136,63 @@ version bump and its publish. There is now an `Ahead` state that says which
 version the registry actually has, and the classifier is a pure function with
 all four orderings pinned by a test that was watched failing before it passed.
 
-#### 0.1.74 — a mutation that loses an update
+#### 0.1.74 — Landed on main · The generator stops reporting green for a file that fails
+
+**Next.** Both halves of `gen dts` that round 28 found, and they had the same
+shape: exit 0, a success line, and output that could not compile. `gen dts` is
+the answer the interop story names, so a generator that lies about its own
+output is worse there than anywhere else.
+
+**G104: a relative specifier carrying a file extension resolved to nothing.**
+`resolveModuleFile` had a candidate commented "spec already carried an
+extension" that only matched when the file literally existed under that name,
+which for a types-only package it never does. So `export * from "./a.js"`
+resolved to nothing and a barrel materialized **zero** types, reporting it with
+the OpenAPI generator's message about `components.schemas`. The extension is
+mandatory under `moduleResolution: nodenext`, so every ESM-authored typed
+package was in that class. Fixed by mapping the runtime extension to the
+declaration file that carries its types, as a lookup rather than a strip: the
+mapping is not uniform, since `.mjs` takes its types from `.d.mts`. Measured on
+the package that produced the finding, **`glyph gen dts date-fns` went from 0
+types to 280.**
+
+**G103: two source types written under one Glyph name.** `sanitize_type` drops
+every non-alphanumeric character, so it is many-to-one, and it runs *after* the
+`.d.ts` reader's own uniqueness check, which sees the still-distinct dotted
+names. The check was not too weak, it was upstream of the only step that can
+create a duplicate, and in a different language and process from it. First read
+as a namespace bug and it is not: `tokens_list` and `TokensList` collide with no
+namespace in sight.
+
+The check now runs on the emitted names, lists every colliding source so one run
+resolves the file, and writes nothing. `--rename Source=GlyphName` resolves it
+and is recorded in the generated header, so `glyph regen` replays the choice
+instead of failing on the collision it was already told how to resolve.
+
+**Why erroring rather than renaming automatically, in pillar terms.** Three
+options, and only one keeps the wedge intact. First-wins with a warning is what
+the existing cross-file path does, and it is the worst of the three: with
+`marked`, a field typed `Tokens.List` would bind to `TokensList`
+(`Token[] & { links }`), so a descriptor would validate the wrong shape at a
+boundary, quietly. That is the failure verifiability exists to prevent, and it
+is worse than the crash it replaces. Auto-renaming to `TokensList2` keeps
+verifiability but spends greppability, since that name appears in no source, and
+risks diff stability if the numbering follows declaration order. Erroring keeps
+both wedge pillars and spends abstraction, which is the polish tier, and the
+manifesto's tiebreak is that the wedge wins. The developer names it once and the
+name means something.
+
+**What this does not fix, recorded rather than glossed.** `glyph gen dts marked`
+now writes 46 types and exits 0, and the file still fails to build with 14
+`[E0103] unresolved name`. The difference is that **all of them were disclosed
+in `gen`'s own notes**, nine of them naming exactly the names that then failed.
+The reader materializes interfaces and type aliases, and marked's surface is
+classes (`Lexer`, `Parser`, `Renderer`), TypeScript utility types (`Omit`,
+`Pick`), and host types (`RegExp`, `Promise`). That is **G108**, and it is the
+next thing standing between `gen dts` and a package a working engineer would
+call usable.
+
+#### 0.1.75 — a mutation that loses an update
 
 **Decided.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
@@ -3156,7 +3212,7 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.75 — the host boundary, and the app that will tell us what it needs
+#### 0.1.76 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3306,7 +3362,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.76 — finish what is half-built
+#### 0.1.77 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

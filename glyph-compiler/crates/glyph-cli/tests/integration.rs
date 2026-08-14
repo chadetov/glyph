@@ -310,7 +310,8 @@ fn regen_refreshes_generated_files_from_the_spec() {
     )
     .unwrap();
 
-    glyph_cli::gen::openapi(&spec, &out, false, false).expect("initial gen");
+    glyph_cli::gen::openapi(&spec, &out, false, false, &glyph_cli::gen::Renames::new())
+        .expect("initial gen");
     let gen_file = out.join("api.glyph");
     let first = std::fs::read_to_string(&gen_file).unwrap();
     assert!(first.contains("Regenerate with"), "provenance header: {first}");

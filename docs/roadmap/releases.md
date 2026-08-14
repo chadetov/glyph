@@ -3193,9 +3193,12 @@ date-fns's own overloads with no adapter and no stub, a hyphenated package name
 parses, `gray-matter`'s `export =` CommonJS shape resolves through the named-import
 form, and `marked` correctly forced an `await` by returning
 `string | Promise<string>`. The *generator* is where it fails, twice, and both are
-silent-green rather than loud. `gen dts` emits two declarations of one name when a
-flattened namespace collides with a top-level type, prints `2 type(s) written`,
-exits 0, and leaves a file that fails `glyph build` (G103). And it ignores any
+silent-green rather than loud. `gen dts` emits two declarations of one name,
+prints `2 type(s) written`, exits 0, and leaves a file that fails `glyph build`
+(G103). That one was first read as a namespace-flattening bug and is not:
+`sanitize_type` is many-to-one and runs after the pipeline's only uniqueness
+check, so `tokens_list` and `TokensList` collide with no namespace in sight.
+The check is in the wrong place, not too weak. And it ignores any
 relative import carrying a file extension, so a barrel of `export * from "./a.js"`
 materializes **zero** types with a message about OpenAPI keys (G104). The second
 is the wider one: `.js` in a relative specifier is mandatory under

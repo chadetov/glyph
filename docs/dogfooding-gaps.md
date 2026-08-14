@@ -3267,24 +3267,37 @@ and stopped on the same sentence: Glyph has no bytes.
   table written in decimal is unreadable.
   *Reproduced against 0.1.72.*
 
-- **G103. `glyph gen dts` reports success for a file that cannot compile.** The
-  namespace flattener joins a qualified name by concatenation, so a
-  `namespace Tokens { interface List }` becomes `TokensList` and collides with a
-  genuine top-level `TokensList` in the same `.d.ts`. Both are emitted into one
-  module, `gen` prints `2 type(s) written` and exits 0, and no note mentions it;
-  the next `glyph build` is `[E0100] name TokensList declared more than once`.
-  On the real `marked` package this arrives after 48 notes, none of them about
-  this. The docs describe the *cross-file* version of this case as handled
-  ("kept first-wins", with a note); the within-file collision between a
-  flattened name and a top-level one is neither first-wins nor noted. Eight lines
-  reproduce it:
+- **G103. `glyph gen dts` reports success for a file that cannot compile,
+  because its only uniqueness check runs before the step that creates
+  duplicates.** First seen as a namespace collision (`namespace Tokens {
+  interface List }` emitted alongside a top-level `TokensList`), and that framing
+  was wrong: namespaces are incidental. No namespace is needed at all.
 
-      export declare namespace Tokens { interface List { ordered: boolean; } }
-      export interface TokensList { count: number; }
+      export interface tokens_list { a: string; }
+      export interface TokensList { b: number; }
 
-  A generator that reports green for output it never compiled is the class this
-  language exists to remove, so the exit code matters as much as the collision.
-  *Reproduced against 0.1.72.*
+  Two distinct, legal TypeScript types. `gen` prints `2 type(s) written`, exits
+  0, emits `type TokensList` twice, and the next `glyph build` is `[E0100] name
+  TokensList declared more than once`. The chain: `ts-to-schema.mjs:338` collects
+  each type under its dotted TypeScript identity (`Tokens.List`, `tokens_list`,
+  `TokensList`) and the dedup guard keys on *that*, where there is correctly no
+  collision. The dotted names travel through the JSON schema unchanged. Then
+  `sanitize_type` (`gen.rs:1479`) drops every non-alphanumeric character and
+  upper-cases the next letter, mapping all three onto `TokensList`. It is
+  many-to-one and it is the last thing to touch the name, so **every uniqueness
+  check in the pipeline happens upstream of the only step that can create a
+  duplicate.** The guard is not weak, it is in the wrong place, and it is in a
+  different language and process from the transform it would have to see.
+
+  The fix is a check on the *emitted* names rather than a better namespace
+  branch. What to do on a genuine collision is a design call and not the
+  round's to make: disambiguate with the dotted scope (`TokensList` and
+  `TokensListNs`), keep first-wins with a note the way the cross-file case
+  already does, or refuse to write the file. What is not defensible is the
+  current behaviour, since a generator reporting green for output it never
+  compiled is the class this language exists to remove, and the exit code
+  matters as much as the collision.
+  *Reproduced against 0.1.73.*
 
 - **G104. `glyph gen dts` silently ignores a relative import that carries a file
   extension.** Three sibling files differing only in the specifier:

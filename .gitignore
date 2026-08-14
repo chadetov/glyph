@@ -79,6 +79,10 @@ playground/pkg/
 # like CLAUDE.md and feedbacks/, this is a private working channel.
 /notes/
 
+# Local editor/agent settings. Machine-specific and never useful to anyone else,
+# and left untracked it is one `git add -A` away from being committed.
+/.claude/
+
 # Python bytecode from the check scripts
 __pycache__/
 *.pyc

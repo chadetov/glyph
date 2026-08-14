@@ -193,10 +193,10 @@ async fn getTask(base: string, id: number)
         <div class="status-card today">
           <p class="h">Shipping today</p>
           <p><code>glyph gen openapi</code> (types, <code>--client</code>, <code>--handlers</code> with a real router), <code>glyph gen dts</code>, <code>glyph gen zod</code>, and <code>glyph regen</code> to refresh it all from source: every command emitting committed, descriptor-bearing, idempotently-regenerated Glyph.</p>
-        </div>
+         Two types that would be written under one Glyph name stop the generator instead of producing a file that cannot compile: it names every colliding source, writes nothing, and <code>--rename Source=GlyphName</code> resolves it. That choice is recorded in the generated header, so <code>glyph regen</code> replays it.</div>
         <div class="status-card next">
           <p class="h">On the way</p>
-          <p>Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule.</p>
+          <p>Richer enum mapping and broader OpenAPI coverage, each landing behind the same wire-faithful, note-when-narrowed rule. Generating from a package's own <code>.d.ts</code> reads its <code>interface</code> and <code>type</code> declarations, so a library whose API is classes, or whose fields use computed types like <code>Omit</code>, leaves references the generator names in a note and <code>glyph build</code> reports as unresolved. Importing such a class and constructing it with <code>new</code> needs no generation and is checked by <code>tsc</code>, so that path is unaffected.</p>
         </div>
       </div>
 

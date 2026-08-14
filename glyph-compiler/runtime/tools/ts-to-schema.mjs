@@ -370,14 +370,46 @@ function collect(statements, scope, bindings) {
   }
 }
 
+/** A specifier's runtime extension mapped to the declaration file that carries
+ *  its types. Under `moduleResolution: nodenext` a relative specifier *must*
+ *  carry the runtime extension, so `./a.js` is how ESM-authored packages refer
+ *  to a sibling whose types live in `a.d.ts`; TypeScript 5's
+ *  `allowImportingTsExtensions` adds the `.ts` spellings, which is what
+ *  `date-fns` uses. The mapping is not uniform (`.mjs` takes types from
+ *  `.d.mts`, not `.d.ts`), so this is a lookup rather than a blind strip. */
+const DECLARATION_FOR = new Map([
+  [".js", ".d.ts"],
+  [".jsx", ".d.ts"],
+  [".ts", ".d.ts"],
+  [".tsx", ".d.ts"],
+  [".mjs", ".d.mts"],
+  [".mts", ".d.mts"],
+  [".cjs", ".d.cts"],
+  [".cts", ".d.cts"],
+]);
+
 /** Resolve a relative module specifier to a `.d.ts` file, or null. Only
  *  relative specifiers are followed; a bare `"react"` points at another package
  *  whose types are not this one's to materialize. */
 function resolveModuleFile(fromFile, spec) {
   if (!spec.startsWith(".")) return null;
   const base = path.resolve(path.dirname(fromFile), spec);
+  // A specifier ending in a runtime extension names a file that usually does
+  // not exist (`a.js` is not shipped beside `a.d.ts` in a types-only package),
+  // so the declaration file it maps to has to be tried too. Leaving this out
+  // made an `export * from "./a.js"` barrel resolve to nothing at all, and
+  // every ESM-authored package is written that way.
+  const mapped = [];
+  for (const [runtime, declaration] of DECLARATION_FOR) {
+    if (base.endsWith(runtime)) {
+      const stem = base.slice(0, -runtime.length);
+      mapped.push(stem + declaration, stem + ".d.ts");
+      break;
+    }
+  }
   const candidates = [
-    base, // spec already carried an extension
+    base, // spec already named a file that exists
+    ...mapped,
     base + ".d.ts",
     base + ".d.mts",
     base + ".d.cts",

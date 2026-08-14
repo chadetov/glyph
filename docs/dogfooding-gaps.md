@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 107 entries, 79 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 9 are open. That round re-ran an assignment the
+fixed two of them: of 108 entries, 81 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 8 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3267,7 +3267,7 @@ and stopped on the same sentence: Glyph has no bytes.
   table written in decimal is unreadable.
   *Reproduced against 0.1.72.*
 
-- **G103. `glyph gen dts` reports success for a file that cannot compile,
+- **G103. [FIXED] `glyph gen dts` reports success for a file that cannot compile,
   because its only uniqueness check runs before the step that creates
   duplicates.** First seen as a namespace collision (`namespace Tokens {
   interface List }` emitted alongside a top-level `TokensList`), and that framing
@@ -3297,10 +3297,19 @@ and stopped on the same sentence: Glyph has no bytes.
   current behaviour, since a generator reporting green for output it never
   compiled is the class this language exists to remove, and the exit code
   matters as much as the collision.
-  *Reproduced against 0.1.73.*
 
-- **G104. `glyph gen dts` silently ignores a relative import that carries a file
-  extension.** Three sibling files differing only in the specifier:
+  **Fixed in 0.1.74.** The check moved to the emitted names, where duplicates
+  can first exist, and a collision is now an error that names every colliding
+  source and writes nothing. `--rename Source=GlyphName` resolves it, and the
+  choice is recorded in the generated header so `glyph regen` replays it rather
+  than failing on the same collision the original run was told how to resolve.
+  Erroring rather than auto-renaming is the pillar call: an invented
+  `TokensList2` appears in no source (greppability) and could renumber when the
+  package gains a type (diff stability), and both of those outrank the
+  abstraction cost of asking a developer for one name once.
+
+- **G104. [FIXED] `glyph gen dts` silently ignores a relative import that carries
+  a file extension.** Three sibling files differing only in the specifier:
   `export * from "./a.ts"` and `export * from "./a.js"` each materialize **zero**
   types and fail with the OpenAPI generator's message ("expected
   `components.schemas` (OpenAPI 3), `definitions` (Swagger 2)...") against a
@@ -3314,8 +3323,13 @@ and stopped on the same sentence: Glyph has no bytes.
   nothing. Pointing `gen dts` at a leaf file works but requires knowing the
   package's internal layout, which is what the by-name form exists to spare you.
   The diagnostic naming OpenAPI keys for a `.d.ts` input is a second, smaller
-  defect on the same path.
-  *Reproduced against 0.1.72.*
+  defect on the same path, still open.
+
+  **Fixed in 0.1.74.** `resolveModuleFile` maps a runtime extension to the
+  declaration file that carries its types and tries that too. The mapping is a
+  lookup rather than a strip, because it is not uniform: `.mjs` takes its types
+  from `.d.mts`, not `.d.ts`. Measured on the package that produced the entry,
+  `glyph gen dts date-fns` went from **0 types to 280**.
 
 - **G105. A file can only be read whole, and there is no async iteration.** A
   streaming merge that never holds more than one line per source cannot be
@@ -3409,3 +3423,38 @@ which is the infrastructure round 28 left blocked.
   line"); the multi-project path kept it, and it only shows when two projects
   share a module name, which for `main.glyph` is every app in the tree.
   *Reproduced against 0.1.72.*
+
+## Round 30: what is left between `gen dts` and a usable `marked`
+
+Closing G103 and G104 made the two silent failures loud, and running the result
+against the package that produced them showed what is genuinely still missing.
+`glyph gen dts marked --rename Tokens.List=ListToken` now writes 46 types and
+exits 0, and the file still does not build: 14 `[E0103] unresolved name`.
+
+The distinction matters and is the reason this is a new entry rather than a
+reopened one. **Every one of those failures was disclosed by `gen` in its own
+notes** ("reference to `Lexer` could not be resolved to a materialized type ...
+`glyph build` will report it as an unresolved name"), nine of them, naming
+exactly the nine names that then failed. That is the honest floor doing its job;
+G103 was the case where nothing was said at all.
+
+- **G108. The `.d.ts` reader materializes interfaces and type aliases, so a
+  package whose surface is classes and TypeScript utility types is unusable
+  through `gen dts` even when generation succeeds.** Against `marked`, the nine
+  unresolved names fall into three groups, and each wants a different answer:
+  **classes** (`Lexer`, `Parser`, `Renderer`, `Tokenizer`, `Hooks`) are the
+  package's actual API and the reader walks only `interface`/`type`
+  declarations, though D37 `new` already exists for constructing them;
+  **TypeScript utility types** (`Omit`, `Pick`) are computed types with no
+  JSON-Schema form, so materializing them means evaluating them rather than
+  reading them; and **host types** (`RegExp`, `Promise`) have no Glyph spelling
+  at all, with `Promise` deliberate under D40. A field typed by any of them is
+  emitted as a reference to a name that was never written, and `glyph build`
+  reports E0103. The workaround for a *value* is real (import the package
+  directly and let `tsc` check it, which is the path that already works and has
+  no adapter), so this bites specifically when a generated record has a field of
+  such a type. Whether a class should materialize as an opaque type with a
+  descriptor that only checks presence, or be skipped with its dependent fields
+  widened, or make the whole type unmaterializable, is a design call with a real
+  verifiability trade in it.
+  *Reproduced against 0.1.74.*

@@ -314,7 +314,11 @@ declarations a package exports, including those inside a `declare namespace` tre
 (keyed by their qualified name, with bare cross-references resolved through the
 scope) and those in sibling files that an `index` barrel re-exports: the entry
 `.d.ts` plus every `.d.ts` reachable through a relative `import`/`export … from`
-is walked, so a package that splits its types across files materializes fully. A
+is walked, so a package that splits its types across files materializes fully.
+That specifier may carry a file extension: `export * from "./tokens.js"` is how
+every ESM-authored package refers to a sibling under
+`moduleResolution: nodenext`, and `./tokens.ts` is TypeScript 5's spelling, so
+both resolve to the declaration file that carries the types. A
 generic is kept first-class: `interface Page<T> { items: T[] }` materializes as
 `type Page<T> = { items: Array<T> }`, and a `Page<User>` keeps its argument, so
 the type gets a real descriptor that validates each item as a `User`, not just for
@@ -331,6 +335,33 @@ first-wins, which could bind a reference to the wrong shape (rename the collisio
 or materialize the intended file directly). For anything the materializer can't
 reach, hand-write the shapes you cross the boundary with, or reach for the
 `extern_ts` escape hatch.
+
+**When two types want the same Glyph name.** A Glyph module is flat, so a
+namespaced `Tokens.List` and a top-level `TokensList` both want to be written
+`TokensList`, and only one of them can. `gen` stops rather than picking:
+
+```
+$ glyph gen dts marked --out src/types
+glyph gen: `TokensList` is produced by 2 different types in marked:
+             `Tokens.List`
+             `TokensList`
+
+Nothing was written. Give one of them a Glyph name:
+  glyph gen dts marked --out src/types --rename Tokens.List=<GlyphName>
+```
+
+Nothing is written until you choose, because a name the generator invented would
+appear in no source you could grep, and could change under you when the package
+adds a type. `--rename` is repeatable and is recorded in the generated header, so
+`glyph regen` replays your choice instead of stopping at the same collision.
+
+A package whose API is *classes* rather than interfaces is a different matter:
+`gen dts` reads `interface` and `type` declarations, so a field typed by a class
+(or by a computed type like `Omit<T, K>`) materializes as a reference to a name
+that was never written, and `glyph build` reports it as an unresolved name. `gen`
+names each one in a note when it happens. Importing the class and constructing it
+with `new` needs no generation at all and is checked by `tsc`, so that path is
+unaffected.
 
 `glyph gen zod` takes a package name too, for a package that *exports zod
 schemas* (a shared-schema package). It resolves the package's runtime entry,

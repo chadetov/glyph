@@ -29,6 +29,11 @@ struct GenCommand {
     out: PathBuf,
     client: bool,
     handlers: bool,
+    /// `--rename Source=GlyphName` pairs. Recorded in the generated header so a
+    /// name the developer chose to resolve a collision survives regeneration;
+    /// without replaying them, `regen` would fail on the same collision the
+    /// original run was told how to resolve.
+    renames: gen::Renames,
     /// The verbatim command line, for reporting and de-duplication.
     raw: String,
 }
@@ -115,9 +120,9 @@ pub fn regen(path: &Path) -> Result<RegenReport, RegenError> {
 /// Re-run one recovered command through the matching `gen` entry point.
 fn run(cmd: &GenCommand) -> Result<gen::GenReport, gen::GenError> {
     match cmd.target.as_str() {
-        "openapi" => gen::openapi(&cmd.source, &cmd.out, cmd.client, cmd.handlers),
-        "dts" => gen::dts(&cmd.source, &cmd.out),
-        "zod" => gen::zod(&cmd.source, &cmd.out),
+        "openapi" => gen::openapi(&cmd.source, &cmd.out, cmd.client, cmd.handlers, &cmd.renames),
+        "dts" => gen::dts(&cmd.source, &cmd.out, &cmd.renames),
+        "zod" => gen::zod(&cmd.source, &cmd.out, &cmd.renames),
         // parse_gen_command only accepts the three known targets.
         _ => unreachable!("unknown gen target survived parsing: {}", cmd.target),
     }
@@ -151,6 +156,7 @@ fn parse_gen_command(raw: &str) -> Option<GenCommand> {
     let mut out: Option<PathBuf> = None;
     let mut client = false;
     let mut handlers = false;
+    let mut renames = gen::Renames::new();
     let mut i = 4;
     while i < toks.len() {
         match toks[i] {
@@ -166,6 +172,14 @@ fn parse_gen_command(raw: &str) -> Option<GenCommand> {
                 handlers = true;
                 i += 1;
             }
+            "--rename" => {
+                let (from, to) = toks.get(i + 1)?.split_once('=')?;
+                if from.is_empty() || to.is_empty() {
+                    return None;
+                }
+                renames.insert(from.to_string(), to.to_string());
+                i += 2;
+            }
             _ => return None,
         }
     }
@@ -173,6 +187,7 @@ fn parse_gen_command(raw: &str) -> Option<GenCommand> {
     Some(GenCommand {
         target,
         source,
+        renames,
         out: out?,
         client,
         handlers,

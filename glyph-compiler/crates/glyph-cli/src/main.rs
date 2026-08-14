@@ -246,6 +246,12 @@ enum GenTarget {
         client: bool,
         #[arg(long)]
         handlers: bool,
+        /// Give a source type an explicit Glyph name, as `Source=GlyphName`
+        /// (repeatable). Needed when two source types flatten onto one Glyph
+        /// name; `gen` names both and refuses to write until one is chosen.
+        /// Recorded in the generated header, so `glyph regen` replays it.
+        #[arg(long, value_name = "FROM=TO")]
+        rename: Vec<String>,
     },
     /// Generate Glyph types from a TypeScript `.d.ts` file, or from an installed
     /// npm package by name (its own types are resolved from `node_modules`).
@@ -257,6 +263,12 @@ enum GenTarget {
         /// Directory to write the generated `.glyph` file into.
         #[arg(long, value_name = "DIR")]
         out: std::path::PathBuf,
+        /// Give a source type an explicit Glyph name, as `Source=GlyphName`
+        /// (repeatable). Needed when two source types flatten onto one Glyph
+        /// name; `gen` names both and refuses to write until one is chosen.
+        /// Recorded in the generated header, so `glyph regen` replays it.
+        #[arg(long, value_name = "FROM=TO")]
+        rename: Vec<String>,
     },
     /// Generate Glyph types from a TypeScript module of zod schemas, or from an
     /// installed package that exports zod schemas (resolved from node_modules).
@@ -268,6 +280,12 @@ enum GenTarget {
         /// Directory to write the generated `.glyph` file into.
         #[arg(long, value_name = "DIR")]
         out: std::path::PathBuf,
+        /// Give a source type an explicit Glyph name, as `Source=GlyphName`
+        /// (repeatable). Needed when two source types flatten onto one Glyph
+        /// name; `gen` names both and refuses to write until one is chosen.
+        /// Recorded in the generated header, so `glyph regen` replays it.
+        #[arg(long, value_name = "FROM=TO")]
+        rename: Vec<String>,
     },
 }
 
@@ -1065,12 +1083,28 @@ fn main() {
             }
         }
         Some(Command::Gen { target }) => {
-            let result = match target {
-                GenTarget::Openapi { spec, out, client, handlers } => {
-                    glyph_cli::gen::openapi(&spec, &out, client, handlers)
+            let raw_renames = match &target {
+                GenTarget::Openapi { rename, .. } => rename.clone(),
+                GenTarget::Dts { rename, .. } => rename.clone(),
+                GenTarget::Zod { rename, .. } => rename.clone(),
+            };
+            let renames = match parse_renames(&raw_renames) {
+                Ok(r) => r,
+                Err(bad) => {
+                    eprintln!(
+                        "glyph gen: `--rename {bad}` is not `Source=GlyphName`. \
+                         The left side is the type's name in the source (`Tokens.List`), \
+                         the right side the Glyph name to write."
+                    );
+                    std::process::exit(2);
                 }
-                GenTarget::Dts { file, out } => glyph_cli::gen::dts(&file, &out),
-                GenTarget::Zod { file, out } => glyph_cli::gen::zod(&file, &out),
+            };
+            let result = match target {
+                GenTarget::Openapi { spec, out, client, handlers, .. } => {
+                    glyph_cli::gen::openapi(&spec, &out, client, handlers, &renames)
+                }
+                GenTarget::Dts { file, out, .. } => glyph_cli::gen::dts(&file, &out, &renames),
+                GenTarget::Zod { file, out, .. } => glyph_cli::gen::zod(&file, &out, &renames),
             };
             match result {
                 Ok(report) => {
@@ -1279,6 +1313,24 @@ fn examples_to_json(examples: &ExamplesOutcome) -> (serde_json::Value, usize) {
 /// returns, and the reader gets command-not-found from the line we printed.
 /// A binary running out of an npx cache is by definition temporary, whatever
 /// `PATH` says.
+/// Parse `--rename Source=GlyphName` pairs into the map `gen` takes.
+///
+/// Returns the offending argument on a malformed pair, so the message can quote
+/// what the developer actually typed. Splits on the *first* `=` only: a Glyph
+/// type name cannot contain one, and a source name theoretically could.
+fn parse_renames(raw: &[String]) -> Result<glyph_cli::gen::Renames, String> {
+    let mut out = glyph_cli::gen::Renames::new();
+    for pair in raw {
+        match pair.split_once('=') {
+            Some((from, to)) if !from.is_empty() && !to.is_empty() => {
+                out.insert(from.to_string(), to.to_string());
+            }
+            _ => return Err(pair.clone()),
+        }
+    }
+    Ok(out)
+}
+
 fn glyph_on_path() -> bool {
     if running_from_npx_cache() {
         return false;

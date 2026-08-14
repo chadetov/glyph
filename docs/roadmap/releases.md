@@ -2989,7 +2989,7 @@ its own release rather than a corner of this one.
 
 ### After the open list
 
-G63, G52 and G30 are done. What follows is the plan through 0.1.79, and it puts
+G63, G52 and G30 are done. What follows is the plan through 0.1.77, and it puts
 the language before the library on purpose: every new stdlib module widens the
 surface where a type Glyph has lost leaks, so the leak is worth closing first.
 
@@ -3136,9 +3136,17 @@ version bump and its publish. There is now an `Ahead` state that says which
 version the registry actually has, and the classifier is a pure function with
 all four orderings pinned by a test that was watched failing before it passed.
 
-#### 0.1.74 — Landed on main · The generator stops reporting green for a file that fails
+#### 0.1.74 — Shipped · Three ways the compiler reported green and was wrong
 
-**Next.** Both halves of `gen dts` that round 28 found, and they had the same
+**Published 2026-08-14.** Three pieces of work, shipped as one release because none of them
+can break a build that was green and correct, so separate version numbers
+would have bought bisection points nobody would use at the cost of three
+irreversible publishes. The three stories are kept apart below, since the
+record of what was found and why is worth more than the publish cadence.
+
+##### The generator reported green for a file that fails
+
+**Both halves** of `gen dts` that round 28 found, and they had the same
 shape: exit 0, a success line, and output that could not compile. `gen dts` is
 the answer the interop story names, so a generator that lies about its own
 output is worse there than anywhere else.
@@ -3192,9 +3200,9 @@ classes (`Lexer`, `Parser`, `Renderer`), TypeScript utility types (`Omit`,
 next thing standing between `gen dts` and a package a working engineer would
 call usable.
 
-#### 0.1.75 — Landed on main · A loop index that was a string
+##### A loop index that was a string
 
-**Next.** Round 31 ran four apps at once. The finding that mattered was not the
+Round 31 ran four apps at once. The finding that mattered was not the
 one that looked worst.
 
 **G109: a `for k, v` could compute the wrong number in a green build.** An
@@ -3257,9 +3265,9 @@ gray-matter, the first app in the tree on real npm dependencies), `resilient`
 (generic `Heap`/`Cache`/`Trie` plus a fallible pipeline, 23 examples), and `i18n`
 (CLDR plurals, fallback chains, locale formatting, 25 examples).
 
-#### 0.1.76 — Landed on main · The three round 31 left open
+##### The three round 31 left open
 
-**Next.** Round 31 recorded three findings it deliberately did not fix. All
+Round 31 recorded three findings it deliberately did not fix. All
 three are closed here, and one of them changes the spec.
 
 **G112: no default-import form (D15 now names four).** A CommonJS package whose
@@ -3321,7 +3329,7 @@ the list of things the reader cannot follow is now classes, TypeScript utility
 types, and host globals. The direct-import path needs no generation and is
 unaffected, so this bites only boundary validation.
 
-#### 0.1.77 — a mutation that loses an update
+#### 0.1.75 — a mutation that loses an update
 
 **Decided.** All four language items below were reproduced on 2026-08-09 and
 their options settled, and the evidence reordered them: what was a list became a
@@ -3341,7 +3349,7 @@ worse than the rule is worth), and an `owned`-style marker for shared mutable
 state (bigger, and still available if the narrow rule proves too narrow). A new
 D-decision when it lands.
 
-#### 0.1.78 — the host boundary, and the app that will tell us what it needs
+#### 0.1.76 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3491,7 +3499,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.79 — finish what is half-built
+#### 0.1.77 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.

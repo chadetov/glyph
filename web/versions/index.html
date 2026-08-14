@@ -49,8 +49,29 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.73</span>
+            <span class="rel-ver">0.1.74</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Three ways the compiler reported green and was wrong</h3>
+            <p>A build that says <code>no diagnostics</code> and <code>tsc --strict passed</code> is the one claim everything here rests on. Three separate things could say it and be wrong.</p>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A loop index could be a string.</strong> An array&rsquo;s pairs bind a number index, a record&rsquo;s bind a string key, and the emitter guessed the record form whenever it could not tell. So <code>for index, key in w.keys</code> made <code>index + 1</code> compute <code>"01"</code> instead of <code>1</code>, out of a completely green build. It no longer guesses: an iterand the checker settled emits directly as before, and one it did not defers to the run time, which knows what the value is.</li>
+              <li><span class="tag fixed">Fixed</span> <strong><code>glyph gen dts</code> reported success for a file that cannot compile.</strong> Two source types that flatten onto one Glyph name were both written out, with a success line and exit 0; the next build failed. The check now runs on the names actually being written, lists every colliding source, and writes nothing. <code>--rename Source=GlyphName</code> resolves it and is recorded in the generated header, so <code>glyph regen</code> replays your choice.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A relative import carrying a file extension resolved to nothing.</strong> <code>export * from "./x.js"</code> is mandatory under <code>moduleResolution: nodenext</code>, so every ESM-authored package hit this and materialized zero types. <code>glyph gen dts date-fns</code> went from 0 types to 280.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A standard-library type imported by name lost two checks.</strong> <code>import std/http { HttpError }</code> and <code>import std/http</code> disagreed: under the named spelling a bogus field produced no Glyph error, and a match covering every case was told to add a catch-all. A guarantee must not depend on which legal spelling brought a type into scope.</li>
+              <li><span class="tag added">Added</span> <strong>A default import, so callable npm packages work.</strong> <code>import express { default as app }</code>. A package whose export <em>is</em> a function &mdash; express, lodash, debug, chalk, commander &mdash; had nothing Glyph could import. <code>as</code> is legal only after <code>default</code>, so renaming an ordinary import is still an error.</li>
+              <li><span class="tag added">Added</span> <strong><code>std/intl</code>: plurals, money, dates, lists, collation.</strong> <code>plural_category</code> returns the six CLDR categories as a closed set, so a match over it is exhaustive and a missing one is named. An app branching on <code>n == 1</code> is wrong in most of the world; Polish alone needs one, few and many.</li>
+              <li><span class="tag improved">Improved</span> A generic record&rsquo;s <code>parse</code> is typed from the call&rsquo;s type arguments, so <code>Wire.parse&lt;number&gt;(raw)</code> gives a real <code>Wire&lt;number&gt;</code> and a field typo is a Glyph error at the field instead of a TypeScript one pointed at the whole function.</li>
+            </ul>
+            <p><strong>What is still missing, since the same round found it.</strong> <code>gen dts</code> reads <code>interface</code> and <code>type</code> declarations, so a package whose surface is classes (<code>marked</code>&rsquo;s <code>Lexer</code>, <code>Renderer</code>), or whose fields use computed types like <code>Omit</code>, or whose declarations reference <code>Intl</code>, leaves names the generator flags in a note and the build reports as unresolved. Importing such a package directly needs no generation and is unaffected; this only bites boundary validation.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.73</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

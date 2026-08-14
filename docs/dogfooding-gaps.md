@@ -29,9 +29,8 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 117 entries, 89 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 9 are open. That round re-ran an assignment the
+Reconciled again after 0.1.78 closed G102: of 117 entries, 90 are fixed, 10 are
+partly fixed, 9 are decided or resolved, and 8 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3244,7 +3243,7 @@ The two that reached furthest, `sitegen` (marked + gray-matter) and `logmerge`
 RFC 6238 authenticator) were assigned different apps, ran in different processes,
 and stopped on the same sentence: Glyph has no bytes.
 
-- **G102. There is no byte type, so no binary file, no real HMAC, and no
+- **G102. [FIXED] There is no byte type, so no binary file, no real HMAC, and no
   bytes/text bridge.** Every external boundary in the standard library is
   string-in, string-out, so there is no spelling anywhere for "these octets".
   `std/fs` is `read_text`/`write_text`/`append_text`, all `"utf8"`;
@@ -3281,6 +3280,53 @@ and stopped on the same sentence: Glyph has no bytes.
   which is a known deferral but unusually painful here, since a 256-entry CRC32
   table written in decimal is unreadable.
   *Reproduced against 0.1.72.*
+
+  **Fixed in 0.1.78.** `std/bytes` is a new module: `Bytes` is an immutable
+  sequence of octets (a `Uint8Array` at run time, so it hands to a host API with
+  no unwrapping), with the sequence operations named after their peers in
+  `std/array` and `std/string`, and hex, base64, base64url and base32 codecs.
+  `fs.read_bytes`/`write_bytes`/`append_bytes` read and write a file undecoded,
+  and `std/crypto` gained a `_bytes` form of every digest and HMAC plus SHA-1,
+  `random_bytes`, and `timing_safe_equal`. Both stopped apps were then written
+  as a compiler test: the PNG signature survives a write-read round trip, and
+  the RFC 6238 vector (ASCII secret `12345678901234567890` at T=59) returns
+  `94287082`.
+
+  Four decisions worth keeping, because each was the more expensive option:
+
+  - **Every decode returns a `Result` that names the position.** node's `Buffer`
+    is silent on malformed input: `Buffer.from("zz", "hex")` is an empty buffer
+    and no error, base64 decoding skips any character outside the alphabet (so a
+    base64url string decodes to quietly wrong bytes), and `toString("utf8")`
+    substitutes U+FFFD and reports success. Every codec here is written out
+    rather than delegated, refuses all three, and reports `index`. `to_text`
+    scans on the error path to find the first byte that cannot start or continue
+    a valid sequence, so the answer is "not valid UTF-8 at 2", not "not valid
+    UTF-8".
+  - **`from_array` rejects anything outside 0..255** rather than masking. A
+    silent `& 0xff` turns 256 into 0 and a typo into data.
+  - **The module reaches for no host API.** `Uint8Array`, `TextEncoder` and
+    `TextDecoder` are the whole of it, and base64/base32 are hand-written rather
+    than delegated to `Buffer`, so a bundle touching only `std/bytes` still runs
+    in a Web Worker. That is the same property round 27's author wanted and
+    assumed he did not have.
+  - **base32 was added after the fact**, because writing the `std/crypto`
+    documentation produced a TOTP example whose first line was
+    `bytes.from_base32(secret)` and the function did not exist. `otpauth://`
+    URIs carry the shared key in base32, so an authenticator starts by decoding
+    one. Round 28 had proved it writable in ordinary Glyph and it was left out
+    on that basis; the doc example is what showed the surface was incomplete.
+
+  **What the test vector could not catch on its own, recorded because it nearly
+  shipped.** The RFC 6238 secret is ASCII, so it survives a trip through a
+  string unchanged: deliberately breaking `hmac_sha1_bytes` to decode its key to
+  text left `totp=94287082` passing. The test now also asserts an HMAC over a
+  key containing `0xff`, where the string route gives `4ab779f0…` instead of
+  `c543ef42…`. A published vector is only evidence for what its inputs exercise.
+
+  Two things named above are still open and are not part of this fix: hex
+  literals (`0xff` remains `[E0002]`), and `std/websocket` binary frames, which
+  this unblocks but does not deliver.
 
 - **G103. [FIXED] `glyph gen dts` reports success for a file that cannot compile,
   because its only uniqueness check runs before the step that creates

@@ -106,6 +106,7 @@
         <div class="ans-cards">
           <a class="a-card" href="/answers/long-running/"><span class="n">21</span><span class="q">Can I write a server, or does the process just exit?</span><p><code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.</p></a>
           <a class="a-card" href="/answers/upgrades/"><span class="n">22</span><span class="q">Will a new Glyph release break my build?</span><p>Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">23</span><span class="q">Can I handle binary data, or is everything a string?</span><p><code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.</p></a>
         </div>
       </div>
 

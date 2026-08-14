@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 106 entries, 79 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 8 are open. That round re-ran an assignment the
+fixed two of them: of 107 entries, 79 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 9 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3364,3 +3364,35 @@ whole by `repo_examples_emit_typescript_without_diagnostics`, so an
 npm-dependent app makes CI need `npm install` per app or an exclusion. That is a
 scope decision for the owner, not a fix, and it currently blocks the round the
 roadmap says is next.
+
+## Round 29: the wrong project's file
+
+Not an app round. Found while wiring CI to let an app carry npm dependencies,
+which is the infrastructure round 28 left blocked.
+
+- **G107. In a multi-project build, a `tsc` error is reported against a
+  same-named module in a *different project*.** `glyph build examples` builds
+  each `apps/<name>/` as its own project (D41). When `tsc` reports an error in
+  one project's `main`, the remap resolves the module name against the first
+  project that has a module of that name, so the diagnostic lands on unrelated
+  source. Reduced to two projects, each with a `main.glyph`:
+
+      /tmp/mp/alpha/main.glyph   32 lines, entirely correct, line 3 is `import std/io`
+      /tmp/mp/beta/main.glyph     line 3 is `import totally-not-installed { thing }`
+
+  `glyph build /tmp/mp` reports:
+
+      [TS2307] Error: tsc: Cannot find module 'totally-not-installed' ...
+         ╭─[ main:3:1 ]
+       3 │ import std/io
+
+  The message is right, the line number is right, and the **file is wrong**: it
+  quotes `alpha`'s source for `beta`'s error. Seen first in the real tree, where
+  an error in `apps/zzprobe/main.glyph:3` was reported against
+  `apps/auth_api/main.glyph:25` (`import clock`), which is a different app
+  entirely. Someone acting on that opens a file with nothing wrong in it, and
+  the quoted line looks plausible enough to try to "fix". This is the class
+  0.1.60 closed for single-project builds ("the compiler stops blaming the wrong
+  line"); the multi-project path kept it, and it only shows when two projects
+  share a module name, which for `main.glyph` is every app in the tree.
+  *Reproduced against 0.1.72.*

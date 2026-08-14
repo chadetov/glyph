@@ -228,3 +228,81 @@ fn the_resolver_seed_lists_every_runtime_export() {
          `module_graph.rs`."
     );
 }
+
+/// The type-only table the emitter reads must match the runtime it describes.
+///
+/// `is_stdlib_type_only` decides whether an emitted import carries the inline
+/// `type` modifier. A name missing from the table emits without it, which
+/// `tsc` elides and a type-stripper does not, so the import fails to link
+/// against a module with no such runtime export (G114) — and the build stays
+/// green the whole way, because `tsc` is what `glyph build` runs.
+///
+/// A name in the table that the runtime does export as a value would be marked
+/// `type` and then *elided*, so the program would lose a binding it needs. Both
+/// directions are checked here.
+#[test]
+fn stdlib_type_only_exports_match_the_runtime() {
+    use std::collections::BTreeSet;
+    let runtime = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../runtime/std"));
+    let mut declared: BTreeSet<(String, String)> = BTreeSet::new();
+    for (module, name) in glyph_resolver::stdlib_type_only_pairs() {
+        declared.insert((module.to_string(), name.to_string()));
+    }
+
+    let mut actual: BTreeSet<(String, String)> = BTreeSet::new();
+    for entry in fs::read_dir(runtime).expect("read runtime/std") {
+        let path = entry.expect("dir entry").path();
+        if path.extension().and_then(|e| e.to_str()) != Some("ts") {
+            continue;
+        }
+        let module = format!("std/{}", path.file_stem().unwrap().to_str().unwrap());
+        let src = fs::read_to_string(&path).expect("read std module");
+        let (mut types, mut values) = (BTreeSet::new(), BTreeSet::new());
+        for line in src.lines() {
+            for (prefix, is_type) in [
+                ("export type ", true),
+                ("export interface ", true),
+                ("export function ", false),
+                ("export async function ", false),
+                ("export const ", false),
+                ("export class ", false),
+            ] {
+                let Some(rest) = line.strip_prefix(prefix) else { continue };
+                let ident: String = rest
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                if ident.is_empty() {
+                    continue;
+                }
+                if is_type {
+                    types.insert(ident);
+                } else {
+                    values.insert(ident);
+                }
+            }
+        }
+        // Type-only means: declared as a type, with no value of the same name.
+        // A Glyph-declared type always ships a descriptor `const`, which is why
+        // only the hand-written standard library needs this table at all.
+        for name in types.difference(&values) {
+            actual.insert((module.clone(), name.clone()));
+        }
+    }
+
+    let missing: Vec<_> = actual.difference(&declared).collect();
+    assert!(
+        missing.is_empty(),
+        "the runtime declares a type-only export the emitter does not know about, so an \
+         import of it emits without `type` and will not link once types are stripped: \
+         {missing:?}. Add it to STDLIB_TYPE_ONLY in `stdlib_types.rs`."
+    );
+
+    let stale: Vec<_> = declared.difference(&actual).collect();
+    assert!(
+        stale.is_empty(),
+        "the table names something the runtime does not export as a type-only name, so its \
+         import would be marked `type` and elided, losing a binding the program needs: \
+         {stale:?}"
+    );
+}

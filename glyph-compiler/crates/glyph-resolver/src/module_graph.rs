@@ -75,7 +75,6 @@ pub trait ModuleGraph {
 // ============================================================================
 // StdlibStubs
 // ============================================================================
-
 /// Synthetic stdlib surface, hand-coded for the four example files.
 ///
 /// The list is intentionally minimal — every name here is referenced by at

@@ -16,7 +16,7 @@
 // It stays optional: a schema over a type with no descriptor still has a
 // guard and nothing deeper to report.
 
-import { Result, Ok, Err } from "std/result";
+import { type Result, Ok, Err } from "std/result";
 
 export function schema<T>(
   name: string,

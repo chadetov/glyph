@@ -4,7 +4,7 @@
 // accessors and `add_*` helpers work in UTC, so results are stable regardless of
 // the host timezone. `Duration` is both a type and its constructor factory.
 
-import { None, Option, Some } from "./option";
+import { None, type Option, Some } from "./option";
 
 export type Duration = { readonly ms: number };
 

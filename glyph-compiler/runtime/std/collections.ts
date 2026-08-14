@@ -3,7 +3,7 @@
 // constant amortized time, useful as a queue (`push_back`/`pop_front`) or a
 // stack (`push_back`/`pop_back`). Ends that may be empty return an `Option<T>`.
 
-import { None, Option, Some } from "./option";
+import { None, type Option, Some } from "./option";
 
 export type Deque<T> = {
   push_back: (value: T) => void;

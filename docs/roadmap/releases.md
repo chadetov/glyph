@@ -3329,9 +3329,9 @@ the list of things the reader cannot follow is now classes, TypeScript utility
 types, and host globals. The direct-import path needs no generation and is
 unaffected, so this bites only boundary validation.
 
-#### 0.1.75 — the output is portable, but it is not deployable
+#### 0.1.75 — Shipped · The emitted imports survive having their types stripped
 
-**Next.** Round 32: the outside app came back with 3,377 lines of Glyph, a Web
+**Published 2026-08-14.** Round 32: the outside app came back with 3,377 lines of Glyph, a Web
 Worker AI, 198 passing examples, and a **487-line build tool** it had to write to
 get that output into a browser. Every step in that file is something the compiler
 did not do. Three of them are ours to fix.
@@ -3343,9 +3343,17 @@ names, which is why every build is green; a type-stripper does not, and the
 result is a hard ESM link error. It is also `[TS1484]` under
 `verbatimModuleSyntax`, against our own `runtime/std/*.ts` as well as emitted
 code. Emitting `import type` for a name the source module exports as a type is
-the fix, and `docs/guide/deployment.md` needs the honest version of "bundles like
-any other TypeScript": true for a bundler that elides unused type imports, false
-for the stripper-based toolchains that are now common.
+the fix. **Done**, and it took two passes: the standard library's 25 type-only
+names across 16 modules are tabled and reconciled against the runtime by a gate
+that fails in both directions, and a Glyph **plain alias** (`type Board =
+Array<Cell>`, which emits no descriptor `const` where a record or union does) was
+missed until the fix was re-tested against the application instead of the reduced
+case. The runtime's own sources carried the same defect and are fixed, so
+`verbatimModuleSyntax` is clean over the whole emitted tree.
+
+**G115 is not in this release.** Pruning the standard library out of an output
+and emitting relative-specifier ESM is a `--target browser`, which is a feature
+rather than a fix, and it does not belong bolted onto one.
 
 **G115 is the deployability half.** A program importing five std modules gets 31
 in its output, `sqlite` and `http` and `fs` among them, which a browser worker

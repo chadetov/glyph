@@ -4,7 +4,7 @@
 // the `glyph run` entrypoint imports it before invoking the program. The
 // matching ambient *types* live in `glyph-prelude.d.ts`.
 
-import { Result, Ok, Err } from "./std/result";
+import { type Result, Ok, Err } from "./std/result";
 
 const number = {
   to_string(n: number): string {

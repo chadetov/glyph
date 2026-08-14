@@ -16,8 +16,8 @@
 // anything else. The content type is inferred from the body only when the
 // response does not already name one.
 
-import { Result, Ok, Err } from "./result";
-import { Option, Some, None } from "./option";
+import { type Result, Ok, Err } from "./result";
+import { type Option, Some, None } from "./option";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 export type Request = {

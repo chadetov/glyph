@@ -2,7 +2,7 @@
 // `args()` returns the program arguments (node's argv with the runtime + script
 // entries dropped).
 
-import { Option, Some, None } from "./option";
+import { type Option, Some, None } from "./option";
 
 export function args(): Array<string> {
   return process.argv.slice(2);

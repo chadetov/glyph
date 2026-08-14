@@ -33,7 +33,16 @@ story.
   emitted output the same way you would a TypeScript function; there is no cold-
   start penalty beyond the JS runtime's own.
 - **The browser and other hosts.** The emitted JS runs wherever a JS engine does;
-  a front-end build (via React interop) bundles like any other TypeScript.
+  a front-end build (via React interop) bundles like any other TypeScript. A name
+  the source module exports only as a type is emitted with the inline `type`
+  modifier (`import { type Option, Some, None }`), so the output is safe for a
+  bundler that elides type imports *and* for a plain type stripper (`swc`,
+  `node --strip-types`, Bun), and it type-checks under `verbatimModuleSyntax`.
+  What the build does **not** do yet is prune: the whole standard library is
+  materialized whatever you import, and the runtime lands under `.glyph-runtime`,
+  a directory name most static hosts hide. A bundler's tree-shaking answers both;
+  a no-bundler deployment has to walk the graph and rename that directory
+  itself.
 
 ## Bundle size and tree-shaking
 

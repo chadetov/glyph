@@ -6,7 +6,7 @@
 // its descriptor's `.parse` before trusting it.
 
 import { DatabaseSync } from "node:sqlite";
-import { None, Option, Some } from "./option";
+import { None, type Option, Some } from "./option";
 
 export type Row = Record<string, unknown>;
 

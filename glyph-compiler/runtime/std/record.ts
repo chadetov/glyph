@@ -4,7 +4,7 @@
 // raw `undefined` a bare `r[key]` yields for a missing key. Updates are
 // value-oriented — `set`/`remove` return a new record and never mutate the input.
 
-import { Option, Some, None } from "./option";
+import { type Option, Some, None } from "./option";
 
 export function get<V>(record: Record<string, V>, key: string): Option<V> {
   return Object.prototype.hasOwnProperty.call(record, key) ? Some(record[key]) : None;

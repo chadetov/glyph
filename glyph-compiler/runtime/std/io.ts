@@ -3,7 +3,7 @@
 // `is_terminal`/`stdin_is_terminal` say whether a person or a pipe is on the
 // other end.
 
-import { Option, Some, None } from "./option";
+import { type Option, Some, None } from "./option";
 import { readSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
 

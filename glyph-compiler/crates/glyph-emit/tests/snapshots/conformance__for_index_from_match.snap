@@ -4,7 +4,7 @@ expression: ts
 ---
 import "./.glyph-runtime/glyph-bootstrap";
 
-import { None, Option, Some } from "std/option";
+import { None, type Option, Some } from "std/option";
 
 import * as io from "std/io";
 

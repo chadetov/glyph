@@ -430,6 +430,30 @@ pub fn explain(code: &str) -> Option<&'static str> {
             array (`xs[i]`) is also untouched, because a bound is a value a \
             program can check with `array.len`.",
 
+        "E0225" => "E0225: a read and a write that straddle an `await`\n\n\
+            The value being written was read before the function suspended, so a \
+            task that ran during the suspension and wrote the same field has its \
+            write silently discarded. Two calls that each read 0 and write 1 \
+            leave 1, not 2 — out of a build reporting no diagnostics and a clean \
+            `tsc --strict`, which is what makes it worth an error: nothing about \
+            the source looks wrong and no test catches it unless it happens to \
+            interleave.\n\n\
+            Before:  async fn bump(c: Counter) -> number {\n              \
+              let before = c.n\n              \
+              await timers.sleep(1)\n              \
+              mut c.n = before + 1        // `before` may be stale\n            \
+            }\n\
+            After:   async fn bump(c: Counter) -> number {\n              \
+              await timers.sleep(1)\n              \
+              mut c.n = c.n + 1           // read after the suspension\n            \
+            }\n\n\
+            The rule is narrow on purpose. It fires only on a field reached \
+            through a *parameter*, which is the only thing a caller can also \
+            have handed to another task. A local counter across an `await` \
+            (`mut rounds = rounds + 1`) cannot be raced by anything and is not \
+            reported, and rebinding a whole parameter changes this function's \
+            copy rather than the caller's record.",
+
         // ----- emitter (E03xx) -----
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
@@ -534,7 +558,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0205",
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",
-    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0300", "E0301",
+    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0300", "E0301",
     "E0302", "E0303", "E0310",
 ];
 

@@ -26,6 +26,7 @@
 /// keeps this in step with `runtime/std/*.ts`, so a new `export type` cannot
 /// quietly go missing from it.
 const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
+    ("std/bytes", &["Bytes", "BytesError"]),
     ("std/collections", &["Deque"]),
     ("std/decimal", &["Decimal"]),
     ("std/fs", &["FileInfo", "FsError"]),

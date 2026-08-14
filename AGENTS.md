@@ -540,12 +540,52 @@ fs.remove(path) -> Result<void, FsError>     // ErrorKind.NotFound for a missing
 fs.read_dir(path) -> Result<Array<string>, FsError>       // entry names, not full paths; not recursive, OS order
 fs.is_dir(path) -> bool                                   // false for a missing or unreadable path
 fs.stat(path) -> Result<FileInfo, FsError>                // follows symlinks
+fs.read_bytes(path) -> Result<Bytes, FsError>             // the octets, undecoded (std/bytes)
+fs.write_bytes(path, contents) -> Result<void, FsError>
+fs.append_bytes(path, contents) -> Result<void, FsError>
 ```
 
 `match e.kind` is checked for exhaustiveness like any union you declared: cover
 all six kinds (including `fs.ErrorKind.Other({ code })`) and you need no `else`
 arm; omit one and the build fails with E0200. Walk a tree with `read_dir` +
 `is_dir` + `path.join`; there is no `walk` helper.
+
+The `_text` calls decode and encode UTF-8; use `_bytes` for any file that is not
+text. `read_text` on a PNG replaces every byte that is not valid UTF-8 with
+U+FFFD and reports success.
+
+### std/bytes
+
+An immutable sequence of octets, and the codecs between octets and text. Reach
+for it whenever the data is not text: a binary file, an HMAC key, a wire frame.
+
+```
+type Bytes                                   // a Uint8Array at run time
+type BytesError = { message: string, index: int }   // index is a position in the rejected input
+bytes.empty -> Bytes
+bytes.from_array(xs: Array<int>) -> Result<Bytes, BytesError>   // rejects anything outside 0..255
+bytes.to_array(b) -> Array<int>
+bytes.from_text(text) -> Bytes               // UTF-8 encode; total
+bytes.to_text(b) -> Result<string, BytesError>      // UTF-8 decode; rejects, never substitutes U+FFFD
+bytes.len(b) -> int
+bytes.get(b, i) -> Option<int>
+bytes.slice(b, start, end?) -> Bytes         // a copy; bounds clamp
+bytes.concat(a, b) -> Bytes
+bytes.join(parts: Array<Bytes>) -> Bytes
+bytes.equals(a, b) -> bool                   // by value; `==` compares references
+bytes.index_of(haystack, needle) -> Option<int>
+bytes.starts_with(b, prefix) -> bool
+bytes.to_hex(b) -> string / bytes.from_hex(s) -> Result<Bytes, BytesError>
+bytes.to_base64(b) -> string / bytes.from_base64(s) -> Result<Bytes, BytesError>
+bytes.to_base64url(b) -> string / bytes.from_base64url(s) -> Result<Bytes, BytesError>
+bytes.to_base32(b) -> string / bytes.from_base32(s) -> Result<Bytes, BytesError>
+```
+
+Every decode returns a `Result` and names the offending position in `index`,
+because node's `Buffer` accepts malformed input silently: `Buffer.from("zz",
+"hex")` is an empty buffer and no error. There is no integer codec; a big-endian
+read is ordinary arithmetic over `bytes.get`, and past 32 bits a shift is wrong
+anyway, so divide. The module touches no host API, so it runs in a Web Worker.
 
 ### std/process
 
@@ -968,6 +1008,8 @@ is built for.
 - **regex:** `regex.matches(pat, text)`, `regex.find_all(pat, text)`, `regex.captures_all(pat, text)` for the groups of every match
 - **walk a directory:** `let names = fs.read_dir(dir)?` for entry names, `fs.is_dir(path.join([dir, name]))` to recurse, `let info = fs.stat(p)?` for size/mtime
 - **hash / uuid:** `crypto.sha256(s)`, `crypto.random_uuid()`
+- **binary data:** `import std/bytes`; `fs.read_bytes(p)?` for a file that is not text, `bytes.from_base64(s)?` / `bytes.to_hex(b)` to cross to text
+- **HMAC over real octets:** `crypto.hmac_sha256_bytes(key, msg)` (the string form loses any byte that is not valid UTF-8); compare with `crypto.timing_safe_equal`
 - **paths:** `path.join(["a", "b"])`, `path.extname(p)`
 - **cleanup:** `defer handle.close()` (runs on every exit path)
 - **generic bound:** `interface Named { fn name() -> string }` then `fn f<T: Named>(x: T)`

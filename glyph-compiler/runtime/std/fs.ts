@@ -15,6 +15,7 @@
 // a kind added here has to be added there too.
 
 import { type Result, Ok, Err } from "./result";
+import { type Bytes } from "./bytes";
 import {
   appendFileSync,
   existsSync,
@@ -87,6 +88,43 @@ export function write_text(path: string, contents: string): Result<void, FsError
 export function append_text(path: string, contents: string): Result<void, FsError> {
   try {
     appendFileSync(path, contents, "utf8");
+    return Ok(undefined);
+  } catch (e: unknown) {
+    return Err(to_fs_error(e));
+  }
+}
+
+// Read a file as octets. This is the only way to read a file that is not text:
+// `read_text` decodes as UTF-8, and a PNG's first byte (0x89) is not valid UTF-8
+// on its own, so a binary file read that way is corrupt before the program sees
+// it. `bytes.to_text` converts afterwards when the content turns out to be text
+// and reports where it is not.
+//
+// The re-wrap is not cosmetic. `readFileSync` returns a `Buffer`, whose `slice`
+// aliases the original's memory rather than copying it, and `bytes.slice`
+// promises a copy. This is a view over the same memory, so it costs no copy of
+// the file.
+export function read_bytes(path: string): Result<Bytes, FsError> {
+  try {
+    const buf = readFileSync(path);
+    return Ok(new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength));
+  } catch (e: unknown) {
+    return Err(to_fs_error(e));
+  }
+}
+
+export function write_bytes(path: string, contents: Bytes): Result<void, FsError> {
+  try {
+    writeFileSync(path, contents);
+    return Ok(undefined);
+  } catch (e: unknown) {
+    return Err(to_fs_error(e));
+  }
+}
+
+export function append_bytes(path: string, contents: Bytes): Result<void, FsError> {
+  try {
+    appendFileSync(path, contents);
     return Ok(undefined);
   } catch (e: unknown) {
     return Err(to_fs_error(e));

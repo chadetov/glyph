@@ -7800,3 +7800,270 @@ fn a_real_stdlib_member_through_a_namespace_still_compiles() {
     let report = build_project_inner(&src, &root.join("out"), false).expect("build ok");
     assert!(!report.has_errors(), "real members compile: {:?}", report.diagnostics);
 }
+
+// --- std/bytes (G102) -------------------------------------------------------
+//
+// Two apps in one dogfood round stopped on the same sentence: Glyph had no
+// bytes. A PNG reader could not read a file whose first byte is 0x89, and an
+// RFC 6238 authenticator could not form either argument to an HMAC. These pin
+// both programs as writable, and pin the codecs against their published
+// vectors rather than against themselves.
+
+/// The RFC 4648 §10 vectors, and the malformed inputs node's `Buffer` accepts
+/// silently. `Buffer.from("zz", "hex")` returns an empty buffer and reports
+/// success, which is the failure mode this module exists to not have.
+#[test]
+fn bytes_codecs_match_the_published_vectors_and_refuse_malformed_input() {
+    if !js_toolchain_available() {
+        eprintln!("skipping bytes codec vectors: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("bytesvec");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "codec.glyph",
+        r#"module codec
+
+import std/bytes
+import std/result { Result, Ok, Err }
+
+// RFC 4648 section 10.
+@example b64("") == ""
+@example b64("f") == "Zg=="
+@example b64("fo") == "Zm8="
+@example b64("foo") == "Zm9v"
+@example b64("foob") == "Zm9vYg=="
+@example b64("fooba") == "Zm9vYmE="
+@example b64("foobar") == "Zm9vYmFy"
+pub fn b64(text: string) -> string {
+  return bytes.to_base64(bytes.from_text(text))
+}
+
+@example hex("foobar") == "666f6f626172"
+pub fn hex(text: string) -> string {
+  return bytes.to_hex(bytes.from_text(text))
+}
+
+// RFC 4648 section 10, base32.
+@example b32("") == ""
+@example b32("f") == "MY======"
+@example b32("fo") == "MZXQ===="
+@example b32("foo") == "MZXW6==="
+@example b32("foob") == "MZXW6YQ="
+@example b32("fooba") == "MZXW6YTB"
+@example b32("foobar") == "MZXW6YTBOI======"
+pub fn b32(text: string) -> string {
+  return bytes.to_base32(bytes.from_text(text))
+}
+
+// Case carries no information in base32, and a real `otpauth://` secret is
+// usually written with no padding at all.
+@example decode_b32("MZXW6YTBOI======") == Ok("foobar")
+@example decode_b32("mzxw6ytboi") == Ok("foobar")
+@example decode_b32("MZXW6YTB1") == Err(8)
+@example decode_b32("MZXW6YTBOIB") == Err(10)
+pub fn decode_b32(encoded: string) -> Result<string, number> {
+  return match bytes.from_base32(encoded) {
+    Ok(b) => match bytes.to_text(b) {
+      Ok(t) => Ok(t),
+      Err(e) => Err(e.index),
+    },
+    Err(e) => Err(e.index),
+  }
+}
+
+// Every decode round-trips, and every malformed input is an `Err` naming where.
+@example decode_hex("666f6f") == Ok("foo")
+@example decode_hex("zz") == Err(0)
+@example decode_hex("abc") == Err(3)
+pub fn decode_hex(encoded: string) -> Result<string, number> {
+  return match bytes.from_hex(encoded) {
+    Ok(b) => match bytes.to_text(b) {
+      Ok(t) => Ok(t),
+      Err(e) => Err(e.index),
+    },
+    Err(e) => Err(e.index),
+  }
+}
+
+// A base64url string under the standard alphabet, and a final character with
+// bits set past the end of the data. Both decode to quietly wrong bytes through
+// `Buffer`.
+@example decode_b64("Zm9v") == Ok("foo")
+@example decode_b64("a-b_") == Err(1)
+@example decode_b64("Zh==") == Err(1)
+@example decode_b64("Z") == Err(0)
+pub fn decode_b64(encoded: string) -> Result<string, number> {
+  return match bytes.from_base64(encoded) {
+    Ok(b) => match bytes.to_text(b) {
+      Ok(t) => Ok(t),
+      Err(e) => Err(e.index),
+    },
+    Err(e) => Err(e.index),
+  }
+}
+
+// 256 is not a byte. A silent `& 0xff` would make it 0.
+@example rejects_at([1, 300, 3,]) == 1
+@example rejects_at([1, 2, 3,]) == 0 - 1
+pub fn rejects_at(xs: Array<int>) -> number {
+  return match bytes.from_array(xs) {
+    Ok(_) => 0 - 1,
+    Err(e) => e.index,
+  }
+}
+"#,
+    );
+    let report = glyph_cli::examples::run_examples(&src).expect("run_examples ok");
+    assert!(report.ran, "examples should have run");
+    assert!(
+        report.build_failed.is_none(),
+        "the codec module should compile: {:?}",
+        report.build_failed
+    );
+    assert!(
+        report.failures.is_empty(),
+        "every published vector should hold: {:?}",
+        report.failures
+    );
+    assert_eq!(report.total, 28, "every @example above ran");
+}
+
+/// The two programs the round could not write. The TOTP is checked against the
+/// RFC 6238 test vector (the ASCII secret `12345678901234567890` at T=59 is
+/// `94287082`), which is the whole point: an HMAC over bytes routed through a
+/// string computes a different answer, and only a published vector catches it.
+#[test]
+fn bytes_carry_a_binary_file_and_an_rfc_6238_hmac() {
+    if !js_toolchain_available() {
+        eprintln!("skipping bytes end-to-end: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("bytesapp");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/array
+import std/bytes
+import std/crypto
+import std/fs
+import std/io
+import std/math
+import std/option { Some, None }
+import std/result { Result, Ok, Err }
+
+fn at(b: bytes.Bytes, i: int) -> int {
+  return match bytes.get(b, i) {
+    Some(v) => v,
+    None => 0 - 1,
+  }
+}
+
+// The 8-byte big-endian counter. Shifts stop working past 32 bits, so divide.
+fn counter_bytes(counter: number) -> Array<int> {
+  return array.map(array.range(8), fn(i: int) -> int {
+    return math.floor(counter / math.pow(256, 7 - i)) % 256
+  })
+}
+
+fn totp(key: bytes.Bytes, counter: number) -> Result<string, bytes.BytesError> {
+  let msg = bytes.from_array(counter_bytes(counter))?
+  let digest = crypto.hmac_sha1_bytes(key, msg)
+  let offset = at(digest, bytes.len(digest) - 1) % 16
+  let code = (((at(digest, offset) % 128) * 16777216)
+    + (at(digest, offset + 1) * 65536)
+    + (at(digest, offset + 2) * 256)
+    + at(digest, offset + 3)) % 100000000
+  return Ok(number.to_string(code))
+}
+
+fn run(path: string) -> Result<void, string> {
+  let key = bytes.from_text("12345678901234567890")
+  let code = totp(key, 1).map_err(fn(e: bytes.BytesError) -> string { e.message })?
+  io.println("totp=${code}")
+
+  // The PNG signature: the first byte is 0x89, which is not valid UTF-8 alone.
+  let sig = bytes.from_array([137, 80, 78, 71, 13, 10, 26, 10,])
+    .map_err(fn(e: bytes.BytesError) -> string { e.message })?
+  let file = bytes.join([sig, bytes.from_text("IHDR"),])
+  fs.write_bytes(path, file).map_err(fn(e: fs.FsError) -> string { e.message })?
+  let back = fs.read_bytes(path).map_err(fn(e: fs.FsError) -> string { e.message })?
+  io.println("same=${bytes.equals(back, file)}")
+  io.println("magic=${bytes.to_hex(bytes.slice(back, 0, 4))}")
+  io.println("signed=${bytes.starts_with(back, sig)}")
+  let as_text = match bytes.to_text(back) {
+    Ok(_) => "decoded",
+    Err(e) => "refused at ${number.to_string(e.index)}",
+  }
+  io.println("text=${as_text}")
+
+  // A key that is not valid UTF-8, which is what a real one looks like. The
+  // RFC 6238 vector cannot catch a key routed through a string, because its
+  // secret is ASCII and survives the trip; this one does not.
+  let raw = bytes.from_array([255, 0, 195, 40, 128, 65,])
+    .map_err(fn(e: bytes.BytesError) -> string { e.message })?
+  let msg = bytes.from_array([0, 0, 0, 0, 0, 0, 0, 1,])
+    .map_err(fn(e: bytes.BytesError) -> string { e.message })?
+  io.println("mac=${bytes.to_hex(crypto.hmac_sha1_bytes(raw, msg))}")
+  io.println("dig=${bytes.to_hex(crypto.sha1_bytes(raw))}")
+  io.println("safe=${crypto.timing_safe_equal(raw, bytes.slice(raw, 0, 6))}")
+  io.println("nolen=${crypto.timing_safe_equal(raw, msg)}")
+  return Ok(void)
+}
+
+pub fn main(argv: Array<string>) -> number {
+  // The path comes in on argv so the test's temp root owns it; a relative name
+  // would drop the file wherever `glyph run` happened to be invoked from.
+  let path = match array.get(argv, 0) {
+    Some(p) => p,
+    None => "probe.png",
+  }
+  return match run(path) {
+    Ok(_) => 0,
+    Err(e) => {
+      io.eprintln(e)
+      1
+    },
+  }
+}
+"#,
+    );
+    let entry = src.join("main.glyph");
+    let png = root.join("g102-probe.png");
+    let (code, stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("run"),
+        entry.as_os_str(),
+        png.as_os_str(),
+    ]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    // The RFC 6238 vector. A key or a message routed through a string would
+    // give some other eight digits, and nothing else here would notice.
+    assert!(stdout.contains("totp=94287082"), "RFC 6238 T=59: {stdout}");
+    assert!(stdout.contains("same=true"), "a binary file round-trips: {stdout}");
+    assert!(stdout.contains("magic=89504e47"), "the PNG magic survives: {stdout}");
+    assert!(stdout.contains("signed=true"), "starts_with finds it: {stdout}");
+    assert!(
+        stdout.contains("text=refused at 0"),
+        "0x89 is not text, and to_text says where: {stdout}"
+    );
+    // Computed by node's own `crypto` over the same octets. Routing the key
+    // through a string gives 4ab779f0..., so this is the assertion that pins
+    // "the bytes reached the primitive as bytes".
+    assert!(
+        stdout.contains("mac=c543ef42e8b49063b658bdb6f93799e0e42b92b4"),
+        "an HMAC over a key that is not valid UTF-8: {stdout}"
+    );
+    assert!(
+        stdout.contains("dig=9452f2de485ecf156ae9b4da5072478302060aa4"),
+        "a digest over the same octets: {stdout}"
+    );
+    assert!(stdout.contains("safe=true"), "equal secrets compare equal: {stdout}");
+    assert!(
+        stdout.contains("nolen=false"),
+        "different lengths answer false instead of throwing: {stdout}"
+    );
+}

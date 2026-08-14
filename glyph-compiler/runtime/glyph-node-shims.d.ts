@@ -15,6 +15,9 @@ declare module "fs" {
   // `path` may be a file path or a file descriptor (`std/io` reads stdin via
   // fd 0).
   export function readFileSync(path: string | number, encoding: "utf8"): string;
+  // No encoding means no decoding: the raw octets, which is what `fs.read_bytes`
+  // needs and the only way to read a file that is not text.
+  export function readFileSync(path: string | number): GlyphBuffer;
   // `std/io` reads stdin one chunk at a time through this, so a line is
   // available before the writer closes the stream.
   export function readSync(
@@ -25,7 +28,9 @@ declare module "fs" {
     position: number | null,
   ): number;
   export function writeFileSync(path: string, data: string, encoding: "utf8"): void;
+  export function writeFileSync(path: string, data: Uint8Array): void;
   export function appendFileSync(path: string, data: string, encoding: "utf8"): void;
+  export function appendFileSync(path: string, data: Uint8Array): void;
   export function existsSync(path: string): boolean;
   export function rmSync(path: string, options?: { force?: boolean; recursive?: boolean }): void;
   export function mkdirSync(path: string, options?: { recursive?: boolean }): string | undefined;
@@ -101,19 +106,31 @@ declare module "node:os" {
   export * from "os";
 }
 
+// Each hash and HMAC takes text or octets and answers in either, because a key
+// and a digest are both arbitrary bytes: `std/crypto`'s `_bytes` forms are the
+// ones a wire protocol needs, and routing those through a string would replace
+// every byte that is not valid UTF-8 with U+FFFD.
 declare module "crypto" {
   export function randomUUID(): string;
-  export function randomBytes(size: number): { toString(encoding: string): string };
+  export function randomBytes(size: number): GlyphBuffer;
   export interface Hash {
-    update(data: string): Hash;
+    update(data: string, encoding: "utf8"): Hash;
+    update(data: string | Uint8Array): Hash;
     digest(encoding: string): string;
+    digest(): GlyphBuffer;
   }
   export function createHash(algorithm: string): Hash;
   export interface Hmac {
-    update(data: string): Hmac;
+    update(data: string, encoding: "utf8"): Hmac;
+    update(data: string | Uint8Array): Hmac;
     digest(encoding: string): string;
+    digest(): GlyphBuffer;
   }
-  export function createHmac(algorithm: string, key: string): Hmac;
+  export function createHmac(algorithm: string, key: string | Uint8Array): Hmac;
+  // Compares in time proportional to the length rather than to how much of it
+  // matches. Throws when the two differ in length, which is why `std/crypto`
+  // checks that first.
+  export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean;
 }
 declare module "node:crypto" {
   export * from "crypto";
@@ -141,13 +158,21 @@ declare const process: {
   stdin: { isTTY?: boolean };
 };
 
-// A node `Buffer` is a `Uint8Array`: iterable and index-addressable, so
-// `Array.from(buf)` and `buf[i]` yield the raw bytes. `toString(encoding)`
-// renders it back to text. This is the subset a binary codec needs to cross
-// the byte boundary; `@types/node` supersedes it for the full surface.
-interface GlyphBuffer extends Iterable<number> {
-  readonly length: number;
-  [index: number]: number;
+// A node `Buffer` really is a `Uint8Array` subclass, and this says so, which is
+// what lets a `Buffer` returned by `readFileSync` or `digest()` become a `Bytes`
+// without copying: `new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)`
+// is a view over the same memory. It also matches `@types/node`, which declares
+// the same relationship, so code that type-checks against this shim type-checks
+// against the real typings too.
+//
+// The re-wrap is not optional. `Buffer.prototype.slice` returns a view sharing
+// memory rather than a copy, so a `Buffer` handed out as a `Bytes` would break
+// `bytes.slice`'s promise.
+//
+// `toString(encoding)` is the one addition over `Uint8Array`. Only the subset a
+// binary codec needs is declared; `@types/node` supersedes this file entirely
+// for the full surface.
+interface GlyphBuffer extends Uint8Array {
   toString(encoding?: string): string;
   subarray(start?: number, end?: number): GlyphBuffer;
 }

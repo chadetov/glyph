@@ -625,6 +625,66 @@ stream.bools() -> Stream<bool>                  // alternating
 stream.from<T>(values: Array<T>) -> Stream<T>   // cycle through a fixed list
 ```
 
+## std/intl
+
+Locale-aware plurals, numbers, money, dates, lists and collation.
+
+JavaScript ships the CLDR data every localized program needs behind the `Intl`
+global, and Glyph resolves imported module names rather than ambient globals, so
+this module is the only way to reach it. Method forms that hang off a value
+(`n.toLocaleString(...)`, `a.localeCompare(...)`) do pass through to TypeScript,
+but everything namespace-only had no route at all.
+
+Plurals are the reason it exists. An app that branches on `n == 1` is wrong in
+most of the world: Polish selects between one, few, many and other, Arabic uses
+all six categories, and the correct rules are about 200 locale-specific tables
+the host already has.
+
+```
+intl.plural_category(locale: string, count: number)
+  -> "zero" | "one" | "two" | "few" | "many" | "other"   // CLDR category
+intl.ordinal_category(locale: string, count: number)
+  -> "zero" | "one" | "two" | "few" | "many" | "other"   // for "1st", "2nd"
+
+intl.format_number(locale: string, value: number) -> string
+intl.format_fixed(locale: string, value: number, digits: number) -> string
+intl.format_currency(locale: string, value: number, currency: string) -> string
+intl.format_percent(locale: string, value: number) -> string
+intl.format_list(locale: string, items: Array<string>) -> string
+intl.relative_time(locale: string, value: number, unit: string) -> string
+intl.format_date(locale: string, epoch_ms: number) -> string
+intl.format_datetime(locale: string, epoch_ms: number) -> string
+intl.compare(locale: string, a: string, b: string) -> number   // for array.sort
+intl.best_locale(requested: Array<string>) -> string            // "" if none
+```
+
+`plural_category` answers a **string-literal union**, not a `string`, so a match
+over it is exhaustive with no catch-all and a missing category is named:
+
+```glyph
+return match intl.plural_category("pl", count) {
+  "one" => "${n} wiadomosc",
+  "few" => "${n} wiadomosci",
+  "many" => "${n} wiadomosci",
+  "other" => "${n} wiadomosci",
+  "two" => "${n} wiadomosci",
+  "zero" => "${n} wiadomosci",
+}
+```
+
+Dropping an arm is `[E0200] non-exhaustive match on `"zero" | "one" | ...`:
+missing variants "zero"`. That is the whole reason to wrap `Intl` rather than
+expose it: as a bare `string` the same match would be told to add an `else`, and
+an `else` over a plural category is how a locale's `few` silently renders as
+`other`.
+
+`format_currency` is for display. For money *arithmetic* use `std/decimal`,
+which is exact; a `number` has already lost cents by the time you format it.
+
+`compare` is what `array.sort` wants, and it is not `a < b`: comparing strings
+with `<` compares UTF-16 code units, which puts `Z` before `a` and every
+accented letter after `z`.
+
 ## std/timers
 
 Run something later, or repeatedly, and stop it again.

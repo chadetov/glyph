@@ -160,6 +160,14 @@ pub fn collect_module_symbols(module: &Module) -> Result<ModuleSymbols, Vec<Reso
                             alias: alias.clone(),
                         },
                     ),
+                    ImportKind::Default(local) => ctx.intern(
+                        local.clone(),
+                        imp.span,
+                        SymbolKind::ImportDefault {
+                            path: imp.path.clone(),
+                            local: local.clone(),
+                        },
+                    ),
                     ImportKind::Named(names) => {
                         for n in names {
                             ctx.intern(

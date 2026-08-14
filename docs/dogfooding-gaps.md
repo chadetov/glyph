@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 113 entries, 83 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 11 are open. That round re-ran an assignment the
+fixed two of them: of 113 entries, 86 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 8 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3497,8 +3497,8 @@ the class this language exists to remove.
   typed loop pays for this. `Ty::Imported` counts as unsettled, since a type
   crossing a module boundary carries no shape.
 
-- **G110. The `Ok` payload of a *generic* record's `parse` is opaque to the
-  checker.** The cause behind G109 rather than a duplicate of it, and still open.
+- **G110. [FIXED] The `Ok` payload of a *generic* record's `parse` is opaque to
+  the checker.** The cause behind G109 rather than a duplicate of it, and still open.
   `descriptor_member_ty` returns `None` when `td.generics` is non-empty, with the
   reason recorded in its own doc comment: a generic record's descriptor takes one
   runtime checker per type parameter, so its arity differs from the non-generic
@@ -3531,8 +3531,8 @@ the class this language exists to remove.
   `ImportNamed` arm consults `stdlib_modeled_type` before falling through, so
   both spellings lower to the same `Ty`.
 
-- **G112. Glyph has no default-import form, so a CommonJS `export =` callable
-  package is unreachable.** The single widest interop gap found so far. A package
+- **G112. [FIXED] Glyph has no default-import form, so a CommonJS `export =`
+  callable package is unreachable.** The single widest interop gap found so far. A package
   whose export *is* a function (`module.exports = f`) cannot be called at all;
   all three D15 import spellings fail:
 
@@ -3547,11 +3547,19 @@ the class this language exists to remove.
   `matter(text)` entry point. **The gap is exactly the default binding**: a
   *named* export reached through the same `export =` namespace
   (`import gray-matter { read }`) compiles and runs, which is what
-  `examples/apps/sitegen` uses, with a source comment saying why. D15 forbids
-  re-export and has no default form; adding one is a spec decision.
-  *Reproduced against 0.1.75.*
+  `examples/apps/sitegen` uses, with a source comment saying why.
 
-- **G113. `Intl` is unreachable, so CLDR plural data has no route.** A host
+  **Fixed in 0.1.76**, and D15 now names four import forms:
+  `import express { default as app }`. The `as` is legal only after `default`,
+  never for an arbitrary imported name, so general renaming stays closed and a
+  name in the file still matches the name at its source; `grep 'default as'`
+  finds every default import. Binding it through the *aliased* form was rejected
+  because it would give one spelling two meanings depending on the package's
+  module format, which is exactly the class G111 was fixed to remove. Verified
+  end to end: `matter("---\ntitle: hi\n---\nbody text")`, gray-matter's own
+  documented entry point, prints `content: body text`.
+
+- **G113. [FIXED] `Intl` is unreachable, so CLDR plural data has no route.** A host
   global, and Glyph resolves names from modules, so `new Intl.PluralRules(loc,
   {})` is `[E0103] unresolved name `Intl``. That much is the documented D-stance
   (G95). What the round adds is which side of the line each thing falls:
@@ -3569,7 +3577,20 @@ the class this language exists to remove.
   result does not compile, because its declarations reference the `Intl.*`
   globals Glyph has no types for. So any package whose types touch `Intl` is
   import-only, never boundary-validated.
-  *Reproduced against 0.1.75.*
+
+  **Fixed in 0.1.76** by the answer this repo already documents for a host global
+  the stdlib does not wrap: `std/intl` wraps it, the way timers and WebSocket
+  were. Twelve functions covering plurals, ordinals, numbers, fixed decimals,
+  currency, percent, lists, relative time, dates, collation and locale
+  negotiation. The wrapping earns its keep rather than just forwarding:
+  `plural_category` returns the **string-literal union** of the six CLDR
+  categories, so a match over it is exhaustive with no catch-all and a missing
+  one is `[E0200] ... missing variants "zero"`. Exposed as a bare `string` it
+  would have been E0218, whose advice is to add an `else`, and an `else` over a
+  plural category is how a locale's `few` silently renders as `other`. Verified
+  against real CLDR data: Polish 1/3/5 select one/few/many. The `gen dts`
+  half stays open and is folded into G108, since a package whose declarations
+  reference `Intl.*` still cannot be materialized.
 
 **Refining G108 with evidence from this round.** The entry says `gen dts` fails
 on marked because the reader handles only `interface`/`type` declarations. That

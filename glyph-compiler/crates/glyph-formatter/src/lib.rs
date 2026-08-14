@@ -500,6 +500,11 @@ impl Printer {
                 self.push(" as ");
                 self.push(alias);
             }
+            ImportKind::Default(local) => {
+                self.push(" { default as ");
+                self.push(local);
+                self.push(" }");
+            }
             ImportKind::Named(names) => {
                 // Named imports stay on one line regardless of count; they are
                 // short and reordering would not aid diff stability.

@@ -67,6 +67,21 @@ pub enum SymbolKind {
         alias: Ident,
     },
 
+    /// `import express { default as app }` — the module's *default* export
+    /// bound to a local name.
+    ///
+    /// Distinct from `ImportNamed` on purpose. A default export has no name in
+    /// the source module, so there is nothing to check it against: the export
+    /// list that catches `string.repeeat` (G27) would reject every default
+    /// import if this reused `ImportNamed` with `original: "default"`. It also
+    /// emits differently (`import app from "express"`, not
+    /// `import { app } from "express"`), and conflating the two is how the
+    /// emitter would silently write the form `tsc` rejects with TS2595.
+    ImportDefault {
+        path: ModulePath,
+        local: Ident,
+    },
+
     /// `import std/result { Ok, Err }` — each named import becomes one
     /// `ImportNamed`. Resolved against the target module's exports during
     /// cross-module pass (week 2 day 3+).

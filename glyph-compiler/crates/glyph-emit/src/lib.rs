@@ -1563,6 +1563,13 @@ impl<'a> Emitter<'a> {
             ImportKind::Aliased(alias) => {
                 format!("import * as {alias} from \"{spec}\";")
             }
+            // The form `tsc` demands for a CommonJS `export =` callable. Every
+            // other kind emits a named or namespace import, which is TS2595
+            // ("can only be imported by using a default import") or leaves the
+            // binding uncallable.
+            ImportKind::Default(local) => {
+                format!("import {local} from \"{spec}\";")
+            }
         };
         self.line(&line);
         Ok(())
@@ -4163,7 +4170,9 @@ impl<'a> Emitter<'a> {
                     im.path.segments.last().map(|s| s.as_ref()) == Some(binding)
                 }
                 ImportKind::Aliased(alias) => alias.as_ref() == binding,
-                ImportKind::Named(_) => false,
+                // A default binding is a value, not a namespace: `app.Box` is a
+                // member read on it, never a module-qualified type.
+                ImportKind::Named(_) | ImportKind::Default(_) => false,
             };
             if !matches {
                 return None;
@@ -4235,7 +4244,7 @@ impl<'a> Emitter<'a> {
                 match &im.kind {
                     ImportKind::Namespace => im.path.segments.last().map(|s| s.as_ref()),
                     ImportKind::Aliased(alias) => Some(alias.as_ref()),
-                    ImportKind::Named(_) => None,
+                    ImportKind::Named(_) | ImportKind::Default(_) => None,
                 }
             })
             .collect()
@@ -4256,7 +4265,7 @@ impl<'a> Emitter<'a> {
                     im.path.segments.last().map(|s| s.as_ref()) == Some(name)
                 }
                 ImportKind::Aliased(alias) => alias.as_ref() == name,
-                ImportKind::Named(_) => false,
+                ImportKind::Named(_) | ImportKind::Default(_) => false,
             }
         })
     }
@@ -6773,23 +6782,49 @@ mod tests {
     }
 
     #[test]
+    fn a_default_import_emits_the_form_tsc_demands_for_a_callable_package() {
+        // A CommonJS package whose export *is* a function (`module.exports = f`,
+        // `export = f` in its `.d.ts`) has nothing else to import. Every other
+        // import kind emits a named or namespace import, which `tsc` answers
+        // with TS2595 "can only be imported by using a default import" or leaves
+        // uncallable. express, lodash, debug, chalk@4 and most of the pre-ESM
+        // registry are exactly this shape.
+        let ts = emit(
+            "module m\n\
+             import express { default as express }\n\
+             pub fn make() -> unknown { return express() }\n",
+        );
+        assert!(
+            ts.contains("import express from \"express\";"),
+            "a default import must emit a default import; got:\n{ts}"
+        );
+        assert!(
+            !ts.contains("import { express }") && !ts.contains("import * as express"),
+            "neither of the forms tsc rejects; got:\n{ts}"
+        );
+    }
+
+    #[test]
     fn a_for_over_an_iterand_of_unknown_type_decides_its_protocol_at_run_time() {
-        // An array's pairs bind a NUMBER index, a record's bind a STRING key,
-        // so guessing wrong changes what the program computes. This used to
-        // default to the record form whenever the checker had not settled the
-        // type, which made `index + 1` evaluate `"0" + 1 === "01"` in a build
-        // reporting no diagnostics and a clean `tsc --strict`. The `Ok` payload
-        // of a generic record's `parse` is untyped today and took exactly that
-        // path.
+        // An array's pairs bind a NUMBER index, a record's bind a STRING key, so
+        // guessing wrong changes what the program computes. This used to default
+        // to the record form whenever the checker had not settled the type,
+        // which made `index + 1` evaluate `"0" + 1 === "01"` in a build
+        // reporting no diagnostics and a clean `tsc --strict`.
         //
-        // A settled type still emits directly; only the unsettled one defers.
+        // The iterand here is a generic `parse` with **no** explicit type
+        // arguments, which stays `Unknown` on purpose: `parse` takes an
+        // `unknown`, so there is nothing to infer an instantiation from and
+        // guessing one would put a wrong shape behind a boundary check. Written
+        // with type arguments it is typed now, takes the direct array form, and
+        // never reaches the helper — which is what the fix to that half did.
         let ts = emit(
             "module m\n\
              type Wire<V> = { keys: Array<string>, values: Array<V> }\n\
              import std/result { Ok, Err }\n\
              import std/io\n\
              fn f(raw: unknown) -> void {\n\
-             \x20 match Wire.parse<number>(raw) {\n\
+             \x20 match Wire.parse(raw) {\n\
              \x20\x20\x20 Ok(w) => {\n\
              \x20\x20\x20\x20\x20 for i, k in w.keys { io.println(k) }\n\
              \x20\x20\x20 },\n\
@@ -6806,6 +6841,28 @@ mod tests {
             !ts.contains("Object.entries(w.keys)"),
             "the record form binds a string index and is a miscompile here; got:\n{ts}"
         );
+    }
+
+    #[test]
+    fn a_typed_generic_parse_takes_the_direct_array_form() {
+        // The other half: with explicit type arguments the parsed value's shape
+        // is known, so the loop needs no run-time decision at all.
+        let ts = emit(
+            "module m\n\
+             type Wire<V> = { keys: Array<string>, values: Array<V> }\n\
+             import std/result { Ok, Err }\n\
+             import std/io\n\
+             fn f(raw: unknown) -> void {\n\
+             \x20 match Wire.parse<number>(raw) {\n\
+             \x20\x20\x20 Ok(w) => {\n\
+             \x20\x20\x20\x20\x20 for i, k in w.keys { io.println(k) }\n\
+             \x20\x20\x20 },\n\
+             \x20\x20\x20 Err(_e) => void,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(ts.contains("w.keys.entries()"), "got:\n{ts}");
+        assert!(!ts.contains("__glyph_pairs"), "got:\n{ts}");
     }
 
     #[test]

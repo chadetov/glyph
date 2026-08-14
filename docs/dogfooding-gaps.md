@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 113 entries, 86 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 8 are open. That round re-ran an assignment the
+fixed two of them: of 115 entries, 86 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 10 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3615,3 +3615,67 @@ mapped field-by-field to read. And `path.join` takes an array
 (`path.join([dir, name])`) where `string.join` takes a separator
 (`string.join(parts, sep)`); `glyph llms` does not list `std/path` at all, so the
 shape is only discoverable by reading the runtime.
+
+## Round 32: the outside app came back, and it shipped
+
+`github.com/canpolatoral/glyph-hello` added Ultimate Tic Tac Toe: 3,377 lines of
+Glyph across a rules engine and an AI (depth-limited minimax with alpha-beta,
+iterative deepening under a time budget, three difficulty levels), driving a Web
+Worker so the search never blocks the main thread. **198 `@example` tests pass,
+six modules, `tsc --strict` clean** on 0.1.74. Still no TypeScript in `src/`, and
+still no hand-written `.d.ts`.
+
+Two things are worth saying before the gaps. Alpha-beta is what round 28 recorded
+as *expressible but awkward* (G101, no early exit in `fold`); an outside developer
+wrote it anyway, at scale, and it works. And the app is now genuinely
+client-side, which is the deployment shape none of our own apps have.
+
+What it cost them is a **487-line build tool** (`tools/build-web.mjs`) to get
+Glyph output into a browser. They took the no-npm-dependencies path deliberately,
+so a bundler was not on the table; every step in that file is a thing the
+compiler did not do for them. Three are real.
+
+- **G114. The emitter puts type-only names in a value import list, which is a
+  hard ESM link error once types are stripped.** `import std/option { Option,
+  Some, None }` emits `import { Option, Some, None } from "std/option"`, and
+  `Option` is `export type` in the runtime, so it has no runtime binding.
+  `import std/option { Option }` alone emits an import whose every name is a
+  type. `tsc` elides such names, which is why `glyph build` is green and why
+  their pipeline routes through `tsc --outDir` on purpose; their own comment
+  says a bare type-stripper "is a hard ESM link error in a browser". Confirmed
+  both ways:
+
+      $ node consumer.mjs        # import { Option, Some, None } from "./std/option.js"
+      import { Option, Some, None } from "./glyph/std/option.js";
+               ^^^^^^   SyntaxError: does not provide an export named 'Option'
+
+      $ node consumer_ok.mjs     # same file, type-only name removed
+      linked Some None
+
+  It also makes the output ill-formed under `verbatimModuleSyntax`, which is
+  `[TS1484] 'Option' is a type and must be imported using a type-only import`
+  against **our own `runtime/std/*.ts` sources as well as the emitted user
+  code**. The fix is to emit `import type` for a name the module exports as a
+  type, and to split a mixed import. `docs/guide/deployment.md` currently tells
+  a reader the output "bundles like any other TypeScript", which holds for a
+  bundler that elides unused type imports (esbuild does) and not for the
+  stripper-based toolchains that are now common.
+  *Reproduced against 0.1.74.*
+
+- **G115. `glyph build` materializes the whole standard library, under a
+  directory name a static host hides.** The engine imports five std modules;
+  the output carries **31**, including `sqlite`, `http`, `fs` and `process` —
+  modules a browser worker must not contain at all. Tree-shaking answers this
+  when a bundler is in the pipeline, and `docs/guide/deployment.md` says so, but
+  a no-bundler deployment has to prune the graph itself, which is step 3 of their
+  487 lines. Step 4 renames `.glyph-runtime` to `glyph`, because a path component
+  starting with a dot is hidden by most static hosts, so the emitted layout
+  cannot be uploaded as-is. Neither is a miscompile; both are the difference
+  between "the output is portable JavaScript" and "the output is deployable".
+  A `--target browser` that emits pruned, relative-specifier ESM is the shape
+  that would remove the file.
+  *Reproduced against 0.1.74.*
+
+**Their pin is still `^0.1.72`**, from the scaffold before the exact-pin change,
+so this app is exactly the population `glyph upgrade` reads a caret for. Nothing
+about it broke across 0.1.72 to 0.1.74: it builds clean on both.

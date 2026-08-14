@@ -129,8 +129,22 @@ impl StdlibStubs {
         s.add(
             "std/fs",
             &[
-                "read_text", "write_text", "append_text", "make_dir", "exists", "remove",
-                "read_dir", "is_dir", "stat", "ErrorKind", "FsError", "FileInfo",
+                "read_text", "write_text", "append_text", "read_bytes", "write_bytes",
+                "append_bytes", "make_dir", "exists", "remove", "read_dir", "is_dir", "stat",
+                "ErrorKind", "FsError", "FileInfo",
+            ],
+        );
+        // An immutable sequence of octets, and the codecs between octets and
+        // text. The type every other boundary in this list was missing: a PNG's
+        // first byte is not valid UTF-8 on its own, so a binary format read as
+        // text is corrupt before the program sees it.
+        s.add(
+            "std/bytes",
+            &[
+                "Bytes", "BytesError", "empty", "from_array", "to_array", "from_text", "to_text",
+                "len", "get", "slice", "concat", "join", "equals", "index_of", "starts_with",
+                "to_hex", "from_hex", "to_base64", "from_base64", "to_base64url",
+                "from_base64url", "to_base32", "from_base32",
             ],
         );
         s.add(
@@ -165,10 +179,17 @@ impl StdlibStubs {
             "std/path",
             &["join", "dirname", "basename", "extname", "is_absolute", "normalize", "relative"],
         );
-        // Hashing, HMAC, and randomness over node's `crypto`.
+        // Hashing, HMAC, and randomness over node's `crypto`. Each digest has a
+        // text form returning hex and a `_bytes` form over `std/bytes`, because
+        // an HMAC key is arbitrary octets and a string cannot hold one.
         s.add(
             "std/crypto",
-            &["sha256", "sha512", "hmac_sha256", "random_uuid", "random_hex"],
+            &[
+                "sha1", "sha256", "sha512", "sha1_bytes", "sha256_bytes", "sha512_bytes",
+                "hmac_sha1", "hmac_sha256", "hmac_sha512", "hmac_sha1_bytes", "hmac_sha256_bytes",
+                "hmac_sha512_bytes", "random_uuid", "random_hex", "random_bytes",
+                "timing_safe_equal",
+            ],
         );
         // Numeric helpers over JavaScript's `Math`.
         s.add(

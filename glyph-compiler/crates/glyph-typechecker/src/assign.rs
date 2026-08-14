@@ -1460,6 +1460,39 @@ impl Assigner<'_> {
                 stdlib_named("fs", "FsError"),
                 false,
             ),
+            ("std/fs", "read_bytes") => (
+                1,
+                stdlib_named("bytes", "Bytes"),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            ("std/fs", "write_bytes") | ("std/fs", "append_bytes") => (
+                2,
+                Ty::Prim(Primitive::Void),
+                stdlib_named("fs", "FsError"),
+                false,
+            ),
+            // Every `std/bytes` entry that can fail does so for the same reason:
+            // the input is not the thing it claims to be. `from_array` over a
+            // 256, `to_text` over a PNG, `from_hex` over a typo. A silent
+            // truncation is what the alternative would be, so each is a
+            // `Result` and Glyph holds the caller to matching it.
+            ("std/bytes", "from_array")
+            | ("std/bytes", "from_hex")
+            | ("std/bytes", "from_base64")
+            | ("std/bytes", "from_base64url")
+            | ("std/bytes", "from_base32") => (
+                1,
+                stdlib_named("bytes", "Bytes"),
+                stdlib_named("bytes", "BytesError"),
+                false,
+            ),
+            ("std/bytes", "to_text") => (
+                1,
+                Ty::Prim(Primitive::String),
+                stdlib_named("bytes", "BytesError"),
+                false,
+            ),
             _ => return None,
         };
         let return_ty = self.stdlib_result_ty(ok, err)?;
@@ -3500,6 +3533,7 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("fs", "FileInfo")
             | ("fs", "ErrorKind")
             | ("http", "HttpError")
+            | ("bytes", "BytesError")
     )
     .then(|| stdlib_named(module, name))
 }
@@ -3537,6 +3571,14 @@ fn stdlib_type_fields(ty: &Ty) -> Option<Vec<RecordField>> {
             ("is_file", Ty::Prim(Primitive::Bool)),
             ("size", Ty::Prim(Primitive::Number)),
             ("modified", Ty::Prim(Primitive::Number)),
+        ],
+        // `index` is a position in the rejected input, so a decode failure can
+        // be reported against the source rather than as "somewhere in here".
+        // There is no `kind`: every failure in this module is one shape of the
+        // same thing, and a one-variant union would be a match with one arm.
+        ("bytes", "BytesError") => vec![
+            ("message", Ty::Prim(Primitive::String)),
+            ("index", Ty::Prim(Primitive::Number)),
         ],
         // `kind` is a string-literal union rather than a tagged one, so it
         // needs no variant table: D30 exhaustiveness reads the members straight

@@ -56,6 +56,10 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/json.ts"),
     ),
     (
+        ".glyph-runtime/std/bytes.ts",
+        include_str!("../../../runtime/std/bytes.ts"),
+    ),
+    (
         ".glyph-runtime/std/fs.ts",
         include_str!("../../../runtime/std/fs.ts"),
     ),

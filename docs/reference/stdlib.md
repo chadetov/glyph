@@ -195,9 +195,77 @@ For a record/union type `T`, the namespace form `json.parse<T>(text)` is
 auto-rewritten to validate against `T.schema`. Use that form (not the
 named-import `parse`) when you want validation rather than a bare cast.
 
+## std/bytes
+
+An immutable sequence of octets, and the codecs between octets and text. This is
+the type to reach for whenever the data is not text: a PNG's first byte is 137,
+which is not valid UTF-8 on its own, so a binary file read as a string is corrupt
+before your program sees it, and an HMAC key routed through one computes a
+different MAC than the specification says.
+
+```
+type Bytes                                        // a Uint8Array at run time
+type BytesError = { message: string, index: int } // index is a position in the rejected input
+bytes.empty -> Bytes
+bytes.from_array(xs: Array<int>) -> Result<Bytes, BytesError>   // rejects anything outside 0..255
+bytes.to_array(b: Bytes) -> Array<int>
+bytes.from_text(text: string) -> Bytes            // UTF-8 encode; total
+bytes.to_text(b: Bytes) -> Result<string, BytesError>           // UTF-8 decode; rejects, never substitutes
+bytes.len(b: Bytes) -> int
+bytes.get(b: Bytes, i: int) -> Option<int>
+bytes.slice(b: Bytes, start: int, end?: int) -> Bytes           // a copy; bounds clamp
+bytes.concat(a: Bytes, b: Bytes) -> Bytes
+bytes.join(parts: Array<Bytes>) -> Bytes          // many, in one allocation
+bytes.equals(a: Bytes, b: Bytes) -> bool          // by value; `==` compares references
+bytes.index_of(haystack: Bytes, needle: Bytes) -> Option<int>
+bytes.starts_with(b: Bytes, prefix: Bytes) -> bool
+bytes.to_hex(b: Bytes) -> string                  // lowercase, two characters per octet
+bytes.from_hex(encoded: string) -> Result<Bytes, BytesError>
+bytes.to_base64(b: Bytes) -> string               // RFC 4648 §4, padded
+bytes.from_base64(encoded: string) -> Result<Bytes, BytesError>
+bytes.to_base64url(b: Bytes) -> string            // RFC 4648 §5: `-_`, no padding
+bytes.from_base64url(encoded: string) -> Result<Bytes, BytesError>
+bytes.to_base32(b: Bytes) -> string               // RFC 4648 §6, uppercase, padded
+bytes.from_base32(encoded: string) -> Result<Bytes, BytesError>  // either case; padding optional
+```
+
+Every decode returns a `Result` because every one of them can be handed input
+that is not what it claims to be, and the alternative is silence. Node's
+`Buffer.from("zz", "hex")` returns an empty buffer and reports success;
+`Buffer.from` under base64 skips any character outside the alphabet, so a
+base64url string decodes to quietly wrong bytes. These refuse instead, and
+`index` says where:
+
+```
+match bytes.from_hex(input) {
+  Ok(b) => use(b),
+  Err(e) => io.eprintln("${e.message} at ${number.to_string(e.index)}"),
+}
+```
+
+`to_text` is the same rule on the other side. `Buffer.toString("utf8")`
+substitutes U+FFFD for a malformed sequence and reports success, which turns a
+truncated read into plausible-looking text; `to_text` returns the index of the
+first byte that cannot be part of a valid sequence.
+
+Nothing here mutates its argument, and nothing here touches a host API:
+`Uint8Array`, `TextEncoder` and `TextDecoder` are the whole of it, so a bundle
+that reaches only for `std/bytes` still runs in a Web Worker.
+
+Reading a multi-byte integer out of a buffer is deliberately absent. D36's
+operators do it in ordinary Glyph, and past 32 bits a shift is the wrong tool
+anyway, so a big-endian read divides:
+
+```
+fn u32_be(b: bytes.Bytes, at: int) -> int {
+  return (byte(b, at) * 16777216) + (byte(b, at + 1) * 65536)
+    + (byte(b, at + 2) * 256) + byte(b, at + 3)
+}
+```
+
 ## std/fs
 
-Synchronous text file I/O and directory inspection. Errors are values: match on
+Synchronous file I/O and directory inspection. Errors are values: match on
 `e.kind` to recover.
 
 ```
@@ -215,7 +283,15 @@ fs.remove(path: string) -> Result<void, FsError>
 fs.read_dir(path: string) -> Result<Array<string>, FsError>               // entry names, not full paths; not recursive
 fs.is_dir(path: string) -> bool                                           // false for a missing or unreadable path
 fs.stat(path: string) -> Result<FileInfo, FsError>                        // follows symlinks
+fs.read_bytes(path: string) -> Result<Bytes, FsError>                     // the octets, undecoded
+fs.write_bytes(path: string, contents: Bytes) -> Result<void, FsError>
+fs.append_bytes(path: string, contents: Bytes) -> Result<void, FsError>
 ```
+
+The `_text` calls decode and encode as UTF-8. Use the `_bytes` calls for any
+file that is not text: `read_text` on a PNG replaces every byte that is not
+valid UTF-8 with U+FFFD and reports success. When you have octets that ought to
+be text, `bytes.to_text` converts and says where it is not.
 
 The five named kinds cover what a filesystem program recovers from. EACCES and
 EPERM both arrive as `PermissionDenied`, so those two raw codes are the ones you
@@ -456,15 +532,58 @@ relative(from: string, to: string) -> string
 
 ## std/crypto
 
-Hashing, HMAC, and randomness over node's `crypto`, returning hex strings.
-Security primitives belong in the standard library, not an unvetted dependency.
+Hashing, HMAC, and randomness over node's `crypto`. Security primitives belong
+in the standard library, not an unvetted dependency.
+
+Each algorithm comes in two forms. The plain name takes a UTF-8 string and
+returns lowercase hex, which is what hashing a password or building an ETag
+wants. The `_bytes` form takes and returns `Bytes` from `std/bytes`, which is
+what a wire protocol wants: an HMAC key is arbitrary octets, and a string cannot
+hold one.
 
 ```
+sha1(input: string) -> string                     // legacy protocols only; see below
 sha256(input: string) -> string
 sha512(input: string) -> string
+sha1_bytes(input: Bytes) -> Bytes
+sha256_bytes(input: Bytes) -> Bytes
+sha512_bytes(input: Bytes) -> Bytes
+hmac_sha1(key: string, input: string) -> string
 hmac_sha256(key: string, input: string) -> string
+hmac_sha512(key: string, input: string) -> string
+hmac_sha1_bytes(key: Bytes, input: Bytes) -> Bytes
+hmac_sha256_bytes(key: Bytes, input: Bytes) -> Bytes
+hmac_sha512_bytes(key: Bytes, input: Bytes) -> Bytes
 random_uuid() -> string                           // a v4 UUID
 random_hex(count: number) -> string               // count random bytes, hex (length count * 2)
+random_bytes(count: number) -> Bytes              // count random octets, for a key or a nonce
+timing_safe_equal(a: Bytes, b: Bytes) -> bool     // compare a secret without leaking where it differs
+```
+
+Which form you pick changes the answer. A key with a byte that is not valid
+UTF-8 loses that byte on the way through a string, so the text form of a real
+key computes a different MAC than the specification says. If the key came from
+`bytes.from_base64` or `crypto.random_bytes`, use the `_bytes` form.
+
+SHA-1 is not collision-resistant and must not be used for signatures,
+certificates, or deduplicating untrusted content. It is here because some
+protocols specify it and interoperating means computing what they compute: RFC
+4226/6238 one-time passwords default to HMAC-SHA-1, as does every authenticator
+app. Reach for `sha256` unless a specification names this one.
+
+Verifying anything an attacker supplies against anything secret uses
+`timing_safe_equal`, not `bytes.equals`. `equals` returns as soon as it finds a
+mismatch, so how long it takes says how many leading bytes were right, and an
+attacker who can time the answer recovers a MAC a byte at a time.
+
+An RFC 6238 authenticator, end to end:
+
+```
+fn totp(secret: string, counter: number) -> Result<string, bytes.BytesError> {
+  let key = bytes.from_base32(secret)?          // or from_base64, or from_hex
+  let mac = crypto.hmac_sha1_bytes(key, bytes.from_array(counter_bytes(counter))?)
+  return Ok(truncate(mac))
+}
 ```
 
 ## std/math
@@ -503,7 +622,12 @@ rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
 
 ## std/encoding
 
-base64, base64url, and hex text encodings.
+base64, base64url, and hex text encodings, for when both sides are strings. When
+either side is octets, the codecs are on [`std/bytes`](#stdbytes)
+(`bytes.to_base64`, `bytes.from_hex`), which also covers base32 and refuses
+malformed input instead of skipping it. These six do not: `base64_decode("!!!")`
+is `""` with no error, and a decode that is not valid UTF-8 comes back with
+U+FFFD substituted.
 
 ```
 encoding.base64_encode(s: string) -> string

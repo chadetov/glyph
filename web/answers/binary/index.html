@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can I handle binary data, or is everything a string? · Glyph</title>
+    <meta name="description" content="std/bytes gives Glyph an immutable sequence of octets, with hex, base64 and base32 codecs that refuse malformed input instead of skipping it, plus file I/O and HMACs over real bytes." />
+    <link rel="canonical" href="https://glyphlang.io/answers/binary/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/typed-apis/"><span class="n">05</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">06</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">07</span> React</a>
+        <a href="/answers/state/"><span class="n">08</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">09</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">10</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">11</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">12</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">13</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">14</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">15</span> The language</a>
+        <a href="/answers/finance/"><span class="n">16</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">17</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">18</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">19</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">20</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">21</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">22</span> Upgrades</a>
+        <a href="/answers/binary/" class="active"><span class="n">23</span> Binary data</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">23 &middot; Binary data</p>
+      <h1 class="q-title">Can I handle binary data, or is everything a string?</h1>
+
+      <p class="short-answer">
+        <code>std/bytes</code> gives you an immutable sequence of octets, and
+        <code>std/fs</code> and <code>std/crypto</code> both speak it. Until 0.1.78 they
+        did not: every boundary in the standard library was string-in, string-out, so a
+        PNG could not be read and an HMAC could not be given a real key.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          A PNG's first byte is <code>0x89</code>, which is not valid UTF-8 on its own.
+          Read that file as text and every byte the decoder cannot make sense of becomes
+          U+FFFD, so the file is corrupt before your program sees it and nothing reports
+          an error. The same thing happens to a key: an HMAC secret is arbitrary octets,
+          and routing one through a string changes it, so you compute a different MAC than
+          the specification says and every test you wrote against your own code passes.
+        </p>
+        <p>
+          Two applications written independently, one a PNG reader and one an
+          authenticator, stopped on this same sentence in the same week. Neither could be
+          worked around inside the language.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>
+          An RFC 6238 authenticator, which needs bytes on both sides of the HMAC. The
+          secret arrives base32-encoded, the message is an eight-byte counter that is
+          mostly zero, and the digest is indexed by its own last byte:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">One-time password, start to finish</span>
+<pre>module totp
+
+import std/bytes
+import std/crypto
+import std/math
+import std/array
+import std/option { Some, None }
+import std/result { Result, Ok }
+
+fn at(b: bytes.Bytes, i: int) -&gt; int {
+  return match bytes.get(b, i) {
+    Some(v) =&gt; v,
+    None =&gt; 0,
+  }
+}
+
+pub fn code(secret: string, counter: number) -&gt; Result&lt;number, bytes.BytesError&gt; {
+  let key = bytes.from_base32(secret)?
+  let message = bytes.from_array(array.map(array.range(8), fn(i: int) -&gt; int {
+    return math.floor(counter / math.pow(256, 7 - i)) % 256
+  }))?
+
+  let mac = crypto.hmac_sha1_bytes(key, message)
+  let offset = at(mac, bytes.len(mac) - 1) % 16
+  return Ok((((at(mac, offset) % 128) * 16777216)
+    + (at(mac, offset + 1) * 65536)
+    + (at(mac, offset + 2) * 256)
+    + at(mac, offset + 3)) % 100000000)
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          <code>Bytes</code> is a <code>Uint8Array</code> at run time, so it hands to any
+          host API that takes one without unwrapping. The sequence operations are named
+          after their peers in <code>std/array</code> and <code>std/string</code>:
+          <code>len</code>, <code>get</code>, <code>slice</code>, <code>concat</code>,
+          <code>index_of</code>, <code>starts_with</code>. Nothing mutates its argument.
+        </p>
+
+        <p class="block-label">Every decode can refuse, and says where</p>
+        <p>
+          This is the part that cost the most to build and is the reason to use it. Node's
+          <code>Buffer</code> accepts malformed input and reports success:
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">What the platform does quietly</span>
+<pre>Buffer.from("zz", "hex")        // an empty buffer, no error
+Buffer.from("a-b_", "base64")   // skips - and _, decodes the rest, no error
+buf.toString("utf8")            // U+FFFD for anything malformed, no error</pre>
+      </div>
+
+      <div class="code">
+        <span class="cap">What Glyph does</span>
+<pre>match bytes.from_hex(input) {
+  Ok(b) =&gt; use(b),
+  Err(e) =&gt; io.eprintln("${e.message} at ${number.to_string(e.index)}"),
+}
+
+// "z" is not a hex digit at 0
+// a trailing base64 group cannot be 1 character(s) long at 3
+// not valid UTF-8 at 2</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Every codec is written out rather than delegated to <code>Buffer</code>, so hex,
+          base64, base64url and base32 all refuse a character outside their alphabet, a
+          trailing group too short to encode a whole byte, and a final character carrying
+          bits past the end of the data. <code>to_text</code> scans to find the first byte
+          that cannot be part of a valid UTF-8 sequence, so you get a position rather than
+          a verdict. <code>from_array</code> rejects anything outside 0..255 for the same
+          reason: a silent <code>&amp; 0xff</code> turns 256 into 0 and a typo into data.
+        </p>
+        <p>
+          Writing the codecs out bought something that was not the motive. The module
+          reaches for no host API at all, only <code>Uint8Array</code>,
+          <code>TextEncoder</code> and <code>TextDecoder</code>, so a bundle that touches
+          only <code>std/bytes</code> still runs in a Web Worker.
+        </p>
+
+        <p class="block-label">Which HMAC you pick changes the answer</p>
+        <p>
+          <code>std/crypto</code> now has both forms of every algorithm. The plain name
+          takes a string and returns hex, which is what hashing a password wants. The
+          <code>_bytes</code> form takes and returns <code>Bytes</code>, which is what a
+          wire protocol wants. If the key came from <code>bytes.from_base64</code> or
+          <code>crypto.random_bytes</code>, it has bytes a string cannot hold, and the
+          text form will quietly compute something else.
+        </p>
+        <p>
+          Verifying an attacker-supplied value against a secret uses
+          <code>crypto.timing_safe_equal</code>, not <code>bytes.equals</code>.
+          <code>equals</code> returns as soon as it finds a mismatch, so how long it takes
+          says how many leading bytes were right.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p><code>std/bytes</code> with 21 functions: the sequence operations, the UTF-8 bridge, and hex, base64, base64url and base32 codecs that return a <code>Result</code> naming the offending position. <code>fs.read_bytes</code>, <code>write_bytes</code> and <code>append_bytes</code> read and write a file undecoded. <code>std/crypto</code> has a <code>_bytes</code> form of every digest and HMAC, plus SHA-1 for the protocols that specify it, <code>random_bytes</code>, and <code>timing_safe_equal</code>. The codecs are pinned against the RFC 4648 vectors and the HMAC against RFC 6238, in the compiler's own test suite.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">Getting sharper</p>
+          <p>There is no integer codec yet, so reading a big-endian <code>u32</code> out of a header is arithmetic you write: past 32 bits a shift is the wrong tool anyway, so it divides. Hex literals still do not parse, which makes a 256-entry CRC32 table written in decimal hard to read. <code>std/websocket</code> still decodes a binary frame as UTF-8 text; the type it needed now exists, and the frames are next. And <code>std/encoding</code>'s six older string-to-string functions are still silent on malformed input, so use the <code>std/bytes</code> codecs for anything that has to be right.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/upgrades/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Will a new Glyph release break my build?</span>
+        </a>
+        <a href="/playground/" class="nx cta">
+          <span class="dir">You've seen it &rarr;</span>
+          <span class="t">Now write some Glyph in the playground</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/upgrades/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

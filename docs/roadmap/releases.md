@@ -3431,17 +3431,60 @@ copy of a similar walk as a cleanup worth doing), it went into `glyph-ast` as a
 shared `visit` module with no wildcard arm, so a new AST variant forces a
 decision in one place instead of being silently missed by one pass.
 
-#### 0.1.78 — the host boundary, and the app that will tell us what it needs
+#### 0.1.78 — Landed on main · Bytes
 
-**The committed Next marker is on G102 (bytes), which sits above this.** Three
-reasons, recorded so the next session does not have to re-derive them. It
-unblocks 0.1.79's binary frames, which cannot ship without it. It is the only
-open item that makes whole categories of program unwritable rather than awkward:
-two apps in one round stopped dead on it, a PNG reader and an RFC 6238
-authenticator, and neither could be worked around. And it was already pulled out
-of this release's module list for exactly that reason, without the ordering being
-updated to match. The four modules below and the npm dogfood round they exist to
-enable follow it.
+`std/bytes`, and the three boundaries that had no way to carry octets. Closes
+**G102**, which two apps in one round stopped dead on: a PNG reader that could
+not read a file whose first byte is `0x89`, and an RFC 6238 authenticator that
+could not form either argument to an HMAC. Both are now written as compiler
+tests.
+
+`Bytes` is an immutable sequence of octets, a `Uint8Array` at run time so it
+hands to a host API with no unwrapping. Twenty-one functions: the sequence
+operations named after their peers in `std/array` and `std/string` (`len`, `get`,
+`slice`, `concat`, `join`, `equals`, `index_of`, `starts_with`), the UTF-8 bridge,
+and hex, base64, base64url and base32 codecs. `std/fs` gained
+`read_bytes`/`write_bytes`/`append_bytes`; `std/crypto` gained a `_bytes` form of
+every digest and HMAC, SHA-1 in both forms, `hmac_sha512`, `random_bytes` and
+`timing_safe_equal`.
+
+**The design call that cost the most and mattered the most: every decode returns
+a `Result` that names the position.** node's `Buffer` is silent on malformed
+input. `Buffer.from("zz", "hex")` returns an empty buffer and reports success;
+base64 decoding skips any character outside the alphabet, so a base64url string
+decodes under the standard alphabet to quietly wrong bytes; `toString("utf8")`
+substitutes U+FFFD for a malformed sequence and reports success, which turns a
+truncated read into plausible-looking text. Delegating to `Buffer` would have
+been four lines per codec. Each is written out instead, refuses all three, and
+reports `index`; `to_text` scans on the error path so the answer is "not valid
+UTF-8 at 2" rather than "not valid UTF-8". `from_array` rejects anything outside
+0..255 for the same reason: a silent `& 0xff` turns 256 into 0.
+
+Writing the codecs rather than delegating bought a second thing that was not the
+motive: the module touches no host API at all, so a bundle that reaches only for
+`std/bytes` runs in a Web Worker. That is the property round 27's author wanted
+and assumed he did not have.
+
+**base32 was not in the plan and is in the release.** Round 28 proved it writable
+in ordinary Glyph, so it was left out on that basis. Then the `std/crypto`
+documentation's TOTP example opened with `bytes.from_base32(secret)`, because
+`otpauth://` URIs carry the shared key in base32 and every authenticator starts
+by decoding one. The example could not be written, which is what showed the
+surface was incomplete.
+
+**A note on what a published vector proves.** Deliberately breaking
+`hmac_sha1_bytes` to route its key through a string left the RFC 6238 assertion
+passing, because that vector's secret is ASCII and survives the trip unchanged.
+The test now also pins an HMAC over a key containing `0xff`, where the string
+route gives `4ab779f0…` instead of `c543ef42…`. A vector is evidence only for
+what its inputs exercise.
+
+Still open and deliberately not in this release: hex literals (`0xff` is still
+`[E0002]`), which makes a CRC32 table written in decimal unreadable, and integer
+codecs (`u32_be` and friends), which are ordinary arithmetic over `bytes.get`
+and which round 28 verified against published vectors in plain Glyph.
+
+#### 0.1.79 — the host boundary, and the app that will tell us what it needs
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still
@@ -3452,20 +3495,11 @@ concrete: `chat/daemon.glyph` imports node's `net` directly and holds an opaque
 `Socket`, which E0304 now refuses to validate. It is also the only raw host call
 in the entire examples tree, so wrapping it closes the last one.
 
-**`std/bytes` was in that list and has been pulled out of it**, because round 28
-showed it is not a peer of the other four. Two apps assigned different problems,
-running in different processes, stopped on the same sentence: a PNG reader that
-cannot read a file whose first byte is `0x89`, and an RFC 6238 authenticator that
-cannot form either argument to an HMAC. The other four modules each wrap one host
-boundary. This one is a missing *type*, and without it binary formats and real
-cryptography are both unwritable, whatever else ships. It goes first and on its
-own. The shape it has to cover is known from those two rounds and is wider than a
-`Bytes` alias: a file read as octets, a bytes/text bridge in `std/encoding` (whose
-six functions are all `string -> string` today), and a `std/crypto` that takes and
-returns bytes rather than text, including the SHA-1 that RFC 6238 defaults to.
-What is *not* needed is arithmetic: D36's operators, base32 decode and RFC 4226
-dynamic truncation were all written in ordinary Glyph over `Array<int>` and
-verified against published vectors. Recorded as G102.
+**`std/bytes` was in that list, was pulled out of it, and shipped first as
+0.1.78.** Round 28 showed it was not a peer of the other four: they each wrap one
+host boundary, while that one was a missing *type*, and without it binary formats
+and real cryptography were both unwritable whatever else shipped. The entry above
+records what landed.
 
 **The dogfood round is an application built on real npm packages.** Nothing in
 `examples/apps/` uses one today, which means the 1.0 interop gate ("can a
@@ -3591,19 +3625,18 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.79 — finish what is half-built
+#### 0.1.80 — finish what is half-built
 
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.
 
-**Blocked in part, and the roadmap did not say so.** "WebSocket binary messages"
-needs a byte representation, and there is none: `runtime/std/websocket.ts` says
-so in its own header ("Binary frames are decoded as UTF-8 text ... a program that
-needs the bytes is not served by this module yet"), and G102 records that no
-external boundary in the standard library crosses to bytes at all. So this
-release cannot be finished as written until **G102** lands. Either bytes come
-first, or 0.1.79 ships without its binary half and the item stays open. The
-server, options, subprotocols, integration tests and `std/sse` are unaffected.
+**Was blocked in part, and is not any more.** "WebSocket binary messages" needs a
+byte representation, and there was none: `runtime/std/websocket.ts` said so in
+its own header ("Binary frames are decoded as UTF-8 text ... a program that needs
+the bytes is not served by this module yet"). 0.1.78 shipped `std/bytes`, so the
+work here is now `on_binary` alongside `on_message` and a `send_bytes`, over a
+type that exists. The header comment in `websocket.ts` has to come out in the
+same change.
 
 #### After that, the loop decides
 
@@ -4629,6 +4662,24 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **`std/encoding`'s six functions are silent on malformed input.**
+  `base64_decode("!!!")` is `""` and no error, because `Buffer.from` skips any
+  character outside the alphabet, and a decode of bytes that are not valid UTF-8
+  comes back with U+FFFD substituted. 0.1.78 put refusing codecs on `std/bytes`
+  and left these alone: fixing them means changing six shipped signatures from
+  `string -> string` to `string -> Result<string, _>`, which is a breaking change
+  and wants its own release. Until then their header and the reference both point
+  at `std/bytes` for anything that has to be right.
+- **Integer codecs over `Bytes` (`u16_be`, `u32_be`, `u32_le`, and the writers).**
+  Deliberately left out of 0.1.78 on the evidence that round 28 wrote big-endian
+  decoding in ordinary Glyph and checked it against published vectors, so this is
+  convenience rather than capability. It is still the shape every binary format
+  reaches for first, and `(b[0] * 16777216) + (b[1] * 65536) + ...` is the kind of
+  line that is wrong once and never noticed. Wants a real app asking for it.
+- **Hex literals (`0xff` is still `[E0002]`).** A known deferral, designed to be
+  forward-compatible, and unusually painful next to bytes: a 256-entry CRC32 table
+  written in decimal is unreadable. Lexer-only, and the parse trees of existing
+  files do not change.
 - **Mark the six apps under `examples/apps/` as projects, and collapse the CI
   loop.** D41 landed the mechanism (a `package.json` with a `"glyph"` key is a
   module-resolution root), but none of the apps carries the marker yet, so

@@ -30,8 +30,8 @@ open.
   or an accepted won't-fix.
 
 Reconciled again after the chat *server* round, which added six entries and
-fixed two of them: of 117 entries, 87 are fixed, 10 are partly fixed, 9 are
-decided or resolved, and 11 are open. That round re-ran an assignment the
+fixed two of them: of 117 entries, 89 are fixed, 10 are partly fixed, 9 are
+decided or resolved, and 9 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3722,8 +3722,8 @@ compiler produced **eleven** diagnostics: eight `E0105`, two `E0106`, one
 agents that had never seen the language, that is the manifesto's bet paying off
 rather than a list of complaints. What follows is the friction that remained.
 
-- **G116. `E0105` says the name is wrong and never says what is right, so an
-  agent guesses.** All eight of the session's `E0105`s are one agent hunting a
+- **G116. [FIXED] `E0105` says the name is wrong and never says what is right,
+  so an agent guesses.** All eight of the session's `E0105`s are one agent hunting a
   single function in `std/random`, in order: `int`, `next`, `float`, `number`,
   `range`, `int_range`, `between`, `shuffle`. The module exports exactly one
   name, `seeded`. Eight build round-trips to find it. The message is accurate
@@ -3734,10 +3734,19 @@ rather than a list of complaints. What follows is the friction that remained.
   nearest matches, collapses eight round-trips into one. For a human this is an
   annoyance solved by opening the docs; for an agent, which is who this language
   is for, each guess is a whole build cycle.
-  *Reproduced against 0.1.75.*
 
-- **G117. The most-recommended loop idiom is the slowest one, and nothing says
-  so.** The session's own benchmark concluded that idiomatic
+  **Fixed in 0.1.76.** The error now carries the answer it was already holding.
+  A near miss gets the intended name (`string.repeeat` is ``(did you mean
+  `repeat`?)``), and anything else gets the export list, capped at eight with a
+  count of the rest so a wide module does not bury the message. Every one of the
+  session's eight guesses now ends on the first build: ``is not exported by
+  `std/random` (exports: Rng, seeded)``. The edit budget scales with name length,
+  so a three-letter guess cannot "match" an unrelated three-letter export. It
+  went in the message rather than the help because the help is the same sentence
+  for every instance and the useful part is not.
+
+- **G117. [FIXED] The most-recommended loop idiom is the slowest one, and
+  nothing says so.** The session's own benchmark concluded that idiomatic
   `array.map`/`filter`/`fold` closures cost 4.5x to 20x in the search hot path,
   and it recommended rewriting the scanners as `for i in array.range(n)` with
   `mut` accumulators. Measured here over the same scanning shape (81 cells,
@@ -3766,7 +3775,16 @@ rather than a list of complaints. What follows is the friction that remained.
   theirs timed whole engine functions doing more per element. What is not in
   dispute is that the performance of the three idioms is not predictable from
   the docs, and that an outside team spent a benchmark harness finding out.
-  *Reproduced against 0.1.75.*
+
+  **Fixed in 0.1.76.** A `for` that iterates `array.range(n)` or
+  `array.range_from(a, b)` **directly** lowers to a counting `for` with both
+  bounds hoisted into the initializer, so nothing is allocated and neither bound
+  is re-evaluated per step. Only a direct call qualifies: bound to a `let` it is
+  a real array something else may hold, and the loop keeps walking it. The same
+  benchmark after the change: 62 ms filter, **61 ms** index loop (from 168), 33
+  ms direct. The trap is gone; direct iteration stays fastest because indexing
+  still costs a bounds check per element, and `docs/guide/performance.md` now
+  carries the table and says so, which it did not before.
 
 **Already recorded, and now confirmed from outside.** The session hit `E0106`
 twice on imports its `@example`s needed, which is G106. Their own reference

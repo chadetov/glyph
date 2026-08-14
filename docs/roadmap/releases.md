@@ -3363,9 +3363,9 @@ the pipeline. The app deliberately took the no-npm-dependency path, so it wrote
 the graph walk and the rename itself. A `--target browser` emitting pruned,
 relative-specifier ESM is what removes that file.
 
-#### 0.1.76 — tell the agent what the answer is
+#### 0.1.76 — Shipped · Tell the agent what the answer is
 
-**Next.** From reading the outside author's session log (round 33), which is the
+**Published 2026-08-14.** From reading the outside author's session log (round 33), which is the
 first record of what writing Glyph feels like in real time rather than what the
 result looks like. Eleven diagnostics across 3,377 lines is the headline; these
 two are what is left.
@@ -3386,9 +3386,13 @@ scanning shape: `for c in cells` 40 ms, `array.filter` with a closure 72 ms,
 recommended the third. `array.range(n)` allocates an n-element array per call and
 indexing goes through a bounds-checking helper, so the index loop pays both.
 Lowering `for x in array.range(a)` to a counting `for` removes the allocation and
-makes the idiom what every reader already assumes it is. `performance.md` needs
-the iteration guidance it does not currently carry, and the repo has no benchmark
-over these idioms, which is why an outside team had to write one.
+makes the idiom what every reader already assumes it is. **Done**, both: the direct
+`array.range` / `range_from` call lowers to a counting `for` with its bounds
+hoisted (a range bound to a `let` stays an array, since something else may hold
+it), and 168 ms becomes 61. `performance.md` gains the table it did not carry.
+Direct iteration stays fastest at 33 ms, because indexing still costs the bounds
+check that turns an off-the-end read into an error, and the guide now says which
+to reach for instead of leaving it to a benchmark harness.
 
 #### 0.1.77 — a mutation that loses an update
 

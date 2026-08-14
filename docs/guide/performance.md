@@ -20,6 +20,33 @@ knowing.
   untrusted input, and you only pay it where you call `.parse`. Validate at the
   boundary, then pass the typed value around freely.
 
+## How you iterate, in a hot loop
+
+Three ways to walk a collection, and they are not equivalent. Counting a match
+over an 81-element array, 200,000 rounds, warm:
+
+| | |
+|---|---|
+| `for c in cells` | **33 ms** |
+| `array.filter(cells, ...)` then `array.len` | 62 ms |
+| `for i in array.range(array.len(cells))` then `cells[i]` | 61 ms |
+
+**Iterate the collection directly when you do not need the index.** `for c in
+cells` compiles to a `for...of` over the array you already have. Indexing costs
+a bounds check per element (`cells[i]` is a checked read, which is what turns an
+off-the-end index into an error instead of an `undefined` three frames later),
+so taking the index when you do not use it is paying for nothing.
+
+A closure is not the thing to avoid. `array.filter` with a closure is within a
+few percent of the index loop; V8 inlines both the closure and the small runtime
+helpers. Reaching for a manual loop to "avoid the closure" is not where the time
+is.
+
+`for i in array.range(n)` compiles to a counting `for` with no array behind it.
+Before 0.1.76 it built the range as a real array first, which made the idiom that
+reads like a counting loop the slowest of the three by a factor of nearly three;
+if you are on an older release, that rewrite is worth doing by hand.
+
 ## Where the cost actually is
 
 The descriptor a `type` generates is the one place Glyph adds runtime work you

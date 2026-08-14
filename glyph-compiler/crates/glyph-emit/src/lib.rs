@@ -699,6 +699,12 @@ enum IterShape {
     Unknown,
 }
 
+/// The two bounds of a `for` that walks `array.range(..)` directly.
+struct CountingRange {
+    start: String,
+    end: String,
+}
+
 impl<'a> Emitter<'a> {
     /// How this module must spell a JavaScript global the emitter writes.
     ///
@@ -2052,7 +2058,27 @@ impl<'a> Emitter<'a> {
                 let iter = self.expr(&f.iter)?;
                 let header = match f.bindings.as_slice() {
                     // `for x in xs` over an array/iterable: a `for...of`.
-                    [v] => format!("for (const {v} of {iter}) "),
+                    //
+                    // Except over `array.range(n)`, which is the shape everyone
+                    // reaches for to count. `range` *builds* an n-element array
+                    // and the loop then walks it, so the idiom that reads like a
+                    // counting loop allocates one array per execution. Measured
+                    // over an 81-element scan, 200k rounds: `for c in cells` 40
+                    // ms, `array.filter` with a closure 72 ms, and this form 168
+                    // ms — the slowest of the three, and the one an outside
+                    // team's benchmark recommended for a hot path (G117). It
+                    // lowers to a counting `for` instead, which allocates
+                    // nothing and is what a reader already assumes it is.
+                    [v] => match self.counting_range(&f.iter)? {
+                        Some(bounds) => {
+                            let end = self.fresh_temp("end");
+                            format!(
+                                "for (let {v} = {}, {end} = {}; {v} < {end}; {v}++) ",
+                                bounds.start, bounds.end
+                            )
+                        }
+                        None => format!("for (const {v} of {iter}) "),
+                    },
                     // `for k, v in it` over key/value pairs. An array's pairs are
                     // `it.entries()` — the index is a NUMBER. A record is a plain
                     // object, so its pairs are `Object.entries(it)` — the key is a
@@ -2370,6 +2396,62 @@ impl<'a> Emitter<'a> {
     /// `Object.entries(it)` (string key) for a two-binding `for`. An unknown
     /// type (e.g. a value narrowed by an `is Array<..>` arm, before flow
     /// narrowing tracks it) answers false and falls back to the record form.
+    /// The bounds of `array.range(n)` / `array.range_from(a, b)` when a
+    /// single-binding `for` iterates one directly, so it can lower to a counting
+    /// loop instead of walking a freshly-allocated array.
+    ///
+    /// Only a *direct* call qualifies. A range bound to a `let` first, or passed
+    /// through anything, keeps the `for...of`: the value is a real array there
+    /// and something else may hold it.
+    ///
+    /// Both bounds are emitted once, into the loop's own initializer, so a call
+    /// in either position is evaluated exactly as often as `range` would have
+    /// evaluated it. Emitting `i < f()` instead would call `f` every iteration.
+    fn counting_range(&self, iter: &Expr) -> Result<Option<CountingRange>, EmitError> {
+        let Expr::Call { callee, args, .. } = iter else {
+            return Ok(None);
+        };
+        let Expr::Member { object, field, .. } = callee.as_ref() else {
+            return Ok(None);
+        };
+        let Expr::Ident { name, .. } = object.as_ref() else {
+            return Ok(None);
+        };
+        if !self.is_std_array_namespace(name.as_ref()) {
+            return Ok(None);
+        }
+        match (field.as_ref(), args.len()) {
+            ("range", 1) => Ok(Some(CountingRange {
+                start: "0".to_string(),
+                end: self.expr(&args[0])?,
+            })),
+            ("range_from", 2) => Ok(Some(CountingRange {
+                start: self.expr(&args[0])?,
+                end: self.expr(&args[1])?,
+            })),
+            _ => Ok(None),
+        }
+    }
+
+    /// Whether `name` is this module's local binding for `std/array`.
+    /// Mirrors `is_json_namespace`.
+    fn is_std_array_namespace(&self, name: &str) -> bool {
+        self.module.items.iter().any(|d| {
+            let Decl::Import(im) = d else { return false };
+            let path: Vec<&str> = im.path.segments.iter().map(|s| s.as_ref()).collect();
+            if path != ["std", "array"] {
+                return false;
+            }
+            match &im.kind {
+                ImportKind::Namespace => {
+                    im.path.segments.last().map(|s| s.as_ref()) == Some(name)
+                }
+                ImportKind::Aliased(alias) => alias.as_ref() == name,
+                ImportKind::Named(_) | ImportKind::Default(_) => false,
+            }
+        })
+    }
+
     /// Whether an imported name has no runtime binding in its source module, so
     /// its import must carry the inline `type` modifier (G114).
     ///
@@ -6833,6 +6915,64 @@ mod tests {
         let ts = emit("module x\npub fn f(cb: fn(string) -> number) -> void {\n  return void\n}\n");
         assert!(ts.contains("(a0: string) => number"), "{ts}");
         assert!(!ts.contains("Promise"), "{ts}");
+    }
+
+    #[test]
+    fn a_for_over_a_direct_array_range_lowers_to_a_counting_loop() {
+        // `array.range(n)` builds an n-element array, so the idiom that reads
+        // like a counting loop allocated one per execution and was the slowest
+        // of the three ways to scan: 168 ms against `array.filter`'s 72 and a
+        // direct `for c in cells`'s 40, over an 81-element scan. It lowers to a
+        // counting `for` now, which allocates nothing (G117).
+        let ts = emit(
+            "module m\n\
+             import std/array\n\
+             import std/io\n\
+             pub fn f(xs: Array<string>) -> void {\n\
+             \x20 for i in array.range(array.len(xs)) { io.println(xs[i]) }\n\
+             }\n",
+        );
+        assert!(
+            ts.contains("for (let i = 0, ") && ts.contains("; i < ") && ts.contains("i++)"),
+            "a direct `array.range` must count, not walk an array; got:\n{ts}"
+        );
+        assert!(!ts.contains("of array.range("), "got:\n{ts}");
+        // The bound is evaluated once, in the initializer, not per iteration.
+        assert!(
+            ts.matches("array.len(xs)").count() == 1,
+            "the bound must be hoisted, not re-evaluated each step; got:\n{ts}"
+        );
+    }
+
+    #[test]
+    fn a_range_that_is_not_iterated_directly_stays_an_array() {
+        // Bound to a `let` it is a real array that something else may hold, so
+        // the loop keeps walking it. Only the direct call is a counting loop.
+        let ts = emit(
+            "module m\n\
+             import std/array\n\
+             import std/io\n\
+             pub fn f() -> void {\n\
+             \x20 let ns = array.range(3)\n\
+             \x20 for i in ns { io.println(number.to_string(i)) }\n\
+             }\n",
+        );
+        assert!(ts.contains("for (const i of ns)"), "got:\n{ts}");
+        assert!(!ts.contains("i++"), "got:\n{ts}");
+    }
+
+    #[test]
+    fn range_from_counts_between_its_two_bounds() {
+        let ts = emit(
+            "module m\n\
+             import std/array\n\
+             import std/io\n\
+             pub fn f() -> void {\n\
+             \x20 for i in array.range_from(2, 7) { io.println(number.to_string(i)) }\n\
+             }\n",
+        );
+        assert!(ts.contains("for (let i = 2, "), "got:\n{ts}");
+        assert!(ts.contains("; i < ") && ts.contains("i++)"), "got:\n{ts}");
     }
 
     #[test]

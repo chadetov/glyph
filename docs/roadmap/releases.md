@@ -4690,6 +4690,73 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **G20: a nested string literal inside `${...}` breaks the template parser.**
+  The lexer has no template-literal mode, so it ends the outer string at the
+  first inner quote, and `"${bytes.to_hex(bytes.from_text("x"))}"` does not
+  parse. The diagnostic names the cause and the workaround (hoist it into a
+  `let`), which is why the entry reads `[IMPROVED]` rather than open, but the
+  limitation is untouched. Worth raising above "v1.1 deferral": it was hit twice
+  in one session writing ordinary probe programs, so the frequency is higher
+  than the marker suggests. The fix is a real lexer template mode.
+- **G19: no `T?` sugar over `Option<T>`.** A forward-compatible deferral, so
+  adding it later changes no existing parse tree. The diagnostic already names
+  the fix when someone writes `T?` in type position.
+- **The deployment guide has no browser or worker example, and an outside author
+  drew the wrong conclusion from that.** Their spec recorded, as settled before
+  the build, that "the emitted code uses bare `std/*` specifiers that a build
+  step must rewrite." It is wrong: `glyph build` emits a `dist/tsconfig.json`
+  carrying `"paths": { "std/*": [...] }`, and `esbuild dist/x.ts --bundle
+  --format=esm` resolves them with no rewriting, producing ESM with zero `node:`
+  imports that runs in a bare realm. `docs/guide/deployment.md` only covers a
+  front-end build through React interop, which does not cover a plain module
+  bundled for a worker, so a reader who looks at the emitted imports reaches the
+  pessimistic answer. The fix is a worked example naming the tsconfig and
+  showing the `esbuild` line. This matters more now that `std/bytes` and
+  `std/url` are deliberately host-free.
+- **A server cannot be stopped once started** (`std/net` and `std/http`). Both
+  `serve` functions resolve `Ok(void)` on close, and neither module exposes
+  anything that closes one, so the `Ok` branch is unreachable unless the peer
+  process does it and graceful shutdown is unwritable. Found when a probe of
+  `std/net` hung with no way to end it. The design question is the shape of the
+  handle: `serve`'s awaitable return is what makes a bind failure a value, so a
+  second function returning a `Server` would fragment the lifetime across two
+  calls. One option is for the connection handler to receive the server; another
+  is a `stop` that takes the port. Neither is obviously right, which is why this
+  is a note rather than a patch. Sharpens the parked "signals and graceful
+  shutdown" item, which cannot be built before this is decided.
+- **No TLS server** (`std/tls` is client-only). Deliberate, and recorded so it is
+  not mistaken for an oversight: a server needs a certificate and a private key,
+  which means a file format, a renewal story and a cipher policy, and shipping
+  those half-done is worse than not shipping them. Terminate TLS in front until
+  an application asks.
+- **G105: a file can only be read whole, and there is no async iteration**, so a
+  streaming pipeline is unwritable. Re-reproduced against 0.1.78: `fs.open` and
+  `fs.read_line_at` are both `[E0105]`, and the runtime contains no
+  `asyncIterator`, `AsyncIterable`, `createReadStream` or generator. One clause
+  of the original premise has since closed, since `std/bytes` gave `readSync`'s
+  buffer a name, but the shim still has no `openSync`/`closeSync`, `position`
+  still needs a `null` Glyph cannot spell, and there is no iteration protocol at
+  all. `std/stream` is already the property-testing sampler, so a design here
+  has to pick another name first.
+- **G106: `E0106` calls an import dead when only an `@example` uses it**, which
+  contradicts the documented rule that an example must import what it compares
+  against, and there is no warning-free spelling. Two independent rounds hit it,
+  and an outside author wrote it into their own reference as a known cost of
+  using the language. The fix is that the lint should count a reference from an
+  `@example` as a use, since the compiler already runs those.
+- **G107: in a multi-project build, a `tsc` error is reported against a
+  same-named module in a different project.** The message and the line number
+  are right and the file is wrong, so someone acting on it opens a file with
+  nothing wrong in it and the quoted line looks plausible enough to try to fix.
+  It only shows when two projects share a module name, which for `main.glyph` is
+  every app in the tree. This is the class 0.1.60 closed for single-project
+  builds; the multi-project path kept it.
+- **`bytes.to_array` is 57 ms per megabyte**, with no `Buffer` equivalent to
+  compare against, because it builds a JavaScript array of a million numbers.
+  That is inherent to the target type rather than a defect, and it is the one
+  `std/bytes` call with no fast path available, so a program converting large
+  buffers to `Array<int>` should expect it. Recorded because it was measured and
+  would otherwise be forgotten.
 - **Inline the index bounds check before trying to prove it away.** After 0.1.76
   closed G117's allocation, the same benchmark is 33 ms for `for c in cells`,
   62 ms for `array.filter`, and 61 ms for an index loop. What is left of the gap

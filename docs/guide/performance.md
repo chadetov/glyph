@@ -50,58 +50,44 @@ if you are on an older release, that rewrite is worth doing by hand.
 ## Working with bytes
 
 Some of `std/bytes` is a thin wrapper over a native call and some of it is a
-loop over octets written in TypeScript. The split is what decides whether a
-call is fast, so it is worth knowing which is which.
-
-The loops are there for a reason: they are why the module runs somewhere
-`Buffer` does not exist, such as a Web Worker. On small inputs they cost nothing
-you can measure. On large ones they cost a great deal.
+loop over octets written in TypeScript. The loops are why the module runs where
+node's `Buffer` does not exist, such as a Web Worker.
 
 One megabyte, per operation, warm (`benchmarks/micro/bytes_vs_buffer.mjs`):
 
 | | `std/bytes` | node `Buffer` | |
 |---|---|---|---|
-| `to_hex` | 160 ms | 4 ms | 40x |
-| `from_hex` | 11 ms | 2 ms | 5x |
-| `to_base64` | 135 ms | 1.2 ms | 100x |
-| `from_base64` | 40 ms | 0.5 ms | 80x |
-| `to_base32` | 170 ms | no equivalent | |
-| `from_text` / `to_text` | 0.4 ms | 0.7 ms | within noise |
-| `equals` | 1.4 ms | 0.075 ms | 18x |
-| `index_of` (full scan) | 2.6 ms | 0.14 ms | 18x |
-| `slice` | 0.48 ms | 0.48 ms | within noise |
-| `concat` | 1.2 ms | 1.0 ms | within noise |
+| `to_hex` | 5.3 ms | 4.0 ms | 1.3x |
+| `from_hex` | 9.7 ms | 2.1 ms | 4.6x |
+| `to_base64` | 9.7 ms | 0.3 ms | 35x |
+| `from_base64` | 11 ms | 0.6 ms | 19x |
+| `to_base32` | 9.4 ms | no equivalent | |
+| `from_text` / `to_text` | 0.6 ms | 0.7 ms | within noise |
+| `equals` | 1.4 ms | 0.08 ms | 18x |
+| `index_of` (full scan) | 1.1 ms | 0.14 ms | 8x |
+| `slice`, `concat` | 0.5 / 1.0 ms | 0.5 / 0.9 ms | within noise |
 
-At 32 bytes, which is the size of a key or a token, every codec here is under
-two microseconds and the ratios are between 1x and 7x. **Encoding a key, a
-hash, a nonce or a header is free at any ratio.** The numbers above only matter
-when the payload is large.
+At 32 bytes, the size of a key or a token, everything here is around a
+microsecond. **Encoding a key, a hash, a nonce or a header costs nothing you can
+measure.** The numbers above only matter for large payloads, and at roughly
+100 MB/s for the codecs, "large" now means tens of megabytes rather than one.
 
-**`slice`, `concat`, `join` and the UTF-8 bridge are not affected.** They are
-`.slice()`, `.set()`, `TextEncoder` and `TextDecoder` underneath, so they are
-competitive with `Buffer` and there is nothing to avoid.
+**Read the absolute number, not the ratio.** `to_base64` shows 35x and `to_hex`
+shows 1.3x, but they take the same 9.7 and 5.3 ms: the ratios differ because
+`Buffer`'s base64 encoder is exceptionally fast and its hex encoder is not, so
+that column describes `Buffer` more than it describes `std/bytes`. The same goes
+for `equals` at 18x, which is 700 MB/s, fast enough that you would need to be
+comparing megabytes in a loop to notice.
 
-**Read the absolute number, not the ratio.** `to_hex` shows 40x and `to_base64`
-shows 100x, but `to_hex` is the slower of the two: the ratios differ because
-`Buffer`'s hex encoder is itself slower than its base64 encoder, so the ratio
-column tells you about `Buffer` rather than about `std/bytes`. Scale matters the
-same way for `equals`: 18x sounds alarming, but 1.4 ms per megabyte is 700 MB/s,
-which you would have to be comparing megabytes in a loop to notice. The codecs
-run at 6 to 25 MB/s, and that is the number worth remembering.
+**`slice`, `concat`, `join` and the UTF-8 bridge are not worth avoiding.** They
+are `.slice()`, `.set()`, `TextEncoder` and `TextDecoder` underneath.
 
-**If you are encoding megabytes on node, reach for `Buffer` through
-`extern_ts` for now.** Base64-encoding a 1 MB attachment costs about a tenth of
-a second through `std/bytes` and about a millisecond through `Buffer`. A
-delegating fast path, native where `Buffer` exists and the current
-implementation everywhere else, is on the roadmap.
-
-Worth being precise about what the slowness buys, because it is not the
-validation. Validating a decode *after* a native one, by checking that the
-decoded length matches what the input claims, costs almost nothing: a fully
-checked `Buffer` hex decode is 2.3 ms against the unchecked 2.1 ms, and a
-checked base64 decode is within noise of the raw one. So refusing malformed
-input is nearly free. What costs is the loop over 6-bit groups in JavaScript.
-The reason to keep that loop is the bare realm, not the guarantee.
+Worth knowing what the remaining gap is not. It is not the validation: checking
+a decode *after* a native one, by comparing the decoded length against what the
+input claims, costs almost nothing, and a fully checked `Buffer` hex decode
+measures 2.15 ms against the unchecked 2.12 ms. Refusing malformed input is
+close to free. What is left is that `Buffer`'s codecs are native and these are
+not, which is the price of running in a bare realm.
 
 ## Where the cost actually is
 

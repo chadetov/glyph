@@ -47,13 +47,15 @@ Before 0.1.76 it built the range as a real array first, which made the idiom tha
 reads like a counting loop the slowest of the three by a factor of nearly three;
 if you are on an older release, that rewrite is worth doing by hand.
 
-## Encoding bytes
+## Working with bytes
 
-`std/bytes` writes its hex, base64, base64url and base32 codecs out in
-TypeScript rather than calling node's `Buffer`, which is what lets the module run
-somewhere `Buffer` does not exist, such as a Web Worker. On small inputs that
-costs nothing you can measure. On large ones it costs a great deal, and you
-should know where the line is.
+Some of `std/bytes` is a thin wrapper over a native call and some of it is a
+loop over octets written in TypeScript. The split is what decides whether a
+call is fast, so it is worth knowing which is which.
+
+The loops are there for a reason: they are why the module runs somewhere
+`Buffer` does not exist, such as a Web Worker. On small inputs they cost nothing
+you can measure. On large ones they cost a great deal.
 
 One megabyte, per operation, warm (`benchmarks/micro/bytes_vs_buffer.mjs`):
 
@@ -65,15 +67,27 @@ One megabyte, per operation, warm (`benchmarks/micro/bytes_vs_buffer.mjs`):
 | `from_base64` | 40 ms | 0.5 ms | 80x |
 | `to_base32` | 170 ms | no equivalent | |
 | `from_text` / `to_text` | 0.4 ms | 0.7 ms | within noise |
+| `equals` | 1.4 ms | 0.075 ms | 18x |
+| `index_of` (full scan) | 2.6 ms | 0.14 ms | 18x |
+| `slice` | 0.48 ms | 0.48 ms | within noise |
+| `concat` | 1.2 ms | 1.0 ms | within noise |
 
-At 32 bytes, which is the size of a key or a token, every one of these is under
+At 32 bytes, which is the size of a key or a token, every codec here is under
 two microseconds and the ratios are between 1x and 7x. **Encoding a key, a
 hash, a nonce or a header is free at any ratio.** The numbers above only matter
 when the payload is large.
 
-**The UTF-8 bridge is not affected.** `from_text` and `to_text` use
-`TextEncoder` and `TextDecoder`, which are native, so they are competitive with
-`Buffer` in both directions and there is nothing to avoid.
+**`slice`, `concat`, `join` and the UTF-8 bridge are not affected.** They are
+`.slice()`, `.set()`, `TextEncoder` and `TextDecoder` underneath, so they are
+competitive with `Buffer` and there is nothing to avoid.
+
+**Read the absolute number, not the ratio.** `to_hex` shows 40x and `to_base64`
+shows 100x, but `to_hex` is the slower of the two: the ratios differ because
+`Buffer`'s hex encoder is itself slower than its base64 encoder, so the ratio
+column tells you about `Buffer` rather than about `std/bytes`. Scale matters the
+same way for `equals`: 18x sounds alarming, but 1.4 ms per megabyte is 700 MB/s,
+which you would have to be comparing megabytes in a loop to notice. The codecs
+run at 6 to 25 MB/s, and that is the number worth remembering.
 
 **If you are encoding megabytes on node, reach for `Buffer` through
 `extern_ts` for now.** Base64-encoding a 1 MB attachment costs about a tenth of

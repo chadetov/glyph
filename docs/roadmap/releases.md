@@ -4709,6 +4709,16 @@ land here until they're assigned a release.
   UTF-8 bridge is unaffected, since `from_text`/`to_text` are `TextEncoder` and
   `TextDecoder` and already native.
 
+  **The codecs are not the whole of it.** Measured afterwards on the same
+  harness, `equals` and `index_of` are also hand-written loops and also about
+  18x off their native counterparts (`equals` 1.4 ms against `Buffer.equals`
+  0.075 ms per megabyte, `index_of` 2.6 ms against 0.14 ms on a full scan).
+  They matter less than the codecs in absolute terms, since 1.4 ms per megabyte
+  is still 700 MB/s where the codecs manage 6 to 25 MB/s, but they belong in the
+  same fast path because `Buffer.equals` and `Buffer.indexOf` are native and the
+  delegation is the same shape. `slice`, `concat` and `join` need nothing: they
+  are `.slice()` and `.set()` underneath and measure within noise of `Buffer`.
+
   **The release notes implied writing the codecs out was what bought the
   refusal, and the measurement does not support that.** Validating *after* a
   native decode is nearly free: node's hex decoder stops at the first bad pair

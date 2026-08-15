@@ -16,9 +16,34 @@
 //      given. This is what catches a decoder gone lax.
 //   4. Anything `Buffer` can produce is accepted.
 //
+// The data is drawn from a seeded PRNG, not `crypto.randomBytes`, for the same
+// reason `std/stream` draws a fixed series for property testing: a check that
+// finds something has to be re-runnable. The seed is printed on failure and can
+// be set with GLYPH_CODEC_SEED to replay a CI run or to sweep a wider space.
+//
 // Run: npx tsx scripts/check_bytes_codecs.mjs
 import * as bytes from "../glyph-compiler/runtime/std/bytes.ts";
-import { randomBytes } from "node:crypto";
+
+const SEED = Number(process.env.GLYPH_CODEC_SEED ?? 20260815) | 0;
+
+// mulberry32, the generator `std/random` uses. Not cryptographic, which is the
+// point: this makes test data, and test data has to repeat.
+function rng_from(seed) {
+  let a = seed | 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = rng_from(SEED);
+
+function randomBytes(n) {
+  const b = new Uint8Array(n);
+  for (let i = 0; i < n; i++) b[i] = (rand() * 256) | 0;
+  return b;
+}
 let checked = 0, bad = 0;
 const fail = (m) => { bad++; if (bad < 10) console.log("FAIL:", m); };
 
@@ -26,7 +51,7 @@ const fail = (m) => { bad++; if (bad < 10) console.log("FAIL:", m); };
 //    a spread of larger ones (so every partial-group case is covered).
 const lens = [...Array(301).keys(), 511, 512, 513, 1023, 1024, 4095, 65535];
 for (const n of lens) {
-  const b = new Uint8Array(randomBytes(n));
+  const b = randomBytes(n);
   const buf = Buffer.from(b);
   if (bytes.to_hex(b) !== buf.toString("hex")) fail(`to_hex len ${n}`);
   if (bytes.to_base64(b) !== buf.toString("base64")) fail(`to_base64 len ${n}`);
@@ -51,9 +76,13 @@ for (const n of lens) {
 //    This is the invariant that catches a decoder gone lax, on inputs no fixed
 //    vector covers.
 for (let i = 0; i < 40000; i++) {
-  const s = Array.from(randomBytes(2 + (i % 12)))
-    .map((c) => "ABCZaz09+/-_= !".charAt(c % 15))
-    .join("");
+  // Characters drawn directly rather than by taking a byte modulo the alphabet
+  // size, which would skew the distribution toward its first entries.
+  const ALPHABET = "ABCZaz09+/-_= !";
+  let s = "";
+  for (let k = 0, len = 2 + (i % 12); k < len; k++) {
+    s += ALPHABET.charAt((rand() * ALPHABET.length) | 0);
+  }
   for (const [dec, enc, strip] of [
     [bytes.from_base64, bytes.to_base64, false],
     [bytes.from_base64url, bytes.to_base64url, false],
@@ -78,7 +107,7 @@ for (let i = 0; i < 40000; i++) {
 
 // 4. Every string Buffer can produce must be accepted.
 for (let i = 0; i < 3000; i++) {
-  const b = new Uint8Array(randomBytes(i % 97));
+  const b = randomBytes(i % 97);
   const buf = Buffer.from(b);
   if (bytes.from_base64(buf.toString("base64")).tag !== "Ok") fail(`rejected Buffer base64 len ${b.length}`);
   if (bytes.from_hex(buf.toString("hex")).tag !== "Ok") fail(`rejected Buffer hex len ${b.length}`);
@@ -88,5 +117,6 @@ if (bad === 0) {
   console.log(`bytes codecs OK: ${checked} differential checks against Buffer passed.`);
 } else {
   console.error(`${bad} FAILURES out of ${checked} differential checks.`);
+  console.error(`replay with GLYPH_CODEC_SEED=${SEED}`);
   process.exit(1);
 }

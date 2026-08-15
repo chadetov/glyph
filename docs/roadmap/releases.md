@@ -3667,6 +3667,57 @@ quote both types and name `.map_err` as the fix.
 
 #### 0.1.80 — finish what is half-built
 
+**A Linus review of the server-lifetime design ran before this shipped, and
+changed most of it.** The verdict was SHIP WITH CHANGES, nine of them, and four
+claims were verified against the compiler and node before any were acted on. The
+review is at `feedbacks/linus/04-server-lifetime-and-std-net.md` (gitignored).
+
+The one that mattered most was not the thing being reviewed. **A socket the
+server handed you, with a `data` listener and no `error` listener, ended the
+process on a peer reset** (`UNCAUGHT: ECONNRESET`, reproduced). The example in
+our own reference was exactly that shape, so the documented way to write a
+server was a remote kill switch. `listen` now attaches a default error handler
+to every accepted connection before the caller's handler sees it.
+
+Three more, all reproduced first: `stop` called twice fired `on_stop` twice
+(every other teardown in the stdlib promises the opposite); `on_close(Socket |
+Server)` is not writable in Glyph at all, because a bare path in union position
+becomes a *variant*, so `type Target = Socket | Server` silently declares a
+two-variant tagged union; and the docs drift guard was already red.
+
+**`serve` is deleted rather than kept as a convenience.** Its `Ok` branch could
+never run, and because Glyph has no `if` and a `match` on a `Result` must be
+exhaustive, every caller was *forced* to write an arm that could not execute:
+`daemon.glyph` printed a line that would never print, `jobq` returned an exit
+code that could not happen. Six callers ported, two more than the review found.
+`std/http` moved in the same change rather than a release later, because it had
+the worse version of the bug (a post-bind failure resolved `Err` while the
+server was still listening and still answering) and because `resilient/main.glyph`
+was already working around the missing bind signal with `let _ = http.serve(...)`
+followed by a 150ms sleep.
+
+The bind error is structured (`kind` is `in_use`/`denied`/`unavailable`/`other`)
+rather than a string to scrape, `port(server)` exists so `listen(host, 0, ...)`
+is usable, and `host` has no default: a standard library that will not ship a
+switch for turning off certificate checking should not quietly bind every
+interface either.
+
+**One piece of taste debt paid off on the way.** Five separate gates were each
+scanning `runtime/std/*.ts` for exports with their own prefix lists, and they
+have to agree about what counts as surface. They now share
+`glyph_cli::runtime::exported_items`, which also honours an `@internal` marker
+for the one export `std/http` borrows from `std/net`. A sixth scanner lives in
+another crate that cannot reach the helper, and says so where its exclusion is
+spelled.
+
+**Still open from the review, recorded rather than fixed here:** `http.read_request`
+has no body size cap and never settles if a client disconnects mid-body, which
+is a memory leak with no log line (G120); and network `Bytes` are zero-copy views
+onto node's pooled 8 KiB buffers, so retaining a small frame per connection pins
+8 KiB each (G121).
+
+
+
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.
 

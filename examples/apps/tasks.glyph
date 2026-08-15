@@ -13,8 +13,9 @@
 module main
 
 import std/sqlite { Db, open }
-import std/http { Request, Response, serve, json, path }
-import std/result { Result, Ok, Err }
+import std/http { Request, Response, listen, json, path }
+import std/net
+import std/result { Ok, Err }
 import std/option { Some, None }
 import std/io { println }
 
@@ -126,6 +127,9 @@ async fn main(argv: Array<string>) -> number {
   }
 
   println("listening on http://localhost:8137")
-  await serve(8137, handler)
+  match await listen("127.0.0.1", 8137, handler) {
+    Ok(server) => println("listening on ${number.to_string(net.port(server))}"),
+    Err(e) => println("cannot listen: ${e.message}"),
+  }
   return 0
 }

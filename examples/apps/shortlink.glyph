@@ -26,7 +26,8 @@ module main
 import std/array
 import std/encoding
 import std/fs
-import std/http { Request, Response, serve, html, redirect, form, path, segments, query_param }
+import std/http { Request, Response, listen, html, redirect, form, path, segments, query_param }
+import std/net
 import std/io { println }
 import std/json
 import std/option { Option, Some, None }
@@ -506,15 +507,18 @@ fn route(req: Request) -> Result<Response, string> {
 
 async fn main(argv: Array<string>) -> number {
   links.set(load_links(DB_PATH))
-  println("shortlink listening on http://localhost:${number.to_string(PORT)}")
   println("  ${number.to_string(array.len(links.get()))} link(s) loaded from ${DB_PATH}")
-  // `serve` stays pending while the server listens, so this keeps the process
-  // alive on its own, and a bind failure comes back as a value to match on.
-  let outcome = await serve(PORT, route)
-  return match outcome {
-    Ok(nothing) => 0,
-    Err(message) => {
-      println("shortlink: ${message}")
+  // `listen` resolves once the port is bound, and the process stays alive on
+  // its own while a listener is pending, so nothing has to await the server's
+  // whole lifetime to keep it running.
+  return match await listen("127.0.0.1", PORT, route) {
+    Ok(server) => {
+      let p = number.to_string(net.port(server))
+      println("shortlink listening on http://localhost:${p}")
+      0
+    },
+    Err(e) => {
+      println("shortlink: could not listen: ${e.message}")
       1
     },
   }

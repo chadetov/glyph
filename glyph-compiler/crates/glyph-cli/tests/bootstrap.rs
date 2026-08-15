@@ -104,19 +104,9 @@ fn stdlib_reference_documents_every_runtime_export() {
             .unwrap_or("")
             .to_string();
         let src = fs::read_to_string(&path).expect("read std file");
-        for line in src.lines() {
-            let trimmed = line.trim_start();
-            let rest = trimmed
-                .strip_prefix("export function ")
-                .or_else(|| trimmed.strip_prefix("export const "));
-            if let Some(rest) = rest {
-                let name = rest
-                    .split(|c: char| !(c.is_alphanumeric() || c == '_'))
-                    .next()
-                    .unwrap_or("");
-                if !name.is_empty() && !documented.contains(name) {
-                    missing.push(format!("std/{module}: {name}"));
-                }
+        for item in glyph_cli::runtime::exported_items(&src) {
+            if !item.is_type && !documented.contains(item.name.as_str()) {
+                missing.push(format!("std/{module}: {}", item.name));
             }
         }
     }
@@ -203,21 +193,11 @@ fn the_resolver_seed_lists_every_runtime_export() {
             .collect();
 
         let src = std::fs::read_to_string(&path).expect("read runtime module");
-        for line in src.lines() {
-            let name = line
-                .strip_prefix("export function ")
-                .or_else(|| line.strip_prefix("export async function "))
-                .or_else(|| line.strip_prefix("export type "))
-                .or_else(|| line.strip_prefix("export const "));
-            let Some(rest) = name else { continue };
-            let ident: String = rest
-                .chars()
-                .take_while(|c| c.is_alphanumeric() || *c == '_')
-                .collect();
-            if ident.is_empty() || listed.contains(ident.as_str()) {
+        for item in glyph_cli::runtime::exported_items(&src) {
+            if listed.contains(item.name.as_str()) {
                 continue;
             }
-            missing.push(format!("{key}: {ident}"));
+            missing.push(format!("{key}: {}", item.name));
         }
     }
 
@@ -258,28 +238,11 @@ fn stdlib_type_only_exports_match_the_runtime() {
         let module = format!("std/{}", path.file_stem().unwrap().to_str().unwrap());
         let src = fs::read_to_string(&path).expect("read std module");
         let (mut types, mut values) = (BTreeSet::new(), BTreeSet::new());
-        for line in src.lines() {
-            for (prefix, is_type) in [
-                ("export type ", true),
-                ("export interface ", true),
-                ("export function ", false),
-                ("export async function ", false),
-                ("export const ", false),
-                ("export class ", false),
-            ] {
-                let Some(rest) = line.strip_prefix(prefix) else { continue };
-                let ident: String = rest
-                    .chars()
-                    .take_while(|c| c.is_alphanumeric() || *c == '_')
-                    .collect();
-                if ident.is_empty() {
-                    continue;
-                }
-                if is_type {
-                    types.insert(ident);
-                } else {
-                    values.insert(ident);
-                }
+        for item in glyph_cli::runtime::exported_items(&src) {
+            if item.is_type {
+                types.insert(item.name);
+            } else {
+                values.insert(item.name);
             }
         }
         // Type-only means: declared as a type, with no value of the same name.

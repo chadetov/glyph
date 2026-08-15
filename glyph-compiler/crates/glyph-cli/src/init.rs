@@ -94,18 +94,27 @@ fn main(argv: Array<string>) -> number {\n\
 
 const WEB_GLYPH: &str = "module main\n\
 \n\
-import std/http { serve, text, Request, Response }\n\
+import std/http { listen, text, Request, Response }\n\
+import std/net\n\
 import std/result { Result, Ok, Err }\n\
 import std/io\n\
 \n\
 async fn main(argv: Array<string>) -> number {\n\
-\x20 io.println(\"listening on http://localhost:8080\")\n\
-\x20 let result = await serve(8080, fn(req: Request) -> Result<Response, string> {\n\
+\x20 // `listen` resolves once the port is bound, so the line below is only\n\
+\x20 // printed when it is true, and a port already in use is a value here\n\
+\x20 // rather than a throw. \"127.0.0.1\" accepts only local connections;\n\
+\x20 // use \"0.0.0.0\" to accept from the network.\n\
+\x20 return match await listen(\"127.0.0.1\", 8080, fn(req: Request) -> Result<Response, string> {\n\
 \x20\x20\x20 Ok(text(200, \"hello from glyph\"))\n\
-\x20 })\n\
-\x20 return match result {\n\
-\x20\x20\x20 Ok(ok) => 0,\n\
-\x20\x20\x20 Err(e) => 1,\n\
+\x20 }) {\n\
+\x20\x20\x20 Ok(server) => {\n\
+\x20\x20\x20\x20\x20 io.println(\"listening on http://localhost:${number.to_string(net.port(server))}\")\n\
+\x20\x20\x20\x20\x20 0\n\
+\x20\x20\x20 },\n\
+\x20\x20\x20 Err(e) => {\n\
+\x20\x20\x20\x20\x20 io.eprintln(\"cannot listen: ${e.message}\")\n\
+\x20\x20\x20\x20\x20 1\n\
+\x20\x20\x20 },\n\
 \x20 }\n\
 }\n";
 

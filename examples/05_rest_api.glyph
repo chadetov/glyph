@@ -4,8 +4,10 @@ module main
 // auth check — all errors-as-values over std/http. Run it with
 // `glyph run examples/05_rest_api.glyph`, then curl http://localhost:8137.
 
-import std/http { Request, Response, serve, json, path, header }
-import std/result { Result, Ok, Err }
+import std/http { Request, Response, listen, json, path, header }
+import std/io
+import std/net
+import std/result { Ok, Err }
 import std/option { Some, None }
 
 
@@ -68,6 +70,9 @@ async fn main(argv: Array<string>) -> number {
   print("listening on http://localhost:8137")
   // `serve` stays pending while listening, so `main` never returns and the
   // process stays alive.
-  await serve(8137, handler)
+  match await listen("127.0.0.1", 8137, handler) {
+    Ok(server) => io.println("listening on ${number.to_string(net.port(server))}"),
+    Err(e) => io.eprintln("cannot listen: ${e.message}"),
+  }
   return 0
 }

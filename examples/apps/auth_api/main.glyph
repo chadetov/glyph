@@ -29,7 +29,8 @@ import repo
 import routes
 import service
 import std/array
-import std/http { Request, Response, serve, json }
+import std/http { Request, Response, listen, json }
+import std/net
 import std/io { println }
 import std/json as encode
 import std/option { Option, Some, None }
@@ -248,12 +249,14 @@ async fn main(argv: Array<string>) -> number {
   }
   match mode {
     "serve" => {
-      let port = number.to_string(config.PORT)
-      println("auth-api listening on http://localhost:${port}")
-      match await serve(config.PORT, routes.route) {
-        Ok(closed) => { return 0 },
-        Err(message) => {
-          println("auth-api: could not listen: ${message}")
+      match await listen("127.0.0.1", config.PORT, routes.route) {
+        Ok(server) => {
+          let port = number.to_string(net.port(server))
+          println("auth-api listening on http://localhost:${port}")
+          return 0
+        },
+        Err(e) => {
+          println("auth-api: could not listen: ${e.message}")
           return 1
         },
       }

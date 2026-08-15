@@ -44,7 +44,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
     ),
     ("std/log", &["Level"]),
     ("std/dns", &["MailHost"]),
-    ("std/net", &["Socket"]),
+    ("std/net", &["Server", "ServerError", "ServerErrorKind", "Socket"]),
     ("std/option", &["Option"]),
     ("std/random", &["Rng"]),
     ("std/result", &["Result"]),
@@ -56,7 +56,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
     ("std/url", &["Param", "Url"]),
     ("std/task", &["Settled"]),
     ("std/timers", &["Timer"]),
-    ("std/websocket", &["Socket"]),
+    ("std/websocket", &["Server", "Socket"]),
 ];
 
 /// Whether `name`, imported from `module_path`, is a standard-library export

@@ -149,8 +149,16 @@ async fn scenario_deadline() -> void {
 }
 
 pub async fn main(argv: Array<string>) -> number {
-  let _ = http.serve(PORT, server.handle)
-  await timers.sleep(150)
+  // The bind is awaited rather than slept past. This was `let _ = http.serve(...)`
+  // followed by a 150ms sleep, which threw the bind error away and guessed at
+  // how long starting takes; `listen` resolves when the port is actually bound.
+  match await http.listen("127.0.0.1", PORT, server.handle) {
+    Ok(_) => {},
+    Err(e) => {
+      io.eprintln("resilient: cannot listen: ${e.message}")
+      return 1
+    },
+  }
   io.println("resilient: policy over a flaky upstream on port ${number.to_string(PORT)}")
   await scenario_retry()
   await scenario_fatal()

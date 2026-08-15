@@ -251,12 +251,21 @@ impl StdlibStubs {
             "std/websocket",
             &[
                 "Socket",
+                "Server",
+                "listen",
+                "stop",
+                "port",
+                "on_stop",
                 "connect",
+                "connect_with",
+                "protocol",
                 "on_open",
                 "on_message",
+                "on_binary",
                 "on_close",
                 "on_error",
                 "send",
+                "send_bytes",
                 "close",
                 "is_open",
             ],
@@ -267,9 +276,10 @@ impl StdlibStubs {
         s.add(
             "std/net",
             &[
-                "Socket", "serve", "connect", "on_connect", "on_text", "on_data", "on_close",
-                "on_error", "send", "send_bytes", "close", "destroy", "no_delay", "peer_address",
-                "peer_port",
+                "Socket", "Server", "ServerError", "ServerErrorKind", "listen", "stop",
+                "port", "on_stop", "on_server_error", "connect", "on_connect", "on_text",
+                "on_data", "on_close", "on_error", "send", "send_bytes", "close", "destroy",
+                "no_delay", "peer_address", "peer_port",
             ],
         );
         // URL parsing, resolution and percent-encoding, over the host's WHATWG
@@ -310,7 +320,7 @@ impl StdlibStubs {
             "std/http",
             &[
                 "get", "post", "put", "patch", "del", "json", "text", "html", "redirect",
-                "with_header", "serve", "query", "path", "form",
+                "with_header", "listen", "query", "path", "form",
                 "raw", "header", "query_param", "segments",
                 // The bounded client (G52): one request record, a timeout that
                 // aborts, a redirect policy, and HEAD.

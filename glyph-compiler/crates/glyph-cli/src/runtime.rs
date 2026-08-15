@@ -488,6 +488,74 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+
+/// One export declared by a runtime `std/*.ts` module.
+pub struct ExportedItem {
+    pub name: String,
+    /// A `type`/`interface`, which ships no runtime binding.
+    pub is_type: bool,
+}
+
+/// Every export a runtime stdlib module advertises, skipping `@internal` ones.
+///
+/// This exists because five separate gates were each scanning `runtime/std/*.ts`
+/// for exports with their own slightly different prefix lists, and they have to
+/// agree: one decides whether a name is documented, one whether the resolver
+/// seeds it, one whether it needs the inline `type` modifier. A name that is
+/// surface to one and not another is exactly the drift these gates exist to
+/// catch, so they read it from here.
+///
+/// An export whose preceding comment carries `@internal` is one stdlib module
+/// reaching into another (`net.adopt` is the bind `std/http` shares). It is not
+/// any module's advertised surface: it stays out of the reference, out of the
+/// resolver seed, and importing it from Glyph is correctly `E0105`.
+pub fn exported_items(ts: &str) -> Vec<ExportedItem> {
+    const VALUE_KINDS: [&str; 4] = ["async function ", "function ", "const ", "let "];
+    const TYPE_KINDS: [&str; 2] = ["type ", "interface "];
+    let mut out = Vec::new();
+    let mut internal = false;
+    for line in ts.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.contains("@internal") {
+            internal = true;
+            continue;
+        }
+        let Some(rest) = trimmed.strip_prefix("export ") else {
+            // The marker attaches to the next export, not to code further down.
+            if !trimmed.is_empty()
+                && !trimmed.starts_with("//")
+                && !trimmed.starts_with('*')
+                && !trimmed.starts_with("/*")
+            {
+                internal = false;
+            }
+            continue;
+        };
+        let hit = TYPE_KINDS
+            .iter()
+            .find_map(|kw| rest.strip_prefix(kw).map(|a| (a, true)))
+            .or_else(|| {
+                VALUE_KINDS
+                    .iter()
+                    .find_map(|kw| rest.strip_prefix(kw).map(|a| (a, false)))
+            });
+        let Some((after, is_type)) = hit else { continue };
+        let name: String = after
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+        if name.is_empty() {
+            continue;
+        }
+        if internal {
+            internal = false;
+            continue;
+        }
+        out.push(ExportedItem { name, is_type });
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::{find_project_node_modules, tsconfig_json, RUNTIME_FILES};
@@ -655,34 +723,7 @@ mod tests {
     /// `async function`, `const`, `let`, `type`, `class`, `interface`); a type
     /// and a value sharing a name (e.g. `fs.ErrorKind`) collapse to one entry.
     fn exported_names(ts: &str) -> BTreeSet<String> {
-        const KINDS: [&str; 7] = [
-            "async function ",
-            "function ",
-            "const ",
-            "let ",
-            "type ",
-            "class ",
-            "interface ",
-        ];
-        let mut out = BTreeSet::new();
-        for line in ts.lines() {
-            let Some(rest) = line.trim_start().strip_prefix("export ") else {
-                continue;
-            };
-            for kw in KINDS {
-                if let Some(after) = rest.strip_prefix(kw) {
-                    let name: String = after
-                        .chars()
-                        .take_while(|c| c.is_alphanumeric() || *c == '_')
-                        .collect();
-                    if !name.is_empty() {
-                        out.insert(name);
-                    }
-                    break;
-                }
-            }
-        }
-        out
+        super::exported_items(ts).into_iter().map(|e| e.name).collect()
     }
 
     fn runtime_source(path: &str) -> Option<&'static str> {

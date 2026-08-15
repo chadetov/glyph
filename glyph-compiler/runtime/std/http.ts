@@ -3,13 +3,14 @@
 // Client calls are async and return a `Result`; a Glyph caller `await`s them. A
 // thrown fetch or a non-2xx status becomes `Err(HttpError)`.
 //
-// The server (`serve`) is errors-as-values too: a `Handler` returns
+// The server (`listen`) is errors-as-values too: a `Handler` returns
 // `Result<Response, string>` — `Ok(response)` is written with the handler's
 // status (a 404 is a normal `Ok`), and `Err(message)` (or a thrown exception)
-// becomes a 500. `serve` itself resolves `Ok(void)` when the server closes and
-// `Err(message)` on a bind failure. Because `serve` stays pending while the
-// server listens, a Glyph `main` that does `await http.serve(...)` never returns,
-// so the process stays alive without any keep-alive hack.
+// becomes a 500. `listen` resolves when the socket is **bound**, handing back a
+// `net.Server`, because node's HTTP server is a TCP server: stop it with
+// `net.stop`, and `net.on_stop` says when it stopped. The process stays alive
+// while a listener is pending, so a server nobody stops runs for the life of
+// the program with nothing awaiting it.
 //
 // A `Response` carries its headers, so the server is not limited to a JSON API:
 // `html` serves a page, `redirect` sets a `location`, and `with_header` adds
@@ -17,6 +18,7 @@
 // response does not already name one.
 
 import { type Result, Ok, Err } from "./result";
+import { type Server, type ServerError, adopt, type HostListenable } from "./net";
 import { type Option, Some, None } from "./option";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
@@ -236,19 +238,29 @@ export function query_param(req: Request, name: string): Option<string> {
 /// Resolves `Ok(void)` when the server closes, `Err(message)` on a bind failure.
 /// Stays pending while listening, so `await http.serve(...)` keeps `main` (and
 /// the process) alive.
-export function serve(port: number, handler: Handler): Promise<Result<void, string>> {
-  return new Promise((resolve) => {
-    const server = createServer((nreq, nres) => {
-      void respond(nreq, nres, handler);
-    });
-    server.on("error", (err) => {
-      resolve(Err(err.message ?? "server error"));
-    });
-    server.on("close", () => {
-      resolve(Ok(undefined));
-    });
-    server.listen(port);
+/**
+ * Start serving on `host:port`, and hand back the server.
+ *
+ * The same contract as `net.listen`, and the same `Server`, because node's HTTP
+ * server *is* a TCP server: `Ok` means the port is bound, `Err` says why it is
+ * not, `net.stop` ends it and `net.on_stop` says when it ended.
+ *
+ * This replaced a `serve` that resolved only when the server closed, with
+ * nothing able to close one. Its `Ok` branch could never run, and because a
+ * `match` on a `Result` must be exhaustive, every caller was forced to write an
+ * arm that could not execute. Worse, a failure *after* a successful bind
+ * resolved that promise with `Err` while the server was still listening and
+ * still answering requests, so the value said dead and the process said alive.
+ */
+export function listen(
+  host: string,
+  port: number,
+  handler: Handler,
+): Promise<Result<Server, ServerError>> {
+  const server = createServer((nreq, nres) => {
+    void respond(nreq, nres, handler);
   });
+  return adopt(server as unknown as HostListenable, host, port);
 }
 
 async function respond(

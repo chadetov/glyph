@@ -1491,10 +1491,29 @@ impl Assigner<'_> {
             // starts, so `Err` is how a port already in use arrives. Modeled so
             // a caller that forgets to match the failure is E0200 rather than a
             // silently ignored bind error.
-            ("std/net", "serve") => (
-                2,
-                Ty::Prim(Primitive::Void),
-                Ty::Prim(Primitive::String),
+            // Resolves when the socket is bound, so `Ok` means the port is yours.
+            ("std/websocket", "listen") => (
+                3,
+                stdlib_named("websocket", "Server"),
+                stdlib_named("net", "ServerError"),
+                true,
+            ),
+            // Resolves when the socket is bound, so `Ok` means the port is yours.
+            // The error is structured: `in_use` and `denied` lead to different
+            // decisions, and scraping that out of a message string is what
+            // `ServerError` exists to avoid.
+            // Node's HTTP server is a TCP server, so this hands back the same
+            // `net.Server` and is stopped by the same `net.stop`.
+            ("std/http", "listen") => (
+                3,
+                stdlib_named("net", "Server"),
+                stdlib_named("net", "ServerError"),
+                true,
+            ),
+            ("std/net", "listen") => (
+                3,
+                stdlib_named("net", "Server"),
+                stdlib_named("net", "ServerError"),
                 true,
             ),
             ("std/url", "parse") => (
@@ -3590,6 +3609,7 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("url", "Url")
             | ("url", "Param")
             | ("dns", "MailHost")
+            | ("net", "ServerError")
     )
     .then(|| stdlib_named(module, name))
 }
@@ -3643,6 +3663,22 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
         ("url", "Param") => vec![
             ("key", Ty::Prim(Primitive::String)),
             ("value", Ty::Prim(Primitive::String)),
+        ],
+        // `kind` is a string-literal union, so a `match` over it is exhaustive
+        // under D30 with no catch-all: three named reasons that lead to three
+        // different decisions, and `other` keeps the raw errno reachable.
+        ("net", "ServerError") => vec![
+            (
+                "kind",
+                Ty::StringLiteralUnion(vec![
+                    "in_use".to_string(),
+                    "denied".to_string(),
+                    "unavailable".to_string(),
+                    "other".to_string(),
+                ]),
+            ),
+            ("message", Ty::Prim(Primitive::String)),
+            ("code", Ty::Prim(Primitive::String)),
         ],
         ("dns", "MailHost") => vec![
             ("priority", Ty::Prim(Primitive::Number)),

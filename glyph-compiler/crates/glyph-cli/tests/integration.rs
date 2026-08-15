@@ -8067,3 +8067,115 @@ pub fn main(argv: Array<string>) -> number {
         "different lengths answer false instead of throwing: {stdout}"
     );
 }
+
+/// `std/net` over a real loopback socket: a server, a client, a bind failure
+/// reported as a value, and a UTF-8 character split across two packets.
+///
+/// That last one is the reason `on_text` exists rather than a `setEncoding`
+/// pass-through. TCP has no message boundaries, so a two-octet character can
+/// arrive in two reads; decoding each read on its own turns it into two
+/// replacement characters, and the bug only shows under load or with non-ASCII
+/// input. The test sends `0xC3` at the end of one write and `0xA9` at the start
+/// of the next, and asserts the server saw `é` rather than U+FFFD.
+#[test]
+fn net_carries_a_split_character_and_reports_a_bind_failure() {
+    if !js_toolchain_available() {
+        eprintln!("skipping std/net end-to-end: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("netsock");
+    let src = root.join("src");
+    // A port unlikely to collide with anything else on the machine.
+    let port = 45000 + (std::process::id() % 2000);
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            r#"module main
+
+import std/bytes
+import std/io
+import std/net
+import std/net {{ Socket }}
+import std/option {{ Some, None }}
+import std/process
+import std/result {{ Ok, Err }}
+import std/store
+import std/timers
+
+const PORT: int = {port}
+
+pub async fn main() -> void {{
+  let first = net.serve(PORT, fn(sock: Socket) {{
+    net.on_error(sock, fn(m: string) {{ io.eprintln("sock: ${{m}}") }})
+    net.on_text(sock, fn(text: string) {{
+      io.println("got=${{text}}")
+      net.send(sock, "echo:${{text}}")
+    }})
+  }})
+  // A second listener on the same port cannot bind, and says so as a value
+  // rather than throwing at a handler.
+  let second = net.serve(PORT, fn(_: Socket) {{}})
+  match await second {{
+    Ok(_) => io.println("second=bound (wrong)"),
+    Err(why) => io.println("second=refused"),
+  }}
+  drive()
+  match await first {{
+    Ok(_) => io.println("first=closed"),
+    Err(e) => io.eprintln("first=${{e}}"),
+  }}
+}}
+
+fn drive() -> void {{
+  let c = net.connect("127.0.0.1", PORT)
+  let seen = store.create<int>(0)
+  net.on_error(c, fn(m: string) {{ io.eprintln("client: ${{m}}") }})
+  net.on_text(c, fn(text: string) {{
+    io.println("client=${{text}}")
+    seen.update(fn(n: int) {{ n + 1 }})
+    match seen.get() >= 2 {{
+      true => {{
+        net.close(c)
+        process.exit(0)
+      }},
+      false => {{}},
+    }}
+  }})
+  net.on_connect(c, fn() {{
+    // "hi " then a lone 0xC3, which is the first half of "é".
+    net.send_bytes(c, octets([104, 105, 32, 195,]))
+    timers.after(60, fn() {{ net.send_bytes(c, octets([169, 33,])) }})
+  }})
+}}
+
+fn octets(xs: Array<int>) -> bytes.Bytes {{
+  return match bytes.from_array(xs) {{
+    Ok(b) => b,
+    Err(_) => bytes.empty,
+  }}
+}}
+"#
+        ),
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(
+        stdout.contains("second=refused"),
+        "a port already in use is an Err, not a throw: {stdout}"
+    );
+    // The lone 0xC3 is held back rather than decoded to U+FFFD, so the first
+    // read is "hi " and the character appears whole in the second.
+    assert!(stdout.contains("got=hi "), "first read stops before the partial character: {stdout}");
+    assert!(
+        stdout.contains("got=\u{e9}!"),
+        "the split character arrives whole, not as U+FFFD: {stdout}"
+    );
+    assert!(
+        !stdout.contains('\u{fffd}'),
+        "nothing was replaced by U+FFFD: {stdout}"
+    );
+    assert!(stdout.contains("client=echo:hi "), "the echo came back: {stdout}");
+}

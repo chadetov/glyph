@@ -261,6 +261,17 @@ impl StdlibStubs {
                 "is_open",
             ],
         );
+        // TCP. The last raw host call in the examples tree: a chat daemon
+        // imported node's `net` and held an opaque `Socket` that E0304 would
+        // not validate. Events are individual functions, as in `std/websocket`.
+        s.add(
+            "std/net",
+            &[
+                "Socket", "serve", "connect", "on_connect", "on_text", "on_data", "on_close",
+                "on_error", "send", "send_bytes", "close", "destroy", "no_delay", "peer_address",
+                "peer_port",
+            ],
+        );
         // Untrusted-input discipline as types: Tainted/Trusted with sanitize.
         s.add(
             "std/taint",

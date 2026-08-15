@@ -195,6 +195,57 @@ For a record/union type `T`, the namespace form `json.parse<T>(text)` is
 auto-rewritten to validate against `T.schema`. Use that form (not the
 named-import `parse`) when you want validation rather than a bare cast.
 
+## std/net
+
+TCP: a server that accepts many clients, and a client that talks to one. Events
+are individual functions, as in `std/websocket`, so no callback parameter needs
+narrowing and there is no event-name string to misspell.
+
+```
+type Socket                                       // one connection
+net.serve(port: int, on_connection: fn(Socket) -> void) -> Result<void, string>   // async
+net.connect(host: string, port: int) -> Socket
+net.on_connect(s: Socket, handler: fn() -> void) -> void
+net.on_text(s: Socket, handler: fn(string) -> void) -> void      // whole characters only
+net.on_data(s: Socket, handler: fn(Bytes) -> void) -> void       // raw octets
+net.on_close(s: Socket, handler: fn() -> void) -> void
+net.on_error(s: Socket, handler: fn(string) -> void) -> void
+net.send(s: Socket, text: string) -> void
+net.send_bytes(s: Socket, data: Bytes) -> void
+net.close(s: Socket) -> void                      // finish writing, then close
+net.destroy(s: Socket) -> void                    // drop now, discarding what is queued
+net.no_delay(s: Socket, enabled: bool) -> void    // Nagle off, for an interactive protocol
+net.peer_address(s: Socket) -> Option<string>
+net.peer_port(s: Socket) -> Option<int>
+```
+
+`serve` is async and resolves when the server **stops**, not when it starts, so
+a port already in use is an `Err` you match on rather than an exception thrown
+at a handler you might not have registered:
+
+```
+match await net.serve(4000, fn(socket: Socket) { greet(socket) }) {
+  Ok(_) => io.println("stopped"),
+  Err(why) => io.eprintln("cannot listen: ${why}"),
+}
+```
+
+**Pick `on_text` or `on_data`, and the difference is not cosmetic.** TCP is a
+stream of octets with no message boundaries, so a multi-byte character can be
+split across two packets. `on_text` holds a decoder per socket and emits only
+whole characters; decoding each chunk on its own would turn `é` arriving in two
+pieces into two replacement characters, a bug that shows up only under load or
+with non-ASCII input. `on_data` hands over the octets untouched, which is what a
+binary protocol wants.
+
+There is no message framing here, because TCP has none: two `send` calls can
+arrive as one `on_text`, and one `send` can arrive as two. Carry your own
+delimiter (`examples/apps/chat/framing.glyph` is a newline framer in 60 lines).
+
+**A server cannot be stopped once started**, so `serve`'s `Ok` branch is
+currently only reachable if the peer process closes it. `std/http.serve` has the
+same shape and the same limitation; graceful shutdown is on the roadmap.
+
 ## std/bytes
 
 An immutable sequence of octets, and the codecs between octets and text. This is

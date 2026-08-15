@@ -23,7 +23,8 @@ import std/io
 import std/option { Option, Some, None }
 import std/process
 import std/string
-import net { createServer, Socket }
+import std/net
+import std/net { Socket }
 import audience
 import framing
 import model
@@ -120,12 +121,12 @@ fn renamed_to(events: Array<Event>, current: string) -> Option<string> {
 
 // Start listening. Returns nothing: from here on the process is driven by
 // socket events until it is killed.
-pub fn serve(port: int) {
+pub async fn serve(port: int) {
   let state = server.empty()
   let conns: Array<Conn> = []
   let next_id = 1
 
-  let listener = createServer(fn(socket) {
+  let listening = net.serve(port, fn(socket: Socket) {
     let id = next_id
     let nick = "guest${number.to_string(id)}"
     mut next_id = next_id + 1
@@ -135,12 +136,11 @@ pub fn serve(port: int) {
       socket: socket,
       buffered: "",
     })
-    mut socket.setEncoding("utf8")
-    mut socket.setNoDelay(true)
+    net.no_delay(socket, true)
     send(socket, ["welcome to chat. you are ${nick}. try /join #general"])
     io.println("connect ${nick} (#${number.to_string(id)})")
 
-    mut socket.on("data", fn(chunk) {
+    net.on_text(socket, fn(chunk: string) {
       let framed = framing.feed(buffer_of(conns, id), chunk)
       mut conns = with_buffer(conns, id, framed.rest)
       for line in framed.lines {
@@ -160,13 +160,13 @@ pub fn serve(port: int) {
     // deregister: Node always follows `error` with `close`, so removing the
     // connection here would leave `close` unable to find the nick it is meant
     // to announce, and the client would quietly leave under a stale name.
-    mut socket.on("error", fn(_) {})
+    net.on_error(socket, fn(_: string) {})
 
     // Deregistering happens exactly once, here. Looking the connection up
     // rather than assuming it is present means a socket that somehow closes
     // twice is a no-op instead of a second `/quit` from a nick that already
     // left.
-    mut socket.on("close", fn() {
+    net.on_close(socket, fn() {
       match find(conns, id) {
         None => {},
         Some(gone) => {
@@ -181,20 +181,20 @@ pub fn serve(port: int) {
     })
   })
 
-  // A listener error is fatal and has to say so itself.
-  //
-  // `main` has already returned by the time this fires, so its return value is
-  // long since spent: the process would otherwise drain its loop and exit 0,
-  // reporting success for a server that never bound its port. Anything a
-  // program decides after `main` returns has to set its own exit code.
-  mut listener.on("error", fn(err) {
-    io.eprintln("chat: cannot listen on ${number.to_string(port)}: ${err.message}")
-    process.exit(1)
-  })
+  io.println("chat listening on ${number.to_string(port)}")
 
-  mut listener.listen(port, fn() {
-    io.println("chat listening on ${number.to_string(port)}")
-  })
+  // A listener error is fatal and has to say so itself. `net.serve` resolves
+  // with the reason rather than throwing at a handler that may not exist, so
+  // the failure is a value this function matches on, and the exit code is set
+  // here rather than left to a process that would otherwise drain its loop and
+  // report success for a server that never bound its port.
+  match await listening {
+    Ok(_) => io.println("chat: stopped listening"),
+    Err(why) => {
+      io.eprintln("chat: cannot listen on ${number.to_string(port)}: ${why}")
+      process.exit(1)
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -263,7 +263,7 @@ fn drop(conns: Array<Conn>, id: int) -> Array<Conn> {
 
 fn send(socket: Socket, lines: Array<string>) {
   for line in lines {
-    mut socket.write("${line}\n")
+    net.send(socket, "${line}\n")
   }
 }
 

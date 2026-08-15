@@ -43,6 +43,7 @@ const STDLIB_TYPE_ONLY: &[(&str, &[&str])] = &[
         ],
     ),
     ("std/log", &["Level"]),
+    ("std/net", &["Socket"]),
     ("std/option", &["Option"]),
     ("std/random", &["Rng"]),
     ("std/result", &["Result"]),

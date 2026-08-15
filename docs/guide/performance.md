@@ -53,7 +53,9 @@ Some of `std/bytes` is a thin wrapper over a native call and some of it is a
 loop over octets written in TypeScript. The loops are why the module runs where
 node's `Buffer` does not exist, such as a Web Worker.
 
-One megabyte, per operation, warm (`benchmarks/micro/bytes_vs_buffer.mjs`):
+One megabyte, per operation, warm (`benchmarks/micro/bytes_vs_buffer.mjs`).
+These are the codecs as rewritten after 0.1.78; on 0.1.78 itself the four of
+them are 5x to 30x slower than shown here:
 
 | | `std/bytes` | node `Buffer` | |
 |---|---|---|---|

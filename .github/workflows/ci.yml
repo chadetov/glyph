@@ -26,7 +26,9 @@ jobs:
       # and update the count, or the gap list drifts out of sync with the
       # compiler and has to be reconciled by hand again.
       - name: Check the dogfooding gap list
-        run: python3 scripts/check_gaps.py
+        run: |
+          python3 scripts/check_gaps.py
+          python3 scripts/check_findings_scheduled.py
 
       # The claim discipline: an app that needs a hand-written `.d.ts` or an
       # `extern_ts` string needs the language Glyph replaces. When one does, the

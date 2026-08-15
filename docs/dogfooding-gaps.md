@@ -29,6 +29,13 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
+Recording a finding here is half the job. The other half is deciding what to do
+about it, which happens in `docs/roadmap/releases.md`, and the two drifted:
+three entries had been reproduced repeatedly and appeared in the roadmap
+nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
+that is open or partly fixed is not named in the roadmap. Parking it in the
+rolling lane with a sentence about why counts; leaving it only here does not.
+
 Reconciled again after 0.1.78 closed G102: of 119 entries, 90 are fixed, 10 are
 partly fixed, 9 are decided or resolved, and 10 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`

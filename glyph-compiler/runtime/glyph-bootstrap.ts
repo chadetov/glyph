@@ -19,21 +19,6 @@ const number = {
   },
 };
 
-const par = {
-  async all<T>(xs: ReadonlyArray<T | Promise<T>>): Promise<Array<Awaited<T>>> {
-    return Promise.all(xs) as Promise<Array<Awaited<T>>>;
-  },
-  all_ok<T, E>(xs: ReadonlyArray<Result<T, E>>): Result<Array<T>, E> {
-    const out: Array<T> = [];
-    for (const r of xs) {
-      if (r.tag === "Err") {
-        return Err(r.value) as Result<Array<T>, E>;
-      }
-      out.push(r.value);
-    }
-    return Ok(out);
-  },
-};
 
 function print(message: string): void {
   console.log(message);
@@ -120,7 +105,6 @@ function assert(condition: boolean): void {
 
 const g = globalThis as unknown as Record<string, unknown>;
 g.number = number;
-g.par = par;
 g.print = print;
 g.assert = assert;
 g.__glyph_eq = __glyph_eq;

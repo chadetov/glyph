@@ -37,6 +37,14 @@ const EXCLUDED: &[(&str, &str, &str)] = &[
     ),
     (
         "std/result",
+        "all",
+        "generic in both parameters: `Array<Result<T, E>> -> Result<Array<T>, E>` \
+         takes its ok *and* its error from the argument, and the table's shape is \
+         a concrete (ok, err) pair with `Unknown` parameters, so there is nothing \
+         for either to bind against. Same class as `json.parse`",
+    ),
+    (
+        "std/result",
         "Ok",
         "prelude constructor, typed by the prelude rather than by this table",
     ),

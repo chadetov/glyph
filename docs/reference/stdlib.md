@@ -25,8 +25,6 @@ These names are global; you use them without an import.
 ```
 number.to_string(n: number) -> string         // format a number
 number.parse(s: string) -> Result<number, string>   // parse, validating
-par.all<T>(xs: Array<T>) -> Array<T>           // async; await a list of async values
-par.all_ok<T, E>(xs: Array<Result<T, E>>) -> Result<Array<T>, E>   // collapse results
 print(message: string) -> void                 // quick line to stdout
 assert(condition: bool) -> void                 // throw if false (used by @doc @run)
 ```

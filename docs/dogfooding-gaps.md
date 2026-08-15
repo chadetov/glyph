@@ -36,8 +36,8 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after 0.1.78 closed G102: of 121 entries, 91 are fixed, 10 are
-partly fixed, 9 are decided or resolved, and 11 are open. That round re-ran an assignment the
+Reconciled again after 0.1.78 closed G102: of 121 entries, 92 are fixed, 10 are
+partly fixed, 9 are decided or resolved, and 10 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -2941,7 +2941,7 @@ the same state.
   and that the fix is to bind it with `let` first. The rule is right; the
   diagnostic makes an agent reconstruct the compiler's model before it can act.
 
-- **G99. `array.map` with an `async` callback compiles clean and prints
+- **G99. [FIXED] `array.map` with an `async` callback compiles clean and prints
   `[object Promise]`.** `array.map(xs, some_async_fn)` type-checks, passes `tsc
   --strict`, and produces an `Array<Promise<T>>` that `string.from` will happily
   render, because `map`'s result was `Unknown` and `string.from` takes an
@@ -2958,6 +2958,31 @@ the same state.
   on an `Array<Promise<T>>` that Glyph has no way to spell: `await e` types as
   `e`, and there is deliberately no user-visible `Promise<T>` (D40). So closing
   this needs a decision about the type of a pending value, not a table entry.
+
+  **Fixed in 0.1.81, and it was never a design question.** The premise above is
+  wrong: D40 already named the type of a value that is not here yet. It is a
+  thunk, `async fn() -> T`, `resilient/main.glyph:43` has been spelling it for
+  releases, and every function in `std/task` is typed for it. What blocked the
+  fix was `par.all`, a prelude global typed `Array<T | Promise<T>>` — the one
+  shape D40 refuses to name — used in exactly one example and two compiler
+  tests. `map`, `flat_map` and `zip` are now modeled, so an `async fn` callback
+  is `E0211` at the argument, and `task.all(array.map(items, task_for))` still
+  compiles and runs.
+
+  `par` is deleted rather than deprecated, and `all_ok` moved to `std/result` as
+  `result.all`, where `Array<Result<T, E>> -> Result<Array<T>, E>` belongs; it
+  was never about concurrency, since the array is already in hand.
+
+  **Why it survived eight releases is the part worth keeping.** The doc comment
+  directly above `stdlib_array_fn_ty` described all three signatures as modeled
+  *and described this exact bug in the past tense* ("before this,
+  `array.map(xs, some_async_fn)` compiled clean ... and printed
+  `[object Promise]`"). None of the three existed. Anyone who checked read the
+  comment and stopped. A unit test asserted the same thing from the other side,
+  pinning `Ty::Unknown` as "deliberately absent". The comment now says the arms
+  must be removed together with their prose, and the test pins `Array<string>`.
+  Two live docs were downstream of the same stall: D21 in the spec still named
+  `array.map` as an unmodeled call binding a string index.
 
   *Reproduced against 0.1.80, verbatim: `array.map([1, 2,], slow)` over an
   `async fn` builds clean, passes `tsc --strict`, and prints

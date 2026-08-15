@@ -93,7 +93,7 @@ impl StdlibStubs {
         // Q3 stdlib bootstrap list — the eight v1 modules. The names below are
         // the exported surface as of the brainstorm resolution; they will grow
         // as Phase 1 week 5 lands real stdlib sources.
-        s.add("std/result", &["Result", "Ok", "Err"]);
+        s.add("std/result", &["Result", "Ok", "Err", "all"]);
         s.add("std/option", &["Option", "Some", "None"]);
         s.add(
             "std/array",

@@ -59,6 +59,9 @@ declare module "http" {
     on(event: "data", listener: (chunk: string) => void): void;
     on(event: "end", listener: () => void): void;
     on(event: "error", listener: (err: { message?: string }) => void): void;
+    // A client that disconnects mid-body fires this and never fires `end`, so a
+    // read that only listens for `end` waits forever.
+    on(event: "aborted", listener: () => void): void;
   }
   export interface ServerResponse {
     writeHead(status: number, headers?: Record<string, string>): void;
@@ -177,6 +180,9 @@ interface GlyphBuffer extends Uint8Array {
   subarray(start?: number, end?: number): GlyphBuffer;
 }
 declare const Buffer: {
+  // The byte length of a string, which is not its `.length` for anything past
+  // ASCII: a size limit measured in UTF-16 code units is not a size limit.
+  byteLength(input: string, encoding?: string): number;
   from(input: string, encoding: string): GlyphBuffer;
   from(bytes: ArrayLike<number> | Iterable<number>): GlyphBuffer;
   alloc(size: number): GlyphBuffer;

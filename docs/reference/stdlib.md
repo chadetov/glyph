@@ -406,6 +406,13 @@ substitutes U+FFFD for a malformed sequence and reports success, which turns a
 truncated read into plausible-looking text; `to_text` returns the index of the
 first byte that cannot be part of a valid sequence.
 
+**A `Bytes` that came off the network is a view, not a copy.** `net.on_data` and
+`websocket.on_binary` hand over a window onto node's pooled read buffer, which is
+8 KiB whatever the frame's size, so keeping a 20-byte frame keeps the whole pool
+block alive. Holding one frame per connection therefore costs 8 KiB per
+connection. `bytes.slice` returns a real copy, so slicing what you keep releases
+the rest.
+
 Nothing here mutates its argument, and nothing here touches a host API:
 `Uint8Array`, `TextEncoder` and `TextDecoder` are the whole of it, so a bundle
 that reaches only for `std/bytes` still runs in a Web Worker.

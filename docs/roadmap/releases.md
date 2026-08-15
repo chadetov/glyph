@@ -4699,45 +4699,47 @@ land here until they're assigned a release.
   would be paying for it in the wrong currency. And whatever lands, `for c in
   cells` stays the advice, because it is fastest, clearest, and needs no analysis
   to be either.
-- **`std/bytes` codecs need a native fast path, and the reason is not the one
-  0.1.78 gave.** Benchmarked after the fact
-  (`benchmarks/micro/bytes_vs_buffer.mjs`), the hand-written codecs are 40x to
-  100x slower than `Buffer` on a megabyte: `to_base64` 135 ms against 1.2 ms,
-  `to_hex` 160 ms against 4 ms, `from_base64` 40 ms against 0.5 ms, `to_base32`
-  170 ms with no equivalent to compare against. At 32 bytes, which is a key or a
-  token, everything is under two microseconds and none of it matters. The
-  UTF-8 bridge is unaffected, since `from_text`/`to_text` are `TextEncoder` and
-  `TextDecoder` and already native.
+- **`std/bytes` codecs were 40x to 100x off `Buffer`, and are now 1x to 35x.**
+  ✅ **mostly done.** Benchmarked after 0.1.78 shipped
+  (`benchmarks/micro/bytes_vs_buffer.mjs`), the hand-written codecs were far
+  slower than the platform on a megabyte: `to_base64` 135 ms against 1.2 ms,
+  `to_hex` 160 ms against 4 ms, `to_base32` 170 ms with nothing to compare
+  against. The cause was not the algorithm and not the validation. Every codec
+  grew its output a few characters at a time with `+=`, and every decoder found
+  a character's value with `alphabet.indexOf(ch)`, a scan of up to 64 characters
+  per input character that needed a one-character string to scan for.
 
-  **The codecs are not the whole of it.** Measured afterwards on the same
-  harness, `equals` and `index_of` are also hand-written loops and also about
-  18x off their native counterparts (`equals` 1.4 ms against `Buffer.equals`
-  0.075 ms per megabyte, `index_of` 2.6 ms against 0.14 ms on a full scan).
-  They matter less than the codecs in absolute terms, since 1.4 ms per megabyte
-  is still 700 MB/s where the codecs manage 6 to 25 MB/s, but they belong in the
-  same fast path because `Buffer.equals` and `Buffer.indexOf` are native and the
-  delegation is the same shape. `slice`, `concat` and `join` need nothing: they
-  are `.slice()` and `.set()` underneath and measure within noise of `Buffer`.
+  The fix keeps one implementation and adds no host dependency. Each codec now
+  builds its output as ASCII octets in a typed array and converts once with
+  `TextDecoder`, which is part of the language rather than of node, and each
+  decoder reads through a precomputed 128-entry reverse table indexed by
+  character code. base32's case folding became a second table entry instead of a
+  `toUpperCase()` per character, and `index_of` now finds candidate positions
+  with `Uint8Array.prototype.indexOf` and only compares the rest by hand.
+  `to_hex` went 160 ms to 5.3 ms, `to_base64` 135 ms to 9.7 ms, `to_base32`
+  170 ms to 9.4 ms, `from_base64` 40 ms to 11 ms, `index_of` 2.6 ms to 1.1 ms.
 
-  **The release notes implied writing the codecs out was what bought the
-  refusal, and the measurement does not support that.** Validating *after* a
-  native decode is nearly free: node's hex decoder stops at the first bad pair
-  and its base64 decoder skips anything outside the alphabet, so in both cases
-  the decoded length falls short of what the input claims and an O(1) comparison
-  catches it. A fully checked `Buffer` hex decode measured 2.3 ms against the
-  unchecked 2.1 ms. Two wrinkles, both cheap and both verified against the 13
-  cases `bytes.from_base64` already answers: node accepts base64url characters
-  under `"base64"`, which two native `indexOf` scans rule out, and a final
-  character carrying bits past the end of the data survives the length check, so
-  the last group is re-encoded and compared. So the guarantee costs almost
-  nothing and the JS loop costs everything.
+  **A delegating fast path is no longer worth building.** It was the obvious
+  answer and it was the wrong one: it would have made a guarantee depend on
+  which host the code ran under, with two implementations of the same refusal
+  rules chosen at runtime, and it would have needed a differential test between
+  them forever to stay safe. Optimizing the single path recovered most of the
+  gap without any of that. What remains is that `Buffer`'s codecs are native and
+  these are not, which is the price of the bare realm and is now a small enough
+  price to stop paying attention to.
 
-  What the JS implementation actually buys is the bare realm, which is worth
-  keeping. The fix is a delegating fast path: use `Buffer` where it exists, fall
-  back to the current implementation where it does not, and keep the refusal on
-  both paths. Encode has no validation to do at all, so on node it should simply
-  delegate. Until then `docs/guide/performance.md` carries the table and says to
-  reach for `Buffer` through `extern_ts` when encoding megabytes.
+  `scripts/check_bytes_codecs.mjs` runs in CI and is the thing that makes this
+  safe to have done: 168k checks against `Buffer` over random data, asserting
+  that encoders agree byte for byte at every length, that every encode
+  round-trips, that anything a decoder accepts re-encodes to what it was given,
+  and that anything `Buffer` produces is accepted. The published RFC 4648
+  vectors only cover what someone thought to write down; this covers the rest,
+  and it exists because these codecs were rewritten for speed once and could be
+  again.
+
+  Still open, and small: `equals` is 18x off `Buffer.equals` (1.4 ms per
+  megabyte, which is 700 MB/s and hard to care about), and `from_hex` is 4.6x.
+  Neither is worth a second code path.
 - **`std/encoding`'s six functions are silent on malformed input.**
   `base64_decode("!!!")` is `""` and no error, because `Buffer.from` skips any
   character outside the alphabet, and a decode of bytes that are not valid UTF-8

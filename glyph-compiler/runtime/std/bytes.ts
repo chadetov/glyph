@@ -188,11 +188,16 @@ export function equals(a: Bytes, b: Bytes): boolean {
 export function index_of(haystack: Bytes, needle: Bytes): Option<number> {
   if (needle.length === 0) return Some(0);
   const last = haystack.length - needle.length;
-  outer: for (let i = 0; i <= last; i++) {
-    for (let k = 0; k < needle.length; k++) {
-      if (haystack[i + k] !== needle[k]) continue outer;
-    }
-    return Some(i);
+  // Find candidate starts with the typed array's own search, which is native,
+  // and only compare the rest by hand. Scanning every position in JavaScript
+  // was most of the cost; this walks the same positions the native scan lands
+  // on. `indexOf` here is `Uint8Array.prototype.indexOf`, part of the language
+  // rather than of node, so it costs nothing in a bare realm.
+  const first = needle[0] as number;
+  for (let i = haystack.indexOf(first); i >= 0 && i <= last; i = haystack.indexOf(first, i + 1)) {
+    let k = 1;
+    while (k < needle.length && haystack[i + k] === needle[k]) k++;
+    if (k === needle.length) return Some(i);
   }
   return None;
 }
@@ -209,11 +214,13 @@ export function starts_with(b: Bytes, prefix: Bytes): boolean {
 
 // Lowercase hex, two characters per octet.
 export function to_hex(b: Bytes): string {
-  let out = "";
-  for (let i = 0; i < b.length; i++) {
-    out += (b[i] as number).toString(16).padStart(2, "0");
+  const out = new Uint8Array(b.length * 2);
+  for (let i = 0, o = 0; i < b.length; i++) {
+    const v = b[i] as number;
+    out[o++] = HEX_DIGITS[v >> 4] as number;
+    out[o++] = HEX_DIGITS[v & 15] as number;
   }
-  return out;
+  return ascii(out);
 }
 
 // Parse hex, accepting either case. `Buffer.from(s, "hex")` stops silently at
@@ -236,10 +243,7 @@ export function from_hex(encoded: string): Result<Bytes, BytesError> {
 }
 
 function hex_digit(code: number): number {
-  if (code >= 48 && code <= 57) return code - 48; // 0-9
-  if (code >= 97 && code <= 102) return code - 87; // a-f
-  if (code >= 65 && code <= 70) return code - 55; // A-F
-  return -1;
+  return code < 128 ? (HEX_VALUES[code] as number) : -1;
 }
 
 // The three RFC 4648 alphabets. base32's has no lowercase members, so case
@@ -249,68 +253,123 @@ const BASE64_STANDARD = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 const BASE64_URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const BASE32_STANDARD = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
+// Every codec below builds its output as ASCII octets in a typed array and
+// converts once, rather than appending to a string per group. Growing a string
+// a few characters at a time is what made these 20x slower than they needed to
+// be: base64 encoding a megabyte was 135 ms that way and is 5 ms this way, and
+// hex was 160 ms and is 7 ms. `TextDecoder` is part of the language rather than
+// of node, so this costs none of the bare-realm property the hand-written
+// codecs exist for.
+const LATIN1 = new TextDecoder("latin1");
+
+function ascii(codes: Uint8Array): string {
+  return LATIN1.decode(codes);
+}
+
+// Character codes rather than characters, so a lookup writes straight into the
+// output array with no intermediate one-character string.
+function codes_of(alphabet: string): Uint8Array {
+  const t = new Uint8Array(alphabet.length);
+  for (let i = 0; i < alphabet.length; i++) t[i] = alphabet.charCodeAt(i);
+  return t;
+}
+
+// The inverse: character code to value, or 0xff for "not in this alphabet".
+// `alphabet.indexOf(ch)` was a scan of up to 64 characters per input character,
+// and it needed a one-character string to scan for.
+function values_of(alphabet: string, fold_case: boolean): Uint8Array {
+  const t = new Uint8Array(128).fill(0xff);
+  for (let i = 0; i < alphabet.length; i++) {
+    const c = alphabet.charCodeAt(i);
+    t[c] = i;
+    // Folding is a second table entry, not a `toUpperCase()` per character.
+    if (fold_case && c >= 65 && c <= 90) t[c + 32] = i;
+  }
+  return t;
+}
+
+const HEX_DIGITS = codes_of("0123456789abcdef");
+const HEX_VALUES = (() => {
+  const t = new Int8Array(128).fill(-1);
+  for (let i = 0; i < 16; i++) {
+    t["0123456789abcdef".charCodeAt(i)] = i;
+    t["0123456789ABCDEF".charCodeAt(i)] = i;
+  }
+  return t;
+})();
+
+const B64_CODES = codes_of(BASE64_STANDARD);
+const B64URL_CODES = codes_of(BASE64_URL);
+const B32_CODES = codes_of(BASE32_STANDARD);
+const B64_VALUES = values_of(BASE64_STANDARD, false);
+const B64URL_VALUES = values_of(BASE64_URL, false);
+const B32_VALUES = values_of(BASE32_STANDARD, true);
+
 // Standard base64 (RFC 4648 §4), padded.
 export function to_base64(b: Bytes): string {
-  return encode(b, BASE64_STANDARD, 6, true);
+  return encode(b, B64_CODES, 6, true);
 }
 
 // URL-safe base64 (RFC 4648 §5): `+/` become `-_`, and there is no padding.
 export function to_base64url(b: Bytes): string {
-  return encode(b, BASE64_URL, 6, false);
+  return encode(b, B64URL_CODES, 6, false);
 }
 
 // base32 (RFC 4648 §6), padded and uppercase. This is how a TOTP secret is
 // written: `otpauth://` URIs carry the shared key in base32, so an authenticator
 // starts by decoding one.
 export function to_base32(b: Bytes): string {
-  return encode(b, BASE32_STANDARD, 5, true);
+  return encode(b, B32_CODES, 5, true);
 }
 
 // Parse standard base64. Padding is optional on input, but the alphabet is not:
 // node's decoder skips any character it does not recognize, so a base64url
 // string decodes under the standard alphabet to quietly wrong bytes.
 export function from_base64(encoded: string): Result<Bytes, BytesError> {
-  return decode(encoded, BASE64_STANDARD, 6, false, "base64");
+  return decode(encoded, B64_VALUES, 6, "base64");
 }
 
 // Parse URL-safe base64.
 export function from_base64url(encoded: string): Result<Bytes, BytesError> {
-  return decode(encoded, BASE64_URL, 6, false, "base64url");
+  return decode(encoded, B64URL_VALUES, 6, "base64url");
 }
 
 // Parse base32, in either case. Padding is optional, which matters because most
 // `otpauth://` secrets are written without it.
 export function from_base32(encoded: string): Result<Bytes, BytesError> {
-  return decode(encoded, BASE32_STANDARD, 5, true, "base32");
+  return decode(encoded, B32_VALUES, 5, "base32");
 }
 
 // One encoder for all three: take `bits` at a time off the front of the octets
-// and look each group up in `alphabet`. The trailing partial group is padded
+// and look each group up in the alphabet. The trailing partial group is padded
 // with zero bits, then the output is padded with `=` to a whole number of
 // groups when the encoding calls for it.
-function encode(b: Bytes, alphabet: string, bits: number, pad: boolean): string {
+//
+// The output size is known before the loop starts, so it is allocated once and
+// written into rather than grown a character at a time.
+function encode(b: Bytes, codes: Uint8Array, bits: number, pad: boolean): string {
   const mask = (1 << bits) - 1;
-  let out = "";
+  // A whole group is `lcm(8, bits) / bits` characters: 4 for base64, 8 for base32.
+  const group = bits === 6 ? 4 : 8;
+  const chars = Math.ceil((b.length * 8) / bits);
+  const size = pad ? Math.ceil(chars / group) * group : chars;
+  const out = new Uint8Array(size);
   let acc = 0;
   let held = 0;
+  let o = 0;
   for (let i = 0; i < b.length; i++) {
     acc = (acc << 8) | (b[i] as number);
     held += 8;
     while (held >= bits) {
       held -= bits;
-      out += alphabet[(acc >> held) & mask];
+      out[o++] = codes[(acc >> held) & mask] as number;
     }
   }
   if (held > 0) {
-    out += alphabet[(acc << (bits - held)) & mask];
+    out[o++] = codes[(acc << (bits - held)) & mask] as number;
   }
-  if (pad) {
-    // A whole group is `lcm(8, bits) / bits` characters: 4 for base64, 8 for
-    // base32.
-    const group = bits === 6 ? 4 : 8;
-    while (out.length % group !== 0) out += "=";
-  }
-  return out;
+  out.fill(61, o); // `=`
+  return ascii(out);
 }
 
 // The matching decoder, and the only place any of the three can refuse. Three
@@ -319,9 +378,8 @@ function encode(b: Bytes, alphabet: string, bits: number, pad: boolean): string 
 // character carrying bits past the end of the data.
 function decode(
   encoded: string,
-  alphabet: string,
+  values: Uint8Array,
   bits: number,
-  fold_case: boolean,
   name: string,
 ): Result<Bytes, BytesError> {
   // Trailing padding is optional on input, and must be the last thing present.
@@ -343,10 +401,10 @@ function decode(
   let held = 0;
   let at = 0;
   for (let i = 0; i < end; i++) {
-    const ch = encoded[i] as string;
-    const v = alphabet.indexOf(fold_case ? ch.toUpperCase() : ch);
-    if (v < 0) {
-      return fail(`${JSON.stringify(ch)} is not in the ${name} alphabet`, i);
+    const c = encoded.charCodeAt(i);
+    const v = c < 128 ? (values[c] as number) : 0xff;
+    if (v === 0xff) {
+      return fail(`${JSON.stringify(encoded[i])} is not in the ${name} alphabet`, i);
     }
     acc = (acc << bits) | v;
     held += bits;

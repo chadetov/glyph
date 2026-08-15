@@ -129,6 +129,16 @@ jobs:
           python3 scripts/check_scaffold_docs.py
           python3 scripts/check_docs_compile.py
 
+      # The std/bytes codecs are hand-written, so the platform is not checking
+      # them and the published RFC 4648 vectors only cover what someone thought
+      # to write down. This runs them against node's Buffer over random data:
+      # encoders must agree byte for byte, every encode must round-trip, and
+      # anything a decoder accepts must re-encode to what it was given, which is
+      # the property that catches a decoder gone lax. It exists because the
+      # codecs were rewritten for speed once and could be again.
+      - name: Check the bytes codecs against the platform
+        run: npx --yes tsx scripts/check_bytes_codecs.mjs
+
       # The evidence behind the four pillars, checked in both directions. The
       # TypeScript in each case has to keep passing `tsc --strict` or the case
       # proves nothing, and the Glyph has to keep failing with the code it names

@@ -49,8 +49,47 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.79</span>
+            <span class="rel-ver">0.1.80</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A server is a resource now</h3>
+            <p><strong>Breaking:</strong> <code>serve</code> is gone from <code>std/net</code> and <code>std/http</code>, replaced by <code>listen</code>. If you call it, this is the change to read.</p>
+            <div class="code">
+              <span class="cap">Before, and after</span>
+<pre><span class="cm">// before: resolved only when the server closed, and nothing could close one</span>
+match await http.serve(8080, handler) {
+  Ok(_) =&gt; 0,        <span class="cm">// this arm could never run, and you had to write it</span>
+  Err(m) =&gt; 1,
+}
+
+<span class="cm">// after: resolves when the port is bound, and hands back the server</span>
+match await http.listen("127.0.0.1", 8080, handler) {
+  Ok(server) =&gt; io.println("on ${number.to_string(net.port(server))}"),
+  Err(e) =&gt; match e.kind {
+    "in_use" =&gt; retry_elsewhere(),
+    "denied" =&gt; give_up(),
+    "unavailable" =&gt; io.eprintln("no such address"),
+    "other" =&gt; io.eprintln(e.message),
+  },
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A client could kill your server by hanging up.</strong> A socket the server handed you, with a data handler and no error handler, ended the process on a peer reset. The example in our own reference was that exact shape, so the documented way to write a server was a remote kill switch. Every accepted connection now gets a default error handler before your handler runs.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A client could exhaust your server's memory by posting forever</strong>, and could strand a request permanently by disconnecting mid-body: the read waited only for an end that never came, so the request was retained for the life of the process with nothing in the log. Bodies are capped at 8 MB with a 413, and a disconnect now ends the request.</li>
+              <li><span class="tag added">Added</span> <strong>A WebSocket server</strong>, RFC 6455 over <code>std/net</code>: the handshake, masked frames, all three payload-length encodings, fragmented messages reassembled before delivery, ping answered with pong. A server connection is the same <code>Socket</code> a client is, so one vocabulary covers both ends.</li>
+              <li><span class="tag added">Added</span> <strong>Binary WebSocket frames</strong> (<code>on_binary</code>, <code>send_bytes</code>) and subprotocols (<code>connect_with</code>, <code>protocol</code>). <code>on_message</code> now delivers text frames only; a binary frame used to be decoded as UTF-8 and handed to it, which is right for JSON and silently corrupts everything else.</li>
+              <li><span class="tag improved">Improved</span> <strong>A bind failure is structured</strong>: <code>in_use</code>, <code>denied</code>, <code>unavailable</code> and <code>other</code> lead to different decisions, so none of them is a substring you scrape out of a message. <code>net.port(server)</code> means <code>listen(host, 0, ...)</code> is usable, and <code>host</code> has no default, because a standard library that will not ship a switch for turning off certificate checking should not quietly bind every interface either.</li>
+            </ul>
+            <p><strong>Why <code>serve</code> was deleted rather than kept.</strong> Its <code>Ok</code> branch could never run, and Glyph has no <code>if</code>: a <code>match</code> on a <code>Result</code> must be exhaustive, so every caller was <em>forced</em> to write an arm that could not execute. Six programs in this repo did, one of them printing a line that would never print. A convenience that makes every user write dead code is not a convenience.</p>
+            <p>Most of this release came out of an adversarial review of the design before it shipped, and the worst thing it found was not the thing being reviewed: the process kill above was in code that had already been released. Four of its claims were reproduced against the compiler and node before any of them were acted on.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.79</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

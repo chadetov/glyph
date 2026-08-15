@@ -2959,7 +2959,13 @@ the same state.
   `e`, and there is deliberately no user-visible `Promise<T>` (D40). So closing
   this needs a decision about the type of a pending value, not a table entry.
 
-  *Reproduced against 0.1.74.* Re-run when the staleness gate flagged the
+  *Reproduced against 0.1.80, verbatim: `array.map([1, 2,], slow)` over an
+  `async fn` builds clean, passes `tsc --strict`, and prints
+  `[object Promise],[object Promise]`. The premise is unchanged, including the
+  reason it is not a table entry: closing it rejects
+  `par.all(array.map(items, async fn ...))`, which is Glyph's own concurrency
+  idiom, so it still needs a decision about the type of a pending value rather
+  than a signature.* Re-run when the staleness gate flagged the
   entry: `array.map([1, 2, 3], double)` over an `async fn` still builds with no
   diagnostics and a clean `tsc --strict`, and still prints
   `[object Promise],[object Promise],[object Promise]`. The premise holds
@@ -3629,7 +3635,14 @@ G103 was the case where nothing was said at all.
   descriptor that only checks presence, or be skipped with its dependent fields
   widened, or make the whole type unmaterializable, is a design call with a real
   verifiability trade in it.
-  *Reproduced against 0.1.74.*
+  *Reproduced against 0.1.80: `gen dts marked --rename Tokens.List=ListToken`
+  writes 46 types and exits 0, and building the result is 14 `[E0103]`s across
+  eight names, still in the same three groups: classes (`Lexer`, `Parser`,
+  `Renderer`, `Tokenizer`, `Hooks`), utility types (`Omit`, `Pick`) and host
+  types (`RegExp`). Worth noting for whoever fixes it that the generated file
+  lands in `src/.types/`, which `glyph build` does not walk for `.glyph`, so the
+  failure only appears once it is moved next to the source; a first pass at this
+  reproduction read the silence as the gap having closed.*
 
 ## Round 31: four apps, and a loop index that was a string
 
@@ -3853,7 +3866,12 @@ compiler did not do for them. Three are real.
   between "the output is portable JavaScript" and "the output is deployable".
   A `--target browser` that emits pruned, relative-specifier ESM is the shape
   that would remove the file.
-  *Reproduced against 0.1.74.*
+  *Reproduced against 0.1.80, and it has grown: a program importing three
+  modules (`array`, `io`, `option`) now emits **36**, up from the 31 recorded
+  here, and the browser-hostile set is `dns`, `fs`, `http`, `net`, `process`,
+  `sqlite`, `tls`. Three of those (`net`, `tls`, `dns`) are 0.1.79's own work, so
+  each release that adds a host module makes this entry worse rather than
+  leaving it flat. The output directory is still `.glyph-runtime`.*
 
 **Their pin is still `^0.1.72`**, from the scaffold before the exact-pin change,
 so this app is exactly the population `glyph upgrade` reads a caret for.

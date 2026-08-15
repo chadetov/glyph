@@ -3665,7 +3665,7 @@ declared conversion the way Rust's `?` does, because it changes an error's type
 at a character that does not look like a conversion. The work is to make E0203
 quote both types and name `.map_err` as the fix.
 
-#### 0.1.80 — finish what is half-built
+#### 0.1.80 — Shipped · A server is a resource
 
 **A Linus review of the server-lifetime design ran before this shipped, and
 changed most of it.** The verdict was SHIP WITH CHANGES, nine of them, and four
@@ -3719,7 +3719,13 @@ onto node's pooled 8 KiB buffers, so retaining a small frame per connection pins
 
 
 WebSocket binary messages, a WebSocket server, connection options and
-subprotocols, WebSocket integration tests, and `std/sse`.
+subprotocols, and WebSocket integration tests all shipped. **`std/sse` did
+not, and moves to 0.1.81.** It is the least specified of the five: Node 26
+has no `EventSource` global, so there is nothing to wrap the way
+`std/websocket` wraps one, and the runtime has no streaming primitive, so
+the module has to carry its own `fetch` plus reader. That is a design worth
+doing rather than rushing into a cut, and holding the release for it would
+have left an unauthenticated remote process kill in the published package.
 
 *Reviewed against 0.1.79.* All four claims re-checked against the built
 compiler: `websocket.ts:18` still says binary frames are decoded as UTF-8 text,
@@ -3744,6 +3750,18 @@ narrowing.
 And a WebSocket **server** will meet the problem `std/net` and `std/http` already
 have, that a server cannot be stopped once started, so it should not ship before
 that shape is decided or it adds a third copy of the same hole.
+
+#### 0.1.81 — `std/sse`, and the streaming question underneath it
+
+Server-sent events, carried over from 0.1.80. Worth its own entry because the
+obvious implementation is not available: Node 26 has no `EventSource` global, so
+there is nothing to wrap, and the runtime has no streaming read (G105), so the
+module has to hold a `fetch` and a reader itself. Whether that reader stays
+private to `std/sse` or becomes the streaming primitive G105 asks for is the
+decision to make first; picking the second means `std/stream` is already taken by
+the property-testing sampler and the name has to be settled too.
+
+*Reviewed against 0.1.80.*
 
 #### After that, the loop decides
 

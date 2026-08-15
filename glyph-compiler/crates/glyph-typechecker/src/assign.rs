@@ -1497,6 +1497,49 @@ impl Assigner<'_> {
                 Ty::Prim(Primitive::String),
                 true,
             ),
+            ("std/url", "parse") => (
+                1,
+                stdlib_named("url", "Url"),
+                Ty::Prim(Primitive::String),
+                false,
+            ),
+            // `join(base, relative)`, so two.
+            ("std/url", "join") => (
+                2,
+                stdlib_named("url", "Url"),
+                Ty::Prim(Primitive::String),
+                false,
+            ),
+            ("std/url", "decode_component") => (
+                1,
+                Ty::Prim(Primitive::String),
+                Ty::Prim(Primitive::String),
+                false,
+            ),
+            // Every lookup is async and every one fails for ordinary reasons, so
+            // the caller is held to matching them rather than being handed a
+            // throw from a name resolution.
+            ("std/dns", "lookup") => (1, Ty::Prim(Primitive::String), Ty::Prim(Primitive::String), true),
+            ("std/dns", "ipv4") | ("std/dns", "ipv6") | ("std/dns", "text") => (
+                1,
+                self.stdlib_array_ty(Ty::Prim(Primitive::String))?,
+                Ty::Prim(Primitive::String),
+                true,
+            ),
+            ("std/dns", "mail") => (
+                1,
+                self.stdlib_array_ty(stdlib_named("dns", "MailHost"))?,
+                Ty::Prim(Primitive::String),
+                true,
+            ),
+            // Resolves after the handshake, so an `Ok` means the peer's
+            // certificate was accepted.
+            ("std/tls", "connect") => (
+                2,
+                stdlib_named("net", "Socket"),
+                Ty::Prim(Primitive::String),
+                true,
+            ),
             ("std/bytes", "to_text") => (
                 1,
                 Ty::Prim(Primitive::String),
@@ -2978,7 +3021,7 @@ impl Assigner<'_> {
             // member/field set for access and assignability. The stdlib table
             // goes first: its types carry a sentinel symbol that resolves to
             // nothing, so the resolver-backed paths below can never see them.
-            Ty::Named { .. } => stdlib_type_fields(ty)
+            Ty::Named { .. } => stdlib_type_fields(self, ty)
                 .or_else(|| self.named_record_fields(ty, &[]))
                 .or_else(|| self.interface_member_fields(ty)),
             // A type declared in a sibling module. Resolving it here, rather
@@ -3544,6 +3587,9 @@ pub(crate) fn stdlib_modeled_type(module: &str, name: &str) -> Option<Ty> {
             | ("fs", "ErrorKind")
             | ("http", "HttpError")
             | ("bytes", "BytesError")
+            | ("url", "Url")
+            | ("url", "Param")
+            | ("dns", "MailHost")
     )
     .then(|| stdlib_named(module, name))
 }
@@ -3570,7 +3616,7 @@ fn stdlib_type_path(ty: &Ty) -> Option<(&str, &str)> {
 /// A field here that `runtime/std/fs.ts` does not declare would be a signature
 /// for a member that is not there, so the two are kept in step by hand — the
 /// same contract `descriptor_member_ty` keeps with the emitter.
-fn stdlib_type_fields(ty: &Ty) -> Option<Vec<RecordField>> {
+fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
     let fields: Vec<(&str, Ty)> = match stdlib_type_path(ty)? {
         ("fs", "FsError") => vec![
             ("kind", stdlib_named("fs", "ErrorKind")),
@@ -3586,6 +3632,22 @@ fn stdlib_type_fields(ty: &Ty) -> Option<Vec<RecordField>> {
         // be reported against the source rather than as "somewhere in here".
         // There is no `kind`: every failure in this module is one shape of the
         // same thing, and a one-variant union would be a match with one arm.
+        ("url", "Url") => vec![
+            ("scheme", Ty::Prim(Primitive::String)),
+            ("host", Ty::Prim(Primitive::String)),
+            ("port", a.stdlib_option_ty(Ty::Prim(Primitive::Number))?),
+            ("path", Ty::Prim(Primitive::String)),
+            ("query", Ty::Prim(Primitive::String)),
+            ("fragment", a.stdlib_option_ty(Ty::Prim(Primitive::String))?),
+        ],
+        ("url", "Param") => vec![
+            ("key", Ty::Prim(Primitive::String)),
+            ("value", Ty::Prim(Primitive::String)),
+        ],
+        ("dns", "MailHost") => vec![
+            ("priority", Ty::Prim(Primitive::Number)),
+            ("host", Ty::Prim(Primitive::String)),
+        ],
         ("bytes", "BytesError") => vec![
             ("message", Ty::Prim(Primitive::String)),
             ("index", Ty::Prim(Primitive::Number)),

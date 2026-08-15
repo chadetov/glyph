@@ -1,0 +1,91 @@
+// feeds — read an RSS feed with a real npm parser, resolve its links, print it.
+//
+// The point of this app is the boundary. `fast-xml-parser` is an ordinary npm
+// dependency with its own types, imported by name with no adapter and no
+// hand-written `.d.ts`. What it returns is an `any`, because it cannot know
+// what document it read, and `Document.parse` is where that stops: past that
+// line every field is checked, and a malformed feed is a list of issues rather
+// than an `undefined` three frames later.
+module main
+
+import std/array
+import std/http
+import std/io
+import std/option { Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+import digest
+import digest { Entry }
+import fast-xml-parser { XMLParser }
+import wire { Document }
+
+const SAMPLE: string = "<rss><channel><title>Example</title><item><title>First</title><link>../post/1</link></item><item><title>Second</title><link>https://elsewhere.test/p</link></item></channel></rss>"
+
+pub async fn main(argv: Array<string>) -> number {
+  let source = match array.get(argv, 0) {
+    Some(a) => a,
+    None => "sample",
+  }
+  let base = match source == "sample" {
+    true => "https://example.test/feed.xml",
+    false => source,
+  }
+  let body = match source == "sample" {
+    true => Ok(SAMPLE),
+    false => await fetch(source),
+  }
+  return match body {
+    Err(why) => {
+      io.eprintln("feeds: ${why}")
+      1
+    },
+    Ok(text) => match render(text, base) {
+      Err(why) => {
+        io.eprintln("feeds: ${why}")
+        1
+      },
+      Ok(lines) => {
+        for line in lines {
+          io.println(line)
+        }
+        0
+      },
+    },
+  }
+}
+
+// `response.body` is an `unknown`, which is right: a body is whatever the
+// server sent. What is missing is a way to say "this one is text". `http.get`
+// parses JSON when it can and hands back the raw string when it cannot, so for
+// XML the string is already there and `string.from` is the identity on it. That
+// works, and it is the wrong shape: on a JSON response the same line renders
+// `[object Object]` and reports nothing. Recorded as a finding rather than
+// worked around with TypeScript.
+async fn fetch(source: string) -> Result<string, string> {
+  return match await http.get(source) {
+    Ok(response) => Ok(string.from(response.body)),
+    Err(e) => Err("cannot fetch ${source}: ${e.message}"),
+  }
+}
+
+// The boundary, in one function. The parser hands back an unknown, and
+// `Document.parse` either produces a checked value or says what is wrong.
+fn render(xml: string, base: string) -> Result<Array<string>, string> {
+  let parser = new XMLParser({ ignoreAttributes: true, })
+  let raw = parser.parse(xml)
+  return match Document.parse(raw) {
+    Err(issues) => {
+      let count = number.to_string(array.len(issues))
+      Err("not an RSS document (${count} issue(s))")
+    },
+    Ok(doc) => Ok(lines_of(digest.entries(doc, base))),
+  }
+}
+
+fn lines_of(entries: Array<Entry>) -> Array<string> {
+  let out: Array<string> = []
+  for e in entries {
+    mut out = array.push(out, "${e.title}  ${e.href}")
+  }
+  return out
+}

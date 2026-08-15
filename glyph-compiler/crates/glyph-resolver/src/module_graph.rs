@@ -272,6 +272,24 @@ impl StdlibStubs {
                 "peer_port",
             ],
         );
+        // URL parsing, resolution and percent-encoding, over the host's WHATWG
+        // parser. A `Url` is a record because its parts are data; a `Socket` is
+        // opaque because it is a live resource.
+        s.add(
+            "std/url",
+            &[
+                "Url", "Param", "parse", "join", "format", "query_params", "query_param",
+                "to_query", "encode_component", "decode_component",
+            ],
+        );
+        // Name lookups, every one async and returning a `Result`.
+        s.add(
+            "std/dns",
+            &["MailHost", "lookup", "ipv4", "ipv6", "text", "mail"],
+        );
+        // TCP with the certificate checked. A `tls` connection is a `net.Socket`,
+        // so `std/net`'s functions all apply to it.
+        s.add("std/tls", &["connect"]);
         // Untrusted-input discipline as types: Tainted/Trusted with sanitize.
         s.add(
             "std/taint",

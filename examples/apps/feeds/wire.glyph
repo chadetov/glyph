@@ -1,0 +1,28 @@
+// The shape a feed arrives in, as types the compiler can check.
+//
+// `fast-xml-parser` hands back an `any`: it cannot know what document it just
+// read. That value is the boundary, and this module is where it stops being
+// unknown. Each record below generates a descriptor, so `Rss.parse(raw)` either
+// returns a typed value or an `Issue` per field that is wrong, and nothing
+// downstream has to guess.
+module wire
+
+// A feed item. `link` is often relative, which `main` resolves against the feed
+// URL rather than trusting.
+pub type Item = {
+  title: string,
+  link: string,
+}
+
+pub type Channel = {
+  title: string,
+  item: Array<Item>,
+}
+
+pub type Rss = {
+  channel: Channel,
+}
+
+pub type Document = {
+  rss: Rss,
+}

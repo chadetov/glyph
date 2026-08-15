@@ -195,6 +195,89 @@ For a record/union type `T`, the namespace form `json.parse<T>(text)` is
 auto-rewritten to validate against `T.schema`. Use that form (not the
 named-import `parse`) when you want validation rather than a bare cast.
 
+## std/url
+
+Parse, build and resolve URLs, and percent-encoding both ways, over the host's
+WHATWG parser (the same one `fetch` and a browser use). No node dependency, so
+it runs in a Web Worker.
+
+```
+type Url = { scheme: string, host: string, port: Option<int>,
+             path: string, query: string, fragment: Option<string> }
+type Param = { key: string, value: string }
+url.parse(text: string) -> Result<Url, string>            // absolute URLs only
+url.join(base: string, relative: string) -> Result<Url, string>   // resolves ../ and //host
+url.format(u: Url) -> string
+url.query_params(query: string) -> Array<Param>           // in order, repeats kept
+url.query_param(query: string, name: string) -> Option<string>
+url.to_query(params: Array<Param>) -> string
+url.encode_component(text: string) -> string
+url.decode_component(text: string) -> Result<string, string>
+```
+
+`Url` is a record, not an opaque handle, so its parts are ordinary fields you
+match and grep. That is the opposite of `std/net`'s `Socket`, for the opposite
+reason: a socket is a live resource with no meaningful parts, a parsed URL is
+data. `query` and `fragment` carry no leading `?` or `#`, and `port` is `None`
+when the URL leaves it to the scheme, so `format` does not turn `https://x/`
+into `https://x:443/`.
+
+**Use this rather than splitting the string yourself.** `https://evil.com@example.com/`
+has host `example.com`, and a hand-rolled parser that looks for the first `.` or
+the text before the first `/` gets that wrong in the direction that matters.
+
+`query_params` answers an array rather than a `Record` because `?tag=a&tag=b` is
+legal and a map would silently drop one. Values are percent-decoded and `+`
+counts as a space, which is what a form post sends. A malformed escape there
+decodes to itself rather than failing the whole read; `decode_component` is the
+strict form that tells you.
+
+## std/dns
+
+Name lookups. Every one is async and returns a `Result`, because a lookup fails
+for ordinary reasons: the name does not exist, the resolver did not answer, the
+record type is not present. Node throws for all of those.
+
+```
+type MailHost = { priority: int, host: string }
+dns.lookup(hostname: string) -> Result<string, string>          // async
+dns.ipv4(hostname: string) -> Result<Array<string>, string>     // async
+dns.ipv6(hostname: string) -> Result<Array<string>, string>     // async
+dns.text(hostname: string) -> Result<Array<string>, string>     // async
+dns.mail(hostname: string) -> Result<Array<MailHost>, string>   // async
+```
+
+**`lookup` and `ipv4` are not the same question.** `lookup` asks the operating
+system, so it sees `/etc/hosts` and whatever the resolver is configured to do,
+which is what you want before dialling: a name pointed at `127.0.0.1` for local
+development resolves there. `ipv4` queries DNS directly and ignores all of that,
+which is what you want when the question is about the record itself.
+
+`text` joins the 255-byte chunks DNS splits a long TXT record into, so an SPF
+record or a verification token arrives as one string rather than several.
+
+## std/tls
+
+TCP with the certificate checked. A TLS socket **is** a `net.Socket`, so
+everything in `std/net` applies to it and only `connect` differs.
+
+```
+tls.connect(host: string, port: int) -> Result<Socket, string>   // async
+```
+
+Verification is on and there is no argument to turn it off, because "disable
+certificate validation" is a line that gets added to make development work and
+then ships. `connect` resolves after the handshake, so an `Ok` means the peer
+proved it is who it said; an expired certificate, a name mismatch or an untrusted
+issuer is the `Err`. That is the difference from `net.connect`, which returns
+immediately: a plain socket has nothing to fail at yet, and a caller that writes
+a password to an unverified peer has already lost.
+
+There is no TLS **server** here. One needs a certificate and a private key, which
+means a file format, a renewal story and a cipher policy, and shipping those
+half-done is worse than not shipping them. Terminate TLS in front of a
+`std/net` or `std/http` server.
+
 ## std/net
 
 TCP: a server that accepts many clients, and a client that talks to one. Events

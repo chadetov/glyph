@@ -26,6 +26,7 @@
 // Run: node --experimental-strip-types benchmarks/micro/bytes_vs_buffer.mjs
 //   or: npx tsx benchmarks/micro/bytes_vs_buffer.mjs
 import * as bytes from "../../glyph-compiler/runtime/std/bytes.ts";
+import { randomBytes } from "node:crypto";
 
 const SIZES = [
   { name: "32 B (a key)", n: 32, iters: 200_000 },
@@ -121,3 +122,48 @@ for (const row of rows) {
   );
 }
 console.error(`(ms per operation; sink=${sink})`);
+
+// --- The sequence operations ------------------------------------------------
+//
+// The codecs are not the only hand-written loops. `equals` and `index_of` walk
+// octets in JavaScript where `Buffer.equals` and `Buffer.indexOf` are native;
+// `slice` and `concat` delegate to `.slice()` and `.set()` and should show no
+// meaningful gap. Separating the two is the point of this second table: it says
+// which operations a delegating fast path would need to cover.
+//
+// Real random bytes, not the deterministic `sample` above. A pattern with any
+// period puts an early copy of the needle in the haystack, so `index_of` returns
+// almost immediately and measures nothing. Two earlier attempts here were
+// degenerate that way, the second because a 32-bit LCG loses precision in
+// float64 and collapses.
+{
+  const n = 1024 * 1024;
+  const src = randomBytes(n);
+  const a = new Uint8Array(src.buffer, src.byteOffset, src.byteLength);
+  const b = new Uint8Array(a);
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  const needle = a.slice(n - 64);
+  const bneedle = Buffer.from(needle);
+
+  // The needle must occur exactly once, at the very end, or the scan is not a
+  // scan. Assert it rather than assume it.
+  const at = bytes.index_of(a, needle);
+  if (at.tag !== "Some" || at.value !== n - 64 || ba.indexOf(bneedle) !== n - 64) {
+    throw new Error(`degenerate haystack: needle found at ${JSON.stringify(at)}`);
+  }
+
+  const seq = [
+    ["equals (1 MB, equal)", () => bytes.equals(a, b), () => ba.equals(bb), 300],
+    ["index_of (1 MB, match at end)", () => bytes.index_of(a, needle), () => ba.indexOf(bneedle), 20],
+    ["slice (1 MB)", () => bytes.slice(a, 0, n), () => Buffer.from(ba.subarray(0, n)), 2000],
+    ["concat (2 x 1 MB)", () => bytes.concat(a, b), () => Buffer.concat([ba, bb]), 500],
+  ];
+  console.log("\n| operation | std/bytes | Buffer | ours vs Buffer |");
+  console.log("|---|---|---|---|");
+  for (const [label, ours, theirs, iters] of seq) {
+    const o = time(iters, ours);
+    const t = time(iters, theirs);
+    console.log(`| ${label} | ${f(o)} | ${f(t)} | ${(o / t).toFixed(1)}x |`);
+  }
+}

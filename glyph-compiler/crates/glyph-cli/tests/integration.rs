@@ -3067,9 +3067,12 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
-fn async_closure_with_par_all_runs() {
-    // F11/F12: an async closure passed to array.map, its results awaited by
-    // par.all, type-checks (tsc) and runs the concurrency correctly.
+fn async_thunks_mapped_and_awaited_run() {
+    // F11/F12: concurrency spelled the way D40 names it. `array.map` builds an
+    // `Array<async fn() -> T>` and `task.all` awaits them, which is the idiom
+    // two example apps already use. This was written against `par.all`, whose
+    // `Array<T | Promise<T>>` is the one shape D40 refuses to name, and keeping
+    // it was what blocked modeling `array.map` at all (G99).
     if !js_toolchain_available() {
         eprintln!("skipping async-closure run: node/tsx not available");
         return;
@@ -3081,15 +3084,18 @@ fn async_closure_with_par_all_runs() {
         r#"module prog
 
 import std/array
+import std/task
 
 async fn work(n: number) -> number {
   return n * 2
 }
 
+fn task_for(n: number) -> async fn() -> number {
+  return async fn() -> number { return await work(n) }
+}
+
 async fn run(items: Array<number>) -> Array<number> {
-  return await par.all(array.map(items, async fn(n: number) -> number {
-    await work(n)
-  }))
+  return await task.all(array.map(items, task_for))
 }
 
 fn sum(xs: Array<number>) -> number {
@@ -3111,7 +3117,7 @@ async fn main(argv: Array<string>) -> number {
     let file = root.join("prog.glyph");
     match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::Ran(code) => {
-            assert_eq!(code, 0, "async closure + par.all produced a wrong result");
+            assert_eq!(code, 0, "async thunks + task.all produced a wrong result");
         }
         glyph_cli::run::RunOutcome::TsxNotFound => {
             eprintln!("skipping async-closure run: `tsx` not found on PATH");

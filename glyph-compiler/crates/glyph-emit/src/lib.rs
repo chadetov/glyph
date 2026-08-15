@@ -6197,18 +6197,20 @@ mod tests {
 
     #[test]
     fn async_closure_emits_an_async_arrow() {
-        // F11/F12: `async fn(x) { await ... }` emits an async arrow, and an
+        // F11/F12: `async fn() { await ... }` emits an async arrow, and an
         // annotated return type wraps in `Promise<T>` (an async arrow returns a
-        // Promise), so a task thunk can await inside a closure.
+        // Promise), so a task thunk can await inside a closure. The thunk takes
+        // no parameters, which is what makes it the shape `task.all` accepts and
+        // `array.map` can build.
         let ts = emit(
-            "module x\npub async fn run(xs: Array<number>) -> Array<number> {\n  return await par.all(array.map(xs, async fn(n: number) -> number {\n    await work(n)\n  }))\n}\n",
+            "module x\nimport std/task\nfn t(n: number) -> async fn() -> number {\n  return async fn() -> number { return await work(n) }\n}\npub async fn run(xs: Array<number>) -> Array<number> {\n  return await task.all(array.map(xs, t))\n}\n",
         );
-        assert!(ts.contains("async (n: number): Promise<number> =>"), "async arrow with Promise return:\n{ts}");
+        assert!(ts.contains("async (): Promise<number> =>"), "async arrow with Promise return:\n{ts}");
         // The unannotated form emits a bare async arrow.
         let ts2 = emit(
-            "module x\npub async fn run(xs: Array<number>) -> Array<number> {\n  return await par.all(array.map(xs, async fn(n: number) {\n    await work(n)\n  }))\n}\n",
+            "module x\nimport std/task\nfn t(n: number) -> async fn() -> number {\n  return async fn() { await work(n) }\n}\npub async fn run(xs: Array<number>) -> Array<number> {\n  return await task.all(array.map(xs, t))\n}\n",
         );
-        assert!(ts2.contains("async (n: number) =>"), "bare async arrow:\n{ts2}");
+        assert!(ts2.contains("async () =>"), "bare async arrow:\n{ts2}");
     }
 
     #[test]

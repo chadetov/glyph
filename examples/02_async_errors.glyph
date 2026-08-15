@@ -7,6 +7,8 @@ module user_feed
 import std/result { Result, Ok, Err }
 import std/http
 import std/array
+import std/result
+import std/task
 
 // ---------------------------------------------------------------------------
 // Domain types
@@ -82,13 +84,14 @@ async fn load_feed(user_id: string) -> Result<Feed, FeedError> {
   let user = await fetch_user(user_id)?
   let posts = await fetch_posts(user.id)?
 
-  // Parallel fan-out: fetch comments for all posts at once.
-  // par.all_ok takes Array<Result<T, E>> and returns Result<Array<T>, E>
-  // by short-circuiting on the first Err.
-  let comment_results = await par.all(
-    array.map(posts, fn(post) { fetch_comments(post.id) })
+  // Parallel fan-out: fetch comments for all posts at once. `array.map` builds
+  // the work as thunks and `task.all` runs them, which is what D40 names; then
+  // `result.all` collapses `Array<Result<T, E>>` into `Result<Array<T>, E>` by
+  // short-circuiting on the first `Err`.
+  let comment_results = await task.all(
+    array.map(posts, fn(post) { return async fn() { return await fetch_comments(post.id) } })
   )
-  let comments_per_post = par.all_ok(comment_results)?
+  let comments_per_post = result.all(comment_results)?
 
   let posts_with_comments = array.zip(posts, comments_per_post, fn(post, comments) {
     return { post: post, comments: comments }

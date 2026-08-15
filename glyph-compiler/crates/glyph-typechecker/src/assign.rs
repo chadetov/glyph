@@ -1680,13 +1680,19 @@ impl Assigner<'_> {
     ///
     /// Writing the callback as a *synchronous* `fn(T) -> U` is the point of
     /// modeling them, not a limitation of it. D40 holds `fn` and `async fn`
-    /// apart, and `xs.map(async_f)` is an `Array<Promise<U>>` in JavaScript:
-    /// before this, `array.map(xs, some_async_fn)` compiled clean, passed `tsc
-    /// --strict`, and printed `[object Promise]`, because the result was
-    /// `Unknown` and `string.from` takes an `unknown`. That silent green is what
-    /// an unmodeled signature bought. The async spelling is `std/task`: map to
-    /// an `Array<async fn() -> T>` and hand it to `task.all`, which is the
-    /// example D40 itself uses.
+    /// apart, and `xs.map(async_f)` is an `Array<Promise<U>>` in JavaScript, so
+    /// an unmodeled `map` let `array.map(xs, some_async_fn)` compile clean, pass
+    /// `tsc --strict`, and print `[object Promise]` — the result was `Unknown`
+    /// and `string.from` takes an `unknown`. That silent green is what an
+    /// unmodeled signature bought, and it is G99.
+    ///
+    /// This paragraph described those three arms as present for eight releases
+    /// while none of them existed, which is how the gap survived: whoever
+    /// checked read the comment and stopped. If you remove an arm, remove its
+    /// sentence in the same edit.
+    ///
+    /// The async spelling is `std/task`: map to an `Array<async fn() -> T>` and
+    /// hand it to `task.all`, which is the example D40 itself uses.
     fn stdlib_array_fn_ty(&self, module_key: &str, field: &str) -> Option<Ty> {
         if module_key != "std/array" {
             return None;
@@ -1728,8 +1734,36 @@ impl Assigner<'_> {
             return_ty: Arc::new(Ty::Prim(Primitive::Bool)),
             is_async: false,
         };
+        // `U`, the callback's own return type, for the three functions whose
+        // result element differs from their input's.
+        let out = || Ty::Param {
+            name: Ident::from("U"),
+            owner: ParamOwner::Unresolved,
+        };
+        // `fn(T) -> U`. Synchronous on purpose: see the note above about what an
+        // `async fn` passed here used to do.
+        let mapper = |from: Ty, to: Ty| Ty::Fn {
+            params: vec![FnParam {
+                name: None,
+                owned: false,
+                ty: from,
+                optional: false,
+            }],
+            return_ty: Arc::new(to),
+            is_async: false,
+        };
+        let ys = self.stdlib_array_ty(out())?;
         let (params, ret): (Vec<FnParam>, Ty) = match field {
             "len" => (unknown_params(1), Ty::Prim(Primitive::Number)),
+            // The three the comment above has described as modeled since before
+            // 0.1.72 while none of them was. An `async fn` callback is now
+            // rejected at the argument instead of producing an `Array<Promise<U>>`
+            // that `string.from` renders as `[object Promise]` (G99).
+            "map" => (vec![of(xs.clone()), of(mapper(elem(), out()))], ys),
+            "flat_map" => (
+                vec![of(xs.clone()), of(mapper(elem(), ys.clone()))],
+                ys,
+            ),
             "any" => (vec![of(xs.clone()), of(pred())], Ty::Prim(Primitive::Bool)),
             "contains" => (unknown_params(2), Ty::Prim(Primitive::Bool)),
             "index_of" => (
@@ -7055,15 +7089,18 @@ fn label(s: Status) -> string {
     }
 
     #[test]
-    fn an_unmodeled_stdlib_call_still_types_unknown() {
-        // Phase 1 models a table, not the whole stdlib. `array.map`'s element
-        // type comes from the callback's return, which the unifier does not
-        // walk, so it is deliberately absent and stays permissive (G39).
+    fn array_map_takes_its_element_type_from_the_callback() {
+        // `array.map`'s result element comes from the callback's *return*, not
+        // from any argument, which is why it needs the second type parameter
+        // `U`. This asserted `Ty::Unknown` for eight releases, describing the
+        // signature as "deliberately absent"; that absence is what let an
+        // `async fn` callback through to print `[object Promise]` (G99).
         let (m, _, tm) = type_map_of(
             "module x\nimport std/array\nfn dup(s: string) -> string { return s }\n             fn f(names: Array<string>) -> void {\n  let out = array.map(names, dup)\n  return void\n}\n",
         );
         assert!(
-            matches!(tm.get(first_let_value_span_anywhere(&m)), Ty::Unknown),
+            matches!(tm.get(first_let_value_span_anywhere(&m)),
+                     Ty::App { args, .. } if args.first() == Some(&Ty::Prim(Primitive::String))),
             "got {:?}",
             tm.get(first_let_value_span_anywhere(&m))
         );

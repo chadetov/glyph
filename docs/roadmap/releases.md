@@ -3751,15 +3751,86 @@ And a WebSocket **server** will meet the problem `std/net` and `std/http` alread
 have, that a server cannot be stopped once started, so it should not ship before
 that shape is decided or it adds a third copy of the same hole.
 
-#### 0.1.81 — `std/sse`, and the streaming question underneath it
+#### 0.1.81 — Four gaps, and the streaming primitive underneath two of them
 
-Server-sent events, carried over from 0.1.80. Worth its own entry because the
-obvious implementation is not available: Node 26 has no `EventSource` global, so
-there is nothing to wrap, and the runtime has no streaming read (G105), so the
-module has to hold a `fetch` and a reader itself. Whether that reader stays
-private to `std/sse` or becomes the streaming primitive G105 asks for is the
-decision to make first; picking the second means `std/stream` is already taken by
-the property-testing sampler and the name has to be settled too.
+G99, G115, G105 and G108, taken together after an adversarial review of all four
+(`feedbacks/linus/05-four-gaps-g99-g105-g108-g115.md`, gitignored). Six of its
+claims were verified against the code before any were acted on, and two of them
+dissolved premises this roadmap had been carrying for releases.
+
+**G99 was never a design question, and a lying comment is why it looked like
+one.** The thunk `async fn() -> T` already ships (`resilient/main.glyph:43`) and
+all of `std/task` is typed for it, so D40 answered "what is the type of a value
+that is not here yet" when it shipped. The blocker was `par.all`, a prelude
+global typed `Array<T | Promise<T>>`, which is the one shape D40 refuses to name,
+used in exactly one example and two compiler tests. Meanwhile
+`assign.rs:1680` carries twenty lines of doc comment describing `map`/`flat_map`/
+`zip` as modeled **and describing this very bug in the past tense** — none of the
+three is implemented. Anyone who looked read the comment and stopped looking.
+That is the mechanism by which a gap survives eight releases, and it is worth
+more attention than the gap.
+
+Land the three signatures the comment already specifies, delete `par` rather than
+deprecate it, and move `all_ok` to `std/result` where `Array<Result<T, E>> ->
+Result<Array<T>, E>` belongs. Breaking, and taken deliberately: doing the right
+thing for the people writing Glyph outranks the cost of the change.
+
+**G105's naming constraint was fake.** `std/stream` has **zero** `.glyph`
+importers anywhere in the tree; it is a 22-line property-testing sampler whose
+only consumer is `std/test`. Three reproductions treated "the obvious name is
+taken" as a constraint on the design. It is a squatter, and it moves to
+`std/sample`.
+
+The primitive is a handle over the `io.read_line` pattern, whose state is a
+module-level singleton today. Two decisions on top of the review's shape:
+
+- **`next` answers a three-variant union, not an `Option`.** The review proposed
+  `async next(s) -> Option<T>` on the `read_line` precedent, and that precedent
+  has a flaw the review did not mention: `io.ts:88` treats *every* read failure
+  as EOF, so a closed descriptor is indistinguishable from clean end of input.
+  Defensible for stdin, documented there, and wrong for a file: a k-way merge
+  would silently emit a short result on a disk error. `StreamItem<T>` is
+  `Item(T) | End | Failed(e)`, so D9 forces the failure arm to be handled and a
+  failure cannot be read as success. That is the whole first pillar, on the one
+  API where the alternative is a silent wrong answer.
+- **No concession on verifiability, so `Stream<T>` is a real resource.** The
+  review's honest cost was that this would be the first stdlib type where two
+  reads give different answers, checked by nothing but documentation. That is
+  not acceptable. D25 exists for exactly this and the case it was written for is
+  a handle that must be closed exactly once. Two pieces of machinery are missing
+  and are part of this release: `stdlib_types.rs` has no way to mark a stdlib
+  type `resource`, and `owned.rs:24` supports **free-function consumers only**,
+  so `stream.close(s)` does not currently count as a consume. Both get built.
+  This also retires G16's complaint that D25 is under-exercised.
+
+**G115 is two defects, and `--target browser` is neither of them.** The emitter
+materializes a runtime graph it never prunes (36 modules for a program importing
+three), and it emits **bare** `std/*` specifiers resolvable only through the
+generated tsconfig's `paths`, so pruning alone still leaves output no browser can
+load. Prune always, emit relative specifiers always, rename `.glyph-runtime` to
+`glyph` (the dot hides it from static hosts and buys nothing; the *name* is what
+avoids the collision). No flag: the moment `--target browser` exists, `node`,
+`deno` and `workers` follow and the stdlib grows a matrix. A diagnostic naming
+the host module a program reached is useful on every target instead.
+
+**This one does not count as closed until a real no-bundler browser load runs.**
+`moduleResolution: nodenext` requires `.js` in a relative specifier while the
+emitted files are `.ts`, so the specifier form has to be proven rather than
+reasoned about. That check is the release gate for G115, not the prune.
+
+**G108 is cut to its honest half.** `check_ref_integrity` (`gen.rs:766`) already
+detects every dangling `$ref`, writes the file anyway and exits 0, with a note
+saying `glyph build` will report it later. Make it fail and name the three
+groups. Then classes as opaque types, which is five of the eight names and has a
+clean answer under D37 `new`. Utility types and host types are deferred: the
+first means evaluating TypeScript's type system, the second has no honest Glyph
+spelling, and one package is asking.
+
+Order: G99, then G115, then G105, then G108. The review ranked G115 first on the
+grounds that it is decaying and mechanical; it is decaying, but it carries two
+breaking layout changes and an unproven specifier form, so "mechanical" is too
+confident. G99 goes first because it is small, it is a wrong answer in the wild,
+and it deletes the comment that hid it.
 
 *Reviewed against 0.1.80.*
 

@@ -53,3 +53,23 @@ export function Err<E>(error: E): Result<never, E> {
     },
   };
 }
+
+/**
+ * Collapse an array of results into a result of an array: `Ok` with every value
+ * when they all succeeded, and the **first** `Err` otherwise.
+ *
+ * This was `par.all_ok`, a prelude global, which put `Result` work in the
+ * language surface for no reason and sat beside a `par.all` that could not be
+ * typed under D40. It is not about concurrency at all: the array is already
+ * here. `std/task` is where concurrency lives.
+ */
+export function all<T, E>(results: ReadonlyArray<Result<T, E>>): Result<Array<T>, E> {
+  const out: Array<T> = [];
+  for (const r of results) {
+    if (r.tag === "Err") {
+      return Err(r.value) as Result<Array<T>, E>;
+    }
+    out.push(r.value);
+  }
+  return Ok(out);
+}

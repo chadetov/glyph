@@ -339,8 +339,7 @@ named imports. Signatures below are in Glyph terms.
 ```
 number.to_string(n: number) -> string
 number.parse(s: string) -> Result<number, string>
-par.all<T>(xs: Array<T>) -> Array<T>                 // async; awaits all
-par.all_ok<T, E>(xs: Array<Result<T, E>>) -> Result<Array<T>, E>
+result.all<T, E>(xs: Array<Result<T, E>>) -> Result<Array<T>, E>   // first Err wins
 print(message: string) -> void                       // quick stdout line
 assert(condition: bool) -> void                      // throws if false
 ```

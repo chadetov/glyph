@@ -36,8 +36,8 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after 0.1.78 closed G102: of 121 entries, 90 are fixed, 10 are
-partly fixed, 9 are decided or resolved, and 12 are open. That round re-ran an assignment the
+Reconciled again after 0.1.78 closed G102: of 121 entries, 91 are fixed, 10 are
+partly fixed, 9 are decided or resolved, and 11 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3515,7 +3515,7 @@ Four claims verified against the compiler and node before any were acted on; the
 full review is in `feedbacks/linus/04-server-lifetime-and-std-net.md`. Most of it
 was fixed in 0.1.80. Two were not, and are here.
 
-- **G120. `http.read_request` has no body size cap and never settles when a
+- **G120. [FIXED] `http.read_request` has no body size cap and never settles when a
   client disconnects mid-body.** It accumulates `raw += chunk` with no limit and
   listens for `data` and `end` only, with no `aborted` and no `error`. A client
   that POSTs forever exhausts memory. A client that disconnects mid-body means
@@ -3523,6 +3523,22 @@ was fixed in 0.1.80. Two were not, and are here.
   the request's whole closure is retained for the life of the process: a leak
   with nothing in the log. One `curl` killed in a loop is enough.
   *Reproduced against 0.1.79.*
+
+  **Fixed in 0.1.80.** A body over 8 MB is answered `413` and the read stops
+  there rather than continuing to accumulate, and `aborted`/`error` now settle
+  the read so a client that leaves mid-body ends the request instead of
+  stranding it. `respond` distinguishes the three outcomes: a request to answer,
+  a body too large, and a peer that is gone, which is written to rather than
+  answered only in the first case. The size is counted in **bytes**
+  (`Buffer.byteLength`), not in `chunk.length`, because a body of three-byte
+  characters would otherwise be allowed three times the limit.
+
+  The cap is a constant rather than a setting. A program that genuinely needs
+  more than 8 MB in one request wants a streaming read, not a larger buffer, and
+  there is no streaming read yet (G105); when that lands the limit belongs to its
+  design rather than to a constant here. Verified both ways: a 9 MB POST is 413
+  and the server survives, an interrupted upload leaves it healthy, and removing
+  the cap makes the test fail.
 
 - **G121. Network `Bytes` are zero-copy views onto node's pooled buffers.**
   `net.on_data` and `websocket.on_binary` both build

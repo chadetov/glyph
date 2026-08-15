@@ -268,7 +268,18 @@ async function respond(
   nres: ServerResponse,
   handler: Handler,
 ): Promise<void> {
-  const req = await read_request(nreq);
+  const outcome = await read_request(nreq);
+  if (outcome.tag === "gone") {
+    // The client left before finishing its body. There is nothing to answer,
+    // and writing to a dead socket is how a server takes itself down.
+    return;
+  }
+  if (outcome.tag === "too_large") {
+    nres.writeHead(413, { "content-type": "text/plain; charset=utf-8" });
+    nres.end("request body too large");
+    return;
+  }
+  const req = outcome.request;
   let result: Result<Response, string>;
   try {
     result = await handler(req);
@@ -309,11 +320,54 @@ function sanitize_header_value(value: string): string {
   return value.replace(/[^\t\x20-\x7e\x80-\xff]/g, "");
 }
 
-function read_request(nreq: IncomingMessage): Promise<Request> {
+/**
+ * The largest request body this server will hold in memory.
+ *
+ * There was no limit, which made an unauthenticated client able to exhaust the
+ * process's memory by POSTing forever. Eight megabytes is far above what an API
+ * request carries, including a base64 payload, and far below what a stream
+ * would need. It is not configurable because a program that genuinely needs
+ * more wants a streaming read rather than a bigger buffer, and Glyph has no
+ * streaming read yet (G105); when that lands, this becomes part of its design
+ * rather than a constant.
+ */
+const MAX_BODY_BYTES = 8 * 1024 * 1024;
+
+/**
+ * What reading a request produced.
+ *
+ * `gone` is the case that used to hang: a client that disconnects mid-body
+ * never fires `end`, so a read waiting only for `end` never settles, `respond`
+ * never returns, and the request's whole closure is retained for the life of
+ * the process. One interrupted upload in a loop was a memory leak with nothing
+ * in the log.
+ */
+type ReadOutcome =
+  | { tag: "request"; request: Request }
+  | { tag: "too_large" }
+  | { tag: "gone" };
+
+function read_request(nreq: IncomingMessage): Promise<ReadOutcome> {
   return new Promise((resolve) => {
     nreq.setEncoding("utf8");
     let raw = "";
+    let size = 0;
+    let settled = false;
+    const settle = (outcome: ReadOutcome): void => {
+      if (settled) return;
+      settled = true;
+      resolve(outcome);
+    };
     nreq.on("data", (chunk) => {
+      if (settled) return;
+      // Bytes, not characters: `chunk.length` counts UTF-16 code units, so a
+      // body of three-byte characters would be allowed to reach three times the
+      // limit before this noticed.
+      size += Buffer.byteLength(chunk);
+      if (size > MAX_BODY_BYTES) {
+        settle({ tag: "too_large" });
+        return;
+      }
       raw += chunk;
     });
     nreq.on("end", () => {
@@ -323,14 +377,20 @@ function read_request(nreq: IncomingMessage): Promise<Request> {
           headers[key] = value;
         }
       }
-      resolve({
-        url: nreq.url ?? "",
-        method: nreq.method ?? "GET",
-        headers,
-        body: raw === "" ? null : parse_body(raw),
-        raw,
+      settle({
+        tag: "request",
+        request: {
+          url: nreq.url ?? "",
+          method: nreq.method ?? "GET",
+          headers,
+          body: raw === "" ? null : parse_body(raw),
+          raw,
+        },
       });
     });
+    // Both of these mean there is no request and no one to answer.
+    nreq.on("aborted", () => settle({ tag: "gone" }));
+    nreq.on("error", () => settle({ tag: "gone" }));
   });
 }
 

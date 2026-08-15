@@ -1285,6 +1285,15 @@ async function drive(): Promise<void> {{
   }});
   check((await echo.text()) === "last wins", "form decoding");
 
+  // An oversized body is refused rather than buffered without limit. Before
+  // this, a client posting forever exhausted the process's memory.
+  const big = await fetch(base + "/echo", {{
+    method: "POST",
+    headers: {{ "content-type": "text/plain" }},
+    body: "x".repeat(9 * 1024 * 1024),
+  }});
+  check(big.status === 413, "an oversized body is 413, not unbounded buffering");
+
   process.exit(failures);
 }}
 

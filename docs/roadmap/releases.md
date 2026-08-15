@@ -9,6 +9,18 @@ Each item keeps a rough T-shirt effort (S/M/L) and traces to a real source: the
 persona-testing issue inventory, the generation follow-ups, the site's "on the
 way" promises, or the standing deferrals in CLAUDE.md.
 
+Two gates keep this file honest, because both of its failure modes have happened.
+`check_findings_scheduled.py` fails when a finding in `dogfooding-gaps.md` is open
+or partly fixed and is named nowhere here, which is how three entries were
+reproduced release after release with nobody deciding anything about them. And
+`check_plans_fresh.py` fails when an unshipped `#### 0.1.NN` plan has not been
+re-read within five releases: a plan is a set of claims about a compiler that
+keeps moving, and the 0.1.79 section had five that had quietly stopped being true
+plus one that never was. Re-reading means checking the claims against the
+compiler you just built and correcting what changed, then moving the
+`*Reviewed against X.Y.Z.*` stamp. Moving the stamp without reading defeats it
+entirely and is the one thing no gate can catch.
+
 ## Shipped
 
 - **0.1.0–0.1.2** — first public preview: the language + Rust compiler, the
@@ -3658,13 +3670,29 @@ quote both types and name `.map_err` as the fix.
 WebSocket binary messages, a WebSocket server, connection options and
 subprotocols, WebSocket integration tests, and `std/sse`.
 
+*Reviewed against 0.1.79.* All four claims re-checked against the built
+compiler: `websocket.ts:18` still says binary frames are decoded as UTF-8 text,
+there is no server export, there is no `std/sse`, and the integration suite
+mentions WebSocket zero times.
+
 **Was blocked in part, and is not any more.** "WebSocket binary messages" needs a
-byte representation, and there was none: `runtime/std/websocket.ts` said so in
+byte representation, and there was none: `runtime/std/websocket.ts` says so in
 its own header ("Binary frames are decoded as UTF-8 text ... a program that needs
 the bytes is not served by this module yet"). 0.1.78 shipped `std/bytes`, so the
-work here is now `on_binary` alongside `on_message` and a `send_bytes`, over a
-type that exists. The header comment in `websocket.ts` has to come out in the
-same change.
+work is now `on_binary` alongside `on_message` and a `send_bytes`, over a type
+that exists. The header comment has to come out in the same change.
+
+**Two things `std/net` taught that apply here, one of them a trap.** The trap is
+that WebSocket is *not* TCP: frames carry their own boundaries, so a message
+arrives whole and `on_message` needs none of the per-socket `StringDecoder` that
+`net.on_text` holds. Copying that machinery across would be cargo-culting a fix
+for a problem this protocol does not have. What does carry over is the split
+itself: separate handlers per payload kind, rather than one handler and a
+narrowing.
+
+And a WebSocket **server** will meet the problem `std/net` and `std/http` already
+have, that a server cannot be stopped once started, so it should not ship before
+that shape is decided or it adds a third copy of the same hole.
 
 #### After that, the loop decides
 

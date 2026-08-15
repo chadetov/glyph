@@ -29,6 +29,7 @@ jobs:
         run: |
           python3 scripts/check_gaps.py
           python3 scripts/check_findings_scheduled.py
+          python3 scripts/check_plans_fresh.py
 
       # The claim discipline: an app that needs a hand-written `.d.ts` or an
       # `extern_ts` string needs the language Glyph replaces. When one does, the

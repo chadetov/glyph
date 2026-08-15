@@ -8179,3 +8179,167 @@ fn octets(xs: Array<int>) -> bytes.Bytes {{
     );
     assert!(stdout.contains("client=echo:hi "), "the echo came back: {stdout}");
 }
+
+/// `std/url` against the cases a hand-rolled parser gets wrong.
+///
+/// The confusable authority is the one that matters: `https://evil.com@example.com/`
+/// has host `example.com`, and splitting on `/` or looking for the first `.`
+/// answers `evil.com`. Pure, so it runs as `@example` with no network.
+#[test]
+fn url_parses_the_cases_a_hand_rolled_parser_gets_wrong() {
+    if !js_toolchain_available() {
+        eprintln!("skipping std/url examples: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("stdurl");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "u.glyph",
+        r#"module u
+
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/url
+
+// The userinfo belongs to the authority, not the host.
+@example host_of("https://evil.com@example.com/a") == Ok("example.com")
+@example host_of("https://example.com:8443/a") == Ok("example.com")
+@example host_of("not a url") == Err("not a URL: \"not a url\"")
+pub fn host_of(text: string) -> Result<string, string> {
+  return match url.parse(text) {
+    Ok(u) => Ok(u.host),
+    Err(e) => Err(e),
+  }
+}
+
+// `port` is None when the scheme's default applies, so a round trip does not
+// invent one.
+@example port_of("https://example.com/a") == 0 - 1
+@example port_of("https://example.com:8443/a") == 8443
+pub fn port_of(text: string) -> int {
+  return match url.parse(text) {
+    Ok(u) => match u.port {
+      Some(p) => p,
+      None => 0 - 1,
+    },
+    Err(_) => 0 - 2,
+  }
+}
+
+@example round_trip("https://example.com/a/b?x=1&x=2#top") == "https://example.com/a/b?x=1&x=2#top"
+@example round_trip("https://example.com/") == "https://example.com/"
+pub fn round_trip(text: string) -> string {
+  return match url.parse(text) {
+    Ok(u) => url.format(u),
+    Err(e) => e,
+  }
+}
+
+// Relative resolution, which string concatenation gets wrong.
+@example resolve("https://x.test/a/b/c", "../d") == "https://x.test/a/d"
+@example resolve("https://x.test/a/b", "/root") == "https://x.test/root"
+@example resolve("https://x.test/a", "https://y.test/z") == "https://y.test/z"
+pub fn resolve(base: string, rel: string) -> string {
+  return match url.join(base, rel) {
+    Ok(u) => url.format(u),
+    Err(e) => e,
+  }
+}
+
+// A repeated key keeps both values; a map would drop one.
+@example both_values("x=1&x=2") == "1,2"
+@example both_values("a=1&b=2") == ""
+pub fn both_values(query: string) -> string {
+  let out = ""
+  for p in url.query_params(query) {
+    match p.key == "x" {
+      true => { mut out = match out == "" { true => p.value, false => "${out},${p.value}" } },
+      false => {},
+    }
+  }
+  return out
+}
+
+@example encoded("a b&c=d/e") == "a%20b%26c%3Dd%2Fe"
+pub fn encoded(text: string) -> string {
+  return url.encode_component(text)
+}
+
+// A malformed escape is refused rather than guessed at.
+@example decoded("%41") == Ok("A")
+@example decoded("%zz") == Err("malformed percent-encoding in \"%zz\"")
+pub fn decoded(text: string) -> Result<string, string> {
+  return url.decode_component(text)
+}
+"#,
+    );
+    let report = glyph_cli::examples::run_examples(&src).expect("run_examples ok");
+    assert!(report.ran, "examples should have run");
+    assert!(
+        report.build_failed.is_none(),
+        "the url module should compile: {:?}",
+        report.build_failed
+    );
+    assert!(report.failures.is_empty(), "every case should hold: {:?}", report.failures);
+    assert_eq!(report.total, 15, "every @example above ran");
+}
+
+/// `std/dns` and `std/tls` failure paths, without depending on the internet.
+///
+/// A name lookup that cannot succeed and a TLS connection to a closed local
+/// port both have to arrive as `Err` rather than as a throw, which is the whole
+/// reason these wrap node. `localhost` is the only name resolved, and it comes
+/// from the hosts file rather than the network.
+#[test]
+fn dns_and_tls_failures_are_values() {
+    if !js_toolchain_available() {
+        eprintln!("skipping std/dns + std/tls: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("dnstls");
+    let src = root.join("src");
+    let closed = 45000 + (std::process::id() % 2000) + 3;
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            r#"module main
+
+import std/dns
+import std/io
+import std/result {{ Ok, Err }}
+import std/tls
+
+pub async fn main() -> void {{
+  match await dns.lookup("localhost") {{
+    Ok(_) => io.println("localhost=resolved"),
+    Err(e) => io.println("localhost=failed ${{e}}"),
+  }}
+  // `.invalid` is reserved by RFC 2606 and can never resolve.
+  match await dns.ipv4("nothing-here.invalid") {{
+    Ok(_) => io.println("invalid=resolved (wrong)"),
+    Err(_) => io.println("invalid=refused"),
+  }}
+  match await tls.connect("127.0.0.1", {closed}) {{
+    Ok(_) => io.println("tls=connected (wrong)"),
+    Err(_) => io.println("tls=refused"),
+  }}
+}}
+"#
+        ),
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(stdout.contains("localhost=resolved"), "the hosts file resolves: {stdout}");
+    assert!(
+        stdout.contains("invalid=refused"),
+        "an unresolvable name is a value, not a throw: {stdout}"
+    );
+    assert!(
+        stdout.contains("tls=refused"),
+        "a refused connection is a value, not a throw: {stdout}"
+    );
+}

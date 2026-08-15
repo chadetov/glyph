@@ -3546,47 +3546,30 @@ host boundary, while that one was a missing *type*, and without it binary format
 and real cryptography were both unwritable whatever else shipped. The entry above
 records what landed.
 
-**The dogfood round is an application built on real npm packages.** Nothing in
-`examples/apps/` uses one today, which means the 1.0 interop gate ("can a
-working engineer use their existing npm dependencies without a hand-written
-adapter") has never been tested by an app, only by guides.
+**The dogfood round ran, and the interop gate passes.**
+`examples/apps/feeds` reads an RSS feed with `fast-xml-parser`, an ordinary
+typed npm dependency: imported by name, constructed with `new` (D37), returning
+an `any` that `Document.parse` turns into a checked value, with no adapter, no
+hand-written `.d.ts` and no `extern_ts`. It is the first application in the tree
+to use a real npm package, so the 1.0 interop gate has an app behind it rather
+than only a guide.
 
-**Round 28 ran that round twice and the answer splits cleanly.** The *import*
-path passes: `import date-fns { addDays, format, parseISO }` type-checked against
-date-fns's own overloads with no adapter and no stub, a hyphenated package name
-parses, `gray-matter`'s `export =` CommonJS shape resolves through the named-import
-form, and `marked` correctly forced an `await` by returning
-`string | Promise<string>`. The *generator* is where it fails, twice, and both are
-silent-green rather than loud. `gen dts` emits two declarations of one name,
-prints `2 type(s) written`, exits 0, and leaves a file that fails `glyph build`
-(G103). That one was first read as a namespace-flattening bug and is not:
-`sanitize_type` is many-to-one and runs after the pipeline's only uniqueness
-check, so `tokens_list` and `TokensList` collide with no namespace in sight.
-The check is in the wrong place, not too weak. And it ignores any
-relative import carrying a file extension, so a barrel of `export * from "./a.js"`
-materializes **zero** types with a message about OpenAPI keys (G104). The second
-is the wider one: `.js` in a relative specifier is mandatory under
-`moduleResolution: nodenext`, so every ESM-authored typed package is in that class.
-Both must close before this round can be called run, because `gen dts` is the
-answer the interop story names.
+**Five of this round's stated blockers were already gone**, which is worth
+recording because a session nearly implemented all of them. The apps gate
+already skipped `node_modules` (`check_apps_are_glyph.py`), `.gitignore` already
+covered `examples/apps/*/node_modules/`, CI already installed dependencies for
+any app whose `package.json` declares them, and both `gen dts` prerequisites,
+G103 and G104, were already fixed. The "owner's call" this plan said gated the
+round had been made and shipped. Re-check before implementing.
 
-**And the round cannot be committed at all yet.** `scripts/check_apps_are_glyph.py`
-walks `APPS.rglob("*")` with no `node_modules` exclusion, and the root
-`.gitignore` does not cover `examples/apps/*/node_modules/`, so one `npm install`
-produced 3,977 gate failures on vendored files. The gate means "an app must not
-carry hand-written TypeScript", and a vendored dependency is not that. The
-exclusion is easy; the consequence needs a decision, because
-`repo_examples_emit_typescript_without_diagnostics` builds the examples tree as a
-whole, so an npm-dependent app means CI runs `npm install` per app or that app
-leaves the tree build. Owner's call, and it gates the round.
-
-**Also from round 28, both smaller and both real.** A file can only be read whole
-and there is no async iteration anywhere, so a streaming pipeline is unwritable;
-note that `std/stream` is already the property-testing sampler, so the obvious
-name is taken and a design here has to pick another (G105). And `E0106` calls an
-import dead when only an `@example` uses it, contradicting the documented rule
-that an example must import what it compares against, with no warning-free
-spelling available (G106). Two independent rounds hit that one.
+**Two findings, both recorded rather than worked around.** A client cannot say
+"this response body is text": `Response.body` is an `unknown`, the client keeps
+the raw string when the body is not JSON, and `string.from` is the identity on
+it, but the same line renders `[object Object]` for a JSON body and reports
+nothing. `http.raw` is the server-side counterpart; the missing piece is
+`http.text(response)` (G118). And `url.join`'s `Err` branch is nearly
+unreachable, because against a valid base anything that is not a URL is treated
+as a relative path, so only an invalid base fails (G119).
 
 That round carries one hypothesis to confirm or kill: **`std/ai`**. The proposal
 was `tokenize`, `count_tokens`, `truncate`, `chunk`, plus `llm.generate` and

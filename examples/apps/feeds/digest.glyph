@@ -1,0 +1,39 @@
+// Turning a parsed feed into lines, with every link resolved.
+module digest
+
+import std/array
+import std/result { Ok, Err }
+import std/url
+import wire { Document, Item }
+
+pub type Entry = {
+  title: string,
+  href: string,
+}
+
+// A feed's links are relative more often than not, and joining them by hand is
+// how `../` and a scheme-relative `//host/path` end up pointing somewhere else.
+@example resolve_link("https://x.test/feed.xml", "../post/1").href == "https://x.test/post/1"
+@example resolve_link("https://x.test/feed.xml", "https://y.test/p").href == "https://y.test/p"
+@example resolve_link("https://x.test/feed.xml", "//other.test/p").href == "https://other.test/p"
+// Worth knowing before you rely on the `Err` branch: against a *valid* base,
+// resolution almost never fails, because anything that is not a URL is treated
+// as a relative path. `":::"` becomes a path segment rather than an error.
+@example resolve_link("https://x.test/feed.xml", ":::").href == "https://x.test/:::"
+// It is the base that fails, which is the case this branch actually catches.
+@example resolve_link("not a base", "/x").href == "/x"
+pub fn resolve_link(base: string, link: string) -> Entry {
+  return match url.join(base, link) {
+    // An unresolvable link is kept verbatim rather than dropped, so the reader
+    // still sees what the feed claimed.
+    Err(_) => { title: "", href: link },
+    Ok(u) => { title: "", href: url.format(u) },
+  }
+}
+
+pub fn entries(doc: Document, base: string) -> Array<Entry> {
+  return array.map(doc.rss.channel.item, fn(it: Item) -> Entry {
+    let resolved = resolve_link(base, it.link)
+    return { title: it.title, href: resolved.href }
+  })
+}

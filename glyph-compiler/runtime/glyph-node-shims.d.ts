@@ -233,6 +233,9 @@ declare module "net" {
     on(event: "listening", listener: () => void): Server;
   }
 
+  // 0 when the string is not an IP address, else 4 or 6. `std/tls` uses it to
+  // decide whether SNI applies: setting a server name to an IP is not allowed.
+  export function isIP(input: string): number;
   export function createServer(listener: (socket: Socket) => void): Server;
   export function connect(port: number, host: string, listener?: () => void): Socket;
   export function createConnection(port: number, host: string, listener?: () => void): Socket;
@@ -291,11 +294,16 @@ declare module "node:child_process" {
   export * from "child_process";
 }
 
-// DNS lookups, promise form.
+// DNS lookups, promise form. `resolveTxt` answers an array per record because
+// DNS splits a long TXT value into 255-byte chunks; `std/dns` joins them.
 declare module "dns/promises" {
   export function lookup(hostname: string): Promise<{ address: string; family: number }>;
   export function resolve4(hostname: string): Promise<Array<string>>;
+  export function resolve6(hostname: string): Promise<Array<string>>;
   export function resolveTxt(hostname: string): Promise<Array<Array<string>>>;
+  export function resolveMx(
+    hostname: string,
+  ): Promise<Array<{ priority: number; exchange: string }>>;
 }
 declare module "node:dns/promises" {
   export * from "dns/promises";
@@ -308,6 +316,24 @@ declare module "zlib" {
 }
 declare module "node:zlib" {
   export * from "zlib";
+}
+
+// TLS, the client half. A `TLSSocket` is a `net.Socket` with the handshake
+// result attached: `authorized` is node's verdict on the chain and the name, and
+// it is a boolean rather than a throw, which is why `std/tls` checks it.
+declare module "tls" {
+  import type { Socket } from "net";
+  export interface TLSSocket extends Socket {
+    readonly authorized: boolean;
+    readonly authorizationError: Error | string | undefined;
+  }
+  export function connect(
+    options: { host: string; port: number; servername?: string },
+    listener?: () => void,
+  ): TLSSocket;
+}
+declare module "node:tls" {
+  export * from "tls";
 }
 
 declare module "node:sqlite" {

@@ -610,6 +610,50 @@ chunk alone would produce two replacement characters. Use `on_data` for binary.
 TCP has no message boundaries, so carry your own delimiter; two `send`s can
 arrive as one read. A server cannot be stopped once started.
 
+### std/url
+
+Parse, build and resolve URLs, over the host's WHATWG parser. No node
+dependency. A `Url` is a record because its parts are data.
+
+```
+type Url = { scheme, host, port: Option<int>, path, query, fragment: Option<string> }
+type Param = { key: string, value: string }
+url.parse(text) -> Result<Url, string>          // absolute only
+url.join(base, relative) -> Result<Url, string> // resolves ../ and //host
+url.format(u) -> string
+url.query_params(query) -> Array<Param>         // in order, repeats kept
+url.query_param(query, name) -> Option<string>
+url.to_query(params) -> string
+url.encode_component(text) -> string
+url.decode_component(text) -> Result<string, string>
+```
+
+Use it rather than splitting the string: `https://evil.com@example.com/` has host
+`example.com`, and a hand-rolled parser gets that wrong in the direction that
+matters. `query_params` is an array because `?tag=a&tag=b` is legal.
+
+### std/dns
+
+```
+type MailHost = { priority: int, host: string }
+dns.lookup(hostname) -> Result<string, string>          // async; asks the OS, sees /etc/hosts
+dns.ipv4(hostname) / ipv6 / text -> Result<Array<string>, string>   // async; queries DNS directly
+dns.mail(hostname) -> Result<Array<MailHost>, string>   // async
+```
+
+`lookup` before dialling, `ipv4` when the question is about the record itself.
+`text` joins the 255-byte chunks DNS splits a long TXT value into.
+
+### std/tls
+
+```
+tls.connect(host, port) -> Result<Socket, string>   // async; Ok means the certificate was accepted
+```
+
+A TLS socket is a `net.Socket`, so `std/net`'s functions all apply. Verification
+is on and cannot be turned off. Resolves after the handshake, so the failure
+arrives before there is anything to write. No TLS server; terminate in front.
+
 ### std/process
 
 ```

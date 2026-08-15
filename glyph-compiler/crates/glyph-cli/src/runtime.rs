@@ -64,6 +64,18 @@ const RUNTIME_FILES: &[(&str, &str)] = &[
         include_str!("../../../runtime/std/net.ts"),
     ),
     (
+        ".glyph-runtime/std/url.ts",
+        include_str!("../../../runtime/std/url.ts"),
+    ),
+    (
+        ".glyph-runtime/std/dns.ts",
+        include_str!("../../../runtime/std/dns.ts"),
+    ),
+    (
+        ".glyph-runtime/std/tls.ts",
+        include_str!("../../../runtime/std/tls.ts"),
+    ),
+    (
         ".glyph-runtime/std/fs.ts",
         include_str!("../../../runtime/std/fs.ts"),
     ),

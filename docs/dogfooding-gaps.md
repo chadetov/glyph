@@ -29,8 +29,8 @@ open.
 - **`[DECIDED]`** / **`[RESOLVED]`** — not a defect. Either a documented v1 stance
   or an accepted won't-fix.
 
-Reconciled again after 0.1.78 closed G102: of 117 entries, 90 are fixed, 10 are
-partly fixed, 9 are decided or resolved, and 8 are open. That round re-ran an assignment the
+Reconciled again after 0.1.78 closed G102: of 119 entries, 90 are fixed, 10 are
+partly fixed, 9 are decided or resolved, and 10 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3501,6 +3501,50 @@ which is the infrastructure round 28 left blocked.
   share a module name, which for `main.glyph` is every app in the tree.
   *Reproduced against 0.1.78, verbatim: two projects each with a `main.glyph`,
   the error in `beta`, and the diagnostic quoting `alpha`'s `import std/io`.*
+
+## Round 32: the npm round finally ran, and three of its blockers were already gone
+
+The 0.1.79 plan said this round could not be committed at all: the apps gate had
+no `node_modules` exclusion, the root `.gitignore` did not cover a vendored
+dependency, and CI building the examples tree as one meant an owner's decision
+about running `npm install` per app. All three were already done, in CI
+(`ci.yml` installs dependencies for any app whose `package.json` declares them),
+in the gate (`check_apps_are_glyph.py` skips `node_modules`), and in
+`.gitignore`. Both `gen dts` prerequisites, G103 and G104, were already fixed
+too. Nothing gated the round. That is five stale premises across one plan, and
+the lesson is the one already written down: re-check before implementing.
+
+**The interop gate passes.** `examples/apps/feeds` reads an RSS feed with
+`fast-xml-parser`, an ordinary typed npm dependency. It is imported by name,
+constructed with `new` (D37), and returns an `any` that `Document.parse` turns
+into a checked value. No adapter, no hand-written `.d.ts`, no `extern_ts`. That
+is the first application in the tree to use a real npm package, so the 1.0 gate
+("can a working engineer use their existing npm dependencies without a
+hand-written adapter") now has an app behind it rather than only a guide.
+
+- **G118. A client cannot say "this response body is text".** `http.get` returns
+  a `Response` whose `body` is `unknown`, which is right, and there is no
+  accessor that narrows it to a string. The client parses JSON when it can and
+  keeps the raw string when it cannot, so for XML, HTML, CSV or plain text the
+  string is already sitting in `body` and `string.from(response.body)` is the
+  identity on it. That is the spelling `feeds` uses and it works, but it is the
+  wrong shape: on a JSON response the same line renders `[object Object]` and
+  reports nothing, so the correctness of the call depends on knowing what the
+  server sent. `http.raw` exists and is the server-side counterpart, taking a
+  `Request`. The missing piece is its client-side twin, `http.text(response) ->
+  Result<string, string>`, failing when the body was parsed rather than kept.
+  *Reproduced against 0.1.79.*
+
+- **G119. `url.join`'s `Err` branch is nearly unreachable, and nothing says so.**
+  Against a valid base the WHATWG parser treats anything that is not a URL as a
+  relative path, so `url.join("https://x.test/feed.xml", ":::")` is
+  `Ok(https://x.test/:::)` rather than an error. Only an invalid *base* fails.
+  This is not a defect, and the signature cannot be tightened without lying
+  about the base, but a caller writing an `Err` arm reasonably expects it to
+  catch a malformed link and it never will. The fix is documentation: say which
+  argument the failure comes from. `feeds` carries the case as an `@example` so
+  the behaviour is pinned rather than assumed.
+  *Reproduced against 0.1.79.*
 
 ## Round 30: what is left between `gen dts` and a usable `marked`
 

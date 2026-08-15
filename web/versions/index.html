@@ -49,8 +49,38 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.78</span>
+            <span class="rel-ver">0.1.79</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The host boundary</h3>
+            <p>Four modules for the calls a program used to make raw, and the first application in the tree built on a real npm package.</p>
+            <div class="code">
+              <span class="cap">The last raw host call, wrapped</span>
+<pre>match await net.serve(4000, fn(sock: Socket) {
+  net.on_text(sock, fn(line) { net.send(sock, greet(line)) })
+}) {
+  Ok(_) =&gt; io.println("stopped"),
+  Err(why) =&gt; io.eprintln("cannot listen: ${why}"),   <span class="cm">// a used port is a value</span>
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong><code>std/net</code></strong>: TCP as a server that accepts many clients and a client that talks to one. Events are individual functions, so no callback parameter needs narrowing and there is no event-name string to misspell. <code>chat/daemon.glyph</code> was the last raw host call in the examples tree and is ported.</li>
+              <li><span class="tag added">Added</span> <strong><code>std/url</code></strong>: the host's WHATWG parser, the one <code>fetch</code> and a browser use. <code>https://evil.com@example.com/</code> has host <code>example.com</code>, and a parser written by hand answers <code>evil.com</code>. No node dependency, so it runs in a Web Worker.</li>
+              <li><span class="tag added">Added</span> <strong><code>std/dns</code></strong>: every lookup async and every result a <code>Result</code>, because a name that does not exist is an ordinary outcome that node throws for.</li>
+              <li><span class="tag added">Added</span> <strong><code>std/tls</code></strong>: TCP with the certificate checked, and no argument to turn that off. <code>connect</code> resolves after the handshake, so the failure arrives before there is anything to write to an unverified peer.</li>
+              <li><span class="tag improved">Improved</span> <strong>The <code>std/bytes</code> codecs are 14x to 30x faster.</strong> <code>to_hex</code> went from 160 ms per megabyte to 5.3, <code>to_base64</code> from 135 to 9.7. They were growing a string a few characters at a time and scanning the alphabet per input character; they now build into a typed array and read through a lookup table. A delegating fast path to node's <code>Buffer</code> was considered and rejected, because it would have made a guarantee depend on which host the code ran under.</li>
+            </ul>
+            <p><strong>Pick <code>on_text</code> or <code>on_data</code>, and the difference is not cosmetic.</strong> TCP is a stream of octets with no message boundaries, so a multi-byte character can be split across two packets. Decoding each chunk on its own turns one <code>&eacute;</code> into two replacement characters, and it only shows under load or with non-ASCII input. <code>on_text</code> holds a decoder per socket and emits whole characters; <code>on_data</code> hands the octets over untouched.</p>
+            <p><strong>The npm interop gate now has an application behind it.</strong> <code>examples/apps/feeds</code> reads an RSS feed with <code>fast-xml-parser</code>: imported by name, constructed with <code>new</code>, returning an <code>any</code> that a generated descriptor turns into a checked value. No adapter, no hand-written <code>.d.ts</code>, no escape to TypeScript.</p>
+            <p>Two edges found on the way and left open rather than papered over. A client cannot say that a response body is text, so an XML or CSV body arrives as an <code>unknown</code> that only <code>string.from</code> narrows, and that same line renders <code>[object Object]</code> for a JSON body. And a server cannot be stopped once started, in <code>std/net</code> or <code>std/http</code>, so graceful shutdown is still unwritable.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.78</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

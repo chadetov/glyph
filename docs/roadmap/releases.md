@@ -3484,7 +3484,7 @@ Still open and deliberately not in this release: hex literals (`0xff` is still
 codecs (`u32_be` and friends), which are ordinary arithmetic over `bytes.get`
 and which round 28 verified against published vectors in plain Glyph.
 
-#### 0.1.79 — the host boundary, and the app that will tell us what it needs
+#### 0.1.79 — Shipped · The host boundary
 
 Two halves of one theme: give the stdlib the host calls an app currently makes
 raw, and then deliberately step outside the stdlib to find what is still

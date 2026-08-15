@@ -205,12 +205,16 @@ declare module "node:string_decoder" {
 // are known instead of `any`.
 declare module "net" {
   export interface Socket {
-    on(event: "data", listener: (chunk: string) => void): Socket;
+    // Chunks are octets unless `setEncoding` has been called, which is what
+    // `@types/node` declares too. `std/net` decodes them itself: `on_text`
+    // holds a `StringDecoder` per socket so a character split across two
+    // packets survives, and `on_data` hands the octets over untouched.
+    on(event: "data", listener: (chunk: GlyphBuffer) => void): Socket;
     on(event: "close", listener: () => void): Socket;
     on(event: "error", listener: (err: Error) => void): Socket;
     on(event: "connect", listener: () => void): Socket;
     on(event: "end", listener: () => void): Socket;
-    write(data: string): boolean;
+    write(data: string | Uint8Array): boolean;
     end(): void;
     destroy(): void;
     setEncoding(encoding: string): void;

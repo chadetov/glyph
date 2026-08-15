@@ -1487,6 +1487,16 @@ impl Assigner<'_> {
                 stdlib_named("bytes", "BytesError"),
                 false,
             ),
+            // Async, and it resolves when the server stops rather than when it
+            // starts, so `Err` is how a port already in use arrives. Modeled so
+            // a caller that forgets to match the failure is E0200 rather than a
+            // silently ignored bind error.
+            ("std/net", "serve") => (
+                2,
+                Ty::Prim(Primitive::Void),
+                Ty::Prim(Primitive::String),
+                true,
+            ),
             ("std/bytes", "to_text") => (
                 1,
                 Ty::Prim(Primitive::String),

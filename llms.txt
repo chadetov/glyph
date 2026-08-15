@@ -587,6 +587,29 @@ because node's `Buffer` accepts malformed input silently: `Buffer.from("zz",
 read is ordinary arithmetic over `bytes.get`, and past 32 bits a shift is wrong
 anyway, so divide. The module touches no host API, so it runs in a Web Worker.
 
+### std/net
+
+TCP. Events are individual functions, as in `std/websocket`; there is no
+event-name string to misspell and no callback parameter to narrow.
+
+```
+type Socket
+net.serve(port, on_connection) -> Result<void, string>   // async; resolves when the server STOPS
+net.connect(host, port) -> Socket
+net.on_connect(s, fn() {}) / on_text(s, fn(text) {}) / on_data(s, fn(bytes) {})
+net.on_close(s, fn() {}) / on_error(s, fn(message) {})
+net.send(s, text) / net.send_bytes(s, data)
+net.close(s) / net.destroy(s) / net.no_delay(s, enabled)
+net.peer_address(s) -> Option<string> / net.peer_port(s) -> Option<int>
+```
+
+`serve` resolves when the server stops, so a port already in use is an `Err` you
+match rather than a throw. Use `on_text` for a text protocol: it holds a decoder
+per socket, so a character split across two packets survives, where decoding each
+chunk alone would produce two replacement characters. Use `on_data` for binary.
+TCP has no message boundaries, so carry your own delimiter; two `send`s can
+arrive as one read. A server cannot be stopped once started.
+
 ### std/process
 
 ```

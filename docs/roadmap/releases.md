@@ -3491,9 +3491,54 @@ raw, and then deliberately step outside the stdlib to find what is still
 missing.
 
 **`std/net`, `std/dns`, `std/tls`, `std/url`.** The driver is
-concrete: `chat/daemon.glyph` imports node's `net` directly and holds an opaque
-`Socket`, which E0304 now refuses to validate. It is also the only raw host call
-in the entire examples tree, so wrapping it closes the last one.
+concrete: `chat/daemon.glyph` imports node's `net` directly, the only raw host
+call in the entire examples tree.
+
+**`std/net` has landed and the daemon is ported.** Events are individual
+functions, as in `std/websocket`, and `serve` is async and resolves when the
+server *stops*, as in `std/http`, so a port already in use is an `Err` the caller
+matches rather than a throw at a handler that may not exist. The daemon's own
+listener-error branch is now that match.
+
+The design call worth recording is `on_text` against `on_data`. TCP is a stream
+of octets with no message boundaries, so a multi-byte character can be split
+across two packets, and decoding each chunk on its own turns one `e`-acute into
+two replacement characters. It is a bug that appears only under load or with
+non-ASCII input, which is the worst pair to debug. `on_text` holds a
+`StringDecoder` per socket and emits whole characters only; `on_data` gives the
+octets untouched. An integration test sends `0xC3` at the end of one write and
+`0xA9` at the start of the next and asserts the server saw the character whole;
+reverting `on_text` to a per-chunk decode makes it fail with a replacement
+character in both reads.
+
+**Two things this did not close, recorded so neither is assumed.**
+
+The E0304 framing above was wrong and is corrected here. E0304 is about `parse`
+/`is` on a record holding a field with no runtime check, and the daemon's `Conn`
+record still holds a `socket`, which is still an opaque host handle. Wrapping the
+import in a stdlib module does not give the handle a runtime check and was never
+going to. What the port actually buys is typed events, callbacks that need no
+narrowing, correct UTF-8 across packet boundaries, and a bind failure as a value.
+
+And **a server cannot be stopped once started**, in `std/net` or in `std/http`.
+Both `serve` functions resolve `Ok(void)` on close, and neither module exposes
+anything that closes one, so the `Ok` branch is unreachable unless the peer
+process does it. That makes graceful shutdown unwritable today, which sharpens
+the "signals and graceful shutdown" item already parked below: it needs a server
+handle, and the shape of that handle is the open question, since `serve`'s
+awaitable return is what makes the bind error a value in the first place.
+
+**Already landed on main and shipping with this release:** the `std/bytes`
+codec rewrite. Benchmarking 0.1.78 after the fact showed the hand-written
+codecs were 40x to 100x off `Buffer` on a megabyte, from growing a string a few
+characters at a time and from an `indexOf` scan per input character rather than
+from the algorithm or the validation. They now build into a typed array and
+convert once, and read through a precomputed reverse table: `to_hex` 160 ms to
+5.3, `to_base64` 135 to 9.7, `to_base32` 170 to 9.4, `from_base64` 40 to 11.
+A delegating fast path was considered and rejected, because it would have made
+a guarantee depend on which host the code ran under. `scripts/check_bytes_codecs.mjs`
+runs 168k differential checks against `Buffer` in CI. Not worth its own release
+on the evidence that no application has hit the slow path, so it ships here.
 
 **`std/bytes` was in that list, was pulled out of it, and shipped first as
 0.1.78.** Round 28 showed it was not a peer of the other four: they each wrap one

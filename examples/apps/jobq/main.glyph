@@ -19,6 +19,7 @@ module main
 
 import std/array
 import std/http
+import std/net
 import std/io
 import std/json
 import std/result { Ok, Err }
@@ -118,14 +119,19 @@ async fn serve(db: Db, port: int) -> number {
   let _pump = timers.every(200, fn() {
     let _ = worker.drain(db, time.now(), policy, LEASE_MS)
   })
-  io.println("jobq listening on ${number.to_string(port)}")
-  let outcome = await http.serve(port, fn(req) {
+  // `listen` resolves once the port is bound, so the "listening" line is only
+  // printed when it is true. It used to be printed before the bind was even
+  // attempted, which meant a port already in use produced the banner and then
+  // the error.
+  return match await http.listen("0.0.0.0", port, fn(req) {
     return Ok(api.handle(db, req, time.now()))
-  })
-  return match outcome {
-    Ok(_) => 0,
-    Err(message) => {
-      io.eprintln("jobq: ${message}")
+  }) {
+    Ok(server) => {
+      io.println("jobq listening on ${number.to_string(net.port(server))}")
+      0
+    },
+    Err(e) => {
+      io.eprintln("jobq: cannot listen: ${e.message}")
       1
     },
   }

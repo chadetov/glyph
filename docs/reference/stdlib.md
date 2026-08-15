@@ -286,7 +286,15 @@ narrowing and there is no event-name string to misspell.
 
 ```
 type Socket                                       // one connection
-net.serve(port: int, on_connection: fn(Socket) -> void) -> Result<void, string>   // async
+type Server                                       // a listening server
+type ServerErrorKind = "in_use" | "denied" | "unavailable" | "other"
+type ServerError = { kind: ServerErrorKind, message: string, code: string }
+net.listen(host: string, port: int, on_connection: fn(Socket) -> void)
+    -> Result<Server, ServerError>                // async; resolves when BOUND
+net.stop(s: Server) -> void                       // graceful; safe to call twice
+net.port(s: Server) -> int                        // the port, including one 0 picked
+net.on_stop(s: Server, handler: fn() -> void) -> void
+net.on_server_error(s: Server, handler: fn(ServerError) -> void) -> void
 net.connect(host: string, port: int) -> Socket
 net.on_connect(s: Socket, handler: fn() -> void) -> void
 net.on_text(s: Socket, handler: fn(string) -> void) -> void      // whole characters only
@@ -302,34 +310,50 @@ net.peer_address(s: Socket) -> Option<string>
 net.peer_port(s: Socket) -> Option<int>
 ```
 
-`serve` is async and resolves when the server **stops**, not when it starts, so
-a port already in use is an `Err` you match on rather than an exception thrown
-at a handler you might not have registered:
+**A server is a resource.** `listen` resolves when the socket is *bound*, so an
+`Ok` means the port is yours and an `Err` says why it is not, from the call that
+tried to take it. `stop` ends it, `on_stop` says when it ended, and stopping
+twice does nothing. The process stays alive while a listener is pending, so a
+server nobody stops runs for the life of the program with nothing awaiting it:
 
 ```
-match await net.serve(4000, fn(socket: Socket) { greet(socket) }) {
-  Ok(_) => io.println("stopped"),
-  Err(why) => io.eprintln("cannot listen: ${why}"),
+match await net.listen("127.0.0.1", 4000, fn(sock: Socket) { greet(sock) }) {
+  Ok(server) => io.println("on ${number.to_string(net.port(server))}"),
+  Err(e) => match e.kind {
+    "in_use" => io.eprintln("port taken"),
+    "denied" => io.eprintln("not allowed to bind that port"),
+    "unavailable" => io.eprintln("no such address here"),
+    "other" => io.eprintln(e.message),
+  },
 }
 ```
 
-**Pick `on_text` or `on_data`, and the difference is not cosmetic.** TCP is a
-stream of octets with no message boundaries, so a multi-byte character can be
-split across two packets. `on_text` holds a decoder per socket and emits only
-whole characters; decoding each chunk on its own would turn `é` arriving in two
-pieces into two replacement characters, a bug that shows up only under load or
-with non-ASCII input. `on_data` hands over the octets untouched, which is what a
-binary protocol wants.
+**`host` has no default, deliberately.** `"127.0.0.1"` accepts only local
+connections; `"0.0.0.0"` accepts from anywhere on the network. Node's default is
+the second, and a standard library that will not ship a switch for turning off
+certificate checking should not quietly expose a port either.
+
+**Pick `on_text` or `on_data`.** TCP is a stream of octets with no message
+boundaries, so a multi-byte character can be split across two packets. `on_text`
+holds a decoder per socket and emits whole characters, and reports whatever is
+still incomplete when the connection ends rather than dropping it. `on_data`
+hands over the octets untouched. Registering both is fine; both see every byte.
 
 There is no message framing here, because TCP has none: two `send` calls can
 arrive as one `on_text`, and one `send` can arrive as two. Carry your own
 delimiter (`examples/apps/chat/framing.glyph` is a newline framer in 60 lines).
 
-**A server cannot be stopped once started**, so `serve`'s `Ok` branch is
-currently only reachable if the peer process closes it. `std/http.serve` has the
-same shape and the same limitation; graceful shutdown is on the roadmap.
+A socket the server hands you cannot kill the process: `listen` attaches a
+default error handler to every accepted connection before your handler sees it,
+so a peer that resets mid-write is an event rather than an uncaught throw.
+`on_error` adds reporting on top of that. A server error *after* the bind goes
+to `on_server_error`, or to stderr when nothing asked for it.
 
-## std/bytes
+There is no `serve`. It resolved only when the server closed, nothing could
+close one, and because a `match` on a `Result` must be exhaustive every caller
+was forced to write an arm that could never run.
+
+## std/bytes## std/bytes
 
 An immutable sequence of octets, and the codecs between octets and text. This is
 the type to reach for whenever the data is not text: a PNG's first byte is 137,
@@ -970,7 +994,7 @@ already fired does nothing, so teardown paths are safe to run more than once.
 
 ## std/websocket
 
-A WebSocket client.
+A WebSocket client and server.
 
 Each event is its own function taking exactly what that event carries, rather
 than the host's `addEventListener(name, handler)` with an event object whose
@@ -978,19 +1002,62 @@ useful field depends on the name. So every handler parameter is typed, and an
 event name cannot be misspelled because there are no event-name strings.
 
 ```
-type Socket
+type Socket                                         // one connection, either end
+type Server                                         // a listening server
 
 websocket.connect(url: string) -> Socket            // ws:// or wss://; returns before it opens
+websocket.connect_with(url: string, protocols: Array<string>) -> Socket
+websocket.protocol(socket: Socket) -> string        // the subprotocol the server accepted, or ""
+
+websocket.listen(host: string, port: int, on_connection: fn(Socket) -> void)
+    -> Result<Server, ServerError>                  // async; resolves when BOUND
+websocket.stop(server: Server) -> void              // graceful; safe to call twice
+websocket.port(server: Server) -> int
+websocket.on_stop(server: Server, handler: fn() -> void) -> void
 
 websocket.on_open(socket: Socket, handler: fn()) -> void
-websocket.on_message(socket: Socket, handler: fn(text: string)) -> void
+websocket.on_message(socket: Socket, handler: fn(text: string)) -> void   // text frames
+websocket.on_binary(socket: Socket, handler: fn(data: Bytes)) -> void     // binary frames
 websocket.on_close(socket: Socket, handler: fn(code: number, reason: string)) -> void
 websocket.on_error(socket: Socket, handler: fn()) -> void
 
-websocket.send(socket: Socket, text: string) -> bool   // false if not open
-websocket.close(socket: Socket) -> void                // safe to repeat
+websocket.send(socket: Socket, text: string) -> bool        // false if not open
+websocket.send_bytes(socket: Socket, data: Bytes) -> bool   // false if not open
+websocket.close(socket: Socket) -> void                     // safe to repeat
 websocket.is_open(socket: Socket) -> bool
 ```
+
+**Text and binary are separate handlers, and a frame reaches exactly one.**
+Before 0.1.80 there was no byte type, so a binary frame was decoded as UTF-8 and
+delivered to `on_message`, which is right for a JSON protocol and silently
+corrupts everything else. If you were relying on that, register `on_binary` and
+convert with `bytes.to_text`, which tells you when it is not text.
+
+Unlike TCP, a WebSocket frame carries its own boundaries, so a message arrives
+whole. There is none of the partial-character handling `std/net` needs, and no
+framing to write.
+
+**A server connection is the same `Socket` as a client one**, so `on_message`,
+`on_binary`, `send`, `send_bytes`, `close` and `is_open` work on either end and
+a program handling both carries one vocabulary rather than two. `listen` has the
+same contract as `net.listen`, including the explicit host and the structured
+`ServerError`.
+
+```
+match await websocket.listen("127.0.0.1", 8080, fn(peer: Socket) {
+  websocket.on_message(peer, fn(text) { websocket.send(peer, "echo:${text}") })
+}) {
+  Ok(server) => io.println("on ${number.to_string(websocket.port(server))}"),
+  Err(e) => io.eprintln("cannot listen: ${e.message}"),
+}
+```
+
+The server implements RFC 6455: the handshake, masked client frames, the three
+payload-length encodings, fragmented messages reassembled before delivery, and
+ping answered with pong. It closes with status 1000 rather than no status, so a
+peer can tell a deliberate close from a connection that just ended. Compression
+(`permessage-deflate`) is not implemented, and neither is a TLS (`wss://`)
+listener; terminate TLS in front.
 
 `connect` returns before the connection is established: register handlers
 first and write in `on_open`. `send` into a socket that is not open reports
@@ -1121,7 +1188,8 @@ mut req.timeout_ms = 2000
 Server:
 
 ```
-http.serve(port: number, handler: Handler) -> Result<void, string>   // async; await to keep alive
+http.listen(host: string, port: int, handler: Handler)
+    -> Result<Server, ServerError>                   // async; resolves when BOUND (Server is std/net's)
 http.json(status: number, body) -> Response          // application/json response
 http.text(status: number, body: string) -> Response  // text/plain response
 http.html(status: number, body: string) -> Response  // text/html response
@@ -1137,10 +1205,20 @@ http.segments(req: Request) -> Array<string>         // path split into non-empt
 ```
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
-`Err(message)` to send a 500. `serve` resolves `Ok(void)` when the server closes
-and `Err(message)` on a bind failure; while it listens it stays pending, so a
-`main` that does `await http.serve(...)` keeps the process alive — no keep-alive
-hack.
+`Err(message)` to send a 500.
+
+`listen` resolves when the socket is **bound**, and hands back the same `Server`
+`std/net` uses, because node's HTTP server is a TCP server: stop it with
+`net.stop`, ask its port with `net.port`, and learn when it stopped with
+`net.on_stop`. The process stays alive while a listener is pending, so a server
+nobody stops runs for the life of the program.
+
+This replaced a `serve` that resolved only when the server closed. Nothing could
+close one, so its `Ok` branch could never run, and a `match` on a `Result` must
+be exhaustive, so every caller was made to write an arm that could not execute.
+It was also wrong in a way that mattered more: a failure *after* a successful
+bind resolved the same promise with `Err` while the server was still listening
+and still answering, so the value said dead and the process said alive.
 
 The content type comes from the constructor: `json` sets `application/json`,
 `text` sets `text/plain; charset=utf-8`, `html` sets `text/html; charset=utf-8`.

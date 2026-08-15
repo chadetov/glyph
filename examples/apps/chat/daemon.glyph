@@ -126,7 +126,7 @@ pub async fn serve(port: int) {
   let conns: Array<Conn> = []
   let next_id = 1
 
-  let listening = net.serve(port, fn(socket: Socket) {
+  let started = await net.listen("0.0.0.0", port, fn(socket: Socket) {
     let id = next_id
     let nick = "guest${number.to_string(id)}"
     mut next_id = next_id + 1
@@ -181,17 +181,25 @@ pub async fn serve(port: int) {
     })
   })
 
-  io.println("chat listening on ${number.to_string(port)}")
-
-  // A listener error is fatal and has to say so itself. `net.serve` resolves
-  // with the reason rather than throwing at a handler that may not exist, so
-  // the failure is a value this function matches on, and the exit code is set
-  // here rather than left to a process that would otherwise drain its loop and
-  // report success for a server that never bound its port.
-  match await listening {
-    Ok(_) => io.println("chat: stopped listening"),
-    Err(why) => {
-      io.eprintln("chat: cannot listen on ${number.to_string(port)}: ${why}")
+  // A bind failure is fatal and has to say so itself: `main` has already
+  // returned by the time the process would otherwise drain its loop and exit 0,
+  // reporting success for a server that never took its port. `listen` resolves
+  // when the socket is bound, so this branch runs before any connection could,
+  // and `e.kind` distinguishes a port worth retrying on from one this process
+  // will never be allowed to have.
+  match started {
+    Ok(server) => {
+      io.println("chat listening on ${number.to_string(net.port(server))}")
+      net.on_stop(server, fn() { io.println("chat: stopped listening") })
+    },
+    Err(e) => {
+      let why = match e.kind {
+        "in_use" => "port ${number.to_string(port)} is already in use",
+        "denied" => "not allowed to bind port ${number.to_string(port)}",
+        "unavailable" => "no such address on this machine",
+        "other" => e.message,
+      }
+      io.eprintln("chat: cannot listen: ${why}")
       process.exit(1)
     },
   }

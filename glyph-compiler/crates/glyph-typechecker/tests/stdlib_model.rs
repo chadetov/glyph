@@ -51,10 +51,12 @@ const EXCLUDED: &[(&str, &str, &str)] = &[
         "returns Result<Decimal, string>; Decimal is not yet a modeled stdlib type",
     ),
     (
-        "std/http",
-        "serve",
-        "returns Promise<Result<void, string>>; the error is a bare string, so \
-         modeling it buys no exhaustiveness",
+        "std/net",
+        "adopt",
+        "@internal: the bind `std/http` shares with `std/net`, not user surface. \
+         No Glyph program can import it (E0105), so there is nothing to model. \
+         The other five export scanners honour the `@internal` marker directly; \
+         this crate cannot reach that helper, so the exclusion is spelled here",
     ),
     (
         "std/test",

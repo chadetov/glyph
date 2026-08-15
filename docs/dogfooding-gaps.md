@@ -36,8 +36,8 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after 0.1.78 closed G102: of 119 entries, 90 are fixed, 10 are
-partly fixed, 9 are decided or resolved, and 10 are open. That round re-ran an assignment the
+Reconciled again after 0.1.78 closed G102: of 121 entries, 90 are fixed, 10 are
+partly fixed, 9 are decided or resolved, and 12 are open. That round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3508,6 +3508,33 @@ which is the infrastructure round 28 left blocked.
   share a module name, which for `main.glyph` is every app in the tree.
   *Reproduced against 0.1.78, verbatim: two projects each with a `main.glyph`,
   the error in `beta`, and the diagnostic quoting `alpha`'s `import std/io`.*
+
+## Round 33: a Linus review of the server lifetime, before it shipped
+
+Four claims verified against the compiler and node before any were acted on; the
+full review is in `feedbacks/linus/04-server-lifetime-and-std-net.md`. Most of it
+was fixed in 0.1.80. Two were not, and are here.
+
+- **G120. `http.read_request` has no body size cap and never settles when a
+  client disconnects mid-body.** It accumulates `raw += chunk` with no limit and
+  listens for `data` and `end` only, with no `aborted` and no `error`. A client
+  that POSTs forever exhausts memory. A client that disconnects mid-body means
+  `end` never fires, so the promise never settles, `respond` never returns, and
+  the request's whole closure is retained for the life of the process: a leak
+  with nothing in the log. One `curl` killed in a loop is enough.
+  *Reproduced against 0.1.79.*
+
+- **G121. Network `Bytes` are zero-copy views onto node's pooled buffers.**
+  `net.on_data` and `websocket.on_binary` both build
+  `new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)`, and the
+  reference calls `Bytes` "an immutable sequence of octets" without saying that
+  one is a window onto a shared 8 KiB pool. The octets are correct; the cost is
+  that retaining a 20-byte frame pins 8 KiB, so a chat server holding one frame
+  per connection pays 8 KiB per connection. The comment in `websocket.ts` notes
+  the view "is over the same memory rather than a copy" as though that were
+  purely a benefit. Either say so in the reference, or copy when the slice is a
+  small fraction of its backing buffer.
+  *Reproduced against 0.1.79.*
 
 ## Round 32: the npm round finally ran, and three of its blockers were already gone
 

@@ -594,7 +594,9 @@ event-name string to misspell and no callback parameter to narrow.
 
 ```
 type Socket
-net.serve(port, on_connection) -> Result<void, string>   // async; resolves when the server STOPS
+type Server / type ServerError = { kind, message, code }
+net.listen(host, port, on_connection) -> Result<Server, ServerError>   // async; resolves when BOUND
+net.stop(s) / net.port(s) / net.on_stop(s, fn() {}) / net.on_server_error(s, fn(e) {})
 net.connect(host, port) -> Socket
 net.on_connect(s, fn() {}) / on_text(s, fn(text) {}) / on_data(s, fn(bytes) {})
 net.on_close(s, fn() {}) / on_error(s, fn(message) {})
@@ -603,8 +605,13 @@ net.close(s) / net.destroy(s) / net.no_delay(s, enabled)
 net.peer_address(s) -> Option<string> / net.peer_port(s) -> Option<int>
 ```
 
-`serve` resolves when the server stops, so a port already in use is an `Err` you
-match rather than a throw. Use `on_text` for a text protocol: it holds a decoder
+`listen` resolves when the port is **bound**, so a port already in use is an
+`Err` you match rather than a throw, and `e.kind` is `"in_use"`/`"denied"`/
+`"unavailable"`/`"other"` rather than a string to scrape. A server is a resource:
+`stop` it, `on_stop` says when it stopped, stopping twice is a no-op. `host` has
+no default: `"127.0.0.1"` is local-only, `"0.0.0.0"` is the network. There is no
+`serve`; it resolved only on close, nothing could close it, and every caller was
+forced to write a `match` arm that could never run. Use `on_text` for a text protocol: it holds a decoder
 per socket, so a character split across two packets survives, where decoding each
 chunk alone would produce two replacement characters. Use `on_data` for binary.
 TCP has no message boundaries, so carry your own delimiter; two `send`s can
@@ -729,7 +736,8 @@ type Handler  = fn(Request) -> Result<Response, string>   // may be async
 
 http.get(url) -> Result<Response, HttpError>          // client; async, await it
 http.post(url, body) -> Result<Response, HttpError>   // client; async
-http.serve(port, handler) -> Result<void, string>     // server; async, await keeps process alive
+http.listen(host, port, handler) -> Result<Server, ServerError>   // async; resolves when BOUND
+                                                     // Server is std/net's: stop with net.stop
 http.json(status, body) -> Response                   // application/json response
 http.text(status, body) -> Response                   // text/plain response
 http.html(status, body) -> Response                   // text/html response
@@ -756,9 +764,9 @@ first, so a `location` built from user input can neither split the response
 response headers it received, with the names lowercased.
 
 A `Handler` returns `Ok(response)` for any status (a 404 is a normal `Ok`) or
-`Err(message)` (sent as a 500). `await http.serve(port, handler)` starts the
-server and suspends `main`, which keeps the process alive (see the execution
-model below).
+`Err(message)` (sent as a 500). `await http.listen(host, port, handler)` binds
+the port and returns a `Server`; the process stays alive on its own while a
+listener is pending (see the execution model below), so `main` returns normally.
 
 ### std/sqlite (persisted SQL over node:sqlite)
 
@@ -909,8 +917,9 @@ rule. A CLI that computes and prints has nothing pending and exits the moment
 A **long-running process** (a server, a watcher, a bot) therefore does not need
 `main` to stay suspended. Start the work and return: a listening socket, a
 `timers.every` interval, or a pending promise all keep the process alive on
-their own. `await http.serve(port, handler)` also works, because it stays
-pending while the server listens.
+their own. That is why `http.listen` and `net.listen` resolve as soon as the
+port is bound rather than staying pending: there is nothing for `main` to wait
+on, and a server that runs forever is one nobody stopped.
 
 Two consequences worth knowing:
 

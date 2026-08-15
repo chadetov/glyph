@@ -1044,7 +1044,7 @@ fn http_server_program_type_checks() {
         "main.glyph",
         r#"module main
 
-import std/http { serve, query, text, Request, Response }
+import std/http { listen, query, text, Request, Response }
 import std/record
 import std/result { Result, Ok, Err }
 import std/option { Some, None }
@@ -1061,7 +1061,7 @@ fn multiply(req: Request) -> Result<Response, string> {
 }
 
 async fn main(argv: Array<string>) -> number {
-  let outcome = await serve(8080, multiply)
+  let outcome = await listen("127.0.0.1", 8080, multiply)
   return match outcome {
     Ok(_) => 0,
     Err(_) => 1,
@@ -1098,7 +1098,7 @@ fn http_server_raw_body_accessor_type_checks() {
         "main.glyph",
         r#"module main
 
-import std/http { serve, raw, header, text, Request, Response }
+import std/http { listen, raw, header, text, Request, Response }
 import std/crypto
 import std/result { Result, Ok }
 import std/option { Some, None }
@@ -1115,7 +1115,7 @@ fn verify(req: Request) -> Result<Response, string> {
 }
 
 async fn main(argv: Array<string>) -> number {
-  let outcome = await serve(8080, verify)
+  let outcome = await listen("127.0.0.1", 8080, verify)
   return match outcome {
     Ok(_) => 0,
     Err(_) => 1,
@@ -1156,7 +1156,7 @@ fn http_server_writes_html_redirects_and_custom_headers() {
         "main.glyph",
         r#"module main
 
-import std/http { serve, path, form, json, text, html, redirect, with_header, Request, Response }
+import std/http { listen, path, form, json, text, html, redirect, with_header, Request, Response }
 import std/record
 import std/result { Result, Ok, Err }
 import std/option { Some, None }
@@ -1180,7 +1180,7 @@ pub fn route(req: Request) -> Result<Response, string> {
 }
 
 async fn main(argv: Array<string>) -> number {
-  let outcome = await serve(8080, route)
+  let outcome = await listen("127.0.0.1", 8080, route)
   return match outcome {
     Ok(_) => 0,
     Err(_) => 1,
@@ -1196,11 +1196,11 @@ async fn main(argv: Array<string>) -> number {
     let driver = format!(
         r#"import "./.glyph-runtime/glyph-bootstrap.ts";
 import {{ route }} from "./main.ts";
-import {{ serve }} from "std/http";
+import {{ listen }} from "std/http";
 
 const port = {port};
 const base = "http://127.0.0.1:" + port;
-void serve(port, route);
+
 
 let failures = 0;
 function check(ok: boolean, what: string): void {{
@@ -1211,13 +1211,13 @@ function check(ok: boolean, what: string): void {{
 }}
 
 async function drive(): Promise<void> {{
-  for (let i = 0; i < 200; i++) {{
-    try {{
-      await fetch(base + "/page");
-      break;
-    }} catch {{
-      await new Promise((r) => setTimeout(r, 25));
-    }}
+  // Awaited, so the driver starts once the port is actually bound. This used to
+  // be a 200-iteration retry loop around the first fetch, which is what a
+  // `serve` that never told you it had started forced on every caller.
+  const started = await listen("127.0.0.1", port, route);
+  if (started.tag === "Err") {{
+    console.error("FAIL: could not listen: " + started.value.message);
+    process.exit(1);
   }}
 
   const page = await fetch(base + "/page");
@@ -1293,16 +1293,17 @@ void drive();
     );
     std::fs::write(out.join("__driver.ts"), driver).expect("write driver");
 
-    let status = std::process::Command::new("tsx")
+    let run = std::process::Command::new("tsx")
         .arg("--tsconfig")
         .arg(out.join("tsconfig.json"))
         .arg(out.join("__driver.ts"))
-        .status()
+        .output()
         .expect("run tsx");
     assert_eq!(
-        status.code(),
+        run.status.code(),
         Some(0),
-        "std/http response assertions failed (exit code is the failure count)"
+        "std/http response assertions failed (exit code is the failure count):\n{}",
+        String::from_utf8_lossy(&run.stderr)
     );
 }
 
@@ -8106,7 +8107,7 @@ import std/timers
 const PORT: int = {port}
 
 pub async fn main() -> void {{
-  let first = net.serve(PORT, fn(sock: Socket) {{
+  let first = await net.listen("127.0.0.1", PORT, fn(sock: Socket) {{
     net.on_error(sock, fn(m: string) {{ io.eprintln("sock: ${{m}}") }})
     net.on_text(sock, fn(text: string) {{
       io.println("got=${{text}}")
@@ -8115,15 +8116,16 @@ pub async fn main() -> void {{
   }})
   // A second listener on the same port cannot bind, and says so as a value
   // rather than throwing at a handler.
-  let second = net.serve(PORT, fn(_: Socket) {{}})
-  match await second {{
-    Ok(_) => io.println("second=bound (wrong)"),
-    Err(why) => io.println("second=refused"),
-  }}
-  drive()
-  match await first {{
-    Ok(_) => io.println("first=closed"),
-    Err(e) => io.eprintln("first=${{e}}"),
+  match first {{
+    Err(e) => io.eprintln("first=${{e.message}}"),
+    Ok(server) => {{
+      match await net.listen("127.0.0.1", PORT, fn(_: Socket) {{}}) {{
+        Ok(_) => io.println("second=bound (wrong)"),
+        Err(e) => io.println("second=refused:${{e.kind}}"),
+      }}
+      drive()
+      net.on_stop(server, fn() {{ io.println("first=closed") }})
+    }},
   }}
 }}
 
@@ -8163,8 +8165,8 @@ fn octets(xs: Array<int>) -> bytes.Bytes {{
         spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
     assert!(
-        stdout.contains("second=refused"),
-        "a port already in use is an Err, not a throw: {stdout}"
+        stdout.contains("second=refused:in_use"),
+        "a port already in use is a structured Err, not a throw or a string to scrape: {stdout}"
     );
     // The lone 0xC3 is held back rather than decoded to U+FFFD, so the first
     // read is "hi " and the character appears whole in the second.
@@ -8342,4 +8344,139 @@ pub async fn main() -> void {{
         stdout.contains("tls=refused"),
         "a refused connection is a value, not a throw: {stdout}"
     );
+}
+
+/// `std/websocket` end to end: a Glyph server and Node's own WHATWG client
+/// talking over a real socket.
+///
+/// The client is the host's, not ours, which is what makes this worth running:
+/// it validates the `Sec-WebSocket-Accept` handshake against an implementation
+/// that did not come from this repo, and it refuses the connection outright if
+/// the digest is wrong.
+///
+/// Three payload sizes on purpose. A WebSocket frame encodes its length in
+/// 7 bits, or 16, or 64, depending on size, and the boundaries are 126 and
+/// 65536; a codec that gets the extended forms wrong still passes every test
+/// that only sends short messages.
+#[test]
+fn websocket_server_and_client_exchange_text_and_binary() {
+    if !js_toolchain_available() {
+        eprintln!("skipping std/websocket end-to-end: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("wsboth");
+    let src = root.join("src");
+    let port = 46000 + (std::process::id() % 2000);
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            r#"module main
+
+import std/array
+import std/bytes
+import std/io
+import std/result {{ Ok, Err }}
+import std/store
+import std/websocket
+import std/websocket {{ Server, Socket }}
+
+const PORT: int = {port}
+
+pub async fn main() -> void {{
+  match await websocket.listen("127.0.0.1", PORT, fn(peer: Socket) {{
+    websocket.on_message(peer, fn(text: string) {{
+      io.println("server_text=${{text}}")
+      websocket.send(peer, "echo:${{text}}")
+    }})
+    websocket.on_binary(peer, fn(b: bytes.Bytes) {{
+      // Report the length and a fingerprint rather than the whole payload, so
+      // a 70 KB frame does not become 140 KB of test output.
+      let n = number.to_string(bytes.len(b))
+      let head = bytes.to_hex(bytes.slice(b, 0, 4))
+      io.println("server_bin=${{n}}:${{head}}")
+      websocket.send_bytes(peer, b)
+    }})
+  }}) {{
+    Err(why) => io.eprintln("cannot bind: ${{why}}"),
+    Ok(server) => {{
+      io.println("bound")
+      drive(server)
+    }},
+  }}
+}}
+
+// 7-bit, 16-bit and 64-bit length forms.
+fn sizes() -> Array<int> {{
+  return [8, 200, 70000,]
+}}
+
+fn payload(n: int) -> bytes.Bytes {{
+  return match bytes.from_array(array.map(array.range(n), fn(i: int) -> int {{
+    return (i * 7 + 3) % 256
+  }})) {{
+    Ok(b) => b,
+    Err(_) => bytes.empty,
+  }}
+}}
+
+fn drive(server: Server) -> void {{
+  let sent = store.create<int>(0)
+  let c = websocket.connect("ws://127.0.0.1:${{number.to_string(PORT)}}")
+  websocket.on_open(c, fn() {{ websocket.send(c, "hello") }})
+  websocket.on_message(c, fn(text: string) {{
+    io.println("client_text=${{text}}")
+    websocket.send_bytes(c, payload(8))
+  }})
+  websocket.on_binary(c, fn(b: bytes.Bytes) {{
+    let n = number.to_string(bytes.len(b))
+    let head = bytes.to_hex(bytes.slice(b, 0, 4))
+    io.println("client_bin=${{n}}:${{head}}")
+    sent.update(fn(k: int) {{ k + 1 }})
+    let next = sent.get()
+    match next < 3 {{
+      true => websocket.send_bytes(c, payload(index_size(next))),
+      false => {{
+        websocket.close(c)
+        websocket.stop(server)
+      }},
+    }}
+  }})
+  websocket.on_close(c, fn(code: int, reason: string) {{
+    io.println("client_close=${{number.to_string(code)}}")
+  }})
+}}
+
+fn index_size(i: int) -> int {{
+  return match array.get(sizes(), i) {{
+    Some(v) => v,
+    None => 8,
+  }}
+}}
+"#
+        ),
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(stdout.contains("bound"), "the server bound: {stdout}");
+    // The handshake: Node's client refuses outright if Sec-WebSocket-Accept is
+    // wrong, so any traffic at all proves the digest.
+    assert!(stdout.contains("server_text=hello"), "text reached the server: {stdout}");
+    assert!(stdout.contains("client_text=echo:hello"), "and came back: {stdout}");
+    // Each length encoding, in both directions, with the payload unchanged.
+    for n in ["8", "200", "70000"] {
+        assert!(
+            stdout.contains(&format!("server_bin={n}:030a1118")),
+            "a {n}-byte frame reached the server intact: {stdout}"
+        );
+        assert!(
+            stdout.contains(&format!("client_bin={n}:030a1118")),
+            "and came back intact: {stdout}"
+        );
+    }
+    // 1000 is a deliberate close. 1005 would mean the close frame carried no
+    // status, which is what an earlier version of this server sent.
+    assert!(stdout.contains("client_close=1000"), "a clean close says so: {stdout}");
 }

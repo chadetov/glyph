@@ -31,24 +31,6 @@ fn stdlib_doc() -> PathBuf {
     .collect()
 }
 
-/// Pull the exported identifier out of a line like `export function foo<T>(` or
-/// `export type Bar =` or `export const Baz:`.
-fn exported_name(line: &str) -> Option<String> {
-    let rest = line.strip_prefix("export ")?;
-    let rest = rest.strip_prefix("async ").unwrap_or(rest);
-    let rest = ["function ", "type ", "const ", "interface "]
-        .iter()
-        .find_map(|kw| rest.strip_prefix(kw))?;
-    let name: String = rest
-        .chars()
-        .take_while(|c| c.is_alphanumeric() || *c == '_')
-        .collect();
-    if name.is_empty() {
-        None
-    } else {
-        Some(name)
-    }
-}
 
 /// Whole-word membership: `name` appears in `text` not flanked by identifier
 /// characters (so `get` matches `record.get` but not `getter`).
@@ -97,12 +79,10 @@ fn every_runtime_std_export_is_documented() {
         let stem = module.file_stem().unwrap().to_string_lossy().to_string();
         let source = fs::read_to_string(module)
             .unwrap_or_else(|e| panic!("read {module:?}: {e}"));
-        for line in source.lines() {
-            if let Some(name) = exported_name(line.trim_start()) {
-                checked += 1;
-                if !contains_word(&doc, &name) {
-                    missing.push(format!("std/{stem}: `{name}`"));
-                }
+        for item in glyph_cli::runtime::exported_items(&source) {
+            checked += 1;
+            if !contains_word(&doc, &item.name) {
+                missing.push(format!("std/{stem}: `{}`", item.name));
             }
         }
     }

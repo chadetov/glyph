@@ -31,7 +31,7 @@ repository = "https://github.com/chadetov/glyph"
 # Note: the crate that was tracked as "salsa-2022" during the rewrite has
 # reclaimed the canonical `salsa` crate name on crates.io. v0.26+ is the
 # rewrite (formerly "salsa-2022"); v0.16 was the legacy generation.
-salsa = "0.26"
+salsa = "0.28"
 
 # Error rendering (Elm-quality bar per brainstorm Q6 resolution).
 ariadne = "0.6"

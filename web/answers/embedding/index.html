@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Can I adopt Glyph inside my existing app, or is it all-or-nothing? · Glyph</title>
+    <meta name="description" content="No rewrite: keep the app in TypeScript, write the domain core in Glyph, and import the compiled modules like any local file. The output resolves under a stock Vite scaffold with zero config." />
+    <link rel="canonical" href="https://glyphlang.io/answers/embedding/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0b1326" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="brand">GLYPH</a>
+      <div class="nav-links">
+        <a href="/playground/">Playground</a>
+        <a href="/pillars/verifiability/">Why Glyph</a>
+        <a href="/answers/" class="active">Answers</a>
+        <a href="/hardening/">Hardening</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="/llms.txt">For agents</a>
+        <a href="/mcp/">MCP</a>
+        <a href="https://github.com/chadetov/glyph">GitHub</a>
+      </div>
+    </nav>
+    <div class="subnav-wrap">
+      <div class="subnav">
+        <a href="/answers/verifiability/"><span class="n">01</span> Silent breakage</a>
+        <a href="/answers/diff-stability/"><span class="n">02</span> Clean diffs</a>
+        <a href="/answers/greppability/"><span class="n">03</span> Finding things</a>
+        <a href="/answers/imports/"><span class="n">04</span> Your libraries</a>
+        <a href="/answers/embedding/" class="active"><span class="n">05</span> Inside your app</a>
+        <a href="/answers/typed-apis/"><span class="n">06</span> Typed APIs</a>
+        <a href="/answers/codegen/"><span class="n">07</span> Client &amp; server</a>
+        <a href="/answers/react/"><span class="n">08</span> React</a>
+        <a href="/answers/state/"><span class="n">09</span> Shared state</a>
+        <a href="/answers/why-typescript/"><span class="n">10</span> Why TypeScript</a>
+        <a href="/answers/vs-tooled-ts/"><span class="n">11</span> Why not tooled TS</a>
+        <a href="/answers/human-value/"><span class="n">12</span> Without AI</a>
+        <a href="/answers/ai-authoring/"><span class="n">13</span> AI-authored</a>
+        <a href="/answers/tooling/"><span class="n">14</span> Editor &amp; debugging</a>
+        <a href="/answers/debugging/"><span class="n">15</span> Debugging &amp; ops</a>
+        <a href="/answers/language/"><span class="n">16</span> The language</a>
+        <a href="/answers/finance/"><span class="n">17</span> Money &amp; safety</a>
+        <a href="/answers/web-serving/"><span class="n">18</span> Serving the web</a>
+        <a href="/answers/early-errors/"><span class="n">19</span> Caught earlier</a>
+        <a href="/answers/parse-errors/"><span class="n">20</span> Why a parse failed</a>
+        <a href="/answers/interactive-cli/"><span class="n">21</span> Programs you type into</a>
+        <a href="/answers/long-running/"><span class="n">22</span> Servers &amp; daemons</a>
+        <a href="/answers/upgrades/"><span class="n">23</span> Upgrades</a>
+        <a href="/answers/binary/"><span class="n">24</span> Binary data</a>
+      </div>
+    </div>
+
+    <article class="answer-page">
+      <p class="q-eyebrow">05 &middot; Inside your app</p>
+      <h1 class="q-title">Can I adopt Glyph inside my existing app, or is it all-or-nothing?</h1>
+
+      <p class="short-answer">
+        No rewrite. Keep the app in TypeScript and write the part you can't afford to get wrong
+        (models, permissions, state transitions, money math) in Glyph. <code>glyph build</code>
+        emits modules your app imports <strong>like any local file</strong>, with no bundler
+        config and no path aliases.
+      </p>
+
+      <div class="detail">
+        <p class="block-label">Why it matters</p>
+        <p>
+          Most teams can't rewrite an application, and most of an application doesn't need Glyph.
+          The part that does is the domain core: the rules an AI agent will edit next month and
+          nobody wants silently wrong. Keeping that core in Glyph gives you exhaustive
+          <code>match</code>, no casts, and validated boundaries exactly where they pay, while the
+          React components, the styling, and the infrastructure stay plain TypeScript.
+        </p>
+
+        <p class="block-label">See it</p>
+        <p>One directory of Glyph sources, compiled into the app, imported by the UI:</p>
+      </div>
+
+      <div class="code">
+        <span class="cap">A hybrid layout: Glyph domain core, TypeScript everything else</span>
+<pre>src/
+  glyph/          # models.glyph, permissions.glyph, analytics.glyph
+  generated/      # glyph build --out src/generated src/glyph
+  components/     # hand-written React/TSX
+
+<span class="add">// BoardContext.tsx: the app imports compiled Glyph like a local module</span>
+import { TaskCard, can_move } from "../generated/models";
+
+const parsed = TaskCard.parse(payload);  // Result, not an exception</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          Everything the emitted code needs travels with it. Imports are relative, including the
+          bundled standard library, so your project's <code>tsconfig.json</code> and bundler need
+          nothing added: a stock Vite scaffold compiles and bundles the output as-is, and the same
+          files pass a host <code>tsc --strict</code>. Mark what the app imports with
+          <code>pub</code>; a declaration without it is private to its module. This isn't a
+          hypothetical: an outside engineer
+          <a href="https://github.com/yildizadem/glyph-kanban">built a React Kanban board this
+          way</a>, with the RBAC matrix, the analytics formulas, and the status transitions in
+          four Glyph modules under a hand-written React UI.
+        </p>
+      </div>
+
+      <p class="block-label">Where it stands</p>
+      <div class="status-row">
+        <div class="status-card today">
+          <p class="h">Shipping today</p>
+          <p>Emitted output drops into a host project unchanged: relative specifiers throughout, prelude types carried by the code itself, verified against a stock Vite scaffold, host <code>tsc --strict</code>, esbuild, and <code>tsx</code>. The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">deployment guide</a> documents the hybrid layout.</p>
+        </div>
+        <div class="status-card next">
+          <p class="h">On the way</p>
+          <p>No watch mode yet: rerun <code>glyph build</code> after editing <code>.glyph</code> sources (wire it into your <code>dev</code> script). Modules using <code>std/fs</code> or <code>std/net</code> need <code>@types/node</code> in the host, like any Node-touching TypeScript.</p>
+        </div>
+      </div>
+
+      <nav class="prevnext">
+        <a href="/answers/imports/">
+          <span class="dir">&larr; Previous</span>
+          <span class="t">Can I use my existing TypeScript, JavaScript, and npm libraries?</span>
+        </a>
+        <a href="/answers/typed-apis/" class="nx cta">
+          <span class="dir">Next &rarr;</span>
+          <span class="t">Do I have to hand-write a validator for every API?</span>
+        </a>
+      </nav>
+    </article>
+
+    <footer>
+      <div class="wrap">
+        <span class="muted">Glyph: TypeScript your agents can't quietly break.</span>
+        <span><a href="/answers/verifiability/">Answers</a> &nbsp;·&nbsp; <a href="/hardening/">Hardening</a> &nbsp;·&nbsp; <a href="/versions/">Versions</a> &nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph">GitHub</a>&nbsp;·&nbsp; <a href="https://github.com/chadetov/glyph/blob/main/web/answers/embedding/index.html">Edit this page</a></span>
+      </div>
+    </footer>
+  </body>
+</html>

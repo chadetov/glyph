@@ -52,61 +52,62 @@
         <h2>Your stack &amp; ecosystem</h2>
         <div class="ans-cards">
           <a class="a-card" href="/answers/imports/"><span class="n">04</span><span class="q">Can I use my existing TypeScript, JS, and npm libraries?</span><p>Yes: import any npm package, keep a hand-written <code>.ts</code> shim where you need one, and import Glyph back into <code>.ts</code>.</p></a>
-          <a class="a-card" href="/answers/typed-apis/"><span class="n">05</span><span class="q">Do I have to hand-write a validator for every API?</span><p>No. Declare a type, get a validated boundary for free.</p></a>
-          <a class="a-card" href="/answers/codegen/"><span class="n">06</span><span class="q">Can I generate a typed client and server from my API spec?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.</p></a>
-          <a class="a-card" href="/answers/react/"><span class="n">07</span><span class="q">Does it work with React (components, hooks, and Context)?</span><p>First-class JSX, hooks, and exhaustive reducer actions.</p></a>
-          <a class="a-card" href="/answers/state/"><span class="n">08</span><span class="q">How do I share mutable state between functions?</span><p>A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.</p></a>
+          <a class="a-card" href="/answers/embedding/"><span class="n">05</span><span class="q">Can I adopt Glyph inside my existing app, or is it all-or-nothing?</span><p>No rewrite: the domain core in Glyph, the rest in TypeScript. The output drops into a stock Vite scaffold with zero config.</p></a>
+          <a class="a-card" href="/answers/typed-apis/"><span class="n">06</span><span class="q">Do I have to hand-write a validator for every API?</span><p>No. Declare a type, get a validated boundary for free.</p></a>
+          <a class="a-card" href="/answers/codegen/"><span class="n">07</span><span class="q">Can I generate a typed client and server from my API spec?</span><p><code>glyph gen openapi</code>/<code>zod</code>/<code>dts</code>: committed, greppable code.</p></a>
+          <a class="a-card" href="/answers/react/"><span class="n">08</span><span class="q">Does it work with React (components, hooks, and Context)?</span><p>First-class JSX, hooks, and exhaustive reducer actions.</p></a>
+          <a class="a-card" href="/answers/state/"><span class="n">09</span><span class="q">How do I share mutable state between functions?</span><p>A store: a <code>const</code> whose <code>.set</code>/<code>.update</code> are the write-surface.</p></a>
         </div>
       </div>
 
       <div class="ans-group">
         <h2>Should I adopt it?</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/why-typescript/"><span class="n">09</span><span class="q">Why TypeScript, and not Go or a new language?</span><p>Because that's where your ecosystem is, and it's why adoption is per-file.</p></a>
-          <a class="a-card" href="/answers/vs-tooled-ts/"><span class="n">10</span><span class="q">Why not just strict TypeScript + zod + eslint + ts-pattern?</span><p>Non-optionality: the language the agent can't config-disable.</p></a>
-          <a class="a-card" href="/answers/human-value/"><span class="n">11</span><span class="q">Is Glyph worth it if I'm not using AI?</span><p>Yes: the guarantees are plain engineering wins a human gets directly.</p></a>
-          <a class="a-card" href="/answers/ai-authoring/"><span class="n">12</span><span class="q">Can an AI reliably write a language it's barely seen?</span><p>~80% transfers from TS; the compiler's tight feedback closes the rest.</p></a>
+          <a class="a-card" href="/answers/why-typescript/"><span class="n">10</span><span class="q">Why TypeScript, and not Go or a new language?</span><p>Because that's where your ecosystem is, and it's why adoption is per-file.</p></a>
+          <a class="a-card" href="/answers/vs-tooled-ts/"><span class="n">11</span><span class="q">Why not just strict TypeScript + zod + eslint + ts-pattern?</span><p>Non-optionality: the language the agent can't config-disable.</p></a>
+          <a class="a-card" href="/answers/human-value/"><span class="n">12</span><span class="q">Is Glyph worth it if I'm not using AI?</span><p>Yes: the guarantees are plain engineering wins a human gets directly.</p></a>
+          <a class="a-card" href="/answers/ai-authoring/"><span class="n">13</span><span class="q">Can an AI reliably write a language it's barely seen?</span><p>~80% transfers from TS; the compiler's tight feedback closes the rest.</p></a>
         </div>
       </div>
 
       <div class="ans-group">
         <h2>Living with it</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/tooling/"><span class="n">13</span><span class="q">What's the editor, debugging, and error experience?</span><p>LSP + VS Code extension, and Elm-quality errors with stable codes.</p></a>
-          <a class="a-card" href="/answers/debugging/"><span class="n">14</span><span class="q">When it breaks in production at 3am, what does on-call see?</span><p>Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.</p></a>
-          <a class="a-card" href="/answers/language/"><span class="n">15</span><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.</p></a>
+          <a class="a-card" href="/answers/tooling/"><span class="n">14</span><span class="q">What's the editor, debugging, and error experience?</span><p>LSP + VS Code extension, and Elm-quality errors with stable codes.</p></a>
+          <a class="a-card" href="/answers/debugging/"><span class="n">15</span><span class="q">When it breaks in production at 3am, what does on-call see?</span><p>Readable TS you own, source maps back to your <code>.glyph</code>, and a <code>run</code> that reports what <code>build</code> reports.</p></a>
+          <a class="a-card" href="/answers/language/"><span class="n">16</span><span class="q">Is this a real language, or a toy with gaps?</span><p>Module visibility, interface bounds, defer, a <code>match</code> that works as any value and carries its type, and a standard library that has <code>slice</code>, <code>pad_start</code>, and <code>fold</code>.</p></a>
         </div>
 
         <h2>Money &amp; safety</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/finance/"><span class="n">16</span><span class="q">Can I trust it with money and untrusted input?</span><p>Exact decimals and ids, invariants as types, injection as a compile error.</p></a>
+          <a class="a-card" href="/answers/finance/"><span class="n">17</span><span class="q">Can I trust it with money and untrusted input?</span><p>Exact decimals and ids, invariants as types, injection as a compile error.</p></a>
         </div>
 
         <h2>Serving the web</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/web-serving/"><span class="n">17</span><span class="q">Can I serve a web page, or only a JSON API?</span><p>HTML, redirects, response headers, and form posts, without a hand-written server.</p></a>
+          <a class="a-card" href="/answers/web-serving/"><span class="n">18</span><span class="q">Can I serve a web page, or only a JSON API?</span><p>HTML, redirects, response headers, and form posts, without a hand-written server.</p></a>
         </div>
 
         <h2>Caught earlier</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/early-errors/"><span class="n">18</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span><p><code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.</p></a>
+          <a class="a-card" href="/answers/early-errors/"><span class="n">19</span><span class="q">Why does Glyph catch what tsc catches, but earlier?</span><p><code>await</code> context, a <code>match</code> arm with no value, and a missing <code>mut</code>, reported against your source instead of the emitted TypeScript.</p></a>
         </div>
 
         <h2>Why a parse failed</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/parse-errors/"><span class="n">19</span><span class="q">When a parse fails, do I find out why?</span><p>Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.</p></a>
+          <a class="a-card" href="/answers/parse-errors/"><span class="n">20</span><span class="q">When a parse fails, do I find out why?</span><p>Which field, which rule it broke, the <code>where</code> predicate it violated, and a <code>code</code> to branch on.</p></a>
         </div>
 
         <h2>Programs you type into</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/interactive-cli/"><span class="n">20</span><span class="q">Can I write a program someone types into?</span><p><code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.</p></a>
+          <a class="a-card" href="/answers/interactive-cli/"><span class="n">21</span><span class="q">Can I write a program someone types into?</span><p><code>io.read_line</code> answers a line as it arrives instead of waiting for stdin to close, so a REPL or a game loop works.</p></a>
         </div>
 
         <h2>Servers &amp; daemons</h2>
         <div class="ans-cards">
-          <a class="a-card" href="/answers/long-running/"><span class="n">21</span><span class="q">Can I write a server, or does the process just exit?</span><p><code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.</p></a>
-          <a class="a-card" href="/answers/upgrades/"><span class="n">22</span><span class="q">Will a new Glyph release break my build?</span><p>Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.</p></a>
-          <a class="a-card" href="/answers/binary/"><span class="n">23</span><span class="q">Can I handle binary data, or is everything a string?</span><p><code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.</p></a>
+          <a class="a-card" href="/answers/long-running/"><span class="n">22</span><span class="q">Can I write a server, or does the process just exit?</span><p><code>main</code> sets up and returns; the process stays alive while sockets and timers are pending, the same rule Node uses.</p></a>
+          <a class="a-card" href="/answers/upgrades/"><span class="n">23</span><span class="q">Will a new Glyph release break my build?</span><p>Projects pin the compiler exactly, so no release arrives by accident. <code>glyph doctor</code> says one exists; <code>glyph upgrade</code> takes it.</p></a>
+          <a class="a-card" href="/answers/binary/"><span class="n">24</span><span class="q">Can I handle binary data, or is everything a string?</span><p><code>std/bytes</code> is a sequence of octets, with codecs that refuse malformed input instead of skipping it, and HMACs that take a real key.</p></a>
         </div>
       </div>
 

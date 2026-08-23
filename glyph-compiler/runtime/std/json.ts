@@ -1,5 +1,8 @@
+/// <reference path="../glyph-prelude.d.ts" />
 // std/json — JSON encode/decode. `parse` returns a `Result` whose `Err` is a
-// list of `Issue`s (the same shape a record/schema parser reports), so a
+// list of `Issue`s (the same shape a record/schema parser reports; the ambient
+// `Issue`/`Schema` types come from the reference above, so this file compiles
+// in a host project that never reads the generated tsconfig), so a
 // failure can be matched and surfaced like any other validation error.
 //
 // `parse<T>` decodes and casts (no shape check) — the escape hatch. The

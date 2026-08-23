@@ -1,6 +1,9 @@
+/// <reference path="../glyph-prelude.d.ts" />
 // The `Schema<T>` factory behind a record type's auto-generated `T.schema`
 // member (Q8/Q40). `Schema<T>` itself is an ambient prelude type
-// (`glyph-prelude.d.ts`); this factory builds one from a type guard so the
+// (`glyph-prelude.d.ts`), pulled in by the reference above so this file
+// compiles in a host project that never reads the generated tsconfig (G122);
+// this factory builds one from a type guard so the
 // recursive `array()` method (`Schema<T>` -> `Schema<Array<T>>`) can be
 // expressed without inlining it at every record descriptor.
 //
@@ -16,7 +19,7 @@
 // It stays optional: a schema over a type with no descriptor still has a
 // guard and nothing deeper to report.
 
-import { type Result, Ok, Err } from "std/result";
+import { type Result, Ok, Err } from "./result";
 
 export function schema<T>(
   name: string,

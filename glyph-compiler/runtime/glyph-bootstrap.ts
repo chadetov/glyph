@@ -2,7 +2,12 @@
 // without an import — `number`, `par`, `print` — so they must exist as globals
 // at run time. This module installs them onto `globalThis` as a side effect;
 // the `glyph run` entrypoint imports it before invoking the program. The
-// matching ambient *types* live in `glyph-prelude.d.ts`.
+// matching ambient *types* live in `glyph-prelude.d.ts`, and the reference
+// below is what carries them into a compilation that never reads the generated
+// tsconfig (a host project importing an emitted module, G122): every emitted
+// module imports this file, so the reference puts the prelude types in the
+// program wherever the emitted code goes.
+/// <reference path="./glyph-prelude.d.ts" />
 
 import { type Result, Ok, Err } from "./std/result";
 

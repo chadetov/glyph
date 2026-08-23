@@ -4,11 +4,11 @@ expression: ts
 ---
 import "./.glyph-runtime/glyph-bootstrap";
 
-import { None, type Option, Some } from "std/option";
+import { None, type Option, Some } from "./.glyph-runtime/std/option";
 
-import * as io from "std/io";
+import * as io from "./.glyph-runtime/std/io";
 
-import * as record from "std/record";
+import * as record from "./.glyph-runtime/std/record";
 
 export function from_record(t: Record<string, Array<string>>, k: string): void {
   let path;

@@ -385,12 +385,20 @@ fn relative_specifier(from: &str, to: &str) -> String {
     out
 }
 
-/// The relative specifier from a module at `module_path` to the bundled runtime
-/// bootstrap (`.glyph-runtime/glyph-bootstrap`), which sits at the output root.
-/// A root module (`main`) reaches it with `./`; a nested one (`sub/a`) needs one
-/// `../` per enclosing directory. Extensionless, matching `relative_specifier`
-/// (both `tsc`'s `bundler` resolution and external bundlers add the extension).
-fn bootstrap_specifier(module_path: &str) -> String {
+/// The relative specifier from a module at `module_path` to a file bundled
+/// under `.glyph-runtime/` at the output root (`glyph-bootstrap`,
+/// `std/result`, ...). A root module reaches it with `./`; a nested one
+/// (`sub/a`) needs one `../` per enclosing directory. Extensionless, matching
+/// `relative_specifier` (both `tsc`'s `bundler` resolution and external
+/// bundlers add the extension).
+///
+/// Every runtime reference is relative for the same reason the bootstrap
+/// import became relative: a host toolchain compiling the emitted files under
+/// its own configuration (a Vite app importing a generated module, a host
+/// project's `tsc`) resolves a relative path natively, where a bare `std/*`
+/// specifier resolves only under the generated `tsconfig.json`'s `paths` map,
+/// which the host never reads (G122).
+fn runtime_specifier(module_path: &str, tail: &str) -> String {
     let dir_depth = module_path.split('/').count().saturating_sub(1);
     let mut spec = String::new();
     if dir_depth == 0 {
@@ -400,8 +408,15 @@ fn bootstrap_specifier(module_path: &str) -> String {
             spec.push_str("../");
         }
     }
-    spec.push_str(".glyph-runtime/glyph-bootstrap");
+    spec.push_str(".glyph-runtime/");
+    spec.push_str(tail);
     spec
+}
+
+/// The relative specifier from a module at `module_path` to the bundled runtime
+/// bootstrap, which sits at the output root.
+fn bootstrap_specifier(module_path: &str) -> String {
+    runtime_specifier(module_path, "glyph-bootstrap")
 }
 
 /// Whether a constructor pattern's single argument is itself a variant pattern
@@ -858,9 +873,10 @@ impl<'a> Emitter<'a> {
             );
         }
         if self.used_schema.get() {
+            let spec = runtime_specifier(self.ctx.module_path, "std/schema");
             self.out.insert_str(
                 0,
-                &format!("import {{ schema as {SCHEMA_FACTORY} }} from \"std/schema\";\n\n"),
+                &format!("import {{ schema as {SCHEMA_FACTORY} }} from \"{spec}\";\n\n"),
             );
         }
         // One `std/result` import covers both consumers: `?` needs `Err` to
@@ -880,9 +896,10 @@ impl<'a> Emitter<'a> {
             if self.used_result.get() {
                 names.push(format!("type Result as {RESULT_TY}"));
             }
+            let spec = runtime_specifier(self.ctx.module_path, "std/result");
             self.out.insert_str(
                 0,
-                &format!("import {{ {} }} from \"std/result\";\n\n", names.join(", ")),
+                &format!("import {{ {} }} from \"{spec}\";\n\n", names.join(", ")),
             );
         }
         // Every emitted module pulls in the runtime bootstrap for its side
@@ -957,7 +974,8 @@ impl<'a> Emitter<'a> {
                     })
                     .collect::<Vec<_>>()
                     .join(", ");
-                out.push_str(&format!("import {{ {list} }} from \"{module}\";\n"));
+                let spec = runtime_specifier(self.ctx.module_path, module);
+                out.push_str(&format!("import {{ {list} }} from \"{spec}\";\n"));
             }
         }
         if !out.is_empty() {
@@ -1557,15 +1575,20 @@ impl<'a> Emitter<'a> {
             .collect::<Vec<_>>()
             .join("/");
         // A project (sibling) module must be imported by a relative specifier so
-        // `tsc`/`tsx` resolve it against the emitted file tree; `std/*` stays
-        // bare (tsconfig-mapped) and an external npm package stays bare too. An
-        // `extern/*` import names a hand-written `.ts` file the build stages into
-        // `<out>/extern/`; it emits a relative specifier like a sibling so the
-        // same resolution finds it (this is the sanctioned way to reach
-        // hand-written TypeScript without a relative import in Glyph source).
+        // `tsc`/`tsx` resolve it against the emitted file tree. A `std/*` import
+        // is relative too, pointing into the bundled `.glyph-runtime/std/` (see
+        // `runtime_specifier`); only an external npm package stays bare, because
+        // node_modules resolution is the one thing every host resolves the same
+        // way. An `extern/*` import names a hand-written `.ts` file the build
+        // stages into `<out>/extern/`; it emits a relative specifier like a
+        // sibling so the same resolution finds it (this is the sanctioned way to
+        // reach hand-written TypeScript without a relative import in Glyph
+        // source).
         let module_path = path.clone();
         let spec = if self.ctx.project_modules.contains(&path) || path.starts_with("extern/") {
             relative_specifier(self.ctx.module_path, &path)
+        } else if path.starts_with("std/") {
+            runtime_specifier(self.ctx.module_path, &path)
         } else {
             path
         };
@@ -6179,6 +6202,40 @@ mod tests {
     }
 
     #[test]
+    fn nested_module_reaches_the_std_runtime_with_parent_hops() {
+        // Every runtime specifier is relative for the host-toolchain reason on
+        // `runtime_specifier` (G122): a written `std` import, the auto-imported
+        // prelude constructors, and the injected `?` machinery all hop out of
+        // the module's directory to the output-root `.glyph-runtime/std/`.
+        let modules: std::collections::BTreeSet<String> =
+            ["sub/a".to_string()].into_iter().collect();
+        let (module, resolved, types, prelude) = pipeline(
+            "module sub/a\nimport std/io\n\
+             pub fn go(p: string) -> Result<number, string> {\n  \
+               io.print(p)\n  let n = parse(p)?\n  return Ok(n)\n}\n\
+             fn parse(p: string) -> Result<number, string> { return Ok(0) }\n",
+        );
+        let ctx = EmitContext {
+            module_path: "sub/a",
+            project_modules: &modules,
+            record_payload_variants: &EMPTY_VARIANTS,
+            generic_descriptor_arities: &EMPTY_ARITIES,
+            plain_descriptors: &EMPTY_DESCRIPTORS,
+            descriptorless_aliases: &EMPTY_ALIASES,
+        };
+        let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
+        assert!(
+            ts.contains("import * as io from \"../.glyph-runtime/std/io\";"),
+            "{ts}"
+        );
+        assert!(
+            ts.contains("from \"../.glyph-runtime/std/result\";"),
+            "{ts}"
+        );
+        assert!(!ts.contains("from \"std/"), "{ts}");
+    }
+
+    #[test]
     fn bool_maps_to_boolean_and_eq_is_strict() {
         let ts = emit("module x\npub fn p(a: number, b: number) -> bool { return a == b }\n");
         assert!(ts.contains("): boolean {"), "{ts}");
@@ -6380,11 +6437,11 @@ mod tests {
         // and the type.
         assert!(
             ts.contains(
-                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"std/result\";"
+                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"./.glyph-runtime/std/result\";"
             ),
             "{ts}"
         );
-        assert_eq!(ts.matches("from \"std/result\"").count(), 1, "{ts}");
+        assert_eq!(ts.matches("from \"./.glyph-runtime/std/result\"").count(), 1, "{ts}");
     }
 
     /// A JSON `null` is absence for an optional field.
@@ -6486,10 +6543,10 @@ mod tests {
         let ts = emit(
             "module x\npub type User = { id: string }\nfn f(r: Result<int, string>) -> Result<int, string> {\n  let v = r?\n  return Ok(v)\n}\n",
         );
-        assert_eq!(ts.matches("from \"std/result\";").count(), 2, "{ts}");
+        assert_eq!(ts.matches("from \"./.glyph-runtime/std/result\";").count(), 2, "{ts}");
         assert!(
             ts.contains(
-                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"std/result\";"
+                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"./.glyph-runtime/std/result\";"
             ),
             "{ts}"
         );
@@ -6502,7 +6559,7 @@ mod tests {
             "module x\nfn f(r: Result<int, string>) -> Result<int, string> {\n  let v = r?\n  return Ok(v)\n}\n",
         );
         assert!(
-            ts.contains("import { Err as __glyph_err } from \"std/result\";"),
+            ts.contains("import { Err as __glyph_err } from \"./.glyph-runtime/std/result\";"),
             "{ts}"
         );
         assert!(!ts.contains("__glyph_ok"), "{ts}");
@@ -6559,7 +6616,7 @@ mod tests {
         );
         // The module that emits a descriptor gets the aliased factory import.
         assert!(
-            ts.contains("import { schema as __glyph_schema } from \"std/schema\";"),
+            ts.contains("import { schema as __glyph_schema } from \"./.glyph-runtime/std/schema\";"),
             "{ts}"
         );
     }
@@ -6685,9 +6742,9 @@ mod tests {
         let ts = emit(
             "module x\nimport std/result { Ok, Err }\nimport std/io\nimport std/http as h\npub fn noop() -> void { return void }\n",
         );
-        assert!(ts.contains("import { Ok, Err } from \"std/result\";"), "{ts}");
-        assert!(ts.contains("import * as io from \"std/io\";"), "{ts}");
-        assert!(ts.contains("import * as h from \"std/http\";"), "{ts}");
+        assert!(ts.contains("import { Ok, Err } from \"./.glyph-runtime/std/result\";"), "{ts}");
+        assert!(ts.contains("import * as io from \"./.glyph-runtime/std/io\";"), "{ts}");
+        assert!(ts.contains("import * as h from \"./.glyph-runtime/std/http\";"), "{ts}");
     }
 
     #[test]
@@ -6768,7 +6825,7 @@ mod tests {
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
-        assert!(ts.contains("from \"std/io\""), "{ts}");
+        assert!(ts.contains("from \"./.glyph-runtime/std/io\""), "{ts}");
     }
 
     #[test]
@@ -6830,8 +6887,8 @@ mod tests {
         // declares them with `export type`, so without it the name survives type
         // stripping and the import fails to link (G114). The constructors are
         // real values and stay bare.
-        assert!(ts.contains("import { Ok, type Result } from \"std/result\";"), "{ts}");
-        assert!(ts.contains("import { None, type Option } from \"std/option\";"), "{ts}");
+        assert!(ts.contains("import { Ok, type Result } from \"./.glyph-runtime/std/result\";"), "{ts}");
+        assert!(ts.contains("import { None, type Option } from \"./.glyph-runtime/std/option\";"), "{ts}");
     }
 
     #[test]
@@ -6842,7 +6899,7 @@ mod tests {
             "module x\nimport std/result { Result, Ok }\npub fn f(n: number) -> Result<number, string> {\n  return Ok(n)\n}\n",
         );
         // Exactly one import line mentioning std/result (the user's), no injected one.
-        assert_eq!(ts.matches("from \"std/result\"").count(), 1, "{ts}");
+        assert_eq!(ts.matches("from \"./.glyph-runtime/std/result\"").count(), 1, "{ts}");
     }
 
     #[test]
@@ -6995,7 +7052,7 @@ mod tests {
              }\n",
         );
         assert!(
-            ts.contains("import { type Option, Some, None } from \"std/option\";"),
+            ts.contains("import { type Option, Some, None } from \"./.glyph-runtime/std/option\";"),
             "the type-only name must carry `type`, the value names must not; got:\n{ts}"
         );
     }
@@ -7225,7 +7282,7 @@ mod tests {
         );
         // A module using `?` gets the aliased `Err` import the re-wrap needs.
         assert!(
-            ts.contains("import { Err as __glyph_err } from \"std/result\";"),
+            ts.contains("import { Err as __glyph_err } from \"./.glyph-runtime/std/result\";"),
             "{ts}"
         );
         assert!(ts.contains("const __r0 = parse(n);"), "{ts}");

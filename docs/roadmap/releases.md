@@ -4031,6 +4031,11 @@ named, in the rolling lane.
 
 ### 0.1.81 — Shipped · Generated output drops into a host project as-is
 
+Published 2026-08-23 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself (the published binary emits no bare `std/*`
+specifier).
+
 G122, the alias half of the Vite embedding seam. Every `std/*` specifier in
 emitted code is now **relative** to the bundled runtime
 (`./.glyph-runtime/std/result`, with the same parent-hop rule the bootstrap

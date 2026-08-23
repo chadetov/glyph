@@ -3420,7 +3420,7 @@ fn main(argv: Array<string>) -> number {
     assert_eq!(
         emitted
             .matches(
-                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"std/result\";"
+                "import { Ok as __glyph_ok, Err as __glyph_err, type Result as __GlyphResult } from \"./.glyph-runtime/std/result\";"
             )
             .count(),
         1,

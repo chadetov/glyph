@@ -4,7 +4,7 @@ expression: ts
 ---
 import "./.glyph-runtime/glyph-bootstrap";
 
-import { type Result, Ok, Err } from "std/result";
+import { type Result, Ok, Err } from "./.glyph-runtime/std/result";
 
 export function labelled(r: Result<number, string>): string {
   let label;

@@ -36,8 +36,9 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after 0.1.78 closed G102: of 121 entries, 92 are fixed, 10 are
-partly fixed, 9 are decided or resolved, and 10 are open. That round re-ran an assignment the
+Reconciled again after Round 34 added the glyph-kanban entries: of 123 entries,
+92 are fixed, 10 are partly fixed, 9 are decided or resolved, and 12 are open.
+The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
 single pass could run at all (G84). The four it left open are about the
@@ -3999,3 +4000,64 @@ twice on imports its `@example`s needed, which is G106. Their own reference
 notes it as a limitation ("an `@example` that compares against a prelude
 constructor must import it"), so an outside reader has written our lint's
 contradiction into their notes as a known cost of using the language.
+
+## Round 34: glyph-kanban, the second outside application
+
+Read on 2026-08-23. `github.com/yildizadem/glyph-kanban` is a React Kanban board
+by a second author with no connection to the project, and its shape is the one
+no round here has exercised: four Glyph modules (models, an RBAC permission
+matrix, analytics formulas, status transitions; 292 lines) compiled into
+`src/generated/` and imported by hand-written React/TSX under Vite. glyph-hello
+was Glyph all the way down with vanilla JS on top; this is Glyph embedded as the
+domain core of a host TypeScript app, which is the adoption path the author's
+own evaluation docs recommend.
+
+The author pinned `@glyphlang/glyph` 0.1.3 and never upgraded, so the
+retrospective they published on 2026-08-22 evaluates a compiler 62 releases old.
+Four of its findings were closed by later releases and were re-verified rather
+than assumed: the missing execute bit on the platform binary (fixed 0.1.8), the
+`--no-test` flag the docs named but the CLI rejected (it exists now), the
+missing `std/math` (`round`, `min`, `max`, `clamp` all shipped, along with
+`std/time` and `std/decimal` for the date and money math the app pushed out to
+TypeScript), and strict-mode narrowing of the generated validators (their four
+modules rebuilt with 0.1.80 pass a host `tsc` with `"strict": true` clean; the
+author had turned `strict` off). Their sources compile unchanged on 0.1.80. The
+two entries below are what survives contact with the current compiler, and both
+live on the seam the whole architecture stands on.
+
+- **G122. Generated output cannot be dropped into a host TypeScript project
+  without hand-wired aliases, and nothing documents the wiring.** Emitted
+  modules import the runtime through bare `std/*` specifiers. Inside the output
+  directory the generated `tsconfig.json` maps them, but a host project
+  compiles the generated files under its *own* tsconfig, which does not.
+  Reproduced: the app's four modules built with 0.1.80 into a Vite-shaped host
+  project fail the host `tsc` with TS2307 on `std/result` and `std/schema` and
+  a cascade of `Issue`/implicit-`any` errors behind them. With the wiring the
+  author reverse-engineered (a `"std/*"` entry in the host tsconfig `paths`
+  plus a matching `resolve.alias` in `vite.config.ts`, two places that must
+  agree) the same host `tsc --strict` passes clean. Vite does not read tsconfig
+  `paths`, so the esbuild answer recorded in the rolling lane (the generated
+  tsconfig resolves the specifiers) does not cover the most common React
+  toolchain. One more edge on the same seam: the checker cannot see host-TS
+  consumers, so after D33 the author's no-`pub` modules build green while
+  exporting nothing, and the break surfaces only in the host's `tsc`. The
+  options are a design fork, not decided here: relative specifiers (which cost
+  diff stability, since a module's import lines then change with its depth), a
+  documented recipe in the deployment guide, a hybrid-layout `glyph init`
+  template, or a Vite plugin, which is also the G123 answer.
+  *Reproduced against 0.1.80.*
+
+- **G123. No watch mode, so the hybrid dev loop is compile-by-hand.**
+  `glyph build --watch` is an unknown argument. The app's `dev` script compiles
+  once and starts Vite, so every domain-logic change means rerunning
+  `glyph build` by hand while the UI half of the same app gets HMR on save. The
+  author named the missing loop directly, and it is the second half of whatever
+  G122's answer is: a watcher on the CLI, or a Vite plugin that owns both the
+  alias and the rebuild-on-change. *Reproduced against 0.1.80.*
+
+Two measurements to carry without acting on them. 15 of the app's 29 `match`
+expressions are `match <bool> { true => ..., false => ... }`, 52%, the second
+number for what D9 costs at the keyboard beside glyph-hello's 44%. And the
+staleness is itself a datum: nothing in the CLI or docs tells a user that a
+pinned version has fallen 62 releases behind, so a public evaluation shipped
+describing gaps that had been closed for weeks.

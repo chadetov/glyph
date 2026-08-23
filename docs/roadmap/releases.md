@@ -3981,6 +3981,56 @@ The type still says `T`, so this changes when you find out rather than making
 the type honest. The fuller fixes stay on the table if the runtime failure ever
 proves too late.
 
+## glyph-kanban — the second outside application
+
+Read on 2026-08-23, against 0.1.80. `github.com/yildizadem/glyph-kanban` is a
+React Kanban board by a second outside author. Where glyph-hello was Glyph all
+the way down, this one is the hybrid the docs have never written down: four
+Glyph modules (models, an RBAC permission matrix, analytics formulas, status
+transitions; 292 lines) compiled into `src/generated/` and imported by
+hand-written React/TSX under Vite. The author published three evaluation docs
+alongside the app, and the verdict lands on the pillars unprompted: exhaustive
+`match` forcing every new role and status to be handled everywhere before it
+compiles, `grep mut` as a complete mutation audit, no casts for an agent to
+reach for, and a closing recommendation to use Glyph for "mission-critical
+business rules edited autonomously by AI agents" inside an otherwise-TypeScript
+app. That is the manifesto's wedge, rediscovered independently by someone who
+found the walls himself.
+
+The caveat that frames every negative finding: they pinned `@glyphlang/glyph`
+0.1.3 and never upgraded, so the retrospective they published on 2026-08-22
+evaluates a compiler 62 releases old. Four of its five findings were re-verified
+and are already closed (the binary execute bit, the `--no-test` flag,
+`std/math`/`std/time`/`std/decimal`, and strict-mode narrowing: their modules
+rebuilt with 0.1.80 pass a host `tsc --strict` clean). What survives is the seam
+their whole architecture stands on, recorded as Round 34 in
+`docs/dogfooding-gaps.md`:
+
+- **G122.** Generated output cannot be dropped into a host TypeScript project
+  without hand-wiring `std/*` aliases in two places (host tsconfig `paths` and
+  `vite.config.ts` `resolve.alias`), and no guide documents the wiring. Vite
+  does not read tsconfig `paths`, so the generated tsconfig that answers the
+  esbuild case does not cover the most common React toolchain. Reproduced both
+  ways: 25+ host `tsc` errors without the wiring, clean with it.
+- **G123.** No watch mode. The hybrid dev loop is `glyph build` by hand per
+  domain change while the UI half of the same app gets HMR on save.
+
+Both are scheduled into the React track below as the Vite embedding seam: a
+serious React language meets its users inside a Vite project, and today that
+embedding must be reverse-engineered from the emitted imports. The design fork
+(relative specifiers, a documented recipe, an init template, a Vite plugin) is
+recorded in the entry and stays a decision for that track.
+
+Two carries. 15 of the app's 29 `match` expressions are boolean two-arm, 52%,
+the second number for D9's keyboard cost beside glyph-hello's 44%. And the
+staleness is a finding of its own: nothing tells a user a pinned version has
+fallen 62 releases behind, so a public evaluation shipped describing gaps that
+had been closed for weeks. An update notice is a network call from a compiler
+and therefore a policy question; it is deliberately not decided here, only
+named, in the rolling lane.
+
+Nothing here carries the **Next** marker.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code
@@ -4244,6 +4294,17 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
   `@pure` JSX-callable rule (D9). Today a hook that calls `use_state`/effects can
   neither be written nor JSX-called. *Done:* a custom hook and a Context provider
   written in `.glyph`, no TS adapter, used in a component.
+- **The Vite embedding seam** (M). From glyph-kanban (G122, G123): a host app
+  importing generated modules needs hand-wired `std/*` aliases in the host
+  tsconfig and `vite.config.ts` (two places that must agree), and there is no
+  watch mode, so the hybrid dev loop is compile-by-hand next to a UI that gets
+  HMR on save. One design decision covers both: relative specifiers (costs diff
+  stability, since import lines then change with module depth), a documented
+  recipe plus `glyph init` hybrid template, or a Vite plugin that owns the alias
+  and the rebuild-on-change. The deployment-guide chapter is owed under every
+  option. *Done:* a stock Vite React scaffold uses a `.glyph` domain module with
+  no manual tsconfig or vite-config edits and sees a domain change without
+  rerunning `glyph build` by hand.
 - **The React-library grammar primitives** (L), folded into the interop work
   above: prop spread in JSX (`<input {...register()} />`) and value-derived types
   (`z.infer<typeof s>`, generalizing `infer_output`). *Done:* `react-hook-form`
@@ -4881,6 +4942,14 @@ land here until they're assigned a release.
   pessimistic answer. The fix is a worked example naming the tsconfig and
   showing the `esbuild` line. This matters more now that `std/bytes` and
   `std/url` are deliberately host-free.
+- **Nothing tells a user their pinned version is stale.** The glyph-kanban
+  author evaluated 0.1.3 for a month while 62 releases shipped, and published a
+  retrospective describing gaps that had been closed for weeks. An update
+  notice from the CLI is a network call from a compiler, which is a policy
+  question (opt-out, offline behaviour, CI noise), so this is parked as a
+  decision to make deliberately, not a patch. The zero-policy half is doable
+  now: the versions page and README could state plainly how fast the release
+  cadence is, so an evaluator knows to check.
 - **A server cannot be stopped once started** (`std/net` and `std/http`). Both
   `serve` functions resolve `Ok(void)` on close, and neither module exposes
   anything that closes one, so the `Ok` branch is unreachable unless the peer

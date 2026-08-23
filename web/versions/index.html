@@ -49,8 +49,34 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.80</span>
+            <span class="rel-ver">0.1.81</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Generated output drops into your app as-is</h3>
+            <p>An outside engineer built a React Kanban board with the domain core in Glyph and the UI in TSX, and had to reverse-engineer two path aliases (one in <code>tsconfig.json</code>, one in <code>vite.config.ts</code>) before his app would compile the output. Nothing documented them. This release removes the need for both.</p>
+            <div class="code">
+              <span class="cap">Emitted imports, before and after</span>
+<pre><span class="cm">// before: resolved only under the generated tsconfig's paths map,</span>
+<span class="cm">// which your app's tsc and bundler never read</span>
+import { schema } from "std/schema";
+
+<span class="cm">// after: resolves anywhere, no configuration</span>
+import { schema } from "./.glyph-runtime/std/schema";</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>Compiled modules import into a host project with zero config.</strong> Every <code>std/*</code> specifier in emitted code is relative to the bundled runtime, the same rule the bootstrap import has always used. Verified against the Kanban app's own modules: a stock Vite scaffold's <code>tsc --strict</code>, a real <code>vite build</code>, esbuild, and <code>tsx</code> all take the output untouched.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>The prelude types travel with the code.</strong> The bootstrap module every emitted file imports now carries a <code>/// &lt;reference&gt;</code> to the ambient prelude declarations, so <code>Issue</code> and <code>Schema</code> exist in whatever compilation includes your generated files, not just the compiler's own.</li>
+              <li><span class="tag added">Added</span> <strong>The hybrid layout is documented.</strong> The <a href="https://github.com/chadetov/glyph/blob/main/docs/guide/deployment.md">deployment guide</a> covers embedding a Glyph domain core in an existing TypeScript app: the directory shape, the <code>pub</code> requirement, and the <code>@types/node</code> caveat for Node-flavored std modules. There's a new <a href="/answers/embedding/">answers page</a> for the question.</li>
+            </ul>
+            <p>Old projects wired with the aliases keep working; the alias just goes unused. Hand-written <code>extern/*.ts</code> that imports <code>std/*</code> bare still compiles, because the generated tsconfig keeps its <code>paths</code> map. Not in this release: a watch mode, so a hybrid app still reruns <code>glyph build</code> after domain edits.</p>
+          </div>
+        </div>
+
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.80</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

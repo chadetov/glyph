@@ -44,6 +44,45 @@ story.
   a no-bundler deployment has to walk the graph and rename that directory
   itself.
 
+## Embedding in an existing app (Vite, React)
+
+You don't have to write a whole application in Glyph. A common shape keeps the
+domain core (models, permissions, state transitions, calculations) in `.glyph`
+files and the UI and infrastructure in ordinary TypeScript:
+
+```
+src/
+  glyph/         # Glyph sources: models.glyph, permissions.glyph, ...
+  generated/     # glyph build output, imported by the rest of the app
+  components/    # hand-written React/TSX
+```
+
+```sh
+glyph build src/glyph --out src/generated
+```
+
+Then import the output like any local module:
+
+```ts
+import { TaskCard, can_edit } from "./generated/models";
+
+const parsed = TaskCard.parse(payload);   // Result, not an exception
+```
+
+Everything the emitted code needs travels with it: imports are relative
+(including the bundled standard library under `.glyph-runtime/`), and the
+prelude types ride in on a `/// <reference>` from the bootstrap module every
+file imports. Your project's own `tsconfig.json` and bundler need no path
+aliases and no plugins; a stock Vite scaffold compiles and bundles the output
+as-is. Mark what the app imports with `pub`, since a declaration without it is
+private to its module and is not exported.
+
+Two caveats. Rerun `glyph build` after editing `.glyph` sources; there is no
+watch mode yet, so wire it into your `dev` script or run it by hand. And a
+module that uses the Node-flavored parts of the standard library (`std/fs`,
+`std/net`, `std/process`) needs `@types/node` in the host project, same as any
+TypeScript that touches Node.
+
 ## Bundle size and tree-shaking
 
 The emitted TypeScript uses plain `export`s and no barrel files, so a bundler's

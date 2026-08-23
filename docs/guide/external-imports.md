@@ -22,9 +22,10 @@ The three import forms (D15):
 - `import some/module as alias` — aliased namespace.
 
 The compiler only rewrites a specifier for a **sibling Glyph module** in your own
-project (to a relative path) and for `std/*` (tsconfig-mapped to the bundled
-runtime). Everything else — every npm package, every Node builtin — passes
-through verbatim.
+project and for `std/*` — both become relative paths in the emitted TypeScript
+(`./helpers`, `./.glyph-runtime/std/result`), so the output resolves under any
+toolchain without configuration. Everything else — every npm package, every
+Node builtin — passes through verbatim.
 
 ## npm packages
 

@@ -36,8 +36,9 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after Round 34 added the glyph-kanban entries: of 123 entries,
-92 are fixed, 10 are partly fixed, 9 are decided or resolved, and 12 are open.
+Reconciled again after 0.1.81 closed G122 and Round 34 added G124: of 124
+entries, 93 are fixed, 10 are partly fixed, 9 are decided or resolved, and 12
+are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -4025,27 +4026,35 @@ author had turned `strict` off). Their sources compile unchanged on 0.1.80. The
 two entries below are what survives contact with the current compiler, and both
 live on the seam the whole architecture stands on.
 
-- **G122. Generated output cannot be dropped into a host TypeScript project
-  without hand-wired aliases, and nothing documents the wiring.** Emitted
-  modules import the runtime through bare `std/*` specifiers. Inside the output
-  directory the generated `tsconfig.json` maps them, but a host project
-  compiles the generated files under its *own* tsconfig, which does not.
-  Reproduced: the app's four modules built with 0.1.80 into a Vite-shaped host
-  project fail the host `tsc` with TS2307 on `std/result` and `std/schema` and
-  a cascade of `Issue`/implicit-`any` errors behind them. With the wiring the
-  author reverse-engineered (a `"std/*"` entry in the host tsconfig `paths`
+- **G122. [FIXED] Generated output cannot be dropped into a host TypeScript
+  project without hand-wired aliases, and nothing documents the wiring.**
+  Emitted modules imported the runtime through bare `std/*` specifiers. Inside
+  the output directory the generated `tsconfig.json` mapped them, but a host
+  project compiles the generated files under its *own* tsconfig, which does
+  not. Reproduced: the app's four modules built with 0.1.80 into a Vite-shaped
+  host project fail the host `tsc` with TS2307 on `std/result` and `std/schema`
+  and a cascade of `Issue`/implicit-`any` errors behind them. With the wiring
+  the author reverse-engineered (a `"std/*"` entry in the host tsconfig `paths`
   plus a matching `resolve.alias` in `vite.config.ts`, two places that must
   agree) the same host `tsc --strict` passes clean. Vite does not read tsconfig
   `paths`, so the esbuild answer recorded in the rolling lane (the generated
-  tsconfig resolves the specifiers) does not cover the most common React
-  toolchain. One more edge on the same seam: the checker cannot see host-TS
-  consumers, so after D33 the author's no-`pub` modules build green while
-  exporting nothing, and the break surfaces only in the host's `tsc`. The
-  options are a design fork, not decided here: relative specifiers (which cost
-  diff stability, since a module's import lines then change with its depth), a
-  documented recipe in the deployment guide, a hybrid-layout `glyph init`
-  template, or a Vite plugin, which is also the G123 answer.
-  *Reproduced against 0.1.80.*
+  tsconfig resolves the specifiers) did not cover the most common React
+  toolchain. The design fork (relative specifiers, a documented recipe, an init
+  template, a Vite plugin) was decided for relative specifiers.
+
+  **Fixed in 0.1.81.** Every `std/*` specifier in emitted code is now relative
+  to the bundled `.glyph-runtime/std/`, computed with the same parent-hop rule
+  the bootstrap import has always used, and the bootstrap carries a
+  `/// <reference>` to `glyph-prelude.d.ts`, so the ambient `Issue`/`Schema`
+  types travel with the code into any compilation that includes it. Verified
+  three ways against the kanban modules with no aliases and no `paths`: the
+  stock-Vite-shaped host `tsc --strict` passes, a real `vite build` bundles
+  the generated modules with zero config, and `tsx` executes them directly
+  with the right runtime behavior. The generated tsconfig keeps its `paths`
+  map so a hand-written `extern/*.ts` that imports `std/*` bare still
+  compiles. The deployment guide gained the hybrid-embedding section this
+  entry said was missing. The one seam edge that is *not* closed here is
+  split out as G124.
 
 - **G123. No watch mode, so the hybrid dev loop is compile-by-hand.**
   `glyph build --watch` is an unknown argument. The app's `dev` script compiles
@@ -4053,7 +4062,25 @@ live on the seam the whole architecture stands on.
   `glyph build` by hand while the UI half of the same app gets HMR on save. The
   author named the missing loop directly, and it is the second half of whatever
   G122's answer is: a watcher on the CLI, or a Vite plugin that owns both the
-  alias and the rebuild-on-change. *Reproduced against 0.1.80.*
+  alias and the rebuild-on-change. G122's fix (relative specifiers) removed the
+  alias half, so what a plugin would still own is the rebuild-on-change.
+  *Reproduced against 0.1.80.*
+
+- **G124. A module whose whole export surface is private builds green and
+  exports nothing, and only a host toolchain notices.** The kanban author wrote
+  his modules before D33 (0.1.16) made declarations module-private by default,
+  and never marked anything `pub`. On the current compiler those modules build
+  with no diagnostics and emit zero `export`s, so every import in the host
+  React app dies with TS2459 in the host's `tsc`, which is the first tool that
+  can see the break: the Glyph checker only sees Glyph-side importers, and
+  there are none. A Glyph program with `fn main` is fine (the entrypoint is
+  always exported), so the silent case is exactly the library shape the hybrid
+  architecture uses. A candidate fix is a diagnostic on the library case: a
+  module with no `main`, no `pub` declaration, and no Glyph-side importer is
+  useful to nobody, and saying so at build time turns a host-side TS2459 into
+  a Glyph error that names `pub`. *Reproduced against 0.1.80* (the four
+  no-`pub` kanban modules emit `export` zero times; adding `pub` restores the
+  surface).
 
 Two measurements to carry without acting on them. 15 of the app's 29 `match`
 expressions are `match <bool> { true => ..., false => ... }`, 52%, the second

@@ -4029,6 +4029,50 @@ had been closed for weeks. An update notice is a network call from a compiler
 and therefore a policy question; it is deliberately not decided here, only
 named, in the rolling lane.
 
+### 0.1.81 — Shipped · Generated output drops into a host project as-is
+
+G122, the alias half of the Vite embedding seam. Every `std/*` specifier in
+emitted code is now **relative** to the bundled runtime
+(`./.glyph-runtime/std/result`, with the same parent-hop rule the bootstrap
+import has always used), in all four places the emitter writes one: a written
+`import std/io`, the injected `?` machinery, the injected schema factory
+import, and the auto-imported prelude constructors. The runtime's own
+`schema.ts` import of `std/result` went relative with them, and
+`glyph-bootstrap.ts` now carries a `/// <reference>` to `glyph-prelude.d.ts`,
+so the ambient `Issue`/`Schema` types travel wherever the emitted code is
+compiled; `schema.ts` and `json.ts`, which use those types, carry the same
+reference for the case where a host includes them without an emitted module.
+
+The fork recorded in Round 34 was decided for relative specifiers over a
+documented alias recipe or a Vite plugin, on the bootstrap's own precedent: the
+bootstrap import went relative when a Vite build failed to load it, and the
+diff-stability cost is not new in kind, because the bootstrap line already
+varied with module depth. A relative path is the one specifier every host
+toolchain resolves the same way with no configuration; the alias recipe would
+have documented friction instead of removing it, and a plugin is a second
+artifact to install and version for what one emitter rule fixes outright. The
+generated tsconfig keeps its `paths` map so a hand-written `extern/*.ts` that
+imports `std/*` bare still compiles, and old host projects wired with aliases
+keep working (the alias simply goes unused).
+
+Verified against the kanban app's own modules with **zero host config**: a
+stock-Vite-shaped `tsc --strict` passes (25+ errors before), a real
+`vite build` bundles the generated output untouched, and `tsx` executes it
+directly with correct runtime behavior. The conformance corpus re-pinned with
+only specifier lines changing, which is the diff the corpus exists to make a
+human sign off on. The deployment guide gained the hybrid-embedding section
+(layout, the `pub` requirement, the `@types/node` caveat for Node-flavored
+std modules), and the interop guide stopped claiming `std/*` is
+tsconfig-mapped.
+
+Still on the seam after this: G123 (no watch mode; the rebuild half of a
+future Vite plugin) and G124 (a no-`pub` library module builds green and
+exports nothing; the candidate fix is a build-time diagnostic naming `pub`,
+parked in the rolling lane).
+
+Pillar: verifiability at the boundary. The emitted code was only compilable
+inside the compiler's own tsconfig; now the guarantee travels with the files.
+
 Nothing here carries the **Next** marker.
 
 ## Road to 1.0
@@ -4294,17 +4338,15 @@ the React work is a must-have, not a maybe. This is what makes the road longer.
   `@pure` JSX-callable rule (D9). Today a hook that calls `use_state`/effects can
   neither be written nor JSX-called. *Done:* a custom hook and a Context provider
   written in `.glyph`, no TS adapter, used in a component.
-- **The Vite embedding seam** (M). From glyph-kanban (G122, G123): a host app
-  importing generated modules needs hand-wired `std/*` aliases in the host
-  tsconfig and `vite.config.ts` (two places that must agree), and there is no
-  watch mode, so the hybrid dev loop is compile-by-hand next to a UI that gets
-  HMR on save. One design decision covers both: relative specifiers (costs diff
-  stability, since import lines then change with module depth), a documented
-  recipe plus `glyph init` hybrid template, or a Vite plugin that owns the alias
-  and the rebuild-on-change. The deployment-guide chapter is owed under every
-  option. *Done:* a stock Vite React scaffold uses a `.glyph` domain module with
-  no manual tsconfig or vite-config edits and sees a domain change without
-  rerunning `glyph build` by hand.
+- **The Vite embedding seam** (M). From glyph-kanban (G122, G123). The alias
+  half shipped in 0.1.81: emitted `std/*` specifiers are relative, so a stock
+  Vite scaffold compiles and bundles generated output with no tsconfig or
+  vite-config edits, and the deployment guide documents the hybrid layout.
+  What remains is the dev loop: no watch mode (G123), so a domain change still
+  means rerunning `glyph build` by hand next to a UI that gets HMR on save.
+  The candidate shapes are `glyph build --watch` on the CLI or a Vite plugin
+  whose remaining job is rebuild-on-change. *Done:* a stock Vite React scaffold
+  sees a `.glyph` domain change without rerunning `glyph build` by hand.
 - **The React-library grammar primitives** (L), folded into the interop work
   above: prop spread in JSX (`<input {...register()} />`) and value-derived types
   (`z.infer<typeof s>`, generalizing `infer_output`). *Done:* `react-hook-form`
@@ -4933,15 +4975,23 @@ land here until they're assigned a release.
 - **The deployment guide has no browser or worker example, and an outside author
   drew the wrong conclusion from that.** Their spec recorded, as settled before
   the build, that "the emitted code uses bare `std/*` specifiers that a build
-  step must rewrite." It is wrong: `glyph build` emits a `dist/tsconfig.json`
-  carrying `"paths": { "std/*": [...] }`, and `esbuild dist/x.ts --bundle
-  --format=esm` resolves them with no rewriting, producing ESM with zero `node:`
-  imports that runs in a bare realm. `docs/guide/deployment.md` only covers a
-  front-end build through React interop, which does not cover a plain module
-  bundled for a worker, so a reader who looks at the emitted imports reaches the
-  pessimistic answer. The fix is a worked example naming the tsconfig and
-  showing the `esbuild` line. This matters more now that `std/bytes` and
-  `std/url` are deliberately host-free.
+  step must rewrite." Since 0.1.81 the premise is gone outright: emitted
+  specifiers are relative, so any bundler resolves them with no tsconfig at
+  all, and the guide's new hybrid-embedding section covers the Vite case. What
+  is still owed is the plain-worker walkthrough: a module bundled with
+  `esbuild dist/x.ts --bundle --format=esm` yields ESM with zero `node:`
+  imports that runs in a bare realm, and no example in the guide shows that
+  line. This matters more now that `std/bytes` and `std/url` are deliberately
+  host-free.
+- **G124: a library module with no `pub` builds green and exports nothing.**
+  The Glyph checker sees only Glyph-side importers, so a module written for a
+  host TypeScript app (the hybrid shape, D33-era or fresh) can have its whole
+  export surface silently private, and the first tool that notices is the
+  host's `tsc` with TS2459. The candidate fix is a build-time diagnostic on
+  the library shape: no `main`, no `pub`, no Glyph-side importer means the
+  module is useful to nobody, and the error can name `pub`. Parked here until
+  the diagnostic is designed; the deployment guide's embedding section states
+  the `pub` requirement in the meantime.
 - **Nothing tells a user their pinned version is stale.** The glyph-kanban
   author evaluated 0.1.3 for a month while 62 releases shipped, and published a
   retrospective describing gaps that had been closed for weeks. An update

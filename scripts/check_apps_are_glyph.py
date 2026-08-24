@@ -20,6 +20,10 @@ Hard-fails (exit 1) when an app contains:
 `api/users` for the numbered examples, standing in for npm packages a real
 project installs and gets types from. That is a fixture, not a language gap.
 
+Build output (`dist/`, `.glyph-runtime/`) is out of scope for the same reason as
+`node_modules/`: emitting TypeScript is what the compiler does, so its own output
+cannot be evidence that an app was written in TypeScript.
+
 `node_modules/` is out of scope too, and for a sharper reason. The rule is that
 an app must not carry TypeScript *its author wrote*; a vendored dependency is
 not that. Before this exclusion existed, installing one npm package into an app
@@ -46,6 +50,18 @@ def vendored(path: pathlib.Path) -> bool:
     return "node_modules" in path.parts
 
 
+def generated(path: pathlib.Path) -> bool:
+    """Is this the compiler's own output rather than something a person wrote?
+
+    Same principle as `vendored`, different source. `glyph build --out dist`
+    inside an app directory emits the whole runtime as TypeScript, and the gate
+    read those 40 files as an author reaching for a host capability. The rule is
+    about TypeScript an app's author wrote; the compiler's output is the proof
+    the rule is being followed, not a violation of it.
+    """
+    return "dist" in path.parts or ".glyph-runtime" in path.parts
+
+
 def main() -> int:
     if not APPS.is_dir():
         print(f"missing {APPS.relative_to(ROOT)}")
@@ -54,7 +70,7 @@ def main() -> int:
     problems: list[str] = []
 
     for path in sorted(APPS.rglob("*")):
-        if not path.is_file() or vendored(path):
+        if not path.is_file() or vendored(path) or generated(path):
             continue
         rel = path.relative_to(ROOT)
         if path.suffix in {".ts", ".js", ".mjs", ".cjs"} or path.name.endswith(".d.ts"):
@@ -64,7 +80,7 @@ def main() -> int:
             )
 
     for path in sorted(APPS.rglob("*.glyph")):
-        if vendored(path):
+        if vendored(path) or generated(path):
             continue
         rel = path.relative_to(ROOT)
         for n, line in enumerate(path.read_text().splitlines(), 1):

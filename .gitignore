@@ -66,6 +66,7 @@ npm/**/node_modules/
 # use their existing dependencies is the 1.0 interop gate. The installed tree is
 # never committed; CI installs it in the job that builds those apps.
 examples/apps/*/node_modules/
+examples/apps/*/dist/
 
 # Output an example app writes when it is run. The sitegen app renders a site;
 # the pages are a product of running it, not source.

@@ -1,0 +1,74 @@
+// webhook_ingress — an HTTP service that verifies inbound webhooks by
+// HMAC-SHA256 signature, keeps a bounded per-source history in memory, and
+// serves an admin page listing what it accepted.
+//
+// Usage:
+//
+//   glyph run examples/apps/webhook_ingress/main.glyph --port 8080
+//
+// Then, for a configured source (see config.glyph):
+//
+//   secret=billing-shared-secret-do-not-commit
+//   body='{"event":"invoice.paid"}'
+//   sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$secret" | sed 's/^.* //')
+//   curl -X POST localhost:8080/webhooks/billing \
+//     -H "x-signature-256: sha256=$sig" -d "$body"
+//
+// GET /admin lists recent events per source with the raw body HTML-escaped.
+module main
+
+import std/array
+import std/http
+import std/io
+import std/net
+import std/result { Ok, Err }
+import std/time
+import api
+import config
+import store
+
+const DEFAULT_PORT = 8080
+
+fn parse_port(raw: string) -> Result<int, string> {
+  return match number.parse(raw) {
+    Ok(n) => match n > 0 && n < 65536 {
+      true => Ok(n),
+      false => Err("--port wants 1..65535, got ${raw}"),
+    },
+    Err(_) => Err("--port wants a number, got ${raw}"),
+  }
+}
+
+fn port_of(argv: Array<string>) -> Result<int, string> {
+  let count = array.len(argv)
+  return match count {
+    0 => Ok(DEFAULT_PORT),
+    else => match argv[0] == "--port" && count >= 2 {
+      true => parse_port(argv[1]),
+      false => Err("usage: webhook_ingress [--port N]"),
+    },
+  }
+}
+
+async fn main(argv: Array<string>) -> number {
+  let port = match port_of(argv) {
+    Ok(p) => p,
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      return 2
+    },
+  }
+  let rings = array.map(config.source_names(), store.make_ring)
+  return match await http.listen("0.0.0.0", port, fn(req) {
+    return Ok(api.handle(rings, req, time.now()))
+  }) {
+    Ok(server) => {
+      io.println("webhook_ingress listening on ${number.to_string(net.port(server))}")
+      0
+    },
+    Err(e) => {
+      io.eprintln("webhook_ingress: cannot listen: ${e.message}")
+      1
+    },
+  }
+}

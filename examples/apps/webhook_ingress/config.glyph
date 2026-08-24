@@ -1,0 +1,29 @@
+// The registered webhook sources. Each source has its own shared secret; a
+// signature is only ever checked against the secret for the source named in
+// the URL, never against every secret in turn.
+//
+// A real deployment would load these from the environment or a secrets
+// store. They are hardcoded here because the point of this app is the
+// verify-then-buffer pipeline, not configuration loading.
+module config
+
+import std/array
+import std/option { Option, Some, None }
+
+type Source = { name: string, secret: string }
+
+const SOURCES: Array<Source> = [
+  { name: "billing", secret: "billing-shared-secret-do-not-commit" },
+  { name: "shipping", secret: "shipping-shared-secret-do-not-commit" },
+]
+
+pub fn source_names() -> Array<string> {
+  return array.map(SOURCES, fn(s: Source) -> string { return s.name })
+}
+
+pub fn secret_for(name: string) -> Option<string> {
+  return match array.find(SOURCES, fn(s: Source) -> bool { return s.name == name }) {
+    Some(s) => Some(s.secret),
+    None => None,
+  }
+}

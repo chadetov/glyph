@@ -1,0 +1,57 @@
+// The admin page: a plain HTML table of recent events per source, with the
+// raw body escaped before it reaches the page.
+//
+// A webhook body is attacker-controlled text (a third-party integration can
+// send whatever it likes), so it is `taint`ed the moment it is read and only
+// `sanitize`d output ever reaches this render sink. `Store.event_row` cannot
+// compile a path that writes `event.raw_body` into the page directly, because
+// the function that builds the row only accepts a `Trusted<string>`.
+module render
+
+import std/array
+import std/string
+import std/taint { Tainted, Trusted, taint, sanitize, expose }
+import store
+import store { Event, Ring }
+
+fn escape_html(raw: string) -> string {
+  let step1 = string.replace_all(raw, "&", "&amp;")
+  let step2 = string.replace_all(step1, "<", "&lt;")
+  let step3 = string.replace_all(step2, ">", "&gt;")
+  let step4 = string.replace_all(step3, "\"", "&quot;")
+  return string.replace_all(step4, "'", "&#39;")
+}
+
+// The only place a `Trusted<string>` value may be written into the page.
+fn trusted_cell(trusted_value: Trusted<string>) -> string {
+  return expose(trusted_value)
+}
+
+// `event.event_type` came straight from the payload's `event` field (see
+// api.glyph's `Payload`), so it is exactly as attacker-controlled as the raw
+// body and goes through the same taint/sanitize path before it reaches the
+// page. `event.source` does not: `decide` in api.glyph only ever builds an
+// `Event` for a source that matched a configured name, so it is drawn from a
+// fixed, trusted set rather than from the request.
+fn event_row(event: Event) -> string {
+  let event_type: Tainted<string> = taint(event.event_type)
+  let raw_body: Tainted<string> = taint(event.raw_body)
+  let safe_type = trusted_cell(sanitize(event_type, escape_html))
+  let safe_body = trusted_cell(sanitize(raw_body, escape_html))
+  let at = number.to_string(event.received_at)
+  return "<tr><td>${event.source}</td><td>${safe_type}</td><td>${at}</td><td><pre>${safe_body}</pre></td></tr>"
+}
+
+fn source_section(ring: Ring) -> string {
+  let rows = array.map(store.recent(ring), event_row)
+  let count = number.to_string(array.len(rows))
+  let empty = ""
+  let body = string.join(rows, empty)
+  return "<h2>${ring.source} (${count})</h2><table><tr><th>source</th><th>type</th><th>received_at</th><th>body</th></tr>${body}</table>"
+}
+
+pub fn admin_page(rings: Array<Ring>) -> string {
+  let empty = ""
+  let sections = string.join(array.map(rings, source_section), empty)
+  return "<!doctype html><html><head><title>Webhook Ingress</title></head><body><h1>Webhook Ingress — recent events</h1>${sections}</body></html>"
+}

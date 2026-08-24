@@ -1,0 +1,132 @@
+// The HTTP surface: one ingest route per configured source, plus an admin
+// page listing what was accepted.
+//
+// Every accept or reject decision is logged as one structured JSON line
+// before the response is written, so the log is a complete record of what
+// this service decided even when nothing else is watching.
+module api
+
+import std/array
+import std/http
+import std/http { Request, Response }
+import std/json
+import std/log
+import std/option { Some, None }
+import std/result { Ok, Err }
+import std/string
+import config
+import render
+import store
+import store { Event, Ring }
+import verify
+
+// The wire shape every accepted payload must carry: a string `event` naming
+// what happened. A source that sends a body without one is rejected before
+// it ever reaches the ring buffer.
+@open
+type Payload = { event: string }
+
+// The outcome of one ingest attempt, matched to decide both the response and
+// the log line. Keeping this as a value (rather than branching twice, once
+// for the response and once for the log) is what keeps the two from drifting
+// apart.
+type Outcome =
+  | Accepted({ event_type: string })
+  | Rejected({ reason: string })
+
+pub fn handle(rings: Array<Ring>, req: Request, now_ms: int) -> Response {
+  let parts = http.segments(req)
+  let method = string.upper(req.method)
+  return match route_of(method, parts) {
+    Health => http.text(200, "ok"),
+    Admin => http.html(200, render.admin_page(rings)),
+    Ingest({ source }) => ingest(rings, source, req, now_ms),
+    NotFound => http.text(404, "not found"),
+  }
+}
+
+type Route =
+  | Health
+  | Admin
+  | Ingest({ source: string })
+  | NotFound
+
+@example route_of("GET", ["health"]) == Health
+@example route_of("GET", ["admin"]) == Admin
+@example route_of("POST", ["webhooks", "billing"]) == Ingest({ source: "billing" })
+@example route_of("GET", ["webhooks", "billing"]) == NotFound
+@example route_of("POST", ["webhooks"]) == NotFound
+@example route_of("GET", ["nope"]) == NotFound
+fn route_of(method: string, parts: Array<string>) -> Route {
+  let count = array.len(parts)
+  return match count == 1 && parts[0] == "health" && method == "GET" {
+    true => Health,
+    false => match count == 1 && parts[0] == "admin" && method == "GET" {
+      true => Admin,
+      false => match count == 2 && parts[0] == "webhooks" && method == "POST" {
+        true => Ingest({ source: parts[1] }),
+        false => NotFound,
+      },
+    },
+  }
+}
+
+fn ingest(rings: Array<Ring>, source: string, req: Request, now_ms: int) -> Response {
+  let outcome = decide(rings, source, req, now_ms)
+  log_outcome(source, outcome)
+  return match outcome {
+    Accepted({ event_type }) => http.json(202, { status: "accepted", event_type: event_type }),
+    Rejected({ reason }) => http.json(401, { status: "rejected", reason: reason }),
+  }
+}
+
+fn log_outcome(source: string, outcome: Outcome) -> void {
+  match outcome {
+    Accepted({ event_type }) => log.with_fields("info", "webhook accepted", {
+      source: source,
+      decision: "accepted",
+      event_type: event_type,
+    }),
+    Rejected({ reason }) => log.with_fields("warn", "webhook rejected", {
+      source: source,
+      decision: "rejected",
+      reason: reason,
+    }),
+  }
+}
+
+fn decide(rings: Array<Ring>, source: string, req: Request, now_ms: int) -> Outcome {
+  let ring = match array.find(rings, fn(r: Ring) -> bool { return r.source == source }) {
+    Some(r) => r,
+    None => { return Rejected({ reason: "unknown source" }) },
+  }
+  let secret = match config.secret_for(source) {
+    Some(s) => s,
+    None => { return Rejected({ reason: "unknown source" }) },
+  }
+  let sig = match http.header(req, "x-signature-256") {
+    Some(s) => s,
+    None => { return Rejected({ reason: "missing signature" }) },
+  }
+  let raw_body = http.raw(req)
+  match verify.signature_valid(secret, raw_body, sig) {
+    true => {},
+    false => { return Rejected({ reason: "bad signature" }) },
+  }
+  let decoded = match json.parse<unknown>(raw_body) {
+    Ok(v) => v,
+    Err(_) => { return Rejected({ reason: "body is not JSON" }) },
+  }
+  let payload = match Payload.parse(decoded) {
+    Ok(p) => p,
+    Err(_) => { return Rejected({ reason: "body needs a string `event`" }) },
+  }
+  let event: Event = {
+    source: source,
+    event_type: payload.event,
+    received_at: now_ms,
+    raw_body: raw_body,
+  }
+  store.push(ring, event)
+  return Accepted({ event_type: payload.event })
+}

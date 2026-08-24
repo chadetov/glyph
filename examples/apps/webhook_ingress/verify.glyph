@@ -1,0 +1,33 @@
+// HMAC-SHA256 signature verification over the raw request body.
+//
+// The comparison runs through `crypto.timing_safe_equal` rather than
+// `bytes.equals` or `==`, so an attacker probing signatures cannot learn how
+// many leading bytes matched from response timing.
+module verify
+
+import std/bytes
+import std/crypto
+import std/result { Ok, Err }
+import std/string
+
+// Some providers prefix the header value with the algorithm name
+// ("sha256=<hex>"); strip it before decoding.
+fn strip_prefix(header_value: string) -> string {
+  return match string.starts_with(header_value, "sha256=") {
+    true => string.slice(header_value, 7),
+    false => header_value,
+  }
+}
+
+// Whether `header_value` is a valid HMAC-SHA256 signature of `raw_body` under
+// `secret`. A header that is not valid hex is a reject, not a crash.
+pub fn signature_valid(secret: string, raw_body: string, header_value: string) -> bool {
+  let expected = crypto.hmac_sha256_bytes(
+    bytes.from_text(secret),
+    bytes.from_text(raw_body),
+  )
+  return match bytes.from_hex(strip_prefix(header_value)) {
+    Ok(given) => crypto.timing_safe_equal(expected, given),
+    Err(_) => false,
+  }
+}

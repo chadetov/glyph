@@ -1,0 +1,40 @@
+// A bounded, per-source event history: a `Deque` used as a ring buffer,
+// evicting the oldest entry once a source passes `CAPACITY` events.
+module store
+
+import std/array
+import std/collections { deque, Deque }
+
+const CAPACITY = 20
+
+@open
+pub type Event = {
+  source: string,
+  event_type: string,
+  received_at: int,
+  raw_body: string,
+}
+
+// One source's ring buffer. `buffer` is a `Deque`, whose push/pop methods
+// mutate the queue in place through the closure `deque` returns, so a `Ring`
+// can be passed by value while still sharing one underlying buffer.
+pub type Ring = { source: string, buffer: Deque<Event> }
+
+pub fn make_ring(source: string) -> Ring {
+  return { source: source, buffer: deque<Event>() }
+}
+
+// Append `event` to `ring`, evicting the oldest entry if this push put it
+// over `CAPACITY`.
+pub fn push(ring: Ring, event: Event) -> void {
+  ring.buffer.push_back(event)
+  match ring.buffer.len() > CAPACITY {
+    true => { let _ = ring.buffer.pop_front() },
+    false => {},
+  }
+}
+
+// Most recent first, for the admin page.
+pub fn recent(ring: Ring) -> Array<Event> {
+  return array.reverse(ring.buffer.values())
+}

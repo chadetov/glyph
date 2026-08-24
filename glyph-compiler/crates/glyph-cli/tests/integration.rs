@@ -2723,6 +2723,241 @@ fn main(argv: Array<string>) -> number {
     }
 }
 
+/// A dev-loop tool watches a long-running subprocess while it runs, which needs
+/// the async `spawn` rather than `spawnSync`: the child's `stdout`/`stderr` are
+/// readable streams and the exit code arrives on a `close` event. The bundled
+/// shim must type both without `@types/node`, or the callbacks fall back to
+/// implicit `any` and `--strict` rejects them (TS7006).
+#[test]
+fn child_process_spawn_streams_typecheck_with_the_shim() {
+    if !tsc_available() {
+        eprintln!("skipping spawn-stream check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("spawnstream");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import child_process { spawn }
+import std/io
+
+pub async fn main(argv: Array<string>) -> number {
+  let child = spawn("echo", ["hello"])
+  child.stdout.on("data", fn(chunk) {
+    io.println("${chunk}")
+  })
+  child.on("close", fn(code) {
+    io.println("exit ${code}")
+  })
+  return 0
+}
+"#,
+    );
+
+    let out = root.join("dist");
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => {
+            panic!("streaming child_process.spawn did not type-check with the bundled shim:\n{msg}")
+        }
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+/// The guarantee `spawn` gives must not change with the spelling. `stdio:
+/// "inherit"` hands back the *named* `ChildProcess`, whose three pipes are
+/// declared nullable exactly as `@types/node` declares them, so a value routed
+/// through `fn f(c: ChildProcess)` tells the same story as the value at the call
+/// site: the property exists, and reaching it without a null check is the error.
+/// The event names are literal types, so a misspelling is caught rather than
+/// silently never firing.
+#[test]
+fn spawned_child_pipes_are_nullable_under_the_named_type() {
+    if !tsc_available() {
+        eprintln!("skipping spawn-nullability check: tsc not available");
+        return;
+    }
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+
+    let main_glyph = "module main\nimport extern/child { tally }\nfn main(argv: Array<string>) -> number {\n  return tally()\n}\n";
+
+    // The whole surface at once: the base type carries the pipes (guarded
+    // access compiles), the default overload's pipes are non-null (unguarded
+    // access compiles), and the `stdio` overload's result is still a
+    // `ChildProcess`.
+    let root = unique_tmp("spawnnull_ok");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "extern/child.ts",
+        r#"import { spawn, type ChildProcess } from "child_process";
+
+function tap(child: ChildProcess): number {
+  let n = 0;
+  child.stdout?.on("data", () => { n = n + 1; });
+  child.stderr?.on("data", () => { n = n + 1; });
+  child.stdin?.end();
+  child.on("close", (code: number | null) => { n = n + (code ?? 0); });
+  return n;
+}
+
+export function tally(): number {
+  const quiet = spawn("echo", ["hi"], { stdio: "inherit" });
+  const piped = spawn("echo", ["hi"]);
+  piped.stdout.setEncoding("utf8");
+  piped.stdout.on("data", () => {});
+  return tap(quiet) + tap(piped);
+}
+"#,
+    );
+    write_file(&src, "main.glyph", main_glyph);
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("the named ChildProcess surface did not type-check:\n{msg}"),
+        TscOutcome::NotFound => {
+            eprintln!("skipping: tsc not found at check time");
+            return;
+        }
+    }
+
+    // Each of these must be rejected. Without the nullable pipes on the base
+    // type the first would either pass (pipes non-null everywhere) or fail with
+    // "property does not exist", which is the wrong story; without literal
+    // event names the second would pass and the handler would never fire.
+    for (label, extern_ts) in [
+        (
+            "unguarded pipe on the named type",
+            r#"import { type ChildProcess } from "child_process";
+export function tally(): number {
+  let n = 0;
+  const use = (c: ChildProcess) => { c.stdout.on("data", () => { n = n + 1; }); };
+  use(undefined as unknown as ChildProcess);
+  return n;
+}
+"#,
+        ),
+        (
+            "misspelled stream event name",
+            r#"import { spawn } from "child_process";
+export function tally(): number {
+  let n = 0;
+  spawn("echo", ["hi"]).stdout.on("datum", () => { n = n + 1; });
+  return n;
+}
+"#,
+        ),
+        (
+            "misspelled process event name",
+            r#"import { spawn } from "child_process";
+export function tally(): number {
+  let n = 0;
+  spawn("echo", ["hi"]).on("closed", () => { n = n + 1; });
+  return n;
+}
+"#,
+        ),
+    ] {
+        let root = unique_tmp("spawnnull_bad");
+        let src = root.join("src");
+        let out = root.join("dist");
+        write_file(&src, "extern/child.ts", extern_ts);
+        write_file(&src, "main.glyph", main_glyph);
+        let report = build_project_inner(&src, &out, false).expect("build ok");
+        assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+        match check_with_tsc(&out).expect("run tsc") {
+            TscOutcome::Passed => panic!("{label} was accepted by tsc"),
+            TscOutcome::Failed(_) => {}
+            TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+        }
+    }
+}
+
+/// The shim must not export a name the real typings do not. `Signals` is the
+/// one that nearly slipped through: `@types/node` keeps it in the global
+/// `NodeJS` namespace and exports nothing by that name from `child_process`,
+/// and a type declared inside `declare module "child_process"` is exported from
+/// it with or without the `export` keyword. Declared there, this program would
+/// build green with nothing installed and report `TS2305` the moment a user
+/// followed the guide and installed `@types/node`, which is exactly the trap
+/// G125 was about.
+#[test]
+fn child_process_does_not_export_the_signal_names() {
+    if !tsc_available() {
+        eprintln!("skipping shim-surface check: tsc not available");
+        return;
+    }
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+
+    let root = unique_tmp("spawnsignals");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import child_process { spawn, Signals }
+
+pub fn main(argv: Array<string>) -> number {
+  let child = spawn("echo", ["hi"])
+  return 0
+}
+"#,
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {
+            panic!("the shim exports `Signals` from `child_process`; `@types/node` does not")
+        }
+        TscOutcome::Failed(msg) => assert!(
+            msg.contains("Signals"),
+            "expected the rejection to name `Signals`, got:\n{msg}"
+        ),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+
+    // The names it *does* export have to keep working, or the check above would
+    // pass for the wrong reason.
+    let root = unique_tmp("spawnsignals_ok");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "extern/sig.ts",
+        r#"import { spawn } from "child_process";
+
+export function stop(): number {
+  const child = spawn("sleep", ["10"]);
+  const sig: NodeJS.Signals = "SIGTERM";
+  return child.kill(sig) ? 0 : 1;
+}
+"#,
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\nimport extern/sig { stop }\nfn main(argv: Array<string>) -> number {\n  return stop()\n}\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diagnostics: {:?}", report.diagnostics);
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("`NodeJS.Signals` did not type-check:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
 /// True only when both `node` and `tsx` are runnable. `glyph run` shells out to
 /// `tsx`, which itself needs `node`; a box with `tsx` but no `node` would make a
 /// run fail for environmental reasons, not a real defect.

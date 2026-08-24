@@ -157,6 +157,10 @@ jobs:
       # catch that: the first guard built its stand-in by copying the shim and
       # passed against the very version that was failing. This installs the
       # real package at `latest`.
+      # Also asks the narrower question the runtime build cannot: does every name
+      # the shim exports actually exist in the real package? A name only user
+      # code reaches never appears in the runtime build, which is how an invented
+      # `Signals` export survived two review rounds.
       - name: Check the runtime against the real @types/node
         env:
           GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph

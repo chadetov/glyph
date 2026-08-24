@@ -4161,6 +4161,65 @@ typings stays in the rolling lane.
 
 Nothing here carries the **Next** marker.
 
+### Unreleased · A subprocess you can watch while it runs
+
+G126, from the same app that found G125 and for the same reason: the bundled
+node shim had `spawnSync` and `execFileSync` and not the async `spawn`. Both of
+the two it had block until the child exits and return the whole output at once,
+so a dev-loop tool that reports a long-running command's output while it runs
+could not be written at all without installing `@types/node`.
+
+The failure named the wrong thing twice over. `TS2305` said `spawn` is not
+exported, and then two `TS7006`s said the `data` and `close` handlers had
+implicit `any` parameters, because with no `ChildProcess` type behind the value
+there was nothing to contextually type them from.
+
+`spawn` is declared now, with the overload pairs `@types/node` uses, and a
+`stream` module carrying the `Readable`/`Writable` subset a child's pipes need
+(that is where the real typings export them from; declaring them inside
+`child_process` would make `import child_process { Readable }` compile until the
+real package arrived). A plain `spawn(cmd, args)` returns
+`ChildProcessWithoutNullStreams`, whose pipes are non-null; anything that can
+turn a pipe off returns the named `ChildProcess`, whose pipes are nullable.
+
+The pipes live on the base interface, not only on the return type, and that is
+the whole point of the shape. The first attempt put them only on the return
+type, which made the guarantee change with the spelling: `let c = spawn(...)`
+reported `TS18047` "possibly null" while `fn f(c: ChildProcess)` reported
+`TS2339` "property does not exist", a different story about the same value.
+Checked against `@types/node` 26.2.0, the shim now reports the same code as the
+real typings on both, and `setEncoding` takes `BufferEncoding` rather than
+`string` so it reports the same `TS2345` too. `string` there would have been
+G125 again: wider than node, green here, red the moment the package is
+installed.
+
+Stream and process event names stay literal types, which is stricter than
+`@types/node` (it keeps the `EventEmitter` string fallback, so `on("datum", ...)`
+compiles there). That matches the `net` block's existing choice and errs the safe
+way: the shim no longer accepts a *name* the real typings reject. That is
+narrower than it sounds. A duck-typed `Readable` still compiles here and fails
+`TS2345` under `@types/node`, because node's is a class and the shim's an
+interface, so shape parity is a separate and harder problem than name parity.
+
+The signal names sit in a global `declare namespace NodeJS`, not inside
+`declare module "child_process"`, and that placement is load-bearing rather than
+tidy. A type declared in an ambient module is exported from it whether or not it
+says `export`, so the first attempt's private-looking `type Signals` made
+`import child_process { spawn, Signals }` compile with nothing installed and
+fail `TS2305` once `@types/node` was there. `@types/node` keeps `Signals` in the
+`NodeJS` namespace, so the shim does too, and a test builds that import and
+requires `tsc` to reject it.
+
+Still open on this seam, and found while checking this change: five other shim
+declarations take `string` where node takes `BufferEncoding`
+(`net.Socket.setEncoding`, `new StringDecoder(...)`, `Buffer.from(s, enc)`,
+`Buffer.byteLength(s, enc)`, `buf.toString(enc)`). Same bug as G125 and G126,
+never swept. Narrowing a declaration people already build on is a guarantee
+change, so it is in the rolling lane with the reproduction rather than folded in
+here. Behind it: nothing compares the shim against `@types/node` declaration by
+declaration, and `check_runtime_against_types_node.py` only covers what the
+compiler's own runtime touches.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code
@@ -5124,6 +5183,28 @@ land here until they're assigned a release.
   It only shows when two projects share a module name, which for `main.glyph` is
   every app in the tree. This is the class 0.1.60 closed for single-project
   builds; the multi-project path kept it.
+- **Some declarations in the bundled node shim are still wider than node, all
+  the same way.** G125 and G126 were both this bug. `net.Socket.setEncoding`,
+  `http.IncomingMessage.setEncoding`, `new StringDecoder(...)`, `Buffer.from(s,
+  enc)`, `Buffer.byteLength(s, enc)` and `buf.toString(enc)` take `string` where
+  `@types/node` takes `BufferEncoding`, so passing a `string` variable compiles
+  without the package and fails with it. The count is deliberately not stated:
+  the previous entry said five, arrived at by reading the file, and missed
+  `http.IncomingMessage`. A number counted by eye is the argument for the sweep,
+  not a substitute for it. `check_runtime_against_types_node.py` now proves every
+  exported *name* exists in the real package, which is a different question from
+  whether its *shape* matches; the shape sweep is still owed.
+  Not fixed in the same change because narrowing a declaration people already
+  build on is a change to a guarantee, and it wants its own release with the
+  runtime re-checked rather than a drive-by inside a feature.
+- **Nothing compares the bundled node shim with `@types/node` declaration by
+  declaration.** `check_runtime_against_types_node.py` builds the compiler's own
+  runtime against the real package, so it catches a divergence the *runtime*
+  depends on. A divergence only user code depends on is invisible to it, which is
+  how the five above survived two releases spent on exactly this class of bug.
+  The check is the larger piece: comparing two `.d.ts` surfaces means deciding
+  what "narrower" means per position, and a parameter and a return want opposite
+  answers. That is a design task, not a script.
 - **`bytes.to_array` is 57 ms per megabyte**, with no `Buffer` equivalent to
   compare against, because it builds a JavaScript array of a million numbers.
   That is inherent to the target type rather than a defect, and it is the one

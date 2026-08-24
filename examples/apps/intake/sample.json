@@ -1,0 +1,5 @@
+[
+  { "name": "Ada Lovelace", "age": 36, "email": "ada@example.com", "salary": 95000, "zip": "10001" },
+  { "name": "", "age": 200, "email": "not-an-email", "salary": -500, "zip": "1" },
+  { "age": 41, "email": "bad", "salary": 40000, "zip": "94107" }
+]

@@ -1,0 +1,109 @@
+// validated — an applicative-style validation type.
+//
+// `Result<T, E>` (std/result) stops at the first `Err`: it is the right tool
+// when the second check should not even run once the first has failed.
+// `Validated<E, T>` is for the opposite situation, batch input where every
+// field check is independent and a caller wants the whole list of what is
+// wrong, not just the first thing. `Valid`/`Invalid` never short-circuit: a
+// merge (`map2`, `map3`) that sees two `Invalid` sides concatenates both
+// error lists rather than keeping only the first.
+//
+// This is a hand-rolled generic tagged union, not a wrapper over `Result`,
+// because the two failure semantics (stop-at-first vs. collect-all) are
+// different enough that unifying them would blur which one a given call site
+// gets.
+module validated
+
+import std/array
+
+pub type Validated<E, T> =
+  | Valid({ value: T })
+  | Invalid({ errors: Array<E> })
+
+pub fn valid<E, T>(value: T) -> Validated<E, T> {
+  return Valid({ value: value })
+}
+
+pub fn invalid<E, T>(errors: Array<E>) -> Validated<E, T> {
+  return Invalid({ errors: errors })
+}
+
+// Transform the success value; an `Invalid` passes its errors through
+// unchanged.
+pub fn map<E, T, U>(v: Validated<E, T>, f: fn(T) -> U) -> Validated<E, U> {
+  return match v {
+    Valid({ value }) => Valid({ value: f(value) }),
+    Invalid({ errors }) => Invalid({ errors: errors }),
+  }
+}
+
+// Combine two independent checks. Both sides run (there is nothing to
+// short-circuit; each argument is already a finished `Validated`), and if
+// both are `Invalid` the merged error list carries every entry from both,
+// left errors first.
+pub fn map2<E, A, B, R>(a: Validated<E, A>, b: Validated<E, B>, f: fn(A, B) -> R) -> Validated<E, R> {
+  return match a {
+    Valid({ value: av }) => match b {
+      Valid({ value: bv }) => Valid({ value: f(av, bv) }),
+      Invalid({ errors: be }) => Invalid({ errors: be }),
+    },
+    Invalid({ errors: ae }) => match b {
+      Valid(_) => Invalid({ errors: ae }),
+      Invalid({ errors: be }) => Invalid({ errors: array.concat(ae, be) }),
+    },
+  }
+}
+
+// Combine three independent checks, same accumulate-everything rule as
+// `map2`. Written as its own nested match (not composed from `map2` through
+// a throwaway pair type) so every one of the eight `Valid`/`Invalid`
+// combinations is an explicit, exhaustively-checked arm.
+pub fn map3<E, A, B, C, R>(
+  a: Validated<E, A>,
+  b: Validated<E, B>,
+  c: Validated<E, C>,
+  f: fn(A, B, C) -> R,
+) -> Validated<E, R> {
+  return match a {
+    Valid({ value: av }) => match b {
+      Valid({ value: bv }) => match c {
+        Valid({ value: cv }) => Valid({ value: f(av, bv, cv) }),
+        Invalid({ errors: ce }) => Invalid({ errors: ce }),
+      },
+      Invalid({ errors: be }) => match c {
+        Valid(_) => Invalid({ errors: be }),
+        Invalid({ errors: ce }) => Invalid({ errors: array.concat(be, ce) }),
+      },
+    },
+    Invalid({ errors: ae }) => match b {
+      Valid(_) => match c {
+        Valid(_) => Invalid({ errors: ae }),
+        Invalid({ errors: ce }) => Invalid({ errors: array.concat(ae, ce) }),
+      },
+      Invalid({ errors: be }) => match c {
+        Valid(_) => Invalid({ errors: array.concat(ae, be) }),
+        Invalid({ errors: ce }) => Invalid({ errors: array.concat(array.concat(ae, be), ce) }),
+      },
+    },
+  }
+}
+
+// Fold a batch of independent results into one: every `Valid` value in
+// order if all of them passed, otherwise every error from every `Invalid`
+// entry, concatenated in order. This is what turns "one record's report" into
+// "the whole batch's report": call it on `Array<Validated<E, T>>`, one entry
+// per input row.
+pub fn sequence<E, T>(items: Array<Validated<E, T>>) -> Validated<E, Array<T>> {
+  let values: Array<T> = []
+  let errors: Array<E> = []
+  for item in items {
+    match item {
+      Valid({ value }) => { mut values.push(value) },
+      Invalid({ errors: es }) => { mut errors = array.concat(errors, es) },
+    }
+  }
+  return match array.len(errors) > 0 {
+    true => Invalid({ errors: errors }),
+    false => Valid({ value: values }),
+  }
+}

@@ -49,9 +49,37 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.81</span>
+            <span class="rel-ver">0.1.82</span>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>The download runs, and the package carries its license</h3>
+            <p>If you installed from npm, none of this affected you. If you downloaded a tarball from the Releases page and followed the instructions on it, you got <code>permission denied</code>, because every archive we have ever published carried the binary without its execute bit. The npm packages were always correct, which is exactly why nobody caught it: the smoke test that runs before each release only exercises npm.</p>
+            <div class="code">
+              <span class="cap">What was in the tarball, and what is in it now</span>
+<pre><span class="cm">// before</span>
+-rw-r--r--  glyph
+
+<span class="cm">// after</span>
+-rwxr-xr-x  glyph</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>The binaries on the Releases page are executable.</strong> GitHub's artifact upload strips the Unix mode, and only the npm half of the pipeline restored it. The build now packs each binary into a tar before upload so the mode travels inside the archive, and the release job extracts a finished archive and checks the bit before publishing. Confirmed against v0.1.10, v0.1.80 and v0.1.81: all three shipped mode 0644.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>Every npm package ships its license text.</strong> All six declared <code>MIT OR Apache-2.0</code> and contained neither file.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>The reinstall hint names this package.</strong> When a platform package is missing, the launcher used to suggest <code>npm install glyph</code>. That is an unrelated static site generator. It now says <code>npm install @glyphlang/glyph</code>, with a test so it cannot drift back.</li>
+              <li><span class="tag changed">Changed</span> <strong>A release checks itself before it publishes.</strong> npm versions are immutable, so the pipeline now does everything checkable first: the tag must match every version string in the repo, the commit must be on <code>main</code> and have passed CI, each binary is run on its own platform and asked for its version, and all six packages are dry-run before the first real publish. Publishing to a version that already exists stops the release instead of half-completing it.</li>
+              <li><span class="tag known">Known</span> <strong>The x86-64 macOS binary is not executed by CI.</strong> The macOS runner is arm64, so running it there needs Rosetta, which the image does not guarantee. Its mode is checked like every other; nothing runs it.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.81</span>
+                        <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
             <h3>Generated output drops into your app as-is</h3>

@@ -461,10 +461,17 @@ jobs:
           # noticed was the launcher failing to resolve its binary.
           #
           # So the retry keys on the platform package actually being present.
+          # `--prefer-online` is load-bearing, not a nicety. npm caches the
+          # packument including a negative result, so once a runner has been told
+          # 0.1.83 does not exist it keeps believing that from cache and every
+          # retry returns the same ETARGET. That is how the 0.1.83 smoke burned
+          # all ten attempts in 150 seconds while the version was live: two
+          # runners never re-asked. Registry CDNs also serve regionally, so
+          # ubuntu saw the publish while macOS and Windows did not.
           installed=""
           pkg=""
           for attempt in $(seq 1 10); do
-            npm install "@glyphlang/glyph@$VERSION" --no-audit --no-fund || true
+            npm install "@glyphlang/glyph@$VERSION" --no-audit --no-fund --prefer-online || true
             if [ -f node_modules/@glyphlang/glyph/bin/resolve.js ]; then
               pkg="$(node -p "require('./node_modules/@glyphlang/glyph/bin/resolve.js').packageForPlatform(process.platform, process.arch)")"
               if [ -d "node_modules/$pkg" ]; then
@@ -475,7 +482,9 @@ jobs:
             else
               echo "install incomplete (attempt $attempt/10)"
             fi
-            sleep 15
+            # Back off rather than hammering: propagation is measured in minutes,
+            # and ten attempts 15s apart only ever covered two and a half.
+            sleep $((attempt * 15))
           done
           if [ -z "$installed" ]; then
             echo "::error::@glyphlang/glyph@$VERSION did not install completely after 10 attempts."

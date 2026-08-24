@@ -9,7 +9,9 @@
     "arm64"
   ],
   "files": [
-    "bin/"
+    "bin/",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
   ],
   "license": "MIT OR Apache-2.0",
   "keywords": [

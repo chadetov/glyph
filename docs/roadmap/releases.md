@@ -4161,7 +4161,12 @@ typings stays in the rolling lane.
 
 Nothing here carries the **Next** marker.
 
-### Unreleased · A subprocess you can watch while it runs
+### 0.1.84 — Shipped · A subprocess you can watch while it runs
+
+Published 2026-08-24 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
+
 
 G126, from the same app that found G125 and for the same reason: the bundled
 node shim had `spawnSync` and `execFileSync` and not the async `spawn`. Both of

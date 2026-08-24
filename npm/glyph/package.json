@@ -7,7 +7,9 @@
   },
   "files": [
     "bin/glyph.js",
-    "bin/resolve.js"
+    "bin/resolve.js",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
   ],
   "engines": {
     "node": ">=18"

@@ -49,9 +49,36 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.82</span>
+            <span class="rel-ver">0.1.83</span>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Install <code>@types/node</code> and your build still works</h3>
+            <p>The external-imports guide tells you to install <code>@types/node</code> when you want the full node builtin surface. Doing that broke every build, inside our own runtime, on a program that contained nothing but an empty <code>main</code>. Four errors, none of them in your code.</p>
+            <div class="code">
+              <span class="cap">A file with no imports, after <code>npm i -D @types/node</code></span>
+<pre><span class="cm">// your whole program</span>
+pub fn main() -&gt; number { return 0 }
+
+<span class="cm">// what you got</span>
+std/net.ts(282,34): Property 'buffer' does not exist on type 'string | NonSharedBuffer'
+std/process.ts(41,3): Type 'string | number' is not assignable to type 'number'</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>The bundled runtime type-checks against the real <code>@types/node</code>.</strong> Our shim declared two node APIs more narrowly than node has them, and the runtime was written against the narrow types. <code>process.exitCode</code> was typed <code>number</code> where node also accepts a numeric string, and a socket's <code>data</code> chunk was typed as a buffer where node delivers text once <code>setEncoding</code> has been called. Both the shim and the code that read it were fixed, not just the line the compiler pointed at.</li>
+              <li><span class="tag added">Added</span> <strong>A check that installs the real package.</strong> The first attempt at this shipped a guard that built a stand-in <code>@types/node</code> by copying our own shim, so it checked that the shim agreed with itself and passed against the exact release that was failing. CI now installs <code>@types/node@latest</code>, builds a bare <code>main</code>, and fails if the bundled shim was written at all.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>The release smoke test notices a partial install.</strong> npm drops an optional dependency it cannot fetch and still exits 0, so within seconds of a publish the launcher can install alone and report success. The check now looks for the platform package on disk instead of trusting the exit code.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.82</span>
+                        <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
             <h3>The download runs, and the package carries its license</h3>

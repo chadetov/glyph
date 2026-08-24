@@ -55,7 +55,7 @@ function resolveBinary({
     throw new Error(
       `glyph: the platform package ${pkg} is not installed. ` +
         `This usually means optional dependencies were skipped during install; ` +
-        `reinstall with \`npm install glyph\` (without --no-optional / --omit=optional).`
+        `reinstall with \`npm install @glyphlang/glyph\` (without --no-optional / --omit=optional).`
     );
   }
 }

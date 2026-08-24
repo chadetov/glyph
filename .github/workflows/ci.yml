@@ -37,6 +37,12 @@ jobs:
       - name: Check the apps are written in Glyph alone
         run: python3 scripts/check_apps_are_glyph.py
 
+      # The launcher's tests used to run only in the release workflow, after the
+      # tag was pushed, so a broken launcher merged clean and was first executed
+      # on the way to the registry.
+      - name: Check the npm launcher resolves
+        run: node --test npm/scripts/resolve.test.mjs
+
   test:
     name: Test + type-check examples
     runs-on: ubuntu-latest

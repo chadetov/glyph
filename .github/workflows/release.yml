@@ -452,17 +452,35 @@ jobs:
           cd "$work"
           npm init -y >/dev/null
           # The registry can take a moment to serve a just-published version.
+          # npm SILENTLY SKIPS an optionalDependencies entry it cannot fetch and
+          # still exits 0. Seconds after a publish the platform package may not
+          # be visible yet, so `npm install` "succeeds" having installed only the
+          # launcher, and a retry loop that keys on the exit code never fires.
+          # That is exactly what happened on the 0.1.82 smoke: Windows logged
+          # "added 1 package" and macOS logged "added 2", and the only thing that
+          # noticed was the launcher failing to resolve its binary.
+          #
+          # So the retry keys on the platform package actually being present.
           installed=""
+          pkg=""
           for attempt in $(seq 1 10); do
-            if npm install "@glyphlang/glyph@$VERSION" --no-audit --no-fund; then
-              installed=yes
-              break
+            npm install "@glyphlang/glyph@$VERSION" --no-audit --no-fund || true
+            if [ -f node_modules/@glyphlang/glyph/bin/resolve.js ]; then
+              pkg="$(node -p "require('./node_modules/@glyphlang/glyph/bin/resolve.js').packageForPlatform(process.platform, process.arch)")"
+              if [ -d "node_modules/$pkg" ]; then
+                installed=yes
+                break
+              fi
+              echo "launcher installed but $pkg is missing (attempt $attempt/10); the registry may not be serving it yet"
+            else
+              echo "install incomplete (attempt $attempt/10)"
             fi
-            echo "install failed (attempt $attempt/10); retrying in 15s"
             sleep 15
           done
           if [ -z "$installed" ]; then
-            echo "::error::@glyphlang/glyph@$VERSION did not install after 10 attempts."
+            echo "::error::@glyphlang/glyph@$VERSION did not install completely after 10 attempts."
+            echo "The launcher resolves its binary from an optional dependency, and npm"
+            echo "skips one it cannot fetch without failing the install."
             exit 1
           fi
           # The mode on the installed platform package, before anything runs
@@ -471,7 +489,6 @@ jobs:
           # evidence is gone, and `npm/glyph/package.json` has no scripts block
           # so installing never triggers it. This is the published npm artifact
           # as it lands on disk.
-          pkg="$(node -p "require('./node_modules/@glyphlang/glyph/bin/resolve.js').packageForPlatform(process.platform, process.arch)")"
           bin="node_modules/$pkg/bin/glyph"
           if [ "$(node -p process.platform)" != "win32" ]; then
             if [ ! -x "$bin" ]; then

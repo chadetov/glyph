@@ -4029,6 +4029,14 @@ had been closed for weeks. An update notice is a network call from a compiler
 and therefore a policy question; it is deliberately not decided here, only
 named, in the rolling lane.
 
+Also in this release, from watching 0.1.82 publish: the release smoke test
+retried on npm's exit code, and npm drops an `optionalDependencies` entry it
+cannot fetch while still exiting 0. Seconds after a publish the launcher
+installed alone and the install reported success. Windows logged "added 1
+package" where macOS logged "added 2", and the only thing that noticed was the
+launcher failing to resolve its binary. The retry now keys on the platform
+package being on disk.
+
 ### 0.1.82 — Shipped · The download runs, and the package carries its license
 
 Published 2026-08-24.
@@ -4109,7 +4117,12 @@ parked in the rolling lane).
 Pillar: verifiability at the boundary. The emitted code was only compilable
 inside the compiler's own tsconfig; now the guarantee travels with the files.
 
-### Unreleased · The runtime compiles against `@types/node`
+### 0.1.83 — Shipped · The runtime compiles against `@types/node`
+
+Published 2026-08-24 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
+
 
 G125, found straight after 0.1.81 by an app that followed the external-imports
 guide. Installing `@types/node`, which that guide tells you to install for the

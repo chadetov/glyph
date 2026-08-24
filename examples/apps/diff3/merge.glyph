@@ -1,0 +1,200 @@
+// The three-way merge core. `merge3` diffs `base` against each side with
+// `diff.diff`, then walks the two edit scripts together, pairing the edit at
+// each base position against its counterpart on the other side. The pairing
+// is a `match` inside a `match`: the outer arm is on `ea[pa]`'s variant
+// (`Same`/`Added`/`Removed`), the inner arm is on `eb[pb]`'s variant, so the
+// nine combinations of the two `Edit<T>` values at that position are each
+// handled explicitly. `merge.glyph` is instantiated at `T = string` twice
+// from `main.glyph`: once over whole lines, once over whitespace-split words.
+module merge
+
+import std/array
+import diff
+import diff { Same, Added, Removed }
+
+// A non-negative offset into `base`, used to say where a conflict starts.
+// `int` rather than `number` so a wire value that is not a whole number is
+// rejected at a boundary, and `where value >= 0` on top of that so a
+// negative offset is rejected the same way.
+pub type LineNo = int where value >= 0
+
+// One stretch of a merged sequence: either content both sides settled on (a
+// run of elements with no disagreement between them), or a conflicting run
+// where the two sides diverge and neither wins automatically.
+pub type Hunk<T> =
+  | Merged(Array<T>)
+  | Conflict({ start: LineNo, ours: Array<T>, theirs: Array<T> })
+
+// The result of a three-way merge: a clean sequence, or the hunks that make
+// up the merge with every conflict marked. `Conflicted` still carries the
+// `Merged` runs between conflicts, so rendering it prints the whole document,
+// not just the disputed parts.
+pub type MergeResult<T> =
+  | Clean(Array<T>)
+  | Conflicted(Array<Hunk<T>>)
+
+// Merge `ours` and `theirs`, both diverged from `base`, using `eq` for
+// element equality. A base element kept unchanged on one side and removed on
+// the other accepts the removal. A base element removed on both sides is
+// dropped with no conflict. An insertion made by only one side is accepted.
+// Two insertions at the same point conflict unless they agree; this is also
+// how a same-position two-sided edit is caught, since a changed element
+// shows up as a `Removed` (which both sides agree to drop) immediately
+// followed by an `Added` (which conflicts unless the replacement text is the
+// same on both sides).
+pub fn merge3<T>(
+  base: Array<T>,
+  ours: Array<T>,
+  theirs: Array<T>,
+  eq: fn(T, T) -> bool,
+) -> MergeResult<T> {
+  let ea = diff.diff(base, ours, eq)
+  let eb = diff.diff(base, theirs, eq)
+  let na = array.len(ea)
+  let nb = array.len(eb)
+  let hunks: Array<Hunk<T>> = []
+  let ctx: Array<T> = []
+  let conflicted = false
+  let base_pos = 0
+  let pa = 0
+  let pb = 0
+  loop {
+    match pa >= na && pb >= nb {
+      true => {
+        break
+      },
+      false => {},
+    }
+    match pa >= na {
+      true => {
+        // Only `theirs` has edits left; the diff invariant (every base
+        // element is consumed by both scripts, in lockstep) means these can
+        // only be trailing insertions, but the match still names every
+        // variant of `Edit<T>` rather than assuming that.
+        match eb[pb] {
+          Same(v) => {
+            mut ctx.push(v)
+          },
+          Added(v) => {
+            mut ctx.push(v)
+          },
+          Removed(v) => {},
+        }
+        mut pb = pb + 1
+      },
+      false => match pb >= nb {
+        true => {
+          match ea[pa] {
+            Same(v) => {
+              mut ctx.push(v)
+            },
+            Added(v) => {
+              mut ctx.push(v)
+            },
+            Removed(v) => {},
+          }
+          mut pa = pa + 1
+        },
+        false => match ea[pa] {
+          Added(av) => match eb[pb] {
+            Added(bv) => match eq(av, bv) {
+              true => {
+                mut ctx.push(av)
+                mut pa = pa + 1
+                mut pb = pb + 1
+              },
+              false => {
+                mut hunks = flush(hunks, ctx)
+                mut ctx = []
+                mut hunks.push(Conflict({ start: base_pos, ours: [av], theirs: [bv] }))
+                mut conflicted = true
+                mut pa = pa + 1
+                mut pb = pb + 1
+              },
+            },
+            Same(bv) => {
+              // A pure left-side insertion: theirs has not reached this
+              // point yet, so leave `pb` where it is for the next pairing.
+              mut ctx.push(av)
+              mut pa = pa + 1
+            },
+            Removed(bv) => {
+              mut ctx.push(av)
+              mut pa = pa + 1
+            },
+          },
+          Same(av) => match eb[pb] {
+            Added(bv) => {
+              mut ctx.push(bv)
+              mut pb = pb + 1
+            },
+            Same(bv) => {
+              mut ctx.push(av)
+              mut pa = pa + 1
+              mut pb = pb + 1
+              mut base_pos = base_pos + 1
+            },
+            Removed(bv) => {
+              // Theirs deleted an element ours left untouched: accept the
+              // deletion.
+              mut pa = pa + 1
+              mut pb = pb + 1
+              mut base_pos = base_pos + 1
+            },
+          },
+          Removed(av) => match eb[pb] {
+            Added(bv) => {
+              mut ctx.push(bv)
+              mut pb = pb + 1
+            },
+            Same(bv) => {
+              // Ours deleted an element theirs left untouched: accept the
+              // deletion.
+              mut pa = pa + 1
+              mut pb = pb + 1
+              mut base_pos = base_pos + 1
+            },
+            Removed(bv) => {
+              // Both sides deleted the same base element: agree, drop it.
+              mut pa = pa + 1
+              mut pb = pb + 1
+              mut base_pos = base_pos + 1
+            },
+          },
+        },
+      },
+    }
+  }
+  mut hunks = flush(hunks, ctx)
+  return match conflicted {
+    true => Conflicted(hunks),
+    false => Clean(flatten(hunks)),
+  }
+}
+
+// Close out the current run of agreed content as a `Merged` hunk, if it holds
+// anything.
+fn flush<T>(hunks: Array<Hunk<T>>, ctx: Array<T>) -> Array<Hunk<T>> {
+  return match array.len(ctx) == 0 {
+    true => hunks,
+    false => array.push(hunks, Merged(ctx)),
+  }
+}
+
+// Concatenate every `Merged` run into one sequence. Only called on a clean
+// result, where `hunks` holds no `Conflict` entries, but the match still
+// covers both variants of `Hunk<T>`.
+fn flatten<T>(hunks: Array<Hunk<T>>) -> Array<T> {
+  let out: Array<T> = []
+  for h in hunks {
+    match h {
+      Merged(vs) => {
+        for v in vs {
+          mut out.push(v)
+        }
+      },
+      Conflict(c) => {},
+    }
+  }
+  return out
+}

@@ -49,9 +49,37 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.83</span>
+            <span class="rel-ver">0.1.84</span>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A subprocess you can watch while it runs</h3>
+            <p>Node builtins have worked out of the box for a while, but <code>child_process</code> only offered the blocking calls: run the command, wait, get everything at once. A tool that reports a long build's progress needs the other one, and writing it meant installing <code>@types/node</code> first.</p>
+            <div class="code">
+              <span class="cap">Streaming a child's output as it arrives</span>
+<pre>let child = spawn("git", ["status", "--short"])
+
+<span class="cm">// ask for text and node decodes for you, holding back a</span>
+<span class="cm">// character whose bytes straddle two chunks</span>
+child.stdout.setEncoding("utf8")
+child.stdout.on("data", fn(chunk) { io.print("${chunk}") })
+child.on("close", fn(code) { io.println("git exited ${code}") })</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong><code>spawn</code>, with the pipes typed the way node types them.</strong> Four overloads matching <code>@types/node</code>, a <code>stream</code> module carrying the <code>Readable</code> and <code>Writable</code> subset, and <code>ChildProcess</code> with nullable pipes beside <code>ChildProcessWithoutNullStreams</code> for the plain call. The pipes sit on the base interface, so a value does not change its guarantee depending on whether you bound it to a local or passed it to a function.</li>
+              <li><span class="tag added">Added</span> <strong>CI proves the shim exports nothing node does not.</strong> A type declared inside an ambient module is exported from it, so a name we invent builds green with nothing installed and fails the moment you install the real package. That is now checked, not watched for: 74 exported names across 15 modules, against <code>@types/node</code> at <code>latest</code>.</li>
+              <li><span class="tag known">Known</span> <strong>Names are checked, shapes are not.</strong> A few declarations still take <code>string</code> where node takes <code>BufferEncoding</code>, and our <code>Readable</code> is an interface where node's is a class, so a duck-typed value compiles here and fails there. Narrowing a declaration people already build on changes a guarantee, so it gets its own release rather than riding along inside a feature.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.83</span>
+                        <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
             <h3>Install <code>@types/node</code> and your build still works</h3>

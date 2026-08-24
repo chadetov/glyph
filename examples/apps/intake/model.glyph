@@ -1,0 +1,122 @@
+// model — the applicant shape, its field-level refinements, and the checks
+// that turn one untrusted JSON row into a `Validated<Problem, Applicant>`.
+//
+// Every field is refined at its declaration (D39 `where`), so the constraint
+// is spelled once, at the type, and every field is checked independently:
+// a record with a bad age and a bad email gets both problems reported, not
+// just the first one hit.
+module model
+
+import std/array
+import std/option { Some, None }
+import std/record
+import std/result { Result, Ok, Err }
+import std/string
+import validated { Validated, valid, invalid, map2, map3 }
+
+// --- Field refinements ---------------------------------------------------
+
+pub type Name = string where value.length > 0
+
+pub type Age = int where value >= 0 && value <= 130
+
+pub type Email = string where string.contains(value, "@") && value.length > 3
+
+pub type Salary = int where value >= 0
+
+pub type Zip = string where value.length == 5
+
+pub type Applicant = { name: Name, age: Age, email: Email, salary: Salary, zip: Zip }
+
+// --- Why a check failed ---------------------------------------------------
+
+// Distinct from `Issue.code` (the compiler's own "missing" | "type" |
+// "refinement" | "unexpected" vocabulary, D39): this is the domain's own
+// three-way cause, so a report groups "this applicant left a field blank"
+// separately from "this applicant typed a number that is out of bounds"
+// separately from "this applicant typed the wrong shape of value."
+pub type IssueKind =
+  | Missing
+  | OutOfRange
+  | BadFormat
+
+pub type Problem = { field: string, kind: IssueKind, message: string }
+
+pub fn kind_label(k: IssueKind) -> string {
+  return match k {
+    Missing => "missing",
+    OutOfRange => "out of range",
+    BadFormat => "bad format",
+  }
+}
+
+// A refined type's own `.parse` reports "type" for the wrong shape and
+// "refinement" for a value that had the right shape but failed the `where`
+// predicate. "refinement" means a range violation for the numeric fields and
+// a pattern violation for the string ones, so the field name decides which
+// `IssueKind` a refinement failure becomes.
+fn refinement_kind(field: string) -> IssueKind {
+  return match field {
+    "age" => OutOfRange,
+    "salary" => OutOfRange,
+    else => BadFormat,
+  }
+}
+
+fn to_problem(field: string, issue: Issue) -> Problem {
+  let kind = match issue.code {
+    "refinement" => refinement_kind(field),
+    else => BadFormat,
+  }
+  return { field: field, kind: kind, message: issue.message }
+}
+
+fn issues_to_problems(field: string, issues: Array<Issue>) -> Array<Problem> {
+  return array.map(issues, fn(i: Issue) -> Problem { return to_problem(field, i) })
+}
+
+// One field, checked independently of every other field: absent first
+// (`Missing`, before the refined type ever sees the value), then whatever the
+// refined type's own descriptor says about what is there.
+fn check_field<T>(
+  row: Record<string, unknown>,
+  field: string,
+  parse: fn(unknown) -> Result<T, Array<Issue>>,
+) -> Validated<Problem, T> {
+  return match record.get(row, field) {
+    None => invalid([{ field: field, kind: Missing, message: "field `${field}` is required" }]),
+    Some(raw) => match parse(raw) {
+      Ok(v) => valid(v),
+      Err(issues) => invalid(issues_to_problems(field, issues)),
+    },
+  }
+}
+
+pub fn validate_applicant(row: Record<string, unknown>) -> Validated<Problem, Applicant> {
+  let name_v = check_field(row, "name", Name.parse)
+  let age_v = check_field(row, "age", Age.parse)
+  let email_v = check_field(row, "email", Email.parse)
+  let salary_v = check_field(row, "salary", Salary.parse)
+  let zip_v = check_field(row, "zip", Zip.parse)
+
+  let core = map3(
+    name_v,
+    age_v,
+    email_v,
+    fn(n: Name, a: Age, e: Email) -> { name: Name, age: Age, email: Email } {
+      return { name: n, age: a, email: e }
+    },
+  )
+  let money = map2(
+    salary_v,
+    zip_v,
+    fn(s: Salary, z: Zip) -> { salary: Salary, zip: Zip } { return { salary: s, zip: z } },
+  )
+  return map2(
+    core,
+    money,
+    fn(c: { name: Name, age: Age, email: Email }, m: { salary: Salary, zip: Zip }) -> Applicant {
+      return { name: c.name, age: c.age, email: c.email, salary: m.salary, zip: m.zip }
+    },
+  )
+}

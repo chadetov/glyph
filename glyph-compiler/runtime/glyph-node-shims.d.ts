@@ -151,7 +151,11 @@ declare const process: {
   argv: string[];
   env: Record<string, string | undefined>;
   exit(code: number): never;
-  exitCode: number | undefined;
+  // `@types/node`'s declaration, and Node's real contract: a numeric string is
+  // accepted (assignment coerces). Declaring the narrower `number | undefined`
+  // let `std/process` be written against a type that stops holding the moment
+  // `@types/node` is installed, which broke every build.
+  exitCode: number | string | null | undefined;
   cwd(): string;
   platform: string;
   // The standard streams. `isTTY` is how a program tells a person from a pipe,
@@ -193,8 +197,10 @@ declare const Buffer: {
 declare module "string_decoder" {
   export class StringDecoder {
     constructor(encoding?: string);
-    write(buffer: GlyphBuffer): string;
-    end(buffer?: GlyphBuffer): string;
+    // `@types/node` takes `string | NodeJS.ArrayBufferView` here, so text that
+    // arrived already decoded can be passed straight through.
+    write(buffer: string | Uint8Array): string;
+    end(buffer?: string | Uint8Array): string;
   }
 }
 declare module "node:string_decoder" {
@@ -211,11 +217,16 @@ declare module "node:string_decoder" {
 // are known instead of `any`.
 declare module "net" {
   export interface Socket {
-    // Chunks are octets unless `setEncoding` has been called, which is what
-    // `@types/node` declares too. `std/net` decodes them itself: `on_text`
-    // holds a `StringDecoder` per socket so a character split across two
-    // packets survives, and `on_data` hands the octets over untouched.
-    on(event: "data", listener: (chunk: GlyphBuffer) => void): Socket;
+    // Octets, unless `setEncoding` has been called on the socket, in which case
+    // node delivers already-decoded text. `@types/node` says exactly that
+    // (`string | NonSharedBuffer`) and so does this: declaring only the buffer
+    // let `std/net` be written as though the string case could not happen, and
+    // it compiled until the real typings arrived and every build broke.
+    //
+    // `std/net` handles both: `on_text` holds a `StringDecoder` per socket so a
+    // character split across two packets survives, and `on_data` hands octets
+    // over untouched.
+    on(event: "data", listener: (chunk: string | GlyphBuffer) => void): Socket;
     on(event: "close", listener: () => void): Socket;
     on(event: "error", listener: (err: Error) => void): Socket;
     on(event: "connect", listener: () => void): Socket;

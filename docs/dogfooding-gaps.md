@@ -36,9 +36,8 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after 0.1.81 closed G122 and Round 34 added G124: of 124
-entries, 93 are fixed, 10 are partly fixed, 9 are decided or resolved, and 12
-are open.
+Reconciled again after Round 35 added and closed G125: of 125 entries, 94 are
+fixed, 10 are partly fixed, 9 are decided or resolved, and 12 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -4088,3 +4087,49 @@ number for what D9 costs at the keyboard beside glyph-hello's 44%. And the
 staleness is itself a datum: nothing in the CLI or docs tells a user that a
 pinned version has fallen 62 releases behind, so a public evaluation shipped
 describing gaps that had been closed for weeks.
+
+## Round 35: the runtime did not compile against the typings the docs recommend
+
+An app agent installed `@types/node`, which `docs/guide/external-imports.md`
+tells you to install for the full Node builtin surface (the bundled shim
+declares `spawnSync`/`execFileSync` but not the async `child_process.spawn`),
+and every build stopped. Not the app's build: any build. A file containing
+nothing but `pub fn main() -> number { return 0 }` failed, on a line of the
+compiler's own runtime.
+
+- **G125. [FIXED] Installing `@types/node` broke every build, on the compiler's
+  own runtime.** Two declarations in the bundled Node shim were narrower than
+  node itself, and runtime code had been written against both. `process.exitCode`
+  was declared `number | undefined` where `@types/node` says
+  `number | string | null | undefined`, which is node's real contract (a numeric
+  string is accepted at assignment), so `exit_code()`'s
+  `process.exitCode ?? 0` widened to `string | number` the moment the shim was
+  skipped in favour of the real typings. A socket's `data` chunk was declared as
+  a buffer where `@types/node` says `string | NonSharedBuffer`, node's contract
+  again (`setEncoding` makes it text), so `on_data`'s
+  `new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)` stopped
+  resolving. Against `@types/node` 26.2.0 a bare `main` produced four errors, all
+  in files the user did not write:
+
+  ```
+  std/net.ts(282,34): error TS2339: Property 'buffer' does not exist on type 'string | NonSharedBuffer'.
+  std/net.ts(282,48): error TS2339: Property 'byteOffset' does not exist on type 'string | NonSharedBuffer'.
+  std/net.ts(282,66): error TS2339: Property 'byteLength' does not exist on type 'string | NonSharedBuffer'.
+  std/process.ts(41,3): error TS2322: Type 'string | number' is not assignable to type 'number'.
+  ```
+
+  Fixed in both places each time, since the shim being wrong is what let the
+  runtime be written wrong: the shim now declares each field the way
+  `@types/node` does, `exit_code()` reads through `Number` so a code set from
+  outside Glyph is reported rather than rejected, and `on_data` encodes a text
+  chunk back to UTF-8 rather than dropping it.
+
+  The first attempt at this was closed with a stand-in `@types/node` built by
+  copying the shim, which is a check that the shim agrees with itself: it passed
+  against the exact release of the package that was failing, and the `net.ts`
+  half of the bug survived it. The guard is now
+  `scripts/check_runtime_against_types_node.py`, which installs the real package
+  at `latest` and builds a bare `main` against it, in CI beside the codec
+  differential check. With both runtime fixes reverted it reports all four errors
+  above; with them in place it passes against 26.2.0.
+  *Found against 0.1.81.*

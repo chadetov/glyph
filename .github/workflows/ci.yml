@@ -148,6 +148,20 @@ jobs:
       - name: Check the bytes codecs against the platform
         run: npx --yes tsx scripts/check_bytes_codecs.mjs
 
+      # `docs/guide/external-imports.md` tells a user to install `@types/node`
+      # for the full node surface, and the build then prefers it and skips the
+      # bundled shim. That leaves every file under `runtime/std/` checked
+      # against declarations nobody here wrote, and twice a bare `pub fn main`
+      # has failed on a line of the compiler's own runtime because the shim
+      # declared a node API more narrowly than node has it. A fixture cannot
+      # catch that: the first guard built its stand-in by copying the shim and
+      # passed against the very version that was failing. This installs the
+      # real package at `latest`.
+      - name: Check the runtime against the real @types/node
+        env:
+          GLYPH_BIN: ${{ github.workspace }}/glyph-compiler/target/debug/glyph
+        run: python3 scripts/check_runtime_against_types_node.py
+
       # The evidence behind the four pillars, checked in both directions. The
       # TypeScript in each case has to keep passing `tsc --strict` or the case
       # proves nothing, and the Glyph has to keep failing with the code it names

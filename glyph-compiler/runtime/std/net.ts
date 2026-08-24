@@ -23,7 +23,7 @@
 
 import { type Result, Ok, Err } from "./result";
 import { type Option, Some, None } from "./option";
-import { type Bytes } from "./bytes";
+import { type Bytes, from_text } from "./bytes";
 import { createServer, connect as node_connect, type Socket as HostSocket } from "node:net";
 import { StringDecoder } from "node:string_decoder";
 
@@ -276,9 +276,22 @@ export function on_text(socket: Socket, handler: (text: string) => void): void {
   });
 }
 
-/** Octets arrived, exactly as they came off the wire. */
+/**
+ * Octets arrived, exactly as they came off the wire.
+ *
+ * Node delivers text rather than octets on a socket someone has called
+ * `setEncoding` on. This module exposes sockets as opaque handles with no way
+ * to call `setEncoding`, so a text chunk here is not a real scenario today. As
+ * defence in depth if it ever became reachable: the type forces *some* handling
+ * rather than dropping; we guess UTF-8 and emit octets rather than silently
+ * pass wrong encoding forward into a binary protocol.
+ */
 export function on_data(socket: Socket, handler: (data: Bytes) => void): void {
   raw(socket).on("data", (chunk) => {
+    if (typeof chunk === "string") {
+      handler(from_text(chunk));
+      return;
+    }
     handler(new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength));
   });
 }

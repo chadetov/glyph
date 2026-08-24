@@ -4109,6 +4109,43 @@ parked in the rolling lane).
 Pillar: verifiability at the boundary. The emitted code was only compilable
 inside the compiler's own tsconfig; now the guarantee travels with the files.
 
+### Unreleased · The runtime compiles against `@types/node`
+
+G125, found straight after 0.1.81 by an app that followed the external-imports
+guide. Installing `@types/node`, which that guide tells you to install for the
+full node builtin surface, failed every build inside the compiler's own runtime,
+with no user code involved. A bare `pub fn main` produced four errors against
+`@types/node` 26.2.0: three in `std/net.ts` and one in `std/process.ts`.
+
+One cause behind both. The bundled shim declared two node APIs more narrowly
+than node has them, and runtime code was written against the narrow types.
+`process.exitCode` was `number | undefined` where node accepts a numeric string
+and coerces it, so `exit_code()`'s `?? 0` widened to `string | number`. A
+socket's `data` chunk was a buffer where node delivers text on a socket someone
+has called `setEncoding` on, so `on_data`'s `chunk.buffer` stopped resolving.
+
+Fixed in both places each time rather than only where tsc pointed: the shim now
+declares each field the way `@types/node` does, `exit_code()` reads through
+`Number`, and `on_data` encodes a text chunk back to UTF-8 rather than dropping
+it.
+
+The first attempt shipped a guard that built a stand-in `@types/node` by copying
+the shim. That is a check that the shim agrees with itself, and it passed
+against the very release of the package that was failing, which is how the
+`net.ts` half stayed open. The guard is now
+`scripts/check_runtime_against_types_node.py`: it installs the real package at
+`latest`, builds a bare `main`, and fails if the bundled shim was written at all
+(a green result would otherwise prove nothing). It runs in CI beside the
+`std/bytes` codec differential check, and needs the network for the same reason
+that one does.
+
+What this does not do is compare the whole shim against `@types/node`
+declaration by declaration. It catches a divergence that breaks a build, which
+is every divergence the runtime actually depends on today, and it will catch the
+next one on the release of `@types/node` that introduces it rather than on the
+app that runs into it. A full conformance check between the shim and the real
+typings stays in the rolling lane.
+
 Nothing here carries the **Next** marker.
 
 ## Road to 1.0

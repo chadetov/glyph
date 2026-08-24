@@ -36,9 +36,16 @@ export function set_exit_code(code: number): void {
   process.exitCode = code;
 }
 
-/** The exit code the process will currently leave with. */
+/**
+ * The exit code the process will currently leave with.
+ *
+ * Node's `process.exitCode` is not only a number: it also accepts a numeric
+ * string (assignment coerces and throws on invalid input). `Number` reads it to
+ * handle the declared but unreachable union at the type level; this pattern
+ * lets a code set from outside Glyph be reported rather than swallowed.
+ */
 export function exit_code(): number {
-  return process.exitCode ?? 0;
+  return Number(process.exitCode ?? 0);
 }
 
 export function env(name: string): Option<string> {

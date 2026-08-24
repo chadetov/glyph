@@ -66,3 +66,22 @@ test("a missing platform package throws a reinstall hint", () => {
     /platform package @glyphlang\/linux-x64 is not installed/
   );
 });
+
+// The hint is the only instruction a user gets at the moment their install is
+// already broken, so it has to name this package. It used to say `npm install
+// glyph`, and `glyph` on npm is an unrelated static site generator, so the one
+// documented recovery step installed someone else's project.
+test("the reinstall hint names the scoped package", () => {
+  assert.throws(
+    () =>
+      resolveBinary({
+        platform: "linux",
+        arch: "x64",
+        env: {},
+        resolve: () => {
+          throw new Error("Cannot find module");
+        },
+      }),
+    /npm install @glyphlang\/glyph/
+  );
+});

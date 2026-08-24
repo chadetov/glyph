@@ -14,10 +14,15 @@ for a package they are not about to install.
 Best-effort notice (never fails the build) when the published npm `latest` is
 behind the repo version, so a stale package like the one a reviewer once hit two
 versions behind is at least visible in CI.
+
+With `--expect <version>` it also hard-fails when the repo is not at that
+version. The release workflow passes the pushed tag, which is the only thing
+that ties the tag to what the manifests actually say.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import pathlib
 import re
@@ -102,9 +107,52 @@ def stale_lockfile(repo: str) -> list[str]:
     return bad
 
 
+def expected_from_argv(argv: list[str]) -> str | None:
+    """The version the caller says this must be, from `--expect <version>`.
+
+    The release workflow passes the pushed tag here. Without it nothing ever
+    compares the tag against the manifests: `git tag v0.1.82` on the 0.1.81
+    commit builds 0.1.81 binaries, and because the GitHub Release job did not
+    depend on the npm publish job, a Release named v0.1.82 carrying 0.1.81
+    binaries was created even though npm rejected the duplicate version. The
+    ceremony said "confirm the tagged commit carries the bumped version first",
+    which is exactly the kind of step a gate has to hold instead of a person.
+
+    Parsed with argparse rather than by scanning argv, because a gate that
+    quietly turns itself off is worse than no gate. A hand-rolled `"--expect" in
+    argv` check treats `--expect=0.1.82`, `--expected 0.1.82`, and any typo as
+    "no expectation given" and then prints "version consistency OK" and exits 0,
+    so the one check standing between a mis-tagged commit and the registry would
+    report success while doing nothing. argparse rejects all three.
+    """
+    parser = argparse.ArgumentParser(
+        prog="check_versions.py",
+        description="Every version string in the repo must agree, and optionally match --expect.",
+    )
+    parser.add_argument(
+        "--expect",
+        metavar="VERSION",
+        help="fail unless the repo is at this version; a leading 'v' is stripped, so a tag works",
+    )
+    # parse_args exits 2 on an unknown flag, which is the behaviour that matters:
+    # an unrecognized argument must never be read as "check nothing".
+    args = parser.parse_args(argv)
+    return args.expect.lstrip("v") if args.expect else None
+
+
 def main() -> int:
     repo = cargo_version()
     versions = npm_versions()
+
+    expected = expected_from_argv(sys.argv[1:])
+    if expected is not None and expected != repo:
+        print(f"tag/version mismatch: asked to release {expected}, repo is {repo}.")
+        print()
+        print("The tag names a version no manifest carries. Either the bump commit")
+        print("was never merged, or the tag landed on the wrong commit. Delete the")
+        print("tag, put it on the commit that carries the bump, and push it again:")
+        print(f"  git tag -d v{expected} && git push origin :refs/tags/v{expected}")
+        return 1
 
     stale_lock = stale_lockfile(repo)
     if stale_lock:
@@ -130,7 +178,8 @@ def main() -> int:
         print("bump the version in the badge URL, or switch it to an unpinned one.")
         return 1
 
-    print(f"version consistency OK: all {len(versions)} version strings are {repo}")
+    tagged = " (matches the requested tag)" if expected is not None else ""
+    print(f"version consistency OK: all {len(versions)} version strings are {repo}{tagged}")
 
     latest = published_latest()
     if latest and latest != repo:

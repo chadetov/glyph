@@ -1,23 +1,161 @@
 name: Release
 
 # Build the glyph binary for every supported platform, stage each into its
-# `@glyph/<platform>` package, and publish the platform packages plus the
+# `@glyphlang/<platform>` package, and publish the platform packages plus the
 # `glyph` launcher to npm. Triggered by pushing a `v*` tag (e.g. `v0.1.0`) or
-# manually. Publishing requires the `NPM_TOKEN` secret; without it the build
-# matrix still runs and uploads artifacts, but the publish job is skipped.
+# manually; only a tag publishes anything. Publishing requires the `NPM_TOKEN`
+# secret, and a tagged run without it fails rather than going green with its
+# publish steps skipped, which is how a "successful" release could reach the
+# GitHub Release page having shipped nothing to npm.
+#
+# The shape of this workflow is set by one fact: **npm versions are immutable**.
+# Once `@glyphlang/linux-x64@0.1.81` exists it exists forever, and it cannot be
+# replaced or yanked back to a good state. So everything that can be checked is
+# checked *before* the first irreversible step, and the jobs are chained so a
+# failure anywhere upstream stops the publish rather than half-completing it:
+#
+#   preflight -> build -> verify -> publish -> release
+#                                          \-> smoke
+#
+# Two of those stages exist because of bugs this pipeline actually shipped, and
+# both are written up in the steps that fix them: the execute bit lost in the
+# artifact round trip, and the tag nobody compared against the manifests.
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      skip_npm:
+        description: >-
+          Skip the npm publish and create only the GitHub Release. The recovery
+          path after a publish failed part-way: those versions are burned on npm
+          forever, but the archives still need to reach the people who do not
+          install from npm.
+        type: boolean
+        default: false
+
+# One release at a time, globally, and never cancelled part-way. Two tags pushed
+# close together would otherwise run two pipelines into the same immutable
+# registry, and cancelling a run between its third and fourth `npm publish` is
+# the one outcome with no clean recovery.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 # Least privilege by default: the workflow-level token can only read.
-# Jobs that need more (Pages, provenance, npm publish) ask for it themselves.
+# Jobs that need more (provenance, attestations, releases) ask for it themselves.
 permissions: read-all
 
 jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Reading the CI conclusion for this commit.
+      actions: read
+    outputs:
+      # The version being released, without the `v`. Every downstream job that
+      # needs to assert "this is what we are shipping" reads it from here rather
+      # than re-deriving it, so there is one answer.
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Ancestry check below needs real history, not a shallow clone.
+          fetch-depth: 0
+
+      - name: Read the version from the tag
+        id: tag
+        run: |
+          set -euo pipefail
+          if [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            # A manual dispatch on a branch releases nothing; report the repo's
+            # own version so the log says what it looked at.
+            version="$(sed -n '/\[workspace\.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' glyph-compiler/Cargo.toml | head -1)"
+          fi
+          if [ -z "$version" ]; then
+            echo "::error::could not determine the version to release."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "releasing: $version"
+
+      # The gate the ceremony used to ask a human for. `git tag v0.1.82` on the
+      # 0.1.81 commit builds 0.1.81 binaries; npm then rejects the duplicate
+      # version, but nothing else noticed, so a GitHub Release named v0.1.82
+      # carrying 0.1.81 binaries was still creatable. The tag and the manifests
+      # agree here or nothing downstream runs.
+      - name: The tag must name the version every manifest carries
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: python3 scripts/check_versions.py --expect "$VERSION"
+
+      # A tag can be pushed to any commit, including one that never merged. The
+      # published binary should only ever come from the branch that is reviewed
+      # and protected.
+      - name: The tagged commit must be on main
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_SHA is not an ancestor of origin/main."
+            echo "The tag is on a commit that was never merged. Publishing it would"
+            echo "ship code that no review or branch protection ever saw."
+            exit 1
+          fi
+          echo "$GITHUB_SHA is on main."
+
+      # The release workflow itself runs no tests, and adding the suite here
+      # would only re-run what already ran. What was missing is the link: proof
+      # that *this* commit is one CI went green on. Without it, tagging a commit
+      # whose CI failed publishes it anyway.
+      - name: CI must have passed for this commit
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # The tag push and the merge that produced this commit can race, so
+          # wait a bounded while for the run rather than failing a release that
+          # is merely early.
+          for attempt in $(seq 1 40); do
+            payload="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&per_page=100")"
+            total="$(echo "$payload" | jq '.total_count')"
+            if [ "$total" -gt 0 ]; then
+              pending="$(echo "$payload" | jq '[.workflow_runs[] | select(.status != "completed")] | length')"
+              if [ "$pending" -eq 0 ]; then
+                failed="$(echo "$payload" | jq -r '[.workflow_runs[] | select(.conclusion != "success")] | length')"
+                if [ "$failed" -gt 0 ]; then
+                  echo "::error::CI did not pass for ${GITHUB_SHA}."
+                  echo "$payload" | jq -r '.workflow_runs[] | "  \(.conclusion)  \(.html_url)"'
+                  exit 1
+                fi
+                echo "CI passed for ${GITHUB_SHA}."
+                exit 0
+              fi
+              echo "CI still running for ${GITHUB_SHA} (attempt ${attempt}/40); waiting."
+            else
+              echo "no CI run for ${GITHUB_SHA} yet (attempt ${attempt}/40); waiting."
+            fi
+            sleep 30
+          done
+          echo "::error::No completed CI run for ${GITHUB_SHA} after 20 minutes."
+          echo
+          echo "CI runs on push to main, and GitHub creates one run for the tip of"
+          echo "a push. If several commits were pushed at once and the tag landed"
+          echo "on one that is not the tip, no run exists for it and none ever"
+          echo "will. Move the tag to a commit CI ran for, or dispatch this"
+          echo "workflow against the tag with skip_npm to cut the archives alone."
+          exit 1
+
   build:
     name: Build ${{ matrix.key }}
+    needs: preflight
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -60,15 +198,122 @@ jobs:
         if: matrix.key == 'win32-x64'
         run: node npm/scripts/stage.mjs ${{ matrix.key }} glyph-compiler/target/${{ matrix.target }}/release/glyph.exe
 
+      # `upload-artifact` does not preserve the Unix execute bit. Both consumers
+      # of this artifact need it, and for a long time only one of them knew:
+      # the publish job restored it by hand, the release job did not, so every
+      # downloadable tarball from the GitHub Release shipped `-rw-r--r--` while
+      # npm's copy of the same binary shipped `-rwxr-xr-x`. Anyone following the
+      # release notes ("extract it, and put `glyph` on your PATH") got
+      # permission denied, and the npx smoke test could not see it because it
+      # only ever exercised npm.
+      #
+      # Packing here puts the mode inside the archive, where the round trip
+      # cannot touch it, so every consumer gets it right by construction rather
+      # than by remembering to chmod.
+      - name: Pack the staged package, preserving the execute bit
+        shell: bash
+        run: tar -czf platform-${{ matrix.key }}.tar.gz -C npm/platform ${{ matrix.key }}
+
       - name: Upload staged platform package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: platform-${{ matrix.key }}
-          path: npm/platform/${{ matrix.key }}
+          path: platform-${{ matrix.key }}.tar.gz
+
+  verify:
+    name: Verify ${{ matrix.key }}
+    needs: [preflight, build]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # darwin-x64 is absent on purpose. macos-14 is arm64, so running an
+          # x64 binary needs Rosetta, which is not guaranteed on the image, and
+          # spending a macOS runner on the mode check alone buys nothing: the
+          # publish and release jobs both assert it again on ubuntu.
+          #
+          # So darwin-x64 is executed nowhere in CI. Today it is still covered,
+          # because the maintainer's machine is an Intel Mac and the manual npx
+          # smoke test runs there. That is coverage by accident of hardware, and
+          # it inverts the moment they move to Apple Silicon: darwin-arm64 would
+          # keep its CI coverage below and darwin-x64 would have none at all.
+          # macos-13 is the real fix and the reason it is avoided for building
+          # (the runner queues) weighs much less on a ten-second verify job.
+          - key: darwin-arm64
+            os: macos-14
+            runnable: true
+          - key: linux-x64
+            os: ubuntu-latest
+            runnable: true
+          - key: linux-arm64
+            os: ubuntu-24.04-arm
+            runnable: true
+          - key: win32-x64
+            os: windows-latest
+            runnable: true
+    steps:
+      - name: Download this platform's staged package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: platform-${{ matrix.key }}
+          path: staged
+
+      - name: Unpack
+        shell: bash
+        run: tar -xzf staged/platform-${{ matrix.key }}.tar.gz
+
+      # An assertion, not a repair. If the mode is wrong the packing above is
+      # broken and the release must stop; silently chmod-ing it here would hide
+      # exactly the regression this job exists to catch.
+      - name: The binary must be executable
+        if: matrix.key != 'win32-x64'
+        shell: bash
+        run: |
+          bin="${{ matrix.key }}/bin/glyph"
+          if [ ! -x "$bin" ]; then
+            echo "::error::$bin is not executable ($(ls -l "$bin"))."
+            echo "The artifact round trip dropped the execute bit again."
+            exit 1
+          fi
+          echo "executable: $(ls -l "$bin")"
+
+      # The binary runs on the platform it was built for, and it is the version
+      # on the tag. This is the check that would have caught both shipped bugs
+      # at once: a non-executable binary cannot run, and a mis-tagged build
+      # reports the wrong version.
+      - name: The binary runs and reports the released version
+        if: matrix.runnable
+        shell: bash
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.key }}" = "win32-x64" ]; then
+            bin="${{ matrix.key }}/bin/glyph.exe"
+          else
+            bin="${{ matrix.key }}/bin/glyph"
+          fi
+          got="$("./$bin" --version)"
+          echo "reported: $got"
+          # Exact match on the version token. A substring test passes 0.1.8
+          # against a binary reporting `glyph 0.1.81`, and both of those tags
+          # exist here, so the loose form would have been a real false green.
+          got_version="${got##* }"
+          if [ "$got_version" != "$VERSION" ]; then
+            echo "::error::binary reports version '$got_version', tag says '$VERSION'."
+            exit 1
+          fi
+          echo "matches the tag."
+
 
   publish:
     name: Publish to npm
-    needs: build
+    needs: [preflight, build, verify]
+    # A manual dispatch on a branch must never reach the registry. Without this
+    # guard, dispatching from a branch that happened to carry bumped versions
+    # published unmerged code to npm as `latest`.
+    if: startsWith(github.ref, 'refs/tags/') && !inputs.skip_npm
     runs-on: ubuntu-latest
     permissions:
       # OIDC token for npm build provenance (`npm publish --provenance`), which
@@ -76,11 +321,22 @@ jobs:
       # with `npm audit signatures`.
       id-token: write
       contents: read
-    # `secrets` is not available in `if` expressions, so map the token to `env`
-    # at the job level and gate the publish steps on `env.NPM_TOKEN`.
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      VERSION: ${{ needs.preflight.outputs.version }}
     steps:
+      # This job only runs for a tag, and a tag means "publish". Gating the
+      # publish steps on the token instead would skip them and still report the
+      # job green, so a rotated or misnamed secret would produce a release that
+      # announced a version npm never received.
+      - name: The publish token must be present
+        run: |
+          if [ -z "${NPM_TOKEN}" ]; then
+            echo "::error::NPM_TOKEN is not set, and this is a tagged release."
+            echo "Set the NPM_TOKEN repository secret and re-run this job."
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -96,41 +352,162 @@ jobs:
 
       - name: Place staged binaries
         run: |
+          set -euo pipefail
           for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
-            cp -R "staged/platform-$key/." "npm/platform/$key/"
+            tar -xzf "staged/platform-$key/platform-$key.tar.gz" -C npm/platform
           done
-          # Artifact upload/download does not preserve the Unix execute bit, so
-          # restore it on the non-Windows binaries before packing/publishing.
+          # The mode came through the tar. Assert it on the exact copy about to
+          # be published rather than trusting the verify job's copy.
           for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
-            chmod +x "npm/platform/$key/bin/glyph"
+            test -x "npm/platform/$key/bin/glyph" \
+              || { echo "::error::npm/platform/$key/bin/glyph is not executable"; exit 1; }
           done
+          ls -l npm/platform/*/bin/*
 
       - name: Verify the launcher resolves
         run: node --test npm/scripts/resolve.test.mjs
 
-      # Publish the platform packages first so the launcher's optional
-      # dependencies exist when it is published.
-      - name: Publish platform packages
-        if: ${{ env.NPM_TOKEN != '' }}
+      # Everything below this line is irreversible, so everything that can fail
+      # gets its chance to fail first.
+      #
+      # The publish loop is six sequential `npm publish` calls and npm has no
+      # transaction. A failure at call four leaves three packages permanently
+      # published at a version the launcher will never point at, and the only
+      # way out is to burn the version and bump. These two steps turn the
+      # common causes of that (a version already published, a bad token, a
+      # packaging error) into a clean stop before the first real publish.
+      - name: None of these versions may already exist on the registry
+        run: |
+          set -uo pipefail
+          taken=""
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64 glyph; do
+            name="@glyphlang/$pkg"
+            if npm view "$name@$VERSION" version >/dev/null 2>&1; then
+              taken="$taken $name@$VERSION"
+            fi
+          done
+          if [ -n "$taken" ]; then
+            echo "::error::already published:$taken"
+            echo "npm versions are immutable, so this release cannot be re-cut at"
+            echo "$VERSION. Bump to the next patch version and tag that instead."
+            exit 1
+          fi
+          echo "none of the six packages exist at $VERSION yet."
+
+      - name: Dry-run every package before publishing any
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          set -euo pipefail
+          npm whoami
+          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
+            npm publish "./npm/platform/$key" --access public --dry-run
+          done
+          npm publish ./npm/glyph --access public --dry-run
+
+      # Publish the platform packages first so the launcher's optional
+      # dependencies exist when it is published.
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
           for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
             npm publish "./npm/platform/$key" --access public --provenance
           done
 
       - name: Publish the glyph launcher
-        if: ${{ env.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish ./npm/glyph --access public --provenance
 
+  smoke:
+    name: Smoke ${{ matrix.os }}
+    needs: [preflight, publish]
+    if: startsWith(github.ref, 'refs/tags/') && !inputs.skip_npm
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14, windows-latest]
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      # Install the published package the way a user does and run it. This is
+      # the registry round trip: it exercises optionalDependencies resolution,
+      # which nothing else in the pipeline touches.
+      #
+      # It does not replace the manual smoke test in the release ceremony, which
+      # also covers `glyph init`, `npm install` in a scaffolded project, `glyph
+      # run`, and the release's headline feature. This is one of those six.
+      - name: Install from the registry and run it
+        shell: bash
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          cd "$work"
+          npm init -y >/dev/null
+          # The registry can take a moment to serve a just-published version.
+          installed=""
+          for attempt in $(seq 1 10); do
+            if npm install "@glyphlang/glyph@$VERSION" --no-audit --no-fund; then
+              installed=yes
+              break
+            fi
+            echo "install failed (attempt $attempt/10); retrying in 15s"
+            sleep 15
+          done
+          if [ -z "$installed" ]; then
+            echo "::error::@glyphlang/glyph@$VERSION did not install after 10 attempts."
+            exit 1
+          fi
+          # The mode on the installed platform package, before anything runs
+          # the launcher. Nothing else in the pipeline sees this hop: the
+          # launcher chmods its binary at spawn, so by the time `glyph` runs the
+          # evidence is gone, and `npm/glyph/package.json` has no scripts block
+          # so installing never triggers it. This is the published npm artifact
+          # as it lands on disk.
+          pkg="$(node -p "require('./node_modules/@glyphlang/glyph/bin/resolve.js').packageForPlatform(process.platform, process.arch)")"
+          bin="node_modules/$pkg/bin/glyph"
+          if [ "$(node -p process.platform)" != "win32" ]; then
+            if [ ! -x "$bin" ]; then
+              echo "::error::$bin is not executable as published ($(ls -l "$bin"))."
+              exit 1
+            fi
+            echo "published $pkg is executable: $(ls -l "$bin" | awk '{print $1}')"
+          fi
+
+          got="$(./node_modules/.bin/glyph --version)"
+          echo "reported: $got"
+          got_version="${got##* }"
+          if [ "$got_version" != "$VERSION" ]; then
+            echo "::error::published glyph reports version '$got_version', expected '$VERSION'."
+            exit 1
+          fi
+          echo "published package runs and reports $VERSION."
+
+
   release:
     name: Create GitHub Release
-    needs: build
-    # Only when a version tag is pushed; a manual run on a branch has no tag to
-    # release against.
-    if: startsWith(github.ref, 'refs/tags/')
+    # Chained behind the publish so the two channels cannot disagree. A GitHub
+    # Release announcing a version npm does not have is worse than no release:
+    # the README sends people to npm first, and the archives are the fallback.
+    #
+    # `skip_npm` is the way out of the one state that chaining creates. If a
+    # publish fails part-way, those versions are burned on npm and re-running
+    # this workflow stops at the already-published gate, which would otherwise
+    # mean the people who install from the archives get nothing at all. Dispatch
+    # the workflow against the tag with `skip_npm: true` to cut the release
+    # alone.
+    needs: [preflight, publish]
+    if: >-
+      always() && startsWith(github.ref, 'refs/tags/')
+      && needs.preflight.result == 'success'
+      && (needs.publish.result == 'success' || inputs.skip_npm)
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -138,36 +515,71 @@ jobs:
       # verifiable with `gh attestation verify`.
       id-token: write
       attestations: write
+    # The tag reaches the shell through the environment, not through template
+    # expansion. `${{ github.ref_name }}` pasted into a `run:` block is shell
+    # source, and a ref name may legally contain `$`, a backtick, or a
+    # parenthesis, so the interpolated form is an injection site that happens to
+    # be safe only because every tag so far looked like `v0.1.81`.
+    env:
+      TAG: ${{ github.ref_name }}
     steps:
       - name: Download the staged platform binaries
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: staged
 
-      # Package each platform's binary into a downloadable archive: tarballs for
-      # the unix targets, a zip for Windows.
+      # Unpack, then repack per platform. The unpack restores the execute bit
+      # from inside the build's tar, so the archive a user downloads carries the
+      # same mode the binary had when cargo produced it.
       - name: Package per-platform archives
         run: |
-          tag="${{ github.ref_name }}"
-          mkdir -p dist
-          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
-            tar -czf "dist/glyph-${tag}-${key}.tar.gz" -C "staged/platform-${key}/bin" glyph
+          set -euo pipefail
+          tag="$TAG"
+          mkdir -p dist unpacked
+          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64 win32-x64; do
+            tar -xzf "staged/platform-$key/platform-$key.tar.gz" -C unpacked
           done
-          ( cd "staged/platform-win32-x64/bin" && zip -q "$GITHUB_WORKSPACE/dist/glyph-${tag}-win32-x64.zip" glyph.exe )
+          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
+            tar -czf "dist/glyph-${tag}-${key}.tar.gz" -C "unpacked/$key/bin" glyph
+          done
+          ( cd "unpacked/win32-x64/bin" && zip -q "$GITHUB_WORKSPACE/dist/glyph-${tag}-win32-x64.zip" glyph.exe )
           ls -la dist
+
+      # The archives are what a user actually downloads, so the execute bit is
+      # asserted on the extracted contents of the finished archive, not on the
+      # directory it was built from. This is the assertion that fails if any
+      # future change reintroduces the mode-stripping bug.
+      - name: The archives must extract to an executable binary
+        run: |
+          set -euo pipefail
+          tag="$TAG"
+          for key in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
+            probe="$(mktemp -d)"
+            tar -xzf "dist/glyph-${tag}-${key}.tar.gz" -C "$probe"
+            if [ ! -x "$probe/glyph" ]; then
+              echo "::error::glyph-${tag}-${key}.tar.gz extracts to a non-executable binary ($(ls -l "$probe/glyph"))."
+              exit 1
+            fi
+            echo "glyph-${tag}-${key}.tar.gz: $(ls -l "$probe/glyph" | awk '{print $1}')"
+          done
 
       # Published SHA-256 checksums for every archive, verifiable with
       # `sha256sum -c SHA256SUMS`.
       - name: Generate checksums
         run: ( cd dist && sha256sum glyph-* > SHA256SUMS && cat SHA256SUMS )
 
-      # SLSA build provenance attestation over the archives (not the checksum
-      # file). Links each archive to this workflow run + commit.
+      # SLSA build provenance attestation over every asset a user is told to
+      # trust. `SHA256SUMS` is included: the README offers it as a verification
+      # path, and a checksum file with no provenance of its own only proves the
+      # archives match a list that anyone able to edit the release could have
+      # replaced. Attesting it makes the list itself checkable.
       - name: Attest build provenance
         id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: "dist/glyph-*"
+          subject-path: |
+            dist/glyph-*
+            dist/SHA256SUMS
 
       # The attestation above lives in GitHub's attestation store, which is what
       # `gh attestation verify` reads. Nothing that only inspects the release
@@ -176,14 +588,14 @@ jobs:
       # bundle makes the same signature checkable by someone who downloaded a
       # tarball and nothing else.
       - name: Attach the provenance bundle to the release
-        run: cp "${{ steps.attest.outputs.bundle-path }}" "dist/${{ github.ref_name }}.intoto.jsonl"
+        run: cp "${{ steps.attest.outputs.bundle-path }}" "dist/$TAG.intoto.jsonl"
 
       - name: Create the release with the binaries attached
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          tag="${{ github.ref_name }}"
+          tag="$TAG"
           gh release create "$tag" dist/* \
             --repo "${{ github.repository }}" \
-            --title "$tag" \
+            --title "$TAG" \
             --notes "Prebuilt \`glyph\` binaries for macOS, Linux, and Windows. Download the archive for your platform, extract it, and put \`glyph\` on your PATH. Each archive carries a SLSA build-provenance attestation (verify with \`gh attestation verify <archive> --repo ${{ github.repository }}\`) and a SHA-256 in \`SHA256SUMS\` (\`sha256sum -c SHA256SUMS\`); the npm packages are published with provenance (\`npm audit signatures\`)."

@@ -5345,6 +5345,55 @@ land here until they're assigned a release.
   shape. Also outstanding: `examples/corpus` and the numbered examples are not
   `fmt`-clean and would change under a reformat, which wants its own commit.
 
+### Release-pipeline gaps left open after the pipeline rebuild
+
+The release workflow was audited and rebuilt after every GitHub Release tarball
+since the release job was introduced turned out to ship `glyph` as mode 0644.
+The npm copy of the same binary was correct, so the npx smoke test could not see
+it. These are the findings from that audit that were deliberately not fixed in
+the same change, recorded here so they are not rediscovered.
+
+- **`darwin-x64` is executed nowhere in CI, and its only coverage is one
+  machine.** The verify matrix runs each built binary on its own platform except
+  this one: `macos-14` is arm64, and running an x64 binary there needs Rosetta,
+  which is not guaranteed on the image. It is still covered today only because
+  the maintainer's machine is an Intel Mac, so the manual npx smoke test runs
+  the x64 binary. That is coverage by accident of hardware, and it inverts on
+  the next laptop: `darwin-arm64` has CI coverage and `darwin-x64` would then
+  have none. `macos-13` is the honest fix, and the reason it was avoided for
+  building (the runner queues) weighs much less on a ten-second verify job.
+- **No documented recovery for a half-failed publish.** npm versions are
+  immutable, so a failure between the third and fourth `npm publish` leaves
+  packages that can never be replaced. The rebuilt workflow makes this far less
+  likely (an already-published probe and a dry-run of all six before the first
+  real publish, plus a global concurrency group), but if it happens anyway there
+  is no written procedure. It should say: burn the version, bump to the next
+  patch, and never attempt to re-cut the same number.
+- **musl and Alpine get a glibc binary.** The launcher maps on `platform-arch`
+  only, so `linux-x64` resolves to the `x86_64-unknown-linux-gnu` build on musl,
+  which cannot execute. The user sees a spawn failure rather than a sentence
+  telling them what happened. A `linux-x64-musl` target is the real fix; a
+  detection-and-diagnose path is the cheap one.
+- **The npm packages ship no license text.** All six declare `"license": "MIT OR
+  Apache-2.0"` and none contains a LICENSE file; `npm pack` on the launcher
+  yields `README.md`, `bin/glyph.js`, `bin/resolve.js`, `package.json`. The repo
+  is dual-licensed and the text exists at the root, so this is a copy step.
+- **Yarn PnP keeps the platform packages zipped.** None sets
+  `preferUnplugged: true`, so under Yarn Berry the resolved binary path points
+  inside a zip that cannot be spawned.
+- **Nothing gates the release notes or the roadmap status flip.** The ceremony
+  writes an entry in `web/versions/index.html`, moves the `Latest` badge, and
+  flips this file's entry from *Landed on main* to *Shipped*. No check reads any
+  of that, so a release can publish with its own notes missing. The homepage
+  version pill is hard-coded and has gone stale before.
+- **The site deploys on merge, not on publish.** The Pages workflow fires on
+  push to `main` under `web/**`, which the release PR merge matches, so the site
+  can announce a version for the window between the merge and the tag.
+- **`check_binary_fresh.py` runs nowhere mechanical.** It is first in the
+  ceremony's gate list and is invoked by no workflow, so it holds only when
+  someone remembers to type it. It checks a local build, so CI is not the right
+  home; the release orchestration workflow is.
+
 ## Parked (v2 / later)
 
 - **GitHub Linguist submission (a real "Glyph" language on GitHub).** Get `.glyph`

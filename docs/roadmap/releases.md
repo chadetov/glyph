@@ -4029,6 +4029,37 @@ had been closed for weeks. An update notice is a network call from a compiler
 and therefore a policy question; it is deliberately not decided here, only
 named, in the rolling lane.
 
+### 0.1.82 — Shipped · The download runs, and the package carries its license
+
+Published 2026-08-24.
+
+Three defects in what we hand people, none of them in the compiler. Every
+GitHub Release archive since the feature shipped carried `glyph` at mode 0644,
+confirmed against v0.1.10, v0.1.80 and v0.1.81. Anyone following the
+instructions printed on the release got `permission denied`. GitHub's artifact
+upload strips the Unix mode and only the npm half of the pipeline restored it,
+so the npm packages were always right, which is why the release smoke test never
+saw it: that test only exercises npm.
+
+The fix puts the mode inside a tar in the build job, where the round trip cannot
+touch it, and asserts it again on the extracted contents of the finished archive
+rather than repairing it. All six npm packages also now ship the license text
+they had been declaring and omitting, and the launcher's reinstall hint names
+`@glyphlang/glyph` instead of `glyph`, which is an unrelated static site
+generator on npm.
+
+The release workflow itself was rebuilt around the one fact that shapes it: npm
+versions are immutable. Everything checkable now happens before the first
+irreversible step. The tag must match every version string, the commit must be
+on `main` and have passed CI, each binary is executed on its own platform and
+asked for its version, and all six packages are dry-run before any is published.
+A version that already exists stops the release instead of half-completing it,
+and `skip_npm` gives a half-failed publish a way to still produce the archives.
+
+Known and deliberately left: the x86-64 macOS binary is executed by nothing. The
+runner is arm64 and running it needs Rosetta, which the image does not
+guarantee. Its mode is checked; nothing runs it.
+
 ### 0.1.81 — Shipped · Generated output drops into a host project as-is
 
 Published 2026-08-23 and smoke-tested from a clean npx cache in an isolated

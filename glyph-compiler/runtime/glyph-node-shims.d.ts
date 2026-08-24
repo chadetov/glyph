@@ -165,6 +165,43 @@ declare const process: {
   stdin: { isTTY?: boolean };
 };
 
+// The encodings node's own `BufferEncoding` names, verbatim. A stream's
+// `setEncoding` takes this rather than `string`: declaring the wider type would
+// let code that compiles here fail with TS2345 the moment `@types/node` is
+// installed, which is the same trap the `process.exitCode` note above records.
+type BufferEncoding =
+  | "ascii"
+  | "utf8"
+  | "utf-8"
+  | "utf16le"
+  | "utf-16le"
+  | "ucs2"
+  | "ucs-2"
+  | "base64"
+  | "base64url"
+  | "latin1"
+  | "binary"
+  | "hex";
+
+// Where `@types/node` puts the signal names: a global `NodeJS` namespace, not an
+// export of `child_process`. The placement is the whole point. A type declared
+// inside `declare module "child_process"` is exported from it whether or not it
+// carries the `export` keyword, so declaring `Signals` there would let
+// `import child_process { spawn, Signals }` build green with nothing installed
+// and fail `TS2305` the moment `@types/node` arrived, which is the trap the
+// `process.exitCode` and `BufferEncoding` notes above already record. The union
+// is `@types/node` 26.2.0's, member for member.
+declare namespace NodeJS {
+  type Signals =
+    | "SIGABRT" | "SIGALRM" | "SIGBUS" | "SIGCHLD" | "SIGCONT" | "SIGFPE"
+    | "SIGHUP" | "SIGILL" | "SIGINT" | "SIGIO" | "SIGIOT" | "SIGKILL"
+    | "SIGPIPE" | "SIGPOLL" | "SIGPROF" | "SIGPWR" | "SIGQUIT" | "SIGSEGV"
+    | "SIGSTKFLT" | "SIGSTOP" | "SIGSYS" | "SIGTERM" | "SIGTRAP" | "SIGTSTP"
+    | "SIGTTIN" | "SIGTTOU" | "SIGUNUSED" | "SIGURG" | "SIGUSR1" | "SIGUSR2"
+    | "SIGVTALRM" | "SIGWINCH" | "SIGXCPU" | "SIGXFSZ" | "SIGBREAK" | "SIGLOST"
+    | "SIGINFO";
+}
+
 // A node `Buffer` really is a `Uint8Array` subclass, and this says so, which is
 // what lets a `Buffer` returned by `readFileSync` or `digest()` become a `Bytes`
 // without copying: `new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)`
@@ -295,7 +332,133 @@ declare module "node:events" {
 
 // Spawning a process. `spawnSync`/`execFileSync` are the two a build script or
 // a CLI wrapper actually reaches for.
+// The two stream halves a child process hands back, and what a Glyph program
+// does with them: attach a `data` listener, decode the text, stop. `@types/node`
+// has these as classes with the full stream surface; this is the subset, and it
+// lives under `stream` rather than inside `child_process` because that is where
+// `@types/node` exports them from. Declaring them in the wrong module would let
+// `import child_process { Readable }` compile until the real typings arrived.
+declare module "stream" {
+  export interface Readable {
+    readonly readable: boolean;
+    // Octets, unless `setEncoding` has been called, in which case node decodes
+    // for you and hands over text. Node holds a `StringDecoder` per stream when
+    // an encoding is set, so a character split across two chunks survives;
+    // decoding a raw chunk yourself does not have that property.
+    on(event: "data", listener: (chunk: string | GlyphBuffer) => void): this;
+    on(event: "end", listener: () => void): this;
+    on(event: "close", listener: () => void): this;
+    on(event: "error", listener: (err: Error) => void): this;
+    once(event: "end", listener: () => void): this;
+    once(event: "close", listener: () => void): this;
+    once(event: "error", listener: (err: Error) => void): this;
+    setEncoding(encoding: BufferEncoding): this;
+    pause(): this;
+    resume(): this;
+    destroy(error?: Error): this;
+  }
+
+  export interface Writable {
+    readonly writable: boolean;
+    write(chunk: string | Uint8Array): boolean;
+    end(): this;
+    on(event: "close", listener: () => void): this;
+    on(event: "drain", listener: () => void): this;
+    on(event: "error", listener: (err: Error) => void): this;
+    on(event: "finish", listener: () => void): this;
+    once(event: "close", listener: () => void): this;
+    once(event: "error", listener: (err: Error) => void): this;
+    once(event: "finish", listener: () => void): this;
+    destroy(error?: Error): this;
+  }
+}
+declare module "node:stream" {
+  export * from "stream";
+}
+
 declare module "child_process" {
+  import type { Readable, Writable } from "stream";
+
+  export type IOType = "overlapped" | "pipe" | "ignore" | "inherit";
+  export type StdioOptions = IOType | Array<IOType | "ipc" | number | null | undefined>;
+
+  export interface SpawnOptions {
+    cwd?: string;
+    env?: Record<string, string | undefined>;
+    argv0?: string;
+    stdio?: StdioOptions;
+    detached?: boolean;
+    shell?: boolean | string;
+    windowsHide?: boolean;
+    timeout?: number;
+    killSignal?: NodeJS.Signals | number;
+  }
+
+  // The same options minus the ability to turn a pipe off: this is what selects
+  // the overload whose three streams are non-null.
+  export interface SpawnOptionsWithoutStdio extends SpawnOptions {
+    stdio?: "pipe" | Array<"pipe" | null | undefined>;
+  }
+
+  export interface ChildProcess {
+    // Nullable, exactly as `@types/node` declares them. With `stdio: "inherit"`
+    // or `"ignore"` node wires the child straight to the parent's descriptors
+    // and there is no stream to hand back, so a value held as a `ChildProcess`
+    // has to check. The plain `spawn` call returns
+    // `ChildProcessWithoutNullStreams` instead, where the same three are
+    // non-null, so the common case needs no check and both spellings tell the
+    // same story about the same value.
+    stdin: Writable | null;
+    stdout: Readable | null;
+    stderr: Readable | null;
+    readonly pid: number | undefined;
+    readonly exitCode: number | null;
+    readonly signalCode: NodeJS.Signals | null;
+    readonly killed: boolean;
+    readonly connected: boolean;
+    // `code` is null when the child died from a signal, and `signal` is null
+    // when it exited on its own. One of the two is always set.
+    on(event: "close", listener: (code: number | null, signal: NodeJS.Signals | null) => void): this;
+    on(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): this;
+    on(event: "error", listener: (err: Error) => void): this;
+    on(event: "spawn", listener: () => void): this;
+    on(event: "disconnect", listener: () => void): this;
+    once(event: "close", listener: (code: number | null, signal: NodeJS.Signals | null) => void): this;
+    once(event: "exit", listener: (code: number | null, signal: NodeJS.Signals | null) => void): this;
+    once(event: "error", listener: (err: Error) => void): this;
+    once(event: "spawn", listener: () => void): this;
+    kill(signal?: NodeJS.Signals | number): boolean;
+    ref(): void;
+    unref(): void;
+  }
+
+  export interface ChildProcessWithoutNullStreams extends ChildProcess {
+    stdin: Writable;
+    stdout: Readable;
+    stderr: Readable;
+  }
+
+  // Async, streaming: output arrives while the child runs and the exit code
+  // arrives on `close`, which is what `spawnSync` below cannot do. The overload
+  // pairs follow `@types/node`: an options object that leaves the pipes alone
+  // keeps the streams non-null, and anything that can turn a pipe off falls
+  // through to the nullable `ChildProcess`.
+  export function spawn(
+    command: string,
+    options?: SpawnOptionsWithoutStdio,
+  ): ChildProcessWithoutNullStreams;
+  export function spawn(command: string, options: SpawnOptions): ChildProcess;
+  export function spawn(
+    command: string,
+    args?: ReadonlyArray<string>,
+    options?: SpawnOptionsWithoutStdio,
+  ): ChildProcessWithoutNullStreams;
+  export function spawn(
+    command: string,
+    args: ReadonlyArray<string>,
+    options: SpawnOptions,
+  ): ChildProcess;
+
   export function spawnSync(
     command: string,
     args?: ReadonlyArray<string>,

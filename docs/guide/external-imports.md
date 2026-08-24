@@ -75,12 +75,75 @@ just as it resolves `"node:http"`.
 
 The common builtins type-check **out of the box**, with nothing installed:
 `glyph build` bundles ambient declarations for `fs`, `http`, `path`, `os`,
-`crypto`, `url`, `net`, `timers`, `events`, `child_process`, `dns/promises` and
-`zlib` (plus the `process` global) under their bare names. For the
+`crypto`, `url`, `net`, `timers`, `events`, `child_process`, `stream`,
+`dns/promises` and `zlib` (plus the `process` global) under their bare names. For the
 full, exact Node surface, install `@types/node` in your project. The build
 detects it, prefers its complete typings, and skips the bundled shim, so there is
 no duplicate-declaration conflict and a builtin API the shim does not cover (say
 `os.uptime()`) type-checks the moment `@types/node` is present.
+
+### Running a subprocess
+
+`child_process` carries both halves. `spawnSync` and `execFileSync` block until
+the command finishes and hand back its whole output; `spawn` starts the command
+and returns while it runs, with the output arriving on the child's `stdout` and
+`stderr` streams and the exit code on a `close` event. A tool that reports a long
+build's progress needs the second one.
+
+```glyph
+module main
+
+import child_process { spawn }
+import std/io
+
+pub async fn main(argv: Array<string>) -> number {
+  let child = spawn("git", ["status", "--short"])
+
+  // Ask for text and node decodes for you, holding back a character whose
+  // bytes straddle two chunks. Decoding a raw chunk yourself does not.
+  child.stdout.setEncoding("utf8")
+  child.stdout.on("data", fn(chunk) {
+    io.print("${chunk}")
+  })
+  child.on("close", fn(code) {
+    io.println("git exited ${code}")
+  })
+  return 0
+}
+```
+
+`io.print` rather than `io.println`: a chunk is a slice of the stream, not a
+line, and one line can arrive across two of them. Writing chunks in order
+reproduces the output exactly; printing one per line invents boundaries that were
+never there.
+
+Splitting into lines needs one more step than you might expect. A `data` chunk is
+typed `string | Bytes` whether or not you called `setEncoding`, because the event
+carries both shapes, so `chunk.split("\n")` does not compile: `split` is not on
+the union. Narrow it first with an `is string` match arm, then keep the tail after
+the last newline and prepend it to the next chunk.
+
+Three pipes come back non-null from a plain `spawn(command, args)`. Pass
+`stdio` and they become nullable, because `"inherit"` and `"ignore"` wire the
+child straight to your descriptors and leave no stream to hold:
+
+```glyph
+module quiet
+
+import child_process { spawn }
+import std/io
+
+pub fn run(cmd: string) -> number {
+  let child = spawn(cmd, [], { stdio: "inherit" })
+  child.on("close", fn(code) {
+    io.println("done ${code}")
+  })
+  return 0
+}
+```
+
+Reading `child.stdout` there is an error until you check it for null, which is
+what `@types/node` says too.
 
 Reach for a Node builtin only when the stdlib does not already cover what you
 want. `std/timers` schedules work, `std/websocket` opens a connection,

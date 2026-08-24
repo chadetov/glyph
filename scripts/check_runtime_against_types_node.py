@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -125,7 +126,95 @@ def main() -> int:
             print("the shim declaration that let it be written that way.")
             return 1
 
+        # Same tree, same installed package: ask the narrower question too.
+        parity = check_name_parity(root, version)
+        if parity != 0:
+            return parity
+
     print(f"runtime compiles against @types/node {version}")
+    return 0
+
+
+# ---------------------------------------------------------------- name parity
+#
+# The runtime check above only exercises declarations the compiler's own runtime
+# happens to touch. A declaration only *user* code reaches is invisible to it,
+# and that is not hypothetical: the `Signals` type sat exported from
+# `child_process` through two review rounds, building green with nothing
+# installed and failing TS2305 the moment someone installed the package. The
+# guard written for it hardcoded the one name, so adding a second invented name
+# passed the whole suite.
+#
+# This asks a narrower question that needs no build: for every name the shim
+# exports from a node module, does `@types/node` export it too? It cannot catch a
+# declaration whose *shape* is wider than node's, which is a harder problem and
+# is tracked separately. It does catch a name node has never had.
+
+MODULE = re.compile(r'^declare module "(?!node:)([^"]+)" \{', re.M)
+EXPORTED = re.compile(r"^\s*export (?:declare )?(?:function|const|let|var|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)", re.M)
+
+
+def shim_exports(shim: pathlib.Path) -> dict[str, list[str]]:
+    """Every name each bare (non `node:`) module block exports, by module."""
+    text = shim.read_text()
+    out: dict[str, list[str]] = {}
+    for m in MODULE.finditer(text):
+        start = m.end()
+        depth = 1
+        i = start
+        while i < len(text) and depth:
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+            i += 1
+        names = EXPORTED.findall(text[start:i])
+        if names:
+            out[m.group(1)] = sorted(set(names))
+    return out
+
+
+def check_name_parity(root: pathlib.Path, version: str) -> int:
+    """Every name the shim exports must exist in the real @types/node."""
+    shim = glyph_bin.ROOT / "glyph-compiler" / "runtime" / "glyph-node-shims.d.ts"
+    exports = shim_exports(shim)
+    if not exports:
+        print("could not read any module exports out of the shim; the parser above")
+        print("no longer matches the file, which makes this check silently vacuous.")
+        return 1
+
+    probe = root / "parity.ts"
+    lines = []
+    for module, names in sorted(exports.items()):
+        for name in names:
+            lines.append(f'import type {{ {name} as _{module.replace("/", "_").replace("-", "_")}_{name} }} from "{module}";')
+    probe.write_text("\n".join(lines) + "\n")
+
+    tsc = subprocess.run(
+        # `bundler` resolution rather than the classic `node10`, which TypeScript
+        # 6 reports as deprecated and fails on. Nothing here depends on the
+        # resolution mode: every import names a bare node module.
+        ["npx", "--yes", "tsc", "--noEmit", "--strict", "--skipLibCheck",
+         "--module", "esnext", "--moduleResolution", "bundler",
+         "--types", "node", str(probe)],
+        cwd=root, capture_output=True, text=True, timeout=900,
+    )
+    if tsc.returncode != 0:
+        bad = [l for l in (tsc.stdout + tsc.stderr).splitlines() if "TS2305" in l or "TS2724" in l]
+        print(f"the shim exports names @types/node {version} does not have:")
+        print()
+        for line in bad or (tsc.stdout + tsc.stderr).splitlines()[:20]:
+            print(f"  {line}")
+        print()
+        print("A name only user code reaches never appears in the runtime build, so")
+        print("it builds green with nothing installed and fails the moment someone")
+        print("follows the guide and installs the package. Declare it globally")
+        print("(a `declare namespace NodeJS` block) rather than inside the module,")
+        print("or give the module the name node actually has.")
+        return 1
+
+    total = sum(len(v) for v in exports.values())
+    print(f"name parity OK: {total} exported names across {len(exports)} modules exist in @types/node {version}")
     return 0
 
 

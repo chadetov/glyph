@@ -36,7 +36,7 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after Round 35 added and closed G125: of 125 entries, 94 are
+Reconciled again after Round 36 added and closed G126: of 126 entries, 95 are
 fixed, 10 are partly fixed, 9 are decided or resolved, and 12 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
@@ -4133,3 +4133,81 @@ compiler's own runtime.
   differential check. With both runtime fixes reverted it reports all four errors
   above; with them in place it passes against 26.2.0.
   *Found against 0.1.81.*
+
+
+## Round 36: the builtin the docs pointed at was the one the shim did not have
+
+The same app agent that found G125 went back to the async subprocess it wanted in
+the first place. G125's own note records the detour: the guide sent it to
+`@types/node` because "the bundled shim declares `spawnSync`/`execFileSync` but
+not the async `child_process.spawn`". Installing `@types/node` is now safe, and
+the underlying gap is still there without it.
+
+- **G126. [FIXED] The bundled shim had only the blocking half of
+  `child_process`, so watching a subprocess needed `@types/node`.** A dev-loop
+  tool runs a long-running command and reports its output while it runs, which is
+  `spawn`: `stdout`/`stderr` are readable streams and the exit code arrives on a
+  `close` event. `spawnSync` and `execFileSync`, the two the shim declared, both
+  block until the child is done and hand back the whole output at once, so
+  neither can do it. Against 0.1.83 the finding's program failed three ways at
+  once, and two of them are worse than the first because they name nothing:
+
+  ```
+  [TS2305] Module '"child_process"' has no exported member 'spawn'.
+  [TS7006] Parameter 'chunk' implicitly has an 'any' type.
+  [TS7006] Parameter 'code' implicitly has an 'any' type.
+  ```
+
+  The two `TS7006`s are the shape of every missing-declaration report here: with
+  no `ChildProcess` type behind the value, the event handlers had nothing to be
+  contextually typed from, and `--strict` rejects them for being untyped rather
+  than for the thing that was actually missing.
+
+  The shim now declares `spawn` with the overload pairs `@types/node` uses, plus
+  a `stream` module holding the `Readable`/`Writable` subset the child's pipes
+  need. The overloads carry the one guarantee that matters: a plain
+  `spawn(cmd, args)` returns `ChildProcessWithoutNullStreams`, whose three pipes
+  are non-null, while anything that can turn a pipe off (`stdio: "inherit"`,
+  `"ignore"`) returns the named `ChildProcess`, whose pipes are nullable exactly
+  as node has them.
+
+  That split is the part worth spelling out, because the first attempt at this
+  fix got it wrong in a way the review caught. Putting the pipes only on the
+  `spawn` return type and leaving the base interface without them makes the
+  guarantee depend on how the value is spelled: `let c = spawn(...)` reports
+  `TS18047` "possibly null", and the same value passed to `fn f(c: ChildProcess)`
+  reports `TS2339` "property does not exist", which is a different and wrong
+  story about the same object. Checked against `@types/node` 26.2.0, the shim now
+  reports `TS18047` where the real typings report `TS18047`, and `setEncoding`
+  takes `BufferEncoding` rather than `string` so it reports the same `TS2345`
+  too. Declaring it `string` would have been a fresh instance of G125: wider than
+  node, compiles here, fails the moment the real package is installed.
+
+  One place the shim is deliberately stricter than `@types/node`: stream and
+  process event names are literal types, so `on("datum", ...)` is rejected here
+  and accepted there (`@types/node` keeps the `EventEmitter` string fallback).
+  That is the same choice the `net` block already made, and it is the safe
+  direction: the shim no longer accepts a *name* the real typings reject, which is narrower than it sounds: a duck-typed `Readable` still compiles here and fails TS2345 under `@types/node`, because node's is a class and the shim's an interface.
+
+  Holding that line took a second correction, also from review. The signal names
+  went in as a bare `type Signals` inside `declare module "child_process"`, which
+  reads as private and is not: a type declared in an ambient module is exported
+  from it with or without the `export` keyword. So `import child_process { spawn,
+  Signals }` compiled here and reported `TS2305` against `@types/node` 26.2.0,
+  a fresh instance of G125 inside the change that closed it. `Signals` now lives
+  in a global `declare namespace NodeJS`, which is where `@types/node` keeps it,
+  and both directions agree: the import is rejected here and there, and
+  `NodeJS.Signals` resolves here and there. The rest of the surface was checked
+  the same way. Every name the shim exports from `child_process` and `stream`
+  (`spawn`, `ChildProcess`, `ChildProcessWithoutNullStreams`, `SpawnOptions`,
+  `SpawnOptionsWithoutStdio`, `StdioOptions`, `IOType`, `Readable`, `Writable`)
+  imports cleanly from `@types/node` 26.2.0 too.
+
+  Checking this one turned up five more declarations with the `setEncoding`
+  problem, untouched: `net.Socket.setEncoding`, `new StringDecoder(...)`,
+  `Buffer.from(s, enc)`, `Buffer.byteLength(s, enc)` and `buf.toString(enc)` all
+  take `string`. One file calling all five reports four `TS2345`s and one
+  `TS2769` against `@types/node` 26.2.0 and nothing without it. They are in the
+  roadmap's rolling lane rather than fixed here: narrowing a declaration people
+  already build on is a change to a guarantee, not a typo.
+  *Found against 0.1.83.*

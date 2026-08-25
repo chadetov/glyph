@@ -5446,6 +5446,85 @@ fn spawn_glyph(args: &[&std::ffi::OsStr]) -> (i32, String, String, u32) {
     )
 }
 
+/// Run `glyph` under a wall-clock budget, and kill it if it outlives one.
+///
+/// `None` means the process was still alive at the deadline. Every other
+/// helper here waits forever, which is the one thing a test about a program
+/// that never exits cannot do: without a budget the hang becomes the harness's
+/// hang and the suite stops instead of failing.
+fn spawn_glyph_bounded(
+    args: &[&std::ffi::OsStr],
+    budget: std::time::Duration,
+) -> Option<(i32, String, String)> {
+    use std::io::Read;
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"));
+    command
+        .args(args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    // `glyph run` compiles and then spawns node, which inherits these pipes and
+    // is the process that actually hangs. Killing only `glyph` leaves node
+    // holding the write end and running, so the timeout path has to be able to
+    // reach the whole tree; its own process group is what makes that possible.
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+    let mut child = command.spawn().expect("spawn glyph");
+    // Drained on their own threads. A child that fills a pipe buffer blocks on
+    // the write, which would look exactly like the hang under test.
+    let mut out_pipe = child.stdout.take().expect("stdout is piped");
+    let mut err_pipe = child.stderr.take().expect("stderr is piped");
+    let out_reader = std::thread::spawn(move || {
+        let mut text = String::new();
+        let _ = out_pipe.read_to_string(&mut text);
+        text
+    });
+    let err_reader = std::thread::spawn(move || {
+        let mut text = String::new();
+        let _ = err_pipe.read_to_string(&mut text);
+        text
+    });
+    let started = std::time::Instant::now();
+    loop {
+        match child.try_wait().expect("wait on glyph") {
+            Some(status) => {
+                let stdout = out_reader.join().unwrap_or_default();
+                let stderr = err_reader.join().unwrap_or_default();
+                return Some((status.code().unwrap_or(-1), stdout, stderr));
+            }
+            None if started.elapsed() >= budget => {
+                kill_the_whole_tree(&mut child);
+                // The readers are left to finish on their own. Joining them here
+                // is what turned "the program hung" into "the test run hung" the
+                // first time this was written.
+                return None;
+            }
+            None => std::thread::sleep(std::time::Duration::from_millis(50)),
+        }
+    }
+}
+
+/// Kill a `glyph` process and everything it started.
+#[cfg(unix)]
+fn kill_the_whole_tree(child: &mut std::process::Child) {
+    // A negative pid names the process group, so the node the CLI spawned dies
+    // with it rather than outliving the test suite.
+    let _ = std::process::Command::new("kill")
+        .arg("-9")
+        .arg(format!("-{}", child.id()))
+        .status();
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+#[cfg(not(unix))]
+fn kill_the_whole_tree(child: &mut std::process::Child) {
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
 fn failing_example_project(prefix: &str) -> (PathBuf, PathBuf, PathBuf) {
     let root = unique_tmp(prefix);
     let src = root.join("src");
@@ -8573,7 +8652,7 @@ pub async fn main() -> void {{
     Ok(_) => io.println("invalid=resolved (wrong)"),
     Err(_) => io.println("invalid=refused"),
   }}
-  match await tls.connect("127.0.0.1", {closed}) {{
+  match await tls.connect("127.0.0.1", {closed}, 5000) {{
     Ok(_) => io.println("tls=connected (wrong)"),
     Err(_) => io.println("tls=refused"),
   }}
@@ -8593,6 +8672,122 @@ pub async fn main() -> void {{
     assert!(
         stdout.contains("tls=refused"),
         "a refused connection is a value, not a throw: {stdout}"
+    );
+}
+
+/// A TLS dial against a peer that never answers is bounded, and the process
+/// still exits.
+///
+/// The peer here completes the TCP handshake and then says nothing, which is
+/// what a wedged endpoint or a firewall that swallows the TLS records looks
+/// like from the client. Before `connect` carried a deadline, that dial never
+/// settled: no `Ok`, no `Err`, no handle to abort, and the pending socket kept
+/// node's event loop alive forever, so the program printed its last line and
+/// then had to be killed. Both halves are asserted, because a `connect` that
+/// answers `Err` and leaves the socket attached would still hang the process.
+///
+/// The same run covers both ends of the deadline itself. `setTimeout` clamps a
+/// delay past 2^31-1 to one millisecond rather than refusing it, so an
+/// unchecked `connect` turns a 35-day bound into a 1ms failure that reports the
+/// 35 days as elapsed, and neither usage error may wear the `host: ` prefix the
+/// real network failures use.
+#[test]
+fn a_tls_dial_against_a_silent_peer_is_bounded() {
+    if !js_toolchain_available() {
+        eprintln!("skipping std/tls deadline: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("tlsdeadline");
+    let src = root.join("src");
+    let port = 47000 + (std::process::id() % 2000);
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            r#"module main
+
+import std/io
+import std/net
+import std/net {{ Socket }}
+import std/result {{ Ok, Err }}
+import std/tls
+
+const PORT: int = {port}
+
+pub async fn main() -> void {{
+  // Accepts the connection and then says nothing: the TLS handshake can never
+  // finish, and nothing will ever close this end.
+  match await net.listen("127.0.0.1", PORT, fn(peer: Socket) {{}}) {{
+    Ok(server) => {{
+      match await tls.connect("127.0.0.1", PORT, 500) {{
+        Ok(_) => io.println("tls=handshook (wrong)"),
+        Err(_) => io.println("tls=deadline"),
+      }}
+      // A deadline node's timer cannot hold. `setTimeout` clamps anything past
+      // 2^31-1 to one millisecond instead of refusing it, so without a check
+      // this dials, fails in 1ms, and blames a deadline that never elapsed.
+      match await tls.connect("127.0.0.1", PORT, 3000000000) {{
+        Ok(_) => io.println("huge=handshook (wrong)"),
+        Err(e) => io.println("huge=${{e}}"),
+      }}
+      match await tls.connect("127.0.0.1", PORT, 0) {{
+        Ok(_) => io.println("zero=handshook (wrong)"),
+        Err(e) => io.println("zero=${{e}}"),
+      }}
+      net.stop(server)
+      io.println("main is returning now")
+    }},
+    Err(e) => io.println("listen=failed ${{e.message}}"),
+  }}
+}}
+"#
+        ),
+    );
+    let entry = src.join("main.glyph");
+    // The dial's own bound is 500ms and compiling the program is a few seconds,
+    // so this is generous. It is not more generous than that on purpose: the
+    // budget is the cost of *reporting* a regression, and a suite that takes a
+    // minute and a half to tell you the loop is pinned again is a suite you
+    // stop running.
+    let finished = spawn_glyph_bounded(
+        &[std::ffi::OsStr::new("run"), entry.as_os_str()],
+        std::time::Duration::from_secs(30),
+    );
+    let (code, stdout, stderr) = match finished {
+        Some(done) => done,
+        None => panic!(
+            "the program never exited: a dial that cannot complete left the event loop pinned"
+        ),
+    };
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(
+        stdout.contains("tls=deadline"),
+        "a handshake that cannot finish is an `Err`, not a wait: {stdout}"
+    );
+    assert!(
+        stdout.contains("main is returning now"),
+        "the program reached its end: {stdout}"
+    );
+    // A deadline larger than node can hold is refused, not silently clamped to
+    // 1ms and then reported as if the number asked for had elapsed.
+    assert!(
+        stdout.contains("huge=a TLS dial deadline must be at most 2147483647ms, got 3000000000"),
+        "an unholdable deadline is a usage error naming the limit: {stdout}"
+    );
+    assert!(
+        !stdout.contains("no TLS handshake within 3000000000ms"),
+        "a 1ms failure must not claim the deadline it was asked for elapsed: {stdout}"
+    );
+    // Neither usage error wears the `host: ` prefix the network failures use.
+    // A caller logging the string files a programming error as an endpoint
+    // being down, which for an uptime monitor is the wrong answer twice.
+    assert!(
+        stdout.contains("zero=a TLS dial needs a deadline greater than 0ms, got 0"),
+        "a zero deadline is a usage error: {stdout}"
+    );
+    assert!(
+        !stdout.contains("zero=127.0.0.1:") && !stdout.contains("huge=127.0.0.1:"),
+        "a usage error must not impersonate a connection failure: {stdout}"
     );
 }
 

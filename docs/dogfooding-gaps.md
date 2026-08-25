@@ -36,8 +36,9 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after Round 36 added and closed G126: of 126 entries, 95 are
-fixed, 10 are partly fixed, 9 are decided or resolved, and 12 are open.
+Reconciled again after Round 37 added and closed G127 and added G128 open: of
+128 entries, 96 are fixed, 10 are partly fixed, 9 are decided or resolved, and
+13 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -4233,3 +4234,126 @@ the underlying gap is still there without it.
   roadmap's rolling lane rather than fixed here: narrowing a declaration people
   already build on is a change to a guarantee, not a typo.
   *Found against 0.1.83.*
+
+## Round 37: the deadline that could not bound the one case it was for
+
+`pulse`, a CLI uptime monitor: resolve a name with `std/dns`, open a
+certificate-verified `std/tls` connection, speak HTTP/1.1 by hand over the
+socket, and hold every check to a deadline so one bad endpoint cannot stall the
+run. It stopped on the deadline, which is the feature the whole program is
+about. The two modules had shipped in 0.1.79 and no app had imported either
+until this one.
+
+- **G127. [FIXED] A `tls.connect` to a peer that never answers never settles,
+  and keeps the process alive forever.** `connect` returned nothing until node's
+  promise settled: no handle, no `AbortSignal`, no way to reach the socket while
+  the attempt was still in flight. Against a peer that accepts the TCP
+  connection and then sends nothing, or a firewall that drops the SYN, that
+  promise never settles. So there was a third outcome besides `Ok` and `Err`,
+  and it was *never*, in the module whose stated promise is that a failed
+  connection is a value.
+
+  Racing a `timers.sleep` against it, the idiom
+  `examples/apps/resilient/main.glyph`'s `with_deadline` documents, does not
+  bound it. `task.race` gives you the winner and leaves the loser running, which
+  is fine when the loser is holding a socket you can close; here the loser never
+  produced one. The abandoned attempt keeps a libuv handle open, and node exits
+  when its handles are gone, so the program printed its result and its last line
+  and then sat there:
+
+  ```
+  let outcome = await task.race([attempt, deadline])
+  io.println(outcome)          // "timed out", at the 2s mark
+  io.println("main is returning now")
+  // ...and the process never exits. Killed after 16s of watching.
+  ```
+
+  **Fixed in 0.1.85.** `connect` takes a required third argument,
+  `timeout_ms`, and destroys the socket when the deadline passes. The bound
+  lives on the dial because the dial is the only code that can reach the socket,
+  which is also why an outer race cannot substitute for it. The clock starts at
+  the call rather than at the handshake, so a slow TCP connect spends the same
+  budget.
+
+  The deadline is required rather than optional, and there is no value meaning
+  "wait forever". Every TLS dial crosses a network, a bound nobody passes is a
+  bound nobody has, and this is the same call `std/net.listen` makes in refusing
+  to default its bind address. Optional was not available in any case: a
+  trailing optional argument is the one shape the stdlib signature table cannot
+  model (G52).
+
+  Both ends of the range are refused. 0 or less is the obvious one. The other is
+  2147483647ms, because node *clamps* a longer `setTimeout` delay to one
+  millisecond rather than rejecting it, so an unchecked dial asked to wait 35
+  days fails after a millisecond and reports the failure as `no TLS handshake
+  within 3000000000ms`. That is a confident wrong answer where the original bug
+  was at least a visible hang, and `int` arithmetic reaches it without anyone
+  writing a suspicious literal: `days * 86400 * 1000`. Neither refusal carries
+  the `${host}: ` prefix the real network failures use, so a caller logging the
+  string does not file a programming error as an endpoint being down.
+
+  Verified both ways against a peer that completes the TCP handshake and then
+  says nothing: with the deadline in place the dial answers `Err` and the
+  program exits on its own in about four seconds, and with the `setTimeout`
+  removed the same test fails with "the program never exited".
+
+  Three things this did **not** settle, recorded so they are not later mistaken
+  for covered ground:
+
+  - **The name-resolution phase is untested.** The test dials `127.0.0.1`, so
+    nothing here exercises a dial whose deadline passes while a name is still
+    resolving. `socket.destroy()` has nothing to reach in that phase, so such a
+    dial may well answer `Err` on time and still hold the process open until the
+    resolver replies, which is the half this gap is about. The documentation was
+    narrowed to the socket phase rather than left claiming the whole attempt.
+  - **A deadline of 0 is a runtime `Err`, not a diagnostic**, although it is
+    knowable at the call site whenever the argument is a literal. The stdlib
+    signature table carries arity and a return type; every parameter is
+    `Ty::Unknown`, so an argument mistake there is a `tsc` error against the
+    emitted TypeScript, not a Glyph diagnostic, and there is nowhere to hang a
+    range check at all. Not a judgement that a runtime value is the better
+    answer.
+  - **Scalar over options record, decided here.** `std/http` took the record
+    route for the same problem and wrote the argument down in `http.ts`: an
+    optional trailing parameter is the shape the checker cannot model, so a
+    `Fetch` record carries the bounds. TLS will grow options too (ALPN, a CA
+    override, a client certificate, a minimum version) and each one breaks this
+    signature again. The scalar was chosen anyway, because a record makes the
+    deadline's mandatory-ness weaker: a field can be defaulted by whatever
+    builds the record, and the whole point here is that nobody gets a dial
+    without a bound. Revisit when the second option arrives, not before.
+
+  *Found against 0.1.84.*
+
+- **G128. `std/http` bounds nothing by default, the same shape as G127.**
+  `http.get` and `http.post` take a URL and no deadline, and there is no
+  overload that takes one. `fetch_of` and `head` set `timeout_ms: 0`, and
+  `request` reads 0 as "do not arm the timer" (`runtime/std/http.ts`, the
+  `bounds.timeout_ms > 0` guard). So the default path through the module is an
+  unbounded request, which is the exact thing G127 argued against one file over:
+  "every TLS dial crosses a network, a bound nobody passes is a bound nobody
+  has". Every HTTP request crosses one too.
+
+  It is less severe than G127 was, and the difference should not be blurred.
+  undici applies its own header and body timeouts underneath (300s for headers
+  by default), so an abandoned request is minutes rather than never, and `send`
+  with a `Fetch` does let a caller bound one properly. The default is what is
+  wrong, not the ceiling.
+
+  Reproduced against a listener that accepts the TCP connection and then sends
+  nothing, dialled with `http.get`:
+
+  ```
+  listening, dialing
+  ```
+
+  and nothing more. Still pending after 45 seconds, at which point the process
+  was killed; undici's own ceiling was not waited out. `pulse`, the app that
+  found G127, hand-rolls HTTP over `std/net` and so walked past this, but it is
+  the same round's finding and would have hit an uptime monitor squarely.
+
+  The fix is a decision, not a patch: whether `get`/`post` grow a required
+  deadline the way `tls.connect` did (a breaking change to the two most-used
+  functions in the stdlib), or whether `request` stops treating 0 as permission
+  and `fetch_of` ships a real default instead. Scheduled in the rolling lane.
+  *Reproduced against 0.1.84.*

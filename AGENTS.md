@@ -653,7 +653,7 @@ dns.mail(hostname) -> Result<Array<MailHost>, string>   // async
 ### std/tls
 
 ```
-tls.connect(host, port) -> Result<Socket, string>   // async; Ok means the certificate was accepted
+tls.connect(host, port, timeout_ms) -> Result<Socket, string>   // async; Ok means the certificate was accepted; the deadline is required
 ```
 
 A TLS socket is a `net.Socket`, so `std/net`'s functions all apply. Verification

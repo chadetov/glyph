@@ -3120,6 +3120,103 @@ fn run_executes_main_and_propagates_exit_code() {
 }
 
 #[test]
+fn a_code_set_from_inside_main_survives_a_void_return() {
+    // `std/process.set_exit_code` promises the process leaves with the code it
+    // recorded, and that the last call wins. The generated entrypoint broke
+    // that for every `main` that does not return a number: it ran
+    // `process.exitCode = typeof code === "number" ? code : 0` unconditionally
+    // after `main` returned, so a void `main` that had recorded a failure
+    // reported success to its caller. A batch CLI that rejects its input and
+    // calls `set_exit_code(1)` exited 0, with no diagnostic anywhere.
+    if !js_toolchain_available() {
+        eprintln!("skipping run assertion: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("setexit");
+    write_file(
+        &root,
+        "setexit.glyph",
+        "module setexit\n\
+         import std/process\n\
+         fn main(argv: Array<string>) -> void {\n\
+        \x20 process.set_exit_code(4)\n\
+         }\n",
+    );
+    let file = root.join("setexit.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 4, "the code recorded inside `main` is the exit code");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping run assertion: `tsx` not found on PATH");
+        }
+        other => panic!("expected the program to run: {other:?}"),
+    }
+}
+
+#[test]
+fn a_main_returning_a_number_still_wins_over_an_earlier_recorded_code() {
+    // The other half: `set_exit_code` says the last verdict wins, and a
+    // numeric `return` is the last thing `main` does. Not assigning the code
+    // for a void `main` must not turn into never assigning it.
+    if !js_toolchain_available() {
+        eprintln!("skipping run assertion: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("setexitret");
+    write_file(
+        &root,
+        "setexitret.glyph",
+        "module setexitret\n\
+         import std/process\n\
+         fn main(argv: Array<string>) -> number {\n\
+        \x20 process.set_exit_code(4)\n\
+        \x20 return 5\n\
+         }\n",
+    );
+    let file = root.join("setexitret.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 5, "the return value is the later verdict");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping run assertion: `tsx` not found on PATH");
+        }
+        other => panic!("expected the program to run: {other:?}"),
+    }
+}
+
+#[test]
+fn a_void_main_that_records_nothing_still_exits_zero() {
+    // And the default is unchanged: a `main` that returns nothing and records
+    // nothing leaves `process.exitCode` unset, which Node reports as 0.
+    if !js_toolchain_available() {
+        eprintln!("skipping run assertion: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("voidmain");
+    write_file(
+        &root,
+        "voidmain.glyph",
+        "module voidmain\n\
+         import std/io\n\
+         fn main(argv: Array<string>) -> void {\n\
+        \x20 io.println(\"done\")\n\
+         }\n",
+    );
+    let file = root.join("voidmain.glyph");
+    match glyph_cli::run::run_file(&file, &[], false, false).expect("run_file ok").outcome {
+        glyph_cli::run::RunOutcome::Ran(code) => {
+            assert_eq!(code, 0, "a program that records nothing exits 0");
+        }
+        glyph_cli::run::RunOutcome::TsxNotFound => {
+            eprintln!("skipping run assertion: `tsx` not found on PATH");
+        }
+        other => panic!("expected the program to run: {other:?}"),
+    }
+}
+
+#[test]
 fn extern_http_server_type_checks_against_bundled_shim() {
     // F14: a hand-written extern .ts that runs an http server (the common shape)
     // type-checks against the bundled node shim with no @types/node installed:

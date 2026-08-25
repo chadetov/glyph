@@ -532,6 +532,11 @@ verdict and lets the program shut down on its own terms; `exit` stops it
 immediately and can truncate output still queued on a pipe. Reach for `exit`
 when nothing is left worth finishing, and `set_exit_code` when something is.
 
+A recorded code survives `main` returning. `glyph run` only takes `main`'s
+return value as the exit code when it actually returns a number, so a `main`
+declared `-> void` that recorded a verdict leaves with it, and a numeric
+`return` overrides an earlier `set_exit_code` because it is the later verdict.
+
 An uncaught error thrown after `main` has returned already exits non-zero by
 itself, so these are for failures the program detects and decides about.
 

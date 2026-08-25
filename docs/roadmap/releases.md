@@ -4225,6 +4225,25 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
+### 0.1.87 — Landed on main · The exit code a program recorded
+
+G131. `std/process.set_exit_code` records the code the process leaves with, and
+its doc comment describes exactly the program that computes a verdict inside
+`main` and records it rather than returning it. That program exited 0. The
+entrypoint `glyph run` generates finished its success path with
+`process.exitCode = typeof code === "number" ? code : 0`, run unconditionally
+after `main` returned, so a `main` declared `-> void` had its recorded code
+written back to 0 with no diagnostic anywhere: no E-code, no warning, no `tsc`
+error. A batch CLI that rejects its input and records 1 reported success to its
+caller.
+
+The wrapper now assigns only when `main` returned a number, so a void `main`
+leaves the recorded code standing, a numeric `return` still wins over an earlier
+`set_exit_code` (the return is the later verdict), and a program that records
+nothing still exits 0 because Node reads an unset `exitCode` as 0. Three
+run-level tests cover the three outcomes and a unit test pins the generated
+line.
+
 ### 0.1.86 — Shipped · The variant name that binds instead of matching
 
 Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated

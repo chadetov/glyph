@@ -36,8 +36,8 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after G129 landed fixed and G130 opened: of
-130 entries, 97 are fixed, 10 are partly fixed, 10 are decided or resolved, and
+Reconciled again after G131 landed fixed: of
+131 entries, 98 are fixed, 10 are partly fixed, 10 are decided or resolved, and
 13 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
@@ -4496,3 +4496,50 @@ until this one.
   namespaced spelling misses the diagnostic entirely, since `expect_field_name`
   consumes the first segment and the check never sees a path, so
   `Full({ color: color.Black })` still lands on `[E0002] expected }, found Dot`.
+
+## Round 38: the exit code the run wrapper wrote over
+
+A batch CLI that validates its input, prints what is wrong, and records a
+failing exit code with `std/process.set_exit_code` rather than returning one
+from `main`. That is the pattern `set_exit_code`'s own doc comment describes.
+The program was correct and the shell saw success.
+
+- **G131. [FIXED] A code recorded with `process.set_exit_code` was written back
+  to 0 whenever `main` returned `void`.** The entrypoint `glyph run` generates
+  (`glyph-compiler/crates/glyph-cli/src/run.rs`, `entrypoint_source`) ended its
+  success path with
+
+  ```js
+  const code = await main(process.argv.slice(2));
+  process.exitCode = typeof code === "number" ? code : 0;
+  ```
+
+  The second line ran unconditionally. A `main` declared `-> void` returns
+  `undefined`, so the ternary took the `0` branch and overwrote whatever the
+  program had recorded during its own body. `set_exit_code` is documented to
+  record a verdict the process then leaves with, and that "calling it again
+  overwrites the code, so the last verdict wins"; the wrapper's own later write
+  was the last one and nothing said so. No E-code, no warning, no `tsc` error.
+
+  ```
+  module main
+
+  import std/process
+
+  pub fn main() -> void {
+    process.set_exit_code(1)
+  }
+  ```
+
+  `glyph run main.glyph` exited 0. A CLI that rejects its input this way
+  reported success to whatever called it, which is the silent-wrong-answer
+  class the language exists to catch.
+
+  The wrapper now assigns only when `main` actually returned a number
+  (`if (typeof code === "number") process.exitCode = code;`), so a void `main`
+  leaves the recorded code standing and a `main` that records nothing still
+  exits 0 because Node reads an unset `exitCode` as 0. A numeric `return` still
+  wins over an earlier `set_exit_code`, since the return is the later verdict.
+  Three run-level tests in `crates/glyph-cli/tests/integration.rs` cover the
+  three outcomes, and a unit test on `entrypoint_source` pins the generated
+  line.

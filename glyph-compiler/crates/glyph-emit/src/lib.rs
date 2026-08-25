@@ -2562,17 +2562,34 @@ impl<'a> Emitter<'a> {
     /// single-value, so this returns false for them and for any type whose
     /// union declaration cannot be resolved (mirroring `union_variant_names`).
     fn variant_payload_is_record(&self, ty: &Ty, variant: &str) -> bool {
-        // Cross-module fallback: a scrutinee typed by an *imported* union carries
-        // no concrete `Ty` here, so the local (ty-based) lookup below can't see
-        // its variant shapes. Resolve the variant to its source module via its
-        // own `ImportNamed` symbol and consult the project registry.
-        if self.imported_variant_is_record(variant) {
-            return true;
-        }
         let ty = match ty {
             Ty::App { base, .. } => base.as_ref(),
             other => other,
         };
+        // The scrutinee is typed by an imported union, so its variant shapes
+        // live in the project registry rather than in this module's AST. Keying
+        // the lookup on the scrutinee's *own* module makes the namespace
+        // spelling (`err.BadLeadByte(v)`) resolve exactly as the named-import
+        // spelling does, which the by-name fallback below cannot: that spelling
+        // never binds the variant name in the consumer's symbol table.
+        //
+        // This is the deciding answer and so it comes first. The fallback below
+        // asks only whether *some* symbol of this name is a record-payload
+        // import, never what is being matched, so it gets `b.Hit(n)` wrong
+        // whenever an unrelated `a.Hit` is also in scope.
+        if let Ty::Imported { module, .. } = ty {
+            return self
+                .ctx
+                .record_payload_variants
+                .contains(&(module.as_str().to_string(), variant.to_string()));
+        }
+        // Cross-module fallback for a scrutinee the checker did not pin to a
+        // `Ty::Imported` (an inferred `let` bound to a cross-module call has no
+        // type at all today). Resolve the variant to its source module via its
+        // own `ImportNamed` symbol and consult the project registry.
+        if self.imported_variant_is_record(variant) {
+            return true;
+        }
         let Ty::Named { symbol, path } = ty else {
             return false;
         };

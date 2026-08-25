@@ -260,7 +260,7 @@ TCP with the certificate checked. A TLS socket **is** a `net.Socket`, so
 everything in `std/net` applies to it and only `connect` differs.
 
 ```
-tls.connect(host: string, port: int) -> Result<Socket, string>   // async
+tls.connect(host: string, port: int, timeout_ms: int) -> Result<Socket, string>   // async
 ```
 
 Verification is on and there is no argument to turn it off, because "disable
@@ -270,6 +270,32 @@ proved it is who it said; an expired certificate, a name mismatch or an untruste
 issuer is the `Err`. That is the difference from `net.connect`, which returns
 immediately: a plain socket has nothing to fail at yet, and a caller that writes
 a password to an unverified peer has already lost.
+
+**`timeout_ms` is required, and 0 is not a way to ask for no bound.** A peer that
+accepts the TCP connection and then sends nothing never finishes the handshake,
+and there is no handle to abort the attempt: the dial would sit pending, neither
+`Ok` nor `Err`, with a socket holding node's event loop open for the life of the
+process. Racing a `timers.sleep` against it does not bound it either, because
+the losing dial is the thing pinning the loop. The bound lives on the dial
+because that is the only place that can destroy the socket.
+
+The clock starts at the call rather than at the handshake, so a slow TCP connect
+spends the same budget, and a deadline that passes is an `Err` like any other
+failure. What is tested is the socket phase: the deadline destroys the socket
+and the process exits without waiting on it. A dial still resolving a name when
+the deadline passes is not tested, and there is nothing for `destroy` to reach
+in that phase, so such a dial may answer on time and still hold the process open
+until the resolver replies.
+
+Both ends of the range are checked, and both refusals are usage errors that read
+as usage errors: they do not carry the `host: ` prefix the network failures use.
+0 or less is `a TLS dial needs a deadline greater than 0ms, got 0`. Anything past
+2147483647ms is refused too, because node clamps a longer `setTimeout` delay to
+one millisecond instead of rejecting it, and a dial asked to wait 35 days that
+fails after a millisecond and blames the 35 days is worse than one that hangs.
+Neither is caught at compile time: the stdlib signature table carries arity
+and a return type, not a parameter's type or a literal range (G52), so the
+check runs where the value is.
 
 There is no TLS **server** here. One needs a certificate and a private key, which
 means a file format, a renewal story and a cipher policy, and shipping those

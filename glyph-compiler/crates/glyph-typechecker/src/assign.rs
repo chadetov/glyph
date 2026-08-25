@@ -1552,9 +1552,11 @@ impl Assigner<'_> {
                 true,
             ),
             // Resolves after the handshake, so an `Ok` means the peer's
-            // certificate was accepted.
+            // certificate was accepted. Three arguments: the deadline is
+            // required, because a dial with no bound can hang forever with no
+            // handle to abort it.
             ("std/tls", "connect") => (
-                2,
+                3,
                 stdlib_named("net", "Socket"),
                 Ty::Prim(Primitive::String),
                 true,

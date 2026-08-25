@@ -4225,6 +4225,78 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
+### 0.1.85 — Next · A TLS dial you can bound
+
+G127, from `pulse`, a CLI uptime monitor and the first app to import `std/tls`
+or `std/dns` since they shipped in 0.1.79. The program's whole shape is "check
+each endpoint under a deadline so one bad host cannot stall the run", and the
+deadline did not work against the case it exists for.
+
+`tls.connect` handed back nothing until node's promise settled: no handle, no
+`AbortSignal`, no way to reach the socket mid-attempt. A peer that accepts the
+TCP connection and then sends nothing never finishes the handshake, so that
+promise never settled and there was a third outcome next to `Ok` and `Err`,
+which was *never*. The abandoned attempt held a libuv handle, and node exits
+when its handles are gone, so a program whose last act was such a dial printed
+its final line and then had to be killed.
+
+Racing a `timers.sleep` against it does not bound it. That is the idiom
+`examples/apps/resilient/main.glyph` documents, and `task.race` leaves the
+loser running, which is survivable when the loser holds a socket you can close.
+Here it never produced one. The bound has to live on the dial, because the dial
+is the only code that can reach the socket and destroy it.
+
+So `connect` takes a required `timeout_ms`, measured from the call rather than
+from the start of the handshake. It is required, and 0 is an `Err` rather than a
+way to ask for no bound: every TLS dial crosses a network, and a bound nobody
+passes is a bound nobody has. An optional trailing argument was not available in
+any case, since that is the one shape the stdlib signature table cannot model
+(G52).
+
+Both ends of the range are refused, which the first cut of this got wrong.
+`setTimeout` clamps a delay past 2147483647ms to *one millisecond* instead of
+rejecting it, so a dial asked to wait 35 days failed after a millisecond and
+reported `no TLS handshake within 3000000000ms`. A release named for putting a
+bound on something does not get to check one end of the bound, and the wrong
+answer delivered confidently is worse than the hang it replaced: `int`
+arithmetic reaches the limit as `days * 86400 * 1000`, with no suspicious
+literal anywhere. Neither refusal wears the `host: ` prefix that the real
+network failures carry, so a caller logging the string cannot mistake a
+programming error for an endpoint being down.
+
+**A scalar argument rather than an options record, decided rather than
+defaulted.** `std/http` solved the same problem with a `Fetch` record, and its
+own comment gives the reason: an optional trailing parameter is the shape the
+checker cannot model. TLS will grow options too, ALPN and a CA override and a
+client certificate and a minimum version, and each one breaks this signature
+again. The scalar wins here anyway because a record weakens the one property
+this change exists for: a field can be defaulted by whatever constructs the
+record, and nobody may get a dial without a bound. Revisit when the second
+option actually arrives.
+
+This is a breaking change to a stdlib signature. It has one caller in the tree
+and two lines of reference documentation, and pre-1.0 is when a dial that can
+hang forever gets a bound rather than a deprecation. An existing caller sees
+`[E0213] wrong number of arguments: expected 3, found 2`, which does not mention
+a deadline, because the signature table stores only arity and a return type,
+with no parameter names or types to print.
+
+The test that pins it starts a listener that accepts and stays silent, dials it,
+and requires the whole `glyph run` process to exit on its own. Removing the
+`setTimeout` makes it fail with "the program never exited". Getting there needed
+a bounded spawn helper: `glyph run` starts node as a grandchild holding the same
+pipes, so killing only the CLI leaves the pipes open and the reader threads
+blocked, and the first version of the helper turned a hung program into a hung
+test run. The same run asserts both refusals, since a clamped deadline passes
+every test that only checks the happy bound.
+
+Not closed by this, and named so it is not assumed: the deadline's process-exit
+half is tested for the socket phase only. A dial whose deadline passes while a
+name is still resolving has nothing for `destroy` to reach, and no test in the
+tree covers it, so the documentation now claims the socket phase rather than the
+whole attempt. G128, below, is the sibling finding: `std/http` ships the
+permissive default this release argues against.
+
 ## Road to 1.0
 
 **Status: the committed plan, from the third review.** The review (docs and code
@@ -5161,6 +5233,20 @@ land here until they're assigned a release.
   is a `stop` that takes the port. Neither is obviously right, which is why this
   is a note rather than a patch. Sharpens the parked "signals and graceful
   shutdown" item, which cannot be built before this is decided.
+- **G128: `std/http` bounds nothing by default**, which is the same shape
+  0.1.85 fixed in `std/tls` one file over. `http.get` and `http.post` take a URL
+  and no deadline, `fetch_of` and `head` set `timeout_ms: 0`, and `request`
+  reads 0 as permission to skip arming the timer. So the default path is an
+  unbounded request in a module whose own comments argue that a request you
+  cannot bound is not a request you can ship. Reproduced against 0.1.84 with a
+  listener that accepts and then says nothing: `http.get` was still pending at
+  45 seconds. Less severe than G127 was, and the difference matters: undici
+  applies its own 300s header timeout underneath, so this is minutes rather than
+  never, and `send` with a `Fetch` already bounds a request properly. The
+  default is the bug. The fix is a decision rather than a patch, which is why it
+  is parked here: either `get`/`post` grow a required deadline the way
+  `tls.connect` did, breaking the two most-used functions in the stdlib, or
+  `request` stops reading 0 as permission and `fetch_of` carries a real default.
 - **No TLS server** (`std/tls` is client-only). Deliberate, and recorded so it is
   not mistaken for an oversight: a server needs a certificate and a private key,
   which means a file format, a renewal story and a cipher policy, and shipping

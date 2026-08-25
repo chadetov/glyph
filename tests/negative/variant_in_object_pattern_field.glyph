@@ -1,0 +1,20 @@
+module app
+
+// An object pattern destructures a record payload; it does not match field
+// values. `{ color: Black }` therefore reads as a renamed binding, which would
+// silently shadow the `Black` constructor and make the arm fire for every
+// `Full` regardless of colour. A PascalCase name in pattern position is a
+// variant reference (D9), so the parser rejects it here instead of lowering a
+// wrong answer.
+type Color = | Red | Black
+
+type Box =
+  | Empty
+  | Full({ color: Color, label: string })
+
+fn describe(b: Box) -> string {
+  return match b {
+    Empty => "empty",
+    Full({ color: Black, label: l }) => l,
+  }
+}

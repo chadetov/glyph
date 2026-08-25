@@ -66,6 +66,19 @@ pub fn explain(code: &str) -> Option<&'static str> {
             of them. The same applies to fields and elements (`mut r.count = \
             1`, `mut xs[0] = v`) and inside a `match` arm (`1 => mut total = \
             5,`).",
+        "E0009" => "E0009: variant name in an object pattern's field position\n\n\
+            An object pattern destructures a record payload; it does not match \
+            field values. A PascalCase name in pattern position is a variant \
+            reference (D9), so `{ color: Black }` reads as neither: there is no \
+            lowering for it, and left alone it would bind the field to the name \
+            `Black`, shadowing the constructor and matching every payload.\n\n\
+            Before:  Full({ color: Black, label: l }) => l\n\
+            After:   Full({ color: c, label: l }) => match c {\n              \
+              Black => l,\n              \
+              Red => \"\",\n            \
+            }\n\n\
+            A PascalCase *key* is unaffected: `{ Color }` destructures a record \
+            field spelled `Color`.",
 
         // ----- resolver (E01xx) -----
         "E0100" => "E0100: duplicate name\n\n\
@@ -551,7 +564,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
 /// Kept in step with the table in `docs/error-codes.md`, which the test below
 /// reads: a code in one and not the other fails the build.
 pub const ALL_CODES: &[&str] = &[
-    "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0100", "E0101",
+    "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "E0100", "E0101",
     "E0102", "E0103", "E0104",
     "E0105", "E0106", "E0107", "E0108", "E0109", "E0110", "E0111", "E0200", "E0201", "E0202",
     "E0203", "E0204",

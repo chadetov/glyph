@@ -4225,6 +4225,42 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
+### 0.1.86 — Next · The nested variant that binds instead of matching
+
+G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
+where `Full` carries a user-defined union, compiles clean, passes `tsc
+--strict`, and emits two `case "Full":` blocks. The first binds `Black` to the
+payload instead of testing it, so every `Full` takes that arm whatever its
+payload, and the arms below it are dead code the emitter still writes out.
+
+G1 closed this shape for `Ok`/`Err`/`Some`/`None` and stopped there.
+`nested_payload_variants` (`glyph-emit/src/lib.rs:2724`) requires a `Ty::App`
+scrutinee and then keys off those names, so a user union carrying a user union
+never reaches the degrouping path and falls through to the payload-binding arm
+of `emit_arm_binds`.
+
+The typechecker already reads the arm the other way. Drop the `Full(Red)` arm
+and it reports `non-exhaustive match on Color: missing variants Red`, so the
+checker treats `Black` as a variant reference while the emitter treats it as a
+binding. One pattern, two meanings, no diagnostic. That disagreement is why this
+is a release item rather than a rolling-lane note: it is a silent wrong answer
+in the construct `match` exists for.
+
+The pieces are already in the emitter. `variant_payload_is_record`
+(`lib.rs:2564`) walks a scrutinee `Ty` to its `Decl::Type` and the variant's
+payload, `union_variant_names` (`lib.rs:2523`) turns a union type into its
+variant names, and `degroup_nested_arms` (`lib.rs:2754`) rewrites a nested
+nullary constructor into a synthesized inner `match`, which is the path
+`Ok(None)` takes today. The work is extending `nested_payload_variants` past the
+`Ty::App` gate to a named union and reading the variant's payload type, plus a
+test that pins the emitted `switch` to one `case` per outer variant.
+
+Also in this release: the G129 diagnostic, which rejects the object-pattern
+spelling of the same mistake (`Full({ color: Black })`) at parse time as E0009
+and names the rewrite that lowers correctly.
+
+*Reviewed against 0.1.85.*
+
 ### 0.1.85 — Shipped · A TLS dial you can bound
 
 Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
@@ -5252,6 +5288,33 @@ land here until they're assigned a release.
   is parked here: either `get`/`post` grow a required deadline the way
   `tls.connect` did, breaking the two most-used functions in the stdlib, or
   `request` stops reading 0 as permission and `fetch_of` carries a real default.
+- **Matching a record payload's field against a variant, in an object pattern.**
+  G129 closed the wrong answer for that one spelling: `Full({ color: Black })`
+  used to lower to `const Black = m.color`, so the arm matched every payload and
+  shadowed the constructor, and the parser now rejects it as E0009 pointing at
+  the rewrite (`Full({ color: c, .. }) => match c { ... }`). What is not closed
+  is the construct itself. Glyph object patterns destructure; they do not match
+  field values, and making them do so requires exhaustiveness to reason about
+  record fields rather than tags. The lowering is not the obstacle:
+  `degroup_nested_arms` already collapses several nested arms into one outer
+  `switch` case with a synthesized temp, which is how `Ok(None)` compiles today.
+  Worth doing on the merits (it is the shape agents reach for first, coming from
+  Rust and from TS discriminated unions), but it is a language feature with a
+  design to write down, so it waits for a release of its own rather than riding
+  along behind a diagnostic. E0009 is forward-compatible with it: the code it
+  rejects would start compiling, and nothing that compiles today would change
+  meaning. This entry covers the object-pattern form only. The
+  constructor-argument form (`Full(Black)`) is not a feature request but a live
+  miscompile, filed as G130 and scheduled in 0.1.86 above.
+- **`is_constructor_shaped` exists three times.** D9's capitalization rule is
+  the hinge every pattern decision turns on, and it is copied into
+  `glyph-parser/src/pat.rs`, `glyph-resolver/src/resolve.rs` and
+  `glyph-typechecker/src/assign.rs`, each with a doc comment pointing at the
+  others. The typechecker's copy calls itself "the single predicate shared by"
+  the stages, which was already untrue at two copies. All three crates depend on
+  `glyph-ast`, so the predicate belongs there. Mechanical, and worth doing
+  before a fourth stage needs it, since a rule that drifts between stages is how
+  the typechecker and the emitter came to disagree in G130.
 - **No TLS server** (`std/tls` is client-only). Deliberate, and recorded so it is
   not mistaken for an oversight: a server needs a certificate and a private key,
   which means a file format, a renewal story and a cipher policy, and shipping

@@ -32,6 +32,7 @@ below.
 | `E0006` | `if`/`else` used where Glyph has none (`match` is the only conditional; D3) |
 | `E0007` | Range or comparison pattern (`500..599 =>`) in a `match` arm; not in v1 |
 | `E0008` | Assignment without `mut` (`x = e` should be `mut x = e`, or `let x = e` for a new binding; D5) |
+| `E0009` | A variant name in an object pattern's field position (`Full({ color: Black })`); object patterns destructure, they do not match field values |
 
 ### Resolver — `E01xx`
 

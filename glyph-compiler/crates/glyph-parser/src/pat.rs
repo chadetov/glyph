@@ -6,7 +6,8 @@
 //! - identifier                               binding
 //! - literal (number, string, true, false, void)
 //! - `Constructor(args)`                      with nested arg patterns
-//! - `{ field, field: alias }`                object destructure
+//! - `{ field, field: alias }`                object destructure; a field value
+//!   only binds, so a PascalCase `alias` is rejected as E0009
 //! - `is TypeName`                            type-guard pattern
 //!
 //! Array patterns (`[]`, `[h, ...r]`, `[_, ...]`) — deferred to day 4.
@@ -178,7 +179,20 @@ fn parse_object_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
         let (key, _) = p.expect_field_name("field name in object pattern")?;
         let binding = if matches!(p.peek(), Token::Colon) {
             p.advance();
+            let binding_span = p.peek_span();
             let (binding, _) = p.expect_field_name("binding identifier in object pattern")?;
+            // A field value is a pattern position, and D9 reads a PascalCase
+            // name there as a variant reference. Glyph object patterns only
+            // destructure, so there is no lowering that means "match `Black`";
+            // without this check the name became a renamed binding and the arm
+            // matched every payload while shadowing the real constructor.
+            if is_constructor_shaped(&binding) {
+                return Err(ParseError::VariantInObjectPatternField {
+                    key: key.to_string(),
+                    name: binding.to_string(),
+                    span: binding_span,
+                });
+            }
             Some(binding)
         } else {
             None
@@ -195,6 +209,18 @@ fn parse_object_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
         fields,
         span: Span::new(open.start, close.end),
     })
+}
+
+/// Whether a bare ident in pattern position is constructor-shaped: a PascalCase
+/// name (`Black`, `Ok`, `None`) denotes a union variant reference, a lowercase
+/// or underscore-led name (`c`, `_rest`) is a fresh binding. Mirrors the
+/// identically named checks in `glyph_resolver` and `glyph_typechecker` so every
+/// stage agrees on what counts as a variant reference (D9).
+fn is_constructor_shaped(name: &glyph_ast::Ident) -> bool {
+    name.as_ref()
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_uppercase())
 }
 
 /// Parse `( pattern, pattern, ... )` for a constructor pattern. Returns args

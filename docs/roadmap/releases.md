@@ -4225,7 +4225,7 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
-### 0.1.88 — Next · The nested variant that binds instead of matching
+### 0.1.89 — Next · The nested variant that binds instead of matching
 
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
 where `Full` carries a user-defined union rather than a record, compiles clean,
@@ -4307,6 +4307,45 @@ author's variant name and field types with the names left as `/* name */` holes.
 It also surfaced G135, the same rule contradicted at the emit stage; that one is
 in the rolling lane, since it needs a decision about which stage owns it rather
 than a patch.
+
+### 0.1.88 — Shipped · A variant's shape comes from where it is declared
+
+Published 2026-08-26 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
+
+G132. The emitter decided whether a match arm's variant carried a record payload
+by looking the variant name up in the *consumer's* symbol table. Through the
+namespace spelling, `outcome.Failed(d)` bound `d` to `__m0.value` on a payload
+whose runtime shape is flat, so `.value` never existed. It now asks the
+scrutinee's own declaring module, which is the rule G75 settled: a type's
+identity comes from where it is declared, never from how the consumer happened
+to spell the import. The precise branch runs *before* the by-name heuristic,
+because behind it the heuristic still won whenever two modules declare the same
+variant name with different payload shapes.
+
+G134. A variant carrying more than one positional field reported a sentence that
+permitted one payload and then flagged a variant carrying one, with the span
+shrunk to the first field. Worse, a plain typo in the payload tail
+(`Node(int, 5, int)`) was reported as the arity error rather than as the syntax
+error at the `5`. The tail now propagates the real parse error, so E0010 is
+reached only when every field read as a type, and its help is built from the
+author's own field types rather than a fixed string that named a different
+program's variant.
+
+That E0010 message is the enforcement half of a decision, not a new one.
+`docs/manifesto.md` already says "named records over positional tuples" under
+the abstraction pillar, and the parser already behaved that way; what was
+missing is that it said so badly. A six-position `Node(Black, l, x, b, h, r)` is
+the argument-swap bug the language exists to prevent, and position 3 tells a
+reader nothing.
+
+Also here: `watchrun`, a dev-loop tool that polls for changes, matches them
+against globs from a real npm dependency, debounces, spawns a subprocess, and
+streams its output to a log while enforcing a timeout. It blocked twice before,
+on G125 and G126, and this is the round where it built with no workaround.
+
+G130 did not ship here. It is scheduled for 0.1.89 above.
 
 ### 0.1.87 — Shipped · The exit code a program recorded
 

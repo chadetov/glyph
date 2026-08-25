@@ -1,0 +1,53 @@
+// runner — spawns the configured command as a real child process, streams its
+// output into the log while it runs, and enforces a timeout.
+module runner
+
+import child_process { spawn }
+import std/fs
+import std/time
+import std/timers { after, cancel }
+
+pub type RunResult = { code: number, timed_out: bool, duration_ms: number }
+
+// Runs `cmd` under a shell in `cwd`, appending its stdout and stderr to
+// `log_path` as chunks arrive (not buffered until exit). If the process is
+// still running after `timeout_ms` it is killed with SIGKILL. Either way,
+// `on_done` is called exactly once, with the exit code (or -1 for a signal
+// death), whether the run timed out, and how long it took.
+pub fn run(cmd: string, cwd: string, log_path: string, timeout_ms: number, on_done: fn(RunResult) -> void) -> void {
+  let started_ms = time.now()
+  let _ = fs.append_text(log_path, "\n--- ${cmd} ---\n")
+
+  let child = spawn("/bin/sh", ["-c", cmd], { cwd: cwd })
+  child.stdout.setEncoding("utf8")
+  child.stderr.setEncoding("utf8")
+
+  child.stdout.on("data", fn(chunk) {
+    match chunk {
+      is string => { let _ = fs.append_text(log_path, chunk) },
+      else => {},
+    }
+  })
+  child.stderr.on("data", fn(chunk) {
+    match chunk {
+      is string => { let _ = fs.append_text(log_path, chunk) },
+      else => {},
+    }
+  })
+
+  let timed_out = false
+  let watchdog = after(timeout_ms, fn() {
+    mut timed_out = true
+    let _ = child.kill("SIGKILL")
+  })
+
+  child.on("close", fn(code) {
+    cancel(watchdog)
+    let duration_ms = time.now() - started_ms
+    let exit_code = match code {
+      is number => code,
+      else => -1,
+    }
+    on_done({ code: exit_code, timed_out: timed_out, duration_ms: duration_ms })
+  })
+}

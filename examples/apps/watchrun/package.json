@@ -1,0 +1,9 @@
+{
+  "name": "watchrun",
+  "private": true,
+  "type": "module",
+  "glyph": {},
+  "dependencies": {
+    "minimatch": "^10.0.1"
+  }
+}

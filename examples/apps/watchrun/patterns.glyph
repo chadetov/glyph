@@ -1,0 +1,13 @@
+// patterns — glob matching against a real npm dependency (`minimatch`), with
+// no hand-written adapter: the package ships its own types, so `glyph build`
+// checks every call against them directly.
+module patterns
+
+import std/array
+import minimatch { minimatch }
+
+// True when `target` (a path relative to the watched directory, forward-slash
+// separated) matches at least one of `pats`.
+pub fn matches_any(pats: Array<string>, target: string) -> bool {
+  return array.any(pats, fn(p: string) -> bool { minimatch(target, p) })
+}

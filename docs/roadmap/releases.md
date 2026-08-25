@@ -4225,7 +4225,26 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
-### 0.1.87 — Landed on main · The exit code a program recorded
+### 0.1.88 — Next · The nested variant that binds instead of matching
+
+G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
+where `Full` carries a user-defined union rather than a record, compiles clean,
+passes `tsc --strict`, and emits two `case "Full":` blocks. The first binds
+`Black` to the payload instead of testing it, so every `Full` takes that arm
+whatever its payload, and the arms below it are dead code the emitter still
+writes out. Same shape as G129 one level up, and the typechecker and the emitter
+disagree about it: dropping the other arm reports a non-exhaustive match on
+`Color`, so the checker reads `Black` as a variant reference while the emitter
+reads it as a binding.
+
+*Reviewed against 0.1.86.*
+
+### 0.1.87 — Shipped · The exit code a program recorded
+
+Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
+
 
 G131. `std/process.set_exit_code` records the code the process leaves with, and
 its doc comment describes exactly the program that computes a verdict inside
@@ -4244,46 +4263,36 @@ nothing still exits 0 because Node reads an unset `exitCode` as 0. Three
 run-level tests cover the three outcomes and a unit test pins the generated
 line.
 
-### 0.1.86 — Shipped · The variant name that binds instead of matching
+### 0.1.86 — Shipped · A variant name in a pattern matches, or the compiler says so
 
 Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
 HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
 and the headline feature itself.
 
+G129. A pattern naming a variant inside a record field bound the field to a new
+name that shadowed the constructor, so `Full({ color: Black, label: l })` fired
+for every `Full` and the arms below it were unreachable, with no diagnostic and
+`tsc --strict` passing. `ObjectPatternField.binding` is an `Option<Ident>` and
+not a `Pattern`, so there was no slot to lower a nested match into; the fix is
+`E0009` naming the field and pointing at the form that works.
 
-G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
-where `Full` carries a user-defined union, compiles clean, passes `tsc
---strict`, and emits two `case "Full":` blocks. The first binds `Black` to the
-payload instead of testing it, so every `Full` takes that arm whatever its
-payload, and the arms below it are dead code the emitter still writes out.
+**This rejects code that previously compiled.** A pattern like
+`Full({ color: Black })` used to build and silently take the wrong arm. It is
+now an error. Rewrite it as `Full(f) => match f.color { ... }`, which is what it
+was always doing wrong.
 
-G1 closed this shape for `Ok`/`Err`/`Some`/`None` and stopped there.
-`nested_payload_variants` (`glyph-emit/src/lib.rs:2724`) requires a `Ty::App`
-scrutinee and then keys off those names, so a user union carrying a user union
-never reaches the degrouping path and falls through to the payload-binding arm
-of `emit_arm_binds`.
+Two gates came out of the release ceremony catching what they should have caught
+earlier. `check_docs_compile.py` skipped `web/versions/` entirely, which is why
+the 0.1.85 notes published a `tls.connect` call that does not exist; it now
+checks the entry carrying the `Latest` badge while still skipping the history,
+since a 0.1.3 note documents 0.1.3. And `check_versions.py` now checks the home
+page's version pill, which had advertised v0.1.72 for thirteen releases, with
+`bump.py` taught to update it, which is the half that would have let it drift
+again. `check_plans_fresh.py` was also demanding a review stamp on the 0.1.81
+plan for a release shipped weeks earlier, because the shipped marker lives in a
+different heading; it cross-references now.
 
-The typechecker already reads the arm the other way. Drop the `Full(Red)` arm
-and it reports `non-exhaustive match on Color: missing variants Red`, so the
-checker treats `Black` as a variant reference while the emitter treats it as a
-binding. One pattern, two meanings, no diagnostic. That disagreement is why this
-is a release item rather than a rolling-lane note: it is a silent wrong answer
-in the construct `match` exists for.
-
-The pieces are already in the emitter. `variant_payload_is_record`
-(`lib.rs:2564`) walks a scrutinee `Ty` to its `Decl::Type` and the variant's
-payload, `union_variant_names` (`lib.rs:2523`) turns a union type into its
-variant names, and `degroup_nested_arms` (`lib.rs:2754`) rewrites a nested
-nullary constructor into a synthesized inner `match`, which is the path
-`Ok(None)` takes today. The work is extending `nested_payload_variants` past the
-`Ty::App` gate to a named union and reading the variant's payload type, plus a
-test that pins the emitted `switch` to one `case` per outer variant.
-
-Also in this release: the G129 diagnostic, which rejects the object-pattern
-spelling of the same mistake (`Full({ color: Black })`) at parse time as E0009
-and names the rewrite that lowers correctly.
-
-*Reviewed against 0.1.85.*
+G130 did not ship here. It is scheduled below.
 
 ### 0.1.85 — Shipped · A TLS dial you can bound
 

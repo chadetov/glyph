@@ -49,9 +49,36 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.84</span>
+            <span class="rel-ver">0.1.85</span>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A TLS dial you can bound</h3>
+            <p>An uptime monitor is the first program that cares what happens when a host accepts your connection and then says nothing. <code>tls.connect</code> had no deadline, so one unresponsive endpoint held the whole run open with no handle to close. It now takes one, and refuses a deadline it cannot actually hold.</p>
+            <div class="code">
+              <span class="cap">A dial that cannot outlive its budget</span>
+<pre>let conn = tls.connect(host, 443, { timeout_ms: 3000 })?
+
+<span class="cm">// and a deadline node would silently clamp is refused</span>
+<span class="cm">// rather than failing in 1ms and blaming the timeout:</span>
+<span class="cm">// "a TLS dial deadline must be at most 2147483647ms, got 3000000000"</span></pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong><code>tls.connect</code> takes a required deadline.</strong> A dial that has not completed its handshake in time fails as an error you can match on, and the socket is destroyed rather than left holding the process open.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A deadline node cannot hold is refused, not silently clamped.</strong> Node truncates a <code>setTimeout</code> past 2147483647ms to 1ms, so asking for 35 days used to fail after a millisecond and report it as if the 35 days had elapsed. That now names the limit instead.</li>
+              <li><span class="tag known">Known</span> <strong>The deadline covers the socket, not name resolution.</strong> A dial still resolving a hostname has nothing for <code>destroy</code> to reach, so it can answer on time and still hold the process open. Documented rather than claimed shut, because we could not wedge a resolver to test it without changing machine config.</li>
+              <li><span class="tag known">Known</span> <strong><code>std/http</code> still bounds nothing by default.</strong> <code>get</code> and <code>post</code> take no deadline. A request against a listener that accepts and stays silent was still pending at 45 seconds. Same shape as this fix, and it needs its own release because the choice between a required deadline and a changed default is a change to a guarantee.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.84</span>
+                        <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
             <h3>A subprocess you can watch while it runs</h3>

@@ -9,7 +9,9 @@
 //!
 //! The program's `main(argv) -> number` entry is called with the trailing CLI
 //! arguments; its return value becomes the process exit code. A program that
-//! returns `void` (or nothing) exits 0. The code is assigned rather than forced,
+//! returns `void` (or nothing) leaves the code where it stands, so a code
+//! recorded with `std/process.set_exit_code` during the run survives; with
+//! nothing recorded that is 0. The code is assigned rather than forced,
 //! so a program that started a server or scheduled a timer keeps running until
 //! that work is done instead of being killed the moment `main` returns; see
 //! `entrypoint_source`.
@@ -388,7 +390,11 @@ pub fn run_file(
 
 /// The generated entrypoint: install the prelude globals (side-effect import),
 /// then call the program's `main` with the trailing argv and take its numeric
-/// return as the exit code. An async IIFE rather than top-level `await` so it
+/// return as the exit code. A `main` that returns anything else leaves
+/// `process.exitCode` untouched rather than writing 0 over it: a program that
+/// recorded its verdict with `std/process.set_exit_code` has already set the
+/// code, and overwriting it afterwards turned a reported failure into a
+/// reported success. An async IIFE rather than top-level `await` so it
 /// runs under either CommonJS or ESM resolution. Relative imports are resolved
 /// against the entrypoint's own location, so the absolute path passed to `tsx`
 /// works regardless of the caller's working directory.
@@ -418,7 +424,7 @@ fn entrypoint_source(stem: &str) -> String {
          (async () => {{\n\
          \x20 try {{\n\
          \x20   const code = await main(process.argv.slice(2));\n\
-         \x20   process.exitCode = typeof code === \"number\" ? code : 0;\n\
+         \x20   if (typeof code === \"number\") process.exitCode = code;\n\
          \x20 }} catch (e) {{\n\
          \x20   console.error(e);\n\
          \x20   process.exitCode = 1;\n\
@@ -448,12 +454,33 @@ mod entrypoint_tests {
     fn the_success_path_assigns_the_exit_code_rather_than_forcing_it() {
         let src = entrypoint_source("main");
         assert!(
-            src.contains("process.exitCode = typeof code === \"number\" ? code : 0;"),
+            src.contains("if (typeof code === \"number\") process.exitCode = code;"),
             "expected an assignment to process.exitCode, got:\n{src}"
         );
         assert!(
             !src.contains("process.exit(typeof code"),
             "the success path must not call process.exit, got:\n{src}"
+        );
+    }
+
+    /// A void `main` must leave `process.exitCode` alone.
+    ///
+    /// The success path used to write `typeof code === "number" ? code : 0`
+    /// unconditionally, so a program whose `main` returns `void` had its exit
+    /// code forced back to 0 after the fact. `std/process.set_exit_code` is
+    /// documented to record a verdict that the process then leaves with, and
+    /// this wrote over it with no diagnostic: a CLI that rejected its input and
+    /// recorded 1 reported success to its caller.
+    #[test]
+    fn a_non_numeric_main_result_leaves_the_recorded_exit_code_alone() {
+        let src = entrypoint_source("main");
+        assert!(
+            src.contains("if (typeof code === \"number\") process.exitCode = code;"),
+            "the exit code must only be assigned when `main` returned one, got:\n{src}"
+        );
+        assert!(
+            !src.contains("? code : 0"),
+            "a non-numeric result must not force the exit code to 0, got:\n{src}"
         );
     }
 

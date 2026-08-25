@@ -93,10 +93,46 @@ def line_of(text: str, index: int) -> int:
     return text.count("\n", 0, index) + 1
 
 
+def latest_release_entry(page: pathlib.Path) -> pathlib.Path | None:
+    """Write the newest release entry to a temp file so it is checked like a doc.
+
+    The entry carrying the `latest` badge is the one describing the compiler in
+    this repo. Everything below it describes an older one.
+    """
+    if not page.exists():
+        return None
+    text = page.read_text()
+    start = text.find('<span class="rel-tag latest">')
+    if start == -1:
+        return None
+    open_tag = text.rfind("<section>", 0, start)
+    end = text.find("</section>", start)
+    if open_tag == -1 or end == -1:
+        return None
+    # Inside the repo, because the reporting below prints paths relative to it.
+    # target/ is gitignored, so this leaves nothing behind in the tree.
+    out = ROOT / "glyph-compiler" / "target" / "glyph-latest-release-entry.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text[open_tag : end + len("</section>")])
+    return out
+
+
 def sources() -> list[pathlib.Path]:
     out = [p for p in (ROOT / "docs").rglob("*.md")]
     out += [ROOT / "README.md", ROOT / "AGENTS.md", ROOT / "llms.txt"]
+    # The whole release history is excluded on purpose: a 0.1.3 entry documents
+    # 0.1.3, and holding old notes to today's syntax would force us to rewrite
+    # history every time the language moves.
+    #
+    # The newest entry is different. It documents what just shipped, and nothing
+    # was checking it: the 0.1.85 notes published `tls.connect(host, 443, {
+    # timeout_ms: 3000 })` when the signature takes a scalar, which is also the
+    # shape that release had explicitly argued against. It went out because this
+    # exclusion swallowed the one entry that describes the current compiler.
     out += [p for p in (ROOT / "web").rglob("*.html") if "versions" not in p.parts]
+    latest = latest_release_entry(ROOT / "web" / "versions" / "index.html")
+    if latest is not None:
+        out.append(latest)
     out += [ROOT / "web" / "llms.txt"]
     return [p for p in out if p.exists()]
 

@@ -49,19 +49,73 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.85</span>
+            <span class="rel-ver">0.1.86</span>
             <span class="rel-tag latest">Latest</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
+            <h3>A variant name in a pattern matches, or the compiler says so</h3>
+            <p>A pattern that names a variant inside a record field looked like it tested that variant and did not. It bound the field to a new name that shadowed the constructor, so the arm fired for every value, the arms below it became unreachable, and both <code>glyph check</code> and <code>tsc --strict</code> reported nothing.</p>
+            <div class="code">
+              <span class="cap">What the arm used to mean</span>
+<pre>module boxes
+
+import std/io
+
+type Color = | Red | Black
+type Box = | Full({ color: Color, label: string }) | Empty
+
+<span class="cm">// this arm now fails to compile. it used to bind `Black` to the</span>
+<span class="cm">// field and fire for every Full, so a Red box printed "black box"</span>
+pub fn describe(b: Box) -&gt; string {
+  match b {
+    Full(f) =&gt; match f.color {
+      Black =&gt; "black box",
+      Red =&gt; "red box",
+    },
+    Empty =&gt; "empty",
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A variant name in an object pattern's field is rejected, not silently rebound.</strong> <code>E0009</code> names the field and points at the form that works. The AST has no slot for a sub-pattern inside a record field, so lowering it was never possible; what was possible was saying so instead of guessing.</li>
+              <li><span class="tag known">Known</span> <strong>The same shape one level up still miscompiles.</strong> <code>Full(Black)</code>, where the payload is a user-defined union rather than a record, still emits two <code>case "Full":</code> blocks whose first binds the payload. That is G130, and it is the next release.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>The newest release notes are compiled now.</strong> The 0.1.85 entry published a call that does not exist, because the doc gate skipped this page entirely. It skips the history still, since a 0.1.3 note documents 0.1.3, but the entry describing the current compiler is checked. The home page's version pill is checked too; it had advertised v0.1.72 for thirteen releases.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.85</span>
+                        <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
             <h3>A TLS dial you can bound</h3>
-            <p>An uptime monitor is the first program that cares what happens when a host accepts your connection and then says nothing. <code>tls.connect</code> had no deadline, so one unresponsive endpoint held the whole run open with no handle to close. It now takes one, and refuses a deadline it cannot actually hold.</p>
+            <p>An uptime monitor is the first program that cares what happens when a host accepts your connection and then says nothing. <code>tls.connect</code> had no deadline, so one unresponsive endpoint held the whole run open with no handle to close. It now takes one as a plain argument rather than an options field, so nothing can default it away, and refuses a deadline it cannot actually hold.</p>
             <div class="code">
               <span class="cap">A dial that cannot outlive its budget</span>
-<pre>let conn = tls.connect(host, 443, { timeout_ms: 3000 })?
+<pre>module probe
 
-<span class="cm">// and a deadline node would silently clamp is refused</span>
-<span class="cm">// rather than failing in 1ms and blaming the timeout:</span>
+import std/tls
+import std/io
+
+<span class="cm">// the deadline is an argument, not an options field:</span>
+<span class="cm">// nothing downstream can default it away</span>
+pub async fn reachable(host: string) -&gt; bool {
+  match await tls.connect(host, 443, 3000) {
+    Ok(conn) =&gt; true,
+    Err(e) =&gt; {
+      io.println("${host}: ${e}")
+      false
+    },
+  }
+}
+
+<span class="cm">// and a deadline node would silently clamp is refused, rather</span>
+<span class="cm">// than failing in 1ms and blaming the 35 days you asked for:</span>
 <span class="cm">// "a TLS dial deadline must be at most 2147483647ms, got 3000000000"</span></pre>
             </div>
             <ul class="changelist">

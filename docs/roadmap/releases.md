@@ -4225,7 +4225,12 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
-### 0.1.86 — Next · The nested variant that binds instead of matching
+### 0.1.86 — Shipped · The variant name that binds instead of matching
+
+Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
+
 
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
 where `Full` carries a user-defined union, compiles clean, passes `tsc
@@ -5714,6 +5719,31 @@ the same change, recorded here so they are not rediscovered.
   ceremony's gate list and is invoked by no workflow, so it holds only when
   someone remembers to type it. It checks a local build, so CI is not the right
   home; the release orchestration workflow is.
+
+### Website drift the 0.1.86 ceremony surfaced
+
+The release ceremony audited the site and found four things nothing checks. Two
+were fixed in that release (the hero pill, which had advertised v0.1.72 for
+thirteen releases and is now gated by `check_versions.py`, and the newest release
+entry's code sample, which did not compile and is now covered by
+`check_docs_compile.py`). These are the rest.
+
+- **The home page's answers grid omits three pages.** `embedding`, `upgrades`
+  and `binary` exist under `web/answers/` and are missing from the grid at
+  `web/index.html:1104-1124`, where the numbering also shifts. `check_site.py`
+  verifies the sub-nav and that links resolve, so a page that is simply absent
+  from the grid passes.
+- **`web/sitemap.xml` lists 21 of the 24 answer pages**, missing the same three.
+  Same cause: nothing compares the directory listing to either file.
+- **A status-row claim on the long-running answer page is false.**
+  `web/answers/long-running/index.html:226` says there is still no way to write
+  down that a function does not return, which stopped being true. Prose claims
+  on answer pages are checked by nobody.
+
+The shape behind all four: `check_site.py` checks structure (links resolve, HTML
+parses, sub-nav consistent) and nothing checks *claims*. The two fixed cases were
+mechanical enough to gate. Whether a status-row sentence is still true is not,
+and that is the honest limit.
 
 ## Parked (v2 / later)
 

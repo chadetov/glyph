@@ -37,8 +37,8 @@ that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
 Reconciled again after Round 37 added and closed G127 and added G128 open: of
-128 entries, 96 are fixed, 10 are partly fixed, 9 are decided or resolved, and
-13 are open.
+128 entries, 96 are fixed, 10 are partly fixed, 10 are decided or resolved, and
+12 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -3595,7 +3595,7 @@ was fixed in 0.1.80. Two were not, and are here.
   and the server survives, an interrupted upload leaves it healthy, and removing
   the cap makes the test fail.
 
-- **G121. Network `Bytes` are zero-copy views onto node's pooled buffers.**
+- **G121. [RESOLVED] Network `Bytes` are zero-copy views, but they do not pin a pool.**
   `net.on_data` and `websocket.on_binary` both build
   `new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)`, and the
   reference calls `Bytes` "an immutable sequence of octets" without saying that
@@ -3605,7 +3605,16 @@ was fixed in 0.1.80. Two were not, and are here.
   the view "is over the same memory rather than a copy" as though that were
   purely a benefit. Either say so in the reference, or copy when the slice is a
   small fraction of its backing buffer.
-  *Reproduced against 0.1.79.*
+  *Checked against 0.1.85, and the consequence does not reproduce. The chunk is
+  still a zero-copy `Uint8Array` view rather than a defensive copy, but the view's
+  backing `ArrayBuffer` is sized to the actual read rather than being a window
+  onto a shared pool: a 2-byte frame's backing buffer is 2 bytes, not 8192.
+  Measured with a Glyph TCP echo reading `(data as any).buffer.byteLength`
+  through `extern_ts`, cross-checked against raw node on 20, 22 (what CI
+  targets), 24 and 26. `net.Socket` reads do not go through the pooled
+  `Buffer.allocUnsafe` path this entry assumed, and node's pool is 64 KiB now
+  rather than 8. The zero-copy-versus-copy tradeoff is real and the reference
+  still does not mention it; the per-connection pinning cost is not.*
 
 ## Round 32: the npm round finally ran, and three of its blockers were already gone
 
@@ -3638,7 +3647,11 @@ hand-written adapter") now has an app behind it rather than only a guide.
   server sent. `http.raw` exists and is the server-side counterpart, taking a
   `Request`. The missing piece is its client-side twin, `http.text(response) ->
   Result<string, string>`, failing when the body was parsed rather than kept.
-  *Reproduced against 0.1.79.*
+  *Reproduced against 0.1.85: a client that GETs a JSON endpoint and applies the
+  `string.from(response.body)` spelling `feeds` uses still prints the literal
+  `[object Object]`, with a clean build and a zero exit. No diagnostic, no error,
+  no narrowing accessor. `http.text(response) -> Result<string, string>` still
+  does not exist, and `http.raw` is still the request-only server-side twin.*
 
 - **G119. `url.join`'s `Err` branch is nearly unreachable, and nothing says so.**
   Against a valid base the WHATWG parser treats anything that is not a URL as a
@@ -3649,7 +3662,11 @@ hand-written adapter") now has an app behind it rather than only a guide.
   catch a malformed link and it never will. The fix is documentation: say which
   argument the failure comes from. `feeds` carries the case as an `@example` so
   the behaviour is pinned rather than assumed.
-  *Reproduced against 0.1.79.*
+  *Reproduced against 0.1.85: `url.join("https://x.test/feed.xml", ":::")` is
+  still `Ok(https://x.test/:::)`, while `url.join("not a base", "/x")` is still
+  `Err(cannot resolve "/x" against "not a base")`. The `Err` arm remains
+  reachable only through a bad base. `join` still delegates to the host `URL`
+  constructor unchanged.*
 
 ## Round 30: what is left between `gen dts` and a usable `marked`
 

@@ -4225,7 +4225,12 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
-### 0.1.85 — Next · A TLS dial you can bound
+### 0.1.85 — Shipped · A TLS dial you can bound
+
+Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
+
 
 G127, from `pulse`, a CLI uptime monitor and the first app to import `std/tls`
 or `std/dns` since they shipped in 0.1.79. The program's whole shape is "check

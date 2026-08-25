@@ -1,0 +1,107 @@
+// config — command-line parsing for watchrun.
+module config
+
+import std/array
+import std/result { Result, Ok, Err }
+import std/string
+
+pub type Config = {
+  dir: string,
+  cmd: string,
+  include: Array<string>,
+  ignore: Array<string>,
+  debounce_ms: number,
+  timeout_ms: number,
+  poll_ms: number,
+  log_path: string,
+}
+
+const DEFAULT_INCLUDE = ["**/*"]
+const DEFAULT_IGNORE = ["node_modules/**", ".git/**", "*.log"]
+
+fn value_of(argv: Array<string>, i: number) -> Result<string, string> {
+  return match i + 1 < array.len(argv) {
+    true => Ok(argv[i + 1]),
+    false => Err("${argv[i]} expects a value"),
+  }
+}
+
+fn parse_ms(text: string, flag: string) -> Result<number, string> {
+  return match number.parse(text) {
+    Ok(v) => Ok(v),
+    Err(_) => Err("${flag} expects a number, got ${text}"),
+  }
+}
+
+// `--cmd` is required; everything else defaults. A bare argument (one that
+// does not start with `--`) sets the watched directory; the last one wins.
+pub fn parse_args(argv: Array<string>) -> Result<Config, string> {
+  let dir = "."
+  let cmd = ""
+  let include = DEFAULT_INCLUDE
+  let ignore = DEFAULT_IGNORE
+  let debounce_ms = 300
+  let timeout_ms = 30000
+  let poll_ms = 500
+  let log_path = "watchrun.log"
+  let i = 0
+  loop {
+    match i >= array.len(argv) {
+      true => { break },
+      false => {},
+    }
+    let arg = argv[i]
+    match arg {
+      "--cmd" => {
+        mut cmd = value_of(argv, i)?
+        mut i = i + 2
+      },
+      "--include" => {
+        mut include = string.split(value_of(argv, i)?, ",")
+        mut i = i + 2
+      },
+      "--ignore" => {
+        mut ignore = string.split(value_of(argv, i)?, ",")
+        mut i = i + 2
+      },
+      "--debounce" => {
+        mut debounce_ms = parse_ms(value_of(argv, i)?, "--debounce")?
+        mut i = i + 2
+      },
+      "--timeout" => {
+        mut timeout_ms = parse_ms(value_of(argv, i)?, "--timeout")?
+        mut i = i + 2
+      },
+      "--poll" => {
+        mut poll_ms = parse_ms(value_of(argv, i)?, "--poll")?
+        mut i = i + 2
+      },
+      "--log" => {
+        mut log_path = value_of(argv, i)?
+        mut i = i + 2
+      },
+      else => {
+        match string.starts_with(arg, "--") {
+          true => { return Err("unknown argument ${arg}") },
+          false => {
+            mut dir = arg
+            mut i = i + 1
+          },
+        }
+      },
+    }
+  }
+  return match string.len(cmd) == 0 {
+    true => Err("--cmd is required"),
+    false => Ok({
+      dir: dir,
+      cmd: cmd,
+      include: include,
+      ignore: ignore,
+      debounce_ms: debounce_ms,
+      timeout_ms: timeout_ms,
+      poll_ms: poll_ms,
+      log_path: log_path,
+    }),
+  }
+}

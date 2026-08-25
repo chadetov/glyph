@@ -1,0 +1,88 @@
+// watchrun — a tiny dev-loop tool.
+//
+// Polls the watched directory's file mtimes, matches changed paths against
+// include/ignore glob patterns from a real npm dependency (`minimatch`), and
+// once a burst of changes goes quiet (debounced with a timer) spawns the
+// configured shell command as a real child process. Its stdout/stderr stream
+// into a log file while it runs, a timeout kills it if it overruns, and a
+// one-line pass/fail summary with the exit code and duration prints after
+// each run.
+//
+// Usage:
+//   glyph run examples/apps/watchrun/main.glyph -- <dir> --cmd "<command>"
+//     [--include "glob,glob"] [--ignore "glob,glob"]
+//     [--debounce ms] [--timeout ms] [--poll ms] [--log path]
+//
+// Example:
+//   glyph run examples/apps/watchrun/main.glyph -- . --cmd "echo ok" --poll 200 --debounce 150
+module main
+
+import std/array
+import std/io
+import std/option { Option, Some, None }
+import std/process
+import std/string
+import std/timers { after, cancel, every, Timer }
+import config
+import runner
+import scan
+
+pub async fn main(argv: Array<string>) -> number {
+  let cfg = match config.parse_args(process.args()) {
+    Err(message) => {
+      io.eprintln("watchrun: ${message}")
+      return 1
+    },
+    Ok(c) => c,
+  }
+
+  io.println("watchrun: watching ${cfg.dir}")
+  io.println("watchrun: on change runs `${cfg.cmd}`, logging to ${cfg.log_path}")
+
+  let last = scan.snapshot(cfg.dir, cfg.include, cfg.ignore)
+  let running = false
+  let debounce_timer: Option<Timer> = None
+
+  let _pump = every(cfg.poll_ms, fn() {
+    let current = scan.snapshot(cfg.dir, cfg.include, cfg.ignore)
+    let changed = scan.diff(last, current)
+    match array.len(changed) == 0 {
+      true => {},
+      false => {
+        mut last = current
+        let changed_list = string.join(changed, ", ")
+        io.println("watchrun: changed ${changed_list}")
+        match debounce_timer {
+          None => {},
+          Some(t) => { cancel(t) },
+        }
+        mut debounce_timer = Some(after(cfg.debounce_ms, fn() {
+          mut debounce_timer = None
+          match running {
+            true => {},
+            false => {
+              mut running = true
+              runner.run(cfg.cmd, cfg.dir, cfg.log_path, cfg.timeout_ms, fn(result) {
+                mut running = false
+                print_summary(result)
+              })
+            },
+          }
+        }))
+      },
+    }
+  })
+
+  return 0
+}
+
+fn print_summary(r: runner.RunResult) -> void {
+  let status = match r.timed_out {
+    true => "TIMEOUT",
+    false => match r.code == 0 {
+      true => "PASS",
+      false => "FAIL",
+    },
+  }
+  io.println("watchrun: ${status} exit=${number.to_string(r.code)} ${number.to_string(r.duration_ms)}ms")
+}

@@ -1,0 +1,84 @@
+// scan — polling change detection. Walks the watched directory, stats every
+// matching file, and hands back a path -> mtime snapshot a caller can diff
+// against the previous one to find what changed.
+module scan
+
+import std/array
+import std/fs
+import std/option { Some, None }
+import std/path
+import std/record
+import std/string
+import patterns
+
+pub type Snapshot = Record<string, number>
+
+// Every file under `root`, as paths relative to `root` (forward-slash
+// separated, since that is what a glob pattern is written against). A path
+// matched by `ignore` is skipped before it is descended into, so an ignored
+// directory is never walked.
+fn walk(root: string, rel: string, ignore: Array<string>, acc: Array<string>) -> Array<string> {
+  let dir_path = match string.len(rel) == 0 {
+    true => root,
+    false => path.join([root, rel]),
+  }
+  return match fs.read_dir(dir_path) {
+    Err(_) => acc,
+    Ok(entries) => {
+      let out = acc
+      for entry in entries {
+        let child_rel = match string.len(rel) == 0 {
+          true => entry,
+          false => path.join([rel, entry]),
+        }
+        match patterns.matches_any(ignore, child_rel) {
+          true => {},
+          false => {
+            match fs.is_dir(path.join([root, child_rel])) {
+              true => { mut out = walk(root, child_rel, ignore, out) },
+              false => { mut out = array.push(out, child_rel) },
+            }
+          },
+        }
+      }
+      out
+    },
+  }
+}
+
+// A path -> mtime snapshot of every file under `dir` that matches `include`
+// and none of `ignore`. A file whose `stat` fails between the walk and the
+// read (removed mid-scan) is left out rather than failing the whole scan.
+pub fn snapshot(dir: string, include: Array<string>, ignore: Array<string>) -> Snapshot {
+  let files = walk(dir, "", ignore, [])
+  let matched = array.filter(files, fn(rel: string) -> bool { patterns.matches_any(include, rel) })
+  let out: Snapshot = {}
+  for rel in matched {
+    match fs.stat(path.join([dir, rel])) {
+      Err(_) => {},
+      Ok(info) => { mut out = record.set(out, rel, info.modified) },
+    }
+  }
+  return out
+}
+
+// Paths present in `curr` with a different (or absent-in-`prev`) mtime, plus
+// paths that were in `prev` and are gone from `curr`. Empty means nothing
+// changed.
+pub fn diff(prev: Snapshot, curr: Snapshot) -> Array<string> {
+  let curr_keys = record.keys(curr)
+  let prev_keys = record.keys(prev)
+  let changed_or_added = array.filter(curr_keys, fn(k: string) -> bool {
+    let curr_mtime = match record.get(curr, k) {
+      Some(v) => v,
+      None => -1,
+    }
+    let prev_mtime = match record.get(prev, k) {
+      Some(v) => v,
+      None => -2,
+    }
+    return curr_mtime != prev_mtime
+  })
+  let removed = array.filter(prev_keys, fn(k: string) -> bool { !record.has(curr, k) })
+  return array.concat(changed_or_added, removed)
+}

@@ -2,6 +2,7 @@
 //! is the Elm-quality error-message audit (Q6 resolution).
 
 use glyph_lexer::Span;
+use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ParseError {
@@ -60,6 +61,26 @@ pub enum ParseError {
         name: String,
         span: Span,
     },
+
+    /// A tagged-union variant given more than one positional payload field
+    /// (`Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)`). D8 gives a variant
+    /// one payload, and the manifesto's abstraction pillar spells a multi-field
+    /// payload as a record: "named records over positional tuples." The parser
+    /// always rejected the tuple form, but by falling off `expect(")")` at the
+    /// first comma, so the author was told a token was missing rather than that
+    /// the construct does not exist. Carried as its own variant so the arity is
+    /// counted and the record form is named.
+    ///
+    /// `fields` holds each positional field as the author wrote it, in order,
+    /// and `count` is its length: the message and the help both come from that
+    /// one list, so they cannot disagree about how many fields there are.
+    #[error("a union variant carries one payload, but `{name}` lists {count} positional fields")]
+    MultiFieldVariantPayload {
+        name: String,
+        count: usize,
+        fields: Vec<String>,
+        span: Span,
+    },
 }
 
 impl ParseError {
@@ -73,7 +94,8 @@ impl ParseError {
             | ParseError::NoConditionalKeyword { span, .. }
             | ParseError::UnsupportedRangePattern { span }
             | ParseError::MissingMutOnAssignment { span }
-            | ParseError::VariantInObjectPatternField { span, .. } => *span,
+            | ParseError::VariantInObjectPatternField { span, .. }
+            | ParseError::MultiFieldVariantPayload { span, .. } => *span,
         }
     }
 
@@ -90,34 +112,57 @@ impl ParseError {
             ParseError::UnsupportedRangePattern { .. } => "E0007",
             ParseError::MissingMutOnAssignment { .. } => "E0008",
             ParseError::VariantInObjectPatternField { .. } => "E0009",
+            ParseError::MultiFieldVariantPayload { .. } => "E0010",
         }
     }
 
     /// A one-line, actionable fix.
-    pub fn help(&self) -> Option<&'static str> {
+    ///
+    /// Most are fixed strings. `Cow` is here for the ones that have to name
+    /// what the author actually wrote: an example built from someone else's
+    /// program is worse than no example, and a fix that points at a variant the
+    /// file does not contain is not actionable.
+    pub fn help(&self) -> Option<Cow<'static, str>> {
         Some(match self {
-            ParseError::Lex { .. } => {
-                "Check for an unterminated string, an invalid escape, or a stray character."
+            ParseError::Lex { .. } => Cow::Borrowed(
+                "Check for an unterminated string, an invalid escape, or a stray character.",
+            ),
+            ParseError::Expected { .. } => Cow::Borrowed(
+                "Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`).",
+            ),
+            ParseError::Unexpected { .. } => {
+                Cow::Borrowed("Remove or correct this token; it can't appear here.")
             }
-            ParseError::Expected { .. } => {
-                "Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`)."
+            ParseError::ExpectedEof { .. } => Cow::Borrowed(
+                "Only declarations appear at the top level. Check for a missing brace or an extra token.",
+            ),
+            ParseError::NotImplemented { .. } => {
+                Cow::Borrowed("This construct is not supported yet.")
             }
-            ParseError::Unexpected { .. } => "Remove or correct this token; it can't appear here.",
-            ParseError::ExpectedEof { .. } => {
-                "Only declarations appear at the top level. Check for a missing brace or an extra token."
-            }
-            ParseError::NotImplemented { .. } => "This construct is not supported yet.",
-            ParseError::NoConditionalKeyword { .. } => {
-                "Glyph has no `if`/`else` (D3); `match` is the only conditional — e.g. `match cond { true => a, false => b }`."
-            }
-            ParseError::UnsupportedRangePattern { .. } => {
-                "Range and comparison patterns aren't in v1. Enumerate the values as separate arms (`429 => ..., 500 => ...,`) or match a guard-less scrutinee, e.g. a boolean derived from a comparison."
-            }
-            ParseError::MissingMutOnAssignment { .. } => {
-                "Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one."
-            }
-            ParseError::VariantInObjectPatternField { .. } => {
-                "An object pattern destructures; it does not match field values. Bind the field to a lowercase name and `match` it: `Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`."
+            ParseError::NoConditionalKeyword { .. } => Cow::Borrowed(
+                "Glyph has no `if`/`else` (D3); `match` is the only conditional — e.g. `match cond { true => a, false => b }`.",
+            ),
+            ParseError::UnsupportedRangePattern { .. } => Cow::Borrowed(
+                "Range and comparison patterns aren't in v1. Enumerate the values as separate arms (`429 => ..., 500 => ...,`) or match a guard-less scrutinee, e.g. a boolean derived from a comparison.",
+            ),
+            ParseError::MissingMutOnAssignment { .. } => Cow::Borrowed(
+                "Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one.",
+            ),
+            ParseError::VariantInObjectPatternField { .. } => Cow::Borrowed(
+                "An object pattern destructures; it does not match field values. Bind the field to a lowercase name and `match` it: `Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`.",
+            ),
+            // Built from the author's own variant name and field types. The
+            // field names are the one thing the parser cannot supply, so they
+            // stay as placeholders; a wrong name is worse than an obvious hole.
+            ParseError::MultiFieldVariantPayload { name, fields, .. } => {
+                let record = fields
+                    .iter()
+                    .map(|ty| format!("/* name */: {ty}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                Cow::Owned(format!(
+                    "Glyph has no tuple payload. Put the fields in one record and name them: `{name}({{ {record} }})`, and destructure it by those names in a match arm."
+                ))
             }
         })
     }

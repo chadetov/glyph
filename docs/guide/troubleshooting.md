@@ -53,6 +53,13 @@ match every payload while shadowing the `Black` constructor. Bind the field and
 match it: `Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`.
 A PascalCase *key* is fine, since `{ Color }` names a record field.
 
+**E0010: a variant carries one payload.** `Node(Color, Tree, int)` writes three
+positional fields where a variant takes one. A multi-field payload is a record:
+`Node({ color: Color, left: Tree, height: int })`, matched as `Node({ color: c,
+left: l, height: h })`, and an arm names only the fields it uses. Position three
+of a tuple tells a reader nothing, and swapping two same-typed fields still
+type-checks, which is why the record form is the only one (D8).
+
 **"expected `,`" at the end of a list.** Trailing commas are required, including
 on the last element and the last `match` arm. This is what keeps adding an item
 to a one-line diff.

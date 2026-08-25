@@ -102,9 +102,7 @@ pub(crate) fn parse_type_decl_body(p: &mut Cursor) -> Result<TypeExpr, ParseErro
     // rejects a record/generic/dotted atom here.
     if matches!(p.peek(), Token::LParen) {
         let mut first_variant = type_to_variant(first)?;
-        p.advance();
-        let payload = parse_type(p)?;
-        let rparen = p.expect(&Token::RParen, "`)` after variant payload")?;
+        let (payload, rparen) = parse_variant_payload(p, &first_variant.name)?;
         first_variant.span = Span::new(first_variant.span.start, rparen.end);
         first_variant.payload = Some(payload);
         return parse_union_rest(p, first_variant);
@@ -390,9 +388,7 @@ fn parse_variant(p: &mut Cursor) -> Result<UnionVariant, ParseError> {
     let start = p.peek_span();
     let (name, _) = p.expect_ident("variant name")?;
     let payload = if matches!(p.peek(), Token::LParen) {
-        p.advance();
-        let ty = parse_type(p)?;
-        p.expect(&Token::RParen, "`)` after variant payload")?;
+        let (ty, _) = parse_variant_payload(p, &name)?;
         Some(ty)
     } else {
         None
@@ -403,6 +399,56 @@ fn parse_variant(p: &mut Cursor) -> Result<UnionVariant, ParseError> {
         payload,
         span: Span::new(start.start, end),
     })
+}
+
+/// Parse a variant's parenthesized payload with the cursor on the `(`, and
+/// return it with the span of the closing `)`.
+///
+/// D8 gives a variant one payload, and a multi-field payload is spelled as a
+/// record (`Node({ color: Color, left: Tree<K, V> })`), never as a positional
+/// tuple: the manifesto's abstraction pillar reads "named records over
+/// positional tuples", and position four of a six-field tuple tells a reader
+/// nothing while an argument swap still type-checks. The tuple form was always
+/// rejected, but by falling off `expect(")")` at the first comma, which named a
+/// missing token instead of the rule. Reading the whole list first is what makes
+/// the rejection an arity check: it can say how many fields it found and point
+/// at the form that carries them.
+fn parse_variant_payload(p: &mut Cursor, name: &str) -> Result<(TypeExpr, Span), ParseError> {
+    p.advance(); // `(`
+    let first = parse_type(p)?;
+    // A comma directly before `)` is a stray separator on a one-field payload,
+    // not a tuple; leave it to the token-level error below.
+    if matches!(p.peek(), Token::Comma) && !matches!(p.peek_at(1), Some(Token::RParen)) {
+        // Each field is kept as the author's own source text. The parser cannot
+        // invent a good name for a field, but it has every type the author
+        // listed, and the help is built from those rather than from a fixed
+        // example belonging to some other program.
+        let mut fields = vec![p.slice(first.span().start, first.span().end).to_string()];
+        let mut end = first.span().end;
+        while matches!(p.peek(), Token::Comma) {
+            p.advance();
+            p.skip_newlines();
+            if matches!(p.peek(), Token::RParen) {
+                break;
+            }
+            // A field that does not parse is a syntax error in the tail, and
+            // that error is the one sitting at the cursor. Swallowing it and
+            // reporting the fields that did read made the compiler say `Node`
+            // "lists 1 positional fields" on a typo: a sentence that allows one
+            // payload and then rejects a variant carrying one.
+            let ty = parse_type(p)?;
+            fields.push(p.slice(ty.span().start, ty.span().end).to_string());
+            end = ty.span().end;
+        }
+        return Err(ParseError::MultiFieldVariantPayload {
+            name: name.to_string(),
+            count: fields.len(),
+            fields,
+            span: Span::new(first.span().start, end),
+        });
+    }
+    let rparen = p.expect(&Token::RParen, "`)` after variant payload")?;
+    Ok((first, rparen))
 }
 
 /// Convert an arbitrary `TypeExpr` into a `UnionVariant` if possible (first

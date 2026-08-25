@@ -325,6 +325,51 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Naming the rule, not the token</p>
+        <p>
+          The quieter version of the same problem is an error that is correct and
+          still tells you nothing. An agent writing a red-black tree reached for the
+          positional constructor every ML-family language has, and the parser stopped
+          on its first comma with &ldquo;expected <code>)</code>&rdquo; and the advice
+          &ldquo;add the expected token&rdquo;. Adding a <code>)</code> there produces
+          a different program, not a working one. A Glyph variant carries one payload,
+          and a payload with several fields is a record. Neither of those sentences was
+          anywhere in the output.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph check, before and now</span>
+<pre><span class="dim">[E0002] parse: expected `)` after variant payload, found Comma
+   ╰─ Add the expected token.</span>
+
+<span class="del">[E0010] a union variant carries one payload, but `Node` lists 6 positional
+        fields</span>
+   ╰─ Glyph has no tuple payload. Put the fields in one record and name them:
+      `Node({ /* name */: Color, /* name */: Tree&lt;K, V&gt;, /* name */: K,
+              /* name */: V, /* name */: int, /* name */: Tree&lt;K, V&gt; })`,
+      and destructure it by those names in a match arm.</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          To say that, the parser had to read the whole list before refusing it, which
+          is also what lets it count. The span underlines all six fields rather than
+          the separator it happened to die on, and the suggested record is built from
+          the variant name and the six types in the file, so the fix names your
+          program rather than an example of someone else&rsquo;s. Field names are the
+          one thing the compiler cannot supply, so it leaves them as holes.
+        </p>
+        <p>
+          The rule behind the message is a choice, not a gap.
+          <code>Node(Black, l, x, b, h, r)</code> is the argument swap that type-checks,
+          and position four tells a reader nothing. The record spelling names every
+          field, a match arm names only the fields it uses, and both of those are things
+          <code>grep</code> can find.
+        </p>
+      </div>
+
       <p class="block-label">The same typo, two answers</p>
       <div class="detail">
         <p>
@@ -371,7 +416,7 @@ string.repeeat(s, 2)
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, and <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
+          <p><code>E0222</code> for <code>await</code> outside an <code>async fn</code>, <code>E0223</code> for a value-position <code>match</code> arm that produces no value, <code>E0008</code> for an assignment missing <code>mut</code>, <code>E0010</code> for a variant given several positional payload fields where the record form is the one that exists, <code>E0302</code>/<code>E0303</code> for a <code>?</code> in a position it cannot propagate from, <code>E0110</code>/<code>E0111</code> for a declaration that would shadow a name the emitted module already depends on, <code>E0104</code> for a local import that names no module under the build root, and <code>E0105</code> for a name a module does not export, whether you reached it through a named import or off a namespace. The shadow list covers types the emitter writes on its own, so <code>Issue</code> and <code>Record</code> are caught at the declaration. Every code has a one-line fix, a note explaining the rule, and a long-form <code>glyph --explain</code> body; <code>docs/error-codes.md</code> lists the catalogue and a test keeps the two in step.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>

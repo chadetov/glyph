@@ -36,7 +36,7 @@ pub fn render_parse_error(
         "parse",
         &message,
         err.code(),
-        err.help(),
+        err.help().as_deref(),
         None,
         with_color,
         Severity::Error,

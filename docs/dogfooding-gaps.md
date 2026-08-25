@@ -36,9 +36,10 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after G132 landed half fixed and split G133 out of it: of
-133 entries, 98 are fixed, 11 are partly fixed, 10 are decided or resolved, and
-14 are open.
+Reconciled again after G134 closed the tuple-payload diagnostic and review of
+it opened G135: of
+135 entries, 99 are fixed, 11 are partly fixed, 10 are decided or resolved, and
+15 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -4695,5 +4696,119 @@ alike; the emitter did not.
   adding it changes what the checker knows about every multi-module program at
   once, so it is a decision rather than a patch: see the entry in
   `docs/roadmap/releases.md`.
+
+  *Reproduced against 0.1.87.*
+
+## Round 40: the six-field payload and the error that named a comma
+
+An agent writing an Okasaki-style red-black tree reached for the classic
+positional constructor and stopped there. Glyph does not have that constructor,
+which is the intended answer; the finding is that the compiler never said so.
+
+- **G134. [FIXED] A variant given several positional payload fields failed on
+  the comma, so the error named a token instead of the rule.** D8 gives a
+  variant one payload, and the manifesto puts a multi-field payload in a record
+  under the abstraction pillar: "named records over positional tuples." The
+  parser enforced that by accident. It parsed one type after the `(` and then
+  ran `expect(")")`, so the whole tuple form died on its first separator:
+
+  ```
+  pub type Tree<K, V> =
+    | Leaf
+    | Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)
+  ```
+
+  ```
+  [E0002] Error: parse: expected `)` after variant payload, found Comma
+     ╭─[ main:9:15 ]
+     │
+   9 │   | Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)
+     │               ┬
+     │               ╰── expected `)` after variant payload, found Comma
+     │
+     │ Help: Add the expected token.
+  ```
+
+  Read literally the help was wrong: adding a `)` there produces a different
+  program, not a working one. Nothing in the output said that a variant carries
+  one payload, and nothing pointed at the form that carries six.
+
+  The payload parse is now an arity check. It reads the whole comma-separated
+  list before rejecting it, which is what lets it count, and reports E0010:
+  ``a union variant carries one payload, but `Node` lists 6 positional fields``,
+  spanning the entire list, with the record form in the help. Both spellings go
+  through it: the multi-line `| Node(...)` and the single-line
+  `type T = Node(...) | Leaf`, whose leading variant parses on a separate path.
+  A one-field payload is unchanged, and a stray comma before `)` still gets the
+  token-level error, since that is what it is.
+
+  What did not change is the language. A six-position `Node(Black, l, x, b, h, r)`
+  is the argument-swap bug Glyph exists to prevent, and position four tells a
+  reader nothing, so the tuple payload stays out on both the abstraction and the
+  greppability pillars. The record payload already expresses it:
+  `Node({ color: Color, left: Tree<K, V>, key: K, value: V, height: int, right: Tree<K, V> })`,
+  matched as `Node({ color: c, left: l, right: r })` with an arm naming only the
+  fields it uses.
+
+  The first cut of this got two things wrong, both caught in review, and they
+  are worth writing down because they are the same mistake in two places: a
+  diagnostic that describes a program other than the one on screen.
+
+  It swallowed a field that would not parse and reported the fields it had read
+  so far. On `Node(int, 5, int)` — a plain typo, not an exotic input — that
+  printed ``a union variant carries one payload, but `Node` lists 1 positional
+  fields``: a sentence that permits one payload and then flags a variant
+  carrying one, with the span shrunk to the first field and the `5` never
+  mentioned. The inner parse error is now propagated, so a malformed tail
+  reports the thing that is actually broken (`expected type expression, found
+  Number("5")`) and E0010 is reached only when every field read as a type.
+
+  The help was a fixed string. Whatever the author had written, it recommended
+  ``Node({ color: Color, left: Tree<K, V>, key: K, right: Tree<K, V> })`` — a
+  variant named `Node` with four fields, even when the message above it said
+  `Rect` and two. It is built from the file now: the variant name the author
+  used and each field type as they wrote it, in order, so the arity in the help
+  and the arity in the message come from one list and cannot disagree. Field
+  names are the one thing the parser cannot supply, so they stay as holes:
+  ``Rect({ /* name */: int, /* name */: int })``. `ParseError::help()` returns
+  `Cow<'static, str>` for this; every other code is still a borrowed constant.
+
+  Still true, and out of scope here: the pattern half of the same mistake gets
+  the opposite answer from the emitter. See G135.
+
+  *Fixed in the parser's `parse_variant_payload`
+  (`glyph-compiler/crates/glyph-parser/src/types.rs`) and
+  `ParseError::help` (`glyph-parser/src/error.rs`); regression tests in
+  `glyph-parser/src/lib.rs` (three of them: the arity check, the malformed tail,
+  and the help's contents) and
+  `tests/negative/multi_field_variant_payload.glyph`.*
+
+- **G135. The emitter calls a positional variant pattern unimplemented,
+  one line after the parser calls it nonexistent.** An author who obeys E0010,
+  writes the record payload, and then writes the positional pattern out of habit
+  is told the tuple form is a missing feature:
+
+  ```
+  type Tree = | Leaf | Node({ color: Color, left: Tree, key: int, right: Tree })
+  ...
+    Node(c, l, k, r) => 1,
+  ```
+
+  ```
+  [E0300] emit: TS emission for a nested or multi-argument pattern in a match
+          arm is not implemented yet
+     ╰─ Rewrite using a construct the v1 emitter supports
+  ```
+
+  Two stages of the same compiler now disagree about whether positional payloads
+  are coming. E0010 says the construct does not exist by design; E0300 says it
+  exists and is not built yet. The second is the one an author meets on the next
+  line they type after taking the first one's advice.
+
+  The fix needs a decision this entry does not make. A multi-argument pattern can
+  never be valid under D8, so it belongs to whatever rejects it on the rule
+  (parser or resolver), with a message like E0010's. A *nested* pattern is a
+  genuine emitter deferral and the current wording is honest for it. The two are
+  currently one error, and separating them is a scope call, not a patch.
 
   *Reproduced against 0.1.87.*

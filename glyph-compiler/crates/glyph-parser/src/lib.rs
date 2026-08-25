@@ -938,6 +938,97 @@ fn main() {
         parse_or_panic("module x\nfn f(b: Box) -> string { match b { Full({ Color }) => Color } }\n");
     }
 
+    /// D8 gives a variant one payload, and the manifesto's abstraction pillar
+    /// spells a multi-field payload as a record: "named records over positional
+    /// tuples." `Node(Color, Tree, int)` was rejected already, but by falling
+    /// off `expect(")")` at the first comma, which named a missing token
+    /// instead of the rule. The arity check reads the whole list, says how many
+    /// fields it found, and points at the record form.
+    #[test]
+    fn multi_field_variant_payload_names_the_limit() {
+        let src = "module x\ntype Tree =\n  | Leaf\n  | Node(Color, Tree, int)\n";
+        let err = parse(src).unwrap_err();
+        assert!(
+            matches!(&err, ParseError::MultiFieldVariantPayload { name, count, .. }
+                if name == "Node" && *count == 3),
+            "expected MultiFieldVariantPayload, got {err:?}"
+        );
+        assert_eq!(err.code(), "E0010");
+        // The span covers the whole positional list, not just the comma: the
+        // check counted the fields rather than tripping over the separator.
+        let span = err.span();
+        assert_eq!(&src[span.start as usize..span.end as usize], "Color, Tree, int");
+
+        // Single-line union, both in tail position and as the leading variant
+        // (which parses through a different path in `parse_type_decl_body`).
+        for src in [
+            "module x\ntype T = Leaf | Node(Color, T)\n",
+            "module x\ntype T = Node(Color, T) | Leaf\n",
+        ] {
+            let err = parse(src).unwrap_err();
+            assert!(
+                matches!(&err, ParseError::MultiFieldVariantPayload { name, count, .. }
+                    if name == "Node" && *count == 2),
+                "expected MultiFieldVariantPayload for {src:?}, got {err:?}"
+            );
+        }
+
+        // The record payload the help points at parses, and a single positional
+        // payload is untouched.
+        parse_or_panic(
+            "module x\ntype T =\n  | Leaf\n  | Node({ color: Color, left: T, right: T })\n",
+        );
+        parse_or_panic("module x\ntype T =\n  | Leaf\n  | Node(Color)\n");
+    }
+
+    /// A field the parser cannot read is a syntax error in the tail of the
+    /// list, not an arity problem. Counting only the fields that parsed made
+    /// the compiler print "a union variant carries one payload, but `Node`
+    /// lists 1 positional fields" for a plain typo: a sentence that permits one
+    /// payload and then flags a variant carrying one. The inner error is the
+    /// one at the cursor, so it is the one that gets reported.
+    #[test]
+    fn malformed_variant_payload_tail_reports_the_real_error() {
+        for src in [
+            "module x\ntype T =\n  | Leaf\n  | Node(int, 5, int)\n",
+            "module x\ntype T =\n  | Leaf\n  | Node(int, , int)\n",
+            "module x\ntype T =\n  | Leaf\n  | Node(int, Tree<K, int)\n",
+        ] {
+            let err = parse(src).unwrap_err();
+            assert!(
+                !matches!(err, ParseError::MultiFieldVariantPayload { .. }),
+                "a field that does not parse must not be reported as an arity \
+                 error: {src:?} gave {err:?}"
+            );
+        }
+    }
+
+    /// The help is built from the variant name and the field types the parser
+    /// just read, so it cannot name a different program's variant, a different
+    /// program's field names, or an arity the message disagrees with. The one
+    /// thing the parser cannot invent is a good field name, which is why the
+    /// names are left as placeholders.
+    #[test]
+    fn multi_field_variant_payload_help_carries_the_authors_fields() {
+        let src = "module x\ntype T =\n  | Leaf\n  | Node(Color, Tree<K, V>, int)\n";
+        let err = parse(src).unwrap_err();
+        let help = err.help().expect("E0010 has a help line");
+        assert!(help.contains("`Node({"), "help should name the variant: {help}");
+        for ty in ["Color", "Tree<K, V>", "int"] {
+            assert!(
+                help.contains(ty),
+                "help should carry the field type `{ty}`: {help}"
+            );
+        }
+        // One placeholder per field the author listed: the help and the message
+        // agree on the arity because both come from the same list.
+        assert_eq!(help.matches("/* name */").count(), 3, "{help}");
+        assert!(
+            !help.contains("key: K") && !help.contains("color: Color"),
+            "help must not invent field names from another program: {help}"
+        );
+    }
+
     #[test]
     fn object_literal_allows_quoted_string_keys() {
         let m = parse_or_panic(

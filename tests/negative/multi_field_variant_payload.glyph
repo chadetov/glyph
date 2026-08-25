@@ -1,0 +1,21 @@
+module app
+
+// A tagged-union variant carries one payload (D8), and a payload with several
+// fields is a record. `Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)` is the
+// Okasaki-style positional spelling: position four says nothing about what it
+// holds, and swapping the two `Tree<K, V>` subtrees still type-checks. The
+// record form (`Node({ color: Color, left: Tree<K, V>, ... })`) names each
+// field, which is the abstraction pillar's "named records over positional
+// tuples" and what makes an argument swap a compile error.
+type Color = | Red | Black
+
+pub type Tree<K, V> =
+  | Leaf
+  | Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)
+
+fn size<K, V>(t: Tree<K, V>) -> int {
+  return match t {
+    Leaf => 0,
+    else => 1,
+  }
+}

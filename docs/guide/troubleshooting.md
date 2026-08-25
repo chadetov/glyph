@@ -46,6 +46,13 @@ statement. Reassigning an existing binding is `mut x = e`; introducing a new one
 is `let x = e`. The mark is what makes every mutation greppable (D5), and it
 applies to fields and elements too (`mut r.count = 1`, `mut xs[0] = v`).
 
+**E0009: a variant name in an object pattern's field.** An object pattern
+destructures a record payload; it does not match field values. `Full({ color:
+Black })` therefore has no meaning to lower, and reading it as a binding would
+match every payload while shadowing the `Black` constructor. Bind the field and
+match it: `Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`.
+A PascalCase *key* is fine, since `{ Color }` names a record field.
+
 **"expected `,`" at the end of a list.** Trailing commas are required, including
 on the last element and the last `match` arm. This is what keeps adding an item
 to a one-line diff.

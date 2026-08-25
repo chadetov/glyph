@@ -913,6 +913,31 @@ fn main() {
         assert_eq!(err.code(), "E0007");
     }
 
+    /// D9 makes a PascalCase name in pattern position a variant reference, and
+    /// an object pattern's field value is a pattern position. Glyph object
+    /// patterns only destructure, so `{ color: Black }` has no way to mean
+    /// "match `Black`"; before this check it lowered to `const Black = m.color`
+    /// and the arm fired for every payload. A lowercase binding still parses.
+    #[test]
+    fn variant_name_as_object_pattern_field_is_rejected() {
+        let err = parse(
+            "module x\nfn f(b: Box) -> string { match b { Full({ color: Black, label: l }) => l } }\n",
+        )
+        .unwrap_err();
+        assert!(
+            matches!(err, ParseError::VariantInObjectPatternField { .. }),
+            "expected VariantInObjectPatternField, got {err:?}"
+        );
+        assert_eq!(err.code(), "E0009");
+
+        parse_or_panic(
+            "module x\nfn f(b: Box) -> string { match b { Full({ color: c, label: l }) => l } }\n",
+        );
+        // A PascalCase *key* is a field name, not a pattern: shorthand
+        // `{ Color }` destructures a record field spelled `Color` and stays legal.
+        parse_or_panic("module x\nfn f(b: Box) -> string { match b { Full({ Color }) => Color } }\n");
+    }
+
     #[test]
     fn object_literal_allows_quoted_string_keys() {
         let m = parse_or_panic(

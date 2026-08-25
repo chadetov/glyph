@@ -45,6 +45,21 @@ pub enum ParseError {
     /// reason `NoConditionalKeyword` exists for `if`/`else`.
     #[error("assignment requires `mut`")]
     MissingMutOnAssignment { span: Span },
+
+    /// A PascalCase name in an object pattern's field-value position
+    /// (`Full({ color: Black })`). D9 makes a PascalCase name in pattern
+    /// position a variant reference, but a Glyph object pattern only
+    /// destructures: it has no way to match a field against a variant. Left
+    /// alone the name lowered to a renamed binding (`const Black = m.color`),
+    /// so the arm fired for every payload and shadowed the real constructor.
+    /// Carried as its own variant because the shape parses fine and the author
+    /// needs to be told what it would have meant.
+    #[error("`{name}` is a variant reference, not a binding, so it cannot name the field `{key}`")]
+    VariantInObjectPatternField {
+        key: String,
+        name: String,
+        span: Span,
+    },
 }
 
 impl ParseError {
@@ -57,7 +72,8 @@ impl ParseError {
             | ParseError::NotImplemented { span }
             | ParseError::NoConditionalKeyword { span, .. }
             | ParseError::UnsupportedRangePattern { span }
-            | ParseError::MissingMutOnAssignment { span } => *span,
+            | ParseError::MissingMutOnAssignment { span }
+            | ParseError::VariantInObjectPatternField { span, .. } => *span,
         }
     }
 
@@ -73,6 +89,7 @@ impl ParseError {
             ParseError::NoConditionalKeyword { .. } => "E0006",
             ParseError::UnsupportedRangePattern { .. } => "E0007",
             ParseError::MissingMutOnAssignment { .. } => "E0008",
+            ParseError::VariantInObjectPatternField { .. } => "E0009",
         }
     }
 
@@ -98,6 +115,9 @@ impl ParseError {
             }
             ParseError::MissingMutOnAssignment { .. } => {
                 "Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one."
+            }
+            ParseError::VariantInObjectPatternField { .. } => {
+                "An object pattern destructures; it does not match field values. Bind the field to a lowercase name and `match` it: `Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`."
             }
         })
     }

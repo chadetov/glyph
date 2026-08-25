@@ -807,7 +807,10 @@ pub enum Pattern {
     },
     /// `{ name, email }` — object destructure. Each field binds an identifier
     /// of the same name; renamed binding (`{ name: n }`) is recognized but
-    /// the typechecker decides semantics.
+    /// the typechecker decides semantics. A field value only ever *binds*: an
+    /// object pattern does not match field values, so a PascalCase name there
+    /// (`{ color: Black }`) is rejected by the parser (E0009) rather than read
+    /// as the renamed binding it would otherwise become.
     Object {
         fields: Vec<ObjectPatternField>,
         span: Span,

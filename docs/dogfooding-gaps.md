@@ -36,9 +36,9 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after Round 37 added and closed G127 and added G128 open: of
-128 entries, 96 are fixed, 10 are partly fixed, 10 are decided or resolved, and
-12 are open.
+Reconciled again after G129 landed fixed and G130 opened: of
+130 entries, 97 are fixed, 10 are partly fixed, 10 are decided or resolved, and
+13 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -204,6 +204,60 @@ class is that "verified through `glyph build`" is not the same as verified.
   those jumps emit the labeled form so they reach the loop past the switch. The
   synthetic switch-`break` is untouched. Verified end to end (a guarded loop now
   terminates).*
+- **G130. A user-defined variant inside a constructor pattern compiles to a
+  payload binding, so the arm matches every payload.** G1 closed this shape for
+  the prelude constructors only. `nested_payload_variants`
+  (`glyph-compiler/crates/glyph-emit/src/lib.rs:2724`) requires a `Ty::App`
+  scrutinee and then keys off the names `Ok`/`Err`/`Some`, so a user union whose
+  variant carries another user union is a `Ty::Named`, returns `None`, and falls
+  through to the `Pattern::Ident` arm of `emit_arm_binds` (`lib.rs:3852`): the
+  payload-binding path. The doc comment three lines above
+  `nested_payload_variants` describes the exact bug it is failing to prevent.
+
+  ```
+  type Color = | Red | Black
+  type Box = | Empty | Full(Color)
+
+  fn describe(b: Box) -> string {
+    return match b {
+      Empty => "empty",
+      Full(Black) => "black box",
+      Full(Red) => "red box",
+    }
+  }
+
+  fn main() -> void {
+    print(describe(Full(Red)))
+  }
+  ```
+
+  `glyph check src` reports `1 module(s) checked, no diagnostics` and `tsc
+  --strict passed`. The emitted `switch` carries two `case "Full":` blocks, the
+  second unreachable:
+
+  ```ts
+  case "Full": { const Black = __m0.value; return "black box"; }
+  case "Full": { const Red = __m0.value; return "red box"; }
+  ```
+
+  `glyph run src` prints `black box` for a `Full(Red)`.
+
+  The typechecker and the emitter already disagree about that same arm. Delete
+  the `Full(Red)` arm and the checker answers `[E0200] non-exhaustive match on
+  Color: missing variants Red`, so it reads `Black` as a variant reference while
+  the emitter reads it as a binding. One pattern, two meanings across two
+  stages, and no diagnostic from either.
+
+  Same class as G129, which is the object-pattern spelling of it and is rejected
+  at parse time now, and reachable from the arm directly below the one G129
+  refuses. The machinery to close it is already in the emitter:
+  `variant_payload_is_record` (`lib.rs:2564`) walks a scrutinee `Ty` to its
+  `Decl::Type` and the variant's payload, `union_variant_names` (`lib.rs:2523`)
+  turns a union type into its variant names, and `degroup_nested_arms`
+  (`lib.rs:2754`) already rewrites a nested nullary constructor into a
+  synthesized inner `match`, which is the path `Ok(None)` takes today. Extending
+  `nested_payload_variants` past the `Ty::App` gate to a named union is bounded
+  emitter work rather than a design. *Reproduced against 0.1.85.*
 
 ## High — verifiability holes and "silent green"
 
@@ -4374,3 +4428,62 @@ until this one.
   functions in the stdlib), or whether `request` stops treating 0 as permission
   and `fetch_of` ships a real default instead. Scheduled in the rolling lane.
   *Reproduced against 0.1.84.*
+
+- **G129. [FIXED] A variant name in an object pattern's field position
+  compiled to a renamed binding, so the arm matched everything.** D9 reads a
+  PascalCase name in pattern position as a variant reference, and an object
+  pattern's field value is a pattern position. Glyph object patterns only
+  destructure, though, so there was nothing for the parser to build and the
+  name fell through to the renamed-binding path:
+
+  ```
+  type Color = | Red | Black
+
+  type Box =
+    | Empty
+    | Full({ color: Color, label: string })
+
+  fn describe(b: Box) -> string {
+    match b {
+      Empty => "empty",
+      Full({ color: Black, label: l }) => "black box",
+    }
+  }
+  ```
+
+  `glyph check` and `tsc --strict` both passed with no diagnostic, and the
+  emitted arm was `const Black = __m0.color;` sitting under `case "Full":`. So
+  the arm fired for every `Full` whatever its colour, shadowed the real `Black`
+  constructor inside its own body, and `describe(Full({ color: Red, label: "x" }))`
+  printed `black box`. Exhaustiveness saw a total `Full` arm and had nothing to
+  say either.
+
+  The parser now rejects a constructor-shaped name in that position as E0009,
+  with the rewrite in the help text: bind the field to a lowercase name and
+  `match` it (`Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`),
+  which is the form that already lowers correctly. A PascalCase *key* is
+  untouched, since `{ Color }` names a record field rather than a pattern.
+
+  This closes the object-pattern spelling of the wrong answer and only that one.
+  The constructor-argument spelling is still silent and still wrong: `Full(Black)`
+  where `Full` carries a `Color` payload compiles clean, emits two
+  `case "Full":` blocks whose first binds the payload instead of testing it, and
+  answers `black box` for a red box. That is filed as G130 in the critical section
+  above, and it is the same bug G1 closed for the prelude constructors.
+
+  What is not closed either is the construct itself. Matching a payload field
+  against a variant is a refutable nested pattern, and supporting it needs
+  exhaustiveness that reasons about record fields rather than tags. The lowering
+  is not the obstacle: `degroup_nested_arms` already collapses several nested
+  arms into one outer `switch` case with a synthesized temp, which is how
+  `Ok(None)` compiles today. It is a language feature with a design to write
+  down, so it is parked in the rolling lane rather than smuggled in behind a bug
+  fix. The error is forward-compatible with it: code that is rejected today
+  would start compiling, and nothing that compiles today changes meaning.
+
+  Two costs the diagnostic carries, both real. It rejects a form that compiled
+  before it: `Full({ icon: Icon })`, renaming a field to a PascalCase local, is
+  a hard E0009 now, which is the cost D9 already imposes in arm heads. And the
+  namespaced spelling misses the diagnostic entirely, since `expect_field_name`
+  consumes the first segment and the check never sees a path, so
+  `Full({ color: color.Black })` still lands on `[E0002] expected }, found Dot`.

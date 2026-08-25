@@ -997,6 +997,7 @@ machine-readably. The full catalogue:
 | E0006 | `if`/`else` used where Glyph has none (D3) | Rewrite as a `match` |
 | E0007 | Range/comparison pattern (`500..599 =>`) in a match arm | Enumerate the values as separate arms |
 | E0008 | Assignment without `mut` (`x = e`) (D5) | Write `mut x = e`, or `let x = e` for a new binding |
+| E0009 | Variant name in an object pattern's field (`{ color: Black }`) | Bind it (`{ color: c }`) and `match c` |
 | E0100 | Duplicate top-level name | Rename one; names are unique |
 | E0101 | Relative import | Use an absolute module path (`std/io`, `myapp/x`) |
 | E0102 | Barrel file (only imports) | Add a declaration or remove the file |

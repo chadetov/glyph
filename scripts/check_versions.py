@@ -70,6 +70,25 @@ PINNED_BADGES = (
     ("npm/glyph/README.md", "https://badge.socket.dev/npm/package/@glyphlang/glyph/"),
 )
 
+# The home page's hero pill hard-codes the version it advertises. Nothing checked
+# it, and it sat at v0.1.72 for thirteen releases while the site told every
+# visitor that was current. Same failure as the Socket badges, different file.
+PINNED_PILLS = (
+    ("web/index.html", r'class="pill"[^>]*>.*?v([0-9]+\.[0-9]+\.[0-9]+)'),
+)
+
+
+def stale_pills(repo: str) -> list[str]:
+    bad: list[str] = []
+    for rel, pattern in PINNED_PILLS:
+        path = ROOT / rel
+        if not path.exists():
+            continue
+        for m in re.finditer(pattern, path.read_text(), re.S):
+            if m.group(1) != repo:
+                bad.append(f"{rel}: hero pill says {m.group(1)}, repo is {repo}")
+    return bad
+
 
 def stale_badges(repo: str) -> list[str]:
     bad: list[str] = []
@@ -170,12 +189,12 @@ def main() -> int:
         print("bump every package.json (version + optionalDependencies) to match Cargo.")
         return 1
 
-    stale = stale_badges(repo)
+    stale = stale_badges(repo) + stale_pills(repo)
     if stale:
         print("a version-pinned badge URL is out of date:")
         for s in stale:
             print(f"  {s}")
-        print("bump the version in the badge URL, or switch it to an unpinned one.")
+        print("bump the version where it is written, or stop pinning it there.")
         return 1
 
     tagged = " (matches the requested tag)" if expected is not None else ""

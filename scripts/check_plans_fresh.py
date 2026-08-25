@@ -46,6 +46,14 @@ ROADMAP = ROOT / "docs" / "roadmap" / "releases.md"
 # plan, so the marker in the title is what takes a section out of scope.
 PLAN = re.compile(r"^#### (0\.\d+\.\d+) — (.+)$", re.M)
 DONE = re.compile(r"shipped|landed on main", re.I)
+
+# A plan whose release already shipped is history, not a forward plan, and the
+# marker for that lives in the `### 0.1.NN — Shipped · ...` entry rather than in
+# the `#### 0.1.NN` plan's own title. Reading only the plan title meant 0.1.81's
+# plan kept demanding a review stamp for a release that had already gone out, and
+# the only way to satisfy it was to hand-annotate a section that says nothing
+# false. Cross-referencing removes the manual step instead of documenting it.
+SHIPPED = re.compile(r"^### (0\.\d+\.\d+) — Shipped", re.M)
 REVIEWED = re.compile(r"Reviewed against (\d+)\.(\d+)\.(\d+)")
 
 
@@ -66,8 +74,9 @@ def main() -> int:
 
     problems: list[str] = []
     checked = 0
+    shipped = set(SHIPPED.findall(text))
     for version, title, body in sections(text):
-        if DONE.search(title):
+        if DONE.search(title) or version in shipped:
             continue
         checked += 1
         m = REVIEWED.search(body)

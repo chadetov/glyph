@@ -3755,8 +3755,8 @@ G103 was the case where nothing was said at all.
   descriptor that only checks presence, or be skipped with its dependent fields
   widened, or make the whole type unmaterializable, is a design call with a real
   verifiability trade in it.
-  *Reproduced against 0.1.80: `gen dts marked --rename Tokens.List=ListToken`
-  writes 46 types and exits 0, and building the result is 14 `[E0103]`s across
+  *Reproduced against 0.1.86: `gen dts marked --rename Tokens.List=ListToken`
+  writes 49 types and exits 0 (marked's own surface grew since 0.1.80), and building the result is 14 `[E0103]`s across
   eight names, still in the same three groups: classes (`Lexer`, `Parser`,
   `Renderer`, `Tokenizer`, `Hooks`), utility types (`Omit`, `Pick`) and host
   types (`RegExp`). Worth noting for whoever fixes it that the generated file
@@ -3986,8 +3986,12 @@ compiler did not do for them. Three are real.
   between "the output is portable JavaScript" and "the output is deployable".
   A `--target browser` that emits pruned, relative-specifier ESM is the shape
   that would remove the file.
-  *Reproduced against 0.1.80, and it has grown: a program importing three
-  modules (`array`, `io`, `option`) now emits **36**, up from the 31 recorded
+  *Reproduced against 0.1.86: a program importing three modules (`array`,
+  `io`, `option`) still emits all 36 std modules, including the seven no
+  browser can run (`dns`, `fs`, `http`, `net`, `process`, `sqlite`, `tls`),
+  still under `.glyph-runtime`. `glyph build` still has no target or prune
+  flag, so the deployment guide's bundler workaround is still the only
+  answer.**36**, up from the 31 recorded
   here, and the browser-hostile set is `dns`, `fs`, `http`, `net`, `process`,
   `sqlite`, `tls`. Three of those (`net`, `tls`, `dns`) are 0.1.79's own work, so
   each release that adds a host module makes this entry worse rather than
@@ -4157,7 +4161,10 @@ live on the seam the whole architecture stands on.
   G122's answer is: a watcher on the CLI, or a Vite plugin that owns both the
   alias and the rebuild-on-change. G122's fix (relative specifiers) removed the
   alias half, so what a plugin would still own is the rebuild-on-change.
-  *Reproduced against 0.1.80.*
+  *Reproduced against 0.1.86: `glyph build src --out dist --watch` still
+  fails with `error: unexpected argument '--watch' found` (exit 2), and no
+  build/check/run subcommand, nor any separate command, offers a watch
+  mode; the compiler source contains no watch-mode implementation at all.*
 
 - **G124. A module whose whole export surface is private builds green and
   exports nothing, and only a host toolchain notices.** The kanban author wrote
@@ -4171,7 +4178,9 @@ live on the seam the whole architecture stands on.
   architecture uses. A candidate fix is a diagnostic on the library case: a
   module with no `main`, no `pub` declaration, and no Glyph-side importer is
   useful to nobody, and saying so at build time turns a host-side TS2459 into
-  a Glyph error that names `pub`. *Reproduced against 0.1.80* (the four
+  a Glyph error that names `pub`. *Reproduced against 0.1.86: a two-function module with no `pub`, no `main`
+  and no Glyph-side importer still builds green and emits zero `export`
+  statements; adding `pub` to one function restores it* (the four
   no-`pub` kanban modules emit `export` zero times; adding `pub` restores the
   surface).
 

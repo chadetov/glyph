@@ -81,7 +81,7 @@ fn compile_inner(source: &str) -> CompileOutput {
         Err(e) => {
             return CompileOutput {
                 ts: None,
-                diagnostics: vec![diag(&index, source, e.span(), e.code(), &format!("{e}"), e.help())],
+                diagnostics: vec![diag(&index, source, e.span(), e.code(), &format!("{e}"), e.help().as_deref())],
             };
         }
     };
@@ -140,7 +140,7 @@ fn diag(
     span: Span,
     code: &str,
     message: &str,
-    help: Option<&'static str>,
+    help: Option<&str>,
 ) -> Diagnostic {
     let message = match help {
         Some(h) => format!("{message}\n{h}"),

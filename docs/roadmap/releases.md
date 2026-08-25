@@ -4281,6 +4281,33 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
+G134 rides along, and it is a diagnostic rather than a language change. An agent
+writing a red-black tree reached for `Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)`
+and got `expected ")" after variant payload, found Comma` with the help "add the
+expected token", which is advice that produces a different program. A variant
+carries one payload (D8) and a multi-field payload is a record, so the parser was
+right to refuse it and wrong about how. The payload parse now reads the whole
+comma-separated list before rejecting it, which is what lets it count, and reports
+E0010 naming the arity and the record form. The tuple payload itself stays out:
+`Node(Black, l, x, b, h, r)` is the argument-swap bug the language exists to
+prevent, and position four tells a reader nothing, which is the abstraction and
+greppability pillars in the same construct.
+
+This depended on G129 landing first. The record payload is what the new help
+points at, and until 0.1.85 the matching half of that form miscompiled in
+silence, so the diagnostic would have recommended a spelling that gave wrong
+answers.
+
+Review of G134 turned up two ways the first cut described a program other than
+the one on screen, both fixed here: it reported an arity of 1 (on a rule that
+allows 1) when a field in the tail did not parse, and its help was a fixed string
+recommending a four-field `Node` no matter what the author had written. The
+malformed tail now reports the inner parse error, and the help is built from the
+author's variant name and field types with the names left as `/* name */` holes.
+It also surfaced G135, the same rule contradicted at the emit stage; that one is
+in the rolling lane, since it needs a decision about which stage owns it rather
+than a patch.
+
 ### 0.1.87 — Shipped · The exit code a program recorded
 
 Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated
@@ -5789,6 +5816,18 @@ the same change, recorded here so they are not rediscovered.
   ceremony's gate list and is invoked by no workflow, so it holds only when
   someone remembers to type it. It checks a local build, so CI is not the right
   home; the release orchestration workflow is.
+
+- **G135: the parser and the emitter disagree about positional variant
+  patterns.** E0010 (new in this release) tells an author that a variant carries
+  one payload and the tuple form does not exist. If they take the advice, write
+  the record payload, and then write `Node(c, l, k, r)` in a match arm out of
+  habit, E0300 tells them TS emission for a multi-argument pattern "is not
+  implemented yet" — the opposite claim, one line later. A multi-argument
+  pattern can never be valid under D8, so it should be refused on the rule by
+  whatever owns the rule, not deferred by the emitter. The obstacle is that
+  E0300 covers nested patterns in the same message, and a nested pattern *is* a
+  real emitter deferral where the current wording is honest. Splitting the two
+  is the work; which stage should own the D8 half is the decision.
 
 ### Website drift the 0.1.86 ceremony surfaced
 

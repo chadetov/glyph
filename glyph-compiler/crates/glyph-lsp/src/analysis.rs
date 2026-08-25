@@ -37,7 +37,7 @@ pub fn analyze(text: &str) -> Vec<GlyphDiagnostic> {
             return vec![GlyphDiagnostic {
                 start: e.span().start,
                 end: e.span().end,
-                message: with_help(format!("{e}"), e.help()),
+                message: with_help(format!("{e}"), e.help().as_deref()),
                 code: e.code().to_string(),
             }]
         }
@@ -892,7 +892,7 @@ fn resolve_diag(e: &glyph_resolver::ResolveError) -> GlyphDiagnostic {
     }
 }
 
-fn with_help(message: String, help: Option<&'static str>) -> String {
+fn with_help(message: String, help: Option<&str>) -> String {
     match help {
         Some(h) => format!("{message}\n{h}"),
         None => message,

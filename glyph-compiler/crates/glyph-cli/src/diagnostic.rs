@@ -106,7 +106,7 @@ pub fn from_parse_error(file: &str, source: &str, err: &ParseError) -> Diagnosti
         "error",
         "parse",
         format!("{err}"),
-        err.help(),
+        err.help().as_deref(),
         None,
     )
 }

@@ -79,6 +79,30 @@ pub fn explain(code: &str) -> Option<&'static str> {
             }\n\n\
             A PascalCase *key* is unaffected: `{ Color }` destructures a record \
             field spelled `Color`.",
+        "E0010" => "E0010: a variant carries one payload\n\n\
+            A tagged-union variant has one payload (D8), and a payload with \
+            several fields is a record, not a positional tuple. The manifesto \
+            puts this under the abstraction pillar: named records over \
+            positional tuples. In `Node(Color, Tree, K, V, int, Tree)` position \
+            four tells a reader nothing, and swapping two same-typed fields \
+            still type-checks.\n\n\
+            Before:  | Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)\n\
+            After:   | Node({\n              \
+              color: Color,\n              \
+              left: Tree<K, V>,\n              \
+              key: K,\n              \
+              value: V,\n              \
+              height: int,\n              \
+              right: Tree<K, V>,\n            \
+            })\n\n\
+            Patterns follow the same shape: `Node({ color: c, left: l, key: k, \
+            value: v, height: h, right: r }) => ...`, and an arm can name only \
+            the fields it uses.\n\n\
+            The one-line help on the diagnostic itself is built from your file: \
+            it names your variant and lists the types you wrote, in order, with \
+            each field name left as `/* name */`. Naming the fields is the part \
+            the compiler cannot do for you, and it is the part that carries the \
+            meaning.",
 
         // ----- resolver (E01xx) -----
         "E0100" => "E0100: duplicate name\n\n\
@@ -564,7 +588,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
 /// Kept in step with the table in `docs/error-codes.md`, which the test below
 /// reads: a code in one and not the other fails the build.
 pub const ALL_CODES: &[&str] = &[
-    "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "E0100", "E0101",
+    "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "E0010", "E0100", "E0101",
     "E0102", "E0103", "E0104",
     "E0105", "E0106", "E0107", "E0108", "E0109", "E0110", "E0111", "E0200", "E0201", "E0202",
     "E0203", "E0204",

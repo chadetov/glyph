@@ -33,6 +33,7 @@ below.
 | `E0007` | Range or comparison pattern (`500..599 =>`) in a `match` arm; not in v1 |
 | `E0008` | Assignment without `mut` (`x = e` should be `mut x = e`, or `let x = e` for a new binding; D5) |
 | `E0009` | A variant name in an object pattern's field position (`Full({ color: Black })`); object patterns destructure, they do not match field values |
+| `E0010` | A union variant given more than one positional payload field (`Node(Color, Tree, int)`); a variant carries one payload, and a multi-field payload is a record (D8) |
 
 ### Resolver — `E01xx`
 

@@ -4730,6 +4730,94 @@ fn cross_module_record_payload_union_match_binds_whole_object() {
 }
 
 #[test]
+fn namespaced_record_payload_union_match_binds_whole_object() {
+    // The same imported union matched through its *namespace* spelling
+    // (`err.BadLeadByte(v)`) rather than a named import. The variant name is
+    // never bound in the consumer's symbol table under that spelling, so the
+    // by-name lookup missed it and the emitter fell back to `v.value`
+    // (TS2339). The scrutinee's own imported type now answers the question, so
+    // both spellings of the same declaration bind identically.
+    let root = unique_tmp("nsunion");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "err.glyph",
+        "module err\npub type E =\n  | BadLeadByte({ at: number })\n  | Empty\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import err\n\
+         import std/string { from }\n\
+         pub fn describe(e: err.E) -> string {\n\
+         \x20 return match e {\n\
+         \x20\x20\x20 err.BadLeadByte(v) => from(v.at),\n\
+         \x20\x20\x20 err.Empty => \"empty\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    assert!(ts.contains("const v = __m0;"), "{ts}");
+}
+
+#[test]
+fn namespaced_variant_shape_comes_from_the_scrutinee_not_a_same_named_import() {
+    // Two modules declare a variant of the same name with different payload
+    // shapes: `a.Hit` carries a record, `b.Hit` a single value. The consumer
+    // imports `a`'s `Hit` by name and matches `b`'s through the namespace.
+    //
+    // The by-name lookup answers "is there any symbol named `Hit` here whose
+    // source module registers it as a record payload" without ever consulting
+    // what is being matched, so it claimed the record shape for `b.Hit` and
+    // bound the whole object where the value belonged (TS2322). The scrutinee's
+    // own type is the deciding axis and is now asked first; the by-name lookup
+    // is the fallback for a scrutinee whose type is not `Ty::Imported`.
+    let root = unique_tmp("nscollide");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "a.glyph",
+        "module a\npub type A =\n  | Hit({ x: number })\n  | Miss\n",
+    );
+    write_file(
+        &src,
+        "b.glyph",
+        "module b\npub type B =\n  | Hit(number)\n  | Gone\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import a { A, Hit, Miss }\n\
+         import b\n\
+         pub fn from_b(v: b.B) -> number {\n\
+         \x20 return match v {\n\
+         \x20\x20\x20 b.Hit(n) => n,\n\
+         \x20\x20\x20 b.Gone => 0,\n\
+         \x20 }\n\
+         }\n\
+         pub fn from_a(v: A) -> number {\n\
+         \x20 return match v {\n\
+         \x20\x20\x20 Hit(r) => r.x,\n\
+         \x20\x20\x20 Miss => 0,\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    // `b.Hit`'s single value comes from `.value`; `a.Hit`'s record is the
+    // whole object. One name, two shapes, each read off its own scrutinee.
+    assert!(ts.contains("const n = __m0.value;"), "{ts}");
+    assert!(ts.contains("const r = __m1;"), "{ts}");
+}
+
+#[test]
 fn imported_union_nullary_variants_match_without_false_unreachable() {
     // Regression (improve-glyph loop batch 5): matching an imported union's
     // no-payload variants drew a false E0216 (the imported type lowers to

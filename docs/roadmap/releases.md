@@ -4239,6 +4239,48 @@ reads it as a binding.
 
 *Reviewed against 0.1.86.*
 
+G132 rides along, half of it, found by an app matching an imported union
+through its namespace (`outcome.Failed(d)`) rather than a named import. A
+variant with an inline-record payload bound `const d = __m0.value;` under that
+spelling, and `.value` is never on the value: the constructor spreads the fields
+onto the tag object. The build stopped on a `tsc`-mapped TS2339 against the
+whole `match` instead of a Glyph diagnostic. The named-import spelling of the
+same declaration built clean, which makes this the emitter half of the
+divergence G73 closed in the typechecker. `variant_payload_is_record` now
+answers from the scrutinee's own `Ty::Imported` module rather than from a name
+the consumer happens to have bound, and asks that before the older by-name
+lookup rather than after: that lookup never consults what is being matched, so
+with `a.Hit` imported by name and `b.Hit(n)` matched through the namespace it
+claimed `a`'s record shape for `b`'s single value.
+
+What this does not close is the spelling most programs use. It fires only when
+the checker knows the scrutinee's type, which an annotated binding or a
+parameter gives and an inferred `let` does not: `let v = a.make()` hands the
+emitter `Ty::Unknown` and the arm still falls back to `.value` and the original
+TS2339. G132 stays half fixed with that reproduction rather than being written
+up as closed, because a two-file program still fails on the error code the
+finding was filed under.
+
+The reason is not in the emitter, and it is worth more than the arm that
+exposed it. G133: the checker has no cross-module function signature at all.
+`DeclTyResolver` reaches across modules for types, unions and string-literal
+unions, and `glyph_db` exports one declaration query, `exported_type`; a `fn`
+has no counterpart, so every call into another module returns `Unknown` and
+everything inferred from it is lost. The cost is not confined to match arms:
+a field typo on a cross-module call's result is a mapped TS2339 against the
+statement where the same typo on an annotated binding is E0210 naming the type
+and the field, which is the boundary Glyph's whole diagnostic story is about.
+
+G133 is parked here pending a decision, not scheduled, because adding
+`exported_fn` alongside `exported_type` changes what the checker knows about
+every multi-module program at once. That is a scope call and a risk call
+(new diagnostics would surface across the examples tree on the same commit),
+and it wants its own release rather than a ride-along. Two things to settle
+with it: whether the query returns a full `Ty::Fn` or only the return type,
+and what the emitter should do when the registry answers nothing for a project
+module's union, which today is a silent guess at the single-value shape whose
+consequence `tsc` reports at a span that is not the arm.
+
 ### 0.1.87 — Shipped · The exit code a program recorded
 
 Published 2026-08-25 and smoke-tested from a clean npx cache in an isolated

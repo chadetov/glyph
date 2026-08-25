@@ -36,9 +36,9 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after G131 landed fixed: of
-131 entries, 98 are fixed, 10 are partly fixed, 10 are decided or resolved, and
-13 are open.
+Reconciled again after G132 landed half fixed and split G133 out of it: of
+133 entries, 98 are fixed, 11 are partly fixed, 10 are decided or resolved, and
+14 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -4543,3 +4543,157 @@ The program was correct and the shell saw success.
   Three run-level tests in `crates/glyph-cli/tests/integration.rs` cover the
   three outcomes, and a unit test on `entrypoint_source` pins the generated
   line.
+
+
+## Round 39: the spelling the emitter still told apart
+
+An app matched an imported union through its namespace (`outcome.Failed(d)`)
+rather than through a named import. The typechecker treated the two spellings
+alike; the emitter did not.
+
+- **G132. [HALF FIXED] A namespace-qualified match arm on an imported
+  record-payload variant bound `.value` and failed under `tsc`.** A union
+  declared in one module with an inline-record payload, matched from another
+  through the namespace spelling, emitted `const d = __m0.value;`. The runtime
+  representation is flat (`function Failed(fields) { return { ...fields, tag:
+  "Failed" }; }` spreads the fields onto the tag object), so `.value` is never
+  there. The build stopped on a `tsc`-mapped `TS2339` (``Property 'value' does
+  not exist on type '{ tag: "Failed"; reason: string; }'``) pointing at the
+  whole `match`, not on a Glyph diagnostic naming the arm.
+
+  ```
+  // outcome.glyph
+  module outcome
+
+  pub type Outcome =
+    | Failed({ reason: string })
+    | Ok
+
+  // main.glyph
+  module main
+
+  import outcome
+
+  fn describe(o: outcome.Outcome) -> string {
+    return match o {
+      outcome.Failed(d) => d.reason,
+      outcome.Ok => "ok",
+    }
+  }
+  ```
+
+  The same union matched in its own module, or imported by name
+  (`import outcome { Failed }`), bound the whole object and built clean. This is
+  the emitter half of the divergence G73 closed in the typechecker: the
+  cross-module fallback in `variant_payload_is_record`
+  (`glyph-compiler/crates/glyph-emit/src/lib.rs`) looked the variant name up in
+  the consumer's symbol table, and under a namespace import that name is never
+  bound there, so the lookup missed and the emitter fell back to the
+  single-value shape.
+
+  *Half fixed in 0.1.88, for a scrutinee whose type the checker actually knows.
+  `variant_payload_is_record` now answers from the scrutinee's own
+  `Ty::Imported { module, .. }`, keying the project record-payload registry on
+  the declaring module rather than on a name the consumer happens to have bound.
+  That is the same reason `Ty::Imported` carries a module path instead of a
+  symbol id (G75), and it is asked before the older by-name lookup rather than
+  after, because that lookup never consults what is being matched: with `a.Hit`
+  imported by name and `b.Hit(n)` matched through the namespace, it claimed
+  `a`'s record shape for `b`'s single value and produced a TS2322. Two
+  regressions in `crates/glyph-cli/tests/integration.rs` pin it,
+  `namespaced_record_payload_union_match_binds_whole_object` next to the
+  named-import test it mirrors and
+  `namespaced_variant_shape_comes_from_the_scrutinee_not_a_same_named_import`
+  for the collision.*
+
+  *Still open for a scrutinee bound by an inferred `let`, which is the common
+  spelling. `let v = a.make()` gives the emitter `Ty::Unknown`, the branch above
+  cannot fire, and the arm falls back to `.value` and the original TS2339. An
+  annotation (`let v: a.A = a.make()`) or a parameter builds clean, so the two
+  spellings still disagree. The cause is not in the emitter and is bigger than
+  this entry: the checker has no cross-module function signature at all (G133).*
+
+  ```
+  // a.glyph
+  module a
+
+  pub type A =
+    | Hit({ x: number })
+    | Miss
+
+  pub fn make() -> A {
+    return Hit({ x: 7, })
+  }
+
+  // main.glyph
+  module main
+
+  import a
+  import std/string { from }
+
+  pub fn describe() -> string {
+    let v = a.make()
+    return match v {
+      a.Hit(r) => from(r.x),
+      a.Miss => "none",
+    }
+  }
+  ```
+
+  *Reproduced against 0.1.87.*
+
+- **G133. The checker has no cross-module function signature, so every call
+  into another module returns `Unknown`.** `DeclTyResolver` reaches across
+  modules for type declarations (`imported_type_decl`), unions
+  (`imported_union_of_variant`) and string-literal unions, and `glyph_db`
+  exports exactly one declaration query, `exported_type`. There is no
+  counterpart for a `fn`. So the return type of any call to an imported
+  function is `Ty::Unknown`, and every inference downstream of it is lost.
+
+  The visible cost is that diagnostics degrade to `tsc` at the boundary. A
+  field typo on a cross-module call's result is a mapped TS2339 against the
+  whole statement where the same typo on an annotated binding is E0210 naming
+  the type and the field:
+
+  ```
+  // a.glyph
+  module a
+
+  pub type Sheet = {
+    rows: number,
+  }
+
+  pub fn make() -> Sheet {
+    return { rows: 3, }
+  }
+
+  // main.glyph
+  module main
+
+  import a { make }
+
+  pub fn go() -> number {
+    let s = make()
+    return s.rowz
+  }
+  ```
+
+  ```
+  [TS2339] Error: tsc: Property 'rowz' does not exist on type 'Sheet'.
+     ╭─[ main:7:3 ]
+     │
+   7 │   return s.rowz
+     │   ──────┬──────
+  ```
+
+  Writing `let s: a.Sheet = make()` gives `[E0210] type `Sheet` has no field
+  `rowz`` at the field instead. The open half of G132 is the same hole seen
+  from the emitter: an inferred binding over a cross-module call carries no
+  type for the match to read a variant's shape off.
+
+  This is a cross-module query in the same family as `exported_type`, and
+  adding it changes what the checker knows about every multi-module program at
+  once, so it is a decision rather than a patch: see the entry in
+  `docs/roadmap/releases.md`.
+
+  *Reproduced against 0.1.87.*

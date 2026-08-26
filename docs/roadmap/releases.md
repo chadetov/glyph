@@ -4328,6 +4328,30 @@ the 199 `glyph-cli` integration tests notices.
 
 ### 0.1.91 — Next · The nested variant that binds instead of matching
 
+G141 and G142 ride in this release: a type parameter on a union no longer makes a
+nested field pattern unmatchable, and no longer switches exhaustiveness checking
+off for a union the matching module declares. The red-black rotation arm
+0.1.90 made writable compiled over `type Tree = | Leaf | Node({ left: Tree, ... })`
+and was `E0300` over the same union carrying a key type. G141 is the first half of
+G140 and it is written up under G140 below. G142 turned up while reviewing that
+fix, on the caller two lines away: a `match` over a generic union could omit a
+variant, build clean, pass `tsc --strict`, and throw at run time, where the same
+match on the non-generic union is `E0200`. One missing unwrap was behind both, so
+it moved into the resolver they share.
+
+G142 ships half closed, and the half that is left is worth stating plainly
+because it is the same sentence with one word changed. Move the union into a
+sibling module and `match t { Node({ key: k }) => k, }` on a `Tree<string>` still
+builds clean, still passes `tsc --strict`, and still throws `non-exhaustive
+match` at run time; delete the `<K>` and it is `E0200`. That spelling survived
+this fix because it is a different mechanism, not a third caller: an imported
+generic scrutinee arrives as `Ty::App { base: Ty::Imported, .. }`, and the
+cross-module branch in `check_match_exhaustiveness` is gated on
+`Ty::Unknown | Ty::Imported` and does not match the applied form, so
+`check_imported_union_coverage` never runs. Widening that gate is its own risk
+slice and is parked in the rolling lane below with G143, not claimed here. This
+release closes the module-local half of G142 and nothing wider.
+
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
 where `Full` carries a user-defined union rather than a record, compiles clean,
 passes `tsc --strict`, and emits two `case "Full":` blocks. The first binds
@@ -4350,11 +4374,12 @@ the fix.
 
 G140 rides here too, found while pinning the 0.1.90 work. A field holding a
 constructor that carries a payload needs the compiler to know how that payload is
-stored, and there are two spellings it cannot work that out for. The first is a
-union generic over its own parameter, which refuses a nested arm the same union
-without the parameter accepts.
+stored, and there were two spellings it could not work that out for. The first is
+a union generic over its own parameter, which refused a nested arm the same union
+without the parameter accepts. **That half is closed as G141**; the namespace
+half below is what is left of G140.
 
-```glyph expect-error
+```glyph
 module tree
 
 type Tree<K> =
@@ -4369,12 +4394,34 @@ pub fn shape(t: Tree<string>) -> string {
 }
 ```
 
-That is `E0300` on the first arm. `variant_payload` resolves a variant's payload
-through `resolve_named_union`, which wants a bare `Ty::Named` and gets a
-`Ty::App`, so nothing under the payload gets a recorded type and the emitter,
-which reads those types back to decide flat-versus-boxed, has nothing to decide
-from. It refuses rather than guessing, which is the right direction and the wrong
-answer.
+That was `E0300` on the first arm. `variant_payload` resolved a variant's payload
+through `resolve_named_union`, which wants a bare `Ty::Named` and got a
+`Ty::App`, so nothing under the payload got a recorded type and the emitter,
+which reads those types back to decide flat-versus-boxed, had nothing to decide
+from. It refused rather than guessing, which was the right direction and the
+wrong answer.
+
+`resolve_named_union` now unwraps an application to its base and reports the
+arguments alongside the declaration, and `union_variant_payload` substitutes the
+declaration's parameters into the payload, the way `record_fields_of` already
+sends one to `named_record_fields`. Chasing what a newly visible payload would do
+to nested exhaustiveness is what turned up G142, and the answer was not "nothing":
+the recursion was unreachable. `check_patterns_exhaustive` needs
+`required_variants` to answer before it consults a payload, `required_variants`
+reached a module-local union through the same `resolve_named_union`, and a
+`Ty::App` scrutinee produced no variant set at all. So the missing unwrap was
+also switching exhaustiveness off for every module-local generic union: a
+`match` on `Tree<K>` could omit `Leaf` and still build, pass `tsc --strict`, and
+throw at run time, where the same program on a non-generic `Tree` is `E0200`.
+Module-local is the limit of what the unwrap reaches; the imported spelling of
+that same program is untouched by it and stays open under G142. That is why the unwrap
+lives in `resolve_named_union` rather than in the payload lookup: both callers
+need it, and one of them is the exhaustiveness check. With it in, a generic union
+whose payload is itself a union reports the missing inner variant, which is the
+recursion observed running rather than assumed harmless. Unwrapping the
+application also puts a prelude `Result<T, E>` in front of `resolve_named_union`
+for the first time, so that function picked up the prelude/module symbol-id
+collision guard its two neighbours already carried.
 
 The second spelling matters more, and was found while checking the first. The
 same arm over a union declared in a sibling module compiles under
@@ -4387,14 +4434,15 @@ which is the reason to fix this at the checker rather than by adding a fifth
 lookup to the emitter: record the payload type in both halves and the fallback
 stops being load-bearing.
 
-It is not scheduled into a release yet, because the fix is a decision rather than
-a patch. `record_fields_of` already dispatches a `Ty::App` to its base and
-substitutes the declaration's generic parameters into the field types, and a
-union payload could resolve the same way, but `variant_payload` also drives
-nested exhaustiveness, so a payload that becomes visible can make an arm set that
-certifies today stop certifying.
+The namespace half is the emitter and is still open. With the payload type
+recorded, the arm still needs `variant_payload_is_record` to resolve a variant
+reached as `tree.Node`, and its by-name fallback has nothing to look up. Adding a
+fifth lookup to the emitter is the wrong place for it; the right one is making
+the namespace spelling reach the same recorded type the named spelling does,
+which is its own release rather than a ride-along.
 
-*Reviewed against 0.1.86.*
+*Reviewed against 0.1.86; the namespace half re-reproduced against 0.1.90 with
+the G141 fix in the tree.*
 
 G133 is the reason the G132 arm behaved the way it did, and it is worth more
 than the arm: the checker has no cross-module function signature at all.
@@ -5521,6 +5569,30 @@ The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
 
+- **The cross-module exhaustiveness check is a shallower copy of the local one
+  (G142's open half, G143).** Two holes with one address. Exhaustiveness on a
+  module-local union runs through `check_patterns_exhaustive`; an imported
+  scrutinee is diverted in `check_match_exhaustiveness` to
+  `check_imported_union_coverage`, which counts the outer union's variants and
+  stops. It differs from the local path in two ways that are both silent
+  miscompiles. First, the gate that reaches it is
+  `matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. })`, which an imported
+  *generic* scrutinee (`Ty::App { base: Ty::Imported, .. }`) does not match, so a
+  `match` on an imported `Tree<K>` omitting `Leaf` builds clean and throws at run
+  time where the non-generic spelling is `E0200` (G142's surviving half; the
+  0.1.91 unwrap does not reach it, because an imported scrutinee never reaches
+  `resolve_named_union`). Second, it has no equivalent of the payload recursion,
+  so `B(X)` over an imported union whose payload is itself a union is never
+  checked, and the arm that survives lowers `X` to a binding that shadows the
+  variant, so `f(B(Y))` returns the `X` arm's answer (G143, and no type parameter
+  is involved). `record_fields_of` already destructures the applied-imported
+  shape, which is why the *nested pattern* half works across the import and only
+  coverage is blind. Deliberately not taken with G141/G142: it is a different
+  mechanism from the missing unwrap and belongs in its own risk slice, on the
+  same path G132 and G139 sit on. The open question is whether to widen the gate
+  and deepen `check_imported_union_coverage` in place, or to give an imported
+  union a variant set the local path can consume so there is one check rather
+  than two; the second removes the class, and is the larger change.
 - **G20: a nested string literal inside `${...}` breaks the template parser.**
   The lexer has no template-literal mode, so it ends the outer string at the
   first inner quote, and `"${bytes.to_hex(bytes.from_text("x"))}"` does not

@@ -39,8 +39,15 @@ rolling lane with a sentence about why counts; leaving it only here does not.
 Reconciled again after the red-black-tree round: G137 closed nested patterns in
 an object pattern's fields, G139 closed the imported generic union's payload
 shape, and G138 and G140 opened on the array element that means two things and
-on the union that a type parameter makes unmatchable: of
-140 entries, 102 are fixed, 12 are partly fixed, 10 are decided or resolved, and
+on the union that a type parameter makes unmatchable. G141 then closed half of
+G140, the type parameter, leaving the namespace import, and reviewing that fix
+opened G142, the same missing unwrap on the sibling caller, which had been
+switching exhaustiveness off for every module-local generic union. Reviewing
+*that* fix closed half of G142 and left the other half open: the union one
+import away is unchanged, because an imported generic scrutinee never reaches
+the function the unwrap went into. The same review opened G143, the imported
+union whose variant payload is never checked at all, generic or not: of
+143 entries, 103 are fixed, 14 are partly fixed, 10 are decided or resolved, and
 16 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
@@ -5163,14 +5170,18 @@ through an object pattern's fields.
   the coverage: with the unwrap deleted, 198 of the 199 tests in the `glyph-cli`
   integration file still pass, and the one that fails is the one named above.
 
-- **G140. A nested constructor in a field position needs the payload's storage
-  decided, and two spellings cannot decide it.** The red-black tree of this round
-  is spelled at one concrete key type and declared in the module that matches it,
-  which is the one combination that works. Two variations on it are `E0300`.
+- **G140. [HALF FIXED] A nested constructor in a field position needs the
+  payload's storage decided, and two spellings cannot decide it.** The red-black
+  tree of this round is spelled at one concrete key type and declared in the
+  module that matches it, which was the one combination that worked. Two
+  variations on it were `E0300`. **The first is closed; see G141. The namespace
+  half below is what is left, and the rest of this entry describes it as it was
+  found.**
 
-  The first is a type parameter on the union:
+  The first was a type parameter on the union. It compiles now; the block is
+  checked, so the fix stays fixed:
 
-  ```glyph expect-error
+  ```glyph
   module tree
 
   type Tree<K> =
@@ -5194,6 +5205,10 @@ through an object pattern's fields.
      │     ──────────────────────────────────────┬──────────────────────────────────────
   ```
 
+  That half is closed. `union_variant_payload` dispatches an application to its
+  base and substitutes the declaration's parameters into the payload, so the arm
+  above compiles and runs; G141 records it.
+
   The second is a namespace import, and it does not need a type parameter at all.
   Declare the same union in a sibling module, import it as `import tree`, and
   match `tree.Node({ left: tree.Node({ key: lk }), .. })`: same `E0300`, same
@@ -5206,9 +5221,9 @@ through an object pattern's fields.
   | Union declared | Reached by | Result |
   |---|---|---|
   | this module, no parameter | directly | compiles, prints `deep:i/r` |
-  | this module, `Tree<K>` | directly | `E0300` |
+  | this module, `Tree<K>` | directly | `E0300`, closed by G141 |
   | a sibling, either spelling of the union | named import of `Node` | compiles, prints `deep:i/r` |
-  | a sibling, either spelling of the union | `import tree`, matched `tree.Node` | `E0300` |
+  | a sibling, either spelling of the union | `import tree`, matched `tree.Node` | `E0300`, still open |
 
   Only a nested constructor that carries a payload asks the question. A field
   that binds (`Node({ left: l, key: k, right: r })`) and a field holding a
@@ -5228,21 +5243,284 @@ through an object pattern's fields.
   up. It refuses rather than guessing, which is the right direction and the wrong
   answer in all four cells.
 
-  The generic-local behaviour is deliberate today and the doc comment on
-  `variant_payload` (`glyph-typechecker/src/assign.rs`) says so: "A generic
+  The generic-local behaviour was deliberate, and the doc comment on
+  `variant_payload` (`glyph-typechecker/src/assign.rs`) said so: "A generic
   module-local union applied via `Ty::App` is not substituted here (conservative:
-  no recursion), since `resolve_named_union` requires a bare `Ty::Named`."
-  Changing it is a decision, not a patch, which is why this entry stops here. The
-  shape of the fix already exists a few hundred lines up: `record_fields_of`
-  dispatches a `Ty::App` to its base and `named_record_fields` substitutes the
-  declaration's generic parameters into the field types, so a generic record
-  alias resolves. A union payload could resolve the same way. What has to be
-  decided first is what the substituted payload does to nested exhaustiveness,
-  since `variant_payload` drives that recursion too, and an arm set that
-  certifies today could stop certifying once the payload becomes visible. If the
-  checker records the type in both halves, the emitter's by-name fallback stops
-  being load-bearing and the namespace cell closes with it.
+  no recursion), since `resolve_named_union` requires a bare `Ty::Named`." The
+  worry attached to changing it was what a newly visible payload would do to
+  nested exhaustiveness, since `variant_payload` drives that recursion too.
+  Chasing that worry is what turned up G142: the recursion was not benign, it
+  was unreachable. `check_patterns_exhaustive` needs `required_variants` to
+  answer before it ever consults a payload, and `required_variants` reached a
+  module-local union through the same `resolve_named_union`, so a `Ty::App`
+  scrutinee produced no variant set and the whole check declined to run. The
+  same missing unwrap that hid the payload was also switching exhaustiveness off
+  for every module-local generic union. Both are fixed together, in
+  `resolve_named_union` itself rather than in its callers, and the payload
+  recursion is now observed running rather than assumed harmless: a generic
+  union whose payload is a union reports the missing inner variant (`E0200` on
+  `Inner`, missing `Y`). Module-local is the whole scope of that: an imported
+  generic scrutinee never reaches `resolve_named_union`, so exhaustiveness is
+  still off for it. G142 carries the reproduction.
+
+  What is left is the namespace half, and it is the emitter rather than the
+  checker: with the payload type recorded, the arm still needs
+  `variant_payload_is_record` to resolve a variant reached as `tree.Node`, and
+  its by-name fallback looks the variant up through the consumer's own
+  `ImportNamed` symbol, which a namespace spelling never binds. Two spellings of
+  one import giving two answers is what G75 settled we do not do.
 
   Related to G139 and not the same thing. G139 was `payload_shape` failing to
-  unwrap a `Ty::App` it was handed; this is the type never reaching it at all.
-  *Reproduced against 0.1.90.*
+  unwrap a `Ty::App` it was handed; this was the type never reaching it at all.
+  *Reproduced against 0.1.90: the namespace spelling above is still `E0300` on
+  the same arm with the G141 fix in the tree, while the named-import spelling of
+  the identical program compiles and prints `deep:i/r`.*
+
+- **G141. [FIXED] A type parameter on a union made a nested field pattern
+  unmatchable.** The red-black rotation arm 0.1.90 made writable compiled over a
+  plain `type Tree = | Leaf | Node({ left: Tree, ... })` and was `E0300` over the
+  same union with a key type on it. Nothing about the arm changed; only the
+  union's arity did.
+
+  ```glyph
+  type Tree<K> =
+    | Leaf
+    | Node({ color: Color, left: Tree<K>, key: K, right: Tree<K> })
+
+  fn balance<K>(t: Tree<K>) -> Tree<K> {
+    return match t {
+      Node({ color: Black, left: Node({ color: Red, left: a, key: x, right: b }), key: y, right: c }) =>
+        Node({ color: Red, left: Node({ color: Black, left: a, key: x, right: b }), key: y, right: c }),
+      other => other,
+    }
+  }
+  ```
+
+  ```
+  [E0300] Error: emit: TS emission for a nested pattern on a payload whose
+  storage cannot be decided here is not implemented yet
+  ```
+
+  A constructor pattern's sub-patterns take their types from the variant's
+  payload, and that lookup ran through `union_variant_payload` into
+  `resolve_named_union`, which wanted a bare `Ty::Named`. A scrutinee of
+  `Tree<K>` is a `Ty::App` over the union, so no payload type was recorded,
+  nothing under the payload got a type, and `payload_shape` had nothing left to
+  read back to decide flat-versus-boxed. It refused rather than guessing, which
+  was the right direction and the wrong answer.
+
+  `resolve_named_union` now unwraps an application to its base and reports the
+  arguments, and `union_variant_payload` substitutes the declaration's
+  parameters into the payload, the way `record_fields_of` already sends one to
+  `named_record_fields`. The unwrap sits in the shared resolver rather than in
+  the payload lookup on purpose: the sibling caller `named_union_variants` needs
+  it too, and putting it in only one of them is what left G142 open. Both
+  spellings of the scrutinee reach it: `balance<K>` matches at an open
+  `Ty::Param`, and a second function in the same test matches the concrete
+  `Tree<string>` the substitution has to survive.
+
+  Unwrapping the application also puts a prelude `Result<T, E>` in front of
+  `resolve_named_union` for the first time, since a prelude union arrives as an
+  application over a `Ty::Named` carrying a sentinel symbol. That function now
+  carries the prelude/module symbol-id collision guard its two neighbours
+  `named_record_fields` and `interface_member_fields` already had: the resolved
+  symbol's name has to match the type's lexical path, so a sentinel id cannot
+  index an unrelated module-local union and answer for it.
+
+  This is half of G140. The namespace-import half is still open there, and it is
+  the emitter rather than the checker.
+
+- **G142. [HALF FIXED] A type parameter on a union switched exhaustiveness
+  checking off.** Found while reviewing the G141 fix, one function away from the
+  line it changed. A `match` over a generic union could omit a variant entirely
+  and still build clean, pass `tsc --strict`, and throw at run time. Delete the
+  type parameter from the same program and it is `E0200`. **The module-local
+  half is closed. The same program with the union one import away still builds
+  clean and throws; see "What is left" at the end of this entry.**
+
+  ```glyph
+  type Tree<K> =
+    | Leaf
+    | Node({ color: Color, left: Tree<K>, key: K, right: Tree<K> })
+
+  fn genmissing<K>(t: Tree<K>) -> string {
+    return match t {
+      Node({ color: c, left: l, key: k, right: r }) => "node",
+    }
+  }
+  ```
+
+  ```
+  glyph build: 1 module(s) checked, no diagnostics; 1 TypeScript file(s) emitted.
+  glyph build: tsc --strict passed.
+
+  $ glyph run src/main.glyph
+  Error: non-exhaustive match
+      at genmissing (.../main.ts:51:20)
+  ```
+
+  Same missing unwrap as G141, on the other caller. `required_variants` reaches
+  a module-local union through `named_union_variants`, which called
+  `resolve_named_union` with the raw scrutinee type. A `Ty::App` produced no
+  variant set, `required_variants` returned `None`, and
+  `check_patterns_exhaustive` exited before counting anything. Nothing in the
+  compiler was deciding that a generic union should be exempt; the check simply
+  never started.
+
+  It carried a second failure behind it. Exhaustiveness recursion into a
+  constructor pattern's payload only happens once the outer scrutinee has a
+  variant set, so a generic union whose payload is itself a union skipped the
+  inner check too, and the arm that survived was a miscompile rather than an
+  unchecked value:
+
+  ```glyph
+  type Inner = | X | Y
+  type G<K> = | A | B(Inner)
+
+  fn f<K>(g: G<K>) -> string {
+    return match g { A => "a", B(X) => "x", }
+  }
+  ```
+
+  built clean and emitted `const X = __m0.value;` for the `B(X)` arm, the
+  PascalCase variant reference lowered as a fresh binding, so `f(B(Y))` returned
+  `"x"`. That lowering is G130; what kept it out of reach on the non-generic
+  spelling was `E0200` refusing the program before the emitter saw it, and the
+  generic spelling had nothing refusing it.
+
+  The unwrap moved into `resolve_named_union` itself, which now returns the
+  declaration together with the arguments it was applied to, so both callers and
+  any future one get it from one place. Both programs above are `E0200` now,
+  where "above" means what it says: both unions are declared in the module that
+  matches them. The second reports `non-exhaustive match on Inner: missing
+  variants Y` through the generic outer union, which is the payload recursion
+  observed running rather than assumed harmless, and that observation is also
+  module-local. The hand-rolled unwrap `check_arm_reachability` was carrying at
+  its own call site to work around the same hole is gone with it.
+
+  **What is left: the union one import away.** Move the union into a sibling
+  module and the headline bug is live again, unchanged. Two files:
+
+  ```glyph
+  module tree
+
+  pub type Tree<K> =
+    | Leaf
+    | Node({ key: K })
+  ```
+
+  ```glyph needs-deps
+  module main
+
+  import tree { Tree, Leaf, Node }
+
+  fn label(t: Tree<string>) -> string {
+    return match t {
+      Node({ key: k }) => k,
+    }
+  }
+  ```
+
+  ```
+  glyph build: 2 module(s) checked, no diagnostics; 2 TypeScript file(s) emitted.
+  glyph build: tsc --strict passed.
+
+  $ glyph run src/main.glyph
+  Error: non-exhaustive match
+      at label (.../main.ts:14:20)
+  ```
+
+  Delete the `<K>` from both files and the identical program is
+  `E0200: non-exhaustive match on 'Tree': missing variants 'Leaf'`. That is this
+  entry's own opening sentence, word for word, with `type Tree` in a sibling
+  module.
+
+  It survived because it is a different mechanism, not a third caller of
+  `resolve_named_union`. An imported scrutinee never reaches that function at
+  all: the cross-module path is gated in `check_match_exhaustiveness`
+  (`glyph-typechecker/src/assign.rs`) on
+  `matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. })`, and an imported
+  *generic* scrutinee arrives as `Ty::App { base: Ty::Imported, .. }`, which that
+  pattern does not match, so `check_imported_union_coverage` is never called.
+  `record_fields_of` already destructures exactly that shape, which is why the
+  nested-pattern half of G141 does work across the import: `import tree { Node }`
+  with `Node({ left: Node({ key: lk }) })` on a generic imported union compiles
+  and runs. Only the exhaustiveness gate is blind to the applied form.
+
+  Not fixed here on purpose. Widening that gate is a different risk slice from
+  the unwrap this entry closed, and it lands on the cross-module coverage path
+  that G132 and G139 also sit on. Scheduled in `docs/roadmap/releases.md`.
+
+  *Found by review of G141 against 0.1.90, before either shipped. The imported
+  half found by review of the fix itself, reproduced against 0.1.90 with the fix
+  in the tree: the two files above build clean, pass `tsc --strict`, and throw
+  `non-exhaustive match` at run time.*
+
+- **G143. A match on an imported union never checks inside a variant's
+  payload.** Nothing to do with generics; the union below has no type parameter.
+  Exhaustiveness on a *module-local* union recurses into a constructor pattern's
+  payload, so `B(X)` over a payload that is itself a union reports the missing
+  `Y`. Move the same two declarations into a sibling module and the recursion
+  stops at the outer union: the program builds, passes `tsc --strict`, and
+  silently returns the wrong arm's answer.
+
+  ```glyph
+  module tree
+
+  pub type Inner =
+    | X
+    | Y
+
+  pub type G =
+    | A
+    | B(Inner)
+  ```
+
+  ```glyph needs-deps
+  module main
+
+  import std/io { println }
+  import tree { X, Y, G, A, B }
+
+  fn f(g: G) -> string {
+    return match g {
+      A => "a",
+      B(X) => "x",
+    }
+  }
+
+  fn main() {
+    println(f(B(Y)))
+  }
+  ```
+
+  ```
+  glyph build: 2 module(s) checked, no diagnostics; 2 TypeScript file(s) emitted.
+  glyph build: tsc --strict passed.
+
+  $ glyph run src/main.glyph
+  x
+  ```
+
+  `f(B(Y))` prints `x`. Declare `Inner` and `G` in the matching module and the
+  identical program is `E0200: non-exhaustive match on 'Inner': missing variants
+  'Y'`, which is the answer.
+
+  It is a miscompile rather than an unchecked value, for the reason G142 gives:
+  the `B(X)` arm lowers `X` to `const X = __m0.value`, a fresh binding that
+  shadows the variant it looks like it is testing (that lowering is G130), so the
+  arm matches every `B`. What keeps G130 out of reach on the module-local
+  spelling is `E0200` refusing the program before the emitter sees it. The
+  imported spelling has nothing refusing it.
+
+  The cause is that the cross-module path is a second, shallower implementation
+  of the same check. `check_imported_union_coverage`
+  (`glyph-typechecker/src/assign.rs`) counts the outer union's variants against
+  the arms and stops; it has no equivalent of the payload recursion
+  `check_patterns_exhaustive` runs for a local union. Neighbouring G142's
+  surviving half, and probably the same fix: both are the cross-module coverage
+  path being less than the module-local one.
+
+  *Found by review of the G141/G142 fix. Reproduced against 0.1.90 with that fix
+  in the tree: the two files above build clean, pass `tsc --strict`, and print
+  `x`.*

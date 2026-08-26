@@ -2528,16 +2528,11 @@ impl Assigner<'_> {
     /// them keeps the check free of false positives.
     fn check_arm_reachability(&mut self, scrutinee_ty: &Ty, arms: &[MatchArm]) {
         // Resolve the scrutinee's variant set, if it has one. `required_variants`
-        // covers a `Ty::Named` user union and the prelude `Result`/`Option`
-        // (their `Ty::App` form), but returns `None` for a *generic user* union
-        // (`Tree<T>` arrives as `Ty::App` over a user `Ty::Named`) — unwrap that
-        // base so a nullary variant like `Leaf` is not misread as a binding.
+        // covers a `Ty::Named` user union, a *generic* user union (`Tree<T>`
+        // arrives as `Ty::App` over a user `Ty::Named`, which
+        // `resolve_named_union` unwraps), and the prelude `Result`/`Option`.
         let variants: Vec<Ident> = self
             .required_variants(scrutinee_ty)
-            .or_else(|| match scrutinee_ty {
-                Ty::App { base, .. } => self.named_union_variants(base),
-                _ => None,
-            })
             .map(|(_, vs)| vs)
             .unwrap_or_default();
         // Prelude variant names are always refutable, even when the scrutinee
@@ -3036,18 +3031,51 @@ impl Assigner<'_> {
         None
     }
 
-    /// If `ty` is a `Ty::Named` pointing at a module-local tagged-union
-    /// `type X = | A | B | ...` declaration, return that declaration. The
+    /// If `ty` is a module-local tagged-union `type X = | A | B | ...`, return
+    /// that declaration together with the type arguments it was applied to. The
     /// shared resolution chain behind `named_union_variants` and
     /// `union_variant_payload`.
-    fn resolve_named_union(&self, ty: &Ty) -> Option<&glyph_ast::TypeDecl> {
-        let Ty::Named { symbol, .. } = ty else { return None };
+    ///
+    /// A generic union applied via `Ty::App` (`Tree<K>`) resolves through its
+    /// base and reports the arguments; an unapplied `Ty::Named` reports none.
+    /// The unwrap lives here rather than in the callers because a union's arity
+    /// is not something a caller should have to know about: every question the
+    /// checker asks of a union (its variant set for exhaustiveness, a variant's
+    /// payload for the sub-pattern types) has the same answer whether or not
+    /// the declaration takes parameters. Splitting the unwrap across the
+    /// callers is what left `Tree<K>` with no exhaustiveness checking at all
+    /// while `Tree` was checked.
+    ///
+    /// The resolved symbol's name has to match the type's lexical path, the
+    /// same prelude/module symbol-id collision guard `named_record_fields` and
+    /// `interface_member_fields` carry. It matters here because of that unwrap:
+    /// a prelude `Result<T, E>` arrives as an application over a `Ty::Named`
+    /// whose sentinel symbol id could otherwise index an unrelated
+    /// module-local union and answer for it, and `variant_payload` consults
+    /// this function *before* the prelude branch, so a collision would shadow
+    /// the right answer rather than merely add noise. `prelude_app` carries a
+    /// stronger form of the same guard (it checks the prelude table directly);
+    /// name-matching is what the neighbouring resolvers here do, and matching
+    /// them was the deliberate choice, at the cost of letting a module that
+    /// shadows `Result` locally answer for the prelude one.
+    fn resolve_named_union<'t>(
+        &self,
+        ty: &'t Ty,
+    ) -> Option<(&glyph_ast::TypeDecl, &'t [Ty])> {
+        let (base, args): (&Ty, &[Ty]) = match ty {
+            Ty::App { base, args } => (base.as_ref(), args.as_slice()),
+            other => (other, &[]),
+        };
+        let Ty::Named { symbol, path } = base else { return None };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return None;
+        }
         let SymbolKind::Type { decl_idx } = sym.kind else { return None };
         let Decl::Type(td) = self.module.items.get(decl_idx as usize)? else {
             return None;
         };
-        matches!(&td.body, TypeExpr::Union { .. }).then_some(td)
+        matches!(&td.body, TypeExpr::Union { .. }).then_some((td, args))
     }
 
     /// The literal set of a string-literal-union type, resolving a named alias
@@ -3364,9 +3392,12 @@ impl Assigner<'_> {
     }
 
     /// If `ty` is a module-local tagged union, return the type's name and
-    /// the ordered list of variant names. Otherwise None.
+    /// the ordered list of variant names. Otherwise None. A generic union's
+    /// application (`Tree<K>`) answers the same as its bare form: the variant
+    /// set does not depend on the arguments, and `resolve_named_union` unwraps
+    /// the application for us.
     fn named_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
-        let td = self.resolve_named_union(ty)?;
+        let (td, _) = self.resolve_named_union(ty)?;
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
         let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
         Some((td.name.to_string(), names))
@@ -3539,12 +3570,30 @@ impl Assigner<'_> {
     /// The lowered payload type of `variant_name` in the module-local
     /// tagged union `ty` refers to, or None if `ty` isn't such a union, the
     /// variant doesn't exist, or it carries no payload.
+    ///
+    /// A generic union applied via `Ty::App` (`Tree<K>`) resolves through its
+    /// base and substitutes the declaration's parameters into the payload, the
+    /// same way `record_fields_of` sends an application to `named_record_fields`.
+    /// A union's arity is not something an arm should be able to feel: without
+    /// this, a scrutinee of `Tree<K>` recorded no payload type, so nothing under
+    /// the payload got a type and a nested field pattern was refused as
+    /// undecidable while the identical arm over a non-generic `Tree` compiled.
     fn union_variant_payload(&self, ty: &Ty, variant_name: &Ident) -> Option<Ty> {
-        let td = self.resolve_named_union(ty)?;
+        let (td, args) = self.resolve_named_union(ty)?;
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
         let variant = variants.iter().find(|v| &v.name == variant_name)?;
         let payload_te = variant.payload.as_ref()?;
-        Some(self.lowerer.lower(payload_te))
+        let payload = self.lowerer.lower(payload_te);
+        if td.generics.is_empty() || args.is_empty() {
+            return Some(payload);
+        }
+        let subst: HashMap<Ident, Ty> = td
+            .generics
+            .iter()
+            .map(|g| g.name.clone())
+            .zip(args.iter().cloned())
+            .collect();
+        Some(substitute_type_params(&payload, &subst))
     }
 
     /// The payload type of `variant` in the tagged union `ty`, for both
@@ -3552,9 +3601,9 @@ impl Assigner<'_> {
     /// `Result`/`Option` — whose payloads are the `Ty::App` type arguments
     /// (`Ok` → arg 0, `Err` → arg 1, `Some` → arg 0). Drives nested
     /// exhaustiveness recursion. None when there is no such payload-carrying
-    /// variant. A generic module-local union applied via `Ty::App` is not
-    /// substituted here (conservative: no recursion), since `resolve_named_union`
-    /// requires a bare `Ty::Named`.
+    /// variant. A generic module-local union applied via `Ty::App` resolves
+    /// through `union_variant_payload`, which unwraps the application and
+    /// substitutes the declaration's parameters into the payload.
     fn variant_payload(&self, ty: &Ty, variant: &Ident) -> Option<Ty> {
         if let Some(p) = stdlib_variant_payload(ty, variant) {
             return Some(p);

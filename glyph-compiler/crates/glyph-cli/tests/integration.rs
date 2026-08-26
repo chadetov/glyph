@@ -9519,6 +9519,309 @@ fn main() {
     );
 }
 
+/// The same nested field pattern as the red-black rotation above, over a union
+/// this module declares that is *generic and self-referential*: `Tree<K>` whose
+/// `Node` payload holds two `Tree<K>` children. Nothing about the arm changes;
+/// only the union's arity does.
+///
+/// That was the whole trigger. A constructor pattern's sub-patterns take their
+/// types from the variant's payload, and that lookup wanted a bare `Ty::Named`.
+/// A scrutinee of `Tree<K>` is a `Ty::App` over the union, so no payload type
+/// was recorded, nothing under the payload got a type, and the emitter had
+/// nothing left to decide flat-versus-boxed from. The arm was refused as
+/// undecidable even though the declaration was in the same file.
+///
+/// Both spellings of the scrutinee are here because they reach the lookup with
+/// different arguments: `balance<K>` matches at an open `Ty::Param`, `depth`
+/// matches at the concrete `Tree<string>` the substitution has to survive. The
+/// run half is what proves the arm resolved to the variant it names, since a
+/// tag test pointing at the wrong variant still type-checks.
+#[test]
+fn a_nested_field_pattern_works_on_a_generic_self_referential_local_union() {
+    let root = unique_tmp("genlocalnested");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io { println }
+
+type Color =
+  | Red
+  | Black
+
+type Tree<K> =
+  | Leaf
+  | Node({ color: Color, left: Tree<K>, key: K, right: Tree<K> })
+
+fn balance<K>(t: Tree<K>) -> Tree<K> {
+  return match t {
+    Node({ color: Black, left: Node({ color: Red, left: a, key: x, right: b }), key: y, right: c }) =>
+      Node({ color: Red, left: Node({ color: Black, left: a, key: x, right: b }), key: y, right: c }),
+    other => other,
+  }
+}
+
+fn label<K>(t: Tree<K>) -> string {
+  return match t {
+    Leaf => "leaf",
+    Node({ color: Red, key: v, left: l, right: r }) => "red",
+    else => "black",
+  }
+}
+
+fn depth(t: Tree<string>) -> number {
+  return match t {
+    Node({ color: c1, left: Node({ color: c2, left: a, key: x, right: b }), key: y, right: r }) => 2,
+    Node({ color: c, left: l, key: k, right: r }) => 1,
+    Leaf => 0,
+  }
+}
+
+fn main() {
+  let inner: Tree<string> = Node({ color: Red, left: Leaf, key: "i", right: Leaf })
+  let outer: Tree<string> = Node({ color: Black, left: inner, key: "o", right: Leaf })
+  println("balanced=" + label(balance(outer)))
+  let plain: Tree<string> = Node({ color: Black, left: Leaf, key: "p", right: Leaf })
+  println("untouched=" + label(balance(plain)))
+  println("deep=" + depth(outer))
+  println("shallow=" + depth(plain))
+}
+"#,
+    );
+    let dist = root.join("dist");
+    let report = build_project_inner(&src, &dist, false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "a nested field pattern over a generic self-referential local union \
+         should compile: {:?}",
+        report.diagnostics
+    );
+    // The green build alone proves nothing about the lowering, so read the
+    // emitted TypeScript: the record payload is spread flat into the tag
+    // object, so the inner test has to reach through `.left` and not through
+    // `.left.value`.
+    let ts = std::fs::read_to_string(dist.join("main.ts")).expect("read emitted main.ts");
+    assert!(
+        ts.contains(r#".left.color.tag === "Red""#),
+        "the nested field test reads the flat payload two levels deep: {ts}"
+    );
+
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(stdout.contains("balanced=red"), "the rotation arm matched: {stdout}");
+    assert!(stdout.contains("untouched=black"), "the non-matching value fell through: {stdout}");
+    assert!(stdout.contains("deep=2"), "the nested arm won at a concrete type: {stdout}");
+    assert!(stdout.contains("shallow=1"), "the flat arm took the rest: {stdout}");
+}
+
+/// Exhaustiveness on a union does not depend on whether the union is generic.
+///
+/// `required_variants` is what decides whether a match is missing an arm, and
+/// it reaches a module-local union through `named_union_variants`. That lookup
+/// wanted a bare `Ty::Named`, so a scrutinee of `Tree<K>` (a `Ty::App` over the
+/// union) produced no variant set at all and the whole check quietly declined
+/// to run. Delete `<K>` from the same program and it is E0200; keep it and the
+/// program builds, passes `tsc --strict`, and throws `non-exhaustive match` at
+/// runtime instead.
+///
+/// Both spellings of the scrutinee are asserted for the same reason the nested
+/// pattern test carries both: `genmissing<K>` reaches the lookup at an open
+/// `Ty::Param`, `concrete` at `Tree<string>`.
+#[test]
+fn a_generic_local_union_is_exhaustiveness_checked_like_its_non_generic_twin() {
+    let root = unique_tmp("genexhaust");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+type Color =
+  | Red
+  | Black
+
+type Tree<K> =
+  | Leaf
+  | Node({ color: Color, left: Tree<K>, key: K, right: Tree<K> })
+
+fn genmissing<K>(t: Tree<K>) -> string {
+  return match t {
+    Node({ color: c, left: l, key: k, right: r }) => "node",
+  }
+}
+
+fn concrete(t: Tree<string>) -> string {
+  return match t {
+    Node({ color: c, left: l, key: k, right: r }) => "node",
+  }
+}
+"#,
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let missing: Vec<&String> = report
+        .diagnostics
+        .iter()
+        .filter(|d| d.contains("E0200") && d.contains("Tree") && d.contains("Leaf"))
+        .collect();
+    assert_eq!(
+        missing.len(),
+        2,
+        "both the open-param and the concrete spelling must report the missing \
+         `Leaf` arm: {:?}",
+        report.diagnostics
+    );
+}
+
+/// The same hole one level down: a generic union whose payload is *itself* a
+/// union. Exhaustiveness recurses into a constructor pattern's payload, but the
+/// recursion is only reached once the outer scrutinee produced a variant set,
+/// so a `Ty::App` outer type skipped the inner check too.
+///
+/// This one is worth its own test because the arm it lets through is a
+/// miscompile, not just an unchecked value: `B(X)` over an unchecked union
+/// lowers `X` to `const X = __m0.value`, a binding shadowing the variant, so
+/// `f(B(Y))` returned the `X` arm's answer. The non-generic spelling never
+/// reached the emitter because E0200 stopped it; the generic one has to be
+/// stopped by the same error.
+#[test]
+fn a_generic_union_whose_payload_is_a_union_recurses_into_the_payload() {
+    let root = unique_tmp("genexhaustinner");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+type Inner =
+  | X
+  | Y
+
+type G<K> =
+  | A
+  | B(Inner)
+
+fn f<K>(g: G<K>) -> string {
+  return match g {
+    A => "a",
+    B(X) => "x",
+  }
+}
+"#,
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Inner") && d.contains('Y')),
+        "the missing inner variant `Y` must be reported through the generic \
+         outer union: {:?}",
+        report.diagnostics
+    );
+}
+
+/// The boundary of what the three tests above prove: all three declare their
+/// union in the module that matches it, and that is the whole scope of the
+/// `resolve_named_union` unwrap. An imported scrutinee never reaches that
+/// function. It is diverted earlier, in `check_match_exhaustiveness`, on
+/// `matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. })`, and an imported
+/// *generic* scrutinee arrives as `Ty::App { base: Ty::Imported, .. }`, which
+/// that pattern does not match, so `check_imported_union_coverage` never runs.
+///
+/// This test pins that hole rather than fixing it (G142's open half, scheduled
+/// in the rolling lane). It exists because the same claim was written down as
+/// closed once already: the gap entry, the release note, D44 and the answers
+/// page all said a generic union was exhaustiveness-checked like its
+/// non-generic twin, which is true only for a module-local one. Prose could not
+/// hold that line, so the line is here. When this starts failing, the hole is
+/// closed: flip the assertion, mark G142 `[FIXED]`, and correct all four
+/// documents.
+///
+/// The control below is the point. The identical program with `<K>` deleted
+/// from both files *is* `E0200`, so this is one keystroke away from a checked
+/// program, not a case the checker was never asked about.
+#[test]
+fn an_imported_generic_union_is_not_yet_exhaustiveness_checked() {
+    const TREE: &str = "module tree\n\
+         \n\
+         pub type Tree<K> =\n\
+         \x20 | Leaf\n\
+         \x20 | Node({ key: K })\n";
+    const PLAIN: &str = "module tree\n\
+         \n\
+         pub type Tree =\n\
+         \x20 | Leaf\n\
+         \x20 | Node({ key: string })\n";
+    const MAIN: &str = "module main\n\
+         \n\
+         import std/io { println }\n\
+         import tree { Tree, Leaf, Node }\n\
+         \n\
+         fn label(t: Tree<string>) -> string {\n\
+         \x20 return match t {\n\
+         \x20\x20\x20 Node({ key: k }) => k,\n\
+         \x20 }\n\
+         }\n\
+         \n\
+         fn main() {\n\
+         \x20 println(label(Leaf))\n\
+         }\n";
+
+    // The generic spelling: no diagnostic at all, and the emitted chain has
+    // nothing covering `Leaf`, so the program throws at run time.
+    let root = unique_tmp("impgenexhaust");
+    let src = root.join("src");
+    write_file(&src, "tree.glyph", TREE);
+    write_file(&src, "main.glyph", MAIN);
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.has_errors() && !report.diagnostics.iter().any(|d| d.contains("E0200")),
+        "G142's open half: an imported generic union is still not \
+         exhaustiveness-checked. If this now reports E0200 the gap is closed, \
+         and the gap entry, the release note, D44 and the answers page all have \
+         to stop saying it is open: {:?}",
+        report.diagnostics
+    );
+
+    // The absence of a diagnostic is not the finding; the throw is. Run it, so
+    // this pins observable behaviour rather than the current spelling of a
+    // check. `label(Leaf)` falls off the end of the emitted chain.
+    if js_toolchain_available() {
+        let entry = src.join("main.glyph");
+        let (code, stdout, stderr, _) =
+            spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+        assert_ne!(code, 0, "the omitted `Leaf` arm must still throw: {stdout}");
+        assert!(
+            stderr.contains("non-exhaustive match"),
+            "and it throws the emitter's own guard, which is the error the \
+             checker should have raised at compile time instead: {stderr}"
+        );
+    } else {
+        eprintln!("skipping imported-generic-exhaustiveness run: node/tsx not available");
+    }
+
+    // The control: the same two files with the arity removed. One keystroke of
+    // difference, and this one is caught.
+    let plain_root = unique_tmp("impplainexhaust");
+    let plain_src = plain_root.join("src");
+    write_file(&plain_src, "tree.glyph", PLAIN);
+    write_file(&plain_src, "main.glyph", &MAIN.replace("Tree<string>", "Tree"));
+    let plain = build_project_inner(&plain_src, &plain_root.join("dist"), false).expect("build");
+    assert!(
+        plain
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Tree") && d.contains("Leaf")),
+        "the non-generic spelling of the identical imported program must still \
+         be caught; if this breaks, the cross-module check regressed rather \
+         than G142 closing: {:?}",
+        plain.diagnostics
+    );
+}
+
 /// A match whose arms can all fail, over a scrutinee with no variant set to
 /// reason about. There is no tag to count, but there is nothing to guarantee
 /// the match produces a value either, and the emitted chain throws. The

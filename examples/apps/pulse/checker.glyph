@@ -1,0 +1,135 @@
+// The actual check: resolve, dial, speak HTTP/1.1 by hand, and classify what
+// happened. Nothing here goes through `std/http` — the point of this app is
+// exercising `std/dns` and `std/tls` directly, and reading a response off a
+// `std/net` socket the way it actually arrives: as an event, not a return
+// value.
+//
+// `std/net`'s socket API is callback-based (`on_text`/`on_error`/`on_close`),
+// and Glyph has no `Promise` a program can construct by hand (`new Promise` is
+// E0103: "Glyph has no `Promise<T>`"), so there is no way to turn "a callback
+// eventually fired" into something an `async fn` can `await` directly. The
+// bridge used here is the only one available: a shared `Option<CheckOutcome>`
+// that starts `None`, gets set to `Some` by whichever callback fires first,
+// and a loop that polls it with a short `sleep` between checks. That loop
+// exits the moment the state is anything but `None`, so the sleep only ever
+// delays the last, already-decided iteration.
+module checker
+
+import std/array
+import std/dns
+import std/net
+import std/option { Option, Some, None }
+import std/string
+import std/time
+import std/timers
+import std/tls
+import target { Target }
+
+// What a check found out. Exactly one of these per target per run: a name
+// never resolved, a certificate-verified connection never completed, nothing
+// came back before the deadline, or a status line did.
+pub type CheckOutcome =
+  | DnsFailed({ reason: string })
+  | TlsFailed({ reason: string })
+  | TimedOut
+  | Responded({ status: int, latency_ms: int })
+
+const CRLF: string = "\r\n"
+// How often the completion loop wakes up to check whether a callback has
+// settled the outcome yet. Short enough that it does not add meaningfully to
+// a check's latency, long enough not to spin the event loop for nothing.
+const POLL_MS: int = 5
+
+// Resolve `host` with `std/dns`, then dial and read exactly one HTTP/1.1
+// response line. `timeout_ms` bounds the whole thing: the TLS handshake has
+// its own built-in deadline, and the read afterward gets a second one from
+// `std/timers`, because a peer that completes the handshake and then sends
+// nothing would otherwise hang the socket (and this loop) forever.
+pub async fn check(t: Target, timeout_ms: int) -> CheckOutcome {
+  let started = time.now()
+  return match await dns.lookup(t.host) {
+    Err(reason) => DnsFailed({ reason: reason }),
+    Ok(_) => await dial(t, timeout_ms, started),
+  }
+}
+
+async fn dial(t: Target, timeout_ms: int, started: int) -> CheckOutcome {
+  return match await tls.connect(t.tls_name, t.port, timeout_ms) {
+    Err(reason) => TlsFailed({ reason: reason }),
+    Ok(socket) => await exchange(socket, t, timeout_ms, started),
+  }
+}
+
+// Write the request by hand, then read the raw bytes back until a full status
+// line has arrived (or the deadline, the peer's error, or the peer's close
+// beats it there). Whichever happens first settles `state`; everything after
+// that is a no-op, so a socket that both times out and then errors a moment
+// later only ever reports the first.
+async fn exchange(socket: net.Socket, t: Target, timeout_ms: int, started: int) -> CheckOutcome {
+  let state: Option<CheckOutcome> = None
+  let buffer = ""
+
+  let deadline = timers.after(timeout_ms, fn() {
+    mut state = settle(state, TimedOut)
+  })
+
+  net.on_text(socket, fn(chunk: string) {
+    mut buffer = "${buffer}${chunk}"
+    match string.index_of(buffer, CRLF) {
+      None => {},
+      Some(at) => {
+        mut state = settle(state, outcome_of(string.slice(buffer, 0, at), started))
+      },
+    }
+  })
+
+  net.on_error(socket, fn(message: string) {
+    mut state = settle(state, TlsFailed({ reason: "connection error: ${message}" }))
+  })
+
+  net.on_close(socket, fn() {
+    mut state = settle(state, TlsFailed({ reason: "connection closed before a response arrived" }))
+  })
+
+  net.send(
+    socket,
+    "GET ${t.path} HTTP/1.1${CRLF}Host: ${t.tls_name}${CRLF}Connection: close${CRLF}User-Agent: pulse/1.0${CRLF}${CRLF}",
+  )
+
+  loop {
+    match state {
+      None => {},
+      Some(outcome) => {
+        timers.cancel(deadline)
+        net.destroy(socket)
+        return outcome
+      },
+    }
+    await timers.sleep(POLL_MS)
+  }
+}
+
+// The first callback to run wins; every later one leaves `state` alone. Five
+// call sites (four callbacks plus the case where none of them have fired yet)
+// all need this same "only the first write counts" rule, so it is one
+// function rather than five copies of `match state { Some(_) => state, None
+// => Some(next) }`.
+fn settle(state: Option<CheckOutcome>, next: CheckOutcome) -> Option<CheckOutcome> {
+  return match state {
+    Some(_) => state,
+    None => Some(next),
+  }
+}
+
+// Parse `"HTTP/1.1 200 OK"` into a status code, or explain why the line was
+// not one.
+fn outcome_of(status_line: string, started: int) -> CheckOutcome {
+  let fields = string.split(status_line, " ")
+  return match array.get(fields, 1) {
+    None => TlsFailed({ reason: "malformed status line: ${status_line}" }),
+    Some(code_text) => match number.parse(code_text) {
+      Err(_) => TlsFailed({ reason: "malformed status line: ${status_line}" }),
+      Ok(code) => Responded({ status: code, latency_ms: time.now() - started }),
+    },
+  }
+}

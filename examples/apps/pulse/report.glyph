@@ -1,0 +1,20 @@
+// The terminal table: one line per target, printed as each check finishes.
+module report
+
+import std/io
+import std/string
+import checker { CheckOutcome, DnsFailed, TlsFailed, TimedOut, Responded }
+import target { Target }
+
+const NAME_WIDTH: int = 20
+
+pub fn print_row(t: Target, outcome: CheckOutcome) {
+  let name = string.pad_end(t.name, NAME_WIDTH)
+  let line = match outcome {
+    DnsFailed(d) => "${name} DNS FAILED   ${d.reason}",
+    TlsFailed(d) => "${name} TLS FAILED   ${d.reason}",
+    TimedOut => "${name} TIMED OUT",
+    Responded(r) => "${name} ${number.to_string(r.status)}          ${number.to_string(r.latency_ms)}ms",
+  }
+  io.println(line)
+}

@@ -1,0 +1,51 @@
+// The endpoints a run checks, loaded from a JSON config file.
+//
+// `host` and `tls_name` are usually the same string: the ordinary question an
+// uptime check asks is "does this domain's own certificate still check out?".
+// They are kept as separate fields anyway, because a DNS lookup and a
+// certificate's expected name are two different questions that only happen to
+// share an answer in the common case, and a config format that could not tell
+// them apart would be lying about that.
+module target
+
+import std/array
+import std/fs
+import std/json
+import std/result { Result, Ok, Err }
+import std/string
+
+pub type Target = {
+  name: string,
+  host: string,
+  port: int,
+  path: string,
+  tls_name: string,
+}
+
+type Config = { targets: Array<Target> }
+
+// Read and validate a config file. Every issue `json.parse` finds is folded
+// into one message rather than surfaced as a partial list, because a monitor
+// that cannot parse its own config should refuse to run at all, not run with
+// half its targets silently dropped.
+pub fn load(path: string) -> Result<Array<Target>, string> {
+  let text = match fs.read_text(path) {
+    Ok(t) => t,
+    Err(e) => { return Err("cannot read ${path}: ${e.message}") },
+  }
+  return match json.parse<Config>(text) {
+    Ok(config) => Ok(config.targets),
+    Err(issues) => {
+      let parts: Array<string> = []
+      for issue in issues {
+        let field_path = string.join(
+          array.map(issue.path, fn(p: unknown) -> string { return string.from(p) }),
+          ".",
+        )
+        mut parts.push("${field_path}: ${issue.message}")
+      }
+      let summary = string.join(parts, "; ")
+      Err("${path} is not a valid target list: ${summary}")
+    },
+  }
+}

@@ -1,0 +1,53 @@
+// Append-only history: one JSON line per check, per target, per run. A person
+// watching an endpoint's reliability over time greps or tails this file; a
+// tag per line (rather than a shared record shape with a pile of optional
+// fields) means a line only ever carries the fields its own outcome has.
+module history
+
+import std/fs
+import std/json
+import std/result { Result, Ok, Err }
+import std/time
+import checker { CheckOutcome, DnsFailed, TlsFailed, TimedOut, Responded }
+import target { Target }
+
+pub fn append(path: string, t: Target, outcome: CheckOutcome) -> Result<void, string> {
+  let line = line_of(t, outcome, time.format_iso(time.now()))
+  return match fs.append_text(path, "${line}\n") {
+    Ok(nothing) => Ok(nothing),
+    Err(e) => Err("cannot write history to ${path}: ${e.message}"),
+  }
+}
+
+fn line_of(t: Target, outcome: CheckOutcome, at: string) -> string {
+  return match outcome {
+    DnsFailed(d) => json.stringify({
+      at: at,
+      target: t.name,
+      host: t.host,
+      outcome: "dns_failed",
+      reason: d.reason,
+    }),
+    TlsFailed(d) => json.stringify({
+      at: at,
+      target: t.name,
+      host: t.host,
+      outcome: "tls_failed",
+      reason: d.reason,
+    }),
+    TimedOut => json.stringify({
+      at: at,
+      target: t.name,
+      host: t.host,
+      outcome: "timed_out",
+    }),
+    Responded(r) => json.stringify({
+      at: at,
+      target: t.name,
+      host: t.host,
+      outcome: "responded",
+      status: r.status,
+      latency_ms: r.latency_ms,
+    }),
+  }
+}

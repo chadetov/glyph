@@ -1,0 +1,29 @@
+# A script of navigation and edit commands, replayed one line at a time
+# against the tree loaded from fixture.json. Blank lines and lines starting
+# with # are skipped. "rm ." removes the current directory itself; "rm
+# <name>" removes a named child of the current directory. The tree is
+# printed after every edit (mkdir/touch/rm), from the root down, regardless
+# of where the cursor currently sits.
+
+ls
+cd docs
+ls
+mkdir drafts
+cd drafts
+touch outline.txt 40
+ls
+up
+rm notes.txt
+touch readme.txt 999
+cd readme.txt
+ls
+up
+rm docs
+ls
+rm .
+touch newfile.txt 8
+touch bad.txt -5
+touch bad2.txt abc
+frobnicate
+cd
+ls

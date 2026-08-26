@@ -1,0 +1,25 @@
+{
+  "targets": [
+    {
+      "name": "example",
+      "host": "example.com",
+      "port": 443,
+      "path": "/",
+      "tls_name": "example.com"
+    },
+    {
+      "name": "closed-port",
+      "host": "example.com",
+      "port": 4443,
+      "path": "/",
+      "tls_name": "example.com"
+    },
+    {
+      "name": "no-such-host",
+      "host": "this-host-does-not-exist.invalid",
+      "port": 443,
+      "path": "/",
+      "tls_name": "this-host-does-not-exist.invalid"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+// pulse — an uptime monitor for HTTPS endpoints.
+//
+// Reads a list of targets from a JSON config, checks each one in turn (DNS,
+// then a certificate-verified TLS handshake, then one hand-written HTTP/1.1
+// request), prints a line per target, and appends one JSON line per check to
+// a history file so a person can watch an endpoint's reliability across
+// repeated runs.
+//
+// Usage:
+//   glyph run examples/apps/pulse . -- <config.json> <history.jsonl> [timeout_ms]
+//
+// Run it against the bundled example config (real network access required;
+// the third target is deliberately unresolvable and the second deliberately
+// unreachable, to exercise all four outcomes):
+//
+//   glyph run examples/apps/pulse . -- examples/apps/pulse/config.example.json /tmp/pulse-history.jsonl
+module main
+
+import std/array
+import std/io
+import std/option { Option, Some, None }
+import std/result { Ok, Err }
+import checker
+import checker { DnsFailed, TlsFailed, TimedOut, Responded }
+import history
+import report
+import target { Target, load }
+
+const DEFAULT_TIMEOUT_MS: int = 5000
+
+type Args = { config_path: string, history_path: string, timeout_ms: int }
+
+fn parse_args(argv: Array<string>) -> Option<Args> {
+  return match array.get(argv, 0) {
+    None => None,
+    Some(config_path) => match array.get(argv, 1) {
+      None => None,
+      Some(history_path) => Some({
+        config_path: config_path,
+        history_path: history_path,
+        timeout_ms: match array.get(argv, 2) {
+          None => DEFAULT_TIMEOUT_MS,
+          Some(raw) => match number.parse(raw) {
+            Ok(n) => n,
+            Err(_) => DEFAULT_TIMEOUT_MS,
+          },
+        },
+      }),
+    },
+  }
+}
+
+async fn run_all(targets: Array<Target>, args: Args) -> int {
+  let failures = 0
+  for t in targets {
+    let outcome = await checker.check(t, args.timeout_ms)
+    report.print_row(t, outcome)
+    match history.append(args.history_path, t, outcome) {
+      Ok(nothing) => {},
+      Err(message) => { io.eprintln("pulse: ${message}") },
+    }
+    mut failures = failures + match outcome {
+      Responded(_) => 0,
+      DnsFailed(_) => 1,
+      TlsFailed(_) => 1,
+      TimedOut => 1,
+    }
+  }
+  return failures
+}
+
+async fn main(argv: Array<string>) -> number {
+  let args = match parse_args(argv) {
+    Some(a) => a,
+    None => {
+      io.eprintln("usage: pulse <config.json> <history.jsonl> [timeout_ms]")
+      return 2
+    },
+  }
+  let targets = match load(args.config_path) {
+    Ok(t) => t,
+    Err(message) => {
+      io.eprintln("pulse: ${message}")
+      return 2
+    },
+  }
+  let failures = await run_all(targets, args)
+  return match failures > 0 {
+    true => 1,
+    false => 0,
+  }
+}

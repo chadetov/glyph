@@ -6,8 +6,8 @@
 //! - identifier                               binding
 //! - literal (number, string, true, false, void)
 //! - `Constructor(args)`                      with nested arg patterns
-//! - `{ field, field: alias }`                object destructure; a field value
-//!   only binds, so a PascalCase `alias` is rejected as E0009
+//! - `{ field, field: alias }`                object destructure; a field may
+//!   also carry any nested pattern (`{ color: Black }`, `{ left: Node({ v }) }`)
 //! - `is TypeName`                            type-guard pattern
 //!
 //! Array patterns (`[]`, `[h, ...r]`, `[_, ...]`) — deferred to day 4.
@@ -177,30 +177,16 @@ fn parse_object_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
     let fields = p.parse_comma_separated(&Token::RBrace, false, |p| {
         let key_span = p.peek_span();
         let (key, _) = p.expect_field_name("field name in object pattern")?;
-        let binding = if matches!(p.peek(), Token::Colon) {
+        let pattern = if matches!(p.peek(), Token::Colon) {
             p.advance();
-            let binding_span = p.peek_span();
-            let (binding, _) = p.expect_field_name("binding identifier in object pattern")?;
-            // A field value is a pattern position, and D9 reads a PascalCase
-            // name there as a variant reference. Glyph object patterns only
-            // destructure, so there is no lowering that means "match `Black`";
-            // without this check the name became a renamed binding and the arm
-            // matched every payload while shadowing the real constructor.
-            if is_constructor_shaped(&binding) {
-                return Err(ParseError::VariantInObjectPatternField {
-                    key: key.to_string(),
-                    name: binding.to_string(),
-                    span: binding_span,
-                });
-            }
-            Some(binding)
+            Some(parse_field_pattern(p)?)
         } else {
             None
         };
         let end = p.peek_span().start;
         Ok(ObjectPatternField {
             key,
-            binding,
+            pattern,
             span: Span::new(key_span.start, end),
         })
     })?;
@@ -211,16 +197,29 @@ fn parse_object_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
     })
 }
 
-/// Whether a bare ident in pattern position is constructor-shaped: a PascalCase
-/// name (`Black`, `Ok`, `None`) denotes a union variant reference, a lowercase
-/// or underscore-led name (`c`, `_rest`) is a fresh binding. Mirrors the
-/// identically named checks in `glyph_resolver` and `glyph_typechecker` so every
-/// stage agrees on what counts as a variant reference (D9).
-fn is_constructor_shaped(name: &glyph_ast::Ident) -> bool {
-    name.as_ref()
-        .chars()
-        .next()
-        .is_some_and(|c| c.is_ascii_uppercase())
+/// The pattern after `key:` in an object pattern. Any pattern is legal there,
+/// with one carve-out the general parser cannot make: a keyword that can act as
+/// a name (`type`, `mut`, `record`, ...) is a binding when it stands alone as
+/// the whole field value, which is how `{ kind: type }` kept working before
+/// fields took sub-patterns at all. `parse_pattern` would reject the keyword
+/// token outright, so recognize that one shape first.
+///
+/// `true`, `false` and `void` are keywords the pattern parser already reads, as
+/// the literals they are, and they are excluded from the carve-out for that
+/// reason: `{ on: true }` tests the field, it does not bind a variable named
+/// `true`. Nothing could have used such a binding anyway — the name lexes as a
+/// keyword everywhere it might be referenced.
+fn parse_field_pattern(p: &mut Cursor) -> Result<Pattern, ParseError> {
+    let is_keyword_name = !matches!(
+        p.peek(),
+        Token::Identifier(_) | Token::True | Token::False | Token::Void
+    ) && p.peek().as_field_name().is_some();
+    if is_keyword_name && matches!(p.peek_at(1), Some(Token::Comma | Token::RBrace)) {
+        let span = p.peek_span();
+        let (name, _) = p.expect_field_name("binding identifier in object pattern")?;
+        return Ok(Pattern::Ident { name, span });
+    }
+    parse_pattern(p)
 }
 
 /// Parse `( pattern, pattern, ... )` for a constructor pattern. Returns args

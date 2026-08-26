@@ -9252,3 +9252,222 @@ fn index_size(i: int) -> int {{
     // status, which is what an earlier version of this server sent.
     assert!(stdout.contains("client_close=1000"), "a clean close says so: {stdout}");
 }
+
+/// A record payload's field matched against a nested pattern, two levels deep:
+/// the Okasaki red-black `balance` rotation, which is the shape D8 forces on
+/// any multi-field variant payload. The arm names a variant tag in one field
+/// (`color: Black`) and a whole nested constructor in another (`left: Node({
+/// color: Red, ... })`), and the arms that do not match must fall through to
+/// the next one rather than being swallowed by the outer `Node` tag.
+#[test]
+fn a_nested_pattern_in_an_object_pattern_field_matches_and_falls_through() {
+    let root = unique_tmp("nestedfield");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io { println }
+
+type Color =
+  | Red
+  | Black
+
+type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: number, right: Tree })
+
+fn balance(t: Tree) -> Tree {
+  return match t {
+    Node({ color: Black, left: Node({ color: Red, left: a, value: x, right: b }), value: y, right: c }) =>
+      Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
+    other => other,
+  }
+}
+
+fn label(t: Tree) -> string {
+  return match t {
+    Leaf => "leaf",
+    Node({ color: Red, value: v, left: l, right: r }) => "red",
+    else => "black",
+  }
+}
+
+fn main() {
+  let inner = Node({ color: Red, left: Leaf, value: 1, right: Leaf })
+  let outer = Node({ color: Black, left: inner, value: 2, right: Leaf })
+  println("balanced=" + label(balance(outer)))
+  let plain = Node({ color: Black, left: Leaf, value: 3, right: Leaf })
+  println("untouched=" + label(balance(plain)))
+}
+"#,
+    );
+    let dist = root.join("dist");
+    let report = build_project_inner(&src, &dist, false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "a nested object-pattern field should compile: {:?}",
+        report.diagnostics
+    );
+    // The build-level assertion above passes whatever the arm lowers to, so it
+    // proves nothing on its own: read the emitted TypeScript and require the
+    // exclusive chain. A `switch` on the outer tag would reach the field tests
+    // only after entering the `Node` case, and could not leave it again.
+    let ts = std::fs::read_to_string(dist.join("main.ts")).expect("read emitted main.ts");
+    assert!(
+        ts.contains(r#".tag === "Node" && "#) && ts.contains(r#".left.color.tag === "Red""#),
+        "the arm lowers to a conjunction of field tests, two levels deep: {ts}"
+    );
+    assert!(
+        ts.contains("} else if ("),
+        "a second arm sharing the outer tag has to be reachable: {ts}"
+    );
+
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    // The rotation fired: a black node whose left child is red recolors to red.
+    assert!(stdout.contains("balanced=red"), "the rotation arm matched: {stdout}");
+    // And the arm that does not match falls through to `other` instead of being
+    // swallowed by the outer `Node` tag.
+    assert!(stdout.contains("untouched=black"), "the non-matching value fell through: {stdout}");
+}
+
+/// A field pattern that can fail does not cover its variant. Without a
+/// catch-all the match is non-exhaustive and must say so, rather than being
+/// accepted because a `Node({ ... })` arm exists at all.
+#[test]
+fn a_refutable_object_pattern_field_does_not_cover_its_variant() {
+    let root = unique_tmp("nestedexh");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+type Color =
+  | Red
+  | Black
+
+type Tree =
+  | Leaf
+  | Node({ color: Color, value: number })
+
+fn label(t: Tree) -> string {
+  return match t {
+    Leaf => "leaf",
+    Node({ color: Red, value: v }) => "red",
+  }
+}
+
+fn main() {
+  let _ = label(Leaf)
+}
+"#,
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    let text = format!("{:?}", report.diagnostics);
+    assert!(
+        text.contains("E0200") && text.contains("`Node`"),
+        "a refutable field pattern must not count as covering `Node`: {text}"
+    );
+}
+
+/// The same nested field pattern, over a union declared in *another* module.
+/// The scrutinee is fully typed (`Ty::Imported`), and the only question the
+/// emitter has to answer — is `Node`'s payload spread flat or stored under
+/// `value` — is one the project-wide record-variant registry already answers
+/// across modules. A multi-module project is the normal layout, so an arm that
+/// works only when the union is declared in the matching file is a feature that
+/// is not there.
+#[test]
+fn a_nested_field_pattern_works_on_an_imported_union() {
+    let root = unique_tmp("nestedimport");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "shapes.glyph",
+        r#"module shapes
+
+pub type Color =
+  | Red
+  | Black
+
+pub type Tree =
+  | Leaf
+  | Node({ color: Color, value: number })
+"#,
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io { println }
+import shapes { Tree, Node, Leaf, Red, Black }
+
+fn label(t: Tree) -> string {
+  return match t {
+    Node({ color: Black, value: v }) => "black",
+    Node({ color: Red, value: v }) => "red",
+    else => "leaf",
+  }
+}
+
+fn main() {
+  println("a=" + label(Node({ color: Black, value: 1, })))
+  println("b=" + label(Node({ color: Red, value: 2, })))
+  println("c=" + label(Leaf))
+}
+"#,
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "an imported union's payload field should be matchable: {:?}",
+        report.diagnostics
+    );
+
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(stdout.contains("a=black"), "the Black arm matched: {stdout}");
+    assert!(stdout.contains("b=red"), "the Red arm matched: {stdout}");
+    assert!(stdout.contains("c=leaf"), "the else arm took the rest: {stdout}");
+}
+
+/// A match whose arms can all fail, over a scrutinee with no variant set to
+/// reason about. There is no tag to count, but there is nothing to guarantee
+/// the match produces a value either, and the emitted chain throws. The
+/// compiler has to say so: a construct that compiles clean and throws is the
+/// one thing the first pillar rules out.
+#[test]
+fn a_record_match_whose_arms_can_all_fail_is_non_exhaustive() {
+    let root = unique_tmp("recordexh");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+type Point = { x: number, y: number, }
+
+fn f(p: Point) -> string {
+  return match p {
+    { x: 0, y: y, } => "origin-ish",
+  }
+}
+
+fn main() {
+  let _ = f({ x: 3, y: 4, })
+}
+"#,
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    let text = format!("{:?}", report.diagnostics);
+    assert!(
+        text.contains("E0226"),
+        "a match with only refutable arms and no catch-all must be reported: {text}"
+    );
+}

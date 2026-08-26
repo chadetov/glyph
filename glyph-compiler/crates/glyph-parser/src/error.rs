@@ -47,21 +47,6 @@ pub enum ParseError {
     #[error("assignment requires `mut`")]
     MissingMutOnAssignment { span: Span },
 
-    /// A PascalCase name in an object pattern's field-value position
-    /// (`Full({ color: Black })`). D9 makes a PascalCase name in pattern
-    /// position a variant reference, but a Glyph object pattern only
-    /// destructures: it has no way to match a field against a variant. Left
-    /// alone the name lowered to a renamed binding (`const Black = m.color`),
-    /// so the arm fired for every payload and shadowed the real constructor.
-    /// Carried as its own variant because the shape parses fine and the author
-    /// needs to be told what it would have meant.
-    #[error("`{name}` is a variant reference, not a binding, so it cannot name the field `{key}`")]
-    VariantInObjectPatternField {
-        key: String,
-        name: String,
-        span: Span,
-    },
-
     /// A tagged-union variant given more than one positional payload field
     /// (`Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)`). D8 gives a variant
     /// one payload, and the manifesto's abstraction pillar spells a multi-field
@@ -94,7 +79,6 @@ impl ParseError {
             | ParseError::NoConditionalKeyword { span, .. }
             | ParseError::UnsupportedRangePattern { span }
             | ParseError::MissingMutOnAssignment { span }
-            | ParseError::VariantInObjectPatternField { span, .. }
             | ParseError::MultiFieldVariantPayload { span, .. } => *span,
         }
     }
@@ -111,7 +95,6 @@ impl ParseError {
             ParseError::NoConditionalKeyword { .. } => "E0006",
             ParseError::UnsupportedRangePattern { .. } => "E0007",
             ParseError::MissingMutOnAssignment { .. } => "E0008",
-            ParseError::VariantInObjectPatternField { .. } => "E0009",
             ParseError::MultiFieldVariantPayload { .. } => "E0010",
         }
     }
@@ -147,9 +130,6 @@ impl ParseError {
             ),
             ParseError::MissingMutOnAssignment { .. } => Cow::Borrowed(
                 "Glyph marks every mutation (D5): write `mut x = ...` to reassign an existing binding, or `let x = ...` to introduce a new one.",
-            ),
-            ParseError::VariantInObjectPatternField { .. } => Cow::Borrowed(
-                "An object pattern destructures; it does not match field values. Bind the field to a lowercase name and `match` it: `Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`.",
             ),
             // Built from the author's own variant name and field types. The
             // field names are the one thing the parser cannot supply, so they

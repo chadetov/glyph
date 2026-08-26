@@ -316,6 +316,17 @@ pub enum TypeError {
     #[error("non-exhaustive match on `{type_name}`: no catch-all for the other values")]
     NonExhaustiveValueMatch { type_name: String, span: Span },
 
+    /// A `match` whose scrutinee carries no variant set to reason about — a
+    /// record, an imported type, anything the tag-, array-, bool- and
+    /// value-domain checks all declined — and whose arms can every one of them
+    /// fail, with no catch-all behind them. There is no tag to count, but
+    /// nothing makes the match produce a value either: the emitted chain falls
+    /// off its end and throws. A field pattern that tests a value (D44,
+    /// `{ x: 0, y: y }`) is the shape that makes this reachable, so the check
+    /// is scoped to a match that contains one.
+    #[error("non-exhaustive match: every arm can fail and no arm is a catch-all")]
+    NonExhaustiveFieldMatch { span: Span },
+
     /// A `@redact fields: [...]` annotation (D24) names a field the type does
     /// not have — a typo or a renamed field. Redaction is type-level
     /// enforcement, so an unknown field name is a hard error: it would silently
@@ -442,6 +453,7 @@ impl TypeError {
             TypeError::NonExhaustiveArrayMatch { span, .. } => *span,
             TypeError::NonExhaustiveBoolMatch { span, .. } => *span,
             TypeError::NonExhaustiveValueMatch { span, .. } => *span,
+            TypeError::NonExhaustiveFieldMatch { span } => *span,
             TypeError::RedactUnknownField { span, .. } => *span,
             TypeError::UnknownAnnotation { span, .. } => *span,
             TypeError::UnknownField { span, .. } => *span,
@@ -475,6 +487,7 @@ impl TypeError {
             TypeError::NonExhaustiveArrayMatch { .. } => "E0208",
             TypeError::NonExhaustiveBoolMatch { .. } => "E0209",
             TypeError::NonExhaustiveValueMatch { .. } => "E0218",
+            TypeError::NonExhaustiveFieldMatch { .. } => "E0226",
             TypeError::RedactUnknownField { .. } => "E0219",
             TypeError::UnknownAnnotation { .. } => "E0221",
             TypeError::UnknownField { .. } => "E0210",
@@ -533,6 +546,9 @@ impl TypeError {
             }
             TypeError::NonExhaustiveValueMatch { .. } => {
                 "Add an `else` arm. A `number`/`string` match with only literal arms can never be exhaustive."
+            }
+            TypeError::NonExhaustiveFieldMatch { .. } => {
+                "Add an `else` arm, or an arm whose pattern always matches. A field pattern that tests a value can fail, so an arm carrying one covers nothing by itself."
             }
             TypeError::RedactUnknownField { .. } => {
                 "Check the field name for a typo. `@redact` lists fields of the record type it decorates, and only record types have redactable fields."
@@ -594,6 +610,9 @@ impl TypeError {
             ),
             TypeError::NonExhaustiveValueMatch { .. } => Some(
                 "`number` and `string` are unbounded, so literal arms can never cover every value; the emitted `switch` `default` throws at runtime.",
+            ),
+            TypeError::NonExhaustiveFieldMatch { .. } => Some(
+                "Coverage is proved over a set of tags, not over a product of fields (D44), so two field tests are never read as leaving nothing between them.",
             ),
             TypeError::UnknownVariantPattern { .. } => Some(
                 "A bare PascalCase arm head is a variant reference, not a binding (D9). Treating a non-variant as a binding would hide it as a silent catch-all.",

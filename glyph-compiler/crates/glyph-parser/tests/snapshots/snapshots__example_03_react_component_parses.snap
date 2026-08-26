@@ -2117,7 +2117,7 @@ Module {
                                                             fields: [
                                                                 ObjectPatternField {
                                                                     key: "message",
-                                                                    binding: None,
+                                                                    pattern: None,
                                                                     span: Span {
                                                                         start: 3244,
                                                                         end: 3252,

@@ -2446,7 +2446,7 @@ Module {
                                                             fields: [
                                                                 ObjectPatternField {
                                                                     key: "status",
-                                                                    binding: None,
+                                                                    pattern: None,
                                                                     span: Span {
                                                                         start: 3366,
                                                                         end: 3373,
@@ -2559,7 +2559,7 @@ Module {
                                                             fields: [
                                                                 ObjectPatternField {
                                                                     key: "url",
-                                                                    binding: None,
+                                                                    pattern: None,
                                                                     span: Span {
                                                                         start: 3481,
                                                                         end: 3484,
@@ -2567,7 +2567,7 @@ Module {
                                                                 },
                                                                 ObjectPatternField {
                                                                     key: "reason",
-                                                                    binding: None,
+                                                                    pattern: None,
                                                                     span: Span {
                                                                         start: 3486,
                                                                         end: 3493,
@@ -2694,7 +2694,7 @@ Module {
                                                             fields: [
                                                                 ObjectPatternField {
                                                                     key: "resource",
-                                                                    binding: None,
+                                                                    pattern: None,
                                                                     span: Span {
                                                                         start: 3612,
                                                                         end: 3620,
@@ -2702,7 +2702,7 @@ Module {
                                                                 },
                                                                 ObjectPatternField {
                                                                     key: "id",
-                                                                    binding: None,
+                                                                    pattern: None,
                                                                     span: Span {
                                                                         start: 3622,
                                                                         end: 3625,

@@ -2248,8 +2248,51 @@ impl Assigner<'_> {
             }
         }
 
+        // Nothing above claimed this scrutinee, so there is no variant set,
+        // no length set and no bounded value domain to count against. One
+        // thing is still decidable without a usefulness algorithm, and it is
+        // the one that matters: if every arm can fail and no arm is a
+        // catch-all, the chain the emitter builds falls off its end.
+        if self.required_variants(scrutinee_ty).is_none() {
+            self.check_refutable_arms_have_a_catch_all(arms, match_span);
+        }
+
         let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
         self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+    }
+
+    /// A `match` over a scrutinee with no variant set: `{ x: 0, y: y }` over a
+    /// record, or over an imported type this module cannot resolve. Such a
+    /// match is exhaustive only if some arm always matches, so an arm set that
+    /// is refutable throughout is `E0226`.
+    ///
+    /// Scoped to a match that contains a refutable object pattern, which is the
+    /// only way (D44) to write a top-level arm here that can fail: an array,
+    /// bool, literal or union scrutinee is claimed by one of the checks above,
+    /// and widening this to every refutable arm shape would start reporting
+    /// matches whose scrutinee simply went unresolved.
+    ///
+    /// It asks for a catch-all where a reader can sometimes see there is
+    /// nothing left (`{ flag: true, .. }` beside `{ flag: false, .. }`). That is
+    /// the same conservative reading D44 already takes one level down, and it
+    /// relaxes the day coverage is proved over a product of fields rather than
+    /// a set of tags. The alternative is accepting a match that throws.
+    fn check_refutable_arms_have_a_catch_all(
+        &mut self,
+        arms: &[MatchArm],
+        match_span: glyph_ast::Span,
+    ) {
+        let tests_a_field = arms
+            .iter()
+            .any(|a| matches!(a.pattern, Pattern::Object { .. }) && a.pattern.is_refutable());
+        if !tests_a_field {
+            return;
+        }
+        if arms.iter().any(|a| !a.pattern.is_refutable()) {
+            return;
+        }
+        self.errors
+            .push(TypeError::NonExhaustiveFieldMatch { span: match_span });
     }
 
     /// Resolve an imported union's `(type name, variant set)` from the match
@@ -2732,6 +2775,16 @@ impl Assigner<'_> {
                         // nested variant `Ok(Some(x))`, or the no-arg variant
                         // `Ok(None)` which parses as an ident) is decided by
                         // the recursion, which knows the payload's variants.
+                        //
+                        // Except when the sub-pattern is a record destructure
+                        // with a *value-testing* field (`Node({ color: Black,
+                        // .. })`): that can fail, so the arm covers nothing on
+                        // its own. Neither covered nor recursed into, so the
+                        // variant is reported missing unless another arm or a
+                        // catch-all takes it. That is the safe direction; the
+                        // alternative is accepting a match that falls off its
+                        // end and throws at run time.
+                        [sub] if sub.is_refutable() && matches!(sub, Pattern::Object { .. }) => {}
                         [sub] => {
                             nested.entry(variant.clone()).or_default().push(sub);
                         }
@@ -3370,6 +3423,7 @@ impl Assigner<'_> {
     ///
     /// Deferred: nested constructor payloads and array payloads.
     fn bind_arm_payloads(&mut self, scrutinee_ty: &Ty, pattern: &Pattern) {
+        self.record_pattern_tys(scrutinee_ty, pattern);
         let Pattern::Constructor { path, args, .. } = pattern else {
             return;
         };
@@ -3397,14 +3451,88 @@ impl Assigner<'_> {
     /// field's span, so the type is keyed by `field.span.start`. A field
     /// the record doesn't declare is left untyped (a separate
     /// unknown-field diagnostic is the bidirectional checker's job).
+    ///
+    /// A field carrying a structured sub-pattern binds through that pattern
+    /// instead, at the sub-pattern's own spans: a nested object destructure
+    /// recurses on the field's record type, and a nested constructor
+    /// (`{ left: Node({ value: v }) }`) goes back through `bind_arm_payloads`,
+    /// which resolves the variant's payload before descending again.
     fn bind_object_pattern_fields(&mut self, fields: &[ObjectPatternField], payload_ty: &Ty) {
         let Ty::Record { fields: rec_fields } = payload_ty else {
             return;
         };
         for pf in fields {
-            if let Some(rf) = rec_fields.iter().find(|rf| rf.name == pf.key) {
+            let Some(rf) = rec_fields.iter().find(|rf| rf.name == pf.key) else {
+                continue;
+            };
+            if pf.bound_name().is_some() {
                 self.local_tys.insert(pf.span.start, rf.ty.clone());
+                continue;
             }
+            match &pf.pattern {
+                Some(Pattern::Object { fields: inner, .. }) => {
+                    self.bind_object_pattern_fields(inner, &rf.ty)
+                }
+                Some(sub @ Pattern::Constructor { .. }) => self.bind_arm_payloads(&rf.ty, sub),
+                _ => {}
+            }
+        }
+    }
+
+    /// Record, for every node of `pattern`, the type of the value that node is
+    /// matched against, keyed by the node's own span.
+    ///
+    /// The emitter reads these back. A variant declared with a record payload
+    /// has that payload spread flat into the tag object while every other
+    /// payload sits under `value`, so a pattern reached *through* a payload has
+    /// to know which, and the type is the only thing that answers it. The
+    /// resolution lives here rather than in the emitter because this is the
+    /// side that holds the lowerer and the cross-module declaration resolver;
+    /// an emitter-local answer would be a second, weaker copy of a question
+    /// already answered once.
+    ///
+    /// A node whose type cannot be resolved is simply not recorded, and the
+    /// emitter falls back to what it can decide from the variant name alone.
+    fn record_pattern_tys(&mut self, ty: &Ty, pattern: &Pattern) {
+        self.tm.insert(pattern.span(), ty.clone());
+        match pattern {
+            Pattern::Constructor { path, args, .. } => {
+                let Some(variant) = path.last() else { return };
+                let Some(payload_ty) = self.variant_payload(ty, variant) else {
+                    return;
+                };
+                if let [sub] = args.as_slice() {
+                    self.record_pattern_tys(&payload_ty, sub);
+                }
+            }
+            Pattern::Object { fields, .. } => {
+                let Ty::Record { fields: rec_fields } = ty else {
+                    return;
+                };
+                let rec_fields = rec_fields.clone();
+                for pf in fields {
+                    let Some(sub) = &pf.pattern else { continue };
+                    let Some(rf) = rec_fields.iter().find(|rf| rf.name == pf.key) else {
+                        continue;
+                    };
+                    self.record_pattern_tys(&rf.ty, sub);
+                }
+            }
+            Pattern::Array { elements, rest, .. } => {
+                let Some(elem) = self.prelude_app(ty, "Array").and_then(|a| a.first()).cloned()
+                else {
+                    return;
+                };
+                for el in elements {
+                    self.record_pattern_tys(&elem, el);
+                }
+                // A rest binding holds the tail, which is another array of the
+                // same element type.
+                if let Some(r) = rest.as_deref() {
+                    self.record_pattern_tys(ty, r);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -3443,17 +3571,24 @@ impl Assigner<'_> {
     }
 }
 
-/// An array-pattern element/rest that matches any value of its position: a
-/// binding, `_`, or an object destructure (Glyph object patterns only bind,
-/// they do not match field values, so they are total over their record type).
-/// A nested array pattern (`[a]`) is refutable — it constrains the inner
-/// length. Used by array exhaustiveness — only irrefutable elements let a
-/// pattern fully cover its length(s).
+/// An array-pattern element/rest that matches any value of its position. Used
+/// by array exhaustiveness: only irrefutable elements let a pattern fully cover
+/// its length(s).
+///
+/// One definition, `Pattern::is_refutable`, and no second one here. It used to
+/// count a bare `Ident` element as irrefutable unconditionally, which made
+/// `[Black]` a binding in an array position and a variant tag everywhere else —
+/// two readings of D9's capitalization rule in the same checker. The reading
+/// that says a PascalCase element tests a tag is the one the rest of the
+/// compiler uses, so `match xs { [] => .., [Black] => .. }` is now reported
+/// non-exhaustive rather than counted as covering length 1.
+///
+/// That does not close G130: the top-level array chain still *lowers* `[Black]`
+/// to a binding, so an arm set that covers the lengths some other way still
+/// miscompiles. It stops one spelling of it from being certified exhaustive on
+/// the strength of a disagreement.
 fn is_irrefutable_pattern(p: &Pattern) -> bool {
-    matches!(
-        p,
-        Pattern::Ident { .. } | Pattern::Wildcard { .. } | Pattern::Object { .. }
-    )
+    !p.is_refutable()
 }
 
 // ----- assignability (conservative) -----

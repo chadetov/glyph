@@ -46,12 +46,13 @@ statement. Reassigning an existing binding is `mut x = e`; introducing a new one
 is `let x = e`. The mark is what makes every mutation greppable (D5), and it
 applies to fields and elements too (`mut r.count = 1`, `mut xs[0] = v`).
 
-**E0009: a variant name in an object pattern's field.** An object pattern
-destructures a record payload; it does not match field values. `Full({ color:
-Black })` therefore has no meaning to lower, and reading it as a binding would
-match every payload while shadowing the `Black` constructor. Bind the field and
-match it: `Full({ color: c, label: l }) => match c { Black => ..., Red => ..., }`.
-A PascalCase *key* is fine, since `{ Color }` names a record field.
+**E0009 is retired.** An object pattern's field used to accept only a name,
+so `Full({ color: Black })` was rejected. A field now takes any pattern and
+matches the field's value, which is what that spelling always looked like it
+meant. One thing to know about it: a field that tests a value can fail, so the
+arm no longer covers its variant. `match t { Leaf => .., Node({ color: Red, ..
+}) => .. }` is non-exhaustive (E0200) until a `Node({ color: Black, ... })` arm
+or an `else` takes the rest.
 
 **E0010: a variant carries one payload.** `Node(Color, Tree, int)` writes three
 positional fields where a variant takes one. A multi-field payload is a record:
@@ -79,6 +80,14 @@ an `else` (E0218). If you get E0218 on a `match` over a type you believe is a
 string-literal union, check what the scrutinee's type actually is: E0218 means
 the checker read it as a bare `string`. Importing the type from another module is
 no longer a reason for that, whichever spelling you used.
+
+**E0226: every arm can fail and none is a catch-all.** A `match` over something
+with no cases to count — a record, or a type the checker could not resolve —
+where every arm's pattern tests a value. `match p { { x: 0, y: y, } => .. }` over
+a `Point` covers nothing the compiler can name, and the emitted chain throws when
+nothing matches. Add an `else`. You will get this even when the arms look
+complete between them (`{ flag: true, .. }` and `{ flag: false, .. }`): coverage
+is proved over a set of tags, not over a combination of field values.
 
 **E0220: unknown variant in a `match` arm.** A PascalCase arm head that names no
 variant of the union you are matching, usually a typo (`Loadign` for `Loading`)

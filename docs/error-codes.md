@@ -32,7 +32,7 @@ below.
 | `E0006` | `if`/`else` used where Glyph has none (`match` is the only conditional; D3) |
 | `E0007` | Range or comparison pattern (`500..599 =>`) in a `match` arm; not in v1 |
 | `E0008` | Assignment without `mut` (`x = e` should be `mut x = e`, or `let x = e` for a new binding; D5) |
-| `E0009` | A variant name in an object pattern's field position (`Full({ color: Black })`); object patterns destructure, they do not match field values |
+| `E0009` | Retired. An object pattern's field takes any pattern, so `Full({ color: Black })` matches the field value; the code is no longer emitted |
 | `E0010` | A union variant given more than one positional payload field (`Node(Color, Tree, int)`); a variant carries one payload, and a multi-field payload is a record (D8) |
 
 ### Resolver — `E01xx`
@@ -131,6 +131,7 @@ an import some `.glyph` file under the root answers to.
 | `E0223` | A `match` arm produces no value while the `match` is used as a value (an empty block, or a block whose tail is a `let`/`mut`/`for`/`loop`) |
 | `E0224` | Reading a key out of a `Record<K, V>` map (`m.name` or `m[k]`), where the key may not be there. Use `record.get`, which returns `Option<V>` |
 | `E0225` | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost. Move the read after the `await` |
+| `E0226` | A `match` whose scrutinee has no variant set to count against, where every arm's pattern can fail and no arm is a catch-all. Add an `else` |
 
 ### Emitter — `E03xx`
 

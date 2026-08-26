@@ -114,7 +114,7 @@ use glyph_ast::{
     ArrayElem, BinOp, Block, ComponentDecl, Decl, Expr, FnTypeParam, GenericParam, Ident,
     ImportDecl, ImportKind, JsxAttr, JsxChild, JsxElement, LiteralPattern, MatchArm, MatchArmBody,
     Module, MutKind, ObjectField, Param, Pattern, PostfixOp, RecordTypeField, Span, Stmt,
-    TemplatePart, TypeExpr, UnaryOp, UnionVariant,
+    TemplatePart, TypeExpr, UnaryOp, UnionVariant, is_variant_shaped,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
 use glyph_typechecker::{Primitive, Ty, TypeMap};
@@ -3004,6 +3004,16 @@ impl<'a> Emitter<'a> {
             return self.emit_is_chain(scrutinee, arms, term);
         }
 
+        // An arm that reaches into an object pattern's field with a pattern of
+        // its own cannot be a `switch` case: two arms can share the outer tag
+        // (`Node({ color: Black, .. })` then `Node({ color: Red, .. })`) and the
+        // later one has to run when the earlier one's field test fails, which a
+        // `case` that has already been entered cannot do. Lower the whole match
+        // to an exclusive if-chain instead.
+        if arms.iter().any(|a| has_structured_field(&a.pattern)) {
+            return self.emit_pattern_chain(scrutinee, arms, term);
+        }
+
         // An array pattern arm makes this an array match, lowered to a length-
         // and element-check `if`/`else if` chain (a primitive array has no tag
         // to switch on).
@@ -3444,6 +3454,308 @@ impl<'a> Emitter<'a> {
                 self.line(&format!("const {name} = {m}.slice({});", elements.len()));
             }
         }
+    }
+
+    /// Lower a `match` whose arms destructure *into* an object pattern's fields
+    /// to an `if`/`else if` chain.
+    ///
+    /// A `switch` on the discriminant cannot express this family: two arms can
+    /// share an outer tag (`Node({ color: Black, .. })` and
+    /// `Node({ color: Red, .. })`) and the second has to run when the first's
+    /// field test fails. A `case` that has been entered cannot fall through to
+    /// the next one, so the whole match lowers to an exclusive chain instead:
+    /// each arm becomes one conjunction of field tests plus the `const` binds
+    /// its sub-patterns name. Source order is match order (D9, first match
+    /// wins), and a missing catch-all throws exactly as the other lowerings do.
+    fn emit_pattern_chain(
+        &mut self,
+        scrutinee: &Expr,
+        arms: &[MatchArm],
+        term: ArmTerm,
+    ) -> Result<(), EmitError> {
+        if let Some(extra) = arms
+            .iter()
+            .filter(|a| matches!(a.pattern, Pattern::Wildcard { .. } | Pattern::Else { .. }))
+            .nth(1)
+        {
+            return Err(EmitError::Unsupported {
+                construct: "a match with more than one catch-all arm",
+                span: extra.span,
+            });
+        }
+
+        let scrut_ty = self.scrutinee_ty(scrutinee);
+        let scrut = self.expr(scrutinee)?;
+        // The same pin the `switch` lowering applies: TypeScript would otherwise
+        // discriminate the temporary on whatever it last saw assigned.
+        let scrut = match self.narrowable_union_ts(&scrut_ty) {
+            Some(t) => format!("({scrut} as {t})"),
+            None => scrut,
+        };
+        let m = self.fresh_temp("__m");
+        self.line(&format!("const {m} = {scrut};"));
+
+        let mut first = true;
+        let mut else_arm: Option<&MatchArm> = None;
+        for arm in arms {
+            // A catch-all closes the chain: `_`, `else`, or a bare lowercase
+            // binding. Anything else contributes at least one test.
+            let is_catch_all = match &arm.pattern {
+                Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
+                Pattern::Ident { name, .. } => !is_variant_shaped(name),
+                _ => false,
+            };
+            if is_catch_all {
+                else_arm = Some(arm);
+                continue;
+            }
+            let mut conds = Vec::new();
+            self.pattern_conditions(&m, &arm.pattern, &scrut_ty, &mut conds, arm.span)?;
+            let cond = if conds.is_empty() {
+                "true".to_string()
+            } else {
+                conds.join(" && ")
+            };
+            let opener = if first {
+                format!("if ({cond}) {{")
+            } else {
+                format!("}} else if ({cond}) {{")
+            };
+            first = false;
+            self.line(&opener);
+            self.indent += 1;
+            self.emit_pattern_binds(&m, &arm.pattern, &scrut_ty, arm.span)?;
+            // No `break`: the chain is already exclusive.
+            self.emit_arm_body(&arm.body, term, false)?;
+            self.indent -= 1;
+        }
+
+        if first {
+            // Every arm was a catch-all, so there is no chain to close. The
+            // `switch` path handles that case before reaching here; guard anyway
+            // rather than emit a dangling `} else {`.
+            return Err(EmitError::Unsupported {
+                construct: "a match whose only arms are catch-alls",
+                span: arms.first().map(|a| a.span).unwrap_or(scrutinee.span()),
+            });
+        }
+        self.line("} else {");
+        self.indent += 1;
+        match else_arm {
+            Some(arm) => {
+                if let Pattern::Ident { name, .. } = &arm.pattern {
+                    self.line(&format!("const {name} = {m};"));
+                }
+                self.emit_arm_body(&arm.body, term, false)?
+            }
+            None => {
+                let err = self.g("Error");
+                self.line(&format!("throw new {err}(\"non-exhaustive match\");"))
+            }
+        }
+        self.indent -= 1;
+        self.line("}");
+        Ok(())
+    }
+
+    /// Append the runtime tests `pat` imposes on the value at `access`.
+    ///
+    /// `ty` is the type of that value. It is load-bearing for one decision: a
+    /// variant declared with a record payload has that payload spread flat into
+    /// the tag object while every other payload sits under `value`, so a nested
+    /// pattern reached through a payload has to know which. Both halves of that
+    /// answer come from where they already lived — `variant_payload_is_record`
+    /// for flat-versus-boxed, which resolves across modules through the
+    /// project's record-variant registry, and the checker's own per-node types
+    /// for descending. When neither can answer, the arm is refused rather than
+    /// guessed at.
+    fn pattern_conditions(
+        &self,
+        access: &str,
+        pat: &Pattern,
+        ty: &Ty,
+        out: &mut Vec<String>,
+        span: Span,
+    ) -> Result<(), EmitError> {
+        match pat {
+            Pattern::Wildcard { .. } | Pattern::Else { .. } => Ok(()),
+            Pattern::Ident { name, .. } => {
+                // A PascalCase name in pattern position is a nullary variant
+                // reference (D9); a lowercase one binds and tests nothing.
+                if is_variant_shaped(name) {
+                    out.push(format!("{access}.{TAG} === \"{name}\""));
+                }
+                Ok(())
+            }
+            Pattern::Literal { value, .. } => {
+                out.push(format!("{access} === {}", literal_label(value)));
+                Ok(())
+            }
+            Pattern::Constructor { path, args, .. } => {
+                let variant = path.last().expect("constructor path is non-empty");
+                out.push(format!("{access}.{TAG} === \"{variant}\""));
+                let [sub] = args.as_slice() else { return Ok(()) };
+                let Some(child) = self.payload_access(access, variant, sub, ty, span)? else {
+                    return Ok(());
+                };
+                self.pattern_conditions(&child, sub, &self.pattern_ty(sub), out, span)
+            }
+            Pattern::Object { fields, .. } => {
+                for f in fields {
+                    let Some(sub) = &f.pattern else { continue };
+                    if f.bound_name().is_some() {
+                        continue;
+                    }
+                    let child = format!("{access}.{}", f.key);
+                    self.pattern_conditions(&child, sub, &self.pattern_ty(sub), out, span)?;
+                }
+                Ok(())
+            }
+            Pattern::Array { elements, rest, .. } => {
+                let n = elements.len();
+                out.push(if rest.is_some() {
+                    format!("{access}.length >= {n}")
+                } else {
+                    format!("{access}.length === {n}")
+                });
+                for (i, el) in elements.iter().enumerate() {
+                    let child = format!("{access}[{i}]");
+                    self.pattern_conditions(&child, el, &self.pattern_ty(el), out, span)?;
+                }
+                Ok(())
+            }
+            Pattern::IsType { .. } => Err(EmitError::Unsupported {
+                construct: "an `is` type pattern beside a nested field pattern",
+                span,
+            }),
+        }
+    }
+
+    /// The type of the value a pattern node is matched against, as the checker
+    /// recorded it (`record_pattern_tys`). `Ty::Unknown` where it could not
+    /// resolve one, which `payload_shape` reads as "decide from the variant
+    /// name or refuse".
+    fn pattern_ty(&self, pat: &Pattern) -> Ty {
+        self.types.get(pat.span()).clone()
+    }
+
+    /// Where a constructor pattern's payload sub-pattern reads from: the tag
+    /// object itself when the payload is a record spread flat into it, and
+    /// `.value` otherwise. `None` when a wildcard asks nothing of a payload
+    /// whose storage this module cannot decide.
+    fn payload_access(
+        &self,
+        access: &str,
+        variant: &Ident,
+        sub: &Pattern,
+        ty: &Ty,
+        span: Span,
+    ) -> Result<Option<String>, EmitError> {
+        match self.payload_shape(ty, variant) {
+            PayloadShape::Flat => Ok(Some(access.to_string())),
+            PayloadShape::Boxed => Ok(Some(format!("{access}.{PAYLOAD}"))),
+            // Every sub-pattern but a wildcard needs to know whether the payload
+            // was spread flat or stored under `value`, and guessing there is a
+            // silently wrong arm rather than a compile error.
+            PayloadShape::Unknown if matches!(sub, Pattern::Wildcard { .. }) => Ok(None),
+            PayloadShape::Unknown => Err(EmitError::Unsupported {
+                construct: "a nested pattern on a payload whose storage cannot be decided here",
+                span,
+            }),
+        }
+    }
+
+    /// How `variant`'s payload is stored, given the type of the value being
+    /// matched. `variant_payload_is_record` is the deciding answer and comes
+    /// first: it is the same one `emit_arm_binds` asks, and it resolves an
+    /// imported union through the project's `(module, variant)` registry rather
+    /// than through this module's AST.
+    ///
+    /// The remaining work is proving *boxed* positively rather than reading it
+    /// off a `false`. Three things prove it: a prelude variant (`Ok`/`Err`/
+    /// `Some` have no declaration to resolve and always box), a union this
+    /// module declares that lists the variant, and a resolved `Ty::Imported` —
+    /// the registry holds every record-payload variant of every project module,
+    /// so a miss there is an answer and not an absence. Anything else is
+    /// `Unknown`.
+    fn payload_shape(&self, ty: &Ty, variant: &Ident) -> PayloadShape {
+        // Unwrap the application the way `variant_payload_is_record` and
+        // `union_variant_names` both do. Without this an imported *generic*
+        // union is `Ty::App { base: Ty::Imported }`, falls past every arm, and
+        // gets refused as undecidable even though the checker resolved it
+        // completely. Local generic and imported non-generic both worked; only
+        // the combination did not.
+        let ty = match ty {
+            Ty::App { base, .. } => base.as_ref(),
+            other => other,
+        };
+        if self.variant_payload_is_record(ty, variant.as_ref()) {
+            return PayloadShape::Flat;
+        }
+        if is_prelude_variant(variant) {
+            return PayloadShape::Boxed;
+        }
+        if self
+            .union_variant_names(ty)
+            .is_some_and(|names| names.iter().any(|n| n == variant.as_ref()))
+        {
+            return PayloadShape::Boxed;
+        }
+        if matches!(ty, Ty::Imported { .. }) {
+            return PayloadShape::Boxed;
+        }
+        PayloadShape::Unknown
+    }
+
+    /// Emit the `const` binds `pat` introduces, reading from `access`.
+    fn emit_pattern_binds(
+        &mut self,
+        access: &str,
+        pat: &Pattern,
+        ty: &Ty,
+        span: Span,
+    ) -> Result<(), EmitError> {
+        match pat {
+            Pattern::Ident { name, .. } if !is_variant_shaped(name) => {
+                self.line(&format!("const {name} = {access};"));
+            }
+            Pattern::Constructor { path, args, .. } => {
+                let variant = path.last().expect("constructor path is non-empty");
+                let [sub] = args.as_slice() else { return Ok(()) };
+                // A single name against a record payload binds the whole tag
+                // object (its fields are spread flat), matching `emit_arm_binds`;
+                // `payload_access` is the one place that decides which.
+                if let Some(child) = self.payload_access(access, variant, sub, ty, span)? {
+                    let child_ty = self.pattern_ty(sub);
+                    self.emit_pattern_binds(&child, sub, &child_ty, span)?;
+                }
+            }
+            Pattern::Object { fields, .. } => {
+                for f in fields {
+                    let child = format!("{access}.{}", f.key);
+                    match f.bound_name() {
+                        Some(name) => self.line(&format!("const {name} = {child};")),
+                        None => {
+                            let Some(sub) = &f.pattern else { continue };
+                            let child_ty = self.pattern_ty(sub);
+                            self.emit_pattern_binds(&child, sub, &child_ty, span)?;
+                        }
+                    }
+                }
+            }
+            Pattern::Array { elements, rest, .. } => {
+                for (i, el) in elements.iter().enumerate() {
+                    let child = format!("{access}[{i}]");
+                    let child_ty = self.pattern_ty(el);
+                    self.emit_pattern_binds(&child, el, &child_ty, span)?;
+                }
+                if let Some(Pattern::Ident { name, .. }) = rest.as_deref() {
+                    self.line(&format!("const {name} = {access}.slice({});", elements.len()));
+                }
+            }
+            _ => {}
+        }
+        Ok(())
     }
 
     /// The runtime check for an `is T` pattern against the temporary `m`, or
@@ -3978,8 +4290,9 @@ impl<'a> Emitter<'a> {
             }
             [Pattern::Object { fields, .. }] => {
                 for f in fields {
-                    let binding = f.binding.as_ref().unwrap_or(&f.key);
-                    self.line(&format!("const {binding} = {m}.{};", f.key));
+                    if let Some(binding) = f.bound_name() {
+                        self.line(&format!("const {binding} = {m}.{};", f.key));
+                    }
                 }
             }
             _ => {}
@@ -5559,6 +5872,47 @@ fn expr_has_captured_jump(e: &Expr) -> bool {
     }
 }
 
+/// How a tagged-union variant stores its payload, as `emit_pattern_chain` needs
+/// to know to reach a nested pattern. A variant declared with a literal record
+/// payload has its fields spread flat into the tag object; every other payload,
+/// the prelude `Result`/`Option` included, sits under `value`.
+enum PayloadShape {
+    /// The payload's fields are the tag object's own fields.
+    Flat,
+    /// The payload is under `value`.
+    Boxed,
+    /// Neither answer can be proved here, so the arm is refused rather than
+    /// lowered to an access that may be reading the wrong place.
+    Unknown,
+}
+
+/// Whether the pattern reaches into an object-pattern field with anything other
+/// than a plain binding: a variant tag (`{ color: Black }`), a nested
+/// constructor (`{ left: Node({ value: v }) }`), a nested destructure
+/// (`{ pos: { x, y } }`), a literal or an array pattern. A `switch` case cannot
+/// express any of them — the tests live below the discriminant and can fail
+/// after the case is entered — so one such arm routes the whole match through
+/// `emit_pattern_chain`.
+fn has_structured_field(p: &Pattern) -> bool {
+    match p {
+        Pattern::Object { fields, .. } => fields.iter().any(|f| match &f.pattern {
+            None => false,
+            // A wildcard field tests nothing and binds nothing, so it does not
+            // need the chain. Counting it here de-optimized a whole match from
+            // `switch` to if-chain for `{ text: _ }`, which was the entire
+            // emitted delta across all 19 apps.
+            Some(Pattern::Wildcard { .. }) => false,
+            Some(sub) => f.bound_name().is_none() || has_structured_field(sub),
+        }),
+        Pattern::Constructor { args, .. } => args.iter().any(has_structured_field),
+        Pattern::Array { elements, rest, .. } => {
+            elements.iter().any(has_structured_field)
+                || rest.as_deref().is_some_and(has_structured_field)
+        }
+        _ => false,
+    }
+}
+
 fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
     matches!(
         &arm.pattern,
@@ -5578,9 +5932,13 @@ fn pattern_binds_name(p: &Pattern, name: &str) -> bool {
     match p {
         Pattern::Ident { name: n, .. } => n.as_ref() == name,
         Pattern::Constructor { args, .. } => args.iter().any(|a| pattern_binds_name(a, name)),
-        Pattern::Object { fields, .. } => fields
-            .iter()
-            .any(|f| f.binding.as_ref().unwrap_or(&f.key).as_ref() == name),
+        Pattern::Object { fields, .. } => fields.iter().any(|f| match f.bound_name() {
+            Some(bound) => bound.as_ref() == name,
+            None => f
+                .pattern
+                .as_ref()
+                .is_some_and(|sub| pattern_binds_name(sub, name)),
+        }),
         Pattern::Array { elements, rest, .. } => {
             elements.iter().any(|e| pattern_binds_name(e, name))
                 || rest.as_deref().is_some_and(|r| pattern_binds_name(r, name))

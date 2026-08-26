@@ -913,29 +913,59 @@ fn main() {
         assert_eq!(err.code(), "E0007");
     }
 
-    /// D9 makes a PascalCase name in pattern position a variant reference, and
-    /// an object pattern's field value is a pattern position. Glyph object
-    /// patterns only destructure, so `{ color: Black }` has no way to mean
-    /// "match `Black`"; before this check it lowered to `const Black = m.color`
-    /// and the arm fired for every payload. A lowercase binding still parses.
+    /// An object pattern's field value is a pattern position, so any pattern
+    /// belongs there: a variant reference (D9's PascalCase rule), a nested
+    /// constructor, a nested destructure, a literal, an array pattern, or a
+    /// plain binding. The field holds the sub-pattern itself, not a name.
     #[test]
-    fn variant_name_as_object_pattern_field_is_rejected() {
-        let err = parse(
-            "module x\nfn f(b: Box) -> string { match b { Full({ color: Black, label: l }) => l } }\n",
-        )
-        .unwrap_err();
-        assert!(
-            matches!(err, ParseError::VariantInObjectPatternField { .. }),
-            "expected VariantInObjectPatternField, got {err:?}"
-        );
-        assert_eq!(err.code(), "E0009");
+    fn an_object_pattern_field_holds_a_nested_pattern() {
+        use glyph_ast::{Pattern, Stmt};
 
+        let m = parse_or_panic(
+            "module x\nfn f(b: Box) -> string { match b { Full({ color: Black, left: Node({ v }), tags: [t], n: 1, label: l }) => l } }\n",
+        );
+        let glyph_ast::Decl::Fn(f) = &m.items[0] else { panic!("fn") };
+        let Stmt::Expr(glyph_ast::Expr::Match { arms, .. }) = &f.body.stmts[0] else {
+            panic!("match, got {:?}", f.body.stmts[0])
+        };
+        let Pattern::Constructor { args, .. } = &arms[0].pattern else { panic!("constructor") };
+        let Pattern::Object { fields, .. } = &args[0] else { panic!("object") };
+        assert!(matches!(&fields[0].pattern, Some(Pattern::Ident { name, .. }) if name.as_ref() == "Black"));
+        assert!(matches!(&fields[1].pattern, Some(Pattern::Constructor { .. })));
+        assert!(matches!(&fields[2].pattern, Some(Pattern::Array { .. })));
+        assert!(matches!(&fields[3].pattern, Some(Pattern::Literal { .. })));
+        assert!(matches!(&fields[4].pattern, Some(Pattern::Ident { name, .. }) if name.as_ref() == "l"));
+        // Only the value-testing fields make the pattern refutable.
+        assert!(args[0].is_refutable());
+
+        // A plain rename still parses, and binds nothing but the name.
         parse_or_panic(
             "module x\nfn f(b: Box) -> string { match b { Full({ color: c, label: l }) => l } }\n",
         );
         // A PascalCase *key* is a field name, not a pattern: shorthand
         // `{ Color }` destructures a record field spelled `Color` and stays legal.
         parse_or_panic("module x\nfn f(b: Box) -> string { match b { Full({ Color }) => Color } }\n");
+        // A keyword that can act as a name is still a binding in field position.
+        parse_or_panic("module x\nfn f(b: Box) -> string { match b { Full({ kind: type }) => type } }\n");
+
+        // `true`, `false` and `void` are keywords too, and they are the literals
+        // the pattern parser already reads rather than bindings named after a
+        // keyword. `{ on: true }` tests the field; the old reading bound `true`
+        // and matched every value.
+        let m = parse_or_panic(
+            "module x\nfn f(b: Box) -> string { match b { Full({ on: true, label: l }) => l } }\n",
+        );
+        let glyph_ast::Decl::Fn(f) = &m.items[0] else { panic!("fn") };
+        let Stmt::Expr(glyph_ast::Expr::Match { arms, .. }) = &f.body.stmts[0] else {
+            panic!("match")
+        };
+        let Pattern::Constructor { args, .. } = &arms[0].pattern else { panic!("constructor") };
+        let Pattern::Object { fields, .. } = &args[0] else { panic!("object") };
+        assert!(matches!(
+            &fields[0].pattern,
+            Some(Pattern::Literal { value: glyph_ast::LiteralPattern::Bool(true), .. })
+        ));
+        assert!(args[0].is_refutable());
     }
 
     /// D8 gives a variant one payload, and the manifesto's abstraction pillar

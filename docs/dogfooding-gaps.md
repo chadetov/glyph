@@ -36,11 +36,12 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after G139 closed the imported *generic* union's payload
-shape, the half of G137's cross-module work that only the generic
-instantiation reached: of
-139 entries, 102 are fixed, 12 are partly fixed, 10 are decided or resolved, and
-15 are open.
+Reconciled again after the red-black-tree round: G137 closed nested patterns in
+an object pattern's fields, G139 closed the imported generic union's payload
+shape, and G138 and G140 opened on the array element that means two things and
+on the union that a type parameter makes unmatchable: of
+140 entries, 102 are fixed, 12 are partly fixed, 10 are decided or resolved, and
+16 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -3284,11 +3285,12 @@ worth keeping.
   does it is four lines of `match acc` ceremony each time. `max_by`/`min_by`
   taking a key function is the shape that closes it; `max`/`min`/`sum` over
   `Array<number>` are the trivial cases of the same thing.
-  *Reproduced against 0.1.84: all five are `[E0105] not exported by std/array`,
-  and `max` is still answered with `(did you mean `map`?)`. The others now list
-  the exports (`any, concat, contains, filter, find, flat_map, fold, get, and 10
-  more`), which is a better diagnostic than in 0.1.78 and does not change the
-  gap: none of `max`, `min`, `sum`, `max_by` or `min_by` exists.*
+  *Reproduced against 0.1.90, and the five diagnostics are word for word what
+  0.1.84 printed: all five are `[E0105] not exported by std/array`, `max` is
+  still answered with `(did you mean `map`?)`, and the other four append the
+  export list (`any, concat, contains, filter, find, flat_map, fold, get, and 10
+  more`). `runtime/std/array.ts` exports 18 functions and none of them is `max`,
+  `min`, `sum`, `max_by` or `min_by`.*
 
 - **G101. `array.fold` cannot stop early, so every short-circuiting accumulation
   is hand-written index recursion.** The app's requirements ask for alpha-beta
@@ -3303,11 +3305,11 @@ worth keeping.
   and not pruning. A `fold_while`/`try_fold` whose callback returns a continue-or-
   stop is the missing piece. Not a soundness bug: the hand-written form is
   correct, just long.
-  *Reproduced against 0.1.84: `array.fold_while` is still `[E0105] not exported
-  by std/array`, now with the module's export list appended to the diagnostic
-  (`exports: any, concat, contains, filter, find, flat_map, fold, get, and 10
-  more`). `std/array` still defines only `fold`; there is no `fold_while` or
-  `try_fold` anywhere in the runtime.*
+  *Reproduced against 0.1.90: `fold_while` and `try_fold` are each `[E0105] not
+  exported by std/array`, with the module's export list appended (`exports: any,
+  concat, contains, filter, find, flat_map, fold, get, and 10 more`).
+  `runtime/std/array.ts` defines `fold` and nothing that can stop early, and
+  neither name appears anywhere else under `runtime/`.*
 
 **The documentation gap, which is not a `G` entry because nothing is broken.**
 The author's `specs/requirements.md` records, as a decision taken before the
@@ -3515,15 +3517,17 @@ and stopped on the same sentence: Glyph has no bytes.
   has to decide what to call it. The only expressible version of the app is
   `read_text` plus `array.sort`, which is the memory shape the round existed to
   avoid.
-  *Reproduced against 0.1.84: `fs.open` and `fs.read_line_at` are both `[E0105]
-  not exported by std/fs`, and the runtime still contains no `asyncIterator`,
-  `AsyncIterable`, `createReadStream` or generator. One clause of the premise has
-  changed and the finding survives it: `readSync`'s buffer no longer needs a
-  `Buffer` the language cannot name, because 0.1.78 shipped `std/bytes`. What is
-  still missing is `openSync`/`closeSync` in the shim, a `position` that can be
-  null, and any iteration protocol at all, so the streaming shape stays
-  unwritable. `std/stream` is still the property-testing sampler, so the naming
-  problem is unchanged.*
+  *Reproduced against 0.1.90: `fs.open` and `fs.read_line_at` are both `[E0105]
+  not exported by std/fs`, the diagnostic listing `ErrorKind, FileInfo, FsError,
+  append_bytes, append_text, exists, is_dir, make_dir, and 7 more`, and
+  `runtime/` still contains no `asyncIterator`, `AsyncIterable`,
+  `createReadStream` or generator function. One clause of the premise changed two
+  rounds ago and the finding survived it: `readSync`'s buffer no longer needs a
+  `Buffer` the language cannot name, because 0.1.78 shipped `std/bytes`. Still
+  missing are `openSync`/`closeSync` in the shim, neither of which appears
+  anywhere under `runtime/`, a `position` that can be null, and any iteration
+  protocol at all, so the streaming shape stays unwritable. `std/stream` is still
+  the property-testing sampler, so the naming problem is unchanged.*
 
 - **G106. E0106 calls an import dead when only an `@example` uses it.** A module
   whose `@example` annotations reference `Some`/`None`, a union's constructors,
@@ -3539,11 +3543,12 @@ and stopped on the same sentence: Glyph has no bytes.
       @example wrap(1) == Some(1)
       pub fn wrap(n: number) -> Option<number> { Some(n) }
 
-  *Reproduced against 0.1.84, and the recorded repro no longer shows it. Usage
-  tracking got more accurate since 0.1.78: in the snippet above, `Some(n)` in
-  `wrap`'s body now counts as a use, so only the genuinely dead `None` is
-  flagged and the contradiction is masked. Isolating the claim still shows it.
-  A module importing `Some` and referencing it nowhere but an `@example`*
+  *Reproduced against 0.1.90, and the four-line repro above still does not show
+  it, the same way it stopped showing it at 0.1.84. Usage tracking got more
+  accurate in 0.1.78: `Some(n)` in `wrap`'s body counts as a use, so the build
+  flags only the dead `None` and the contradiction is masked. Isolating the claim
+  still shows it. A module importing `Some` and referencing it nowhere but an
+  `@example`*
 
   ```glyph
   module repro
@@ -3552,10 +3557,11 @@ and stopped on the same sentence: Glyph has no bytes.
   pub fn identity(o: Option<number>) -> Option<number> { o }
   ```
 
-  *warns `[E0106] unused import Some` in a build that also reports `1 example(s)
-  passed`. The lint reads `@example` as dead while the example that uses it runs.
-  The snippet above this stamp is kept because it is what the round found, but it
-  is no longer a reproduction.*
+  *warns `[E0106] unused import Some`, helped along with "Remove the import.
+  Nothing in this module references it", in a build that also reports `1
+  example(s) passed` and `tsc --strict passed`. The lint reads `@example` as dead
+  while the example that uses it runs. The snippet above this stamp is kept
+  because it is what the round found, but it is no longer a reproduction.*
 
   Two independent rounds hit it, which is a fair signal of how often a test-only
   import occurs in practice. The lint's own justification is greppability ("no
@@ -3613,12 +3619,15 @@ which is the infrastructure round 28 left blocked.
   0.1.60 closed for single-project builds ("the compiler stops blaming the wrong
   line"); the multi-project path kept it, and it only shows when two projects
   share a module name, which for `main.glyph` is every app in the tree.
-  *Reproduced against 0.1.84: two projects each with a `main.glyph`, the missing
-  module in `beta`, and the `TS2307` quoting `alpha`'s unrelated and correct
-  `import std/io` at `main:3:1`, with no project name in the frame to tell them
-  apart. The diagnostic now carries an extra `Help:` line pointing at the
-  generated `.ts` for the exact position, which does not say which project's
-  source is being quoted.*
+  *Reproduced against 0.1.90: two directories, each carrying a `package.json`
+  with a `"glyph"` key and a `main.glyph`, the missing module in `beta`. The
+  build prints `2 project(s)` and then the `TS2307` quoting `alpha`'s unrelated
+  and correct `import std/io { println }` at `main:3:1`, with no project name in
+  the frame to tell them apart. The `Help:` line points at the generated `.ts`
+  for the exact position and does not say which project's source is being quoted.
+  One detail worth having for the fix: the same two files under a single project
+  root, with no `"glyph"` markers, get the frame right (`beta/main:3:1`, quoting
+  beta's own line). It is the multi-project path that loses the file.*
 
 ## Round 33: a Linus review of the server lifetime, before it shipped
 
@@ -4438,7 +4447,13 @@ until this one.
   deadline the way `tls.connect` did (a breaking change to the two most-used
   functions in the stdlib), or whether `request` stops treating 0 as permission
   and `fetch_of` ships a real default instead. Scheduled in the rolling lane.
-  *Reproduced against 0.1.84.*
+  *Reproduced against 0.1.90, on the shape the entry describes: a TCP listener
+  that accepts the connection and sends nothing, dialled with `http.get`. The
+  program printed `listening, dialing` and nothing else, and was still pending
+  when it was killed at 50 seconds. `runtime/std/http.ts` is unchanged in the two
+  places this entry names: `fetch_of` returns `timeout_ms: 0`, and `request` arms
+  its timer only under `bounds.timeout_ms > 0`. `get` and `post` still take a URL
+  and no deadline.*
 
 - **G129. [FIXED] A variant name in an object pattern's field position
   compiled to a renamed binding, so the arm matched everything.** D9 reads a
@@ -5147,3 +5162,87 @@ through an object pattern's fields.
   compiler and no commit on `main` ever failed this. What this round added is
   the coverage: with the unwrap deleted, 198 of the 199 tests in the `glyph-cli`
   integration file still pass, and the one that fails is the one named above.
+
+- **G140. A nested constructor in a field position needs the payload's storage
+  decided, and two spellings cannot decide it.** The red-black tree of this round
+  is spelled at one concrete key type and declared in the module that matches it,
+  which is the one combination that works. Two variations on it are `E0300`.
+
+  The first is a type parameter on the union:
+
+  ```glyph expect-error
+  module tree
+
+  type Tree<K> =
+    | Leaf
+    | Node({ left: Tree<K>, key: K, right: Tree<K> })
+
+  pub fn shape(t: Tree<string>) -> string {
+    return match t {
+      Node({ left: Node({ key: lk }), key: k, right: r }) => "deep:" + lk + "/" + k,
+      other => "leaf",
+    }
+  }
+  ```
+
+  ```
+  [E0300] Error: emit: TS emission for a nested pattern on a payload whose
+  storage cannot be decided here is not implemented yet
+     ╭─[ main:11:5 ]
+     │
+  11 │     Node({ left: Node({ key: lk }), key: k, right: r }) => "deep:" + lk + "/" + k,
+     │     ──────────────────────────────────────┬──────────────────────────────────────
+  ```
+
+  The second is a namespace import, and it does not need a type parameter at all.
+  Declare the same union in a sibling module, import it as `import tree`, and
+  match `tree.Node({ left: tree.Node({ key: lk }), .. })`: same `E0300`, same
+  arm. Import the variant by name instead (`import tree { Tree, Leaf, Node }`)
+  and the identical program compiles and prints `deep:i/r`. Two spellings of one
+  import, two answers, which is the thing G75 settled we do not do.
+
+  Measured on the four combinations, all against 0.1.90, all with the same arm:
+
+  | Union declared | Reached by | Result |
+  |---|---|---|
+  | this module, no parameter | directly | compiles, prints `deep:i/r` |
+  | this module, `Tree<K>` | directly | `E0300` |
+  | a sibling, either spelling of the union | named import of `Node` | compiles, prints `deep:i/r` |
+  | a sibling, either spelling of the union | `import tree`, matched `tree.Node` | `E0300` |
+
+  Only a nested constructor that carries a payload asks the question. A field
+  that binds (`Node({ left: l, key: k, right: r })`) and a field holding a
+  payload-free tag (`Node({ left: Leaf, .. })`) both compile against the generic
+  local union and run correctly.
+
+  Two different causes behind one diagnostic. The generic-local half is the
+  checker: a constructor pattern's sub-patterns get their types from the
+  variant's payload, and that lookup runs through `union_variant_payload` ->
+  `resolve_named_union`, which wants a bare `Ty::Named`. A scrutinee of
+  `Tree<string>` is a `Ty::App` over the union, so no payload type is recorded,
+  nothing under the payload gets a type, and the emitter has nothing to decide
+  from. The namespace half is the emitter: with no recorded type either way, the
+  answer comes from `variant_payload_is_record`'s by-name fallback, which
+  resolves the variant through the consumer's own `ImportNamed` symbol. A
+  namespace spelling never binds that name, so the fallback has nothing to look
+  up. It refuses rather than guessing, which is the right direction and the wrong
+  answer in all four cells.
+
+  The generic-local behaviour is deliberate today and the doc comment on
+  `variant_payload` (`glyph-typechecker/src/assign.rs`) says so: "A generic
+  module-local union applied via `Ty::App` is not substituted here (conservative:
+  no recursion), since `resolve_named_union` requires a bare `Ty::Named`."
+  Changing it is a decision, not a patch, which is why this entry stops here. The
+  shape of the fix already exists a few hundred lines up: `record_fields_of`
+  dispatches a `Ty::App` to its base and `named_record_fields` substitutes the
+  declaration's generic parameters into the field types, so a generic record
+  alias resolves. A union payload could resolve the same way. What has to be
+  decided first is what the substituted payload does to nested exhaustiveness,
+  since `variant_payload` drives that recursion too, and an arm set that
+  certifies today could stop certifying once the payload becomes visible. If the
+  checker records the type in both halves, the emitter's by-name fallback stops
+  being load-bearing and the namespace cell closes with it.
+
+  Related to G139 and not the same thing. G139 was `payload_shape` failing to
+  unwrap a `Ty::App` it was handed; this is the type never reaching it at all.
+  *Reproduced against 0.1.90.*

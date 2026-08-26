@@ -1,0 +1,17 @@
+module app
+
+// The scrutinee is a record, so there is no variant set, no length set and no
+// bounded value domain to count coverage against. Every arm still tests a field
+// value and so can fail, and nothing behind them always matches: the emitted
+// chain falls off its end and throws. A catch-all is what makes this a match
+// that produces a value. The two arms cover a bool field between them, and the
+// checker does not conclude that, because coverage is proved over a set of tags
+// rather than over a product of record fields.
+type Flagged = { on: bool, label: string, }
+
+fn describe(f: Flagged) -> string {
+  return match f {
+    { on: true, label: l, } => l,
+    { on: false, label: l, } => "off",
+  }
+}

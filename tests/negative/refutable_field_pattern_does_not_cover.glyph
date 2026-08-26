@@ -1,0 +1,21 @@
+module app
+
+// An object pattern's field takes a pattern, so `{ color: Black }` matches the
+// field's value. A field that tests a value can fail, which means the arm runs
+// only for the payloads whose fields match and so does not cover `Full` on its
+// own. The match is non-exhaustive until a second `Full` arm or an `else` takes
+// the rest. The checker proves coverage over a set of tags, not over a product
+// of record fields, so it does not conclude that a `Black` arm and a `Red` arm
+// between them exhaust `Full`.
+type Color = | Red | Black
+
+type Box =
+  | Empty
+  | Full({ color: Color, label: string })
+
+fn describe(b: Box) -> string {
+  return match b {
+    Empty => "empty",
+    Full({ color: Black, label: l }) => l,
+  }
+}

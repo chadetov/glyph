@@ -36,9 +36,8 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after G134 closed the tuple-payload diagnostic and review of
-it opened G135: of
-135 entries, 99 are fixed, 11 are partly fixed, 10 are decided or resolved, and
+Reconciled again after G136 closed the union-typed binding narrowing: of
+136 entries, 100 are fixed, 11 are partly fixed, 10 are decided or resolved, and
 15 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
@@ -4812,3 +4811,92 @@ which is the intended answer; the finding is that the compiler never said so.
   currently one error, and separating them is a scope call, not a patch.
 
   *Reproduced against 0.1.87.*
+
+- **G136. [FIXED] A `bool` binding could not be matched, because TypeScript
+  had already decided it was `false`.** Found by an app bridging a
+  `std/timers` callback into a value, which is the only way to turn an
+  event-based stdlib API into one, since Glyph has no `Promise<T>` and
+  `std/task` has no callback-to-promise bridge. The flag is set inside the
+  callback and matched after the call returns:
+
+  ```
+  async fn wait_for_flag() -> int {
+    let done = false
+    let value = 0
+    timers.after(1, fn() {
+      mut done = true
+      mut value = 42
+    })
+    loop {
+      match done {
+        true => { break },
+        false => {},
+      }
+      await timers.sleep(1)
+    }
+    return value
+  }
+  ```
+
+  ```
+  [TS2678] Error: tsc: Type 'true' is not comparable to type 'false'.
+   13 │ ╭─▶     match done {
+  glyph build: tsc reported type errors (mapped to Glyph source).
+  ```
+
+  `glyph build` reported no diagnostics of its own, so the whole failure was a
+  TypeScript error naming a type the author never wrote, against a program the
+  Glyph checker found nothing wrong with.
+
+  The callback is incidental. Glyph does not narrow a binding by what was last
+  assigned to it, and TypeScript does; TypeScript's `boolean` is the union
+  `true | false`, so `let done = false` reads back as `false` and the `true`
+  arm of the emitted `switch` has nothing to match. Four lines reproduce it
+  with no callback at all:
+
+  ```
+  fn classify() -> int {
+    let done = false
+    match done {
+      true => { return 1 },
+      false => { return 0 },
+    }
+  }
+  ```
+
+  A D30 string-literal union is a union the same way, so `let mode: Mode =
+  "fast"` followed by a `match` failed with `Type '"slow"' is not comparable to
+  type '"fast"'`, a `mut` reassignment of either failed the same way, and
+  `done == true` failed as TS2367 ("no overlap") instead.
+
+  Fixed by re-asserting the value's own type where it is read: the `match`
+  scrutinee temporary, and either operand of a `==`/`!=`. Both are read-site
+  pins that do not look at their surroundings, so `done == failed` between two
+  `bool` bindings is covered the same way `done == true` is; an earlier cut of
+  the fix pinned an operand only when the other side was a literal, and left
+  the reported bug reachable in four lines. Nothing useful is suppressed,
+  because TS2367 never fires between two operands TypeScript types as
+  `boolean`.
+
+  The assertion re-states the type the checker already gave the value, so a
+  literal outside the union still fails where it failed before (`m == "nope"`
+  is still TS2367, and now names `Mode` rather than `"fast"`). It is not a
+  no-op, though: `as` permits a downcast, so a value Glyph types as `bool`
+  whose TypeScript type is `unknown` would now pass where the `switch` used to
+  complain. TypeScript still requires the two types to be comparable, so a
+  genuine model drift such as `string` against `bool` errors as TS2352 instead
+  of TS2678.
+
+  Asserting at the *write* instead was tried and rejected: `"nope" as Mode`
+  type-checks where `let m: Mode = "nope"` does not, and D30 leaves exactly
+  that membership check to `tsc`.
+
+  One spelling is still uncovered: a *`bool`* alias read through another
+  module. `pub type Ready = bool` in `catalog`, then `let r: catalog.Ready =
+  false` followed by a `match`, still fails with `Type 'true' is not
+  comparable to type 'false'`, because the emitter walks an alias body only in
+  the module it is emitting. Cross-module *string-literal* unions are covered
+  in all three import spellings (`catalog.Kind`, a named import, and an `as`
+  alias): the checker hands those over as a literal set and the alias walk is
+  never reached. The emitted cast then reads `(k as "a" | "b")` rather than
+  `(k as catalog.Kind)`, which only affects how the build output reads.

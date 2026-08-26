@@ -4308,6 +4308,33 @@ It also surfaced G135, the same rule contradicted at the emit stage; that one is
 in the rolling lane, since it needs a decision about which stage owns it rather
 than a patch.
 
+G136 rides along, and it is the one an application stopped on. A `bool` binding
+could not be matched: `let done = false` followed by `match done { true => ..,
+false => .. }` built clean in Glyph and then failed `tsc --strict` with
+`Type 'true' is not comparable to type 'false'`. Glyph does not narrow a binding
+by what was last assigned to it; TypeScript does, and its `boolean` is the union
+`true | false`, so the emitted `switch` discriminated on a type the author never
+wrote. The app that found it was bridging a `std/timers` callback into a value,
+which is the only way to turn an event-based stdlib API into one while Glyph has
+no `Promise<T>` and `std/task` has no callback-to-promise bridge; the callback
+turned out to be incidental, and four lines with no callback reproduce it. D30
+string-literal unions fail the same way, in a `let`, in a `mut`, and in an
+equality (TS2367 there rather than TS2678). Fixed by re-asserting the value's
+own type at the read: the `match` scrutinee temporary, and either operand of a
+`==`/`!=`. Both pins are decided by the operand's own type and ignore what sits
+next to it, so `done == failed` between two `bool` bindings is covered the same
+way `done == true` is. The assertion re-states the type the checker already gave
+the value, so `m == "nope"` still errors, and now names `Mode` instead of
+`"fast"`; because `as` permits a downcast it is not a no-op, and a genuine model
+drift surfaces as TS2352 rather than TS2678. Asserting at the write instead
+would have been shorter and was rejected on purpose: `"nope" as Mode`
+type-checks where `let m: Mode = "nope"` does not, and D30 leaves that
+membership check to `tsc` by design. One spelling is still uncovered: a `bool`
+alias read through another module (`pub type Ready = bool`, then `let r:
+catalog.Ready = false`), since the emitter walks an alias body only in the
+module it is emitting. Cross-module string-literal unions are covered in all
+three import spellings, because the checker hands those over as a literal set.
+
 ### 0.1.88 — Shipped · A variant's shape comes from where it is declared
 
 Published 2026-08-26 and smoke-tested from a clean npx cache in an isolated

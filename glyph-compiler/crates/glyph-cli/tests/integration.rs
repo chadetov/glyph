@@ -1445,6 +1445,148 @@ async fn main(argv: Array<string>) -> number {
 }
 
 #[test]
+fn union_typed_binding_keeps_its_glyph_type_in_emitted_ts() {
+    // A binding whose Glyph type is a union in TypeScript terms (`bool` is
+    // `true | false`; a D30 string-literal union is its literal set) must keep
+    // that type at every read of it. Glyph does not narrow a binding's type by
+    // what was last assigned to it, but TypeScript does, and a `match` over the
+    // binding lowers to a `switch` whose other arms are then "not comparable"
+    // (TS2678) against the pinned literal. It bit hardest through a callback:
+    // a flag set inside a `std/timers` callback and matched after the call is
+    // the only way to bridge an event-based API into a value, and it failed
+    // with a tsc error naming a type the author never wrote. Equality is the
+    // second place it surfaces, as TS2367 ("no overlap"), and it surfaces
+    // there whether the other side is a literal or a second binding, so both
+    // spellings are here. Requires tsc; skipped otherwise.
+    if !tsc_available() {
+        eprintln!("skipping union-binding tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("unionbinding");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io
+import std/timers
+
+type Mode = "fast" | "slow"
+
+fn plain() -> number {
+  let done = false
+  match done {
+    true => { return 1 },
+    false => { return 0 },
+  }
+}
+
+fn annotated() -> number {
+  let mode: Mode = "fast"
+  match mode {
+    "fast" => { return 1 },
+    "slow" => { return 2 },
+  }
+}
+
+fn reassigned(seed: bool) -> number {
+  let done = seed
+  mut done = false
+  match done {
+    true => { return 1 },
+    false => { return 0 },
+  }
+}
+
+fn reassigned_literal_union(seed: Mode) -> number {
+  let mode = seed
+  mut mode = "slow"
+  match mode {
+    "fast" => { return 1 },
+    "slow" => { return 2 },
+  }
+}
+
+async fn through_a_callback() -> number {
+  let done = false
+  let value = 0
+  timers.after(1, fn() {
+    mut done = true
+    mut value = 42
+  })
+  loop {
+    match done {
+      true => { break },
+      false => {},
+    }
+    await timers.sleep(1)
+  }
+  return value
+}
+
+fn compared() -> bool {
+  let done = false
+  timers.after(1, fn() {
+    mut done = true
+  })
+  return done == true
+}
+
+fn two_bools() -> bool {
+  let a = false
+  let b = true
+  return a == b
+}
+
+fn two_bools_differ() -> bool {
+  let a = false
+  let b = true
+  return a != b
+}
+
+fn two_modes() -> bool {
+  let x: Mode = "fast"
+  let y: Mode = "slow"
+  return x == y
+}
+
+fn two_modes_differ() -> bool {
+  let x: Mode = "fast"
+  let y: Mode = "slow"
+  return x != y
+}
+
+async fn main(argv: Array<string>) -> number {
+  io.println("${plain()}")
+  io.println("${annotated()}")
+  io.println("${reassigned(true)}")
+  let fast: Mode = "fast"
+  io.println("${reassigned_literal_union(fast)}")
+  io.println("${await through_a_callback()}")
+  io.println("${compared()}")
+  io.println("${two_bools()}")
+  io.println("${two_bools_differ()}")
+  io.println("${two_modes()}")
+  io.println("${two_modes_differ()}")
+  return 0
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("union-typed binding program failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn imported_generic_descriptor_parse_type_checks_and_rejects_at_runtime() {
     // Calling `parse<T>` on a generic descriptor imported from another module
     // must thread the runtime checker argument the imported `parse<T>(value,

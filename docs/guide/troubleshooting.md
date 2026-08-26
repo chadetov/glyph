@@ -123,6 +123,16 @@ The innermost callable decides, so a synchronous lambda inside an `async fn` is
 its own context and cannot `await` either; write `async fn(x) { ... }` for the
 lambda or move the `await` out of it.
 
+**TS2678, "type 'true' is not comparable to type 'false'", on a `bool` that came
+from another module.** Glyph gives a binding one type for its whole life;
+TypeScript narrows it to what it last saw assigned. `glyph build` pins the
+scrutinee back to its own type before the emitted `switch` sees it, but it
+follows a type alias only inside the module it is emitting. So `pub type Ready =
+bool` in one module and `let r: catalog.Ready = false` in another still reaches
+`tsc` typed `false`. Annotate the binding `bool` instead of the alias, or match
+the expression directly. A union of string literals does not have this problem
+in any import spelling.
+
 ## Runtime
 
 **A stack trace points at a `.ts` file, not my `.glyph`.** `glyph run` executes

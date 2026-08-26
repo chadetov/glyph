@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Why does Glyph catch what tsc catches, but earlier? · Glyph</title>
-    <meta name="description" content="Glyph reports await outside an async fn, a match arm that produces no value, and an assignment missing mut against your source, with the rule and the fix. It also stops reporting the wrong cause: a shadowed Issue and an unresolved import now name themselves instead of surfacing as a tsc error or a bogus non-exhaustive match." />
+    <meta name="description" content="Glyph reports await outside an async fn, a match arm that produces no value, and an assignment missing mut against your source, with the rule and the fix. It also stops reporting the wrong cause: a shadowed Issue and an unresolved import now name themselves instead of surfacing as a tsc error or a bogus non-exhaustive match. And where the program was right and the translation lost a type, a bool or string-literal binding now reaches tsc as the type Glyph gave it." />
     <link rel="canonical" href="https://glyphlang.io/answers/early-errors/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -370,6 +370,72 @@ specify known properties, and 'code' does not exist in type 'Issue'.</span></pre
         </p>
       </div>
 
+      <p class="block-label">When neither compiler is wrong</p>
+      <div class="detail">
+        <p>
+          There is a third shape, and it is the one that reads worst. Glyph reports
+          nothing, <code>tsc</code> reports something true, and the program you wrote was
+          fine. What failed is the translation between them.
+        </p>
+        <p>
+          A binding in Glyph has one type for the whole of its life. TypeScript narrows a
+          binding to whatever it last saw assigned, and its <code>boolean</code> is the
+          union <code>true | false</code>, so <code>let done = false</code> reached
+          <code>tsc</code> typed <code>false</code> and the <code>true</code> arm of the
+          emitted <code>switch</code> had nothing to match.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">poll.glyph, and what tsc said about it before 0.1.89</span>
+<pre>fn classify() -&gt; int {
+  let done = false
+  match done {
+    true =&gt; { return 1 },
+    false =&gt; { return 0 },
+  }
+}
+
+<span class="cm">// no Glyph diagnostic, then</span>
+<span class="del">[TS2678] Type 'true' is not comparable to type 'false'.</span></pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          A type declared as a set of string literals failed the same way, and so did
+          <code>==</code>, which came back as <code>TS2367</code> instead: two messages,
+          two codes, one cause. The app that hit it was polling a flag a timer callback
+          sets, which is how you turn an event-based API into a value while Glyph has no
+          <code>Promise</code> you can construct by hand. The callback turned out to be
+          beside the point: four lines with no callback do it.
+        </p>
+        <p>
+          The fix is not a new diagnostic, because there is nothing to diagnose. The
+          emitter now restates the type the checker already decided, at the two places
+          that discriminate over a value: the <code>match</code> scrutinee and either side
+          of a <code>==</code> or <code>!=</code>. Each side is decided by its own type and
+          ignores what sits next to it, so a comparison between two bindings is covered
+          the same way a comparison against a literal is.
+        </p>
+        <p>
+          The checks you want still fire.
+          <code>m == "nope"</code> where <code>m</code> is a <code>Mode</code> is
+          still rejected, and now the message names <code>Mode</code> instead of the
+          single member <code>m</code> happened to be holding. Doing this at the
+          assignment instead would have been less code and would have thrown that away: a
+          cast to <code>Mode</code> is accepted where the annotated assignment is not, and
+          the membership check is the part Glyph leaves to <code>tsc</code> on purpose.
+        </p>
+        <p>
+          What it costs is small and worth naming. A cast can narrow as well as confirm,
+          so a value Glyph types as <code>bool</code> whose TypeScript type came out
+          <code>unknown</code> now passes where the <code>switch</code> used to complain.
+          The two types still have to be comparable, so a model that has drifted far
+          enough to matter, <code>string</code> against <code>bool</code>, reports
+          <code>TS2352</code> rather than nothing.
+        </p>
+      </div>
+
       <p class="block-label">The same typo, two answers</p>
       <div class="detail">
         <p>
@@ -420,7 +486,7 @@ string.repeeat(s, 2)
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>Six edges. <code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it.</p>
+          <p>Six edges. <code>array.map</code>, <code>flat_map</code> and <code>zip</code> still take an <code>async</code> callback without complaint and hand back an array of pending values, which prints as <code>[object Promise]</code>; the five predicate-taking array functions do stop it, with <code>E0211</code> at the callback. Modeling the other three the same way also rejects <code>par.all(array.map(items, async fn ...))</code>, which is how Glyph runs work concurrently, because an array of pending values has no spelling in the language. That is a type-system decision rather than a missing entry, so it is open. A module-level <code>const</code> initializer has no enclosing callable, so a top-level <code>await</code> is allowed and the emitted ESM runs it; whether Glyph wants implicit async module init is still an open spec question. <code>E0223</code> can only judge a tail <code>match</code> when the function declares a return type, so an arm inside an unannotated lambda still reaches <code>tsc</code>. And the workaround for an empty record in arm position, <code>=&gt; ({})</code>, builds correctly but does not survive <code>glyph fmt</code>: the formatter drops the parentheses, and the formatted file then fails <code>E0223</code>. That one is a formatter bug and is tracked. On the shadow side, two things are only half done. <code>E0110</code> tells you to rename rather than letting you keep the name, so <code>Error</code>, <code>Number</code>, <code>Object</code>, <code>Array</code> and <code>Promise</code> are still off limits for a type or a variant. And <code>E0111</code> stops <code>type Key = string | number</code> from meaning the wrong thing without giving you a way to say it: a union of two primitive types has no spelling in Glyph except <code>extern_ts</code>, whose contents its own checker treats as opaque. Untagged unions touch exhaustiveness, runtime descriptors and <code>is</code>, so that one is a type-system decision and it is not scheduled. <code>E0104</code> reaches <code>glyph build</code> and <code>glyph check</code> but not the editor: the LSP analyzes a document's text with no build root, and the workspace folder is not one either, so guessing would produce the false positives the check was designed to avoid. And a reserved-word parameter still hides behind an unrelated error in the same file, because a failure in the collect pass skips the resolve pass that would have found it. Separately from those six: the read-site pin that keeps a <code>bool</code> or string-literal-union binding matchable follows a type alias only inside the module being emitted, so <code>pub type Ready = bool</code> in one module and <code>let r: catalog.Ready = false</code> in another still reaches <code>tsc</code> as <code>TS2678</code>. String-literal unions are covered across modules in all three import spellings, because the checker hands those over as a set of literals rather than as a name to follow.</p>
         </div>
       </div>
 

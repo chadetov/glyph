@@ -36,9 +36,10 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after G137 closed nested patterns in an object pattern's
-fields and G138 opened on the array element that means two things: of
-138 entries, 101 are fixed, 12 are partly fixed, 10 are decided or resolved, and
+Reconciled again after G139 closed the imported *generic* union's payload
+shape, the half of G137's cross-module work that only the generic
+instantiation reached: of
+139 entries, 102 are fixed, 12 are partly fixed, 10 are decided or resolved, and
 15 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
@@ -5063,3 +5064,86 @@ through an object pattern's fields.
   untouched: routing the top-level array chain through `pattern_conditions`,
   which is where the right answer already lives, is the fix, and it belongs with
   G130 rather than bolted onto this release.
+
+- **G139. [FIXED] A match arm over an imported union was refused once the union
+  was generic, because the payload's storage was read off the instantiation
+  instead of the union.** The program below is the smallest one that reproduces
+  it, and the error block under it is what that program prints against an
+  emitter with the unwrap deleted. Neither is output any released compiler
+  produced, and neither is what the reporting app ran; the provenance note at
+  the end of this entry says what it did run.
+
+  ```glyph
+  // tree.glyph
+  pub type Tree<T> =
+    | Leaf(T)
+    | Dir({ value: T, children: Array<Tree<T>> })
+
+  // main.glyph
+  import tree { Tree, Leaf, Dir }
+  type Payload = { name: string }
+
+  fn render(t: Tree<Payload>) -> string {
+    return match t {
+      Leaf({ name }) => name,
+      Dir({ value: { name }, children }) => ...,
+    }
+  }
+  ```
+
+  ```
+  [E0300] Error: emit: TS emission for a nested pattern on a payload whose
+  storage cannot be decided here is not implemented yet
+   10 │     Leaf({ name }) => name,
+      │     ───────────┬──────────
+  ```
+
+  A variant's record payload is spread flat into the tag object and every other
+  payload sits under `value`, so a nested pattern under a constructor has to know
+  which. G137 moved that question to the project-wide `(module, variant)`
+  registry, which answers it across a module boundary. The type the emitter
+  handed it was still the type as written at the match, and for a generic union
+  that is `Ty::App { base: Ty::Imported, .. }`: the application, not the union.
+  Every arm of it fell past all four ways `payload_shape` can prove a shape and
+  came back `Unknown`, which is refused rather than guessed, so the whole match
+  was rejected even though the checker had resolved it completely.
+
+  Neither half of the combination showed it. A local generic union is a
+  `Ty::App` over a type this module declares, and `union_variant_names` reads
+  that declaration; an imported non-generic union is a bare `Ty::Imported`, which
+  is proof of boxed on its own. Only imported *and* generic lands on the arm
+  nothing covered.
+
+  `payload_shape` now unwraps `Ty::App` to its base before asking, the way
+  `variant_payload_is_record` and `union_variant_names` already do at their own
+  call sites. The unwrap is load-bearing for any imported generic union under a
+  nested pattern, recursive or not. The control that proves it is two variants
+  with no recursion and no `Array` anywhere: `Boxy<T> = Leaf(T) | Named({ value:
+  T, label: string })`, declared in a sibling module and matched at
+  `Boxy<Payload>` with `Leaf({ name })`, which against the emitter with the
+  unwrap deleted fails with the same E0300 on the same arm. `payload_shape` does
+  four flat lookups and recurses in none of them, so the self-reference in
+  `Array<Tree<T>>` has nothing to do with the bug. The recursion stays in the
+  pinning test because the finding had it and because the recursive `for` over
+  `children` exercises the arm at depth.
+
+  Pinned by `a_generic_self_referential_imported_union_matches_at_a_concrete_type`,
+  which asserts on the nesting the recursion prints (`r[i[ab]]`) rather than on a
+  green build, since an arm that resolved to the wrong variant would still
+  type-check.
+
+  Provenance, because this entry would otherwise misattribute both the program
+  and the error. The zipper app did file E0300 against this union, but its filed
+  repro spells both arms with plain bindings (`Leaf(v)`, `Dir({ value, children:
+  _ })`), and that program compiles clean on the current tree and compiles clean
+  with the unwrap deleted too, so it is not what the unwrap fixed: an object
+  pattern of bindings and a wildcard is irrefutable, so the match never routes
+  through `pattern_conditions` and never asks `payload_shape` anything. The error string
+  the app quoted, "a payload whose declared shape is not visible here", appears
+  in no commit under `git log -S`. The app was building against an intermediate
+  working state of `04bf826`. The spelling that does reproduce is the nested
+  field pattern above, which only became writable in `04bf826` in the first
+  place, and that same commit landed the unwrap along with G137. No released
+  compiler and no commit on `main` ever failed this. What this round added is
+  the coverage: with the unwrap deleted, 198 of the 199 tests in the `glyph-cli`
+  integration file still pass, and the one that fails is the one named above.

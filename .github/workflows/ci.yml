@@ -89,7 +89,17 @@ jobs:
 
       - name: Workspace tests
         working-directory: glyph-compiler
-        run: cargo test --workspace --locked
+        # Tee'd because the next step reads the real test count out of the log
+        # rather than trusting a number someone typed into a markdown file.
+        run: |
+          set -o pipefail
+          # tee opens the file before cargo creates target/, so on a cold cache
+          # the redirect fails before a single test runs.
+          mkdir -p target
+          cargo test --workspace --locked 2>&1 | tee target/suite.log
+
+      - name: Check doc claims against the suite
+        run: python3 scripts/check_doc_claims.py
 
       - name: Type-check the examples with tsc --strict
         working-directory: glyph-compiler

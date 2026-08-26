@@ -49,8 +49,70 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.89</span>
+            <span class="rel-ver">0.1.90</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A pattern can reach more than one level into a record</h3>
+            <p>A variant with several fields carries a record, so an arm that wants to recognise a shape has to look through the record's fields. That position took a name and nothing else: you could rename a field, and that was all. A variant tag there was <code>E0009</code>, and a nested constructor fell off the parser. The Okasaki red-black rebalance is four rotation cases each named by a two-level shape, and it had no spelling in Glyph at all. A field holds a pattern now.</p>
+            <div class="code">
+              <span class="cap">One rotation case, as one arm</span>
+<pre>module tree
+
+type Color =
+  | Red
+  | Black
+
+type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: int, right: Tree })
+
+pub fn rotate(t: Tree) -&gt; Tree {
+  return match t {
+    Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
+      Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b, }), value: y, right: c, }),
+    other =&gt; other,
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong>Any pattern after the colon.</strong> A variant tag, a nested constructor, a nested destructure, a literal, an array pattern. Reaching through a payload needs one more fact, because a variant's record payload is spread flat into the tag object while every other payload sits under <code>value</code>: the compiler reads that off the matched type rather than off the arm's syntax, so a union declared in a sibling module matches the way a local one does, and <code>Wrapped({ inner: Some(n) })</code> knows to read <code>.value</code>.</li>
+              <li><span class="tag changed">Changed</span> <strong>An arm that tests a field no longer covers its variant.</strong> A field pattern can fail, so <code>match t { Leaf =&gt; .., Node({ color: Red, ... }) =&gt; .. }</code> is a non-exhaustive match on <code>Tree</code> until a sibling arm or an <code>else</code> takes the rest. Coverage is proved over a set of tags, not over a product of fields, so a <code>Red</code> arm and a <code>Black</code> arm are not read as exhausting <code>Node</code> between them. That is the reading which cannot let a match fall off its end at run time.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A match on a plain record can no longer throw.</strong> A record scrutinee has no tags to count, so it was declined by every exhaustiveness check there is. Once a field could test a value, <code>match p { { x: 0, y: y, } =&gt; .. }</code> compiled with no diagnostics, passed <code>tsc --strict</code>, and threw on the first call. It is <code>E0226</code> now: every arm can fail and no arm is a catch-all. No published release had this hole, because until this one that pattern was a parse error.</li>
+              <li><span class="tag changed">Changed</span> <strong><code>{ on: true }</code> tests the field.</strong> A <code>true</code>, <code>false</code> or <code>void</code> after the colon used to read as a binding named after the keyword, which matched every value. Harmless while a field could only bind, wrong the moment it could test.</li>
+              <li><span class="tag changed">Changed</span> <strong><code>[Black]</code> at the top of a match is rejected, and used to compile.</strong> The array exhaustiveness check counted a bare name as matching anything whatever its case, so <code>[Black]</code> covered length 1 and a match that got the other lengths from a rest arm certified as exhaustive. It also emitted a length test and no tag test, so <code>[Red]</code> took that arm and got the wrong answer. A PascalCase element is a variant reference here the way it is everywhere else, and the match is now <code>E0208</code> on arrays of length 1. Bind the element and match it:
+                <div class="code">
+<pre>module colors
+
+type Color =
+  | Red
+  | Black
+
+pub fn describe(xs: Array&lt;Color&gt;) -&gt; string {
+  return match xs {
+    [] =&gt; "empty",
+    [only] =&gt; match only {
+      Black =&gt; "one black",
+      Red =&gt; "one red",
+    },
+    [a, b, ...rest] =&gt; "many",
+  }
+}</pre>
+                </div>
+              </li>
+              <li><span class="tag changed">Changed</span> <strong><code>E0009</code> is retired.</strong> It named a variant in a field position, which is the feature. <code>glyph --explain E0009</code> keeps the entry and says so, so an agent holding an old transcript gets an answer rather than an unknown code.</li>
+              <li><span class="tag known">Known</span> <strong>The array arm still lowers to a binding.</strong> Only the exhaustiveness half of <code>[Black]</code> is closed. The lowering is G138 and the correct version of it already exists a few hundred lines away, in the chain the field patterns above go through. It travels with G130, the same disagreement one level up, in 0.1.91.</li>
+              <li><span class="tag known">Known</span> <strong>Two spellings still refuse a nested constructor.</strong> A field holding a constructor that carries a payload needs the compiler to know how that payload is stored, and it cannot work that out in two cases, both <code>E0300</code>. One is a union generic over its own parameter: <code>type Tree&lt;K&gt; = Leaf | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })</code> matched with <code>Node({ left: Node({ key: k }) })</code>, where dropping the type parameter compiles. The other is a namespace import: the same union in a sibling module matches under <code>import tree { Node }</code> and refuses under <code>import tree</code> with <code>tree.Node</code>, generic or not. A field that binds, and a field holding a tag with no payload, work in every case.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.89</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

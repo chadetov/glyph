@@ -4225,7 +4225,11 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
-### 0.1.91 — Planned · An object pattern's field takes a pattern
+### 0.1.90 — Shipped · An object pattern's field takes a pattern
+
+Published 2026-08-26 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
 
 G137. `ObjectPatternField` carried an `Option<Ident>`, so a field could name a
 binding and nothing else. Every arm that wanted to look more than one level into
@@ -4266,6 +4270,38 @@ is `E0002` and cannot be written at all. It is `E0226` now, a sibling of
 E0218: every arm can fail, no arm is a catch-all, and no usefulness algorithm is
 needed to see it.
 
+One rejection here lands on code that used to build. The array exhaustiveness
+predicate counted a bare `Ident` element as irrefutable whatever its case, so
+`[Black]` covered length 1 and `match xs { [] => .., [Black] => .., [a, b,
+...rest] => .. }` certified as exhaustive. It also miscompiled: the arm emitted a
+length test and no tag test, so `[Red]` took it. The predicate is
+`Pattern::is_refutable` now, the same reading D9 gets everywhere else, and that
+match is `E0208` on arrays of length 1. Add the arm the tag test needs, or bind
+the element and match it:
+
+```glyph
+module colors
+
+type Color =
+  | Red
+  | Black
+
+pub fn describe(xs: Array<Color>) -> string {
+  return match xs {
+    [] => "empty",
+    [only] => match only {
+      Black => "one black",
+      Red => "one red",
+    },
+    [a, b, ...rest] => "many",
+  }
+}
+```
+
+The lowering underneath is untouched and stays open as G138, so this stops one
+spelling from being certified on the strength of the disagreement rather than
+closing it.
+
 What is deliberately not in it: usefulness over a product of fields. Proving
 `Node({ color: Red, .. })` and `Node({ color: Black, .. })` together cover `Node`
 is a decision-tree question, not a tag-set one. When it lands it accepts strictly
@@ -4287,10 +4323,10 @@ or not: a two-variant non-recursive control declared in a sibling module fails
 with the same E0300 on the same arm without it. It shipped in `04bf826` with
 G137, which is also the commit that made the reproducing spelling (a pattern in
 an object pattern's field) writable, so no released compiler ever failed this.
-What 0.1.91 adds for G139 is the coverage: delete the unwrap and exactly one of
+What 0.1.90 adds for G139 is the coverage: delete the unwrap and exactly one of
 the 199 `glyph-cli` integration tests notices.
 
-### 0.1.90 — Next · The nested variant that binds instead of matching
+### 0.1.91 — Next · The nested variant that binds instead of matching
 
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
 where `Full` carries a user-defined union rather than a record, compiles clean,
@@ -4305,12 +4341,58 @@ reads it as a binding.
 G138 rides with it, because it is the same disagreement in the array position.
 `[Black]` at the top level of a match lowers to `const Black = __m0[0]`, while
 the same element inside an object pattern's field lowers to a tag test as of
-0.1.91. Half of it is already closed: the array exhaustiveness predicate no
+0.1.90. Half of it is already closed: the array exhaustiveness predicate no
 longer counts a PascalCase element as a binding, so a match that leans on the
 miscompile is reported non-exhaustive instead of certified. The lowering is what
 is left, and the correct implementation of it already exists a few hundred lines
 away in `pattern_conditions`; routing the top-level array chain through it is
 the fix.
+
+G140 rides here too, found while pinning the 0.1.90 work. A field holding a
+constructor that carries a payload needs the compiler to know how that payload is
+stored, and there are two spellings it cannot work that out for. The first is a
+union generic over its own parameter, which refuses a nested arm the same union
+without the parameter accepts.
+
+```glyph expect-error
+module tree
+
+type Tree<K> =
+  | Leaf
+  | Node({ left: Tree<K>, key: K, right: Tree<K> })
+
+pub fn shape(t: Tree<string>) -> string {
+  return match t {
+    Node({ left: Node({ key: lk }), key: k, right: r }) => "deep:" + lk + "/" + k,
+    other => "leaf",
+  }
+}
+```
+
+That is `E0300` on the first arm. `variant_payload` resolves a variant's payload
+through `resolve_named_union`, which wants a bare `Ty::Named` and gets a
+`Ty::App`, so nothing under the payload gets a recorded type and the emitter,
+which reads those types back to decide flat-versus-boxed, has nothing to decide
+from. It refuses rather than guessing, which is the right direction and the wrong
+answer.
+
+The second spelling matters more, and was found while checking the first. The
+same arm over a union declared in a sibling module compiles under
+`import tree { Tree, Leaf, Node }` and is `E0300` under `import tree` with
+`tree.Node`, whether or not the union is generic. The emitter's last resort is a
+by-name fallback that resolves the variant through the consumer's own
+`ImportNamed` symbol, and a namespace spelling never binds that name. Two
+spellings of one import giving two answers is what G75 settled we do not do,
+which is the reason to fix this at the checker rather than by adding a fifth
+lookup to the emitter: record the payload type in both halves and the fallback
+stops being load-bearing.
+
+It is not scheduled into a release yet, because the fix is a decision rather than
+a patch. `record_fields_of` already dispatches a `Ty::App` to its base and
+substitutes the declaration's generic parameters into the field types, and a
+union payload could resolve the same way, but `variant_payload` also drives
+nested exhaustiveness, so a payload that becomes visible can make an arm set that
+certifies today stop certifying.
 
 *Reviewed against 0.1.86.*
 
@@ -4380,7 +4462,7 @@ and the app still carries the shape that provoked it: a shared
 short sleep, because Glyph has no `Promise` a program can construct by hand and
 `std/task` has no callback-to-promise bridge.
 
-G130 did not ship here. It is scheduled for 0.1.90 above.
+G130 did not ship here. It is scheduled for 0.1.91 above.
 
 ### 0.1.88 — Shipped · A variant's shape comes from where it is declared
 
@@ -4419,7 +4501,7 @@ against globs from a real npm dependency, debounces, spawns a subprocess, and
 streams its output to a log while enforcing a timeout. It blocked twice before,
 on G125 and G126, and this is the round where it built with no workaround.
 
-G130 did not ship here. It is scheduled for 0.1.90 above.
+G130 did not ship here. It is scheduled for 0.1.91 above.
 
 ### 0.1.87 — Shipped · The exit code a program recorded
 
@@ -4474,7 +4556,7 @@ again. `check_plans_fresh.py` was also demanding a review stamp on the 0.1.81
 plan for a release shipped weeks earlier, because the shipped marker lives in a
 different heading; it cross-references now.
 
-G130 did not ship here. It is scheduled for 0.1.90 above.
+G130 did not ship here. It is scheduled for 0.1.91 above.
 
 ### 0.1.85 — Shipped · A TLS dial you can bound
 
@@ -5514,7 +5596,7 @@ land here until they're assigned a release.
   `tls.connect` did, breaking the two most-used functions in the stdlib, or
   `request` stops reading 0 as permission and `fetch_of` carries a real default.
 - **Exhaustiveness over a product of record fields.** An object pattern's field
-  takes a pattern as of 0.1.91 (G137), and a field that tests a value makes the
+  takes a pattern as of 0.1.90 (G137), and a field that tests a value makes the
   arm refutable, so it no longer covers the variant it sits under. That is the
   safe reading and the one the checker can prove, but it asks for a catch-all
   where a reader can see there is nothing left: `Node({ color: Red, .. })` and

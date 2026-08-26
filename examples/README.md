@@ -8,9 +8,10 @@ The whole directory builds in one command:
 glyph build examples --out /tmp/out
 ```
 
-Each of the thirteen directories under `apps/` (`auth_api`, `chat`,
-`collections`, `csvql`, `depsolve`, `discord`, `i18n`, `jobq`, `minilang`,
-`resilient`, `sheet`, `sitegen`, `workflow`) is a program of its own whose
+Each of the nineteen directories under `apps/` (`auth_api`, `chat`,
+`collections`, `csvql`, `depsolve`, `diff3`, `discord`, `feeds`, `i18n`,
+`intake`, `jobq`, `minilang`, `pulse`, `resilient`, `sheet`, `sitegen`,
+`watchrun`, `webhook_ingress`, `workflow`) is a program of its own whose
 modules import each other by bare name, so each one carries a `package.json`
 with a `"glyph"` key. That marker makes the directory its own module-resolution root (D41), so
 `import catalog` inside `apps/csvql` finds `apps/csvql/catalog.glyph` no matter
@@ -75,12 +76,22 @@ by `scripts/check_apps_are_glyph.py`.
 |---|---|---|
 | `auth_api` | Signup/login HTTP API with sessions | Boundary validation, hashing, errors-as-values |
 | `chat` | Chat **server** holding several TCP clients at once | Long-lived sockets, line framing over TCP, per-client routing |
+| `collections` | Generic `Heap`, `Cache`, and `Trie`, plus a fallible pipeline | Generics, `Option` returns, recursive structure |
 | `csvql` | SQL-ish query engine over CSV files | Lexing, planning, joins, aggregate rollups |
 | `depsolve` | Dependency resolver with conflict and cycle reporting | Recursive types, backtracking, diagnostics |
+| `diff3` | Three-way text merge, by line or by whitespace-separated word | Generic LCS diff, edit-script merging, conflict reporting |
 | `discord` | Discord gateway client: handshake, heartbeat, resume | WebSocket, timers, reconnect backoff, `owned` sockets (D25) |
+| `feeds` | RSS reader over the `fast-xml-parser` npm package | An npm dependency imported by name with no adapter, its `any` stopped at `Document.parse` |
+| `i18n` | Localized message formatter with one catalogue per locale | CLDR plural selection, fallback chains, locale-aware numbers and currency |
+| `intake` | Batch validator for JSON applicant records | Per-field checks merged into one report instead of stopping at the first bad record |
 | `jobq` | Durable job queue: HTTP API, SQLite store, workers | Persistence, retry with backoff, dead-lettering, state transitions |
 | `minilang` | Interpreter for a small language, with a REPL | Parsing, evaluation, interactive stdin |
+| `pulse` | Uptime monitor for HTTPS endpoints | DNS, a certificate-verified TLS handshake, hand-written HTTP/1.1, an append-only history file |
+| `resilient` | Retry, backoff, circuit breaker, and concurrency limiting against a server that misbehaves on purpose | Policy composition, timers, failure classification |
 | `sheet` | Spreadsheet with formulas and dependency order | Topological evaluation, cycle detection |
+| `sitegen` | Static site generator over `content/*.md` | The `marked` and `gray-matter` npm packages, front-matter validated at the boundary |
+| `watchrun` | Dev-loop tool: watch a directory, debounce a burst, run a command | The `minimatch` npm package, child-process spawn, streamed stdout |
+| `webhook_ingress` | HTTP service that verifies inbound webhooks and serves an admin page | HMAC-SHA256 signatures, a bounded per-source history |
 | `workflow` | State-machine runner over a JSON definition | Wire/domain type split, optional fields, exhaustive transitions |
 
 ## `corpus/` — self-contained regression programs

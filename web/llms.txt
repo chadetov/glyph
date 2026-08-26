@@ -997,7 +997,7 @@ machine-readably. The full catalogue:
 | E0006 | `if`/`else` used where Glyph has none (D3) | Rewrite as a `match` |
 | E0007 | Range/comparison pattern (`500..599 =>`) in a match arm | Enumerate the values as separate arms |
 | E0008 | Assignment without `mut` (`x = e`) (D5) | Write `mut x = e`, or `let x = e` for a new binding |
-| E0009 | Variant name in an object pattern's field (`{ color: Black }`) | Bind it (`{ color: c }`) and `match c` |
+| E0009 | Retired: an object pattern's field takes any pattern | Nothing; `{ color: Black }` matches the field value |
 | E0010 | More than one positional payload field on a variant (`Node(A, B)`) | One record payload: `Node({ left: A, right: B })` |
 | E0100 | Duplicate top-level name | Rename one; names are unique |
 | E0101 | Relative import | Use an absolute module path (`std/io`, `myapp/x`) |
@@ -1037,6 +1037,7 @@ machine-readably. The full catalogue:
 | E0223 | A `match` arm produces no value while the match is used as a value | End the arm with an expression, or `return` from it |
 | E0224 | Reading a key out of a `Record<K, V>` map, where the key may not be there | `record.get(m, k)` returns `Option<V>`; `record.has(m, k)` tests for it. Writing (`mut m[k] = v`) is fine |
 | E0225 | A field of a parameter is read before an `await` and written after it, so a concurrent write in between is lost | Move the read after the `await`. A local counter across an `await` is fine and is not reported |
+| E0226 | Every arm of a `match` can fail and none is a catch-all, over a scrutinee with no cases to count (a record, an unresolved type) | Add an `else` arm |
 | E0300 | Construct not supported by the emitter | Use a supported form |
 | E0301 | An `<else>` that is not the immediate sibling of its `<if>` (D6) | Move the `<else>` next to its `<if>` |
 | E0302 | `?` in an arm of a match nested inside a larger expression | Bind the match first (`let x = match ...`), then use `?` |

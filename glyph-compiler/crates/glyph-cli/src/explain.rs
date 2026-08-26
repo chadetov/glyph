@@ -66,19 +66,18 @@ pub fn explain(code: &str) -> Option<&'static str> {
             of them. The same applies to fields and elements (`mut r.count = \
             1`, `mut xs[0] = v`) and inside a `match` arm (`1 => mut total = \
             5,`).",
-        "E0009" => "E0009: variant name in an object pattern's field position\n\n\
-            An object pattern destructures a record payload; it does not match \
-            field values. A PascalCase name in pattern position is a variant \
-            reference (D9), so `{ color: Black }` reads as neither: there is no \
-            lowering for it, and left alone it would bind the field to the name \
-            `Black`, shadowing the constructor and matching every payload.\n\n\
-            Before:  Full({ color: Black, label: l }) => l\n\
-            After:   Full({ color: c, label: l }) => match c {\n              \
-              Black => l,\n              \
-              Red => \"\",\n            \
-            }\n\n\
-            A PascalCase *key* is unaffected: `{ Color }` destructures a record \
-            field spelled `Color`.",
+        "E0009" => "E0009: retired\n\n\
+            An object pattern's field used to accept only a name, so a variant \
+            reference there (`Full({ color: Black })`) was rejected: it would \
+            have bound the field to `Black`, shadowing the constructor and \
+            matching every payload. A field now carries any pattern and matches \
+            the field's value, so nothing raises this code any more.\n\n\
+            Now legal:  Full({ color: Black, label: l }) => l\n\
+                        Node({ left: Node({ color: Red, value: v }) }) => v\n\n\
+            One consequence is worth knowing: a field that tests a value can \
+            fail, so the arm no longer covers its variant. A match whose only \
+            `Node` arm is `Node({ color: Red, .. })` is non-exhaustive (E0200) \
+            until another arm or an `else` takes the rest.",
         "E0010" => "E0010: a variant carries one payload\n\n\
             A tagged-union variant has one payload (D8), and a payload with \
             several fields is a record, not a positional tuple. The manifesto \
@@ -492,6 +491,26 @@ pub fn explain(code: &str) -> Option<&'static str> {
             copy rather than the caller's record.",
 
         // ----- emitter (E03xx) -----
+        "E0226" => "E0226: every arm can fail and no arm is a catch-all\n\n\
+            The scrutinee has no variant set, no length set and no bounded value \
+            domain to count against — a record, or a type this module cannot \
+            resolve — and every arm's pattern can fail. Nothing makes the match \
+            produce a value, so the chain it lowers to falls off its end and \
+            throws. A field pattern that tests a value (D44) is what makes an arm \
+            like this writable.\n\n\
+            Before:  match p {\n              \
+              { x: 0, y: y } => \"on the axis\",\n            \
+            }\n\
+            After:   match p {\n              \
+              { x: 0, y: y } => \"on the axis\",\n              \
+              else => \"elsewhere\",\n            \
+            }\n\n\
+            The catch-all is asked for even where a reader can see there is \
+            nothing left: `{ flag: true, .. }` beside `{ flag: false, .. }` \
+            covers a bool field between them, and coverage is proved over a set \
+            of tags rather than a product of fields, so the checker does not \
+            conclude it.",
+
         "E0300" => "E0300: construct not supported by the emitter\n\n\
             The program type-checks but uses a construct the v1 TypeScript emitter \
             does not handle yet.\n\n\
@@ -595,7 +614,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0205",
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",
-    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0300", "E0301",
+    "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0226", "E0300", "E0301",
     "E0302", "E0303", "E0310",
 ];
 

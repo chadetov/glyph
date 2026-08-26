@@ -4225,6 +4225,52 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
+### 0.1.91 — Planned · An object pattern's field takes a pattern
+
+G137. `ObjectPatternField` carried an `Option<Ident>`, so a field could name a
+binding and nothing else. Every arm that wanted to look more than one level into
+a record payload was unwritable: a variant tag in a field was E0009, and a nested
+constructor, a nested destructure, a literal or an array pattern fell off the
+field parser as a plain E0002. That is the shape D8 forces on any multi-field
+payload, so the Okasaki red-black `balance` (four rotation cases, each named by a
+two-level shape) had no spelling in Glyph at all.
+
+A field now holds a `Pattern` and matches the field's value, prelude
+`Option`/`Result` variants included (`Wrapped({ inner: Some(n) })` reads
+`.value`; a user variant's record payload is spread flat and reads its fields
+directly). Which of the two a payload uses is answered by
+`variant_payload_is_record` against the matched type, the same question the rest
+of the emitter already asks, so a union declared in a sibling module matches
+exactly as a local one does. Descending is the checker's: it records the type of
+every pattern node as it walks an arm and the emitter reads them back. Three things came with it. An object pattern is refutable when a field of it is
+(`Pattern::is_refutable`), and one refutable arm routes the whole match through
+`emit_pattern_chain`, an exclusive `if`/`else if` over a conjunction of field
+tests plus the arm's binds, in the same family as the existing `is`- and
+array-pattern chains: a `switch` cannot express it, because two arms can share
+the outer tag and the second has to run when the first's field test fails.
+Exhaustiveness takes the conservative side: a refutable object pattern no longer
+covers its variant, so an arm that tests a field needs a sibling or an `else`
+behind it. And E0009 retires, since the construct it named is the feature;
+`--explain` keeps the entry and says so.
+
+A `true`, `false` or `void` after the colon is a literal, not a binding named
+after the keyword. It used to be the latter, which matched every value; that was
+harmless while a field could only bind and wrong as soon as it could test.
+
+Exhaustiveness reaches the scrutinees that have no variants too. A record
+scrutinee is declined by every one of the union, array, bool and value-domain
+checks, so once the field pattern above became writable, `match p { { x: 0, y:
+y, } => .. }` compiled with no diagnostics and a clean `tsc --strict` and threw
+on the first call. No shipped release had that hole: through 0.1.89 the pattern
+is `E0002` and cannot be written at all. It is `E0226` now, a sibling of
+E0218: every arm can fail, no arm is a catch-all, and no usefulness algorithm is
+needed to see it.
+
+What is deliberately not in it: usefulness over a product of fields. Proving
+`Node({ color: Red, .. })` and `Node({ color: Black, .. })` together cover `Node`
+is a decision-tree question, not a tag-set one. When it lands it accepts strictly
+more programs and rejects none that compile after this release.
+
 ### 0.1.90 — Next · The nested variant that binds instead of matching
 
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
@@ -4236,6 +4282,16 @@ writes out. Same shape as G129 one level up, and the typechecker and the emitter
 disagree about it: dropping the other arm reports a non-exhaustive match on
 `Color`, so the checker reads `Black` as a variant reference while the emitter
 reads it as a binding.
+
+G138 rides with it, because it is the same disagreement in the array position.
+`[Black]` at the top level of a match lowers to `const Black = __m0[0]`, while
+the same element inside an object pattern's field lowers to a tag test as of
+0.1.91. Half of it is already closed: the array exhaustiveness predicate no
+longer counts a PascalCase element as a binding, so a match that leans on the
+miscompile is reported non-exhaustive instead of certified. The lowering is what
+is left, and the correct implementation of it already exists a few hundred lines
+away in `pattern_conditions`; routing the top-level array chain through it is
+the fix.
 
 *Reviewed against 0.1.86.*
 
@@ -5428,31 +5484,26 @@ land here until they're assigned a release.
   is parked here: either `get`/`post` grow a required deadline the way
   `tls.connect` did, breaking the two most-used functions in the stdlib, or
   `request` stops reading 0 as permission and `fetch_of` carries a real default.
-- **Matching a record payload's field against a variant, in an object pattern.**
-  G129 closed the wrong answer for that one spelling: `Full({ color: Black })`
-  used to lower to `const Black = m.color`, so the arm matched every payload and
-  shadowed the constructor, and the parser now rejects it as E0009 pointing at
-  the rewrite (`Full({ color: c, .. }) => match c { ... }`). What is not closed
-  is the construct itself. Glyph object patterns destructure; they do not match
-  field values, and making them do so requires exhaustiveness to reason about
-  record fields rather than tags. The lowering is not the obstacle:
-  `degroup_nested_arms` already collapses several nested arms into one outer
-  `switch` case with a synthesized temp, which is how `Ok(None)` compiles today.
-  Worth doing on the merits (it is the shape agents reach for first, coming from
-  Rust and from TS discriminated unions), but it is a language feature with a
-  design to write down, so it waits for a release of its own rather than riding
-  along behind a diagnostic. E0009 is forward-compatible with it: the code it
-  rejects would start compiling, and nothing that compiles today would change
-  meaning. This entry covers the object-pattern form only. The
-  constructor-argument form (`Full(Black)`) is not a feature request but a live
-  miscompile, filed as G130 and scheduled in 0.1.90 above.
+- **Exhaustiveness over a product of record fields.** An object pattern's field
+  takes a pattern as of 0.1.91 (G137), and a field that tests a value makes the
+  arm refutable, so it no longer covers the variant it sits under. That is the
+  safe reading and the one the checker can prove, but it asks for a catch-all
+  where a reader can see there is nothing left: `Node({ color: Red, .. })` and
+  `Node({ color: Black, .. })` between them cover `Node`, and E0200 still fires.
+  Proving it needs usefulness over a product of fields (a decision tree, in the
+  Maranget sense) rather than a set of tags. It accepts strictly more programs
+  and rejects none that compile today, so it can land whenever the checker is
+  being worked on rather than blocking anything.
 - **`is_constructor_shaped` exists three times.** D9's capitalization rule is
   the hinge every pattern decision turns on, and it is copied into
   `glyph-parser/src/pat.rs`, `glyph-resolver/src/resolve.rs` and
   `glyph-typechecker/src/assign.rs`, each with a doc comment pointing at the
   others. The typechecker's copy calls itself "the single predicate shared by"
   the stages, which was already untrue at two copies. All three crates depend on
-  `glyph-ast`, so the predicate belongs there. Mechanical, and worth doing
+  `glyph-ast`, so the predicate belongs there, and as of the G137 work it does:
+  `glyph_ast::is_variant_shaped` is public, because `Pattern::is_refutable` had
+  to answer the same question. The parser's copy is gone with it; the resolver's
+  and the typechecker's remain and should call it. Mechanical, and worth doing
   before a fourth stage needs it, since a rule that drifts between stages is how
   the typechecker and the emitter came to disagree in G130.
 - **No TLS server** (`std/tls` is client-only). Deliberate, and recorded so it is

@@ -189,6 +189,51 @@ let cache = <span class="add">match</span> args.offline {
       </div>
 
       <div class="detail">
+        <p class="block-label">A pattern can name a shape more than one level down</p>
+        <p>
+          A variant with several fields carries a record, so an arm that wants to
+          recognise a shape has to reach through the record's fields. Until 0.1.91
+          the field position took a name and nothing else: you could rename it, and
+          that was all. Matching a tag there was a compile error, and a nested
+          constructor fell off the parser. The workaround was to bind every field
+          and write a nested <code>match</code> per level, which for anything like a
+          red-black tree rebalance is a different program: the arms stop lining up
+          with the cases and each level re-threads the bindings above it.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">one rotation case of a red-black rebalance, as one arm</span>
+<pre>type Tree =
+  | Leaf
+  | Node({ color: Color, left: Tree, value: number, right: Tree })
+
+match t {
+  Node({ <span class="add">color: Black</span>, <span class="add">left: Node({ color: Red, left: a, value: x, right: b })</span>, value: y, right: c }) =&gt;
+    Node({ color: Red, left: Node({ color: Black, left: a, value: x, right: b }), value: y, right: c }),
+  other =&gt; other,
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          A field takes any pattern now: a variant tag, a nested constructor, a
+          nested destructure, a literal, an array pattern. There is a consequence
+          worth knowing before you write one. A field that tests a value can fail,
+          so the arm no longer counts as covering its variant, and a match whose
+          only <code>Node</code> arm is <code>Node({ color: Red, ... })</code> is
+          reported non-exhaustive until a sibling arm or an <code>else</code> takes
+          the rest. The checker proves coverage over a set of tags, not over a
+          product of fields, so it will not work out that a <code>Red</code> arm and
+          a <code>Black</code> arm together exhaust <code>Node</code>. Asking for the
+          catch-all is the reading that cannot let a match fall off its end at run
+          time. The same applies where there are no variants to count at all: a
+          match on a plain record whose every arm tests a field needs an
+          <code>else</code> behind it.
+        </p>
+      </div>
+
+      <div class="detail">
         <p class="block-label">And the compiler knows what the <code>match</code> produced</p>
         <p>
           The follow-up question is the one that decides whether any of this is

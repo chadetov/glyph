@@ -172,6 +172,19 @@ Add a variant later and every non-exhaustive `match` is a compile error that
 names the missing case. That is the payoff: the compiler maintains your switch
 statements for you.
 
+A payload field can carry a pattern of its own rather than just a name, so an
+arm can recognise a shape several levels down: `Click({ x: 0, y })` matches only
+a click on the left edge, and `Node({ color: Black, left: Node({ color: Red,
+value: v }) })` is one arm of a red-black rebalance. A field that tests a value
+can fail, which means the arm no longer counts as covering its variant: if your
+only `Click` arm tests `x`, the match is non-exhaustive until another `Click` arm
+or an `else` takes the rest. The same holds when there are no variants at all:
+`match p { { x: 0, y: y, } => .. }` over a plain record is E0226 until you add an
+`else`.
+
+The union does not have to be declared in the file you are matching in. An
+imported one behaves the same way, under any of the three import spellings.
+
 ## `let` binds, `mut` reassigns
 
 `let` introduces an immutable binding. Reassignment requires `mut` — it is the

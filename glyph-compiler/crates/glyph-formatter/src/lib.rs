@@ -1284,9 +1284,9 @@ impl Printer {
                         self.push(", ");
                     }
                     self.push(&f.key);
-                    if let Some(binding) = &f.binding {
+                    if let Some(sub) = &f.pattern {
                         self.push(": ");
-                        self.push(binding);
+                        self.pattern(sub);
                     }
                 }
                 self.push(" }");

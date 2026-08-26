@@ -36,8 +36,9 @@ nowhere. `scripts/check_findings_scheduled.py` now fails the build when an entry
 that is open or partly fixed is not named in the roadmap. Parking it in the
 rolling lane with a sentence about why counts; leaving it only here does not.
 
-Reconciled again after G136 closed the union-typed binding narrowing: of
-136 entries, 100 are fixed, 11 are partly fixed, 10 are decided or resolved, and
+Reconciled again after G137 closed nested patterns in an object pattern's
+fields and G138 opened on the array element that means two things: of
+138 entries, 101 are fixed, 12 are partly fixed, 10 are decided or resolved, and
 15 are open.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
@@ -4900,3 +4901,165 @@ which is the intended answer; the finding is that the compiler never said so.
   alias): the checker hands those over as a literal set and the alias walk is
   never reached. The emitted cast then reads `(k as "a" | "b")` rather than
   `(k as catalog.Kind)`, which only affects how the build output reads.
+
+## Round 44: the rebalance that could not be spelled
+
+A red-black tree, written the way Okasaki writes it: one `balance` function
+whose arms name a rotation each by the shape two levels down. D8 spells a
+multi-field variant payload as a record, so every one of those arms has to reach
+through an object pattern's fields.
+
+- **G137. [FIXED] An object pattern's field could hold only a name, so no arm
+  could match more than one level deep.** `ObjectPatternField` carried an
+  `Option<Ident>`. A field could name a binding and nothing else: not a variant
+  tag, not a nested constructor, not a nested destructure, not a literal, not an
+  array pattern. A constructor-shaped name was caught with its own diagnostic
+  (E0009, G129), and every other shape fell off the field parser at the first
+  token it could not consume:
+
+  ```
+  [E0009] Error: parse: `Black` is a variant reference, not a binding, so it
+  cannot name the field `color`
+  ```
+
+  ```
+  [E0002] Error: parse: expected binding identifier in object pattern, found LBracket
+   5 │     { items: [a, b], label: l } => a,
+     │              ┬
+     │              ╰── expected binding identifier in object pattern, found LBracket
+  ```
+
+  The advertised workaround was to bind every field and write a nested `match`
+  per level. For the rebalance that is a different program: four rotation cases
+  distinguished by a two-level shape become a tree of nested matches whose arms
+  no longer line up with the cases, and each level has to re-thread the bindings
+  the level above it produced.
+
+  A field now holds a `Pattern`, so any pattern is legal there and it matches
+  the field's value: `Node({ color: Black, left: Node({ color: Red, left: a,
+  value: x, right: b }), value: y, right: c })` compiles, matches, and falls
+  through to the next arm when the shape does not fit.
+
+  What it took, in order of how much it changes what compiles.
+
+  A field that tests a value can fail, so an object pattern is now refutable
+  when any of its fields is (`Pattern::is_refutable` in `glyph-ast`). A `switch`
+  on the discriminant cannot express a refutable arm: two arms can share the
+  outer tag and the second has to run when the first's field test fails, which a
+  `case` that has already been entered cannot do. One such arm therefore routes
+  the whole match through `emit_pattern_chain`, an exclusive `if`/`else if` over
+  a conjunction of field tests plus the arm's binds, in the same family as the
+  existing `is`- and array-pattern chains. The rebalance above emits
+
+  ```ts
+  if (__m0.tag === "Node" && __m0.color.tag === "Black"
+      && __m0.left.tag === "Node" && __m0.left.color.tag === "Red") {
+    const a = __m0.left.left;
+    ...
+  } else if (...) {
+  ```
+
+  Exhaustiveness takes the conservative side of the same fact: a refutable
+  object pattern no longer covers the variant it sits under, so a match whose
+  only `Node` arm is `Node({ color: Red, ... })` is E0200 until another arm or an
+  `else` takes the rest. That is the safe direction (the alternative is
+  accepting a match that falls off the end and throws), and it is what the
+  checker can prove today. Proving that `Node({ color: Red, .. })` and
+  `Node({ color: Black, .. })` together cover `Node` needs usefulness over a
+  product of fields rather than a set of tags; when that lands it will accept
+  strictly more programs and reject none that compile now.
+
+  The same rule has to reach a scrutinee that has no variants to count. A
+  record type is the case:
+
+  ```glyph
+  type Point = { x: number, y: number, }
+
+  fn f(p: Point) -> string {
+    return match p {
+      { x: 0, y: y, } => "origin-ish",
+    }
+  }
+  ```
+
+  Every one of the union-, array-, bool- and value-domain checks declines a
+  record scrutinee, so the first cut of this work compiled that with zero
+  diagnostics and a clean `tsc --strict`, and threw `non-exhaustive match` on
+  the first call. It needs no usefulness algorithm to catch — every arm can fail
+  and no arm is a catch-all — and it is now `E0226`, a sibling of the E0218 that
+  says the same thing about an unbounded `number` or `string` domain. The check
+  is scoped to a match containing a refutable object pattern, which is the only
+  way to write a top-level arm that can fail over a scrutinee the other checks
+  all declined.
+
+  E0009 is retired by this. The construct it named is the feature, so the code
+  is no longer emitted; `glyph --explain E0009` and the catalogue both say so
+  rather than dropping the entry, since a diagnostic someone saw last release
+  should still explain itself.
+
+  Reaching *through* a payload needs one more fact. A variant's record payload is
+  spread flat into the tag object and every other payload sits under `value`, so
+  a nested pattern under a constructor has to know which. The first cut of this
+  work answered that with its own resolver over this module's AST, and so it
+  worked only when the union's `type` declaration sat in the file doing the
+  match: every arm over an imported union was refused. That is every project
+  with more than one module, which is every real one. The answer already existed
+  and is cross-module correct — `variant_payload_is_record`, backed by the
+  project-wide `(module path, variant name)` registry the emitter builds for
+  exactly this question — so the second resolver is gone and that one is asked
+  instead. Descending is the checker's job in the same way: it records the type
+  of every pattern node as it walks the arm, and the emitter reads them back,
+  which is also what lets a nested constructor inside an array field
+  (`Node({ kids: [Node({ color: Black, .. })], .. })`) resolve.
+
+  The refusal that remains is narrow: a scrutinee whose type the checker never
+  resolved, carrying a variant that is neither a prelude one nor a known
+  record-payload one. There the arm is refused with `a nested pattern on a
+  payload whose storage cannot be decided here` rather than picking flat or
+  boxed and emitting a silently wrong access.
+
+  One carve-out in the field parser needed narrowing on the way. A keyword that
+  can act as a name (`type`, `mut`, `record`) standing alone after the colon is
+  a binding, which is how `{ kind: type }` kept working. `true`, `false` and
+  `void` are keywords too, so `{ on: true }` was reading as a binding named
+  `true` and matching every value — the old behaviour, harmless while a field
+  could only bind, and wrong the moment a field could test. They are literals
+  the pattern parser already reads, so they are out of the carve-out. Nothing
+  could have used the binding: the name lexes as a keyword everywhere it might
+  be referenced.
+
+  The shapes exercised end to end, all in one match and all correct at run time:
+  a nested destructure (`Dot({ at: { x, y }, name: t })`), an array pattern beside
+  a literal (`Blob({ items: [a, b], code: 404 })`), an array pattern with a rest
+  (`Blob({ items: [a, ...rest], code: c })`), and both `Option` variants
+  (`Wrapped({ inner: Some(n) })`, `Wrapped({ inner: None })`). The `Option` pair
+  is also where the conservative exhaustiveness rule is most visible: the two
+  arms cover every `Wrapped`, and the match still needs an `else`.
+
+- **G138. [HALF] The same array pattern binds in one position and tests a tag
+  in another.** Found reviewing G137 rather than in an app. An array element
+  that names a variant is a tag test inside an object pattern's field and a
+  binding at the top level of a match, in the same compiler:
+
+  ```glyph
+  match t { Sack({ items: [Black], name: n, }) => .. }
+  //     -> __m0.items[0].tag === "Black"     `[Red]` falls through  ✓
+
+  match xs { [] => .., [Black] => .., [a, ...rest] => .. }
+  //     -> const Black = __m0[0];            `[Red]` takes the arm  ✗
+  ```
+
+  The second is G130's miscompile in a third spelling: D9 says a PascalCase
+  name in pattern position is a variant reference, and the top-level array
+  chain reads it as a fresh binding. G137 wrote the correct lowering for the
+  field position and left the top-level one alone, so the compiler now carries
+  both answers.
+
+  Half of the disagreement is closed. `is_irrefutable_pattern`, the array
+  exhaustiveness predicate, had its own definition of the same word and counted
+  a PascalCase element as a binding; it is now `!Pattern::is_refutable()`, so
+  `match xs { [] => .., [Black] => .. }` is reported non-exhaustive instead of
+  being certified on the strength of the disagreement. The lowering itself is
+  untouched: routing the top-level array chain through `pattern_conditions`,
+  which is where the right answer already lives, is the fix, and it belongs with
+  G130 rather than bolted onto this release.

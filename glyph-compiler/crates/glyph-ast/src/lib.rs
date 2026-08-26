@@ -805,12 +805,12 @@ pub enum Pattern {
         args: Vec<Pattern>,
         span: Span,
     },
-    /// `{ name, email }` — object destructure. Each field binds an identifier
-    /// of the same name; renamed binding (`{ name: n }`) is recognized but
-    /// the typechecker decides semantics. A field value only ever *binds*: an
-    /// object pattern does not match field values, so a PascalCase name there
-    /// (`{ color: Black }`) is rejected by the parser (E0009) rather than read
-    /// as the renamed binding it would otherwise become.
+    /// `{ name, email }` — object destructure. The shorthand binds an
+    /// identifier of the same name; a field may instead carry any pattern
+    /// (`{ name: n }`, `{ color: Black }`, `{ left: Node({ value: v }) }`,
+    /// `{ items: [a, b] }`). A field pattern that tests a value makes the whole
+    /// object pattern refutable, so it no longer covers the variant it sits
+    /// under and the arms after it stay reachable.
     Object {
         fields: Vec<ObjectPatternField>,
         span: Span,
@@ -844,9 +844,45 @@ pub enum LiteralPattern {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectPatternField {
     pub key: Ident,
-    /// `{ name: alias }` → `binding = Some(alias)`. `{ name }` → `binding = None`.
-    pub binding: Option<Ident>,
+    /// The sub-pattern the field is matched against. `{ name }` → `None` (the
+    /// shorthand binds `name` itself). `{ name: alias }` → the renamed binding.
+    /// `{ color: Black }`, `{ left: Node({ .. }) }`, `{ items: [a, b] }` → the
+    /// nested pattern, which may test the field's value and so can fail.
+    pub pattern: Option<Pattern>,
     pub span: Span,
+}
+
+impl ObjectPatternField {
+    /// The single name this field binds when it is a plain binding: the
+    /// shorthand's own key, or the renamed identifier. `None` when the field
+    /// carries a structured or value-testing sub-pattern, which binds through
+    /// its own sub-patterns instead.
+    pub fn bound_name(&self) -> Option<&Ident> {
+        match &self.pattern {
+            None => Some(&self.key),
+            Some(Pattern::Ident { name, .. }) if !is_variant_shaped(name) => Some(name),
+            _ => None,
+        }
+    }
+
+    /// Whether matching this field can fail (see `Pattern::is_refutable`).
+    pub fn is_refutable(&self) -> bool {
+        self.pattern.as_ref().is_some_and(Pattern::is_refutable)
+    }
+}
+
+/// Whether a bare identifier in pattern position names a union variant rather
+/// than a fresh binding: a PascalCase name is a variant reference (D9).
+///
+/// The resolver and the typechecker each still carry their own copy of this
+/// check, spelled `is_constructor_shaped` (the parser's is gone). Both depend on
+/// `glyph-ast`, so this is the home they should collapse into; it is public for
+/// that reason.
+pub fn is_variant_shaped(name: &Ident) -> bool {
+    name.as_ref()
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_uppercase())
 }
 
 // ============================================================================
@@ -896,6 +932,22 @@ impl TypeExpr {
 }
 
 impl Pattern {
+    /// Whether matching this pattern against a value of its own type can fail.
+    /// A binding or `_` always matches; a literal, a variant reference, a
+    /// constructor, an array pattern and an `is T` guard all test something. An
+    /// object pattern is refutable exactly when one of its fields is.
+    pub fn is_refutable(&self) -> bool {
+        match self {
+            Pattern::Wildcard { .. } | Pattern::Else { .. } => false,
+            Pattern::Ident { name, .. } => is_variant_shaped(name),
+            Pattern::Literal { .. }
+            | Pattern::Constructor { .. }
+            | Pattern::Array { .. }
+            | Pattern::IsType { .. } => true,
+            Pattern::Object { fields, .. } => fields.iter().any(ObjectPatternField::is_refutable),
+        }
+    }
+
     pub fn span(&self) -> Span {
         match self {
             Pattern::Wildcard { span }

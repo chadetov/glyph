@@ -781,8 +781,20 @@ impl Resolver<'_> {
             Pattern::Object { fields, .. } => {
                 for f in fields {
                     // `{ name }` binds `name`; `{ name: alias }` binds `alias`.
-                    let binding_name = f.binding.clone().unwrap_or_else(|| f.key.clone());
-                    self.bind_local(binding_name, f.span);
+                    // Both bind at the *field's* span, which is the span the
+                    // typechecker keys the binding's type on. A field carrying
+                    // a structured sub-pattern (`{ color: Black }`,
+                    // `{ left: Node({ v }) }`) walks that pattern instead, so a
+                    // PascalCase name there resolves as the variant reference it
+                    // is rather than shadowing the constructor with a binding.
+                    match f.bound_name() {
+                        Some(name) => self.bind_local(name.clone(), f.span),
+                        None => {
+                            if let Some(sub) = &f.pattern {
+                                self.walk_pattern(sub);
+                            }
+                        }
+                    }
                 }
             }
             Pattern::Array { elements, rest, .. } => {

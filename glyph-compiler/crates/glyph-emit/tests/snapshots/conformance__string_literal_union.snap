@@ -39,7 +39,7 @@ export const Plan = {
 };
 
 export function label(t: Tier): string {
-  const __m0 = t;
+  const __m0 = (t as Tier);
   switch (__m0) {
     case "free": {
       return "Free";

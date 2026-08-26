@@ -67,7 +67,7 @@ export function reassigned(r: Result<number, string>): string {
 export function toggled(xs: Array<number>): boolean {
   let on = false;
   for (const x of xs) {
-    const __m3 = on;
+    const __m3 = (on as boolean);
     switch (__m3) {
       case true: {
         on = false;
@@ -100,7 +100,7 @@ export function tail(xs: Array<string>): Array<string> {
 
 export async function awaited(flag: boolean): Promise<number> {
   let n;
-  const __m5 = flag;
+  const __m5 = (flag as boolean);
   switch (__m5) {
     case true: {
       n = (await slow());
@@ -117,7 +117,7 @@ export async function awaited(flag: boolean): Promise<number> {
 
 export async function nested(flag: boolean): Promise<number> {
   return double((await (async () => {
-    const __m6 = flag;
+    const __m6 = (flag as boolean);
     switch (__m6) {
       case true: {
         return (await slow());

@@ -117,7 +117,7 @@ use glyph_ast::{
     TemplatePart, TypeExpr, UnaryOp, UnionVariant,
 };
 use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind};
-use glyph_typechecker::{Ty, TypeMap};
+use glyph_typechecker::{Primitive, Ty, TypeMap};
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap};
 use std::rc::Rc;
@@ -2667,6 +2667,99 @@ impl<'a> Emitter<'a> {
         self.types.get(expr.span()).clone()
     }
 
+    /// The TypeScript type a read of `ty` must be re-asserted to, when
+    /// TypeScript's assignment narrowing can pin it below the type Glyph gave
+    /// it. `None` when it cannot, which is every other type.
+    ///
+    /// Glyph does not narrow a binding by what was last assigned to it: `let
+    /// done = false` has type `bool` at every read, and `match done { true =>
+    /// .., false => .. }` matches over both. TypeScript narrows, and its
+    /// `boolean` is the union `true | false`, so the emitted `switch` gets a
+    /// discriminant of type `false` and rejects the `true` arm with TS2678, an
+    /// error naming a type the author never wrote, on a program Glyph itself
+    /// found nothing wrong with. A D30 string-literal union is a union the same
+    /// way, and a comparison against another member fails as TS2367 instead.
+    /// An assignment inside a callback does not re-widen it either, which is
+    /// what made the flag-set-in-a-`std/timers`-callback bridge uncompilable.
+    ///
+    /// The assertion re-states the type the checker already gave the value,
+    /// so a literal outside the union still fails where it failed before
+    /// (`m == "nope"` is still TS2367, and now names `Mode` rather than
+    /// `"fast"`). It is not a no-op, though: `as` permits a downcast, so a
+    /// value Glyph types as `bool` whose TypeScript type is `unknown` would
+    /// now pass where the `switch` used to complain; a genuine model drift
+    /// such as `string` against `bool` still errors, as TS2352 instead of
+    /// TS2678. Asserting at the *write* instead (`"nope" as Mode`) is not an
+    /// identity either, and would swallow the mismatch D30 leaves to `tsc`.
+    fn narrowable_union_ts(&self, ty: &Ty) -> Option<String> {
+        match ty {
+            Ty::Prim(Primitive::Bool) => Some("boolean".to_string()),
+            Ty::StringLiteralUnion(values) => Some(
+                values
+                    .iter()
+                    .map(|v| escape_double_quoted(v.as_str()))
+                    .collect::<Vec<_>>()
+                    .join(" | "),
+            ),
+            // A named alias keeps its name (`mode as Mode`): the emitted cast
+            // reads as the type the author declared, and the literal set stays
+            // in one place.
+            Ty::Named { path, .. } if self.named_alias_is_narrowable(ty) => {
+                Some(path.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join("."))
+            }
+            _ => None,
+        }
+    }
+
+    /// Whether a module-local `Ty::Named` aliases a type TypeScript treats as a
+    /// union: `type Mode = "fast" | "slow"` (D30), or an alias of `bool`. Walks
+    /// the same `Ty::Named` -> `TypeDecl` chain as `variant_payload_is_record`.
+    fn named_alias_is_narrowable(&self, ty: &Ty) -> bool {
+        let Ty::Named { symbol, path } = ty else {
+            return false;
+        };
+        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
+            return false;
+        };
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return false;
+        }
+        let SymbolKind::Type { decl_idx } = &sym.kind else {
+            return false;
+        };
+        let Some(Decl::Type(td)) = self.module.items.get(*decl_idx as usize) else {
+            return false;
+        };
+        match &td.body {
+            TypeExpr::StringLiteralUnion { .. } => true,
+            TypeExpr::Path { segments, .. } => {
+                segments.len() == 1 && segments[0].as_ref() == "bool"
+            }
+            _ => false,
+        }
+    }
+
+    /// One side of a `==`/`!=`, pinned back to its own type. Equality is the
+    /// second place TypeScript's stale narrowing surfaces (TS2367, "no
+    /// overlap"); see `narrowable_union_ts`. Like the `match` scrutinee, this
+    /// is a read-site pin and does not consult the other operand: `done ==
+    /// failed` between two `bool` bindings fails the same way `done == true`
+    /// does, and there is no rule under which one should compile and the other
+    /// should not. Nothing useful is suppressed, because TS2367 never fires
+    /// between two operands TypeScript types as `boolean`. A literal operand is
+    /// left alone: it has no narrowing to undo.
+    fn compared_operand(&self, e: &Expr) -> Result<String, EmitError> {
+        let rendered = self.expr(e)?;
+        if matches!(e, Expr::Bool { .. } | Expr::String { .. }) {
+            return Ok(rendered);
+        }
+        let ty = self.scrutinee_ty(e);
+        Ok(match self.narrowable_union_ts(&ty) {
+            Some(t) => format!("({rendered} as {t})"),
+            None => rendered,
+        })
+    }
+
     /// Whether an operand's type is a primitive, so `===` already means value
     /// equality for it.
     ///
@@ -3044,6 +3137,14 @@ impl<'a> Emitter<'a> {
         }
 
         let scrut = self.expr(scrutinee)?;
+        // Pin a union-typed scrutinee back to its own type before the `switch`:
+        // TypeScript would otherwise discriminate on whatever it last saw
+        // assigned to it and reject every other arm. See `narrowable_union_ts`.
+        let scrut_ty = self.scrutinee_ty(scrutinee);
+        let scrut = match self.narrowable_union_ts(&scrut_ty) {
+            Some(t) => format!("({scrut} as {t})"),
+            None => scrut,
+        };
         let m = self.fresh_temp("__m");
         self.line(&format!("const {m} = {scrut};"));
         let discriminant = if is_value_match {
@@ -4523,6 +4624,13 @@ impl<'a> Emitter<'a> {
                     let r = self.expr(right)?;
                     let bang = if matches!(op, BinOp::NotEq) { "!" } else { "" };
                     format!("({bang}__glyph_eq({l}, {r}))")
+                } else if matches!(op, BinOp::Eq | BinOp::NotEq) {
+                    format!(
+                        "({} {} {})",
+                        self.compared_operand(left)?,
+                        bin_op(*op),
+                        self.compared_operand(right)?
+                    )
                 } else {
                     format!(
                         "({} {} {})",
@@ -9002,12 +9110,18 @@ mod tests {
         );
         assert!(ts.contains("n === 1"), "got: {ts}");
         assert!(ts.contains("s === \"a\""), "got: {ts}");
-        assert!(ts.contains("b === true"), "got: {ts}");
+        // The `bool` side is pinned to its own type first: `boolean` is a union
+        // to TypeScript, so a binding it has narrowed to one member compares
+        // against the other as TS2367. See `narrowable_union_ts`. `number` and
+        // `string` are not unions and are rendered bare.
+        assert!(ts.contains("(b as boolean) === true"), "got: {ts}");
         assert!(!ts.contains("__glyph_eq"), "no helper for primitives, got: {ts}");
     }
 
     /// A local alias for a string-literal union is still a primitive
-    /// comparison, so `tier == "pro"` reads as `===` in the output.
+    /// comparison, so `tier == "pro"` reads as `===` in the output. The alias
+    /// is re-asserted first (`t as Tier`) because a union is what TypeScript
+    /// narrows; see `narrowable_union_ts`.
     #[test]
     fn equality_on_a_string_literal_alias_stays_strict() {
         let ts = emit(
@@ -9015,7 +9129,7 @@ mod tests {
              pub type Tier = \"free\" | \"pro\"\n\
              pub fn paid(t: Tier) -> bool { return t == \"pro\" }\n",
         );
-        assert!(ts.contains("t === \"pro\""), "got: {ts}");
+        assert!(ts.contains("(t as Tier) === \"pro\""), "got: {ts}");
         assert!(!ts.contains("__glyph_eq"), "got: {ts}");
     }
 

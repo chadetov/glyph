@@ -1,0 +1,74 @@
+// fs_model — the payload every tree node carries, and the JSON shape the
+// fixture is read from.
+//
+// `Kind` is tracked independently of which `Tree` variant a node is (`Leaf`
+// vs `Dir`): the zipper's own shape already tells you structurally whether a
+// node has children, but `Kind` is carried on the payload itself so display
+// code can read "is this a file or a directory" off the value without also
+// pattern-matching the tree shape it came from.
+
+module fs_model
+
+import std/array
+import std/result { Result, Ok, Err, all }
+import tree { Tree, Leaf, Dir }
+
+pub type Kind =
+  | File
+  | Directory
+
+// A file's byte size can never be negative. The refinement is validated at
+// the boundary: `FileSize.parse` rejects a negative or non-integer value
+// wherever the type appears, including here, two levels down inside
+// `Payload`.
+pub type FileSize = int where value >= 0
+
+pub type Payload = { name: string, kind: Kind, size: FileSize }
+
+// The JSON shape the fixture file is read in as. Deliberately not generic
+// and not `Tree<Payload>` itself: the fixture is untrusted input with a
+// fixed shape, while `Tree<T>` is the in-memory structure the zipper
+// navigates. `from_fixture` is the one place that bridges them.
+pub type FixtureNode = { name: string, kind: string, size: int, children: Array<FixtureNode> }
+
+fn kind_of(raw: string) -> Result<Kind, string> {
+  return match raw {
+    "file" => Ok(File),
+    "directory" => Ok(Directory),
+    else => Err("unknown kind `${raw}` (expected `file` or `directory`)"),
+  }
+}
+
+fn size_issue(issues: Array<Issue>) -> string {
+  return issues[0].message
+}
+
+pub fn from_fixture(node: FixtureNode) -> Result<Tree<Payload>, string> {
+  let kind = kind_of(node.kind)?
+  // Validated at the boundary even though the source is a JSON fixture, not
+  // a network request: `FileSize`'s own descriptor is what rejects a
+  // negative size, wherever the untrusted value entered from.
+  let size = FileSize.parse(node.size).map_err(size_issue)?
+  let payload = { name: node.name, kind: kind, size: size }
+  return match kind {
+    File => Ok(Leaf(payload)),
+    Directory => match all(array.map(node.children, from_fixture)) {
+      Err(message) => Err(message),
+      Ok(children) => Ok(Dir({ value: payload, children: children })),
+    },
+  }
+}
+
+pub fn kind_marker(k: Kind) -> string {
+  return match k {
+    File => "-",
+    Directory => "d",
+  }
+}
+
+pub fn describe(p: Payload) -> string {
+  return match p.kind {
+    Directory => "${kind_marker(p.kind)} ${p.name}/",
+    File => "${kind_marker(p.kind)} ${p.name} (${number.to_string(p.size)}b)",
+  }
+}

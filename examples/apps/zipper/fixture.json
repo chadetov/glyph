@@ -1,0 +1,25 @@
+{
+  "name": "root",
+  "kind": "directory",
+  "size": 0,
+  "children": [
+    {
+      "name": "docs",
+      "kind": "directory",
+      "size": 0,
+      "children": [
+        { "name": "readme.txt", "kind": "file", "size": 128, "children": [] },
+        { "name": "notes.txt", "kind": "file", "size": 64, "children": [] }
+      ]
+    },
+    {
+      "name": "src",
+      "kind": "directory",
+      "size": 0,
+      "children": [
+        { "name": "main.glyph", "kind": "file", "size": 512, "children": [] }
+      ]
+    },
+    { "name": "todo.txt", "kind": "file", "size": 32, "children": [] }
+  ]
+}

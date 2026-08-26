@@ -1,0 +1,143 @@
+// tree — a generic rose tree and a Huet zipper over it.
+//
+// `Tree<T>` is a self-referential tagged union: a leaf carries a bare value,
+// a directory carries its own value plus an array of children (rather than
+// exactly two, so this is a rose tree, not a binary tree). `Crumb<T>`
+// records what a `down` move left behind — the parent's own value, and the
+// children to its left and right of the one just entered — so `up` rebuilds
+// the parent from the crumb instead of re-walking from the root. A
+// `Zipper<T>` bundles the current focus with the stack of crumbs collected
+// on the way down.
+
+module tree
+
+import std/array
+import std/option { Some, None }
+import std/result { Result, Ok, Err }
+
+pub type Tree<T> =
+  | Leaf(T)
+  | Dir({ value: T, children: Array<Tree<T>> })
+
+pub type Crumb<T> = { parent_value: T, left: Array<Tree<T>>, right: Array<Tree<T>> }
+
+pub type Zipper<T> = { focus: Tree<T>, crumbs: Array<Crumb<T>> }
+
+// Illegal moves against the zipper. `at` carries the payload of the node the
+// caller tried to descend into, so a message can name what was actually
+// there.
+pub type NavError<T> =
+  | NotADirectory({ at: T })
+  | AtRoot
+  | NoSuchChild({ index: int })
+
+pub fn start<T>(root: Tree<T>) -> Zipper<T> {
+  return { focus: root, crumbs: [] }
+}
+
+// Move into the child at `index` of the current focus. Fails if the focus is
+// a leaf, or if `index` is out of range.
+pub fn down<T>(z: Zipper<T>, index: int) -> Result<Zipper<T>, NavError<T>> {
+  return match z.focus {
+    Leaf(v) => Err(NotADirectory({ at: v })),
+    Dir({ value, children }) => match array.get(children, index) {
+      None => Err(NoSuchChild({ index: index })),
+      Some(target) => {
+        let crumb = { parent_value: value, left: array.slice(children, 0, index), right: array.slice(children, index + 1) }
+        Ok({ focus: target, crumbs: array.push(z.crumbs, crumb) })
+      },
+    },
+  }
+}
+
+// Move back to the parent, splicing the focus back into its recorded
+// position among its siblings. Fails at the root, where there is no crumb to
+// climb.
+pub fn up<T>(z: Zipper<T>) -> Result<Zipper<T>, NavError<T>> {
+  return match array.len(z.crumbs) == 0 {
+    true => Err(AtRoot),
+    false => {
+      let last = array.len(z.crumbs) - 1
+      match array.get(z.crumbs, last) {
+        None => Err(AtRoot),
+        Some(crumb) => {
+          let children = array.concat(array.push(crumb.left, z.focus), crumb.right)
+          let parent = Dir({ value: crumb.parent_value, children: children })
+          Ok({ focus: parent, crumbs: array.slice(z.crumbs, 0, last) })
+        },
+      }
+    },
+  }
+}
+
+// Replace the value at the current focus, leaving the crumb trail alone.
+pub fn modify<T>(z: Zipper<T>, f: fn(Tree<T>) -> Tree<T>) -> Zipper<T> {
+  return { focus: f(z.focus), crumbs: z.crumbs }
+}
+
+// Climb every remaining crumb and return the whole reconstructed tree. An
+// edit made at the focus is only visible here once every crumb above it has
+// been rebuilt.
+pub fn top<T>(z: Zipper<T>) -> Tree<T> {
+  return match array.len(z.crumbs) == 0 {
+    true => z.focus,
+    false => match up(z) {
+      Ok(parent) => top(parent),
+      Err(_) => z.focus,
+    },
+  }
+}
+
+// Remove the current focus outright: climb one crumb, but leave the old
+// focus out of the reconstructed children rather than splicing it back in.
+// Fails at the root, which has no parent to remove it from.
+pub fn remove_focus<T>(z: Zipper<T>) -> Result<Zipper<T>, NavError<T>> {
+  return match array.len(z.crumbs) == 0 {
+    true => Err(AtRoot),
+    false => {
+      let last = array.len(z.crumbs) - 1
+      match array.get(z.crumbs, last) {
+        None => Err(AtRoot),
+        Some(crumb) => {
+          let parent = Dir({ value: crumb.parent_value, children: array.concat(crumb.left, crumb.right) })
+          Ok({ focus: parent, crumbs: array.slice(z.crumbs, 0, last) })
+        },
+      }
+    },
+  }
+}
+
+// The value carried at a tree node, regardless of whether it is a leaf or a
+// directory.
+pub fn value_of<T>(t: Tree<T>) -> T {
+  return match t {
+    Leaf(v) => v,
+    Dir({ value, children: _ }) => value,
+  }
+}
+
+// A depth-first rendering of a whole tree, one line per node, indented two
+// spaces per level. `describe` turns a node's own value into the text for
+// its line; the caller decides what a leaf's line looks like versus a
+// directory's by inspecting the payload it gets handed.
+fn join_lines(lines: Array<string>) -> string {
+  return array.fold(lines, "", fn(acc: string, line: string) -> string {
+    return match acc == "" {
+      true => line,
+      false => "${acc}\n${line}",
+    }
+  })
+}
+
+pub fn render<T>(t: Tree<T>, describe: fn(T) -> string, indent: string) -> string {
+  return match t {
+    Leaf(v) => "${indent}${describe(v)}",
+    Dir({ value, children }) => {
+      let header = "${indent}${describe(value)}"
+      let child_indent = "${indent}  "
+      let lines = array.map(children, fn(c: Tree<T>) -> string { return render(c, describe, child_indent) })
+      let body = join_lines(lines)
+      "${header}\n${body}"
+    },
+  }
+}

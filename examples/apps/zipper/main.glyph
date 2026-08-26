@@ -1,0 +1,390 @@
+// zipper — a CLI virtual filesystem shell.
+//
+// Loads a directory tree from a JSON fixture, then replays a script of
+// cd/up/mkdir/touch/rm/ls lines against it, printing the reconstructed tree
+// after every edit. Navigation goes through a Huet zipper (`tree.glyph`): a
+// `down` move only ever touches the crumb it pushes, and `up`/`top`
+// reconstitute an ancestor from its crumb instead of re-walking from the
+// root, so an edit at the focus is invisible outside it until the script
+// climbs back out.
+//
+// Run it from this directory so the default paths resolve:
+//   cd examples/apps/zipper && glyph run main.glyph
+// or pass explicit paths:
+//   glyph run main.glyph path/to/fixture.json path/to/script.txt
+
+module main
+
+import std/array
+import std/fs
+import std/json
+import std/io
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+import tree {
+  Tree,
+  Leaf,
+  Dir,
+  Zipper,
+  NavError,
+  NotADirectory,
+  AtRoot,
+  NoSuchChild,
+  start,
+  down,
+  up,
+  modify,
+  top,
+  remove_focus,
+  value_of,
+  render,
+}
+import fs_model { File, Directory, FileSize, Payload, FixtureNode, from_fixture, describe }
+
+// ---------------------------------------------------------------------------
+// Commands and their errors
+// ---------------------------------------------------------------------------
+
+type Command =
+  | Cd({ name: string })
+  | Up
+  | Mkdir({ name: string })
+  | Touch({ name: string, size: string })
+  | Rm({ name: string })
+  | Ls
+
+type ParseError =
+  | Blank
+  | UnknownCommand({ name: string })
+  | MissingArg({ command: string, arg: string })
+
+// Illegal moves against the loaded filesystem. `Nav` wraps the zipper's own
+// structural errors (cd into a file, up/rm at the root); the rest are this
+// CLI's own vocabulary for a name that does not resolve the way the command
+// expected.
+type AppError =
+  | Nav({ error: NavError<Payload> })
+  | NotFound({ name: string })
+  | AlreadyExists({ name: string })
+  | InvalidSize({ value: string, reason: string })
+
+fn words(line: string) -> Array<string> {
+  return array.filter(string.split(string.trim(line), " "), fn(w: string) -> bool { return w != "" })
+}
+
+fn parse_command(line: string) -> Result<Command, ParseError> {
+  let trimmed = string.trim(line)
+  return match string.starts_with(trimmed, "#") {
+    true => Err(Blank),
+    false => match words(trimmed) {
+      [] => Err(Blank),
+      ["ls", ..._] => Ok(Ls),
+      ["up", ..._] => Ok(Up),
+      ["cd", name, ..._] => Ok(Cd({ name: name })),
+      ["cd"] => Err(MissingArg({ command: "cd", arg: "name" })),
+      ["mkdir", name, ..._] => Ok(Mkdir({ name: name })),
+      ["mkdir"] => Err(MissingArg({ command: "mkdir", arg: "name" })),
+      ["touch", name, size, ..._] => Ok(Touch({ name: name, size: size })),
+      ["touch", name] => Err(MissingArg({ command: "touch", arg: "size" })),
+      ["touch"] => Err(MissingArg({ command: "touch", arg: "name" })),
+      ["rm", name, ..._] => Ok(Rm({ name: name })),
+      ["rm"] => Err(MissingArg({ command: "rm", arg: "name" })),
+      [name, ..._] => Err(UnknownCommand({ name: name })),
+    },
+  }
+}
+
+fn format_parse_error(e: ParseError) -> string {
+  return match e {
+    Blank => "",
+    UnknownCommand({ name }) => "unknown command `${name}` (try cd/up/mkdir/touch/rm/ls)",
+    MissingArg({ command, arg }) => "`${command}` needs a ${arg}",
+  }
+}
+
+// The generic navigator's own two illegal moves, matched exhaustively at
+// this CLI boundary and given fixture-specific wording.
+fn format_nav_error(e: NavError<Payload>) -> string {
+  return match e {
+    NotADirectory({ at }) => "`${at.name}` is not a directory",
+    AtRoot => "already at the root; there is nothing above it",
+    NoSuchChild({ index }) => "no child at index ${number.to_string(index)}",
+  }
+}
+
+fn format_app_error(e: AppError) -> string {
+  return match e {
+    Nav({ error }) => format_nav_error(error),
+    NotFound({ name }) => "no such entry: `${name}`",
+    AlreadyExists({ name }) => "`${name}` already exists here",
+    InvalidSize({ value, reason }) => "bad size `${value}`: ${reason}",
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Payload-specific tree operations. The zipper itself (tree.glyph) knows
+// nothing about names; everything here is "find the child called `name`"
+// glue on top of it, instantiated at `Payload`.
+// ---------------------------------------------------------------------------
+
+fn child_name(t: Tree<Payload>) -> string {
+  return match t {
+    Leaf(v) => v.name,
+    Dir({ value, children: _ }) => value.name,
+  }
+}
+
+fn index_of_name(children: Array<Tree<Payload>>, name: string, i: int) -> Option<int> {
+  return match array.get(children, i) {
+    None => None,
+    Some(c) => match child_name(c) == name {
+      true => Some(i),
+      false => index_of_name(children, name, i + 1),
+    },
+  }
+}
+
+fn add_child(z: Zipper<Payload>, child: Tree<Payload>) -> Result<Zipper<Payload>, AppError> {
+  let name = child_name(child)
+  return match z.focus {
+    Leaf(v) => Err(Nav({ error: NotADirectory({ at: v }) })),
+    Dir({ value: _, children }) => match index_of_name(children, name, 0) {
+      Some(_) => Err(AlreadyExists({ name: name })),
+      None => Ok(modify(z, fn(node: Tree<Payload>) -> Tree<Payload> {
+        return match node {
+          Leaf(v2) => Leaf(v2),
+          Dir({ value: v2, children: cs }) => Dir({ value: v2, children: array.push(cs, child) }),
+        }
+      })),
+    },
+  }
+}
+
+fn remove_named(z: Zipper<Payload>, name: string) -> Result<Zipper<Payload>, AppError> {
+  return match z.focus {
+    Leaf(v) => Err(Nav({ error: NotADirectory({ at: v }) })),
+    Dir({ value: _, children }) => match index_of_name(children, name, 0) {
+      None => Err(NotFound({ name: name })),
+      Some(_) => Ok(modify(z, fn(node: Tree<Payload>) -> Tree<Payload> {
+        return match node {
+          Leaf(v2) => Leaf(v2),
+          Dir({ value: v2, children: cs }) => Dir({
+            value: v2,
+            children: array.filter(cs, fn(c: Tree<Payload>) -> bool { return child_name(c) != name }),
+          }),
+        }
+      })),
+    },
+  }
+}
+
+// "." removes the current directory itself (the generic `remove_focus`,
+// which fails with `AtRoot` when there is nothing above it to remove it
+// from); any other name removes that named child of the current directory.
+fn rm_target(z: Zipper<Payload>, target: string) -> Result<Zipper<Payload>, AppError> {
+  return match target == "." {
+    true => match remove_focus(z) {
+      Ok(z2) => Ok(z2),
+      Err(e) => Err(Nav({ error: e })),
+    },
+    false => remove_named(z, target),
+  }
+}
+
+fn cd_named(z: Zipper<Payload>, name: string) -> Result<Zipper<Payload>, AppError> {
+  return match z.focus {
+    Leaf(v) => Err(Nav({ error: NotADirectory({ at: v }) })),
+    Dir({ value: _, children }) => match index_of_name(children, name, 0) {
+      None => Err(NotFound({ name: name })),
+      Some(idx) => match down(z, idx) {
+        Ok(z2) => Ok(z2),
+        Err(e) => Err(Nav({ error: e })),
+      },
+    },
+  }
+}
+
+fn up_dir(z: Zipper<Payload>) -> Result<Zipper<Payload>, AppError> {
+  return match up(z) {
+    Ok(z2) => Ok(z2),
+    Err(e) => Err(Nav({ error: e })),
+  }
+}
+
+fn parse_size(raw: string) -> Result<FileSize, string> {
+  return match number.parse(raw) {
+    Err(_) => Err("`${raw}` is not a number"),
+    Ok(n) => match FileSize.parse(n) {
+      Ok(v) => Ok(v),
+      Err(issues) => Err(issues[0].message),
+    },
+  }
+}
+
+fn current_name(z: Zipper<Payload>) -> string {
+  return value_of(z.focus).name
+}
+
+// ---------------------------------------------------------------------------
+// Printing
+// ---------------------------------------------------------------------------
+
+fn print_tree(z: Zipper<Payload>) -> void {
+  io.println(render(top(z), describe, ""))
+}
+
+fn print_listing(z: Zipper<Payload>) -> void {
+  match z.focus {
+    Leaf(v) => { io.println(describe(v)) },
+    Dir({ value, children }) => {
+      io.println(describe(value))
+      for child in children {
+        io.println("  ${describe(value_of(child))}")
+      }
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Executing one command
+// ---------------------------------------------------------------------------
+
+fn execute(z: Zipper<Payload>, command: Command) -> Zipper<Payload> {
+  return match command {
+    Ls => {
+      print_listing(z)
+      z
+    },
+    Up => match up_dir(z) {
+      Ok(z2) => {
+        io.println("up -> ${current_name(z2)}")
+        z2
+      },
+      Err(e) => {
+        io.println("error: ${format_app_error(e)}")
+        z
+      },
+    },
+    Cd({ name }) => match cd_named(z, name) {
+      Ok(z2) => {
+        io.println("cd ${name} -> ${current_name(z2)}")
+        z2
+      },
+      Err(e) => {
+        io.println("error: ${format_app_error(e)}")
+        z
+      },
+    },
+    Mkdir({ name }) => match add_child(z, Dir({ value: { name: name, kind: Directory, size: 0 }, children: [] })) {
+      Ok(z2) => {
+        print_tree(z2)
+        z2
+      },
+      Err(e) => {
+        io.println("error: ${format_app_error(e)}")
+        z
+      },
+    },
+    Touch({ name, size }) => match parse_size(size) {
+      Err(reason) => {
+        io.println("error: ${format_app_error(InvalidSize({ value: size, reason: reason }))}")
+        z
+      },
+      Ok(sz) => match add_child(z, Leaf({ name: name, kind: File, size: sz })) {
+        Ok(z2) => {
+          print_tree(z2)
+          z2
+        },
+        Err(e) => {
+          io.println("error: ${format_app_error(e)}")
+          z
+        },
+      },
+    },
+    Rm({ name }) => match rm_target(z, name) {
+      Ok(z2) => {
+        print_tree(z2)
+        z2
+      },
+      Err(e) => {
+        io.println("error: ${format_app_error(e)}")
+        z
+      },
+    },
+  }
+}
+
+fn run_line(z: Zipper<Payload>, raw_line: string) -> Zipper<Payload> {
+  return match parse_command(raw_line) {
+    Err(Blank) => z,
+    Err(e) => {
+      io.println("error: ${format_parse_error(e)}")
+      z
+    },
+    Ok(command) => execute(z, command),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+async fn load_fixture(path: string) -> Result<Tree<Payload>, string> {
+  return match await fs.read_text(path) {
+    Err(e) => Err("cannot read ${path}: ${e.message}"),
+    Ok(text) => match json.parse<FixtureNode>(text) {
+      Err(issues) => Err("cannot parse ${path}: ${issues[0].message}"),
+      Ok(node) => from_fixture(node),
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+async fn main(argv: Array<string>) -> number {
+  let fixture_path = match array.get(argv, 0) {
+    Some(p) => p,
+    None => "fixture.json",
+  }
+  let script_path = match array.get(argv, 1) {
+    Some(p) => p,
+    None => "script.txt",
+  }
+
+  let root = match await load_fixture(fixture_path) {
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      return 1
+    },
+    Ok(t) => t,
+  }
+
+  let script_text = match await fs.read_text(script_path) {
+    Err(e) => {
+      io.eprintln("error: cannot read ${script_path}: ${e.message}")
+      return 1
+    },
+    Ok(text) => text,
+  }
+
+  io.println("loaded tree:")
+  print_tree(start(root))
+
+  let lines = string.split(script_text, "\n")
+  let current = start(root)
+  for line in lines {
+    let trimmed = string.trim(line)
+    match trimmed == "" || string.starts_with(trimmed, "#") {
+      true => void,
+      false => {
+        io.println("")
+        io.println("> ${line}")
+        mut current = run_line(current, line)
+      },
+    }
+  }
+  return 0
+}

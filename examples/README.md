@@ -8,10 +8,10 @@ The whole directory builds in one command:
 glyph build examples --out /tmp/out
 ```
 
-Each of the nineteen directories under `apps/` (`auth_api`, `chat`,
+Each of the twenty directories under `apps/` (`auth_api`, `chat`,
 `collections`, `csvql`, `depsolve`, `diff3`, `discord`, `feeds`, `i18n`,
 `intake`, `jobq`, `minilang`, `pulse`, `resilient`, `sheet`, `sitegen`,
-`watchrun`, `webhook_ingress`, `workflow`) is a program of its own whose
+`watchrun`, `webhook_ingress`, `workflow`, `zipper`) is a program of its own whose
 modules import each other by bare name, so each one carries a `package.json`
 with a `"glyph"` key. That marker makes the directory its own module-resolution root (D41), so
 `import catalog` inside `apps/csvql` finds `apps/csvql/catalog.glyph` no matter
@@ -93,6 +93,7 @@ by `scripts/check_apps_are_glyph.py`.
 | `watchrun` | Dev-loop tool: watch a directory, debounce a burst, run a command | The `minimatch` npm package, child-process spawn, streamed stdout |
 | `webhook_ingress` | HTTP service that verifies inbound webhooks and serves an admin page | HMAC-SHA256 signatures, a bounded per-source history |
 | `workflow` | State-machine runner over a JSON definition | Wire/domain type split, optional fields, exhaustive transitions |
+| `zipper` | CLI shell over a virtual filesystem, navigated by a Huet zipper | A generic rose tree, a zipper that rebuilds the path on every move, illegal moves as values |
 
 ## `corpus/` — self-contained regression programs
 

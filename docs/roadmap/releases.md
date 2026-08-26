@@ -4271,6 +4271,25 @@ What is deliberately not in it: usefulness over a product of fields. Proving
 is a decision-tree question, not a tag-set one. When it lands it accepts strictly
 more programs and rejects none that compile after this release.
 
+G139 rides with it, and it is the half of the cross-module work that only a
+*generic* union reaches. The registry answers a payload's storage across a module
+boundary, but the type handed to it was the type as written at the match, and for
+`Tree<Payload>` imported from a sibling module that is `Ty::App { base:
+Ty::Imported }`: the application, not the union. Every arm fell past all four
+proofs `payload_shape` has and came back undecidable, which is refused rather
+than guessed, so a match over an imported generic union was rejected whole even
+though the checker had resolved it. Neither half showed it alone: a local generic
+union's base is a declaration this module can read, and an imported non-generic
+one is a bare `Ty::Imported`, which proves boxed by itself. `payload_shape` now
+unwraps the application first, the way its two neighbours already do. The unwrap
+is load-bearing for any imported generic union under a nested pattern, recursive
+or not: a two-variant non-recursive control declared in a sibling module fails
+with the same E0300 on the same arm without it. It shipped in `04bf826` with
+G137, which is also the commit that made the reproducing spelling (a pattern in
+an object pattern's field) writable, so no released compiler ever failed this.
+What 0.1.91 adds for G139 is the coverage: delete the unwrap and exactly one of
+the 199 `glyph-cli` integration tests notices.
+
 ### 0.1.90 — Next · The nested variant that binds instead of matching
 
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
@@ -5428,6 +5447,16 @@ land here until they're assigned a release.
   limitation is untouched. Worth raising above "v1.1 deferral": it was hit twice
   in one session writing ordinary probe programs, so the frequency is higher
   than the marker suggests. The fix is a real lexer template mode.
+- **Three copies of the same `Ty::App` unwrap in the emitter.**
+  `union_variant_names`, `variant_payload_is_record`, and `payload_shape` in
+  `glyph-emit/src/lib.rs` each open by unwrapping an application to its base,
+  and `payload_shape` unwraps and then calls the other two, which unwrap again.
+  G139 is what forgetting the third copy looked like: an imported generic union
+  fell past every proof and the match was refused. The fourth caller will forget
+  too. Two candidate fixes, and the choice is open: one `fn union_base(ty: &Ty)
+  -> &Ty` that all three call, or normalise once where the checker records the
+  pattern's type so the emitter never sees the application at all. The second
+  removes the class rather than the duplication, and is the larger change.
 - **G19: no `T?` sugar over `Option<T>`.** A forward-compatible deferral, so
   adding it later changes no existing parse tree. The diagnostic already names
   the fix when someone writes `T?` in type position.

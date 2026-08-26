@@ -9437,6 +9437,88 @@ fn main() {
     assert!(stdout.contains("c=leaf"), "the else arm took the rest: {stdout}");
 }
 
+/// The same imported-union arm, but over a *generic self-referential* union
+/// instantiated at a concrete record: `Tree<T> = Leaf(T) | Dir({ value: T,
+/// children: Array<Tree<T>> })`, declared in one module and matched in
+/// another at `Tree<Payload>`. Three things have to line up at once here that
+/// the non-generic case never asks for. The emitter has to read the arm's
+/// payload shape back from the matched type rather than from the arm's
+/// syntax, that type has to survive the module boundary, and it has to survive
+/// substitution of `T` on the way. The last one is where it broke: the arm's
+/// type is `Ty::App` over `Ty::Imported`, and `payload_shape` has to unwrap the
+/// application before any of its four lookups can decide anything. That holds
+/// for any imported generic union under a nested pattern, recursive or not, and
+/// a two-variant non-recursive control fails identically without the unwrap.
+/// The recursion is here because the finding had it, and because the recursive
+/// `for` over `children` exercises the arm at depth.
+///
+/// The run half is the part worth keeping. A tag test that resolved to the
+/// wrong variant still type-checks, so the assertion is on the nesting the
+/// recursion prints, not on the build being green.
+#[test]
+fn a_generic_self_referential_imported_union_matches_at_a_concrete_type() {
+    let root = unique_tmp("genrecursive");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "tree.glyph",
+        r#"module tree
+
+pub type Tree<T> =
+  | Leaf(T)
+  | Dir({ value: T, children: Array<Tree<T>> })
+"#,
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io { println }
+import tree { Tree, Leaf, Dir }
+
+type Payload = { name: string }
+
+fn render(t: Tree<Payload>) -> string {
+  return match t {
+    Leaf({ name }) => name,
+    Dir({ value: { name }, children }) => {
+      let out = name + "["
+      for c in children {
+        mut out = out + render(c)
+      }
+      return out + "]"
+    },
+  }
+}
+
+fn main() {
+  let a: Tree<Payload> = Leaf({ name: "a", })
+  let b: Tree<Payload> = Leaf({ name: "b", })
+  let inner: Tree<Payload> = Dir({ value: { name: "i", }, children: [a, b,], })
+  let root: Tree<Payload> = Dir({ value: { name: "r", }, children: [inner,], })
+  println("tree=" + render(root))
+}
+"#,
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "a generic self-referential imported union should be matchable at a \
+         concrete instantiation: {:?}",
+        report.diagnostics
+    );
+
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(
+        stdout.contains("tree=r[i[ab]]"),
+        "each arm should take the variant it names, all the way down the \
+         recursion: {stdout}"
+    );
+}
+
 /// A match whose arms can all fail, over a scrutinee with no variant set to
 /// reason about. There is no tag to count, but there is nothing to guarantee
 /// the match produces a value either, and the emitted chain throws. The

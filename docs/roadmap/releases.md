@@ -4225,7 +4225,7 @@ here. Behind it: nothing compares the shim against `@types/node` declaration by
 declaration, and `check_runtime_against_types_node.py` only covers what the
 compiler's own runtime touches.
 
-### 0.1.89 — Next · The nested variant that binds instead of matching
+### 0.1.90 — Next · The nested variant that binds instead of matching
 
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
 where `Full` carries a user-defined union rather than a record, compiles clean,
@@ -4239,30 +4239,8 @@ reads it as a binding.
 
 *Reviewed against 0.1.86.*
 
-G132 rides along, half of it, found by an app matching an imported union
-through its namespace (`outcome.Failed(d)`) rather than a named import. A
-variant with an inline-record payload bound `const d = __m0.value;` under that
-spelling, and `.value` is never on the value: the constructor spreads the fields
-onto the tag object. The build stopped on a `tsc`-mapped TS2339 against the
-whole `match` instead of a Glyph diagnostic. The named-import spelling of the
-same declaration built clean, which makes this the emitter half of the
-divergence G73 closed in the typechecker. `variant_payload_is_record` now
-answers from the scrutinee's own `Ty::Imported` module rather than from a name
-the consumer happens to have bound, and asks that before the older by-name
-lookup rather than after: that lookup never consults what is being matched, so
-with `a.Hit` imported by name and `b.Hit(n)` matched through the namespace it
-claimed `a`'s record shape for `b`'s single value.
-
-What this does not close is the spelling most programs use. It fires only when
-the checker knows the scrutinee's type, which an annotated binding or a
-parameter gives and an inferred `let` does not: `let v = a.make()` hands the
-emitter `Ty::Unknown` and the arm still falls back to `.value` and the original
-TS2339. G132 stays half fixed with that reproduction rather than being written
-up as closed, because a two-file program still fails on the error code the
-finding was filed under.
-
-The reason is not in the emitter, and it is worth more than the arm that
-exposed it. G133: the checker has no cross-module function signature at all.
+G133 is the reason the G132 arm behaved the way it did, and it is worth more
+than the arm: the checker has no cross-module function signature at all.
 `DeclTyResolver` reaches across modules for types, unions and string-literal
 unions, and `glyph_db` exports one declaration query, `exported_type`; a `fn`
 has no counterpart, so every call into another module returns `Unknown` and
@@ -4281,36 +4259,15 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-G134 rides along, and it is a diagnostic rather than a language change. An agent
-writing a red-black tree reached for `Node(Color, Tree<K, V>, K, V, int, Tree<K, V>)`
-and got `expected ")" after variant payload, found Comma` with the help "add the
-expected token", which is advice that produces a different program. A variant
-carries one payload (D8) and a multi-field payload is a record, so the parser was
-right to refuse it and wrong about how. The payload parse now reads the whole
-comma-separated list before rejecting it, which is what lets it count, and reports
-E0010 naming the arity and the record form. The tuple payload itself stays out:
-`Node(Black, l, x, b, h, r)` is the argument-swap bug the language exists to
-prevent, and position four tells a reader nothing, which is the abstraction and
-greppability pillars in the same construct.
+### 0.1.89 — Shipped · A bool binding you can match on
 
-This depended on G129 landing first. The record payload is what the new help
-points at, and until 0.1.85 the matching half of that form miscompiled in
-silence, so the diagnostic would have recommended a spelling that gave wrong
-answers.
+Published 2026-08-26 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
 
-Review of G134 turned up two ways the first cut described a program other than
-the one on screen, both fixed here: it reported an arity of 1 (on a rule that
-allows 1) when a field in the tail did not parse, and its help was a fixed string
-recommending a four-field `Node` no matter what the author had written. The
-malformed tail now reports the inner parse error, and the help is built from the
-author's variant name and field types with the names left as `/* name */` holes.
-It also surfaced G135, the same rule contradicted at the emit stage; that one is
-in the rolling lane, since it needs a decision about which stage owns it rather
-than a patch.
-
-G136 rides along, and it is the one an application stopped on. A `bool` binding
-could not be matched: `let done = false` followed by `match done { true => ..,
-false => .. }` built clean in Glyph and then failed `tsc --strict` with
+G136, the one an application stopped on. A `bool` binding could not be matched:
+`let done = false` followed by `match done { true => .., false => .. }` built
+clean in Glyph and then failed `tsc --strict` with
 `Type 'true' is not comparable to type 'false'`. Glyph does not narrow a binding
 by what was last assigned to it; TypeScript does, and its `boolean` is the union
 `true | false`, so the emitted `switch` discriminated on a type the author never
@@ -4325,15 +4282,30 @@ own type at the read: the `match` scrutinee temporary, and either operand of a
 next to it, so `done == failed` between two `bool` bindings is covered the same
 way `done == true` is. The assertion re-states the type the checker already gave
 the value, so `m == "nope"` still errors, and now names `Mode` instead of
-`"fast"`; because `as` permits a downcast it is not a no-op, and a genuine model
-drift surfaces as TS2352 rather than TS2678. Asserting at the write instead
-would have been shorter and was rejected on purpose: `"nope" as Mode`
-type-checks where `let m: Mode = "nope"` does not, and D30 leaves that
-membership check to `tsc` by design. One spelling is still uncovered: a `bool`
-alias read through another module (`pub type Ready = bool`, then `let r:
-catalog.Ready = false`), since the emitter walks an alias body only in the
-module it is emitting. Cross-module string-literal unions are covered in all
-three import spellings, because the checker hands those over as a literal set.
+`"fast"`; because `as` permits a downcast it is not a no-op, and a model that
+has drifted far enough to matter surfaces as TS2352 rather than TS2678.
+Asserting at the write instead would have been shorter and was rejected on
+purpose: `"nope" as Mode` type-checks where `let m: Mode = "nope"` does not,
+and D30 leaves that membership check to `tsc` by design. One spelling is still
+uncovered: a `bool` alias read through another module (`pub type Ready = bool`,
+then `let r: catalog.Ready = false`), since the emitter walks an alias body
+only in the module it is emitting. Cross-module string-literal unions are
+covered in all three import spellings, because the checker hands those over as
+a literal set.
+
+Also here: `pulse`, an HTTPS uptime monitor, and the first app in the examples
+tree to use `std/dns`, `std/tls` and the `std/net` socket event API together. It
+resolves each target, dials a certificate-verified connection, writes an
+HTTP/1.1 request by hand and reads the status line back off the socket's
+callbacks, classifying every check as `DnsFailed`, `TlsFailed`, `TimedOut` or
+`Responded` and appending one JSON line per check to a history file. Turning
+those callbacks into a value an `async fn` can await is where G136 came from,
+and the app still carries the shape that provoked it: a shared
+`Option<CheckOutcome>` set by whichever callback fires first and polled with a
+short sleep, because Glyph has no `Promise` a program can construct by hand and
+`std/task` has no callback-to-promise bridge.
+
+G130 did not ship here. It is scheduled for 0.1.90 above.
 
 ### 0.1.88 — Shipped · A variant's shape comes from where it is declared
 
@@ -4372,7 +4344,7 @@ against globs from a real npm dependency, debounces, spawns a subprocess, and
 streams its output to a log while enforcing a timeout. It blocked twice before,
 on G125 and G126, and this is the round where it built with no workaround.
 
-G130 did not ship here. It is scheduled for 0.1.89 above.
+G130 did not ship here. It is scheduled for 0.1.90 above.
 
 ### 0.1.87 — Shipped · The exit code a program recorded
 
@@ -4427,7 +4399,7 @@ again. `check_plans_fresh.py` was also demanding a review stamp on the 0.1.81
 plan for a release shipped weeks earlier, because the shipped marker lives in a
 different heading; it cross-references now.
 
-G130 did not ship here. It is scheduled below.
+G130 did not ship here. It is scheduled for 0.1.90 above.
 
 ### 0.1.85 — Shipped · A TLS dial you can bound
 
@@ -5473,7 +5445,7 @@ land here until they're assigned a release.
   rejects would start compiling, and nothing that compiles today would change
   meaning. This entry covers the object-pattern form only. The
   constructor-argument form (`Full(Black)`) is not a feature request but a live
-  miscompile, filed as G130 and scheduled in 0.1.86 above.
+  miscompile, filed as G130 and scheduled in 0.1.90 above.
 - **`is_constructor_shaped` exists three times.** D9's capitalization rule is
   the hinge every pattern decision turns on, and it is copied into
   `glyph-parser/src/pat.rs`, `glyph-resolver/src/resolve.rs` and

@@ -49,8 +49,41 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.88</span>
+            <span class="rel-ver">0.1.89</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A bool binding you can match on</h3>
+            <p>A binding in Glyph has one type for the whole of its life. TypeScript narrows a binding to whatever it last saw assigned, and its <code>boolean</code> is the union <code>true | false</code>, so <code>let done = false</code> arrived at <code>tsc</code> typed <code>false</code>. Matching on it built clean in Glyph and then failed with <code>Type 'true' is not comparable to type 'false'</code>: an error about a <code>switch</code> you never wrote, on a program the Glyph checker found nothing wrong with. A string-literal union type failed the same way, and so did <code>==</code>.</p>
+            <div class="code">
+              <span class="cap">This builds now, and used to fail the tsc pass</span>
+<pre>module status
+
+fn classify() -&gt; int {
+  let done = false
+  match done {
+    true =&gt; { return 1 },
+    false =&gt; { return 0 },
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>Matching a <code>bool</code> or a string-literal union binding works.</strong> The <code>match</code> scrutinee is pinned to the type the checker gave it before the emitted <code>switch</code> sees it, so the arms have something to match. It covers a <code>let</code>, a <code>mut</code>, and a type alias of either declared in the same module.</li>
+              <li><span class="tag fixed">Fixed</span> <strong><code>==</code> and <code>!=</code> over those bindings work too.</strong> They failed as <code>TS2367</code>, "this comparison appears unintentional", which is a different message for the same cause. Each operand is pinned from its own type and ignores what sits next to it, so <code>done == failed</code> between two <code>bool</code> bindings is covered the same way <code>done == true</code> is.</li>
+              <li><span class="tag changed">Changed</span> <strong>A literal outside the union still fails, and now names the type.</strong> <code>m == "nope"</code> where <code>m</code> is a <code>Mode</code> is still rejected; the message says <code>Mode</code> rather than the one member <code>m</code> happened to hold. Fixing this at the assignment instead would have been less code and would have swallowed that check, because <code>"nope" as Mode</code> type-checks where <code>let m: Mode = "nope"</code> does not.</li>
+              <li><span class="tag added">Added</span> <strong>An uptime monitor in the examples.</strong> <code>pulse</code> resolves each target with <code>std/dns</code>, dials a certificate-verified <code>std/tls</code> connection, writes an HTTP/1.1 request by hand and reads the status line back off the socket's callbacks. Every check lands as one JSON line in a history file. It is the app that found the bug above, while turning a timer callback into a value an <code>async fn</code> can await.</li>
+              <li><span class="tag known">Known</span> <strong>A <code>bool</code> alias read through another module is not covered.</strong> <code>pub type Ready = bool</code> in one module, then <code>let r: catalog.Ready = false</code> and a <code>match</code>, still fails: the emitter follows an alias only inside the module it is emitting. String-literal unions are covered across modules in all three import spellings, because the checker hands those over as a set of literals.</li>
+              <li><span class="tag known">Known</span> <strong><code>Full(Black)</code> still miscompiles.</strong> A variant whose payload is a union rather than a record emits two <code>case "Full":</code> blocks, the first of which binds the payload instead of testing it. That is G130, and it moves to 0.1.90.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.88</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
@@ -70,7 +103,7 @@ const f = __m0;</pre>
               <li><span class="tag fixed">Fixed</span> <strong>A typo in a variant payload reports the typo.</strong> <code>Node(int, 5, int)</code> used to be reported as an arity error about a variant carrying one field, with the span shrunk to the first field and the <code>5</code> never mentioned. The payload tail now propagates the real parse error, so the arity diagnostic is reached only when every field actually read as a type.</li>
               <li><span class="tag changed">Changed</span> <strong>That arity diagnostic now quotes your own fields.</strong> Its help was a fixed string naming a different program's variant, so the message and the help could disagree about how many fields you wrote. It is built from your source now, with field names left as holes because a wrong name is worse than an obvious blank.</li>
               <li><span class="tag added">Added</span> <strong>A dev-loop tool in the examples.</strong> <code>watchrun</code> polls for changes, filters them through globs from a real npm dependency, debounces a burst into one run, spawns a subprocess, and streams its output to a log while enforcing a timeout. It blocked twice on missing language features and this is the round where it built with no workaround.</li>
-              <li><span class="tag known">Known</span> <strong><code>Full(Black)</code> still miscompiles.</strong> The same shape where the payload is a union rather than a record is G130, scheduled for 0.1.89.</li>
+              <li><span class="tag known">Known</span> <strong><code>Full(Black)</code> still miscompiles.</strong> The same shape where the payload is a union rather than a record is G130, scheduled for 0.1.90.</li>
             </ul>
           </div>
         </div>
@@ -144,7 +177,7 @@ pub fn describe(b: Box) -&gt; string {
             <ul class="changelist">
               <li><span class="tag fixed">Fixed</span> <strong>A variant name in an object pattern's field is rejected, not silently rebound.</strong> <code>E0009</code> names the field and points at the form that works. The AST has no slot for a sub-pattern inside a record field, so lowering it was never possible; what was possible was saying so instead of guessing.</li>
               <li><span class="tag changed">Changed</span> <strong>This rejects code that previously compiled.</strong> A pattern like <code>Full({ color: Black })</code> used to build and silently take the wrong arm. It is an error now. Rewrite it as <code>Full(f) =&gt; match f.color { ... }</code>, which is what it was always doing wrong.</li>
-              <li><span class="tag known">Known</span> <strong>The same shape one level up still miscompiles.</strong> <code>Full(Black)</code>, where the payload is a user-defined union rather than a record, still emits two <code>case "Full":</code> blocks whose first binds the payload. That is G130, and it is scheduled for 0.1.89.</li>
+              <li><span class="tag known">Known</span> <strong>The same shape one level up still miscompiles.</strong> <code>Full(Black)</code>, where the payload is a user-defined union rather than a record, still emits two <code>case "Full":</code> blocks whose first binds the payload. That is G130, and it is scheduled for 0.1.90.</li>
               <li><span class="tag fixed">Fixed</span> <strong>The newest release notes are compiled now.</strong> The 0.1.85 entry published a call that does not exist, because the doc gate skipped this page entirely. It skips the history still, since a 0.1.3 note documents 0.1.3, but the entry describing the current compiler is checked. The home page's version pill is checked too; it had advertised v0.1.72 for thirteen releases.</li>
             </ul>
           </div>

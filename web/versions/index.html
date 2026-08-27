@@ -49,8 +49,59 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.91</span>
+            <span class="rel-ver">0.1.92</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A derived return type survives a <code>match</code></h3>
+            <p>When a combinator&rsquo;s return type is derived from the argument you passed it, as <code>Schema&lt;infer_output&lt;Shape&gt;&gt;</code> is, the compiler inserts one cast at the return, because the body assembles a value the type system cannot prove carries the shape-derived type. The cast lived in one place, and two ways of writing a return went around it. A <code>match</code> in return position becomes a <code>switch</code> whose arms carry their own <code>return</code>, and a tail <code>E?</code> returns the unwrapped payload directly. Either one dropped the cast, so a function that compiled as <code>return { name: "object", parse: ... }</code> stopped compiling the moment a <code>match</code> sat between the <code>return</code> and the value. What you saw was a <code>TS2322</code> against the generated TypeScript, on well-formed Glyph the compiler had already accepted. Both sites go through the same return now.</p>
+            <div class="code">
+              <span class="cap">schema.glyph</span>
+<pre>module schema
+
+import std/result { Result, Ok, Err }
+
+type Schema&lt;T&gt; = {
+  name: string,
+  parse: fn(input: unknown) -&gt; Result&lt;T, string&gt;,
+}
+
+fn number_schema() -&gt; Schema&lt;number&gt; {
+  return { name: "number", parse: fn(input) {
+    match input {
+      is number =&gt; Ok(input),
+      else =&gt; Err("expected number"),
+    }
+  } }
+}
+
+fn object_schema&lt;Shape: Record&lt;string, Schema&lt;unknown&gt;&gt;&gt;(shape: Shape, strict: bool) -&gt; Schema&lt;infer_output&lt;Shape&gt;&gt; {
+  <span class="add">return match strict {
+    else =&gt; { name: "object", parse: fn(input) { Err("unimplemented") } },
+  }</span>
+}
+
+type Point = {
+  x: number,
+  y: number,
+}
+
+pub const point_schema: Schema&lt;Point&gt; = object_schema({ x: number_schema(), y: number_schema() }, true)</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A <code>match</code> in return position keeps the derived-type cast.</strong> The program above built clean and then failed <code>tsc</code> with a <code>TS2322</code>: the value the arm returned was not assignable to the shape-derived type the signature declares. Delete the <code>match</code>, return the same object directly, and it compiled. That is the tell. The cast was attached to one spelling of <code>return</code> rather than to returning, and every <code>return</code> a <code>switch</code> arm emits carries it now.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A tail <code>E?</code> does too.</strong> The other lowering that wrote its own <code>return</code>. In a function whose return type mentions <code>infer_output</code>, a body ending in <code>r?</code> returns the unwrapped <code>Ok</code> payload, and that return went out uncast for the same reason.</li>
+              <li><span class="tag added">Added</span> <strong>The corpus combinator is checked against <code>tsc</code> with a <code>match</code> in it.</strong> The end-to-end test builds <code>object_schema</code> the way an application writes it and runs <code>tsc --strict</code> over the output, so the failure this started as is what fails if it comes back. Two emitter tests pin the cast in the generated TypeScript for both lowerings.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.91</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

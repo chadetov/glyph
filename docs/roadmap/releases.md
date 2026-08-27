@@ -4347,7 +4347,7 @@ holding a constructor that carries a payload needs the compiler to know how that
 payload is stored, and there were two spellings it could not work that out for.
 The first is a union generic over its own parameter, which refused a nested arm
 the same union without the parameter accepts. The second is the namespace import
-spelling, which is what is left of G140 and sits in the 0.1.92 plan below.
+spelling, which is what is left of G140 and sits in the 0.1.93 plan below.
 
 ```glyph
 module tree
@@ -4423,7 +4423,76 @@ the implementation plan, the open questions, and the per-release entries in this
 file, where "690 tests green" is a fact about that release rather than a claim
 about now. CI runs it alongside the other gates.
 
-### 0.1.92 — Next · The nested variant that binds instead of matching
+### 0.1.92 — Shipped · The derived-type cast reaches every return
+
+The publish and the clean-npx smoke test (`--version`, the execute bit, `glyph
+init`, `npm install`, `glyph run`, and the headline feature itself) are recorded
+here once they have run.
+
+G144. D28 gives a combinator whose declared return type mentions
+`infer_output<Shape>` one compiler-inserted boundary cast, because the body
+assembles a value the type system cannot prove carries the shape-derived type.
+The cast lived in `Emitter::emit_return`, and two lowerings write a `return`
+without going through it: a `match` in return position, which becomes a `switch`
+whose arms carry their own `return`, and a tail `E?`, which returns the
+unwrapped payload directly. Either one dropped the cast, so a combinator that
+compiled as `return { name: "object", parse: ... }` stopped compiling the moment
+a `match` sat between the `return` and the value. The failure surfaced as a
+`TS2322` against the emitted TypeScript, not as a Glyph diagnostic, which is the
+worst place for it: the program is well-formed Glyph and the compiler said so.
+
+The reproduction is `examples/corpus/infer_output.glyph`'s combinator with one
+`match` sitting between its `return` and the value it already returned:
+
+```glyph
+module schema
+
+import std/result { Result, Ok, Err }
+
+type Schema<T> = {
+  name: string,
+  parse: fn(input: unknown) -> Result<T, string>,
+}
+
+fn number_schema() -> Schema<number> {
+  return { name: "number", parse: fn(input) {
+    match input {
+      is number => Ok(input),
+      else => Err("expected number"),
+    }
+  } }
+}
+
+fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape, strict: bool) -> Schema<infer_output<Shape>> {
+  return match strict {
+    else => { name: "object", parse: fn(input) { Err("unimplemented") } },
+  }
+}
+
+type Point = {
+  x: number,
+  y: number,
+}
+
+pub const point_schema: Schema<Point> = object_schema({ x: number_schema(), y: number_schema() }, true)
+```
+
+Both arm-return sites in `glyph-emit` call `emit_return` now instead of writing
+`return {v};` themselves, so the cast follows the return rather than the
+spelling. Two lines, no new mechanism. The coverage is three tests:
+`infer_output_cast_reaches_every_return_a_match_lowers_to` and
+`infer_output_cast_reaches_a_tail_try_return` pin the emitted TypeScript in
+`glyph-emit`, and `infer_output_cast_survives_a_match_in_return_position` in the
+CLI integration suite builds the corpus combinator with one `match` around its
+body and runs `tsc --strict` over the output, so the end-to-end failure this
+started as is the thing being watched.
+
+The rest of the 0.1.92 plan did not ship. G130, G138 and G140's namespace half
+moved to 0.1.93 below, unchanged.
+
+*Found by an app round. Reproduced against 0.1.91 and fixed in the same round.*
+
+### 0.1.93 — Next · The nested variant that binds instead of matching
 
 G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
 where `Full` carries a user-defined union rather than a record, compiles clean,
@@ -4466,19 +4535,6 @@ which is its own release rather than a ride-along.
 
 *Reviewed against 0.1.86; the namespace half re-reproduced against 0.1.90 with
 the G141 fix in the tree.*
-
-G144 rides with it: a different construct, the same disagreement between what a
-function declares and what its lowering emits. D28 gives a combinator whose
-return type mentions `infer_output<S>` one boundary cast, and the cast lived in
-`emit_return`. A `match` in return position lowers to a `switch` whose arms
-write their own `return`, and a tail `E?` returns the unwrapped payload the same
-way, so both dropped the cast and `examples/corpus/infer_output.glyph`'s
-`object_schema` stopped compiling the moment one `match` sat between `return`
-and the value. Both sites call `emit_return` now, so the cast follows the return
-rather than the spelling. Small enough to ride along; it touches two lines and
-adds no new mechanism.
-
-*Reproduced against 0.1.91 and fixed in the same round.*
 
 G133 is the reason the G132 arm behaved the way it did, and it is worth more
 than the arm: the checker has no cross-module function signature at all.
@@ -4546,7 +4602,7 @@ and the app still carries the shape that provoked it: a shared
 short sleep, because Glyph has no `Promise` a program can construct by hand and
 `std/task` has no callback-to-promise bridge.
 
-G130 did not ship here. It is scheduled for 0.1.92 above.
+G130 did not ship here. It is scheduled for 0.1.93 above.
 
 ### 0.1.88 — Shipped · A variant's shape comes from where it is declared
 
@@ -4585,7 +4641,7 @@ against globs from a real npm dependency, debounces, spawns a subprocess, and
 streams its output to a log while enforcing a timeout. It blocked twice before,
 on G125 and G126, and this is the round where it built with no workaround.
 
-G130 did not ship here. It is scheduled for 0.1.92 above.
+G130 did not ship here. It is scheduled for 0.1.93 above.
 
 ### 0.1.87 — Shipped · The exit code a program recorded
 
@@ -4640,7 +4696,7 @@ again. `check_plans_fresh.py` was also demanding a review stamp on the 0.1.81
 plan for a release shipped weeks earlier, because the shipped marker lives in a
 different heading; it cross-references now.
 
-G130 did not ship here. It is scheduled for 0.1.92 above.
+G130 did not ship here. It is scheduled for 0.1.93 above.
 
 ### 0.1.85 — Shipped · A TLS dial you can bound
 

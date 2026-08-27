@@ -250,6 +250,140 @@ are bugs versus working-as-designed.
 
 ---
 
+
+### Q45. A machine-readable semantic model, and what agents can ask it
+
+**New question, and the concrete form of a decision already taken.** Q32 resolved
+as "Option C: LSP exposes virtual agent view." That settled the shape of the
+answer without settling what the view contains, how it is built, or how an agent
+finds it. This is that question.
+
+**What is being asked.** Should the compiler expose its own understanding of a
+program as a queryable semantic model, should MCP be its primary external
+interface, and should a project advertise that interface at the point of use?
+
+**Why it is worth answering.** The usual argument for a code graph is that an
+agent gets more context. That is the weak version and it is not very
+interesting, because an agent with `grep` already gets context. The strong
+version is closure. A compiler-backed answer lets an agent stop looking, because
+the answer is complete by construction. "These are the 17 call sites, and they
+are all of them, because the compiler resolved every one to emit the program" is
+a different kind of claim from "these are 17 matches I found." Only the first
+lets an agent stop guessing, and guessing is what produces code a reviewer
+cannot trust.
+
+**The evidence, and its limit.** Twenty-nine sites in this compiler unwrap
+`Ty::App` to its base. Four consecutive gaps, G139, G141, G142 and G143, were
+each one of those sites not doing it. Four releases, one bug shape, every fix
+correct and incomplete at once. The limit: this compiler is Rust, so a Glyph
+semantic model would not have caught them. It is an analogy, and a sharp one. If
+the people who wrote the language hit "fixed one site, missed its siblings" four
+times running with full context, someone writing Glyph through an agent will hit
+it constantly, and a coverage query is what answers it.
+
+**The architectural constraint, which outranks every feature below.** The
+semantic view is a projection of the compiler's semantic model and never a
+second parser. A view that re-derives meaning from source drifts from the
+compiler that has to be right, and then two things disagree about what a program
+means.
+
+**What already exists, checked rather than assumed.**
+
+- `SymbolId` and `SymbolKind` in `glyph-resolver/src/symbol.rs`. Symbols already
+  have stable identity across resolver and typechecker.
+- Salsa tracked queries including `parse_module`, `module_symbols`, `resolve`,
+  `resolved_decl`, `decl_ty`, `decl_ast`, `type_map`, `module_exports`,
+  `project_exports`, `exported_type`.
+- LSP: hover, definition, references, rename, document and workspace symbols.
+- MCP: `glyph_diagnostics`, `glyph_hover`, `glyph_definition`,
+  `glyph_references`, `glyph_symbols`.
+- `web/llms.txt`, which is 1104 lines and names `glyph mcp [root]` alongside all
+  five tools and the 0-based UTF-16 position convention. `glyph llms` reprints it
+  offline. This part is done well.
+
+**What does not exist, also checked.** Only symbols carry identity. There is no
+`TypeId`, `ModuleId` or `ScopeId`.
+
+**The first finding that reorders everything: MCP bypasses the incremental
+engine.** `glyph-lsp/src/mcp.rs` contains no reference to the salsa database at
+all. It calls `analyze_full` on raw file text and walks `workspace_files` per
+request, so `glyph_references` re-analyzes every file in the project on every
+call. Against the 174-file examples tree that is 174 full analyses to answer one
+question. The compiler computes these facts once and incrementally; MCP throws
+that away and recomputes them from source. This matters more than any query on
+the wishlist, because every query worth adding is multi-file. Reachability,
+dependency direction and impact all multiply a workspace rescan, so each one
+added to the current path is built expensive and has to be moved later.
+
+**The second: nothing advertises the interface at the point of use.** `glyph
+init` scaffolds four files, `.gitignore`, `package.json`, `src/main.glyph` and
+`src/.types/README.md`, and not one of them mentions MCP. The root `README.md`
+does not mention it at all; the npm README mentions it once. So an agent dropped
+into a Glyph project sees a manifest and a source file, is told nothing about a
+compiler-backed analysis server, and reaches for `grep`, which is the tool in
+front of it. Everything written above about closure is unreachable if the agent
+never learns the interface exists. Discovery is not marketing here, it is the
+first half of the feature, and it is also a precondition for the measurement at
+the end of this entry: a query nobody calls cannot be shown to help.
+
+**The phases, in dependency order.**
+
+0. Write the projection constraint into the spec. One paragraph, and it
+   forecloses the future where an indexer and the compiler disagree.
+1. **Advertise the interface where the work happens.** `glyph init` writes an
+   `.mcp.json` pointing at `glyph mcp`, which is the config Claude Code, Cursor
+   and others already auto-detect, and a short `AGENTS.md` naming the five tools
+   and saying when to prefer them over searching. Add a paragraph to the root
+   README. Cheap, independent of everything below, and it is what turns the rest
+   of this from a capability into a used capability.
+2. **Route MCP through salsa.** One semantic query boundary that both LSP and MCP
+   call, backed by the tracked queries that already exist, so an edit invalidates
+   and recomputes only what changed instead of triggering a full rescan. This is
+   the gating item; everything after it is cheap or expensive depending on
+   whether it happened first.
+3. Extend identity to the entities that need it: `TypeId`, `ModuleId`, `ScopeId`
+   alongside the existing `SymbolId`. Earns its place independently, because a
+   diagnostic can then name a thing rather than a rendered string.
+4. First-class `CALLS`, distinct from `REFERENCES`, and the dependency direction
+   queries: callers, callees, dependents, dependencies. No new analysis;
+   resolution already computes the underlying facts.
+5. **Provenance on every fact, and it ships with 4.** Each answer carries where
+   the fact came from and whether the compiler can stand behind it: proven by
+   the compiler, read from source, asserted by an external `.d.ts` or npm
+   package, or observed at runtime later. This is the mechanism for the thing
+   that would otherwise sink the feature: an impact answer that stops silently at
+   the TypeScript boundary is a green build that proves nothing, which this
+   project treats as worse than being wrong. Provenance makes the edge of the
+   compiler's knowledge a queryable fact rather than an omission.
+6. Coverage and impact, scoped to what is derivable. "Where is `T` matched, and
+   which variants does each site handle" is the query that kills the bug class
+   above. Reads, writes, parameters and type conflicts follow from the model. A
+   database mapping or a serialization path does not, and reporting one anyway
+   manufactures exactly the false confidence provenance exists to prevent.
+7. `explain` with structured reasons. `--explain E0300` is static prose per code
+   today. Site-specific explanation means diagnostics carry structured facts
+   rather than rendered strings, which is a real refactor and belongs last.
+
+**How the claim is falsified.** Thor's agents are the target user, so the loop
+already running is the experiment, and phase 1 is what makes the experiment
+possible: until a project advertises the interface, an agent's failure to use it
+says nothing about whether it helps. Baseline from the tick ledger: the fix lane
+is 59.6% of all agent-minutes, one gap took four review rounds and about six
+hours, another took seventy-five minutes. If semantic queries help an agent write
+better code, minutes per closed gap should fall. If they do not move, that is
+worth learning before phase 6 rather than after it.
+
+**Deferred, and not as later phases.** A runtime overlay pairing static structure
+with observed execution is a different product with its own collection and
+privacy surface. A graph database, embeddings and retrieval are consumers of this
+foundation and must not shape it. Provenance already reserves a slot for runtime
+facts, which is the correct amount of accommodation to make now.
+
+**Not a 1.0 blocker.** The 1.0 gate is interop and this competes with it for the
+same attention. Phases 0 through 3 are cheap and architectural, phase 1 is close
+to free, and phase 2 gets cheaper the sooner it happens, because every query
+added to the current MCP path is another thing to move later.
+
 ## Blockers for step 4 (transpiler)
 
 ### Q1. Is `infer_output<Shape>` v1 or v2?

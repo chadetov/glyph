@@ -6223,6 +6223,104 @@ parses, sub-nav consistent) and nothing checks *claims*. The two fixed cases wer
 mechanical enough to gate. Whether a status-row sentence is still true is not,
 and that is the honest limit.
 
+## Semantic model and agent queries (Q45)
+
+The compiler resolves every name, types every expression and finds every
+reference, because compiling requires it. Almost none of that is reachable from
+outside except through five MCP tools and the LSP, the MCP path does not use the
+compiler's incremental engine at all, and nothing in a scaffolded project tells
+an agent the interface exists.
+
+The argument is closure rather than context. An agent with `grep` already has
+context; what it cannot get is an answer complete by construction, which is the
+only kind that lets it stop looking. The cost of not having one is in this repo
+four times over: twenty-nine sites unwrap `Ty::App` to its base, and G139, G141,
+G142 and G143 were each one of those sites not doing it. Four releases, one bug
+shape, every fix correct and incomplete together.
+
+The constraint that outranks any feature below: the semantic view is a projection
+of the compiler's model and never a second parser.
+
+**Two findings set the order.**
+
+*MCP bypasses salsa.* `glyph-lsp/src/mcp.rs` contains no reference to the
+database. It calls `analyze_full` on raw file text and walks `workspace_files`
+per request, so `glyph_references` re-analyzes every file in the project on every
+call: 174 full analyses against the examples tree to answer one question. Salsa
+computes these facts once and incrementally, and MCP discards that. Every query
+worth adding is multi-file, so each one added to the current path is built
+expensive and has to be moved later.
+
+*Nothing advertises the interface at the point of use.* `glyph init` scaffolds
+`.gitignore`, `package.json`, `src/main.glyph` and `src/.types/README.md`, none
+of which mention MCP. The root README does not mention it; the npm README
+mentions it once. `web/llms.txt` documents it properly, in 1104 lines that name
+all five tools and the position convention, but an agent has to already be
+reading the website. An agent in a project sees a manifest and a source file and
+reaches for `grep`. Closure is unreachable if the interface is never found.
+
+**Scheduled.**
+
+- **The projection constraint, written down.** One paragraph in the spec: the
+  semantic view is derived from the compiler and may not re-derive meaning
+  independently.
+- **Advertise the interface where the work happens.** `glyph init` writes an
+  `.mcp.json` pointing at `glyph mcp`, the config Claude Code, Cursor and others
+  already auto-detect, plus a short `AGENTS.md` naming the five tools and when to
+  prefer them over searching. A paragraph in the root README. Cheap, independent
+  of everything else here, and it is the difference between a capability and a
+  used capability.
+- **Route MCP through salsa.** The gating item above. One semantic query boundary
+  that LSP and MCP share, over the tracked queries that already exist (`resolve`,
+  `module_symbols`, `type_map`, `decl_ty`, `module_exports` and the rest).
+- **Identity for the entities that lack it.** `SymbolId` already exists in
+  `glyph-resolver/src/symbol.rs`; `TypeId`, `ModuleId` and `ScopeId` do not. This
+  earns its place on its own, because a diagnostic can then name a thing rather
+  than a rendered string.
+
+**Rolling, once the query boundary lands.**
+
+- **`CALLS` as a first-class relationship**, distinct from `REFERENCES`, and the
+  direction queries: callers, callees, dependents, dependencies. Resolution
+  already computes the underlying facts.
+- **Provenance on every answer, shipping with those queries.** Each fact carries
+  its source and whether the compiler stands behind it: compiler-proven, read
+  from source, asserted by an external `.d.ts` or npm package, or observed at
+  runtime later. This is how the edge of the compiler's knowledge becomes a
+  queryable fact instead of a silent omission, and it is the difference between
+  an impact answer that is trustworthy and one that quietly stops at the
+  TypeScript boundary.
+
+**Later, and gated on measurement.**
+
+- **Coverage and impact.** "Where is `T` matched, and which variants does each
+  site handle" is the query that kills the bug class above; impact follows from
+  it. Scope it to what the model derives. Reads, writes, parameters and type
+  conflicts are derivable. A database mapping or a serialization path is not, and
+  reporting one anyway manufactures the false confidence provenance exists to
+  prevent.
+- **`explain` with structured reasons.** `--explain E0300` is static prose per
+  code today. Site-specific explanation means diagnostics carry structured facts
+  rather than rendered strings, which is a real refactor and belongs last.
+
+**How this gets judged.** Thor's agents are the target user, so the loop already
+running is the experiment, and the discovery item is what makes it a fair one:
+until a project advertises the interface, an agent not using it says nothing
+about whether it helps. Baseline from the tick ledger: the fix lane is 59.6% of
+agent-minutes, one gap took four review rounds and roughly six hours, another
+seventy-five minutes. If these queries help, minutes per closed gap fall. If they
+do not move, that is worth learning before the later items rather than after.
+
+**Parked, and not as later phases of this.** A runtime overlay pairing static
+structure with observed execution is a different product with its own collection
+and privacy surface. A graph database, embeddings and retrieval are consumers of
+this foundation and must not shape it. Provenance already reserves a slot for
+runtime facts, which is the right amount of accommodation to make now.
+
+Not a 1.0 blocker. The 1.0 gate is interop and this competes with it. The
+scheduled items are cheap and architectural; skipping them is how a project
+reaches 1.0 unable to add the rest.
+
 ## Parked (v2 / later)
 
 - **GitHub Linguist submission (a real "Glyph" language on GitHub).** Get `.glyph`

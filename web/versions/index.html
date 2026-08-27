@@ -49,8 +49,54 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.92</span>
+            <span class="rel-ver">0.1.93</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A nested variant tests the payload instead of binding it</h3>
+            <p><code>Err(Blank)</code> beside <code>Err(e)</code> reads as &ldquo;skip a blank line, report every other parse error&rdquo;. It compiled to two <code>case "Err":</code> labels on the outer tag, and the first one bound the whole payload under the name <code>Blank</code>. Every error took the first arm and the second was dead code the compiler still wrote out. Nothing said so: Glyph reported no diagnostics and <code>tsc --strict</code> has nothing to say about a duplicate case label, so the build was green and the wrong arm answered. The typechecker had the right reading the whole time. Delete the second arm and it reports a non-exhaustive match on the payload union, which means the checker read <code>Blank</code> as a variant while the emitter read it as a new binding. The arm dispatches on the payload&rsquo;s own tag now, under any outer variant.</p>
+            <div class="code">
+              <span class="cap">repl.glyph</span>
+<pre>module repl
+
+import std/result { Result, Ok, Err }
+
+pub type ParseError =
+  | Blank
+  | BadWord({ word: string })
+
+pub fn parse_command(line: string) -&gt; Result&lt;string, ParseError&gt; {
+  return match line {
+    "" =&gt; Err(Blank),
+    "quit" =&gt; Ok("quit"),
+    else =&gt; Err(BadWord({ word: line })),
+  }
+}
+
+pub fn step(line: string) -&gt; string {
+  return match parse_command(line) {
+    <span class="add">Err(Blank) =&gt; "",                 // a blank line: nothing to report
+    Err(e) =&gt; "unknown command",      // every other parse error</span>
+    Ok(cmd) =&gt; cmd,
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A variant in payload position dispatches on the inner tag.</strong> <code>Err(Blank)</code>, <code>Full(Black)</code>, <code>Ok(None)</code>: one <code>case</code> on the outer tag with an inner switch on the payload, rather than one <code>case</code> per arm with the first swallowing the rest. The rule the compiler applies to a bare name is the one the typechecker already used for exhaustiveness: the payload union&rsquo;s own variant list decides, and the name&rsquo;s shape decides only when that list is out of reach. <strong>This changes what an existing program does.</strong> A match written this way still compiles, and the arm that could never run before runs now, which is the arm you wrote.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>Capitalization stops deciding it.</strong> Glyph accepts a lowercase variant name, and until now only a capitalized one dispatched, so <code>Err(blank)</code> miscompiled one character away from a spelling that worked. For a union declared in the same file the case of the name no longer changes what the arm means.</li>
+              <li><span class="tag added">Added</span> <strong><code>E0305</code>, for two arms that reach the same <code>case</code> label.</strong> That shape is how every bug in this class shipped green, so the switch is guarded independently of whatever rule decides a name is a variant. The next lowering that reaches for one tag twice fails the build instead of picking an arm at run time. <code>glyph --explain E0305</code> has the rewrite.</li>
+              <li><span class="tag changed">Changed</span> <strong>This rejects code that previously compiled.</strong> <code>match r { Err(e) =&gt; log(e), Err(other) =&gt; report(other), Ok(v) =&gt; v, }</code> built, and ran <code>log</code> for every error. It is <code>E0305</code> now. Delete the arm that could never run, or give the two arms patterns that test different values, which is what the second one looked like it was doing.</li>
+              <li><span class="tag known">Known</span> <strong>An imported payload union still goes by the name&rsquo;s shape.</strong> The variant list of a union from another module is not something the emitter can read yet, so a capitalized variant dispatches and a lowercase one stops the build at <code>E0305</code>. A loud failure on a valid program, and the fix is the next release. Separately, a constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) now fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.92</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

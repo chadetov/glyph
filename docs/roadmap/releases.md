@@ -4347,7 +4347,7 @@ holding a constructor that carries a payload needs the compiler to know how that
 payload is stored, and there were two spellings it could not work that out for.
 The first is a union generic over its own parameter, which refused a nested arm
 the same union without the parameter accepts. The second is the namespace import
-spelling, which is what is left of G140 and sits in the 0.1.93 plan below.
+spelling, which is what is left of G140 and sits in the 0.1.94 plan below.
 
 ```glyph
 module tree
@@ -4492,71 +4492,29 @@ CLI integration suite builds the corpus combinator with one `match` around its
 body and runs `tsc --strict` over the output, so the end-to-end failure this
 started as is the thing being watched.
 
-The rest of the 0.1.92 plan did not ship. G130, G138 and G140's namespace half
-moved to 0.1.93 below, unchanged.
+The rest of the 0.1.92 plan did not ship. G130 went out in 0.1.93 below; G138
+and G140's namespace half moved on to 0.1.94, unchanged.
 
 *Found by an app round. Reproduced against 0.1.91 and fixed in the same round.*
 
-### 0.1.93 — Next · The nested variant that binds instead of matching
+### 0.1.94 — Next · The variants of a union the emitter did not declare
 
-G145 and G130 are landed on main, uncommitted at the time of writing, and are
-one fix. G130 was found while reviewing the G129 fix; G145 was an app writing a
-CLI parser whose `match parse(line) { Err(Blank) => .., Err(e) => print(..) }`
-swallowed every parse error instead of only the blank lines. `Full(Black)` and
-`Err(Blank)` are the same arm under different outer variants: both compiled
-clean, passed `tsc --strict`, and emitted two `case` blocks on the *outer* tag
-whose first bound the payload under the inner variant's own name. Every value of
-that outer variant took the first arm whatever its payload carried, and the arms
-below it were dead code the emitter still wrote out. The typechecker had the
-right reading the whole time: drop the second arm and it reports a non-exhaustive
-match on the payload union, so the checker read `Black` as a variant reference
-while the emitter read it as a binding.
+The lead item is the hole in the rule 0.1.93 shipped. A nested arm reads a name
+the way the typechecker does, which means the payload union's own variant list
+answers first; for a union imported from a sibling module there is no list to
+read, so the emitter falls back to the name's shape. Shape says "variant" for
+`Blank` and "binding" for `blank`, and the lowercase spelling of a valid program
+stops the build at `E0305`. That is G147. The shallow imported-union coverage
+check (G143) is short the same thing, so handing the emitter an imported union's
+variant names once settles both, and that is what this release is. Three more
+sit behind it: G146, G138, and what is left of G140.
 
-`degroup_nested_arms` already rewrites an outer variant carrying nested patterns
-into one arm whose payload is dispatched by an inner `match`. What was wrong was
-the gate that turns it on: `is_nested_variant_arg` accepted a bare ident only
-when it named a *prelude* variant, so `Ok(None)` degrouped and `Err(Blank)` did
-not. It now decides a bare ident the way the typechecker decides coverage
-(`assign.rs::check_patterns_exhaustive`): the payload union's own variant list
-answers first, and the name's shape answers only when that list is unknown.
-Neither half is enough alone. Shape alone leaves a lowercase variant
-miscompiling, and Glyph accepts one, so `Err(blank)` beside `Err(e)` reproduced
-the same duplicate-label switch one character away from the spelling that had
-just been fixed. The variant list alone cannot answer for a payload union
-imported from a sibling module, which is `Ty::Imported` to the emitter with no
-variants attached and miscompiled identically. `nested_payload_variants`, the
-type-driven lookup G130's entry proposed extending, is extended: it reads a user
-union's payload out of the variant's own declaration as well as the prelude's
-type argument, and the gate and the rewrite both consult it through one method
-so they cannot part on a name's case.
-
-The switch itself is guarded now. Two arms that would write the same `case` label
-are `E0305` rather than a switch whose second label can never run. That shape is
-how every miscompile in this class shipped green: JavaScript runs a duplicate
-label as first-one-wins and `tsc --strict` has nothing to say about it. The guard
-is independent of whatever rule decides that a name is a variant, so the next
-lowering bug that reaches for one tag twice stops the build instead of picking
-the wrong arm at run time. It also refuses two arms on one tag whose payload
-patterns are both plain bindings (`Err(e) => .., Err(other) => ..`), which
-compiled before and could only ever run its first arm.
-
-Seven tests: five in `glyph-emit` pin the emitted lowering for the binding-arm
-shape, the two-nullary shape, G130's user-defined outer variant, and the
-lowercase spelling of both, one pins the duplicate-label refusal, and
-`nested_imported_nullary_variant_dispatches_on_the_inner_tag` in the CLI
-integration suite builds it across a module boundary.
-
-What is not closed, in two places. A *lowercase* variant of an *imported* payload
-union still has no variant list to read, so the shape rule answers "binding" and
-the arm pair stops the build at `E0305` rather than dispatching on the payload's
-tag. That is G147, it is a loud failure on a valid program rather than a silent
-wrong answer, and closing it means giving the emitter an imported union's variant
-names, which is the same missing registry the shallow imported-union coverage
-check (G143) needs. And a constructor-shaped payload pattern whose payload type is
-known and is *not* a union (`Ok(Point)` on a record) is now a `tsc` error naming
-a `.tag` the author never wrote, where it should be a Glyph diagnostic of the
-E0220 class. That is G146, and it is an improvement on the silent binding it used
-to be rather than a regression, but it is the wrong compiler answering.
+G146 came out of the same gate. A constructor-shaped payload pattern whose
+payload type is known and is not a union, `Ok(Point)` over a record, now emits a
+test on a `.tag` the author never wrote, so `tsc` reports it against generated
+TypeScript. It wants to be a Glyph diagnostic of the E0220 class, naming the
+type and the pattern. Better than the silent binding it used to be, still the
+wrong compiler answering.
 
 G138 stays open. It is the same disagreement in the array position.
 `[Black]` at the top level of a match lowers to `const Black = __m0[0]`, while
@@ -4612,6 +4570,80 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
+### 0.1.93 — Shipped · A nested variant matches instead of binding
+
+Cut 2026-08-27. The publish and the clean-npx smoke test (`--version`, the
+execute bit, `glyph init`, `npm install`, `glyph run`, and the headline feature
+itself) are recorded here once they have run.
+
+G145 and G130 are one fix. G130 was found while reviewing the G129 fix; G145 was
+an app writing a CLI parser whose `match parse(line) { Err(Blank) => .., Err(e) => print(..) }`
+swallowed every parse error instead of only the blank lines. `Full(Black)` and
+`Err(Blank)` are the same arm under different outer variants: both compiled
+clean, passed `tsc --strict`, and emitted two `case` blocks on the *outer* tag
+whose first bound the payload under the inner variant's own name. Every value of
+that outer variant took the first arm whatever its payload carried, and the arms
+below it were dead code the emitter still wrote out. The typechecker had the
+right reading the whole time: drop the second arm and it reports a non-exhaustive
+match on the payload union, so the checker read `Black` as a variant reference
+while the emitter read it as a binding.
+
+`degroup_nested_arms` already rewrites an outer variant carrying nested patterns
+into one arm whose payload is dispatched by an inner `match`. What was wrong was
+the gate that turns it on: `is_nested_variant_arg` accepted a bare ident only
+when it named a *prelude* variant, so `Ok(None)` degrouped and `Err(Blank)` did
+not. It now decides a bare ident the way the typechecker decides coverage
+(`assign.rs::check_patterns_exhaustive`): the payload union's own variant list
+answers first, and the name's shape answers only when that list is unknown.
+Neither half is enough alone. Shape alone leaves a lowercase variant
+miscompiling, and Glyph accepts one, so `Err(blank)` beside `Err(e)` reproduced
+the same duplicate-label switch one character away from the spelling that had
+just been fixed. The variant list alone cannot answer for a payload union
+imported from a sibling module, which is `Ty::Imported` to the emitter with no
+variants attached and miscompiled identically. `nested_payload_variants`, the
+type-driven lookup G130's entry proposed extending, is extended: it reads a user
+union's payload out of the variant's own declaration as well as the prelude's
+type argument, and the gate and the rewrite both consult it through one method
+so they cannot part on a name's case.
+
+The switch itself is guarded now. Two arms that would write the same `case` label
+are `E0305` rather than a switch whose second label can never run. That shape is
+how every miscompile in this class shipped green: JavaScript runs a duplicate
+label as first-one-wins and `tsc --strict` has nothing to say about it. The guard
+is independent of whatever rule decides that a name is a variant, so the next
+lowering bug that reaches for one tag twice stops the build instead of picking
+the wrong arm at run time. It also refuses two arms on one tag whose payload
+patterns are both plain bindings (`Err(e) => .., Err(other) => ..`), which
+compiled before and could only ever run its first arm.
+
+**This rejects code that previously compiled.** `Err(e) => .., Err(other) => ..`
+built and ran the first arm for every `Err`. It is `E0305` now. Delete the arm
+that could never run, or give the two arms patterns that test different values,
+which is what the second arm looked like it was doing.
+
+Seven tests: five in `glyph-emit` pin the emitted lowering for the binding-arm
+shape, the two-nullary shape, G130's user-defined outer variant, and the
+lowercase spelling of both, one pins the duplicate-label refusal, and
+`nested_imported_nullary_variant_dispatches_on_the_inner_tag` in the CLI
+integration suite builds it across a module boundary.
+
+What is not closed, in two places. A *lowercase* variant of an *imported* payload
+union still has no variant list to read, so the shape rule answers "binding" and
+the arm pair stops the build at `E0305` rather than dispatching on the payload's
+tag. That is G147, it is a loud failure on a valid program rather than a silent
+wrong answer, and closing it means giving the emitter an imported union's variant
+names, which is the same missing registry the shallow imported-union coverage
+check (G143) needs. And a constructor-shaped payload pattern whose payload type is
+known and is *not* a union (`Ok(Point)` on a record) is now a `tsc` error naming
+a `.tag` the author never wrote, where it should be a Glyph diagnostic of the
+E0220 class. That is G146, and it is an improvement on the silent binding it used
+to be rather than a regression, but it is the wrong compiler answering. Both are
+scheduled in 0.1.94 above, alongside G138 and G140's namespace half, neither of
+which this release touched.
+
+*Found by an app round and by the G129 review. Reproduced against 0.1.92 and
+fixed in the same round.*
+
 ### 0.1.89 — Shipped · A bool binding you can match on
 
 Published 2026-08-26 and smoke-tested from a clean npx cache in an isolated
@@ -4658,7 +4690,7 @@ and the app still carries the shape that provoked it: a shared
 short sleep, because Glyph has no `Promise` a program can construct by hand and
 `std/task` has no callback-to-promise bridge.
 
-G130 did not ship here. It is scheduled for 0.1.93 above.
+G130 did not ship here. It shipped in 0.1.93 above.
 
 ### 0.1.88 — Shipped · A variant's shape comes from where it is declared
 
@@ -4697,7 +4729,7 @@ against globs from a real npm dependency, debounces, spawns a subprocess, and
 streams its output to a log while enforcing a timeout. It blocked twice before,
 on G125 and G126, and this is the round where it built with no workaround.
 
-G130 did not ship here. It is scheduled for 0.1.93 above.
+G130 did not ship here. It shipped in 0.1.93 above.
 
 ### 0.1.87 — Shipped · The exit code a program recorded
 
@@ -4752,7 +4784,7 @@ again. `check_plans_fresh.py` was also demanding a review stamp on the 0.1.81
 plan for a release shipped weeks earlier, because the shipped marker lives in a
 different heading; it cross-references now.
 
-G130 did not ship here. It is scheduled for 0.1.93 above.
+G130 did not ship here. It shipped in 0.1.93 above.
 
 ### 0.1.85 — Shipped · A TLS dial you can bound
 
@@ -5728,6 +5760,25 @@ land here until they're assigned a release.
   purpose-built failures. It needs a marker on the blocks that claim to be whole
   programs, and then the gate builds those. Small, and it closes a class where
   the site is wrong in exactly the way the site says the language is not.
+
+- **Two version-carrying strings had no gate; one still cannot get one without
+  changing the release ceremony.** `web/sitemap.xml` gives every page a
+  `lastmod`, and twenty-six of the thirty-two entries still said July 2026.
+  `/versions/` was one of them, on a page that has been committed to
+  seventy-five times since that date. It had also never listed four pages: the
+  answers index and the `binary`, `embedding` and `upgrades` answers. Both
+  were fixed for 0.1.93, and `check_site.py` now fails when a served page has
+  no sitemap entry or an entry points at no page, so the coverage half cannot
+  drift again. The dates can. Keeping them true wants either a sitemap
+  generated at deploy time or git history, and the CI checkout is shallow, so
+  a git-based check would pass there by doing nothing. Three ways out:
+  generate the sitemap in the Pages build, check `lastmod` only in the local
+  ceremony run and print when it skips, or drop `lastmod` and let the crawler
+  date the pages itself. The other string is the `placeholder` in
+  `.github/ISSUE_TEMPLATE/bug_report.yml`, which read `0.1.9` from before
+  0.1.10 existed and now reads `glyph 0.1.93`, the shape `glyph --version`
+  prints. Pinning it in `check_versions.py` would stop it going stale and
+  would add a seventeenth string to bump by hand every release.
 
 - **The cross-module exhaustiveness check is a shallower copy of the local one
   (G142's open half, G143).** Two holes with one address. Exhaustiveness on a

@@ -2591,6 +2591,97 @@ const bad: Schema<Point> = object_schema({ x: number_schema() })
 }
 
 #[test]
+fn infer_output_cast_survives_a_match_in_return_position() {
+    // The D28 boundary cast has to reach every `return` the function emits, not
+    // just a single `return <value>`. `return match { ... }` lowers to a switch
+    // whose arms carry their own `return`, and those bypassed the cast, so the
+    // corpus combinator stopped compiling the moment its returned value came
+    // from a match. Same body as examples/corpus/infer_output.glyph, one match.
+    if !tsc_available() {
+        eprintln!("skipping infer_output match-return check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("inferoutput_matchreturn");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "matchret.glyph",
+        r#"module matchret
+
+import std/result { Result, Ok, Err }
+
+type Schema<T> = {
+  name: string,
+  parse: fn(input: unknown) -> Result<T, Array<Issue>>,
+}
+
+fn number_schema() -> Schema<number> {
+  return { name: "number", parse: fn(input) {
+    match input {
+      is number => Ok(input),
+      else => Err([{ path: [], message: "expected number" }]),
+    }
+  } }
+}
+
+fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape, strict: bool) -> Schema<infer_output<Shape>> {
+  return match strict {
+    else => { name: "object", parse: fn(input) {
+      match input {
+        is Record<string, unknown> => {
+          let issues: Array<Issue> = []
+          let result: Record<string, unknown> = {}
+          for key, sub_schema in shape {
+            match sub_schema.parse(input[key]) {
+              Ok(value) => {
+                mut result[key] = value
+              },
+              Err(sub_issues) => {
+                for issue in sub_issues {
+                  mut issues.push({ path: [key, ...issue.path], message: issue.message })
+                }
+              },
+            }
+          }
+          match issues.length {
+            0 => Ok(result),
+            else => Err(issues),
+          }
+        },
+        else => Err([{ path: [], message: "expected object" }]),
+      }
+    } },
+  }
+}
+
+type Point = {
+  x: number,
+  y: number,
+}
+
+const point_schema: Schema<Point> = object_schema({ x: number_schema(), y: number_schema() }, true)
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "the combinator is well-formed Glyph: {:?}",
+        report.diagnostics
+    );
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!(
+            "the D28 boundary cast did not reach the returns a `match` lowers to:\n{msg}"
+        ),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn infer_output_is_independent_of_the_validator_type_name() {
     // The generalized operator (Linus 2nd-pass follow-up) unwraps a parser-shaped
     // field structurally, so a validator type named anything but `Schema` still

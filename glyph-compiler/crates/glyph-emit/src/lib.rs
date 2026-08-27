@@ -4388,7 +4388,7 @@ impl<'a> Emitter<'a> {
             }) => {
                 let r = self.emit_try_unwrap(operand)?;
                 match term {
-                    ArmTerm::Return => self.line(&format!("return {r}.{PAYLOAD};")),
+                    ArmTerm::Return => self.emit_return(&format!("{r}.{PAYLOAD}")),
                     ArmTerm::Break => {
                         if break_on_fall {
                             self.line("break;");
@@ -4491,7 +4491,7 @@ impl<'a> Emitter<'a> {
                 // `case { ... }` block. `expr` would reject the `?` outright.
                 let s = self.emit_value(e)?;
                 match term {
-                    ArmTerm::Return => self.line(&format!("return {s};")),
+                    ArmTerm::Return => self.emit_return(&s),
                     ArmTerm::Break => {
                         self.line(&format!("{s};"));
                         if break_on_fall {
@@ -8648,6 +8648,40 @@ mod tests {
         assert!(
             ts.contains("as Schema<__GlyphInferOutput<Shape>>;"),
             "the one boundary cast: {ts}"
+        );
+    }
+
+    #[test]
+    fn infer_output_cast_reaches_every_return_a_match_lowers_to() {
+        // `return match { ... }` lowers to a `switch` whose arms carry their own
+        // `return`, and a tail `E?` returns the unwrapped payload. Both bypassed
+        // `emit_return`, so the one D28 boundary cast never reached them and the
+        // combinator's own body failed `tsc`. Every `return` a function with an
+        // `infer_output` return type emits carries the cast.
+        let ts = emit(
+            "module x\npub fn s<Shape: Record<string, Schema<unknown>>>(shape: Shape, ok: bool) -> Result<infer_output<Shape>, string> {\n  return match ok {\n    true => Ok(shape),\n    false => Err(\"no\"),\n  }\n}\n",
+        );
+        assert!(
+            ts.contains("return Ok(shape) as Result<__GlyphInferOutput<Shape>, string>;"),
+            "the `Ok` arm carries the boundary cast: {ts}"
+        );
+        assert!(
+            ts.contains("return __glyph_err(\"no\") as Result<__GlyphInferOutput<Shape>, string>;")
+                || ts.contains("return Err(\"no\") as Result<__GlyphInferOutput<Shape>, string>;"),
+            "the `Err` arm carries the boundary cast: {ts}"
+        );
+    }
+
+    #[test]
+    fn infer_output_cast_reaches_a_tail_try_return() {
+        // The other `return` that bypassed `emit_return`: a tail `E?` in return
+        // position, which returns the unwrapped `Ok` payload directly.
+        let ts = emit(
+            "module x\npub fn s<Shape: Record<string, Schema<unknown>>>(r: Result<infer_output<Shape>, string>) -> infer_output<Shape> {\n  r?\n}\n",
+        );
+        assert!(
+            ts.contains("return __r0.value as __GlyphInferOutput<Shape>;"),
+            "the tail `?` return carries the boundary cast: {ts}"
         );
     }
 

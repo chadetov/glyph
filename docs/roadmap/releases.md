@@ -4467,6 +4467,19 @@ which is its own release rather than a ride-along.
 *Reviewed against 0.1.86; the namespace half re-reproduced against 0.1.90 with
 the G141 fix in the tree.*
 
+G144 rides with it: a different construct, the same disagreement between what a
+function declares and what its lowering emits. D28 gives a combinator whose
+return type mentions `infer_output<S>` one boundary cast, and the cast lived in
+`emit_return`. A `match` in return position lowers to a `switch` whose arms
+write their own `return`, and a tail `E?` returns the unwrapped payload the same
+way, so both dropped the cast and `examples/corpus/infer_output.glyph`'s
+`object_schema` stopped compiling the moment one `match` sat between `return`
+and the value. Both sites call `emit_return` now, so the cast follows the return
+rather than the spelling. Small enough to ride along; it touches two lines and
+adds no new mechanism.
+
+*Reproduced against 0.1.91 and fixed in the same round.*
+
 G133 is the reason the G132 arm behaved the way it did, and it is worth more
 than the arm: the checker has no cross-module function signature at all.
 `DeclTyResolver` reaches across modules for types, unions and string-literal

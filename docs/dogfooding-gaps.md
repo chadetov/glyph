@@ -47,8 +47,9 @@ switching exhaustiveness off for every module-local generic union. Reviewing
 import away is unchanged, because an imported generic scrutinee never reaches
 the function the unwrap went into. The same review opened G143, the imported
 union whose variant payload is never checked at all, generic or not: of
-143 entries, 103 are fixed, 14 are partly fixed, 10 are decided or resolved, and
-16 are open.
+144 entries, 104 are fixed, 14 are partly fixed, 10 are decided or resolved, and
+16 are open. G144, the D28 boundary cast that never reached the returns a
+`match` lowers to, was found by an app and closed in the same round.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -5535,3 +5536,41 @@ through an object pattern's fields.
   *Found by review of the G141/G142 fix. Reproduced against 0.1.90 with that fix
   in the tree: the two files above build clean, pass `tsc --strict`, and print
   `x`.*
+
+- **G144. [FIXED] The `infer_output` boundary cast never reached a `return
+  match`.** D28 gives a combinator whose declared return type mentions
+  `infer_output<S>` one compiler-inserted boundary cast, because the body
+  assembles a value the type system cannot prove has the shape-derived type.
+  The cast lived in `emit_return`, and two lowerings emit a `return` without
+  going through it: a `match` in return position, which becomes a `switch`
+  whose arms carry their own `return`, and a tail `E?`, which returns the
+  unwrapped payload directly. Either one dropped the cast, so the combinator
+  stopped compiling the moment its returned value came from a `match`.
+
+  `examples/corpus/infer_output.glyph`'s `object_schema` with one `match`
+  around the value it already returns:
+
+  ```glyph
+  fn object_schema<Shape: Record<string, Schema<unknown>>>(shape: Shape, strict: bool) -> Schema<infer_output<Shape>> {
+    return match strict {
+      else => { name: "object", parse: fn(input) { /* unchanged corpus body */ } },
+    }
+  }
+  ```
+
+  ```
+  [TS2322] Error: tsc: Type 'Result<never, Issue[]> | Result<Record<string, unknown>, never> | ...'
+  is not assignable to type 'Result<__GlyphInferOutput<Shape>, Issue[]>'.
+  ```
+
+  The emitted TS showed it directly: `case true: { return Ok(shape); }` where
+  the single-return spelling of the same function emits `return Ok(shape) as
+  Result<__GlyphInferOutput<Shape>, string>;`. Both arm-return sites in
+  `glyph-emit` now call `emit_return` instead of writing `return {v};`
+  themselves, so the cast follows the return rather than the spelling. Covered
+  by `infer_output_cast_reaches_every_return_a_match_lowers_to` and
+  `infer_output_cast_reaches_a_tail_try_return` in `glyph-emit`, and end to end
+  against `tsc` by `infer_output_cast_survives_a_match_in_return_position` in
+  the CLI integration suite.
+
+  *Found by an app round. Reproduced against 0.1.91, fixed in the same round.*

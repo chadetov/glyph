@@ -4326,58 +4326,28 @@ an object pattern's field) writable, so no released compiler ever failed this.
 What 0.1.90 adds for G139 is the coverage: delete the unwrap and exactly one of
 the 199 `glyph-cli` integration tests notices.
 
-### 0.1.91 — Next · The nested variant that binds instead of matching
+### 0.1.91 — Shipped · A generic union is checked like its bare twin
 
-G141 and G142 ride in this release: a type parameter on a union no longer makes a
-nested field pattern unmatchable, and no longer switches exhaustiveness checking
-off for a union the matching module declares. The red-black rotation arm
-0.1.90 made writable compiled over `type Tree = | Leaf | Node({ left: Tree, ... })`
-and was `E0300` over the same union carrying a key type. G141 is the first half of
-G140 and it is written up under G140 below. G142 turned up while reviewing that
-fix, on the caller two lines away: a `match` over a generic union could omit a
-variant, build clean, pass `tsc --strict`, and throw at run time, where the same
-match on the non-generic union is `E0200`. One missing unwrap was behind both, so
-it moved into the resolver they share.
+The publish and the clean-npx smoke test (`--version`, the execute bit, `glyph
+init`, `npm install`, `glyph run`, and the headline feature itself) are recorded
+here once they have run.
 
-G142 ships half closed, and the half that is left is worth stating plainly
-because it is the same sentence with one word changed. Move the union into a
-sibling module and `match t { Node({ key: k }) => k, }` on a `Tree<string>` still
-builds clean, still passes `tsc --strict`, and still throws `non-exhaustive
-match` at run time; delete the `<K>` and it is `E0200`. That spelling survived
-this fix because it is a different mechanism, not a third caller: an imported
-generic scrutinee arrives as `Ty::App { base: Ty::Imported, .. }`, and the
-cross-module branch in `check_match_exhaustiveness` is gated on
-`Ty::Unknown | Ty::Imported` and does not match the applied form, so
-`check_imported_union_coverage` never runs. Widening that gate is its own risk
-slice and is parked in the rolling lane below with G143, not claimed here. This
-release closes the module-local half of G142 and nothing wider.
+G141 and G142. A type parameter on a union no longer makes a nested field
+pattern unmatchable, and no longer switches exhaustiveness checking off for a
+union the matching module declares. The red-black rotation arm 0.1.90 made
+writable compiled over `type Tree = | Leaf | Node({ left: Tree, ... })` and was
+`E0300` over the same union carrying a key type. G142 turned up while reviewing
+that fix, on the caller two lines away: a `match` over a generic union could
+omit a variant, build clean, pass `tsc --strict`, and throw at run time, where
+the same match on the non-generic union is `E0200`. One missing unwrap was
+behind both, so it moved into the resolver they share.
 
-G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
-where `Full` carries a user-defined union rather than a record, compiles clean,
-passes `tsc --strict`, and emits two `case "Full":` blocks. The first binds
-`Black` to the payload instead of testing it, so every `Full` takes that arm
-whatever its payload, and the arms below it are dead code the emitter still
-writes out. Same shape as G129 one level up, and the typechecker and the emitter
-disagree about it: dropping the other arm reports a non-exhaustive match on
-`Color`, so the checker reads `Black` as a variant reference while the emitter
-reads it as a binding.
-
-G138 rides with it, because it is the same disagreement in the array position.
-`[Black]` at the top level of a match lowers to `const Black = __m0[0]`, while
-the same element inside an object pattern's field lowers to a tag test as of
-0.1.90. Half of it is already closed: the array exhaustiveness predicate no
-longer counts a PascalCase element as a binding, so a match that leans on the
-miscompile is reported non-exhaustive instead of certified. The lowering is what
-is left, and the correct implementation of it already exists a few hundred lines
-away in `pattern_conditions`; routing the top-level array chain through it is
-the fix.
-
-G140 rides here too, found while pinning the 0.1.90 work. A field holding a
-constructor that carries a payload needs the compiler to know how that payload is
-stored, and there were two spellings it could not work that out for. The first is
-a union generic over its own parameter, which refused a nested arm the same union
-without the parameter accepts. **That half is closed as G141**; the namespace
-half below is what is left of G140.
+G141 is the first half of G140, found while pinning the 0.1.90 work. A field
+holding a constructor that carries a payload needs the compiler to know how that
+payload is stored, and there were two spellings it could not work that out for.
+The first is a union generic over its own parameter, which refused a nested arm
+the same union without the parameter accepts. The second is the namespace import
+spelling, which is what is left of G140 and sits in the 0.1.92 plan below.
 
 ```glyph
 module tree
@@ -4423,10 +4393,63 @@ application also puts a prelude `Result<T, E>` in front of `resolve_named_union`
 for the first time, so that function picked up the prelude/module symbol-id
 collision guard its two neighbours already carried.
 
-The second spelling matters more, and was found while checking the first. The
-same arm over a union declared in a sibling module compiles under
-`import tree { Tree, Leaf, Node }` and is `E0300` under `import tree` with
-`tree.Node`, whether or not the union is generic. The emitter's last resort is a
+G142 ships half closed, and the half that is left is worth stating plainly
+because it is the same sentence with one word changed. Move the union into a
+sibling module and `match t { Node({ key: k }) => k, }` on a `Tree<string>` still
+builds clean, still passes `tsc --strict`, and still throws `non-exhaustive
+match` at run time; delete the `<K>` and it is `E0200`. That spelling survived
+this fix because it is a different mechanism, not a third caller: an imported
+generic scrutinee arrives as `Ty::App { base: Ty::Imported, .. }`, and the
+cross-module branch in `check_match_exhaustiveness` is gated on
+`Ty::Unknown | Ty::Imported` and does not match the applied form, so
+`check_imported_union_coverage` never runs. Widening that gate is its own risk
+slice and is parked in the rolling lane below with G143, not claimed here. This
+release closes the module-local half of G142 and nothing wider.
+
+Also here: `scripts/check_doc_claims.py`. Across the 0.1.89 cut five release-audit
+agents spent seventy-seven minutes between them, and every blocking finding they
+returned was a stale number or a stale version reference in a markdown file: a
+test count in the transpiler roadmap that no longer matched the suite, a
+sentence promising a feature in a version that had already shipped. That is a
+script, and review time spent on it is review time not spent on the diff. It
+checks three things. A live status doc's test count has to equal what the suite
+reported, read out of a suite log that has to be newer than every crate source,
+so it cannot pass on a number nobody measured. A sentence promising something in
+0.1.N does not survive 0.1.N shipping, and the pattern excludes the past tense so
+that "added in 0.1.76" stays out of it: a gate people learn to ignore is worse
+than no gate. And exactly one release section carries the Next marker, at a
+version ahead of what has shipped. Frozen history is exempt by name: `archive/`,
+the implementation plan, the open questions, and the per-release entries in this
+file, where "690 tests green" is a fact about that release rather than a claim
+about now. CI runs it alongside the other gates.
+
+### 0.1.92 — Next · The nested variant that binds instead of matching
+
+G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
+where `Full` carries a user-defined union rather than a record, compiles clean,
+passes `tsc --strict`, and emits two `case "Full":` blocks. The first binds
+`Black` to the payload instead of testing it, so every `Full` takes that arm
+whatever its payload, and the arms below it are dead code the emitter still
+writes out. Same shape as G129 one level up, and the typechecker and the emitter
+disagree about it: dropping the other arm reports a non-exhaustive match on
+`Color`, so the checker reads `Black` as a variant reference while the emitter
+reads it as a binding.
+
+G138 rides with it, because it is the same disagreement in the array position.
+`[Black]` at the top level of a match lowers to `const Black = __m0[0]`, while
+the same element inside an object pattern's field lowers to a tag test as of
+0.1.90. Half of it is already closed: the array exhaustiveness predicate no
+longer counts a PascalCase element as a binding, so a match that leans on the
+miscompile is reported non-exhaustive instead of certified. The lowering is what
+is left, and the correct implementation of it already exists a few hundred lines
+away in `pattern_conditions`; routing the top-level array chain through it is
+the fix.
+
+G140's namespace half is what is left of it now that G141 has shipped, and it
+matters more than the half that went. The same nested arm over a union declared
+in a sibling module compiles under `import tree { Tree, Leaf, Node }` and is
+`E0300` under `import tree` with `tree.Node`, whether or not the union is
+generic. The emitter's last resort is a
 by-name fallback that resolves the variant through the consumer's own
 `ImportNamed` symbol, and a namespace spelling never binds that name. Two
 spellings of one import giving two answers is what G75 settled we do not do,
@@ -4510,7 +4533,7 @@ and the app still carries the shape that provoked it: a shared
 short sleep, because Glyph has no `Promise` a program can construct by hand and
 `std/task` has no callback-to-promise bridge.
 
-G130 did not ship here. It is scheduled for 0.1.91 above.
+G130 did not ship here. It is scheduled for 0.1.92 above.
 
 ### 0.1.88 — Shipped · A variant's shape comes from where it is declared
 
@@ -4549,7 +4572,7 @@ against globs from a real npm dependency, debounces, spawns a subprocess, and
 streams its output to a log while enforcing a timeout. It blocked twice before,
 on G125 and G126, and this is the round where it built with no workaround.
 
-G130 did not ship here. It is scheduled for 0.1.91 above.
+G130 did not ship here. It is scheduled for 0.1.92 above.
 
 ### 0.1.87 — Shipped · The exit code a program recorded
 
@@ -4604,7 +4627,7 @@ again. `check_plans_fresh.py` was also demanding a review stamp on the 0.1.81
 plan for a release shipped weeks earlier, because the shipped marker lives in a
 different heading; it cross-references now.
 
-G130 did not ship here. It is scheduled for 0.1.91 above.
+G130 did not ship here. It is scheduled for 0.1.92 above.
 
 ### 0.1.85 — Shipped · A TLS dial you can bound
 

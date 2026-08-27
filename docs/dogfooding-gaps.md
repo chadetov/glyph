@@ -267,7 +267,12 @@ class is that "verified through `glyph build`" is not the same as verified.
   (`lib.rs:2754`) already rewrites a nested nullary constructor into a
   synthesized inner `match`, which is the path `Ok(None)` takes today. Extending
   `nested_payload_variants` past the `Ty::App` gate to a named union is bounded
-  emitter work rather than a design. *Reproduced against 0.1.85.*
+  emitter work rather than a design. *Reproduced against 0.1.91: `glyph check
+  src` still reports no diagnostics and a clean `tsc --strict`, the emitted
+  module still carries two `case "Full":` blocks each binding the tag name to
+  `__m0.value`, and `glyph run src` on a `Full(Red)` still prints `black box`.
+  The 0.1.91 generic-union unwrap does not touch it: the scrutinee here takes
+  no parameters and the disagreement is in the emitter.*
 
 ## High — verifiability holes and "silent green"
 
@@ -3719,11 +3724,13 @@ hand-written adapter") now has an app behind it rather than only a guide.
   server sent. `http.raw` exists and is the server-side counterpart, taking a
   `Request`. The missing piece is its client-side twin, `http.text(response) ->
   Result<string, string>`, failing when the body was parsed rather than kept.
-  *Reproduced against 0.1.85: a client that GETs a JSON endpoint and applies the
-  `string.from(response.body)` spelling `feeds` uses still prints the literal
-  `[object Object]`, with a clean build and a zero exit. No diagnostic, no error,
-  no narrowing accessor. `http.text(response) -> Result<string, string>` still
-  does not exist, and `http.raw` is still the request-only server-side twin.*
+  *Reproduced against 0.1.91: a client that GETs a local endpoint serving
+  `{"hello":"world"}` and applies the `string.from(response.body)` spelling
+  `feeds` uses still prints the literal `[object Object]`, with a clean build and
+  a zero exit. No diagnostic, no error, no narrowing accessor.
+  `http.text(response) -> Result<string, string>` still does not exist; the
+  `http.text` that does is `text(status, body)`, the server-side response
+  constructor, and `http.raw` still takes a `Request`.*
 
 - **G119. `url.join`'s `Err` branch is nearly unreachable, and nothing says so.**
   Against a valid base the WHATWG parser treats anything that is not a URL as a
@@ -3734,8 +3741,9 @@ hand-written adapter") now has an app behind it rather than only a guide.
   catch a malformed link and it never will. The fix is documentation: say which
   argument the failure comes from. `feeds` carries the case as an `@example` so
   the behaviour is pinned rather than assumed.
-  *Reproduced against 0.1.85: `url.join("https://x.test/feed.xml", ":::")` is
-  still `Ok(https://x.test/:::)`, while `url.join("not a base", "/x")` is still
+  *Reproduced against 0.1.91: `url.join("https://x.test/feed.xml", ":::")` is
+  still `Ok`, formatting to `https://x.test/:::`, while
+  `url.join("not a base", "/x")` is still
   `Err(cannot resolve "/x" against "not a base")`. The `Err` arm remains
   reachable only through a bad base. `join` still delegates to the host `URL`
   constructor unchanged.*
@@ -3773,14 +3781,16 @@ G103 was the case where nothing was said at all.
   descriptor that only checks presence, or be skipped with its dependent fields
   widened, or make the whole type unmaterializable, is a design call with a real
   verifiability trade in it.
-  *Reproduced against 0.1.86: `gen dts marked --rename Tokens.List=ListToken`
-  writes 49 types and exits 0 (marked's own surface grew since 0.1.80), and building the result is 14 `[E0103]`s across
-  eight names, still in the same three groups: classes (`Lexer`, `Parser`,
-  `Renderer`, `Tokenizer`, `Hooks`), utility types (`Omit`, `Pick`) and host
-  types (`RegExp`). Worth noting for whoever fixes it that the generated file
-  lands in `src/.types/`, which `glyph build` does not walk for `.glyph`, so the
-  failure only appears once it is moved next to the source; a first pass at this
-  reproduction read the silence as the gap having closed.*
+  *Reproduced against 0.1.91, marked 18.0.11: `gen dts marked --out src/.types
+  --rename Tokens.List=ListToken` writes 49 types and exits 0 with 40 notes, and
+  building the result is 14 `[E0103]`s across eight names, still in the same
+  three groups: classes (`Lexer`, `Parser`, `Renderer`, `Tokenizer`, `Hooks`),
+  utility types (`Omit`, `Pick`) and host types (`RegExp`). The per-name counts
+  are `Omit` 3, then `Tokenizer`, `Renderer`, `RegExp` and `Hooks` at 2 each and
+  `Pick`, `Parser`, `Lexer` at 1. Worth noting for whoever fixes it that the
+  generated file lands in `src/.types/`, which `glyph build` does not walk for
+  `.glyph`, so the failure only appears once it is moved next to the source; a
+  first pass at this reproduction read the silence as the gap having closed.*
 
 ## Round 31: four apps, and a loop index that was a string
 
@@ -4004,12 +4014,12 @@ compiler did not do for them. Three are real.
   between "the output is portable JavaScript" and "the output is deployable".
   A `--target browser` that emits pruned, relative-specifier ESM is the shape
   that would remove the file.
-  *Reproduced against 0.1.86: a program importing three modules (`array`,
+  *Reproduced against 0.1.91: a program importing three modules (`array`,
   `io`, `option`) still emits all 36 std modules, including the seven no
   browser can run (`dns`, `fs`, `http`, `net`, `process`, `sqlite`, `tls`),
-  still under `.glyph-runtime`. `glyph build` still has no target or prune
-  flag, so the deployment guide's bundler workaround is still the only
-  answer.**36**, up from the 31 recorded
+  still under `.glyph-runtime`. `glyph build src --out dist --target browser` is
+  `error: unexpected argument '--target' found`, so the deployment guide's
+  bundler workaround is still the only answer. The count is **36**, up from the 31 recorded
   here, and the browser-hostile set is `dns`, `fs`, `http`, `net`, `process`,
   `sqlite`, `tls`. Three of those (`net`, `tls`, `dns`) are 0.1.79's own work, so
   each release that adds a host module makes this entry worse rather than
@@ -4179,10 +4189,10 @@ live on the seam the whole architecture stands on.
   G122's answer is: a watcher on the CLI, or a Vite plugin that owns both the
   alias and the rebuild-on-change. G122's fix (relative specifiers) removed the
   alias half, so what a plugin would still own is the rebuild-on-change.
-  *Reproduced against 0.1.86: `glyph build src --out dist --watch` still
-  fails with `error: unexpected argument '--watch' found` (exit 2), and no
-  build/check/run subcommand, nor any separate command, offers a watch
-  mode; the compiler source contains no watch-mode implementation at all.*
+  *Reproduced against 0.1.91: `glyph build src --out dist --watch` still
+  fails with `error: unexpected argument '--watch' found` (exit 2), and none of
+  the seventeen subcommands `glyph --help` lists offers a watch mode; `--help`
+  on `build`, `check`, `run` and `fmt` mentions no watch flag.*
 
 - **G124. A module whose whole export surface is private builds green and
   exports nothing, and only a host toolchain notices.** The kanban author wrote
@@ -4196,9 +4206,10 @@ live on the seam the whole architecture stands on.
   architecture uses. A candidate fix is a diagnostic on the library case: a
   module with no `main`, no `pub` declaration, and no Glyph-side importer is
   useful to nobody, and saying so at build time turns a host-side TS2459 into
-  a Glyph error that names `pub`. *Reproduced against 0.1.86: a two-function module with no `pub`, no `main`
-  and no Glyph-side importer still builds green and emits zero `export`
-  statements; adding `pub` to one function restores it* (the four
+  a Glyph error that names `pub`. *Reproduced against 0.1.91: a two-function module with no `pub`, no `main`
+  and no Glyph-side importer still reports "1 module(s) checked, no
+  diagnostics", passes `tsc --strict`, and emits zero `export` statements;
+  adding `pub` to one function takes the count to 1* (the four
   no-`pub` kanban modules emit `export` zero times; adding `pub` restores the
   surface).
 

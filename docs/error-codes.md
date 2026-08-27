@@ -105,7 +105,7 @@ an import some `.glyph` file under the root answers to.
 
 | Code | Meaning |
 |------|---------|
-| `E0200` | Non-exhaustive `match` on a tagged union (yours, a prelude `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a string-literal union (`"free" \| "pro"`, D30) missing a literal. Either kind counts whether it is declared in this module or imported from a sibling |
+| `E0200` | Non-exhaustive `match` on a tagged union (yours, a prelude `Result`/`Option`, or a stdlib one such as `fs.ErrorKind`), or a string-literal union (`"free" \| "pro"`, D30) missing a literal. Either kind counts whether it is declared in this module or imported from a sibling. A union that takes type parameters counts the same as its bare form when the matching module declares it; an imported one applied to arguments (`tree.Tree<string>`) is not counted at all yet, and a `match` that omits a variant of one builds clean and throws at run time (`docs/dogfooding-gaps.md` G142) |
 | `E0201` | `?` used outside a `Result`-returning function |
 | `E0202` | `?` applied to a non-`Result` operand |
 | `E0203` | `?` error type does not match the function's `E` (no `From` in v1) |

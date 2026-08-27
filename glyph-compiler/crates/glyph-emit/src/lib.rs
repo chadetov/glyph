@@ -163,6 +163,15 @@ pub enum EmitError {
         field_ty: String,
         span: Span,
     },
+    /// Two arms of one `match` lowered to the same `case` label. JavaScript
+    /// accepts that switch and runs the first label for every value, so the
+    /// later arm is dead code and the earlier one silently answers in its
+    /// place. Every miscompile in the nested-variant class (G1, G130, G145)
+    /// shipped through exactly this shape, green through `tsc --strict`, so the
+    /// emitter refuses to write one rather than trusting each lowering to be
+    /// right about it.
+    #[error("this match arm can never run: an earlier arm already matches `{tag}`")]
+    DuplicateMatchCase { tag: String, span: Span },
 }
 
 impl EmitError {
@@ -173,6 +182,7 @@ impl EmitError {
             EmitError::TryInNestedExpressionMatch { span } => *span,
             EmitError::TryInUnhoistablePosition { span } => *span,
             EmitError::UnverifiableDescriptorUse { span, .. } => *span,
+            EmitError::DuplicateMatchCase { span, .. } => *span,
         }
     }
 
@@ -184,6 +194,7 @@ impl EmitError {
             EmitError::TryInNestedExpressionMatch { .. } => "E0302",
             EmitError::TryInUnhoistablePosition { .. } => "E0303",
             EmitError::UnverifiableDescriptorUse { .. } => "E0304",
+            EmitError::DuplicateMatchCase { .. } => "E0305",
         }
     }
 
@@ -205,6 +216,9 @@ impl EmitError {
             EmitError::UnverifiableDescriptorUse { .. } => Some(
                 "Split the wire type from the domain type: parse a record whose fields are all checkable, then build this one from it.",
             ),
+            EmitError::DuplicateMatchCase { .. } => Some(
+                "Remove the later arm, or give the two arms different patterns (a nested variant, a literal, or an object pattern) so they test different values.",
+            ),
         }
     }
 
@@ -220,6 +234,9 @@ impl EmitError {
             ),
             EmitError::TryInUnhoistablePosition { .. } => Some(
                 "`?` expands to a `const` binding plus an early `return` placed before the statement it appears in, so it is only legal where such a statement can be inserted. A `match` scrutinee is one of the positions that is emitted as a plain expression.",
+            ),
+            EmitError::DuplicateMatchCase { .. } => Some(
+                "Two arms testing the same tag lower to two `case` labels in one `switch`, which JavaScript runs as first-one-wins. The compiler refuses to emit that rather than shipping a switch whose second label is unreachable.",
             ),
             EmitError::UnverifiableDescriptorUse { .. } => Some(
                 "A record may hold a value the compiler cannot check (a socket, an `extern_ts` type, an `unknown`); holding one is ordinary. What is refused is `parse`/`is` on it, because a boundary that reports success has to have checked what it claims. The check propagates: a field whose type is itself such a record, or an array or `Option` of one, is unverifiable for the same reason.",
@@ -417,21 +434,6 @@ fn runtime_specifier(module_path: &str, tail: &str) -> String {
 /// bootstrap, which sits at the output root.
 fn bootstrap_specifier(module_path: &str) -> String {
     runtime_specifier(module_path, "glyph-bootstrap")
-}
-
-/// Whether a constructor pattern's single argument is itself a variant pattern
-/// (so the outer arm needs an inner dispatch on the payload's tag): a nested
-/// constructor (`Ok(Some(x))`) or a bare no-payload prelude variant
-/// (`Ok(None)`, which parses as a `Pattern::Ident`, not a `Pattern::Constructor`).
-fn is_nested_variant_arg(p: &Pattern) -> bool {
-    match p {
-        Pattern::Constructor { .. } => true,
-        // A literal payload (`Ok(true)`, `Some(0)`) is a nested pattern too: it
-        // is degrouped into an inner value-match on the payload.
-        Pattern::Literal { .. } => true,
-        Pattern::Ident { name, .. } => is_prelude_variant(name),
-        _ => false,
-    }
 }
 
 /// How a lowered `match` arm yields control: `return` its value (the match is
@@ -2656,6 +2658,81 @@ impl<'a> Emitter<'a> {
         }
     }
 
+    /// The variant names of the union carried as `outer`'s payload in
+    /// `scrutinee_ty`. Two spellings of "payload", and both have to answer:
+    /// the prelude one, where the payload is a type argument (`Result<T, E>`:
+    /// `Err` -> `E`), and a user union's, where the payload type is written in
+    /// the variant's own declaration (`Full(Color)`) and never becomes a `Ty`
+    /// here at all.
+    ///
+    /// `None` means the payload union is not readable from this module (it is
+    /// imported, the scrutinee's type did not resolve, or the payload is not a
+    /// union), which is exactly when the name's shape has to answer instead.
+    fn nested_payload_variants(&self, scrutinee_ty: &Ty, outer: &str) -> Option<Vec<String>> {
+        if let Some(pty) = self.outer_variant_payload_ty(scrutinee_ty, outer) {
+            return self.union_variant_names(&pty);
+        }
+        let TypeExpr::Path { segments, .. } = self.user_variant_payload(scrutinee_ty, outer)? else {
+            return None;
+        };
+        self.union_variant_names_of_decl(segments.last()?)
+    }
+
+    /// The declared payload type expression of `variant` in the user union
+    /// `ty`, when `ty` names a union declared in this module. The declaration is
+    /// where a user union keeps its payload types; `outer_variant_payload_ty`
+    /// only ever finds the prelude's, which are type arguments.
+    fn user_variant_payload(&self, ty: &Ty, variant: &str) -> Option<&TypeExpr> {
+        let ty = match ty {
+            Ty::App { base, .. } => base.as_ref(),
+            other => other,
+        };
+        let Ty::Named { symbol, path } = ty else {
+            return None;
+        };
+        let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+        // The prelude and this module both number symbol ids from 0, so require
+        // the name to match before trusting the id (the same collision guard
+        // `union_variant_names` carries).
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return None;
+        }
+        let SymbolKind::Type { decl_idx } = &sym.kind else {
+            return None;
+        };
+        let Decl::Type(td) = self.module.items.get(*decl_idx as usize)? else {
+            return None;
+        };
+        let TypeExpr::Union { variants, .. } = &td.body else {
+            return None;
+        };
+        variants
+            .iter()
+            .find(|v| v.name.as_ref() == variant)?
+            .payload
+            .as_ref()
+    }
+
+    /// The variant names of the union declared under `name` in this module,
+    /// looked up by name rather than through a `Ty`: a user union's payload
+    /// arrives as a `TypeExpr` from the declaration, which nothing resolves into
+    /// a `Ty` for the emitter. `None` for an imported name, whose declaration
+    /// lives in another module.
+    fn union_variant_names_of_decl(&self, name: &str) -> Option<Vec<String>> {
+        let sym_id = *self.resolved.symbols.by_name.get(name)?;
+        let sym = self.resolved.symbols.table.get(sym_id)?;
+        let SymbolKind::Type { decl_idx } = &sym.kind else {
+            return None;
+        };
+        let Decl::Type(td) = self.module.items.get(*decl_idx as usize)? else {
+            return None;
+        };
+        let TypeExpr::Union { variants, .. } = &td.body else {
+            return None;
+        };
+        Some(variants.iter().map(|v| v.name.to_string()).collect())
+    }
+
     /// The type of a `match` scrutinee, consulting `synth_types` for synthesized
     /// temporaries the `TypeMap` doesn't know about, then the `TypeMap`.
     fn scrutinee_ty(&self, expr: &Expr) -> Ty {
@@ -2824,25 +2901,6 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    /// Variant names of `outer_variant`'s payload union in `scrutinee_ty`, when
-    /// that payload is itself a tagged union. Lets `degroup_nested_arms`
-    /// recognize a nested *nullary* variant (`Err(Empty)` where `Empty` is a
-    /// user variant): it parses as a `Pattern::Ident` and would otherwise be
-    /// mistaken for a payload binding, producing a duplicate `case "Err"` that
-    /// silently swallows every `Err`. Handles the prelude `Result`/`Option`
-    /// shape, whose payload is a type argument (`Result<T, E>`: `Err` -> `E`).
-    fn nested_payload_variants(&self, scrutinee_ty: &Ty, outer_variant: &str) -> Option<Vec<String>> {
-        let Ty::App { args, .. } = scrutinee_ty else {
-            return None;
-        };
-        let payload = match outer_variant {
-            "Ok" | "Some" => args.first()?,
-            "Err" => args.get(1)?,
-            _ => return None,
-        };
-        self.union_variant_names(payload)
-    }
-
     /// Lower a `match` over a tagged union to a `switch` on the `tag`
     /// discriminant. Handles constructor-pattern arms (`Ok(x)`,
     /// `NetworkError({ url })`, dotted `fs.ErrorKind.NotFound`), bare no-payload
@@ -2861,6 +2919,60 @@ impl<'a> Emitter<'a> {
     /// position of its first arm and collects later arms of the same outer
     /// variant. Order is otherwise preserved. Deeper nesting is handled when the
     /// synthesized inner `match` is itself emitted.
+    /// Whether `arm` is a constructor arm whose single argument is itself a
+    /// variant pattern, so the arm needs an inner dispatch on the payload's tag.
+    ///
+    /// The gate (`emit_match_dispatch`) and the rewrite (`degroup_nested_arms`)
+    /// both ask through here with the same scrutinee type, so they cannot part:
+    /// an arg the gate accepts and the rewrite declines would be rewritten to
+    /// itself and re-enter the gate forever.
+    fn arm_has_nested_constructor(&self, arm: &MatchArm, scrutinee_ty: &Ty) -> bool {
+        let Pattern::Constructor { path, args, .. } = &arm.pattern else {
+            return false;
+        };
+        let [arg] = args.as_slice() else {
+            return false;
+        };
+        let outer = path.last().map(|s| s.as_ref()).unwrap_or("");
+        self.is_nested_variant_arg(arg, scrutinee_ty, outer)
+    }
+
+    /// Whether a constructor pattern's single argument is itself a variant
+    /// pattern: a nested constructor (`Ok(Some(x))`), a literal (`Ok(true)`,
+    /// degrouped into an inner value-match), or a bare no-payload variant
+    /// (`Ok(None)`, `Err(Empty)`, `Err(blank)`), which parses as a
+    /// `Pattern::Ident` rather than a `Pattern::Constructor`.
+    fn is_nested_variant_arg(&self, p: &Pattern, scrutinee_ty: &Ty, outer: &str) -> bool {
+        match p {
+            Pattern::Constructor { .. } | Pattern::Literal { .. } => true,
+            Pattern::Ident { name, .. } => {
+                self.is_nested_variant_name(name, scrutinee_ty, outer)
+            }
+            _ => false,
+        }
+    }
+
+    /// Whether a bare ident in payload position names a variant of the payload
+    /// union rather than binding the payload.
+    ///
+    /// The payload union's own variant list decides first, and the name's shape
+    /// answers only when that list is unknown. This is
+    /// `assign.rs::check_patterns_exhaustive`'s rule, and it is mirrored here
+    /// exactly on purpose: where the checker reads `Err(blank)` as a variant
+    /// reference and the emitter read it as a binding, the two arms lowered to
+    /// duplicate `case "Err":` labels and the first silently swallowed every
+    /// error. Shape alone cannot close that, because Glyph accepts a lowercase
+    /// variant name; the variant list alone cannot either, because an imported
+    /// payload union reaches the emitter as a `Ty::Imported` with no variants
+    /// attached. The one case neither half answers is a lowercase variant of an
+    /// imported union: it reads as a binding, and the duplicate-label guard
+    /// stops the build rather than letting it miscompile (G147).
+    fn is_nested_variant_name(&self, name: &Ident, scrutinee_ty: &Ty, outer: &str) -> bool {
+        self.nested_payload_variants(scrutinee_ty, outer)
+            .is_some_and(|vs| vs.iter().any(|v| v.as_str() == name.as_ref()))
+            || is_variant_shaped(name)
+    }
+
     fn degroup_nested_arms(&mut self, scrutinee: &Expr, arms: &[MatchArm]) -> Vec<MatchArm> {
         // Owned so no borrow of `self.types` is held across the `&mut self`
         // `fresh_temp` call below. Uses `scrutinee_ty` so a deeper-nested match
@@ -2886,20 +2998,20 @@ impl<'a> Emitter<'a> {
                 .join(".");
             let already_grouped = group_at.iter().any(|(t, _)| *t == tag);
             // The single arg is a nested variant when it is a constructor
-            // pattern, a literal (`Ok(true)`), a bare prelude variant
-            // (`Ok(None)`), or a bare *user* nullary variant of the outer
-            // variant's payload union (`Err(Empty)`). Once a variant is grouped,
-            // a later same-variant arm whose arg is a wildcard or a plain binding
-            // is absorbed as the inner match's catch-all, so a `Some(0) => ..,
-            // Some(_) => ..` pair stays exhaustive rather than emitting a second
-            // `case "Some":` that shadows the value dispatch.
+            // pattern, a literal (`Ok(true)`), or a bare no-payload variant
+            // (`Ok(None)`, `Err(Empty)`, `Err(blank)`). The arms below must
+            // accept exactly what `is_nested_variant_arg` accepts, which is why
+            // the ident arm asks it directly: an arg the gate accepts and this
+            // match falls through on would be rewritten to itself and re-enter
+            // the gate forever. Once a variant is grouped, a later same-variant
+            // arm whose arg is a wildcard or a plain binding is absorbed as the
+            // inner match's catch-all, so a `Some(0) => .., Some(_) => ..` pair
+            // stays exhaustive rather than emitting a second `case "Some":`
+            // that shadows the value dispatch.
             let inner: Pattern = match arg {
                 Pattern::Constructor { .. } | Pattern::Literal { .. } => arg.clone(),
                 Pattern::Ident { name, span }
-                    if is_prelude_variant(name)
-                        || self
-                            .nested_payload_variants(&scrutinee_ty, outer)
-                            .is_some_and(|vs| vs.iter().any(|v| v == name.as_ref())) =>
+                    if self.is_nested_variant_name(name, &scrutinee_ty, outer) =>
                 {
                     // Rewrite the binding-shaped ident into an explicit nullary
                     // constructor so the inner switch dispatches on its tag
@@ -3026,25 +3138,28 @@ impl<'a> Emitter<'a> {
         // nested arms into one arm whose payload is dispatched by an inner
         // `match`, then re-emit: the inner match lowers through the tail-match
         // path, and deeper nesting recurses through this same rewrite.
-        if arms.iter().any(arm_has_nested_constructor) {
+        let scrutinee_ty = self.scrutinee_ty(scrutinee);
+        if arms
+            .iter()
+            .any(|a| self.arm_has_nested_constructor(a, &scrutinee_ty))
+        {
             let rewritten = self.degroup_nested_arms(scrutinee, arms);
             return self.emit_match_dispatch(scrutinee, &rewritten, term);
         }
 
         // Variant names of the scrutinee's union, when its type is known.
-        let scrutinee_ty = self.scrutinee_ty(scrutinee);
         let variants = self.union_variant_names(&scrutinee_ty);
-        let is_variant = |name: &str| {
+        let is_variant = |name: &Ident| {
             is_prelude_variant(name)
                 // A PascalCase bare ident is a variant reference (the resolver's
                 // rule), so an *imported* union's nullary variant lowers to a
                 // `case "V":` on `.tag` rather than being misread as a binding
                 // catch-all. Its type is `Unknown` here, so the variant set below
                 // is empty; the switch on `.tag` works regardless of provenance.
-                || name.chars().next().is_some_and(|c| c.is_ascii_uppercase())
+                || is_variant_shaped(name)
                 || variants
                     .as_ref()
-                    .is_some_and(|vs| vs.iter().any(|v| v == name))
+                    .is_some_and(|vs| vs.iter().any(|v| v.as_str() == name.as_ref()))
         };
 
         for arm in arms {
@@ -3164,10 +3279,15 @@ impl<'a> Emitter<'a> {
         };
         self.line(&format!("switch ({discriminant}) {{"));
         self.indent += 1;
+        // Every `case` label written into this switch. A repeat is a switch
+        // whose later label can never run, which JavaScript and `tsc --strict`
+        // both accept in silence; see `EmitError::DuplicateMatchCase`.
+        let mut case_labels: Vec<String> = Vec::new();
         for arm in arms {
             match &arm.pattern {
                 Pattern::Constructor { path, args, .. } => {
                     let variant = path.last().expect("constructor path is non-empty");
+                    check_case_label(&mut case_labels, variant, arm.span)?;
                     let record_payload =
                         self.variant_payload_is_record(&self.scrutinee_ty(scrutinee), variant);
                     self.line(&format!("case \"{variant}\": {{"));
@@ -3183,6 +3303,7 @@ impl<'a> Emitter<'a> {
                 // scrutinee to the name so the arm body can read it.
                 Pattern::Ident { name, .. } => {
                     if is_variant(name) {
+                        check_case_label(&mut case_labels, name, arm.span)?;
                         self.line(&format!("case \"{name}\": {{"));
                         self.indent += 1;
                         self.emit_arm_body(&arm.body, term, true)?;
@@ -3199,7 +3320,9 @@ impl<'a> Emitter<'a> {
                 }
                 // A value-match literal: `case <literal>:`.
                 Pattern::Literal { value, .. } => {
-                    self.line(&format!("case {}: {{", literal_label(value)));
+                    let label = literal_label(value);
+                    check_case_label(&mut case_labels, &label, arm.span)?;
+                    self.line(&format!("case {label}: {{"));
                     self.indent += 1;
                     self.emit_arm_body(&arm.body, term, true)?;
                     self.indent -= 1;
@@ -5913,11 +6036,22 @@ fn has_structured_field(p: &Pattern) -> bool {
     }
 }
 
-fn arm_has_nested_constructor(arm: &MatchArm) -> bool {
-    matches!(
-        &arm.pattern,
-        Pattern::Constructor { args, .. } if matches!(args.as_slice(), [a] if is_nested_variant_arg(a))
-    )
+/// Record a `case` label about to be written, refusing a repeat.
+///
+/// A `switch` with two identical labels is valid JavaScript that runs the first
+/// one for every value, and `tsc --strict` has nothing to say about it, so the
+/// whole nested-variant miscompile class shipped green. The guard is
+/// spelling-independent: whatever decides that a name is a variant, two arms
+/// that reach the same label cannot both be emitted.
+fn check_case_label(seen: &mut Vec<String>, label: &str, span: Span) -> Result<(), EmitError> {
+    if seen.iter().any(|l| l == label) {
+        return Err(EmitError::DuplicateMatchCase {
+            tag: label.to_string(),
+            span,
+        });
+    }
+    seen.push(label.to_string());
+    Ok(())
 }
 
 /// Whether any binder this pattern lowers to inside a `switch` case is called
@@ -7798,6 +7932,105 @@ mod tests {
     }
 
     #[test]
+    fn nested_nullary_variant_beside_a_payload_binding_dispatches_on_the_inner_tag() {
+        // `Err(Empty) => .., Err(e) => ..` carries no nested *constructor* arm,
+        // so the degrouping gate never fired: both arms became `case "Err":` on
+        // the outer tag, the first bound the whole payload under the variant's
+        // own name and silently won for every `Err`, and the second was dead
+        // code that tsc accepted. The inner nullary variant must dispatch on the
+        // payload's tag, with the binding arm absorbed as the inner catch-all.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok, Err }\npub type OrderErr =\n  | Empty\n  | BadQty({ sku: string })\npub fn describe(r: Result<int, OrderErr>) -> string {\n  return match r {\n    Err(Empty) => \"empty\",\n    Err(e) => \"other\",\n    Ok(v) => \"ok\",\n  }\n}\n",
+        );
+        assert_eq!(
+            ts.matches("case \"Err\"").count(),
+            1,
+            "expected a single `case \"Err\"` (not the duplicate-label miscompile):\n{ts}"
+        );
+        assert!(ts.contains("case \"Empty\""), "{ts}");
+        assert!(!ts.contains("const Empty ="), "{ts}");
+    }
+
+    #[test]
+    fn two_nested_nullary_variants_each_get_an_inner_case() {
+        // The same hole with no binding arm at all: two nullary payload variants
+        // under one outer tag emitted two `case "Err":` labels, so the second arm
+        // could never run.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok, Err }\npub type OrderErr =\n  | Empty\n  | Blank\npub fn describe(r: Result<int, OrderErr>) -> string {\n  return match r {\n    Err(Empty) => \"empty\",\n    Err(Blank) => \"blank\",\n    Ok(v) => \"ok\",\n  }\n}\n",
+        );
+        assert_eq!(
+            ts.matches("case \"Err\"").count(),
+            1,
+            "one `case \"Err\"` with an inner tag switch:\n{ts}"
+        );
+        assert!(ts.contains("case \"Empty\""), "{ts}");
+        assert!(ts.contains("case \"Blank\""), "{ts}");
+    }
+
+    #[test]
+    fn nested_nullary_variant_of_a_user_union_dispatches_on_the_inner_tag() {
+        // G130: the outer variant is a user one (`Full(Color)`), not `Ok`/`Err`,
+        // so the type-driven lookup that used to decide this never applied and
+        // both arms became `case "Full":` binding the payload under the inner
+        // variant's name. `describe(Full(Red))` answered "black box". The
+        // resolver reads `Black` as a variant reference wherever it appears, and
+        // the emitter now agrees with it whatever the outer variant is.
+        let ts = emit(
+            "module x\ntype Color = | Red | Black\ntype Box = | Empty | Full(Color)\npub fn describe(b: Box) -> string {\n  return match b {\n    Empty => \"empty\",\n    Full(Black) => \"black box\",\n    Full(Red) => \"red box\",\n  }\n}\n",
+        );
+        // `case "Full": {` counts the switch arms only; the union's runtime
+        // descriptor carries a `case "Full": return ...` of its own.
+        assert_eq!(
+            ts.matches("case \"Full\": {").count(),
+            1,
+            "one `case \"Full\":` arm with an inner tag switch:\n{ts}"
+        );
+        assert!(ts.contains("case \"Black\":"), "{ts}");
+        assert!(ts.contains("case \"Red\":"), "{ts}");
+        assert!(!ts.contains("const Black ="), "{ts}");
+    }
+
+    #[test]
+    fn nested_lowercase_variant_beside_a_payload_binding_dispatches_on_the_inner_tag() {
+        // Glyph accepts a lowercase variant name, and the shape rule alone
+        // cannot see one: `Err(blank)` read as a payload binding while the
+        // checker read it as a variant reference, so the pair emitted two
+        // `case "Err":` labels again and the first swallowed every error. The
+        // payload union's own variant list has to decide first, exactly as
+        // `assign.rs::check_patterns_exhaustive` decides coverage, so a name's
+        // capitalization cannot change what the program means.
+        let ts = emit(
+            "module x\nimport std/result { Result, Ok, Err }\npub type OrderErr =\n  | blank\n  | BadQty({ sku: string })\npub fn describe(r: Result<int, OrderErr>) -> string {\n  return match r {\n    Err(blank) => \"blank\",\n    Err(e) => \"other\",\n    Ok(v) => \"ok\",\n  }\n}\n",
+        );
+        assert_eq!(
+            ts.matches("case \"Err\"").count(),
+            1,
+            "expected a single `case \"Err\"` (not the duplicate-label miscompile):\n{ts}"
+        );
+        assert!(ts.contains("case \"blank\""), "{ts}");
+        assert!(!ts.contains("const blank ="), "{ts}");
+    }
+
+    #[test]
+    fn nested_lowercase_variant_of_a_user_union_dispatches_on_the_inner_tag() {
+        // The same lowercase hole under a *user* outer variant (`Full(red)`),
+        // whose payload type is written in the variant's own declaration rather
+        // than carried as a type argument. Reaching it needs the payload lookup
+        // to walk the scrutinee's union declaration, not just `Ty::App`.
+        let ts = emit(
+            "module x\ntype Color = | red | Black\ntype Box = | Empty | Full(Color)\npub fn describe(b: Box) -> string {\n  return match b {\n    Empty => \"empty\",\n    Full(red) => \"red box\",\n    Full(c) => \"other box\",\n  }\n}\n",
+        );
+        assert_eq!(
+            ts.matches("case \"Full\": {").count(),
+            1,
+            "one `case \"Full\":` arm with an inner tag switch:\n{ts}"
+        );
+        assert!(ts.contains("case \"red\":"), "{ts}");
+        assert!(!ts.contains("const red ="), "{ts}");
+    }
+
+    #[test]
     fn nested_literal_payload_degroups_to_a_value_match() {
         // F4: `Ok(true)`/`Ok(false)` (a nested literal payload) lowers to a
         // single `case "Ok"` whose payload dispatches through an inner
@@ -8547,6 +8780,21 @@ mod tests {
         );
         assert!(
             matches!(err, EmitError::Unsupported { construct, .. } if construct.contains("catch-all")),
+            "got {err:?}"
+        );
+    }
+
+    #[test]
+    fn two_arms_reaching_the_same_case_label_are_rejected() {
+        // Two arms on one tag whose payload patterns are both plain bindings
+        // emit `case "Err":` twice. JavaScript runs the first for every value
+        // and `tsc --strict` says nothing, which is how every miscompile in this
+        // class shipped green. E0305 refuses the switch instead.
+        let err = emit_err(
+            "module x\nimport std/result { Result, Ok, Err }\npub fn f(r: Result<int, string>) -> string {\n  return match r {\n    Err(e) => e,\n    Err(other) => other,\n    Ok(v) => \"ok\",\n  }\n}\n",
+        );
+        assert!(
+            matches!(&err, EmitError::DuplicateMatchCase { tag, .. } if tag == "Err"),
             "got {err:?}"
         );
     }

@@ -1043,6 +1043,7 @@ machine-readably. The full catalogue:
 | E0302 | `?` in an arm of a match nested inside a larger expression | Bind the match first (`let x = match ...`), then use `?` |
 | E0303 | `?` where the unwrap has nothing to hoist into (a `match` scrutinee) | Bind the operand first (`let r = f(x)?`), then use `r` |
 | E0304 | `parse`/`is` on a record holding a field with no runtime check (a host handle, an `extern_ts` type) | Split the wire type from the domain type: parse the checkable fields, then build the record |
+| E0305 | Two arms of one `match` reach the same `case` label, so the later one is dead | Remove the later arm, or give the two arms patterns that test different values |
 | E0310 | `glyph run` on a module with no `fn main` | Add `fn main`, or `glyph build` it as a library |
 
 ### A diagnostic in the self-correction loop

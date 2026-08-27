@@ -5088,6 +5088,50 @@ fn imported_union_nullary_variants_match_without_false_unreachable() {
 }
 
 #[test]
+fn nested_imported_nullary_variant_dispatches_on_the_inner_tag() {
+    // `Err(EmptyOctet) => .., Err(e) => ..` where the payload union is
+    // *imported*: the emitter read the inner PascalCase ident as a payload
+    // binding and emitted two `case "Err":` labels, so the first arm swallowed
+    // every parse error and the second never ran. tsc accepts a duplicate case
+    // label, so nothing anywhere reported it. The payload union's variant list
+    // is not readable across the boundary here, so this is the case the name's
+    // shape has to answer: a constructor-shaped bare ident in pattern position
+    // is a variant reference, never a binding.
+    let root = unique_tmp("nested-nullary-imported");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "net.glyph",
+        "module net\npub type ParseError =\n  | EmptyOctet\n  | NotANumber({ got: string })\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import net { ParseError, EmptyOctet, NotANumber }\n\
+         import std/result { Result, Ok, Err }\n\
+         pub fn describe(r: Result<int, ParseError>) -> string {\n\
+         \x20 return match r {\n\
+         \x20\x20\x20 Err(EmptyOctet) => \"empty\",\n\
+         \x20\x20\x20 Err(e) => \"other\",\n\
+         \x20\x20\x20 Ok(v) => \"ok\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    assert_eq!(
+        ts.matches("case \"Err\"").count(),
+        1,
+        "one `case \"Err\"` with an inner tag switch, not the duplicate-label miscompile:\n{ts}"
+    );
+    assert!(ts.contains("case \"EmptyOctet\""), "{ts}");
+    assert!(!ts.contains("const EmptyOctet ="), "{ts}");
+}
+
+#[test]
 fn non_exhaustive_imported_union_match_is_caught() {
     // The imported-union type-resolution pass: a match on an imported union that
     // omits a variant is now E0200, resolved cross-module by the union's real

@@ -4499,17 +4499,66 @@ moved to 0.1.93 below, unchanged.
 
 ### 0.1.93 — Next · The nested variant that binds instead of matching
 
-G130, found while reviewing the G129 fix rather than in an app. `Full(Black)`,
-where `Full` carries a user-defined union rather than a record, compiles clean,
-passes `tsc --strict`, and emits two `case "Full":` blocks. The first binds
-`Black` to the payload instead of testing it, so every `Full` takes that arm
-whatever its payload, and the arms below it are dead code the emitter still
-writes out. Same shape as G129 one level up, and the typechecker and the emitter
-disagree about it: dropping the other arm reports a non-exhaustive match on
-`Color`, so the checker reads `Black` as a variant reference while the emitter
-reads it as a binding.
+G145 and G130 are landed on main, uncommitted at the time of writing, and are
+one fix. G130 was found while reviewing the G129 fix; G145 was an app writing a
+CLI parser whose `match parse(line) { Err(Blank) => .., Err(e) => print(..) }`
+swallowed every parse error instead of only the blank lines. `Full(Black)` and
+`Err(Blank)` are the same arm under different outer variants: both compiled
+clean, passed `tsc --strict`, and emitted two `case` blocks on the *outer* tag
+whose first bound the payload under the inner variant's own name. Every value of
+that outer variant took the first arm whatever its payload carried, and the arms
+below it were dead code the emitter still wrote out. The typechecker had the
+right reading the whole time: drop the second arm and it reports a non-exhaustive
+match on the payload union, so the checker read `Black` as a variant reference
+while the emitter read it as a binding.
 
-G138 rides with it, because it is the same disagreement in the array position.
+`degroup_nested_arms` already rewrites an outer variant carrying nested patterns
+into one arm whose payload is dispatched by an inner `match`. What was wrong was
+the gate that turns it on: `is_nested_variant_arg` accepted a bare ident only
+when it named a *prelude* variant, so `Ok(None)` degrouped and `Err(Blank)` did
+not. It now decides a bare ident the way the typechecker decides coverage
+(`assign.rs::check_patterns_exhaustive`): the payload union's own variant list
+answers first, and the name's shape answers only when that list is unknown.
+Neither half is enough alone. Shape alone leaves a lowercase variant
+miscompiling, and Glyph accepts one, so `Err(blank)` beside `Err(e)` reproduced
+the same duplicate-label switch one character away from the spelling that had
+just been fixed. The variant list alone cannot answer for a payload union
+imported from a sibling module, which is `Ty::Imported` to the emitter with no
+variants attached and miscompiled identically. `nested_payload_variants`, the
+type-driven lookup G130's entry proposed extending, is extended: it reads a user
+union's payload out of the variant's own declaration as well as the prelude's
+type argument, and the gate and the rewrite both consult it through one method
+so they cannot part on a name's case.
+
+The switch itself is guarded now. Two arms that would write the same `case` label
+are `E0305` rather than a switch whose second label can never run. That shape is
+how every miscompile in this class shipped green: JavaScript runs a duplicate
+label as first-one-wins and `tsc --strict` has nothing to say about it. The guard
+is independent of whatever rule decides that a name is a variant, so the next
+lowering bug that reaches for one tag twice stops the build instead of picking
+the wrong arm at run time. It also refuses two arms on one tag whose payload
+patterns are both plain bindings (`Err(e) => .., Err(other) => ..`), which
+compiled before and could only ever run its first arm.
+
+Seven tests: five in `glyph-emit` pin the emitted lowering for the binding-arm
+shape, the two-nullary shape, G130's user-defined outer variant, and the
+lowercase spelling of both, one pins the duplicate-label refusal, and
+`nested_imported_nullary_variant_dispatches_on_the_inner_tag` in the CLI
+integration suite builds it across a module boundary.
+
+What is not closed, in two places. A *lowercase* variant of an *imported* payload
+union still has no variant list to read, so the shape rule answers "binding" and
+the arm pair stops the build at `E0305` rather than dispatching on the payload's
+tag. That is G147, it is a loud failure on a valid program rather than a silent
+wrong answer, and closing it means giving the emitter an imported union's variant
+names, which is the same missing registry the shallow imported-union coverage
+check (G143) needs. And a constructor-shaped payload pattern whose payload type is
+known and is *not* a union (`Ok(Point)` on a record) is now a `tsc` error naming
+a `.tag` the author never wrote, where it should be a Glyph diagnostic of the
+E0220 class. That is G146, and it is an improvement on the silent binding it used
+to be rather than a regression, but it is the wrong compiler answering.
+
+G138 stays open. It is the same disagreement in the array position.
 `[Black]` at the top level of a match lowers to `const Black = __m0[0]`, while
 the same element inside an object pattern's field lowers to a tag test as of
 0.1.90. Half of it is already closed: the array exhaustiveness predicate no
@@ -4517,7 +4566,9 @@ longer counts a PascalCase element as a binding, so a match that leans on the
 miscompile is reported non-exhaustive instead of certified. The lowering is what
 is left, and the correct implementation of it already exists a few hundred lines
 away in `pattern_conditions`; routing the top-level array chain through it is
-the fix.
+the fix. The G145 gate does not reach it: a top-level array pattern routes to
+`emit_array_chain` before the degrouping gate is consulted, and
+`match xs { [] => .., [Black] => .. }` still emits `const Black = __m0[0]`.
 
 G140's namespace half is what is left of it now that G141 has shipped, and it
 matters more than the half that went. The same nested arm over a union declared
@@ -5665,6 +5716,18 @@ concrete follow-ups, in priority order:
 The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.
+
+- **`check_site.py` does not compile the code it publishes.** The site's answer
+  pages carry Glyph programs, and nothing checks that they parse. A snippet on
+  the verifiability page shipped for one review cycle missing the comma after a
+  block-form match arm, on a page whose subject is what the compiler catches.
+  The gate passes because it checks structure, links and version strings, never
+  source. The awkward part is that many blocks are deliberate fragments (an arm
+  or two, a signature with no body) and some are the *rejected* spelling shown
+  next to its diagnostic, so a blanket "compile every `<pre>`" would fail on
+  purpose-built failures. It needs a marker on the blocks that claim to be whole
+  programs, and then the gate builds those. Small, and it closes a class where
+  the site is wrong in exactly the way the site says the language is not.
 
 - **The cross-module exhaustiveness check is a shallower copy of the local one
   (G142's open half, G143).** Two holes with one address. Exhaustiveness on a

@@ -4572,9 +4572,15 @@ consequence `tsc` reports at a span that is not the arm.
 
 ### 0.1.93 — Shipped · A nested variant matches instead of binding
 
-Cut 2026-08-27. The publish and the clean-npx smoke test (`--version`, the
-execute bit, `glyph init`, `npm install`, `glyph run`, and the headline feature
-itself) are recorded here once they have run.
+Published 2026-08-27 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit on the resolved platform binary, `glyph
+init`, `npm install`, `glyph run`, and the headline feature itself. A program
+matching `Err(Blank)` beside `Err(e)` prints `blank`, `other`, `ok` under
+0.1.93; the same program under 0.1.92 prints `blank`, `blank`, `ok`, because it
+emits two `case "Err"` labels and JavaScript runs the first one. Both builds
+pass `tsc --strict`, which is why the miscompile shipped green. The linux-x64
+tarball on the GitHub Release extracts to a mode-0755 ELF binary and matches its
+`SHA256SUMS` entry.
 
 G145 and G130 are one fix. G130 was found while reviewing the G129 fix; G145 was
 an app writing a CLI parser whose `match parse(line) { Err(Blank) => .., Err(e) => print(..) }`

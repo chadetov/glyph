@@ -585,6 +585,27 @@ pub fn explain(code: &str) -> Option<&'static str> {
             The rule propagates: a field whose type is a record with an \
             unverifiable field, or an `Array`/`Option`/`Record` of one, is \
             unverifiable for the same reason.",
+        "E0305" => "E0305: two match arms reach the same case label\n\n\
+            A `match` over a tagged union lowers to a `switch` on the tag. Two \
+            arms that test the same tag would write that label twice, and \
+            JavaScript runs the first one for every value, so the later arm is \
+            dead code. TypeScript does not object to it either, which is how \
+            this shape shipped silently before: the wrong arm answered and the \
+            build was green.\n\n\
+            Before:  match r {\n              \
+              Err(e) => log(e),\n              \
+              Err(other) => report(other),   // never runs\n              \
+              Ok(v) => v,\n            \
+            }\n\n\
+            After:   match r {\n              \
+              Err(Timeout) => log(\"timed out\"),   // a nested variant\n              \
+              Err(other) => report(other),\n              \
+              Ok(v) => v,\n            \
+            }\n\n\
+            Arms that differ by a nested variant, a literal payload, or an \
+            object pattern test different values and lower to one label with an \
+            inner dispatch, so they are fine. Two plain bindings on one tag are \
+            not: they ask the same question twice.",
         "E0310" => "E0310: no `main` to run\n\n\
             `glyph run` executes a program's entry point, `main(argv)`. The module \
             you pointed it at compiles fine but is a library — it exports functions \
@@ -615,7 +636,7 @@ pub const ALL_CODES: &[&str] = &[
     "E0206", "E0207", "E0208",
     "E0209", "E0210", "E0211", "E0212", "E0213", "E0214", "E0215", "E0216", "E0217", "E0218",
     "E0219", "E0220", "E0221", "E0222", "E0223", "E0224", "E0225", "E0226", "E0300", "E0301",
-    "E0302", "E0303", "E0310",
+    "E0302", "E0303", "E0305", "E0310",
 ];
 
 #[cfg(test)]

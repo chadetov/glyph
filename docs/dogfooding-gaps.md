@@ -47,9 +47,18 @@ switching exhaustiveness off for every module-local generic union. Reviewing
 import away is unchanged, because an imported generic scrutinee never reaches
 the function the unwrap went into. The same review opened G143, the imported
 union whose variant payload is never checked at all, generic or not: of
-144 entries, 104 are fixed, 14 are partly fixed, 10 are decided or resolved, and
-16 are open. G144, the D28 boundary cast that never reached the returns a
-`match` lowers to, was found by an app and closed in the same round.
+147 entries, 106 are fixed, 14 are partly fixed, 10 are decided or resolved, and
+17 are open. G144, the D28 boundary cast that never reached the returns a
+`match` lowers to, was found by an app and closed in the same round. So was
+G145, the nullary variant one level deep that matched every value of its outer
+variant and left the arm after it dead. G145 closed G130 with it, the same
+defect under a user-defined outer variant; G138, its array spelling, is
+untouched. Reviewing the G145 fix caught it closing only the capitalized half
+(the first attempt read a nested ident by name shape, and Glyph accepts a
+lowercase variant name, so `Err(blank)` still miscompiled) and opened two
+entries: G146, the same rule applied to a payload that is not a union at all,
+and G147, the lowercase variant one module away, which no longer miscompiles but
+stops the build instead of dispatching.
 The reconciliation before it, after 0.1.78 closed G102: that round re-ran an assignment the
 previous one had quietly substituted its way out of, and found why: `glyph run`
 called `process.exit` the moment `main` returned, so no program that outlived a
@@ -215,15 +224,15 @@ class is that "verified through `glyph build`" is not the same as verified.
   those jumps emit the labeled form so they reach the loop past the switch. The
   synthetic switch-`break` is untouched. Verified end to end (a guarded loop now
   terminates).*
-- **G130. A user-defined variant inside a constructor pattern compiles to a
-  payload binding, so the arm matches every payload.** G1 closed this shape for
-  the prelude constructors only. `nested_payload_variants`
-  (`glyph-compiler/crates/glyph-emit/src/lib.rs:2724`) requires a `Ty::App`
-  scrutinee and then keys off the names `Ok`/`Err`/`Some`, so a user union whose
-  variant carries another user union is a `Ty::Named`, returns `None`, and falls
+- **G130. [FIXED] A user-defined variant inside a constructor pattern compiles
+  to a payload binding, so the arm matches every payload.** G1 closed this shape
+  for the prelude constructors only. `nested_payload_variants`
+  (`glyph-compiler/crates/glyph-emit/src/lib.rs:2724`) required a `Ty::App`
+  scrutinee and then keyed off the names `Ok`/`Err`/`Some`, so a user union whose
+  variant carries another user union was a `Ty::Named`, returned `None`, and fell
   through to the `Pattern::Ident` arm of `emit_arm_binds` (`lib.rs:3852`): the
   payload-binding path. The doc comment three lines above
-  `nested_payload_variants` describes the exact bug it is failing to prevent.
+  `nested_payload_variants` described the exact bug it was failing to prevent.
 
   ```
   type Color = | Red | Black
@@ -261,19 +270,24 @@ class is that "verified through `glyph build`" is not the same as verified.
 
   Same class as G129, which is the object-pattern spelling of it and is rejected
   at parse time now, and reachable from the arm directly below the one G129
-  refuses. The machinery to close it is already in the emitter:
-  `variant_payload_is_record` (`lib.rs:2564`) walks a scrutinee `Ty` to its
-  `Decl::Type` and the variant's payload, `union_variant_names` (`lib.rs:2523`)
-  turns a union type into its variant names, and `degroup_nested_arms`
-  (`lib.rs:2754`) already rewrites a nested nullary constructor into a
-  synthesized inner `match`, which is the path `Ok(None)` takes today. Extending
-  `nested_payload_variants` past the `Ty::App` gate to a named union is bounded
-  emitter work rather than a design. *Reproduced against 0.1.91: `glyph check
-  src` still reports no diagnostics and a clean `tsc --strict`, the emitted
-  module still carries two `case "Full":` blocks each binding the tag name to
-  `__m0.value`, and `glyph run src` on a `Full(Red)` still prints `black box`.
-  The 0.1.91 generic-union unwrap does not touch it: the scrutinee here takes
-  no parameters and the disagreement is in the emitter.*
+  refuses. Closed with G145, which is the same defect under `Err`: the gate on
+  `degroup_nested_arms` now decides a nested bare ident the way the typechecker
+  decides coverage, the payload union's variant list first and the name's shape
+  only when that list is unknown, so the outer variant no longer has to be a
+  prelude one for the payload to be dispatched on its tag.
+  `nested_payload_variants`, the `Ty::App` lookup this entry proposed extending,
+  is extended: it reads a user union's payload out of the variant's own
+  declaration as well as the prelude's type argument. `glyph run src` on a
+  `Full(Red)` prints `red box`, and the emitted module carries one `case "Full":`
+  around a `switch` on the payload's tag. Covered by
+  `nested_nullary_variant_of_a_user_union_dispatches_on_the_inner_tag` and
+  `nested_lowercase_variant_of_a_user_union_dispatches_on_the_inner_tag` in
+  `glyph-emit`.
+
+  The array spelling of the same disagreement is G138 and is still open: a
+  top-level array chain is lowered by `emit_array_chain`, which the degrouping
+  gate never reaches, so `match xs { [] => .., [Black] => .. }` still emits
+  `const Black = __m0[0]`.
 
 ## High — verifiability holes and "silent green"
 
@@ -5574,3 +5588,169 @@ through an object pattern's fields.
   the CLI integration suite.
 
   *Found by an app round. Reproduced against 0.1.91, fixed in the same round.*
+
+- **G145. [FIXED] A nullary variant nested one level deep matched every value
+  of its outer variant.** `Err(Blank) => .., Err(e) => ..` reads as "ignore a
+  blank line, print every other parse error". It compiled to two `case "Err":`
+  labels on the *outer* `Result` tag, the first binding the whole payload under
+  the variant's own name (`const Blank = __m0.value;`). The first arm therefore
+  fired for every `Err` whatever the payload was, and the second was dead code.
+  `glyph build` reported no diagnostics and `tsc --strict` accepted the
+  duplicate case label, so nothing between the source and the running program
+  said a word.
+
+  ```glyph
+  type Inner =
+    | A
+    | B({ x: int })
+
+  fn describe(r: Result<int, Inner>) -> string {
+    return match r {
+      Err(A) => "matched-A",
+      Err(e) => "matched-other",
+      Ok(n) => "ok",
+    }
+  }
+  ```
+
+  `describe(Err(B({ x: 1 })))` returned `"matched-A"`.
+
+  The emitter already had the machinery: `degroup_nested_arms` rewrites a
+  variant carrying nested patterns into one arm whose payload is dispatched by
+  an inner `match`. What was wrong was the gate that turns it on.
+  `is_nested_variant_arg` accepted a bare ident only when it named a *prelude*
+  variant (`Ok(None)`), so `Err(A)` never reached the rewrite. A neighbouring
+  arm with a real nested constructor (`Err(BadQty({ sku }))`) opened the gate
+  and the nullary arm came out right, which is why the existing test passed and
+  this shape did not: the bug needed a match whose nested patterns were *all*
+  nullary.
+
+  The gate now decides a bare ident the way the typechecker decides coverage
+  (`assign.rs::check_patterns_exhaustive`): the payload union's own variant list
+  answers first, and the name's shape answers only when that list is unknown.
+  Both halves are load-bearing. Shape alone leaves a lowercase variant
+  miscompiling, and Glyph accepts one: `type Inner = | blank | Bad({ x: int })`
+  with `Err(blank)` beside `Err(e)` reproduced the identical duplicate-label
+  switch, one character away from the spelling that was fixed. The variant list
+  alone cannot answer for an imported payload union, which reaches the emitter as
+  a `Ty::Imported` with no variants attached and miscompiled the same way.
+  `nested_payload_variants` therefore stays and is extended: it now reads a user
+  union's payload out of the variant's own declaration (`Full(Color)`) as well as
+  the prelude's type argument (`Result<T, E>`). The two predicates that must
+  never disagree, the gate in `emit_match_dispatch` and the rewrite in
+  `degroup_nested_arms`, both ask through `is_nested_variant_name`, so they
+  cannot part on a name's case or on anything else.
+
+  One case is left, and it is loud rather than silent: a *lowercase* variant of
+  an *imported* payload union has no variant list to consult and the shape rule
+  reads it as a binding, so the arm pair stops the build at `E0305` instead of
+  dispatching. That is G147.
+
+  The switch is guarded now as well. `check_case_label` refuses to write the same
+  `case` label twice, as `E0305`. Every miscompile in this class went out through
+  that one shape: a duplicate label that JavaScript runs as first-one-wins and
+  `tsc --strict` never mentions. Whatever rule decides that a name is a variant,
+  a lowering that reaches for one tag twice is a build failure now rather than a
+  wrong answer at run time.
+
+  Covered by `nested_nullary_variant_beside_a_payload_binding_dispatches_on_the_inner_tag`,
+  `two_nested_nullary_variants_each_get_an_inner_case`,
+  `nested_lowercase_variant_beside_a_payload_binding_dispatches_on_the_inner_tag`
+  and `two_arms_reaching_the_same_case_label_are_rejected` in `glyph-emit`, and
+  across a module boundary by
+  `nested_imported_nullary_variant_dispatches_on_the_inner_tag` in the CLI
+  integration suite.
+
+  *Found by an app round writing a CLI parser. Reproduced against 0.1.92, fixed
+  in the same round.*
+
+- **G146. A constructor-shaped payload pattern over a non-union payload is a
+  `tsc` error naming a field the author never wrote.** A bare ident in payload
+  position is a variant reference when the payload union's variant list says so,
+  and by the name's shape when that list is unknown (G145). The shape rule has to
+  answer for an imported payload union, and it answers for a payload that is not
+  a union at all, which is where it is wrong:
+
+  ```glyph
+  type Point = { x: int, y: int }
+
+  fn f(r: Result<Point, string>) -> int {
+    return match r {
+      Ok(Point) => 1,
+      Err(e) => 0,
+    }
+  }
+  ```
+
+  `Point` is a record type, not a variant of anything. Glyph reports no
+  diagnostics; the emitter lowers the arm to a `switch` on the payload's `.tag`
+  and the build fails at the TypeScript back end:
+
+  ```
+  [TS2339] Error: tsc: Property 'tag' does not exist on type 'Point'.
+  ```
+
+  The author never wrote `.tag`, and the rule that produced it is Glyph's, so the
+  diagnostic should be too: when the payload's type is known and is not a union,
+  or is a union with no such variant, that is the E0220 class ("`Point` is not a
+  variant of ...") raised where the pattern is written. The payload lookup that
+  G145 added is most of what it needs; what it does not have is a way to tell "no
+  variant list because the payload is imported" (fall back to shape) from "no
+  variant list because the payload is not a union" (diagnose).
+
+  Before G145 this arm emitted `const Point = __m0.value;` and built green, so
+  the loud wrong-language error is an improvement on a silent binding rather than
+  a regression. It is still the wrong compiler answering.
+
+  *Found by the review of the G145 fix. Reproduced against 0.1.92.*
+
+- **G147. A lowercase nullary variant of an *imported* payload union does not
+  dispatch; the build stops at E0305 instead.** The nested-arm rule (G145) reads
+  the payload union's variant list first and falls back to the name's shape when
+  that list is unreadable. Across a module boundary the list is unreadable: an
+  imported payload arrives as `Ty::Imported` with no variants attached. For a
+  PascalCase name the shape answers correctly, which is what the imported case
+  rests on. For a lowercase one it answers "binding", and the two arms reach for
+  the same `case` label:
+
+  ```glyph
+  // net.glyph
+  pub type ParseError =
+    | empty
+    | NotANumber({ got: string })
+
+  // main.glyph
+  import net { ParseError, empty, NotANumber }
+
+  pub fn describe(r: Result<int, ParseError>) -> string {
+    return match r {
+      Err(empty) => "empty",
+      Err(e) => "other",
+      Ok(v) => "ok",
+    }
+  }
+  ```
+
+  ```
+  [E0305] Error: emit: this match arm can never run: an earlier arm already
+  matches `Err`
+  ```
+
+  Same program with `Empty` compiles and dispatches on the inner tag. So the
+  spelling still decides something across a module boundary, which is the rule
+  CLAUDE.md's module-boundary lesson exists to prevent. What it no longer decides
+  is whether the program is silently wrong: the duplicate-label guard turns this
+  into a build failure, where before G145 it was a green build whose first arm
+  answered for every error. A loud stop on a valid program is the smaller defect
+  of the two, and it is still a defect.
+
+  Closing it means giving the emitter the variant names of an imported union.
+  `EmitContext` already carries a per-module registry of that shape,
+  `record_payload_variants` (module, variant) pairs collected across the project;
+  a sibling registry of every variant name per module would let the variant-list
+  half of the rule answer across the boundary, and would leave the shape rule for
+  the genuinely unresolvable case only. The same registry is what the shallow
+  imported-union coverage check (G143) is missing, so the two want deciding
+  together rather than one at a time.
+
+  *Found while verifying the G145 fix. Reproduced against 0.1.92.*

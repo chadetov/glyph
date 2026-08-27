@@ -166,6 +166,44 @@ fn label(s: Status) -&gt; string {
 
       <div class="detail">
         <p>
+          That reading holds one level down, where the variant is the payload of
+          another one. <code>Err(Blank)</code> beside <code>Err(e)</code> reads as
+          "ignore a blank line, print every other parse error", and until 0.1.93 it
+          compiled to two <code>case "Err":</code> labels on the outer tag whose
+          first bound the whole payload under the name <code>Blank</code>. Every
+          error took the first arm, the second was dead code, and nothing said so:
+          Glyph reported no diagnostics and <code>tsc --strict</code> accepts a
+          duplicate case label. The arm now dispatches on the payload's own tag,
+          whatever the outer variant is, and the compiler reads the name the way
+          the typechecker does: the payload union's own variant list decides, and
+          only when that list is out of reach does the name's shape decide. For a
+          union declared in the same file the capitalization no longer matters.
+          For one imported from another module the variant list is out of reach
+          today, so a capitalized variant dispatches and a lowercase one stops the
+          build.
+        </p>
+        <p>
+          It stops because the switch is guarded now. Two arms that would write
+          the same <code>case</code> label are <code>E0305</code>, not a switch
+          whose second label can never run. That is what makes the class loud
+          instead of silent: a lowering that reaches for the same tag twice fails
+          the build rather than picking the wrong arm at run time.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">repl.glyph: the inner arm tests the payload, it doesn't bind it</span>
+<pre>fn step(z: Zipper, line: string) -&gt; Zipper {
+  return match parse_command(line) {
+    Err(Blank) =&gt; z,                          // a comment or an empty line
+    Err(e) =&gt; { io.println(explain(e)) z },   // every other parse error
+    Ok(command) =&gt; execute(z, command),
+  }
+}</pre>
+      </div>
+
+      <div class="detail">
+        <p>
           How the union got into scope doesn't change any of this. Glyph lets you
           write a variant arm two ways, and both are checked the same:
           <code>import model { Cond, Yes, No }</code> with bare arms, or

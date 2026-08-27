@@ -4425,9 +4425,14 @@ about now. CI runs it alongside the other gates.
 
 ### 0.1.92 — Shipped · The derived-type cast reaches every return
 
-The publish and the clean-npx smoke test (`--version`, the execute bit, `glyph
-init`, `npm install`, `glyph run`, and the headline feature itself) are recorded
-here once they have run.
+Published 2026-08-27 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit on the resolved platform binary, `glyph
+init`, `npm install`, `glyph run`, and the headline feature itself. The
+combinator below builds clean and passes `tsc --strict` under 0.1.92; the same
+program under 0.1.91 fails `tsc` with `Record<string, unknown>` not assignable
+to `__GlyphInferOutput<Shape>`, which is the emitted difference the fix makes.
+The linux-x64 tarball on the GitHub Release extracts to a mode-0755 binary and
+matches its `SHA256SUMS` entry.
 
 G144. D28 gives a combinator whose declared return type mentions
 `infer_output<Shape>` one compiler-inserted boundary cast, because the body

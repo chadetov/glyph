@@ -173,6 +173,12 @@ of a literal) compiles to a closure, so its arms must be single expressions and 
 `return` inside one is illegal. Hoist it into its own `let` and the restriction
 goes away.
 
+A name in a constructor's payload position tests the payload when it is a variant
+of that payload's own union, and binds it when it is not. So
+`Err(Blank) => .., Err(e) => ..` handles the `Blank` error and then every other
+one, which is how it reads. Two arms that ask about the same tag twice
+(`Err(e) => .., Err(other) => ..`) are `E0305`: only the first could ever run.
+
 ### Loops (`for` / `loop`)
 
 There is no `while`. `for` iterates a bounded collection; `loop` is the

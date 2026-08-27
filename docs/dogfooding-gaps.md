@@ -4746,7 +4746,14 @@ alike; the emitter did not.
   once, so it is a decision rather than a patch: see the entry in
   `docs/roadmap/releases.md`.
 
-  *Reproduced against 0.1.87.*
+  *Reproduced against 0.1.93.* First reproduced against 0.1.87; re-checked on
+  the same two-module program and the claim still holds: `let s = a.make()`
+  still hits `[TS2339] Error: tsc: Property 'rowz' does not exist on type
+  'Sheet'` verbatim, and adding `let s: a.Sheet = make()` still turns it into
+  `[E0210] Error: typecheck: type `Sheet` has no field `rowz``. `glyph-db`'s
+  `exported_type` query still has no `fn` counterpart, so the return type of
+  any cross-module call is still `Ty::Unknown`. The recorded snippet still
+  demonstrates the claim word for word.
 
 ## Round 40: the six-field payload and the error that named a comma
 
@@ -4860,7 +4867,11 @@ which is the intended answer; the finding is that the compiler never said so.
   genuine emitter deferral and the current wording is honest for it. The two are
   currently one error, and separating them is a scope call, not a patch.
 
-  *Reproduced against 0.1.87.*
+  *Reproduced against 0.1.93.* First reproduced against 0.1.87; re-checked and
+  the claim still holds: the same `Node(c, l, k, r) => 1` arm still hits
+  `[E0300] Error: emit: TS emission for a nested or multi-argument pattern in
+  a match arm is not implemented yet`, word for word. The recorded snippet
+  still demonstrates the claim.
 
 - **G136. [FIXED] A `bool` binding could not be matched, because TypeScript
   had already decided it was `false`.** Found by an app bridging a

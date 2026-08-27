@@ -49,8 +49,57 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.90</span>
+            <span class="rel-ver">0.1.91</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A type parameter no longer switches the checks off</h3>
+            <p>Add a <code>&lt;K&gt;</code> to a union and two things stopped working, both quietly. A nested pattern under one of its payloads was refused with <code>E0300</code>, so the rebalance arm 0.1.90 made writable had no spelling over a tree that carries a key type. And a <code>match</code> on that union was not checked for exhaustiveness at all: omit a variant and the program built, passed <code>tsc --strict</code>, and threw at run time, where the same program on <code>Tree</code> is <code>E0200</code>. One function answered both questions and it only looked at the bare form of the type, never the applied one. It unwraps the application now, so a union's arity stops being something an arm can feel.</p>
+            <div class="code">
+              <span class="cap">Nesting through a generic union's payload</span>
+<pre>module tree
+
+type Tree&lt;K&gt; =
+  | Leaf
+  | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })
+
+pub fn shape(t: Tree&lt;string&gt;) -&gt; string {
+  return match t {
+    Node({ <span class="add">left: Node({ key: lk })</span>, key: k, right: r }) =&gt; "deep:" + lk + "/" + k,
+    other =&gt; "leaf",
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A nested pattern under a generic union's payload.</strong> The arm above was <code>E0300</code>, "cannot determine how this payload is stored". Nothing under the payload got a recorded type, because the lookup wanted a bare <code>Tree</code> and was handed <code>Tree&lt;string&gt;</code>, so the emitter had nothing to read back when it came to decide flat-versus-boxed. It refused rather than guessing, which was the right instinct and the wrong answer. The declaration's parameters are substituted into the payload now, the way a record's field types already were.</li>
+              <li><span class="tag changed">Changed</span> <strong>A match on a generic union is checked, and some that built now fail.</strong> Through 0.1.90 a <code>match</code> on a union your own module declares was checked for missing variants only when the union took no parameters. Add a parameter and the check was skipped entirely, so this built clean and threw <code>non-exhaustive match</code> on the first <code>Leaf</code>. It is <code>E0200</code> now. Add the arm:
+                <div class="code">
+<pre>module depth
+
+type Tree&lt;K&gt; =
+  | Leaf
+  | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })
+
+pub fn depth(t: Tree&lt;string&gt;) -&gt; int {
+  return match t {
+    <span class="add">Leaf =&gt; 0,</span>
+    Node({ left: l, key: k, right: r }) =&gt; 1 + depth(l),
+  }
+}</pre>
+                </div>
+              </li>
+              <li><span class="tag fixed">Fixed</span> <strong>The recursion into a payload works too.</strong> A generic union whose payload is itself a union reports the missing inner variant, which the local path could never reach before: it needs the outer variant set to answer first, and for an applied type there was no variant set at all.</li>
+              <li><span class="tag known">Known</span> <strong>Move the union to another module and the coverage check goes away again.</strong> <code>match t { Node({ key: k }) =&gt; k, }</code> on an imported <code>Tree&lt;string&gt;</code> still builds, still passes <code>tsc --strict</code>, and still throws at run time; delete the <code>&lt;K&gt;</code> and it is <code>E0200</code>. An imported scrutinee goes down a separate, shallower path that this fix does not touch, and the applied form does not even reach it. That path has a second hole worth knowing about, and it has nothing to do with type parameters: it never looks inside a variant's payload, so <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> instead of reporting the missing <code>Y</code>.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.90</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

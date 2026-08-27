@@ -4328,9 +4328,9 @@ the 199 `glyph-cli` integration tests notices.
 
 ### 0.1.91 — Shipped · A generic union is checked like its bare twin
 
-The publish and the clean-npx smoke test (`--version`, the execute bit, `glyph
-init`, `npm install`, `glyph run`, and the headline feature itself) are recorded
-here once they have run.
+Published 2026-08-27 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit, `glyph init`, `npm install`, `glyph run`,
+and the headline feature itself.
 
 G141 and G142. A type parameter on a union no longer makes a nested field
 pattern unmatchable, and no longer switches exhaustiveness checking off for a

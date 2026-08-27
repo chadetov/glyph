@@ -15,6 +15,10 @@ Best-effort notice (never fails the build) when the published npm `latest` is
 behind the repo version, so a stale package like the one a reviewer once hit two
 versions behind is at least visible in CI.
 
+Hard-fails when the release-notes entry for a version npm has not served yet
+already says it was published and smoke-tested. That sentence is a verification
+record, and at cut time the verification has not run.
+
 With `--expect <version>` it also hard-fails when the repo is not at that
 version. The release workflow passes the pushed tag, which is the only thing
 that ties the tag to what the manifests actually say.
@@ -126,6 +130,44 @@ def stale_lockfile(repo: str) -> list[str]:
     return bad
 
 
+# The publish-verification sentence in a releases.md entry, in the past tense.
+# The placeholder that stands in its place until the publish has run says "are
+# recorded here once they have run", which matches neither pattern, so the gate
+# fires on a claim and stays quiet on a promise.
+PUBLISH_CLAIM = re.compile(r"\bPublished \d{4}-\d{2}-\d{2}\b|\bsmoke-tested\b")
+
+
+def premature_publish_claim(repo: str) -> str | None:
+    """The entry for an unpublished version claiming it was already verified.
+
+    The release commit is written before the publish, so at cut time nothing
+    about `npm install` or the execute bit has been checked. The convention the
+    0.1.91 pair of commits set is that the entry carries a placeholder saying the
+    smoke test is recorded once it has run, and a follow-up commit replaces it
+    with the record. 0.1.92 was cut carrying the finished sentence instead: a
+    verification claim for work nobody had done, inside the commit that was about
+    to be tagged. No gate caught it, because the two gates nearby check other
+    things: doc claims looks at test counts and forward references, and the npm
+    lag here was only ever a notice.
+
+    Only the section for the current repo version is read. Every older entry is
+    frozen history, where the same sentence is a true statement about a release
+    that did ship.
+    """
+    notes = ROOT / "docs" / "roadmap" / "releases.md"
+    if not notes.exists():
+        return None
+    body = notes.read_text()
+    m = re.search(rf"(?m)^### {re.escape(repo)}\b.*$", body)
+    if not m:
+        return None
+    rest = body[m.end():]
+    nxt = re.search(r"(?m)^### ", rest)
+    section = rest[: nxt.start()] if nxt else rest
+    hit = PUBLISH_CLAIM.search(section)
+    return hit.group(0) if hit else None
+
+
 def expected_from_argv(argv: list[str]) -> str | None:
     """The version the caller says this must be, from `--expect <version>`.
 
@@ -205,6 +247,22 @@ def main() -> int:
         # A notice, not a failure: the repo is expected to be ahead between a
         # bump and its publish. Flag only so staleness is visible.
         print(f"::notice::npm latest is {latest}, repo is {repo}. Publish when ready so npm does not fall behind.")
+        claim = premature_publish_claim(repo)
+        if claim:
+            print()
+            print(f"but the {repo} release-notes entry already says it was published:")
+            print(f'  docs/roadmap/releases.md: "{claim}"')
+            print()
+            print(f"npm serves {latest}, so that publish and its smoke test have not run.")
+            print("Until they have, the entry carries the placeholder:")
+            print()
+            print("  The publish and the clean-npx smoke test (`--version`, the execute bit,")
+            print("  `glyph init`, `npm install`, `glyph run`, and the headline feature itself)")
+            print("  are recorded here once they have run.")
+            print()
+            print("Replace it with the record afterwards, in its own commit, the way")
+            print("3745199 did for 0.1.91.")
+            return 1
     elif latest:
         print(f"npm latest matches the repo ({latest}).")
     return 0

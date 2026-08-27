@@ -253,6 +253,21 @@ type User = { name: string; age: number };
 
       <div class="detail">
         <p>
+          The derived type holds however the combinator returns. <code>infer_output</code>
+          needs one cast at the function's boundary, because the body builds a value the
+          type system can't prove carries the shape-derived type, and the compiler writes
+          that cast for you. Through 0.1.91 it was attached to a plain
+          <code>return &lt;value&gt;</code>. Put a <code>match</code> between the
+          <code>return</code> and the value, or end the body in <code>r?</code>, and the
+          same function stopped compiling: a <code>TS2322</code> against generated
+          TypeScript, over Glyph the compiler had already accepted. As of 0.1.92 the cast
+          follows the return rather than its spelling, so <code>return match strict { ... }</code>
+          type-checks the same as the single <code>return</code> spelling of the identical body.
+        </p>
+      </div>
+
+      <div class="detail">
+        <p>
           The descriptor is the same one that makes <code>json.parse&lt;T&gt;</code> safe: give it a
           JSON string and it parses <em>and</em> validates in one step. A request body arrives
           already decoded as an <code>unknown</code>, so there you reach for

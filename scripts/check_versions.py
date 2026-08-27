@@ -82,32 +82,31 @@ PINNED_PILLS = (
 )
 
 
-def stale_pills(repo: str) -> list[str]:
-    bad: list[str] = []
+def pill_versions() -> dict[str, str]:
+    out: dict[str, str] = {}
     for rel, pattern in PINNED_PILLS:
         path = ROOT / rel
         if not path.exists():
             continue
-        for m in re.finditer(pattern, path.read_text(), re.S):
-            if m.group(1) != repo:
-                bad.append(f"{rel}: hero pill says {m.group(1)}, repo is {repo}")
-    return bad
+        for i, m in enumerate(re.finditer(pattern, path.read_text(), re.S)):
+            out[f"{rel}:hero pill #{i + 1}"] = m.group(1)
+    return out
 
 
-def stale_badges(repo: str) -> list[str]:
-    bad: list[str] = []
+def badge_versions() -> dict[str, str]:
+    out: dict[str, str] = {}
     for rel, prefix in PINNED_BADGES:
         path = ROOT / rel
         if not path.exists():
             continue
-        for m in re.finditer(re.escape(prefix) + r"([0-9]+\.[0-9]+\.[0-9]+)", path.read_text()):
-            if m.group(1) != repo:
-                bad.append(f"{rel}: badge points at {m.group(1)}, repo is {repo}")
-    return bad
+        found = re.finditer(re.escape(prefix) + r"([0-9]+\.[0-9]+\.[0-9]+)", path.read_text())
+        for i, m in enumerate(found):
+            out[f"{rel}:badge URL #{i + 1}"] = m.group(1)
+    return out
 
 
-def stale_lockfile(repo: str) -> list[str]:
-    """Workspace crates in Cargo.lock still carrying an older version.
+def lock_versions() -> dict[str, str]:
+    """Every workspace crate's version as Cargo.lock records it.
 
     `cargo` writes each workspace member's version into the lockfile, so a bump
     that edits `[workspace.package]` and stops there leaves the lock behind. CI
@@ -118,16 +117,16 @@ def stale_lockfile(repo: str) -> list[str]:
     """
     lock = ROOT / "glyph-compiler" / "Cargo.lock"
     if not lock.exists():
-        return []
-    bad: list[str] = []
+        return {}
+    out: dict[str, str] = {}
     for block in lock.read_text().split("[[package]]"):
         name = re.search(r'(?m)^name = "(glyph[a-z-]*)"', block)
         ver = re.search(r'(?m)^version = "([^"]+)"', block)
         # Only workspace members carry a `path`-less local source: a registry
         # crate named `glyph-*` would have a `source =` line.
-        if name and ver and "source =" not in block and ver.group(1) != repo:
-            bad.append(f"Cargo.lock: {name.group(1)} = {ver.group(1)}")
-    return bad
+        if name and ver and "source =" not in block:
+            out[f"Cargo.lock:{name.group(1)}"] = ver.group(1)
+    return out
 
 
 # The publish-verification sentence in a releases.md entry, in the past tense.
@@ -215,11 +214,12 @@ def main() -> int:
         print(f"  git tag -d v{expected} && git push origin :refs/tags/v{expected}")
         return 1
 
-    stale_lock = stale_lockfile(repo)
+    lock = lock_versions()
+    stale_lock = {k: v for k, v in lock.items() if v != repo}
     if stale_lock:
         print(f"Cargo.lock is behind the workspace version ({repo}):")
-        for s in stale_lock:
-            print(f"  {s}")
+        for k, v in stale_lock.items():
+            print(f"  {k.replace(':', ': ')} = {v}")
         print("run: cd glyph-compiler && cargo update --workspace --offline")
         return 1
 
@@ -231,16 +231,24 @@ def main() -> int:
         print("bump every package.json (version + optionalDependencies) to match Cargo.")
         return 1
 
-    stale = stale_badges(repo) + stale_pills(repo)
+    pinned = {**badge_versions(), **pill_versions()}
+    stale = {k: v for k, v in pinned.items() if v != repo}
     if stale:
-        print("a version-pinned badge URL is out of date:")
-        for s in stale:
-            print(f"  {s}")
+        print("a version-pinned URL or badge is out of date:")
+        for k, v in stale.items():
+            print(f"  {k} points at {v}, repo is {repo}")
         print("bump the version where it is written, or stop pinning it there.")
         return 1
 
+    # Count what was compared, not one slice of it. The line used to report
+    # len(versions), the eleven npm strings, while the Cargo version, the
+    # lockfile entries, the badge URLs and the hero pill were all checked and
+    # none of them counted. A reader reconciling the number against the release
+    # ceremony's list of strings to bump got a smaller answer than the work.
+    checked = 1 + len(versions) + len(lock) + len(pinned)
     tagged = " (matches the requested tag)" if expected is not None else ""
-    print(f"version consistency OK: all {len(versions)} version strings are {repo}{tagged}")
+    print(f"version consistency OK: all {checked} version strings are {repo}{tagged}")
+    print(f"  Cargo.toml 1, npm {len(versions)}, Cargo.lock {len(lock)}, pinned URLs {len(pinned)}")
 
     latest = published_latest()
     if latest and latest != repo:

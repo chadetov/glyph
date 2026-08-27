@@ -6,6 +6,8 @@ Fails (exit 1) on:
   - an HTML file that isn't well-formed (unbalanced tags)
   - an answers sub-nav that is missing an existing answer page, or points at one
     that doesn't exist
+  - a page the site serves that sitemap.xml does not list, or a sitemap entry
+    pointing at a page that no longer exists
 
 External links (http/https/mailto) and in-page fragments (#...) are not checked.
 Run from the repo root: python3 scripts/check_site.py
@@ -109,18 +111,54 @@ def check_answers_subnav():
             errors.append(f"answers/{d}: sub-nav lists nonexistent pages {sorted(extra)}")
 
 
+def check_sitemap():
+    """Every served page is in sitemap.xml, and every entry points at a page.
+
+    The sitemap is hand-maintained, so a new page reaches the site and never
+    reaches a crawler. Four pages had accumulated that way (the answers index
+    and the binary, embedding, and upgrades answers) before anything looked.
+    Both directions are checked: a missing entry hides a page, and a leftover
+    entry advertises a 404.
+
+    The lastmod dates are not checked. Keeping them true needs either a
+    generated sitemap or git history the CI checkout does not fetch, and that
+    choice is open; see the sitemap entry in docs/roadmap/releases.md.
+    """
+    sm = os.path.join(WEB, "sitemap.xml")
+    if not os.path.isfile(sm):
+        errors.append("web/sitemap.xml is missing")
+        return
+    text = open(sm).read()
+    listed = set(re.findall(r"<loc>https://glyphlang\.io(/[^<]*)</loc>", text))
+
+    served = set()
+    for root, _dirs, files in os.walk(WEB):
+        if "index.html" in files:
+            rel = os.path.relpath(root, WEB)
+            served.add("/" if rel == "." else f"/{rel}/")
+    # /playground is the repo-root playground/ dir, merged in at deploy time.
+    if os.path.isfile(os.path.join("playground", "index.html")):
+        served.add("/playground/")
+
+    for path in sorted(served - listed):
+        errors.append(f"sitemap.xml: no entry for {path}")
+    for path in sorted(listed - served):
+        errors.append(f"sitemap.xml: entry for {path}, which serves no page")
+
+
 def main():
     if not os.path.isdir(WEB):
         print(f"no {WEB}/ directory; run from the repo root", file=sys.stderr)
         return 1
     check_links_and_wellformed()
     check_answers_subnav()
+    check_sitemap()
     if errors:
         print("site check FAILED:")
         for e in errors:
             print(f"  - {e}")
         return 1
-    print("site check OK (links resolve, HTML well-formed, answers sub-nav consistent)")
+    print("site check OK (links resolve, HTML well-formed, sub-nav and sitemap complete)")
     return 0
 
 

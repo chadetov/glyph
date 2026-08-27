@@ -384,6 +384,107 @@ same attention. Phases 0 through 3 are cheap and architectural, phase 1 is close
 to free, and phase 2 gets cheaper the sooner it happens, because every query
 added to the current MCP path is another thing to move later.
 
+
+### Q46. The diagnostic surface is the agent's interface, and how success is measured
+
+**New question.** Q45 asks what an agent can ask the compiler. This one asks what
+the compiler tells an agent when it says no, which is the more common event by a
+wide margin and the one that decides whether the agent recovers or guesses.
+
+**The principle.** A diagnostic's job for an agent is not to describe the
+problem. It is to leave the agent in a state where the next action is
+determined. Judged that way the compiler is already excellent in places and a
+dead end in others, and the difference is visible in two errors from the same
+build.
+
+A missing variant:
+
+```
+[E0200] non-exhaustive match on `Color`: missing variants `Blue`
+Help: Add an arm for each missing variant, or an `else` arm to catch the rest.
+Note: Tagged unions are sealed (D9): adding a variant forces every match to be
+      updated. A `_`/`else` catch-all is allowed but forfeits that guarantee.
+```
+
+An unsupported construct:
+
+```
+[E0300] TS emission for a nested pattern on a payload whose storage cannot be
+        decided here is not implemented yet
+Help: Rewrite using a construct the v1 emitter supports; see the spec for the
+      supported forms.
+```
+
+The first is finished. The second leaves the agent with nothing, and the
+compiler knows the answer it is withholding: that program compiles when the
+constructor comes from a named import rather than through a namespace. The help
+text is a single hardcoded string at `glyph-emit/src/lib.rs:194`, shared by
+every emitter refusal, so no refusal can ever be specific.
+
+**Why this matters more for an agent than for a person.** A person who reads
+"see the spec" opens the spec. An agent either abandons the approach or works
+around it, and a user's agent has no rule against working around: it reaches for
+`extern_ts`, or reshapes the program until the error goes away, and the result
+compiles while quietly meaning something else. Seven apps in the dogfooding loop
+blocked outright, and `watchrun` blocked three separate times, which is the same
+wall being rediscovered because nothing told the first agent it was known.
+
+**The five items.**
+
+1. **Every refusal names a rewrite, and a gate enforces it.** No `help()` may
+   point at a document in place of naming an alternative. E0200 is the standard
+   and E0300 is the counterexample. This sits on the hot path of every failed
+   attempt, so it moves more attempts to green than anything else here.
+
+2. **No raw TypeScript error reaches the agent.** Seventy of the 145 gap entries
+   mention a `tsc` error or a `TS####` code. Spans are already mapped back to
+   Glyph source, which is good, but the code and the advice are not: an agent
+   that imports a module which does not exist gets `[TS2307] Cannot find module`
+   and a help line that says "this is a TypeScript back-end error mapped to your
+   Glyph source; the generated `.ts` is in the build output if you need the exact
+   position." Sending an agent to read emitted TypeScript is the one thing the
+   language exists to avoid. A hallucinated module name is among the most common
+   things an agent does, and it should be a resolver diagnostic naming the
+   modules that do exist, not a back-end error.
+
+3. **Ship the known-limitations database with the compiler.** There are 144
+   documented gaps, each with a reproduction and a status, and no other language
+   has that asset. When a diagnostic matches a known gap the compiler should say
+   so and give the working spelling and the release it is scheduled for. That
+   turns every dead end into a known place with a known detour, and it stops the
+   `watchrun` pattern where three separate agents discover the same wall.
+
+4. **A report of what was not checked, as the defence against a false green.**
+   The worst outcome for an agent is not an error, it is a green build that is
+   wrong, because the agent stops and reports success. That is live: two of the
+   three open friction points are exhaustiveness silently not firing, where a
+   match missing a variant compiles clean, passes `tsc --strict`, and throws at
+   run time. After a build the compiler should list where it declined to verify
+   something: a match it could not check, a value crossing `extern_ts`, a stdlib
+   call whose return it does not model. "Compiled" makes an agent ship the crash.
+   "Compiled, and here are the three things I could not verify" lets it add a
+   guard. This is the same fact-provenance idea Q45 needs, arriving from the
+   other direction.
+
+5. **Measure the success rate, because nothing measures it today.** Two numbers
+   answer whether any of the above worked: the fraction of programs an agent
+   writes that compile on the first attempt, and the number of compile cycles to
+   green. Thor already generates the raw material on every fix attempt and every
+   app build. Without this, items 1 through 4 and all of Q45 are argued rather
+   than known.
+
+**One idea tested and dropped.** Ranking cascaded errors by root cause sounded
+worth doing and is not: a bad field access consumed by three call sites produces
+exactly one diagnostic, not four. The compiler already suppresses cascades.
+
+**What is deliberately not here.** Latency is not the problem. `glyph check` on a
+small module is 1.4 seconds, fast enough to run per edit, so the bottleneck is
+the fidelity of the answer rather than the speed of getting it.
+
+**Relationship to Q45.** Q45 is what an agent can ask when it is exploring. This
+is what it is told when it is stuck, and item 5 is the yardstick for both. If
+they compete for attention, this one is cheaper and closer to the failure.
+
 ## Blockers for step 4 (transpiler)
 
 ### Q1. Is `infer_output<Shape>` v1 or v2?

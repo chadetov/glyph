@@ -6321,6 +6321,71 @@ Not a 1.0 blocker. The 1.0 gate is interop and this competes with it. The
 scheduled items are cheap and architectural; skipping them is how a project
 reaches 1.0 unable to add the rest.
 
+## The diagnostic surface as the agent's interface (Q46)
+
+A diagnostic's job for an agent is to leave it in a state where the next action
+is determined. By that measure this compiler is already excellent in places and a
+dead end in others, and both appear in the same build. A missing variant reports
+`missing variants \`Blue\`` and tells you to add an arm. An unsupported construct
+reports that emission "is not implemented yet" and tells you to see the spec,
+from a single hardcoded string at `glyph-emit/src/lib.rs:194` shared by every
+emitter refusal, while the compiler knows the working spelling it is not
+offering.
+
+The cost falls harder on an agent than on a person. A person reads the spec. An
+agent abandons the approach or works around it, reaching for `extern_ts` or
+reshaping the program until the error goes away, and what ships compiles while
+meaning something else. Seven dogfooding apps blocked outright and `watchrun`
+blocked three separate times, which is one wall rediscovered three times because
+nothing told the first agent it was known.
+
+**Scheduled.**
+
+- **Measure the success rate.** The fraction of programs an agent writes that
+  compile first time, and the cycles to green. Thor already produces the raw
+  material on every fix attempt and every app build. Everything else in this
+  section and in Q45 is argued rather than known until this exists, so it goes
+  first despite being the smallest.
+- **Every refusal names a rewrite, with a gate.** No `help()` may point at a
+  document instead of naming a concrete alternative. E0200 is the standard,
+  E0300 the counterexample. This is on the hot path of every failed attempt.
+- **An unresolved import is a resolver diagnostic.** Today it falls through to
+  `[TS2307] Cannot find module`, with a help line directing the agent to read the
+  generated `.ts`. A hallucinated module name is among the most common things an
+  agent does; it should name the modules that exist.
+
+**Rolling.**
+
+- **No raw TypeScript error reaches the agent.** Seventy of 145 gap entries
+  mention a `tsc` error or a `TS####` code. Spans already map back to Glyph
+  source, which is the hard half; the code and the advice still come from the
+  back end. Classify each one as a known Glyph construct misuse, which becomes a
+  Glyph diagnostic, or as genuinely about the boundary, which says so plainly and
+  never tells the agent to go read emitted TypeScript.
+- **Ship the known-limitations database with the compiler.** 144 documented gaps,
+  each with a reproduction and a status. When a diagnostic matches one, say so,
+  give the working spelling, and name the release it is scheduled for. No other
+  language has this asset and it currently helps nobody outside the repo.
+
+**Later.**
+
+- **A report of what was not checked.** The worst outcome for an agent is a green
+  build that is wrong, because it stops and reports success. Two of the three
+  open friction points are exhaustiveness silently not firing, where a match
+  missing a variant compiles clean, passes `tsc --strict`, and throws at run
+  time. After a build, list where the compiler declined to verify something: a
+  match it could not check, a value crossing `extern_ts`, a stdlib call whose
+  return it does not model. This is Q45's fact provenance arriving from the other
+  direction, and the two should share an implementation.
+
+**Tested and dropped.** Ranking cascaded errors by root cause is not needed: a
+bad field access consumed by three call sites produces exactly one diagnostic.
+The compiler already suppresses cascades.
+
+**Not the problem.** Latency. `glyph check` on a small module is 1.4 seconds,
+fast enough to run per edit. The bottleneck is the fidelity of the answer, not
+the speed of getting it.
+
 ## Parked (v2 / later)
 
 - **GitHub Linguist submission (a real "Glyph" language on GitHub).** Get `.glyph`

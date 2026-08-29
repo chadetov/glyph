@@ -4520,6 +4520,29 @@ check (G143) is short the same thing, so handing the emitter an imported union's
 variant names once settles both, and that is what this release is. Three more
 sit behind it: G146, G138, and what is left of G140.
 
+Landed already, at the same address: **G148, the imported union whose arity
+switched exhaustiveness checking off.** The gate that sends a cross-module
+scrutinee to `check_imported_union_coverage` tested it for a bare
+`Ty::Imported`, and an imported union at a concrete instantiation
+(`Tree<string>`) arrives as `Ty::App` over one. It matched neither alternative,
+so a
+`match` omitting a variant built clean, passed `tsc --strict`, and threw at run
+time, where the same two files with `<K>` deleted are `E0200`. The gate now
+reads `union_base(scrutinee_ty)`. This is the second half of G142, which shipped
+half closed in 0.1.91 and said so; it was parked in the rolling lane below
+alongside G143 and is now out of it. Its own risk slice is small and the two are
+independent: this one is about the coverage check *running*, G143 is about what
+it does inside a payload once it does.
+
+It is also the third site to be written against a bare base and quietly stop
+applying the moment a type parameter appeared, after G141 and G142. The unwrap
+those two moved into `resolve_named_union` is now a free
+`split_type_app(ty) -> (&Ty, &[Ty])` that both it and the imported gate call, so
+the distinction is unwrapped in one named place. That is deliberately smaller
+than the answer the rolling-lane note on the emitter's copies asks for:
+normalizing `Ty::App` away centrally would touch assignability and inference,
+and an exhaustiveness fix is not where that gets decided.
+
 G146 came out of the same gate. A constructor-shaped payload pattern whose
 payload type is known and is not a union, `Ok(Point)` over a record, now emits a
 test on a `.tag` the author never wrote, so `tsc` reports it against generated
@@ -5866,29 +5889,31 @@ land here until they're assigned a release.
   would add a seventeenth string to bump by hand every release.
 
 - **The cross-module exhaustiveness check is a shallower copy of the local one
-  (G142's open half, G143).** Two holes with one address. Exhaustiveness on a
+  (G143; G142's open half closed as G148).** Two holes with one address, one of
+  them now closed. Exhaustiveness on a
   module-local union runs through `check_patterns_exhaustive`; an imported
   scrutinee is diverted in `check_match_exhaustiveness` to
   `check_imported_union_coverage`, which counts the outer union's variants and
   stops. It differs from the local path in two ways that are both silent
-  miscompiles. First, the gate that reaches it is
+  miscompiles. First, the gate that reaches it used to be
   `matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. })`, which an imported
   *generic* scrutinee (`Ty::App { base: Ty::Imported, .. }`) does not match, so a
-  `match` on an imported `Tree<K>` omitting `Leaf` builds clean and throws at run
+  `match` on an imported `Tree<K>` omitting `Leaf` built clean and threw at run
   time where the non-generic spelling is `E0200` (G142's surviving half; the
-  0.1.91 unwrap does not reach it, because an imported scrutinee never reaches
-  `resolve_named_union`). Second, it has no equivalent of the payload recursion,
+  0.1.91 unwrap did not reach it, because an imported scrutinee never reaches
+  `resolve_named_union`). **That half is closed as G148**: the gate reads
+  `union_base(scrutinee_ty)` now, so the arity is invisible to it. Second, it has
+  no equivalent of the payload recursion,
   so `B(X)` over an imported union whose payload is itself a union is never
   checked, and the arm that survives lowers `X` to a binding that shadows the
   variant, so `f(B(Y))` returns the `X` arm's answer (G143, and no type parameter
   is involved). `record_fields_of` already destructures the applied-imported
   shape, which is why the *nested pattern* half works across the import and only
-  coverage is blind. Deliberately not taken with G141/G142: it is a different
-  mechanism from the missing unwrap and belongs in its own risk slice, on the
-  same path G132 and G139 sit on. The open question is whether to widen the gate
-  and deepen `check_imported_union_coverage` in place, or to give an imported
+  coverage is blind. What is left here is the depth, not the gate. The open
+  question is unchanged and is the one G148 deliberately did not answer: whether
+  to deepen `check_imported_union_coverage` in place, or to give an imported
   union a variant set the local path can consume so there is one check rather
-  than two; the second removes the class, and is the larger change.
+  than two. The second removes the class, and is the larger change.
 - **G20: a nested string literal inside `${...}` breaks the template parser.**
   The lexer has no template-literal mode, so it ends the outer string at the
   first inner quote, and `"${bytes.to_hex(bytes.from_text("x"))}"` does not

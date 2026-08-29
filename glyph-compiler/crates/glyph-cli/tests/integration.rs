@@ -5176,6 +5176,75 @@ fn non_exhaustive_imported_union_match_is_caught() {
     );
 }
 
+/// A *generic* tagged union in a sibling module, for the tests below. The
+/// non-generic spelling of the same declaration is already covered by
+/// `non_exhaustive_imported_union_match_is_caught`; the only difference here is
+/// the type parameter.
+const TREE_MODULE: &str = "module tree\n\
+     pub type Tree<K> =\n\
+     \x20 | Leaf\n\
+     \x20 | Node({ left: Tree<K>, key: K, right: Tree<K> })\n";
+
+#[test]
+fn exhaustive_match_on_imported_generic_union_builds_clean() {
+    // The other half of `an_imported_generic_union_is_exhaustiveness_checked`:
+    // covering every variant of the generic imported union has to stay clean,
+    // so the widened gate is not paid for with a false E0200 on every correct
+    // match.
+    let root = unique_tmp("genimpexhaustok");
+    let src = root.join("src");
+    write_file(&src, "tree.glyph", TREE_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import tree { Tree, Leaf, Node }\n\
+         pub fn label(t: Tree<string>) -> string {\n\
+         \x20 return match t {\n\
+         \x20\x20\x20 Leaf => \"leaf\",\n\
+         \x20\x20\x20 Node(n) => n.key,\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.has_errors(),
+        "an exhaustive match on a generic imported union must build clean: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn namespace_qualified_match_on_imported_generic_union_is_exhaustiveness_checked() {
+    // The namespace spelling of the same scrutinee (`tree.Tree<string>`) also
+    // lowers through `TypeExpr::Generic`, so it reaches the gate as an
+    // application too. D9 does not depend on the import spelling, and it does
+    // not depend on the union's arity either.
+    let root = unique_tmp("genimpexhaustns");
+    let src = root.join("src");
+    write_file(&src, "tree.glyph", TREE_MODULE);
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import tree\n\
+         pub fn label(t: tree.Tree<string>) -> string {\n\
+         \x20 return match t {\n\
+         \x20\x20\x20 tree.Node(n) => n.key,\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("`Leaf`")),
+        "diags: {:?}",
+        report.diagnostics
+    );
+}
+
 /// A three-variant union in a sibling module, for the namespace-import
 /// exhaustiveness tests below. Written once so every spelling is checked
 /// against the same declaration.
@@ -9858,28 +9927,27 @@ fn f<K>(g: G<K>) -> string {
     );
 }
 
-/// The boundary of what the three tests above prove: all three declare their
-/// union in the module that matches it, and that is the whole scope of the
-/// `resolve_named_union` unwrap. An imported scrutinee never reaches that
-/// function. It is diverted earlier, in `check_match_exhaustiveness`, on
-/// `matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. })`, and an imported
-/// *generic* scrutinee arrives as `Ty::App { base: Ty::Imported, .. }`, which
-/// that pattern does not match, so `check_imported_union_coverage` never runs.
+/// The case the three tests above do not reach: they all declare their union in
+/// the module that matches it, which is the whole scope of the
+/// `resolve_named_union` unwrap. An imported scrutinee is diverted earlier, in
+/// `check_match_exhaustiveness`, and an imported *generic* scrutinee arrives
+/// there as `Ty::App { base: Ty::Imported, .. }`. That gate used to test the
+/// application itself for a bare `Ty::Imported`, so it never matched and
+/// `check_imported_union_coverage` never ran: the build was clean, `tsc
+/// --strict` passed, and the program threw `non-exhaustive match` at run time.
+/// It now tests `union_base(scrutinee_ty)`, so the arity is invisible to the
+/// gate (G148).
 ///
-/// This test pins that hole rather than fixing it (G142's open half, scheduled
-/// in the rolling lane). It exists because the same claim was written down as
-/// closed once already: the gap entry, the release note, D44 and the answers
-/// page all said a generic union was exhaustiveness-checked like its
-/// non-generic twin, which is true only for a module-local one. Prose could not
-/// hold that line, so the line is here. When this starts failing, the hole is
-/// closed: flip the assertion, mark G142 `[FIXED]`, and correct all four
-/// documents.
+/// This test previously pinned that hole open (G142's second half) because the
+/// claim had been written down as closed once already, on a fix that only
+/// covered module-local unions. It is inverted rather than deleted: the same
+/// program, the same two spellings, asserting the answer the language promises.
 ///
 /// The control below is the point. The identical program with `<K>` deleted
-/// from both files *is* `E0200`, so this is one keystroke away from a checked
-/// program, not a case the checker was never asked about.
+/// from both files was `E0200` throughout, so this was one keystroke away from
+/// a checked program the whole time.
 #[test]
-fn an_imported_generic_union_is_not_yet_exhaustiveness_checked() {
+fn an_imported_generic_union_is_exhaustiveness_checked() {
     const TREE: &str = "module tree\n\
          \n\
          pub type Tree<K> =\n\
@@ -9905,35 +9973,93 @@ fn an_imported_generic_union_is_not_yet_exhaustiveness_checked() {
          \x20 println(label(Leaf))\n\
          }\n";
 
-    // The generic spelling: no diagnostic at all, and the emitted chain has
-    // nothing covering `Leaf`, so the program throws at run time.
+    // The generic spelling: the omitted `Leaf` arm is E0200, named, at compile
+    // time.
     let root = unique_tmp("impgenexhaust");
     let src = root.join("src");
     write_file(&src, "tree.glyph", TREE);
     write_file(&src, "main.glyph", MAIN);
     let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
     assert!(
-        !report.has_errors() && !report.diagnostics.iter().any(|d| d.contains("E0200")),
-        "G142's open half: an imported generic union is still not \
-         exhaustiveness-checked. If this now reports E0200 the gap is closed, \
-         and the gap entry, the release note, D44 and the answers page all have \
-         to stop saying it is open: {:?}",
+        report.has_errors(),
+        "an imported generic union must be exhaustiveness-checked: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Tree") && d.contains("`Leaf`")),
+        "the missing variant must be named, exactly as the non-generic \
+         spelling names it: {:?}",
         report.diagnostics
     );
 
-    // The absence of a diagnostic is not the finding; the throw is. Run it, so
-    // this pins observable behaviour rather than the current spelling of a
-    // check. `label(Leaf)` falls off the end of the emitted chain.
+    // The concrete instantiation above is not the only spelling that used to
+    // fall through the old gate: an open type parameter on the consuming
+    // function (`fn label<K>(t: Tree<K>)`) reaches `check_match_exhaustiveness`
+    // as the exact same `Ty::App { base: Ty::Imported, .. }` shape, with `K`
+    // never resolved to a concrete argument at all. G141/G142 held this line
+    // for module-local unions at both an open parameter and a concrete
+    // instantiation; the imported side should hold it too.
+    const MAIN_OPEN_PARAM: &str = "module main\n\
+         \n\
+         import std/io { println }\n\
+         import tree { Tree, Leaf, Node }\n\
+         \n\
+         fn label<K>(t: Tree<K>) -> string {\n\
+         \x20 return match t {\n\
+         \x20\x20\x20 Node({ key: k }) => \"node\",\n\
+         \x20 }\n\
+         }\n\
+         \n\
+         fn main() {\n\
+         \x20 println(label(Leaf))\n\
+         }\n";
+    let open_root = unique_tmp("impgenexhaustopen");
+    let open_src = open_root.join("src");
+    write_file(&open_src, "tree.glyph", TREE);
+    write_file(&open_src, "main.glyph", MAIN_OPEN_PARAM);
+    let open_report =
+        build_project_inner(&open_src, &open_root.join("dist"), false).expect("build");
+    assert!(
+        open_report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Tree") && d.contains("`Leaf`")),
+        "an imported generic union must be exhaustiveness-checked at an open \
+         type parameter, not only at a concrete instantiation: {:?}",
+        open_report.diagnostics
+    );
+
+    // The diagnostic is not the whole finding; the throw it replaces is. Adding
+    // the arm the checker asked for has to produce a program that builds and
+    // runs, so this pins observable behaviour rather than the current spelling
+    // of a check.
+    let fixed_root = unique_tmp("impgenexhaustfixed");
+    let fixed_src = fixed_root.join("src");
+    write_file(&fixed_src, "tree.glyph", TREE);
+    write_file(
+        &fixed_src,
+        "main.glyph",
+        &MAIN.replace(
+            "   Node({ key: k }) => k,\n",
+            "   Leaf => \"leaf\",\n    Node({ key: k }) => k,\n",
+        ),
+    );
+    let fixed =
+        build_project_inner(&fixed_src, &fixed_root.join("dist"), false).expect("build");
+    assert!(
+        !fixed.has_errors(),
+        "covering every variant must build clean: {:?}",
+        fixed.diagnostics
+    );
     if js_toolchain_available() {
-        let entry = src.join("main.glyph");
+        let entry = fixed_src.join("main.glyph");
         let (code, stdout, stderr, _) =
             spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
-        assert_ne!(code, 0, "the omitted `Leaf` arm must still throw: {stdout}");
-        assert!(
-            stderr.contains("non-exhaustive match"),
-            "and it throws the emitter's own guard, which is the error the \
-             checker should have raised at compile time instead: {stderr}"
-        );
+        assert_eq!(code, 0, "the covered match must run: {stdout} {stderr}");
+        assert!(stdout.contains("leaf"), "stdout: {stdout}");
     } else {
         eprintln!("skipping imported-generic-exhaustiveness run: node/tsx not available");
     }
@@ -9951,8 +10077,8 @@ fn an_imported_generic_union_is_not_yet_exhaustiveness_checked() {
             .iter()
             .any(|d| d.contains("E0200") && d.contains("Tree") && d.contains("Leaf")),
         "the non-generic spelling of the identical imported program must still \
-         be caught; if this breaks, the cross-module check regressed rather \
-         than G142 closing: {:?}",
+         be caught; the two spellings agree, which is the whole point of \
+         G148: {:?}",
         plain.diagnostics
     );
 }

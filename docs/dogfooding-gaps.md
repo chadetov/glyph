@@ -44,10 +44,13 @@ G140, the type parameter, leaving the namespace import, and reviewing that fix
 opened G142, the same missing unwrap on the sibling caller, which had been
 switching exhaustiveness off for every module-local generic union. Reviewing
 *that* fix closed half of G142 and left the other half open: the union one
-import away is unchanged, because an imported generic scrutinee never reaches
+import away was unchanged, because an imported generic scrutinee never reached
 the function the unwrap went into. The same review opened G143, the imported
-union whose variant payload is never checked at all, generic or not: of
-147 entries, 106 are fixed, 14 are partly fixed, 10 are decided or resolved, and
+union whose variant payload is never checked at all, generic or not, and it
+named the surviving half of G142, which is now closed as G148: the imported gate
+was reading the application instead of its base, the third site to stop applying
+the moment a type parameter appeared. That leaves, of
+148 entries, 108 are fixed, 13 are partly fixed, 10 are decided or resolved, and
 17 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -5367,13 +5370,13 @@ through an object pattern's fields.
   This is half of G140. The namespace-import half is still open there, and it is
   the emitter rather than the checker.
 
-- **G142. [HALF FIXED] A type parameter on a union switched exhaustiveness
+- **G142. [FIXED] A type parameter on a union switched exhaustiveness
   checking off.** Found while reviewing the G141 fix, one function away from the
   line it changed. A `match` over a generic union could omit a variant entirely
   and still build clean, pass `tsc --strict`, and throw at run time. Delete the
   type parameter from the same program and it is `E0200`. **The module-local
-  half is closed. The same program with the union one import away still builds
-  clean and throws; see "What is left" at the end of this entry.**
+  half closed first; the imported half closed after it, in G148. See "What was
+  left" at the end of this entry.**
 
   ```glyph
   type Tree<K> =
@@ -5435,8 +5438,8 @@ through an object pattern's fields.
   module-local. The hand-rolled unwrap `check_arm_reachability` was carrying at
   its own call site to work around the same hole is gone with it.
 
-  **What is left: the union one import away.** Move the union into a sibling
-  module and the headline bug is live again, unchanged. Two files:
+  **What was left: the union one import away.** Move the union into a sibling
+  module and the headline bug was live again, unchanged. Two files:
 
   ```glyph
   module tree
@@ -5467,7 +5470,7 @@ through an object pattern's fields.
       at label (.../main.ts:14:20)
   ```
 
-  Delete the `<K>` from both files and the identical program is
+  Delete the `<K>` from both files and the identical program was
   `E0200: non-exhaustive match on 'Tree': missing variants 'Leaf'`. That is this
   entry's own opening sentence, word for word, with `type Tree` in a sibling
   module.
@@ -5482,11 +5485,12 @@ through an object pattern's fields.
   `record_fields_of` already destructures exactly that shape, which is why the
   nested-pattern half of G141 does work across the import: `import tree { Node }`
   with `Node({ left: Node({ key: lk }) })` on a generic imported union compiles
-  and runs. Only the exhaustiveness gate is blind to the applied form.
+  and runs. Only the exhaustiveness gate was blind to the applied form.
 
-  Not fixed here on purpose. Widening that gate is a different risk slice from
-  the unwrap this entry closed, and it lands on the cross-module coverage path
-  that G132 and G139 also sit on. Scheduled in `docs/roadmap/releases.md`.
+  Not fixed in the same slice, on purpose: widening that gate is a different
+  risk from the unwrap this entry closed, and it lands on the cross-module
+  coverage path that G132 and G139 also sit on. **It is closed in G148**, which
+  carries the reproduction and the fix.
 
   *Found by review of G141 against 0.1.90, before either shipped. The imported
   half found by review of the fix itself, reproduced against 0.1.90 with the fix
@@ -5765,3 +5769,82 @@ through an object pattern's fields.
   together rather than one at a time.
 
   *Found while verifying the G145 fix. Reproduced against 0.1.92.*
+
+- **G148. [FIXED] A type parameter on an *imported* union switched
+  exhaustiveness checking off.** The half G142 left open, closed. A `match` over
+  a union imported from a sibling module could omit a variant entirely and still
+  build clean, pass `tsc --strict`, and throw at run time. Delete the type
+  parameter from both files and the identical program is `E0200`.
+
+  ```glyph
+  module tree
+
+  pub type Tree<K> =
+    | Leaf
+    | Node({ left: Tree<K>, key: K, right: Tree<K> })
+  ```
+
+  ```glyph needs-deps
+  module main
+
+  import tree { Tree, Leaf, Node }
+
+  fn label(t: Tree<string>) -> string {
+    return match t {
+      Node({ left: l, key: k, right: r }) => "node:" + k,
+    }
+  }
+  ```
+
+  ```
+  glyph build: 2 module(s) checked, no diagnostics; 2 TypeScript file(s) emitted.
+  glyph build: tsc --strict passed.
+
+  $ glyph run src/main.glyph
+  Error: non-exhaustive match
+      at label (.../main.ts:16:20)
+  ```
+
+  The cross-module gate in `check_match_exhaustiveness`
+  (`glyph-typechecker/src/assign.rs`) tested the scrutinee for a bare
+  `matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. })`. An imported union
+  at a concrete instantiation lowers to `Ty::App { base: Ty::Imported, .. }`, so
+  it matched neither alternative, `check_imported_union_coverage` never ran, and
+  the match went uncounted. The gate now tests `union_base(scrutinee_ty)`, which
+  sees through one application, so the union's arity is invisible to it. The
+  named-import and namespace-qualified spellings are both covered, since both
+  reach the gate through the same `TypeExpr::Generic` lowering.
+
+  The gate's other alternative widens with it: an application over an
+  unresolved base now enters the branch where the bare `Ty::Unknown` already
+  did. That does not widen what is reported, because the branch still only acts
+  when an arm names a variant that resolves cross-module to a real union, and it
+  reports against that union's own variant set. An exhaustive match on a
+  generic imported union has to keep building clean, so that is its own test
+  rather than a claim.
+
+  This was the third site to be written against a bare base and stop applying
+  the moment a type parameter appeared, after G141 (a variant's payload type)
+  and G142 (the module-local variant set). The unwrap those two moved into
+  `resolve_named_union` is now a free `split_type_app(ty) -> (&Ty, &[Ty])` that
+  `resolve_named_union` and the imported gate both call, so the `Ty::App`
+  distinction is unwrapped in one named place rather than re-derived per site.
+  That is a smaller answer than normalizing `Ty::App` away centrally, which
+  would touch assignability and inference and is not something an exhaustiveness
+  fix should decide.
+
+  The test that pinned this hole open,
+  `an_imported_generic_union_is_not_yet_exhaustiveness_checked`, was inverted
+  rather than deleted: it is now
+  `an_imported_generic_union_is_exhaustiveness_checked` in
+  `glyph-cli/tests/integration.rs`, asserting `E0200` naming `Leaf`, that adding
+  the arm produces a program that builds and runs, and that the non-generic
+  control still agrees. Two more tests cover the namespace-qualified spelling
+  and the no-false-positive case.
+
+  G143 is a different mechanism and stays open: it is about what the imported
+  coverage check does *inside* a variant's payload once it runs, and this entry
+  is about it running at all.
+
+  *Found by review of the G141/G142 fix against 0.1.90, reproduced verbatim
+  against 0.1.94 before the fix.*

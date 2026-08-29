@@ -2241,7 +2241,15 @@ impl Assigner<'_> {
         // exhaustiveness bar as a module-local one. (Reachability, above,
         // already treats a PascalCase bare ident as a refutable variant rather
         // than a catch-all.)
-        if matches!(scrutinee_ty, Ty::Unknown | Ty::Imported { .. }) {
+        //
+        // The test is on the *base* of the scrutinee: an imported union at a
+        // concrete instantiation (`Tree<string>`) lowers to `Ty::App` over the
+        // `Ty::Imported`, and reading the application itself found neither
+        // arm of the pattern. Adding a type parameter to the declaration then
+        // turned this E0200 into a runtime `non-exhaustive match`. A union's
+        // arity is not something the exhaustiveness bar may depend on, the
+        // same rule `resolve_named_union` applies on the module-local side.
+        if matches!(union_base(scrutinee_ty), Ty::Unknown | Ty::Imported { .. }) {
             if let Some((type_name, required)) = self.imported_union_variants_from_arms(arms) {
                 self.check_imported_union_coverage(&type_name, &required, arms, match_span);
                 return;
@@ -3062,10 +3070,7 @@ impl Assigner<'_> {
         &self,
         ty: &'t Ty,
     ) -> Option<(&glyph_ast::TypeDecl, &'t [Ty])> {
-        let (base, args): (&Ty, &[Ty]) = match ty {
-            Ty::App { base, args } => (base.as_ref(), args.as_slice()),
-            other => (other, &[]),
-        };
+        let (base, args) = split_type_app(ty);
         let Ty::Named { symbol, path } = base else { return None };
         let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
         if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
@@ -3999,6 +4004,34 @@ fn unknown_params(n: usize) -> Vec<FnParam> {
                 optional: false,
         })
         .collect()
+}
+
+/// Split a type into the base it applies and the arguments it applies to it:
+/// `Tree<string>` is `(Tree, [string])`, and an unapplied `Tree` is
+/// `(Tree, [])`. The one place the exhaustiveness path unwraps the
+/// `Ty::App`-versus-base distinction, so a question about a union answers the
+/// same whether or not the declaration takes parameters. The emitter keeps
+/// its own copies of the same unwrap at `glyph-emit/src/lib.rs:2530, 2568,
+/// 2687, 3812`, and `record_fields_of` and `owned.rs:477` each have one too;
+/// none of those are this function's call to consolidate.
+///
+/// Three separate checks were written against a bare base and silently stopped
+/// applying the moment a type parameter appeared: the module-local variant set,
+/// a variant's payload type, and the imported-union exhaustiveness gate. Each
+/// one turned a compile-time error into a runtime throw for the generic
+/// spelling of a program the non-generic spelling rejected. A caller that asks
+/// this instead of matching `Ty::App` itself cannot regress that way.
+fn split_type_app(ty: &Ty) -> (&Ty, &[Ty]) {
+    match ty {
+        Ty::App { base, args } => (base.as_ref(), args.as_slice()),
+        other => (other, &[]),
+    }
+}
+
+/// The base a union type applies, seeing through one `Ty::App`. `Tree<string>`
+/// and `Tree` both answer with the union's own type.
+fn union_base(ty: &Ty) -> &Ty {
+    split_type_app(ty).0
 }
 
 fn ty_is_decidable(ty: &Ty) -> bool {

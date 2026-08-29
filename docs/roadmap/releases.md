@@ -4572,9 +4572,15 @@ consequence `tsc` reports at a span that is not the arm.
 
 ### 0.1.94 — Shipped · A red-black tree, written in Glyph
 
-Cut 2026-08-29. The publish and the clean-npx smoke test (`--version`, the
-execute bit, `glyph init`, `npm install`, `glyph run`, and the headline feature
-itself) are recorded here once they have run.
+Published 2026-08-29 and smoke-tested from a clean npx cache in an isolated
+HOME: `--version`, the execute bit on the resolved platform binary, `glyph
+init`, `npm install`, `glyph run`, and the headline feature itself. The
+leaderboard runs under the published binary: three submits report ranks off the
+tree, `top`, `rank` and `range` answer from it, and the boundary rejects `-3` as
+`expected Score (int where value >= 0)` and `2.5` as `expected Score (int)`. npx
+resolved `@glyphlang/darwin-x64`, the one platform CI cannot execute, at mode
+0755. The linux-x64 tarball on the GitHub Release extracts to a mode-0755 binary
+and matches its `SHA256SUMS` entry.
 
 No compiler change in this one. What it carries is
 `examples/apps/leaderboard.glyph`, and the reason to cut it is that the app

@@ -48,6 +48,7 @@ glyph --explain E0204               # long-form explanation + fix for any error 
 glyph mcp [root]                    # run an MCP server (stdio) exposing analysis to an agent as tools
 glyph doctor                        # check node/tsx/tsc, and this compiler against the latest release (--offline to skip the lookup)
 glyph upgrade [dir]                 # move the project's exact Glyph pin to the latest release and npm install it (--to <version>, --dry-run)
+glyph --update                      # move this installed compiler to the newest release (--update-dry-run). Acts on the tool; `upgrade` acts on a project
 ```
 
 A project pins its compiler exactly (`"@glyphlang/glyph": "0.1.x"`, no `^`),

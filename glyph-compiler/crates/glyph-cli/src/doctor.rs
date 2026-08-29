@@ -186,8 +186,13 @@ fn print_human(checks: &[Check], all_ok: bool, release: &Release) {
     match release {
         Release::Current => println!("  [ok]       the newest published release"),
         Release::Update { latest } => {
+            // Two different moves, and naming the wrong one sends people to a
+            // command that edits a project when they wanted to move the tool.
+            // `--update` acts on this compiler; `upgrade` acts on a project's
+            // pinned version in package.json.
             println!(
-                "  [update]   {latest} is published — `glyph upgrade` moves this project to it"
+                "  [update]   {latest} is published — `glyph --update` moves this compiler, \
+                 `glyph upgrade` moves a project's pin"
             );
             println!("             what changed: {}", registry::RELEASE_NOTES);
         }

@@ -41,6 +41,19 @@ struct Cli {
     /// Show long-form documentation for an error code (e.g. `glyph --explain E0042`).
     #[arg(long, value_name = "CODE")]
     explain: Option<String>,
+
+    /// Move this installed compiler to the newest published release.
+    ///
+    /// Acts on the tool, which is why it is a flag: `upgrade` is the subcommand
+    /// that moves a *project's* pinned version in `package.json`. Only an
+    /// install it can identify is touched; anything else is reported with the
+    /// command it would have run.
+    #[arg(long)]
+    update: bool,
+
+    /// With `--update`, report what would change and run nothing.
+    #[arg(long, requires = "update")]
+    update_dry_run: bool,
 }
 
 #[derive(Subcommand)]
@@ -357,6 +370,15 @@ fn report_examples_for(srcs: &[std::path::PathBuf], command: &str) -> bool {
 
 fn main() {
     let cli = Cli::parse();
+
+    // Before any command dispatch: this acts on the tool, not on a project, so
+    // it must work from anywhere and must not need a `package.json` nearby.
+    if cli.update {
+        std::process::exit(glyph_cli::selfupdate::run(
+            env!("CARGO_PKG_VERSION"),
+            cli.update_dry_run,
+        ));
+    }
 
     if let Some(code) = cli.explain {
         match glyph_cli::explain::explain(&code) {

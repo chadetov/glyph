@@ -42,9 +42,17 @@ import check_gaps as cg  # noqa: E402  (path set above)
 
 ROADMAP = ROOT / "docs" / "roadmap" / "releases.md"
 
-# `#### 0.1.80 — finish what is half-built`. A shipped entry needs no forward
-# plan, so the marker in the title is what takes a section out of scope.
-PLAN = re.compile(r"^#### (0\.\d+\.\d+) — (.+)$", re.M)
+# `#### 0.1.80 — finish what is half-built`, and later `### 0.1.94 — Next · ...`.
+# A shipped entry needs no forward plan, so the marker in the title is what takes
+# a section out of scope.
+#
+# Both heading levels are matched on purpose. Plans were `####` when this gate
+# was written and the roadmap later moved them to `###`, at which point the
+# pattern stopped matching anything at all and the gate passed by finding zero
+# plans. It reported "0 unshipped plans reviewed within 5 releases" for weeks,
+# which reads like a pass and is really a silence. A gate that cannot fail is
+# worse than no gate, because it occupies the slot where a real check would go.
+PLAN = re.compile(r"^#{3,4} (0\.\d+\.\d+) — (.+)$", re.M)
 DONE = re.compile(r"shipped|landed on main", re.I)
 
 # A plan whose release already shipped is history, not a forward plan, and the
@@ -76,6 +84,15 @@ def main() -> int:
     checked = 0
     shipped = set(SHIPPED.findall(text))
     for version, title, body in sections(text):
+        # Already released, so the section is history rather than a forward plan,
+        # whatever its heading says. This test is the reliable one: the two
+        # markers below depend on title wording, and the oldest entries predate
+        # both conventions (`### 0.1.72 — a typo answers in Glyph's own voice`
+        # names no status at all, and 0.1.14's title says "ship the first slice",
+        # which is a promise rather than a record). Comparing versions asks the
+        # question directly instead of inferring it from prose.
+        if tuple(int(n) for n in version.split(".")) <= cur:
+            continue
         if DONE.search(title) or version in shipped:
             continue
         checked += 1

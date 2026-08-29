@@ -49,8 +49,56 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.94</span>
+            <span class="rel-ver">0.1.95</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An imported union is checked whether or not it is generic</h3>
+            <p>A <code>match</code> over a union imported from another module could leave a variant out, build clean, pass <code>tsc --strict</code>, and throw at run time. It took the type parameter to do it: delete <code>&lt;K&gt;</code> from both files and the identical program was <code>E0200</code>. A scrutinee from another module goes down its own coverage path, and the gate that reaches it asked whether the type was an imported union. <code>Tree&lt;string&gt;</code> is an <em>application</em> of one, so it matched nothing, the coverage check never ran, and the match went uncounted. The gate reads through the application now, which puts a union&rsquo;s arity out of reach of the answer.</p>
+            <div class="code">
+              <span class="cap">tree.glyph</span>
+<pre>module tree
+
+pub type Tree&lt;K&gt; =
+  | Leaf
+  | Node({ left: Tree&lt;K&gt;, key: K, right: Tree&lt;K&gt; })
+
+pub fn leaf&lt;K&gt;() -&gt; Tree&lt;K&gt; {
+  return Leaf
+}</pre>
+            </div>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre data-check="needs-deps">module main
+
+import tree { Tree, Leaf, Node }
+
+<span class="del">// 0.1.94: built, passed tsc --strict, threw "non-exhaustive match" on a Leaf.
+// 0.1.95: [E0200] non-exhaustive match on `Tree`: missing variants `Leaf`</span>
+pub fn label(t: Tree&lt;string&gt;) -&gt; string {
+  return match t {
+    Node({ left: l, key: k, right: r }) =&gt; k,
+<span class="add">    Leaf =&gt; "leaf",</span>
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag fixed">Fixed</span> <strong>A <code>match</code> on an imported generic union reports the variants you left out.</strong> Both import spellings, <code>import tree { Tree }</code> and <code>import tree</code> with <code>tree.Tree</code>, and at a concrete instantiation or an open type parameter alike. This was the last of three checks written against a bare type that stopped applying the moment a parameter appeared; the other two went out in 0.1.91. The unwrap lives in one named function now, so the next check written this way cannot regress the same way.</li>
+              <li><span class="tag changed">Changed</span> <strong>This rejects code that previously compiled.</strong> If a <code>match</code> on an imported generic union was missing an arm, it built before and is <code>E0200</code> now. It was already throwing at run time on the value it had no arm for, so the fix is the arm you meant to write, or an <code>else</code> arm if the omission was deliberate. <code>glyph --explain E0200</code> has the rewrite.</li>
+              <li><span class="tag added">Added</span> <strong><code>glyph --update</code>, which moves the compiler itself.</strong> <code>glyph upgrade</code> moves a project&rsquo;s pinned version in <code>package.json</code>, and there was nothing that moved the tool; <code>doctor</code>, told a global install was behind, printed the project command, which edits a manifest you may not have. Flags act on the tool, the way <code>--version</code> and <code>--explain</code> do, and subcommands act on your code. It only touches an install it can identify, asking <code>npm root -g</code> rather than assuming: a project&rsquo;s own <code>node_modules</code>, an npx cache, a build out of a Glyph source tree, or a path it does not recognise gets told what to run instead of being overwritten. A project-local install is pointed at <code>glyph upgrade</code>, which is the command that moves a pin. <code>--update --update-dry-run</code> shows what it would run.</li>
+              <li><span class="tag changed">Changed</span> <strong><code>glyph doctor</code> names both commands when a newer release exists</strong>, rather than sending a global install to the one that rewrites a project.</li>
+              <li><span class="tag known">Known</span> <strong>The coverage check on an imported union still stops at the outer variant.</strong> It runs now, and it counts the variants the arms name, but it does not look inside a payload: <code>B(X)</code> over an imported union whose payload is itself a union matches every <code>B</code> instead of reporting the missing <code>Y</code>, and no type parameter is involved. A union your own module declares is checked all the way down.</li>
+              <li><span class="tag known">Known</span> <strong>An imported payload union still goes by the name&rsquo;s shape.</strong> Unchanged from 0.1.93 and 0.1.94: a capitalized variant in payload position dispatches, a lowercase one stops the build at <code>E0305</code>, and a nested constructor carrying a payload is <code>E0300</code> under a namespace import (<code>tree.Node({ left: tree.Node({ key: k }) })</code>) where the named-import spelling of the same program compiles.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.94</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
@@ -88,7 +136,7 @@ pub fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
             <ul class="changelist">
               <li><span class="tag added">Added</span> <strong><code>leaderboard</code>, an order-statistics red-black tree with a CLI on it.</strong> A persistent tree keyed by score, augmented with subtree sizes, answering rank, top-N and range-count queries over a log it never rewrites. It is the eleventh single-file app in <code>examples/</code>.</li>
               <li><span class="tag changed">Changed</span> <strong>Nothing in the compiler.</strong> No Rust source moved between 0.1.93 and this release, so the binary behaves identically. If you are already on 0.1.93 there is nothing here to upgrade for.</li>
-              <li><span class="tag known">Known</span> <strong>The union has to be declared in the module that matches on it.</strong> Import it from a sibling and spell the import as a namespace (<code>import tree</code>, then <code>tree.Node({ left: tree.Node({ key: k }) })</code>) and the arm is <code>E0300</code>, where the named-import spelling of the same program compiles. A <code>match</code> on an imported generic union is also not checked for missing variants, so it can omit one, build clean, pass <code>tsc --strict</code>, and throw. Both are what the next release is for.</li>
+              <li><span class="tag known">Known</span> <strong>The union has to be declared in the module that matches on it.</strong> Import it from a sibling and spell the import as a namespace (<code>import tree</code>, then <code>tree.Node({ left: tree.Node({ key: k }) })</code>) and the arm is <code>E0300</code>, where the named-import spelling of the same program compiles. A <code>match</code> on an imported generic union is also not checked for missing variants, so it can omit one, build clean, pass <code>tsc --strict</code>, and throw. The missing-variant check is fixed in 0.1.95; the namespace spelling is still open.</li>
               <li><span class="tag known">Known</span> <strong>An imported payload union still goes by the name&rsquo;s shape.</strong> Unchanged from 0.1.93: a capitalized variant in payload position dispatches, a lowercase one stops the build at <code>E0305</code>, and <code>Ok(Point)</code> over a record fails through <code>tsc</code> naming a <code>.tag</code> you never wrote.</li>
             </ul>
           </div>

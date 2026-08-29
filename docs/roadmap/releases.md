@@ -4347,7 +4347,7 @@ holding a constructor that carries a payload needs the compiler to know how that
 payload is stored, and there were two spellings it could not work that out for.
 The first is a union generic over its own parameter, which refused a nested arm
 the same union without the parameter accepts. The second is the namespace import
-spelling, which is what is left of G140 and sits in the 0.1.95 plan below.
+spelling, which is what is left of G140 and sits in the 0.1.96 plan below.
 
 ```glyph
 module tree
@@ -4493,22 +4493,15 @@ body and runs `tsc --strict` over the output, so the end-to-end failure this
 started as is the thing being watched.
 
 The rest of the 0.1.92 plan did not ship. G130 went out in 0.1.93 below; G138
-and G140's namespace half moved on to 0.1.95, unchanged.
+and G140's namespace half moved on to 0.1.96, unchanged.
 
 *Found by an app round. Reproduced against 0.1.91 and fixed in the same round.*
 
-### 0.1.95 — Next · The variants of a union the emitter did not declare
+### 0.1.96 — Next · The variants of a union the emitter did not declare
 
-`glyph --update` rides along, already written. `glyph upgrade` moves a project's
-pinned version in `package.json`, and there was no way to move the compiler
-itself; `doctor`, told a global install was behind, printed the project command,
-which edits a manifest the user may not have. The flag settles which is which:
-flags act on the tool the way `--version` and `--explain` do, subcommands act on
-your code. It classifies `current_exe()` and moves only a global npm install,
-printing the command rather than guessing for an npx cache, a build out of a
-source tree, or a path it does not recognise. It also declines to claim success,
-because npm exits zero having skipped an optionalDependency it could not fetch,
-which is how a release once shipped with no platform binary.
+This was the 0.1.95 plan and it did not ship there. 0.1.95 shipped the item that
+had already landed alongside it, G148, plus `glyph --update`; the four entries
+below are unchanged and move forward together, because they share one address.
 
 The lead item is the hole in the rule 0.1.93 shipped. A nested arm reads a name
 the way the typechecker does, which means the payload union's own variant list
@@ -4519,29 +4512,6 @@ stops the build at `E0305`. That is G147. The shallow imported-union coverage
 check (G143) is short the same thing, so handing the emitter an imported union's
 variant names once settles both, and that is what this release is. Three more
 sit behind it: G146, G138, and what is left of G140.
-
-Landed already, at the same address: **G148, the imported union whose arity
-switched exhaustiveness checking off.** The gate that sends a cross-module
-scrutinee to `check_imported_union_coverage` tested it for a bare
-`Ty::Imported`, and an imported union at a concrete instantiation
-(`Tree<string>`) arrives as `Ty::App` over one. It matched neither alternative,
-so a
-`match` omitting a variant built clean, passed `tsc --strict`, and threw at run
-time, where the same two files with `<K>` deleted are `E0200`. The gate now
-reads `union_base(scrutinee_ty)`. This is the second half of G142, which shipped
-half closed in 0.1.91 and said so; it was parked in the rolling lane below
-alongside G143 and is now out of it. Its own risk slice is small and the two are
-independent: this one is about the coverage check *running*, G143 is about what
-it does inside a payload once it does.
-
-It is also the third site to be written against a bare base and quietly stop
-applying the moment a type parameter appeared, after G141 and G142. The unwrap
-those two moved into `resolve_named_union` is now a free
-`split_type_app(ty) -> (&Ty, &[Ty])` that both it and the imported gate call, so
-the distinction is unwrapped in one named place. That is deliberately smaller
-than the answer the rolling-lane note on the emitter's copies asks for:
-normalizing `Ty::App` away centrally would touch assignability and inference,
-and an exhaustiveness fix is not where that gets decided.
 
 G146 came out of the same gate. A constructor-shaped payload pattern whose
 payload type is known and is not a union, `Ok(Point)` over a record, now emits a
@@ -4613,6 +4583,73 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
+### 0.1.95 — Shipped · An imported union is checked whether or not it is generic
+
+**G148, the imported union whose arity switched exhaustiveness checking off.**
+A `match` over a union imported from a sibling module could omit a variant
+entirely and still build clean, pass `tsc --strict`, and throw at run time.
+Delete the type parameter from both files and the same two modules are `E0200`.
+
+The gate in `check_match_exhaustiveness` that sends a cross-module scrutinee to
+`check_imported_union_coverage` tested it for a bare `Ty::Imported`. An imported
+union at a concrete instantiation (`Tree<string>`) arrives as `Ty::App` over
+one, so it matched neither alternative, the coverage check never ran, and the
+match went uncounted. The gate reads `union_base(scrutinee_ty)` now, which sees
+through one application, so a union's arity is invisible to it. The
+named-import and namespace-qualified spellings are both covered; both reach the
+gate through the same `TypeExpr::Generic` lowering.
+
+This closes the half of G142 that shipped open in 0.1.91 and said so. It was
+parked in the rolling lane alongside G143, and it comes out of it now; G143
+stays, because that one is about what the coverage check does inside a variant's
+payload once it runs, and this one was about it running at all. The two are
+independent and this was the small slice.
+
+It is also the third check written against a bare base that quietly stopped
+applying the moment a type parameter appeared, after G141 (a variant's payload
+type) and G142 (the module-local variant set). The unwrap those two moved into
+`resolve_named_union` is now a free `split_type_app(ty) -> (&Ty, &[Ty])` that
+`resolve_named_union` and the imported gate both call, so the distinction is
+unwrapped in one named place. That is deliberately smaller than the answer the
+rolling-lane note on the emitter's own copies asks for: normalizing `Ty::App`
+away centrally would touch assignability and inference, and an exhaustiveness
+fix is not where that gets decided. The test that pinned the hole open,
+`an_imported_generic_union_is_not_yet_exhaustiveness_checked`, was inverted
+rather than deleted, and two more cover the namespace spelling and the case
+where an exhaustive generic match has to keep building clean.
+
+`glyph --update` also shipped here. `glyph upgrade` moves a project's pinned
+version in `package.json`, and there was no way to move the compiler itself;
+`doctor`, told a global install was behind, printed the project command, which
+edits a manifest the user may not have. The flag settles which is which: flags
+act on the tool the way `--version` and `--explain` do, subcommands act on your
+code. It classifies `current_exe()` against `npm root -g` and moves only a
+global npm install,
+printing the command rather than guessing for an npx cache, a build out of a
+source tree, or a path it does not recognise. It also declines to claim success,
+because npm exits zero having skipped an optionalDependency it could not fetch,
+which is how a release once shipped with no platform binary; it names
+`glyph --version` as the check instead. `doctor` points at both commands now
+rather than at the wrong one.
+
+Two smaller things. `scripts/check_plans_fresh.py` matched `^#### 0.1.NN` and
+the roadmap had moved plans to `###`, so it found nothing and reported "0
+unshipped plans reviewed within 5 releases" every run, which reads like a pass
+and is a silence. It matches both heading levels now and decides "already
+shipped" by comparing the section's version against the current one rather than
+by reading the title, because the oldest titles predate every status convention.
+With it working it named the 0.1.95 plan as seven releases stale, which is how
+G138 and G140 got re-run rather than re-stamped. And `examples/apps/zipper`
+checked only that the current focus was a directory before `cd`, not that the
+named child was one, so `cd` could walk the shell's focus into a leaf and get
+stuck; it rejects a file target with the zipper's own `NotADirectory` now.
+
+The rest of the 0.1.95 plan did not ship. G147, G146, G138 and G140's namespace
+half moved to 0.1.96 above, unchanged.
+
+*Dated 2026-08-29. G148 was found by review of the G141/G142 fix against 0.1.90
+and reproduced verbatim against 0.1.94 before the fix.*
+
 ### 0.1.94 — Shipped · A red-black tree, written in Glyph
 
 Published 2026-08-29 and smoke-tested from a clean npx cache in an isolated
@@ -4657,10 +4694,12 @@ against it names the rule that failed: `-3` is `expected Score (int where value
 
 What the app does not touch, so that nothing is read into its being green: the
 union is declared in the module that matches on it. Move it one import away and
-spell the import as a namespace and the same arm is `E0300` (G140), and a match
-on an imported generic union is not checked for missing variants at all (G143).
-Those sit in the 0.1.95 plan above, which is where this release's work was
-scheduled before the round produced an app instead.
+spell the import as a namespace and the same arm is `E0300` (G140), and the
+coverage check an imported union gets never looks inside a variant's payload
+(G143). Those sit in the 0.1.96 plan above, which is where this release's work
+was scheduled before the round produced an app instead. The missing-variant
+check on an imported generic union was open here too, and is closed in 0.1.95
+as G148.
 
 Also here, from the release audit: the bug-report template suggested
 `glyph 0.1.93` after this bump. 0.1.93 had rewritten that placeholder into the
@@ -4746,7 +4785,7 @@ known and is *not* a union (`Ok(Point)` on a record) is now a `tsc` error naming
 a `.tag` the author never wrote, where it should be a Glyph diagnostic of the
 E0220 class. That is G146, and it is an improvement on the silent binding it used
 to be rather than a regression, but it is the wrong compiler answering. Both are
-scheduled in 0.1.95 above, alongside G138 and G140's namespace half, neither of
+scheduled in 0.1.96 above, alongside G138 and G140's namespace half, neither of
 which this release touched.
 
 *Found by an app round and by the G129 review. Reproduced against 0.1.92 and

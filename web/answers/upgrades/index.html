@@ -114,7 +114,7 @@
       <div class="code">
         <span class="cap">glyph doctor</span>
 <pre>glyph &mdash; 0.1.72
-  [update]   0.1.73 is published &mdash; `glyph upgrade` moves this project to it
+  [update]   0.1.73 is published &mdash; `glyph --update` moves this compiler, `glyph upgrade` moves a project's pin
              what changed: https://glyphlang.io/versions/
 
 glyph doctor &mdash; JavaScript toolchain
@@ -164,15 +164,57 @@ glyph upgrade: build before you commit; a new release may report diagnostics
         </p>
       </div>
 
+      <div class="detail">
+        <p class="block-label">Moving the tool, not the project</p>
+        <p>
+          <code>upgrade</code> moves a pin in a <code>package.json</code>. That is the
+          wrong command when what is behind is the compiler on your <code>PATH</code>, and
+          for a while <code>doctor</code> printed it anyway, pointing a global install at a
+          manifest it may not have. <code>glyph --update</code> is the other half. The
+          split is a rule now rather than a coincidence: flags act on the tool, the way
+          <code>--version</code>, <code>--help</code> and <code>--explain</code> do, and
+          subcommands act on your code. <code>--update-dry-run</code> stops after printing
+          the <code>npm</code> command it would have run.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">glyph --update</span>
+<pre>$ glyph --update
+glyph 0.1.72 is installed; 0.1.73 is published.
+Release notes: https://glyphlang.io/versions/
+A 0.1.x release may reject code that compiled before, so read the notes for anything between these two.
+
+Running: npm install -g @glyphlang/glyph@0.1.73
+<span class="cm">   ... npm output ...</span>
+
+npm finished. Confirm with:
+    glyph --version</pre>
+      </div>
+
+      <div class="detail">
+        <p>
+          It only moves an install it can identify. A compiler reached through
+          <code>npx</code>, built out of a Glyph source tree, or sitting at a path it does
+          not recognise gets the command printed and nothing overwritten, because
+          replacing a Homebrew binary or somebody's <code>cargo build</code> on a guess
+          leaves <code>PATH</code> pointing at something nobody chose. It also stops short
+          of claiming the update landed: npm can exit zero having skipped an
+          <code>optionalDependency</code> it could not fetch, which is how a Glyph release
+          once shipped with no platform binary, so the last line names
+          <code>glyph --version</code> as the check rather than asserting success.
+        </p>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p>Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too.</p>
+          <p>Scaffolded projects pin exactly, so no release reaches a build by accident. <code>glyph doctor</code> reports your compiler against the registry and links the release notes, without ever affecting its exit code or being reachable from <code>build</code>/<code>run</code>/<code>check</code>. <code>glyph upgrade</code> moves the pin, installs it, and reads a caret from an older project so pre-existing projects can be moved onto an exact pin too. <code>glyph --update</code> moves the compiler itself, for a global npm install, and reports rather than guesses for every other way it could have got there.</p>
         </div>
         <div class="status-card next">
           <p class="h">Getting sharper</p>
-          <p>The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between.</p>
+          <p>The release notes are one page for the whole line, so <code>glyph upgrade</code> links the page rather than the entry for the version you are moving to. Nothing yet tells you which of the new release's diagnostics your code is about to trip: finding out means building, which is why the command says to. And upgrading across several releases at once is the same single step as one, with no summary of what accumulated in between. <code>glyph --update</code> shells out to npm and reads its exit code, so it can tell you npm finished but not that the binary on <code>PATH</code> is the version you asked for; that is why it points at <code>glyph --version</code> instead of saying it worked.</p>
         </div>
       </div>
 

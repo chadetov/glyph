@@ -4547,8 +4547,17 @@ fifth lookup to the emitter is the wrong place for it; the right one is making
 the namespace spelling reach the same recorded type the named spelling does,
 which is its own release rather than a ride-along.
 
-*Reviewed against 0.1.86; the namespace half re-reproduced against 0.1.90 with
-the G141 fix in the tree.*
+*Reviewed against 0.1.93.* Both falsifiable claims above were re-run against the
+0.1.93 binary rather than assumed. G138 holds and is worse than a lowering
+detail: `match xs { [] => .., [Black] => .. }` emits `const Black = __m0[0]`, so
+`f([White])` prints `one-black`. It is a live miscompile, not a missing
+diagnostic. The namespace half of G140 also holds, with one refinement this
+re-read produced: it bites only when the nested constructor carries a payload.
+`tree.Node({ left: tree.Node({ key: k }), key: outer })` is `E0300` under a
+namespace import and clean under a named one, while a nested nullary variant
+(`tree.Node({ left: tree.Leaf, key: k })`) compiles under both. So the fallback
+is load-bearing for payload-carrying constructors specifically, which narrows
+what the checker has to record.
 
 G133 is the reason the G132 arm behaved the way it did, and it is worth more
 than the arm: the checker has no cross-module function signature at all.

@@ -4347,7 +4347,7 @@ holding a constructor that carries a payload needs the compiler to know how that
 payload is stored, and there were two spellings it could not work that out for.
 The first is a union generic over its own parameter, which refused a nested arm
 the same union without the parameter accepts. The second is the namespace import
-spelling, which is what is left of G140 and sits in the 0.1.94 plan below.
+spelling, which is what is left of G140 and sits in the 0.1.95 plan below.
 
 ```glyph
 module tree
@@ -4493,11 +4493,11 @@ body and runs `tsc --strict` over the output, so the end-to-end failure this
 started as is the thing being watched.
 
 The rest of the 0.1.92 plan did not ship. G130 went out in 0.1.93 below; G138
-and G140's namespace half moved on to 0.1.94, unchanged.
+and G140's namespace half moved on to 0.1.95, unchanged.
 
 *Found by an app round. Reproduced against 0.1.91 and fixed in the same round.*
 
-### 0.1.94 — Next · The variants of a union the emitter did not declare
+### 0.1.95 — Next · The variants of a union the emitter did not declare
 
 The lead item is the hole in the rule 0.1.93 shipped. A nested arm reads a name
 the way the typechecker does, which means the payload union's own variant list
@@ -4569,6 +4569,59 @@ with it: whether the query returns a full `Ty::Fn` or only the return type,
 and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
+
+### 0.1.94 — Shipped · A red-black tree, written in Glyph
+
+Cut 2026-08-29. The publish and the clean-npx smoke test (`--version`, the
+execute bit, `glyph init`, `npm install`, `glyph run`, and the headline feature
+itself) are recorded here once they have run.
+
+No compiler change in this one. What it carries is
+`examples/apps/leaderboard.glyph`, and the reason to cut it is that the app
+compiles. The union work in 0.1.90, 0.1.91 and 0.1.93 was found each time by a
+program somebody could not finish writing. This is that program, finished.
+
+It is a speedrun leaderboard over an append-only JSON log. Every command
+re-reads the log and folds it into a persistent order-statistics red-black tree
+keyed by score, then answers with a walk down the tree: a player's rank, the top
+N, or how many submissions fall inside a score range. Each of those is O(log n)
+where re-reading and re-sorting the log is not. Every node carries its subtree
+size, recomputed by the one constructor helper every other function goes
+through, so a size cannot drift from its children.
+
+`balance` is the part that could not be written before. Okasaki's four rotation
+cases are four match arms, each one nesting a constructor pattern inside another
+constructor pattern's own field, two levels down, over `Tree<K, V>`: a union
+whose `Node` payload names `Tree<K, V>` again, generic over both parameters the
+union is declared with. Every piece of that was a separate gap, closed one
+release at a time. G137 gave an object pattern's field a pattern of its own and G139
+carried a nested arm across a module boundary (0.1.90); G141 and G142 stopped a
+type parameter on a union from making the nested arm unmatchable and the match
+unchecked (0.1.91); G130 and G145 stopped a variant name in payload position
+from binding where it should test (0.1.93). None of them was found by asking
+whether a red-black tree would compile. They came out of apps that stopped, and
+out of reviewing the fixes for the apps that stopped. This one did not stop.
+
+The boundary is one line, `type Score = int where value >= 0`, and the parse
+against it names the rule that failed: `-3` is `expected Score (int where value
+>= 0)` and `2.5` is `expected Score (int)`, rather than a clamp or a truncation.
+
+What the app does not touch, so that nothing is read into its being green: the
+union is declared in the module that matches on it. Move it one import away and
+spell the import as a namespace and the same arm is `E0300` (G140), and a match
+on an imported generic union is not checked for missing variants at all (G143).
+Those sit in the 0.1.95 plan above, which is where this release's work was
+scheduled before the round produced an app instead.
+
+Also here, from the release audit: the bug-report template suggested
+`glyph 0.1.93` after this bump. 0.1.93 had rewritten that placeholder into the
+shape `glyph --version` prints, which made it one more string a release has to
+carry, and no list a person or a gate reads named it. `check_versions.py` now
+checks it the way it checks the home page's hero pill, and its pinned-pattern
+table takes a label per entry so the next such string is one line.
+
+*An app round that finished its app rather than stopping at a gap. Nothing was
+filed against it.*
 
 ### 0.1.93 — Shipped · A nested variant matches instead of binding
 
@@ -4644,7 +4697,7 @@ known and is *not* a union (`Ok(Point)` on a record) is now a `tsc` error naming
 a `.tag` the author never wrote, where it should be a Glyph diagnostic of the
 E0220 class. That is G146, and it is an improvement on the silent binding it used
 to be rather than a regression, but it is the wrong compiler answering. Both are
-scheduled in 0.1.94 above, alongside G138 and G140's namespace half, neither of
+scheduled in 0.1.95 above, alongside G138 and G140's namespace half, neither of
 which this release touched.
 
 *Found by an app round and by the G129 review. Reproduced against 0.1.92 and

@@ -21,6 +21,7 @@ pub mod publish;
 pub mod doctor;
 pub mod regen;
 pub mod registry;
+pub mod selfupdate;
 pub mod render;
 pub mod run;
 pub mod runtime;

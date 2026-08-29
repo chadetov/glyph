@@ -114,9 +114,23 @@ def newest_source() -> float:
     return newest
 
 
+def suite_complete(log: pathlib.Path) -> bool:
+    """Did the run that wrote this log finish?
+
+    The recipes append an ``EXIT=`` marker as the last line. Without it the log
+    belongs to a run that is still going or that died partway, and its partial
+    totals are not a count of anything. Reading one anyway reported "the suite
+    reports 11" against a tree with over a thousand tests, which is a gate
+    inventing a number; a gate that does that once gets ignored afterwards.
+    """
+    if not log.exists():
+        return False
+    return "EXIT=" in log.read_text(errors="replace")
+
+
 def suite_total(log: pathlib.Path) -> int | None:
     """Sum the per-binary totals cargo prints. One line per test binary."""
-    if not log.exists():
+    if not log.exists() or not suite_complete(log):
         return None
     counts = [int(m) for m in PASSED.findall(log.read_text(errors="replace"))]
     return sum(counts) if counts else None
@@ -199,7 +213,13 @@ def main() -> int:
     if total is None:
         log = pathlib.Path(args.suite_log)
         total = suite_total(log)
-        if total is None:
+        if total is None and log.exists() and not suite_complete(log):
+            fails.append(
+                f"{log} has no EXIT= marker, so the run that wrote it is still "
+                f"going or it died partway. Wait for it to finish, or pass "
+                f"--tests N. A partial log's totals are not a test count."
+            )
+        elif total is None:
             fails.append(
                 f"no suite log at {log}. Run the suite and tee it there, or "
                 f"pass --tests N. A doc's test count cannot be checked against "

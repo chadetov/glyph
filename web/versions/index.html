@@ -49,8 +49,56 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.93</span>
+            <span class="rel-ver">0.1.94</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A red-black tree, written in Glyph</h3>
+            <p>There is no compiler change in this release. What it carries is an application, <code>examples/apps/leaderboard.glyph</code>, and the reason to cut a version for it is that the application compiles. Three of the last four releases each fixed a piece of one shape: a match arm that nests a constructor pattern inside another constructor pattern&rsquo;s field, over a union that names itself in its own payload and carries type parameters while doing it. That shape is Okasaki&rsquo;s <code>balance</code>, the four rotation cases of a red-black tree. Here it is, written out and running.</p>
+            <p>The app is a speedrun leaderboard over an append-only JSON log. Every command re-reads the log and folds it into the tree, then answers by walking down it: a player&rsquo;s rank, the top N, how many submissions fall inside a score range. Each node carries its subtree size, which is what makes those O(log n) instead of a pass over every entry, and a submitted score is refined at the point it leaves plain text, so <code>-3</code> is rejected as <code>expected Score (int where value &gt;= 0)</code> and <code>2.5</code> as <code>expected Score (int)</code>.</p>
+            <div class="code">
+              <span class="cap">tree.glyph</span>
+<pre>module tree
+
+pub type Color =
+  | Red
+  | Black
+
+<span class="add">pub type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: Tree&lt;K, V&gt;, key: K, value: V, right: Tree&lt;K, V&gt; })</span>
+
+// The left-left rotation: a Black node whose Red child has a Red child.
+pub fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    <span class="add">Node({ color: Black, left: Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b }), key: yk, value: yv, right: c }), key: zk, value: zv, right: d })</span> =&gt; Node(
+      {
+        color: Red,
+        left: Node({ color: Black, left: a, key: xk, value: xv, right: b }),
+        key: yk,
+        value: yv,
+        right: Node({ color: Black, left: c, key: zk, value: zv, right: d }),
+      },
+    ),
+    other =&gt; other,
+  }
+}</pre>
+            </div>
+            <ul class="changelist">
+              <li><span class="tag added">Added</span> <strong><code>leaderboard</code>, an order-statistics red-black tree with a CLI on it.</strong> A persistent tree keyed by score, augmented with subtree sizes, answering rank, top-N and range-count queries over a log it never rewrites. It is the eleventh single-file app in <code>examples/</code>.</li>
+              <li><span class="tag changed">Changed</span> <strong>Nothing in the compiler.</strong> No Rust source moved between 0.1.93 and this release, so the binary behaves identically. If you are already on 0.1.93 there is nothing here to upgrade for.</li>
+              <li><span class="tag known">Known</span> <strong>The union has to be declared in the module that matches on it.</strong> Import it from a sibling and spell the import as a namespace (<code>import tree</code>, then <code>tree.Node({ left: tree.Node({ key: k }) })</code>) and the arm is <code>E0300</code>, where the named-import spelling of the same program compiles. A <code>match</code> on an imported generic union is also not checked for missing variants, so it can omit one, build clean, pass <code>tsc --strict</code>, and throw. Both are what the next release is for.</li>
+              <li><span class="tag known">Known</span> <strong>An imported payload union still goes by the name&rsquo;s shape.</strong> Unchanged from 0.1.93: a capitalized variant in payload position dispatches, a lowercase one stops the build at <code>E0305</code>, and <code>Ok(Point)</code> over a record fails through <code>tsc</code> naming a <code>.tag</code> you never wrote.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.93</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">
@@ -87,7 +135,7 @@ pub fn step(line: string) -&gt; string {
               <li><span class="tag fixed">Fixed</span> <strong>Capitalization stops deciding it.</strong> Glyph accepts a lowercase variant name, and until now only a capitalized one dispatched, so <code>Err(blank)</code> miscompiled one character away from a spelling that worked. For a union declared in the same file the case of the name no longer changes what the arm means.</li>
               <li><span class="tag added">Added</span> <strong><code>E0305</code>, for two arms that reach the same <code>case</code> label.</strong> That shape is how every bug in this class shipped green, so the switch is guarded independently of whatever rule decides a name is a variant. The next lowering that reaches for one tag twice fails the build instead of picking an arm at run time. <code>glyph --explain E0305</code> has the rewrite.</li>
               <li><span class="tag changed">Changed</span> <strong>This rejects code that previously compiled.</strong> <code>match r { Err(e) =&gt; log(e), Err(other) =&gt; report(other), Ok(v) =&gt; v, }</code> built, and ran <code>log</code> for every error. It is <code>E0305</code> now. Delete the arm that could never run, or give the two arms patterns that test different values, which is what the second one looked like it was doing.</li>
-              <li><span class="tag known">Known</span> <strong>An imported payload union still goes by the name&rsquo;s shape.</strong> The variant list of a union from another module is not something the emitter can read yet, so a capitalized variant dispatches and a lowercase one stops the build at <code>E0305</code>. A loud failure on a valid program, and the fix is the next release. Separately, a constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) now fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic.</li>
+              <li><span class="tag known">Known</span> <strong>An imported payload union still goes by the name&rsquo;s shape.</strong> The variant list of a union from another module is not something the emitter can read yet, so a capitalized variant dispatches and a lowercase one stops the build at <code>E0305</code>. A loud failure on a valid program, and the fix is still ahead. Separately, a constructor pattern over a payload that is a record rather than a union (<code>Ok(Point)</code>) now fails through <code>tsc</code> naming a <code>.tag</code> you never wrote, where it should be a Glyph diagnostic.</li>
             </ul>
           </div>
         </div>

@@ -1,0 +1,487 @@
+// leaderboard — a speedrun-style leaderboard backed by a persistent
+// order-statistics red-black tree, keyed by score.
+//
+// Every submission is appended to a JSON log (leaderboard.json in the current
+// directory); nothing already in the log is ever overwritten. Each command
+// re-reads the log and folds it into a red-black tree via one `insert` per
+// entry, then answers with an O(log n) tree query instead of re-sorting the
+// whole log: a player's rank, the top N, or how many submissions fall in a
+// score range.
+//
+// The tree augments every node with its subtree size, which is what turns an
+// ordinary balanced BST into an order-statistics tree: `count_less` walks
+// down deciding a direction and adds the sizes it skips, and `kth` walks down
+// picking a side by comparing the target index against the left subtree's
+// size. Both are O(log n) rather than an O(n) or O(n log n) pass over every
+// entry.
+//
+// Rebalancing after insert is the classic Okasaki scheme: a Black node whose
+// Red child has a Red child, on any of the four sides, gets rewritten to a
+// Red node with two Black children carrying the three original subtrees in
+// order. Each of the four cases is one match arm whose pattern nests a
+// constructor pattern inside another constructor pattern's own field,
+// against a tagged union that refers to itself (with two type parameters)
+// inside its own variant payload.
+//
+// A submitted score is refined at the point it leaves plain text: `score` is
+// `Score = int where value >= 0`, so `json.parse<Score>` rejects "-3" and
+// "2.5" by name (negative, or not a whole number) rather than silently
+// coercing or truncating them.
+//
+// Usage:
+//   leaderboard submit <player> <score>
+//   leaderboard rank <player>
+//   leaderboard top <n>
+//   leaderboard range <lo> <hi>
+//   leaderboard log
+//
+// The log lives at ./leaderboard.json, created on the first `submit`.
+//
+// Run it end to end (copy the whole block):
+//
+//   rm -f leaderboard.json
+//   glyph run examples/apps/leaderboard.glyph -- submit alice 120
+//   glyph run examples/apps/leaderboard.glyph -- submit bob 150
+//   glyph run examples/apps/leaderboard.glyph -- submit carol 120
+//   glyph run examples/apps/leaderboard.glyph -- top 10
+//   glyph run examples/apps/leaderboard.glyph -- rank carol
+//   glyph run examples/apps/leaderboard.glyph -- range 100 130
+
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/json
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+
+// ---------------------------------------------------------------------------
+// The boundary type
+// ---------------------------------------------------------------------------
+
+// A whole, non-negative score. `int` alone would already reject "2.5" (D31);
+// the `where` clause on top of it rejects a negative whole number too, and
+// both rejections name the rule they failed rather than clamping or
+// truncating the value.
+type Score = int where value >= 0
+
+// A non-empty player name, refined the same way as `Score`: the constraint
+// is spelled at the declaration and repeated in whatever rejects it.
+type Player = string where value.length > 0
+
+// The on-disk shape: every submission ever accepted, in the order it was
+// accepted. The array index a submission sits at *is* its sequence number,
+// so nothing extra needs to be stored to break ties by submission order.
+type Submission = { player: string, score: Score }
+
+// ---------------------------------------------------------------------------
+// The tree
+// ---------------------------------------------------------------------------
+
+type Color =
+  | Red
+  | Black
+
+// A self-referential generic tagged union: the payload of `Node` names
+// `Tree<K, V>` again, generic over both the key and value type parameters it
+// is itself declared with. `size` is the subtree's node count, recomputed by
+// `node` on every rebalance; it is what makes `count_less` and `kth` below
+// O(log n) instead of a walk over every node.
+type Tree<K, V> =
+  | Leaf
+  | Node({ color: Color, left: Tree<K, V>, key: K, value: V, size: int, right: Tree<K, V> })
+
+fn size<K, V>(t: Tree<K, V>) -> int {
+  return match t {
+    Leaf => 0,
+    Node({ size: sz }) => sz,
+  }
+}
+
+// Build a node and recompute its size from its (already-correct) children.
+// Every constructor in this file goes through here rather than writing
+// `Node({ ... })` by hand, so a size can never drift from its children.
+fn node<K, V>(color: Color, left: Tree<K, V>, key: K, value: V, right: Tree<K, V>) -> Tree<K, V> {
+  return Node(
+    {
+      color: color,
+      left: left,
+      key: key,
+      value: value,
+      size: size(left) + size(right) + 1,
+      right: right,
+    },
+  )
+}
+
+// The four classic red-black rotation cases (Okasaki's `balance`), each one
+// match arm whose own pattern nests a constructor pattern two levels deep:
+// a `Node({ ... })` field holding another `Node({ ... })`, whose own field
+// holds a third. Every case rewrites the same three subtrees and two keyed
+// values into one Red node over two Black children; the difference between
+// the four is only which corner the inner Red-Red pair sits in. A shape that
+// matches none of the four (a Leaf, or a Black node with no such violation)
+// falls through to the catch-all and is returned unchanged.
+fn balance<K, V>(t: Tree<K, V>) -> Tree<K, V> {
+  return match t {
+    // left-left
+    Node({ color: Black, left: Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b }), key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) => node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    // left-right
+    Node({ color: Black, left: Node({ color: Red, left: a, key: xk, value: xv, right: Node({ color: Red, left: b, key: yk, value: yv, right: c }) }), key: zk, value: zv, right: d }) => node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    // right-left
+    Node({ color: Black, left: a, key: xk, value: xv, right: Node({ color: Red, left: Node({ color: Red, left: b, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) }) => node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    // right-right
+    Node({ color: Black, left: a, key: xk, value: xv, right: Node({ color: Red, left: b, key: yk, value: yv, right: Node({ color: Red, left: c, key: zk, value: zv, right: d }) }) }) => node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    other => other,
+  }
+}
+
+// Recursive insert, always coloring a freshly inserted node Red and
+// rebalancing on the way back up. `less` decides the total order: it takes
+// both the key and the value at each side, because the tree's key alone
+// (the score) is not enough to order two submissions with the same score.
+fn ins<K, V>(t: Tree<K, V>, key: K, value: V, less: fn(K, V, K, V) -> bool) -> Tree<K, V> {
+  return match t {
+    Leaf => Node({ color: Red, left: Leaf, key: key, value: value, size: 1, right: Leaf }),
+    Node({ color: c, left: l, key: k, value: v, right: r }) => match less(key, value, k, v) {
+      true => balance(node(c, ins(l, key, value, less), k, v, r)),
+      false => balance(node(c, l, k, v, ins(r, key, value, less))),
+    },
+  }
+}
+
+// `insert` blackens the root after `ins`, which is the one step `ins` itself
+// cannot take (a red root would leave a Red-Red pair uncorrected at the top).
+fn insert<K, V>(t: Tree<K, V>, key: K, value: V, less: fn(K, V, K, V) -> bool) -> Tree<K, V> {
+  return match ins(t, key, value, less) {
+    Leaf => Leaf,
+    Node({ left: l, key: k, value: v, right: r }) => node(Black, l, k, v, r),
+  }
+}
+
+// Count of nodes whose key sorts strictly before `threshold`, by key alone
+// (ignoring the value entirely). O(log n): at each node, `cmp` decides
+// whether the whole left subtree is below the threshold — if so its full
+// size is added without visiting it — and the walk continues down exactly
+// one side.
+fn count_less<K, V>(t: Tree<K, V>, threshold: K, cmp: fn(K, K) -> int) -> int {
+  return match t {
+    Leaf => 0,
+    Node({ left: l, key: k, right: r }) => match cmp(k, threshold) < 0 {
+      true => size(l) + 1 + count_less(r, threshold, cmp),
+      false => count_less(l, threshold, cmp),
+    },
+  }
+}
+
+// Count of nodes that sort strictly before the exact (key, value) pair, by
+// the full tie-breaking order `less` uses for insertion. This is what finds
+// one specific entry's position among entries with an equal key.
+fn rank_of<K, V>(t: Tree<K, V>, key: K, value: V, less: fn(K, V, K, V) -> bool) -> int {
+  return match t {
+    Leaf => 0,
+    Node({ left: l, key: k, value: v, right: r }) => match less(k, v, key, value) {
+      true => size(l) + 1 + rank_of(r, key, value, less),
+      false => rank_of(l, key, value, less),
+    },
+  }
+}
+
+// The i-th smallest (key, value) pair in the tree's total order, 0-indexed.
+// O(log n): the left subtree's size says whether index `i` lies to the left,
+// is this node, or lies to the right (shifted past everything on the left).
+fn kth<K, V>(t: Tree<K, V>, i: int) -> Option<{ key: K, value: V }> {
+  return match t {
+    Leaf => None,
+    Node({ left: l, key: k, value: v, right: r }) => {
+      let left_size = size(l)
+      match i < left_size {
+        true => kth(l, i),
+        false => match i == left_size {
+          true => Some({ key: k, value: v }),
+          false => kth(r, i - left_size - 1),
+        },
+      }
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Domain: ordering submissions
+// ---------------------------------------------------------------------------
+
+// One player's slot in the tree: their sequence number, so two submissions
+// with the same score still have a total order.
+type Entry = { player: string, seq: int }
+
+// The tree's total order, ascending: a lower score sorts first, and among
+// equal scores the *later* submission (the larger sequence number) sorts
+// first. That puts the earliest submission at a tied score closest to the
+// top of the tree, so ties are broken by submission order, in the payload,
+// with a key of `Score` alone.
+fn entry_less(a_score: Score, a: Entry, b_score: Score, b: Entry) -> bool {
+  return match a_score != b_score {
+    true => a_score < b_score,
+    false => a.seq > b.seq,
+  }
+}
+
+fn score_cmp(a: Score, b: Score) -> int {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+fn build_tree(subs: Array<Submission>) -> Tree<Score, Entry> {
+  let t: Tree<Score, Entry> = Leaf
+  for i, s in subs {
+    let value: Entry = { player: s.player, seq: i }
+    mut t = insert(t, s.score, value, entry_less)
+  }
+  return t
+}
+
+// The player's own best submission: the highest score, earliest submission
+// on a tie, using the same order the tree itself uses. Finding *which* entry
+// belongs to a player is an O(n) scan of the log (nothing in the log indexes
+// by player), but the rank of that entry among every submission is then an
+// O(log n) tree query, not a second scan.
+fn player_best(subs: Array<Submission>, player: string) -> Option<Entry> {
+  let best: Option<{ score: Score, seq: int }> = None
+  for i, s in subs {
+    match s.player == player {
+      false => {},
+      true => match best {
+        None => { mut best = Some({ score: s.score, seq: i }) },
+        Some(b) => match entry_less(
+          b.score,
+          { player: player, seq: b.seq },
+          s.score,
+          { player: player, seq: i },
+        ) {
+          true => { mut best = Some({ score: s.score, seq: i }) },
+          false => {},
+        },
+      },
+    }
+  }
+  return match best {
+    None => None,
+    Some(b) => Some({ player: player, seq: b.seq }),
+  }
+}
+
+fn score_of(subs: Array<Submission>, seq: int) -> Score {
+  return subs[seq].score
+}
+
+// ---------------------------------------------------------------------------
+// Persistence
+// ---------------------------------------------------------------------------
+
+const LOG_PATH = "leaderboard.json"
+
+fn describe_issues(issues: Array<Issue>) -> string {
+  let parts: Array<string> = []
+  for issue in issues {
+    let location = string.from(issue.path)
+    mut parts.push(
+      match string.len(location) == 0 {
+        true => issue.message,
+        false => "at ${location}: ${issue.message}",
+      },
+    )
+  }
+  return string.join(parts, "; ")
+}
+
+fn load_submissions() -> Result<Array<Submission>, string> {
+  match fs.exists(LOG_PATH) {
+    false => { return Ok([]) },
+    true => {},
+  }
+  let text = match fs.read_text(LOG_PATH) {
+    Ok(t) => t,
+    Err(e) => { return Err("cannot read ${LOG_PATH}: ${e.message}") },
+  }
+  return match json.parse<Array<Submission>>(text) {
+    Ok(subs) => Ok(subs),
+    Err(issues) => Err("${LOG_PATH} is not a leaderboard log: ${describe_issues(issues)}"),
+  }
+}
+
+fn save_submissions(subs: Array<Submission>) -> Result<int, string> {
+  let text = json.stringify(subs, { indent: 2 })
+  return match fs.write_text(LOG_PATH, text) {
+    Ok(_) => Ok(0),
+    Err(e) => Err("cannot write ${LOG_PATH}: ${e.message}"),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commands
+// ---------------------------------------------------------------------------
+
+type Command =
+  | Submit({ player_text: string, score_text: string })
+  | Rank({ player: string })
+  | Top({ n_text: string })
+  | Range({ lo_text: string, hi_text: string })
+  | ShowLog
+
+fn parse_command(argv: Array<string>) -> Result<Command, string> {
+  return match argv {
+    ["submit", player_text, score_text] => Ok(
+      Submit({ player_text: player_text, score_text: score_text }),
+    ),
+    ["rank", player] => Ok(Rank({ player: player })),
+    ["top", n_text] => Ok(Top({ n_text: n_text })),
+    ["range", lo_text, hi_text] => Ok(Range({ lo_text: lo_text, hi_text: hi_text })),
+    ["log"] => Ok(ShowLog),
+    [] => Err("expected a subcommand: submit, rank, top, range, log"),
+    [name, ..._] => Err(
+      "unknown or malformed subcommand \"${name}\" (try submit, rank, top, range, log)",
+    ),
+  }
+}
+
+fn run_submit(player_text: string, score_text: string) -> Result<string, string> {
+  let player = match Player.parse(player_text) {
+    Ok(p) => p,
+    Err(issues) => { return Err(describe_issues(issues)) },
+  }
+  let score = match json.parse<Score>(score_text) {
+    Ok(s) => s,
+    Err(issues) => { return Err(describe_issues(issues)) },
+  }
+  let subs = load_submissions()?
+  let seq = array.len(subs)
+  let updated = array.push(subs, { player: player, score: score })
+  save_submissions(updated)?
+  let full = build_tree(updated)
+  let value: Entry = { player: player, seq: seq }
+  let below = rank_of(full, score, value, entry_less)
+  let rank = array.len(updated) - below
+  return Ok("${player} submitted ${score} (rank ${rank} of ${array.len(updated)})")
+}
+
+fn run_rank(player: string) -> Result<string, string> {
+  let subs = load_submissions()?
+  let best = match player_best(subs, player) {
+    None => { return Err("no submissions for \"${player}\"") },
+    Some(e) => e,
+  }
+  let t = build_tree(subs)
+  let score = score_of(subs, best.seq)
+  let below = rank_of(t, score, best, entry_less)
+  let rank = array.len(subs) - below
+  return Ok("${player}: rank ${rank} of ${array.len(subs)}, best score ${score}")
+}
+
+fn top_entries(t: Tree<Score, Entry>, total: int, n: int) -> Array<string> {
+  let count = match n < total {
+    true => n,
+    false => total,
+  }
+  let lines: Array<string> = []
+  for i in array.range(count) {
+    let idx = total - 1 - i
+    match kth(t, idx) {
+      None => {},
+      Some(e) => { mut lines.push("${i + 1}. ${e.value.player} — ${e.key}") },
+    }
+  }
+  return lines
+}
+
+fn run_top(n_text: string) -> Result<string, string> {
+  let n = match json.parse<int>(n_text) {
+    Ok(v) => v,
+    Err(_) => { return Err("expected a whole number, got \"${n_text}\"") },
+  }
+  let subs = load_submissions()?
+  let t = build_tree(subs)
+  let lines = top_entries(t, array.len(subs), n)
+  return Ok(string.join(lines, "\n"))
+}
+
+fn run_range(lo_text: string, hi_text: string) -> Result<string, string> {
+  let lo = match json.parse<Score>(lo_text) {
+    Ok(v) => v,
+    Err(issues) => { return Err(describe_issues(issues)) },
+  }
+  let hi = match json.parse<Score>(hi_text) {
+    Ok(v) => v,
+    Err(issues) => { return Err(describe_issues(issues)) },
+  }
+  match lo <= hi {
+    true => {},
+    false => { return Err("range low ${lo} is above range high ${hi}") },
+  }
+  let subs = load_submissions()?
+  let t = build_tree(subs)
+  let below_hi = count_less(t, hi + 1, score_cmp)
+  let below_lo = count_less(t, lo, score_cmp)
+  return Ok("${below_hi - below_lo} submission(s) with score in [${lo}, ${hi}]")
+}
+
+fn run_log() -> Result<string, string> {
+  let subs = load_submissions()?
+  let t = build_tree(subs)
+  let lines = top_entries(t, array.len(subs), array.len(subs))
+  return Ok(string.join(lines, "\n"))
+}
+
+fn run(argv: Array<string>) -> Result<string, string> {
+  let command = parse_command(argv)?
+  return match command {
+    Submit({ player_text: p, score_text: s }) => run_submit(p, s),
+    Rank({ player: p }) => run_rank(p),
+    Top({ n_text: n }) => run_top(n),
+    Range({ lo_text: lo, hi_text: hi }) => run_range(lo, hi),
+    ShowLog => run_log(),
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  return match run(argv) {
+    Ok(message) => {
+      io.println(message)
+      0
+    },
+    Err(message) => {
+      io.eprintln("error: ${message}")
+      1
+    },
+  }
+}

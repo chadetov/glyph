@@ -192,14 +192,23 @@ fn rm_target(z: Zipper<Payload>, target: string) -> Result<Zipper<Payload>, AppE
   }
 }
 
+// `cd` refuses to enter a file: unlike the generic `down`, which will focus
+// any child regardless of its shape, this CLI's own `cd` only ever means
+// "descend into a directory." The child is inspected before `down` runs, so
+// a file target is rejected with the zipper's own `NotADirectory` rather
+// than leaving the shell focused inside a file.
 fn cd_named(z: Zipper<Payload>, name: string) -> Result<Zipper<Payload>, AppError> {
   return match z.focus {
     Leaf(v) => Err(Nav({ error: NotADirectory({ at: v }) })),
     Dir({ value: _, children }) => match index_of_name(children, name, 0) {
       None => Err(NotFound({ name: name })),
-      Some(idx) => match down(z, idx) {
-        Ok(z2) => Ok(z2),
-        Err(e) => Err(Nav({ error: e })),
+      Some(idx) => match array.get(children, idx) {
+        None => Err(NotFound({ name: name })),
+        Some(Leaf(v)) => Err(Nav({ error: NotADirectory({ at: v }) })),
+        Some(Dir(_)) => match down(z, idx) {
+          Ok(z2) => Ok(z2),
+          Err(e) => Err(Nav({ error: e })),
+        },
       },
     },
   }

@@ -91,6 +91,7 @@ one-line count. A sibling module that failed to compile does not stop the run
 | `glyph lsp` | Run the language server (an editor extension spawns this) |
 | `glyph llms` | Print the agent bootstrap (the `AGENTS.md` reference) offline; alias `glyph docs` |
 | `glyph --explain <code>` | Long-form explanation and fix for an error code |
+| `glyph --update` | Move this installed compiler to the newest published release. `--update-dry-run` to preview. Only a global npm install is touched, checked against `npm root -g`; a project's own `node_modules` is pointed at `glyph upgrade`, and anything else is told what to run |
 
 The scaffolded `package.json` pins `typescript` and `tsx` in `devDependencies`,
 so after `glyph init` you can run `npm install` in the project to get a
@@ -114,6 +115,23 @@ glyph build src --out dist
 `glyph upgrade` rewrites one line of `package.json` and runs `npm install`. It
 prints the release-notes link, and building after it is on you: a new release is
 allowed to report diagnostics the project did not have before.
+
+`glyph --update` is the other command, and it is a flag rather than a subcommand
+because the split is a rule: flags act on the tool (`--version`, `--explain`,
+`--update`), subcommands act on your code. Use it when the compiler on your
+`PATH` is what is behind, rather than a project's pin:
+
+```sh
+glyph --update --update-dry-run   # what it would run
+glyph --update                    # npm install -g the newest release
+glyph --version                   # confirm which binary you now have
+```
+
+It moves a global npm install and nothing else. A compiler reached through
+`npx`, built out of a Glyph source tree, or at a path it cannot classify gets
+the command printed and nothing overwritten. It does not claim success either,
+because npm can exit zero having skipped an `optionalDependency` it could not
+fetch, so the check it names is `glyph --version`.
 
 `glyph build` type-checks and runs your `@example`s by default; `--no-tsc`
 skips the `tsc` pass and `--no-test` skips the examples. `--no-tsc` is the same

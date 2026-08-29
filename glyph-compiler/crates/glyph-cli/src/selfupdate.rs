@@ -25,6 +25,10 @@ const NOTES: &str = "https://glyphlang.io/versions/";
 pub enum Install {
     /// Running out of a global npm install, which is the one shape we can move.
     NpmGlobal,
+    /// Running out of a project's own `node_modules`, which is what `glyph init`
+    /// scaffolds. `npm install -g` would not touch this binary at all, so the
+    /// answer here is `glyph upgrade`, which moves the project's pin.
+    ProjectLocal,
     /// A build from this repo's `target/`, or anything else under a cargo tree.
     LocalBuild,
     /// Reached through `npx`, so the cache decides the version, not us.
@@ -40,16 +44,57 @@ pub enum Install {
 /// global npm install lives under `.../lib/node_modules/@glyphlang/...`; npx
 /// unpacks into a `_npx` directory; a dev build sits under `target/debug` or
 /// `target/release`.
+/// npm's global `node_modules`, asked of npm rather than guessed.
+///
+/// `npm root -g` is the only authority on where a global install lives; the
+/// layout differs between Unix (`<prefix>/lib/node_modules`) and Windows
+/// (`<prefix>/node_modules`), and a version manager can move it anywhere.
+fn npm_global_root() -> Option<String> {
+    let out = Command::new("npm").args(["root", "-g"]).output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let s = String::from_utf8(out.stdout).ok()?;
+    let s = s.trim();
+    (!s.is_empty()).then(|| s.replace('\\', "/"))
+}
+
 pub fn classify(exe: &Path) -> Install {
+    classify_with(exe, npm_global_root().as_deref())
+}
+
+/// The decision, with npm's answer passed in so it is testable without npm.
+///
+/// Being under SOME `node_modules` is not enough to be global, and treating it
+/// as enough was a real bug: `glyph init` scaffolds a project whose own
+/// `node_modules/@glyphlang/` matched the same test, so running `--update`
+/// inside a scaffolded project would shell out to `npm install -g` and report
+/// success while the binary the user actually invoked went untouched. The first
+/// four tests here missed it, because every one of them pinned a global path and
+/// none pinned a project.
+pub fn classify_with(exe: &Path, global_root: Option<&str>) -> Install {
     let p = exe.to_string_lossy().replace('\\', "/");
     if p.contains("/_npx/") {
-        Install::Npx
-    } else if p.contains("/target/debug/") || p.contains("/target/release/") {
-        Install::LocalBuild
-    } else if p.contains("/node_modules/@glyphlang/") || p.contains("/node_modules/.bin/") {
+        return Install::Npx;
+    }
+    if p.contains("/target/debug/") || p.contains("/target/release/") {
+        return Install::LocalBuild;
+    }
+    let under_node_modules =
+        p.contains("/node_modules/@glyphlang/") || p.contains("/node_modules/.bin/");
+    if !under_node_modules {
+        return Install::Unknown;
+    }
+    // Prefer npm's own answer. Fall back to the Unix global layout only when npm
+    // could not be reached, and never to "any node_modules".
+    let is_global = match global_root {
+        Some(root) => p.starts_with(root),
+        None => p.contains("/lib/node_modules/@glyphlang/"),
+    };
+    if is_global {
         Install::NpmGlobal
     } else {
-        Install::Unknown
+        Install::ProjectLocal
     }
 }
 
@@ -65,6 +110,12 @@ fn advise(install: &Install, latest: &str) {
             println!("This is a build from a Glyph source tree, not an installed release.");
             println!("Rebuild it from the source you have, or install the published one:");
             println!("    npm install -g {PACKAGE}@{latest}");
+        }
+        Install::ProjectLocal => {
+            println!("This compiler is a project's own dependency, not a global install,");
+            println!("so `npm install -g` would leave the one you just ran untouched.");
+            println!("Move the project's pin instead, which is what that command is for:");
+            println!("    glyph upgrade");
         }
         _ => {
             println!("Could not tell how this compiler was installed, so nothing was changed.");
@@ -155,27 +206,50 @@ pub fn run(current: &str, dry_run: bool) -> i32 {
 mod tests {
     use super::*;
 
+    const GLOBAL: &str = "/Users/x/.npm-global/lib/node_modules";
+
     #[test]
     fn an_npm_global_install_is_recognised() {
         let p = Path::new("/Users/x/.npm-global/lib/node_modules/@glyphlang/glyph/bin/glyph.js");
-        assert!(matches!(classify(p), Install::NpmGlobal));
+        assert!(matches!(classify_with(p, Some(GLOBAL)), Install::NpmGlobal));
+    }
+
+    /// The case that shipped broken. `glyph init` scaffolds a project whose own
+    /// `node_modules` holds the compiler, and the old test read "any
+    /// node_modules" as global, so `--update` would have run `npm install -g`
+    /// and left the invoked binary alone while reporting success.
+    #[test]
+    fn a_projects_own_node_modules_is_not_a_global_install() {
+        let p = Path::new("/Users/x/my-app/node_modules/@glyphlang/glyph/bin/glyph.js");
+        assert!(matches!(classify_with(p, Some(GLOBAL)), Install::ProjectLocal));
+    }
+
+    /// With npm unreachable the fallback is the Unix global layout, never "any
+    /// node_modules": guessing global is the failure that costs someone a
+    /// silent no-op, and guessing project-local only costs them a message.
+    #[test]
+    fn without_npm_the_fallback_still_refuses_to_assume_global() {
+        let proj = Path::new("/Users/x/my-app/node_modules/@glyphlang/glyph/bin/glyph.js");
+        assert!(matches!(classify_with(proj, None), Install::ProjectLocal));
+        let glob = Path::new("/usr/local/lib/node_modules/@glyphlang/glyph/bin/glyph.js");
+        assert!(matches!(classify_with(glob, None), Install::NpmGlobal));
     }
 
     #[test]
     fn a_dev_build_is_not_something_to_overwrite() {
         let p = Path::new("/Users/x/glyph/glyph-compiler/target/release/glyph");
-        assert!(matches!(classify(p), Install::LocalBuild));
+        assert!(matches!(classify_with(p, Some(GLOBAL)), Install::LocalBuild));
     }
 
     #[test]
     fn an_npx_cache_is_not_an_install() {
         let p = Path::new("/Users/x/.npm/_npx/abc123/node_modules/@glyphlang/glyph/bin/glyph.js");
-        assert!(matches!(classify(p), Install::Npx));
+        assert!(matches!(classify_with(p, Some(GLOBAL)), Install::Npx));
     }
 
     #[test]
     fn an_unrecognised_path_is_never_assumed_updatable() {
         let p = Path::new("/opt/homebrew/bin/glyph");
-        assert!(matches!(classify(p), Install::Unknown));
+        assert!(matches!(classify_with(p, Some(GLOBAL)), Install::Unknown));
     }
 }

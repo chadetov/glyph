@@ -47,11 +47,12 @@ change to your source. Commit your
 rather than whatever shipped since.
 
 Pinning has an obvious failure mode: a project can sit on an old compiler
-forever without knowing it. Two commands close that.
+forever without knowing it. Three commands close that.
 
 ```sh
 glyph doctor     # reports your version against the latest published release
-glyph upgrade    # moves the pin to it and runs npm install
+glyph upgrade    # moves a project's pin to it and runs npm install
+glyph --update   # moves the compiler itself, not a project's pin
 ```
 
 `glyph doctor` asks npm (add `--offline` to skip the lookup entirely). Finding a
@@ -59,6 +60,14 @@ newer release never changes its exit code, so this is safe in CI. `glyph upgrade
 rewrites the one line and prints the release-notes link; `--dry-run` shows what
 would change, and `--to <version>` names a specific one, including an older one
 if you need to go back. Build before you commit the result.
+
+`glyph --update` is the other half, and the two are easy to confuse. A flag acts
+on the tool, the way `--version` and `--explain` do; a subcommand acts on your
+code. So `--update` moves the compiler you invoke and `upgrade` moves the version
+a project pins. `--update` only moves an install it can identify against
+`npm root -g`: a project's own `node_modules`, an npx cache, or a build from a
+source tree gets told what to run instead of being overwritten.
+
 
 ## How we try to make upgrades cheap
 

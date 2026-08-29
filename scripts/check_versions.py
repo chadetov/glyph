@@ -6,10 +6,11 @@ Hard-fails (exit 1) when the workspace Cargo version, the six npm package.json
 versions, and the launcher's five optionalDependencies pins are not all equal.
 A mismatch there is how a broken or half-published release happens.
 
-Also hard-fails when a version-pinned badge URL in a README points at a version
-that is not the current one. Socket's badge URL carries the version, so it is a
-string that silently goes stale on the next release and shows a reader a report
-for a package they are not about to install.
+Also hard-fails when a version written outside a manifest points at something
+other than the current release: the Socket badge URLs in the two READMEs, the
+home page's hero pill, and the version the bug-report template suggests. Each of
+those is a string a release has to bump and nothing else reads, so it goes stale
+quietly and stays stale until someone happens to look.
 
 Best-effort notice (never fails the build) when the published npm `latest` is
 behind the repo version, so a stale package like the one a reviewer once hit two
@@ -74,22 +75,36 @@ PINNED_BADGES = (
     ("npm/glyph/README.md", "https://badge.socket.dev/npm/package/@glyphlang/glyph/"),
 )
 
+# Files that write the version into prose or a form, where a regex is the only
+# way to find it. Each entry is (path, label, pattern) and the pattern's first
+# group is the version.
+#
 # The home page's hero pill hard-codes the version it advertises. Nothing checked
 # it, and it sat at v0.1.72 for thirteen releases while the site told every
 # visitor that was current. Same failure as the Socket badges, different file.
-PINNED_PILLS = (
-    ("web/index.html", r'class="pill"[^>]*>.*?v([0-9]+\.[0-9]+\.[0-9]+)'),
+#
+# The bug-report template suggests a version to the reporter. 0.1.93 rewrote it
+# from the "0.1.9" it had carried since the template was written into the shape
+# `glyph --version` prints, which made it a ceremony string, and 0.1.94 went out
+# without it. Nothing on either list a person or a gate works from named it.
+PINNED_PATTERNS = (
+    ("web/index.html", "hero pill", r'class="pill"[^>]*>.*?v([0-9]+\.[0-9]+\.[0-9]+)'),
+    (
+        ".github/ISSUE_TEMPLATE/bug_report.yml",
+        "version placeholder",
+        r'placeholder:\s*"glyph ([0-9]+\.[0-9]+\.[0-9]+)"',
+    ),
 )
 
 
-def pill_versions() -> dict[str, str]:
+def pattern_versions() -> dict[str, str]:
     out: dict[str, str] = {}
-    for rel, pattern in PINNED_PILLS:
+    for rel, label, pattern in PINNED_PATTERNS:
         path = ROOT / rel
         if not path.exists():
             continue
         for i, m in enumerate(re.finditer(pattern, path.read_text(), re.S)):
-            out[f"{rel}:hero pill #{i + 1}"] = m.group(1)
+            out[f"{rel}:{label} #{i + 1}"] = m.group(1)
     return out
 
 
@@ -231,7 +246,7 @@ def main() -> int:
         print("bump every package.json (version + optionalDependencies) to match Cargo.")
         return 1
 
-    pinned = {**badge_versions(), **pill_versions()}
+    pinned = {**badge_versions(), **pattern_versions()}
     stale = {k: v for k, v in pinned.items() if v != repo}
     if stale:
         print("a version-pinned URL or badge is out of date:")

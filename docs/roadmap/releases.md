@@ -4499,6 +4499,17 @@ and G140's namespace half moved on to 0.1.95, unchanged.
 
 ### 0.1.95 — Next · The variants of a union the emitter did not declare
 
+`glyph --update` rides along, already written. `glyph upgrade` moves a project's
+pinned version in `package.json`, and there was no way to move the compiler
+itself; `doctor`, told a global install was behind, printed the project command,
+which edits a manifest the user may not have. The flag settles which is which:
+flags act on the tool the way `--version` and `--explain` do, subcommands act on
+your code. It classifies `current_exe()` and moves only a global npm install,
+printing the command rather than guessing for an npx cache, a build out of a
+source tree, or a path it does not recognise. It also declines to claim success,
+because npm exits zero having skipped an optionalDependency it could not fetch,
+which is how a release once shipped with no platform binary.
+
 The lead item is the hole in the rule 0.1.93 shipped. A nested arm reads a name
 the way the typechecker does, which means the payload union's own variant list
 answers first; for a union imported from a sibling module there is no list to

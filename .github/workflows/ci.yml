@@ -97,6 +97,10 @@ jobs:
           # the redirect fails before a single test runs.
           mkdir -p target
           cargo test --workspace --locked 2>&1 | tee target/suite.log
+          # The marker says the run finished. Without it the next step cannot
+          # tell a complete log from a partial one, and summing a prefix
+          # reports a test count that was never measured.
+          echo "EXIT=$?" >> target/suite.log
 
       - name: Check doc claims against the suite
         run: python3 scripts/check_doc_claims.py

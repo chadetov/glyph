@@ -64,6 +64,7 @@ stdlib and fixing whatever the language lacked along the way.
 | `bracket.glyph` | Single-elimination tournament bracket: the whole tournament is one recursive value (a `Match` of two `Slot`s, each an entrant, a bye, or another `Match`), so advancing a winner is a read, not a write into a parallel table | Abstraction + verifiability |
 | `shortlink.glyph` | URL shortener you can point a browser at: an HTML form, base62 codes, a 302 redirect with click counting, a stats page, and escaped server-rendered output. No `extern/` shim and no Node import: `std/http`'s `html`, `redirect`, and `form` carry the whole wire | Verifiability + greppability |
 | `settle.glyph` | Group expense splitter: split evenly, by exact shares, or by weights, in whole cents with a documented rule for the leftover, then compute the fewest payments that settle everyone up. Its ledger round-trips through `WireLedger.parse` at the boundary | Verifiability + abstraction |
+| `leaderboard.glyph` | Speedrun leaderboard over an append-only JSON log: every submission is folded into a persistent order-statistics red-black tree keyed by score, so a rank, a top-N and a range count are O(log n) walks instead of a re-sort. The four Okasaki rotation cases are four match arms nesting a constructor pattern inside another one's field, over a union that names itself with both its type parameters | Abstraction + verifiability |
 
 ### Multi-module apps
 

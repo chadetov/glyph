@@ -566,11 +566,47 @@ async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: stri
 }</pre>
       </div>
 
+      <div class="detail">
+        <p class="block-label">A recursive type, matched all the way down</p>
+        <p>
+          A union can name itself inside its own payload, with its type
+          parameters, and a match arm can nest a constructor pattern inside
+          another constructor pattern&rsquo;s field. Put those together and the
+          balancing rules of a red-black tree are four arms: each one names the
+          exact shape it rewrites, and the compiler is the thing checking the
+          shape rather than a comment above it claiming it.
+          <code>examples/apps/leaderboard.glyph</code> is the whole program, a
+          leaderboard that keeps every score in the tree and answers rank,
+          top-N and range queries by walking it instead of re-sorting a log.
+        </p>
+      </div>
+
+      <div class="code">
+        <span class="cap">one of the four rotation cases</span>
+<pre>type Tree&lt;K, V&gt; =
+  | Leaf
+  | Node({ color: Color, left: <span class="add">Tree&lt;K, V&gt;</span>, key: K, value: V, size: int, right: <span class="add">Tree&lt;K, V&gt;</span> })
+
+fn balance&lt;K, V&gt;(t: Tree&lt;K, V&gt;) -&gt; Tree&lt;K, V&gt; {
+  return match t {
+    Node({ color: Black, left: <span class="add">Node({ color: Red, left: Node({ color: Red, left: a, key: xk, value: xv, right: b })</span>, key: yk, value: yv, right: c }), key: zk, value: zv, right: d }) =&gt; node(
+      Red,
+      node(Black, a, xk, xv, b),
+      yk,
+      yv,
+      node(Black, c, zk, zv, d),
+    ),
+    <span class="cm">// the other three cases, then:</span>
+    other =&gt; other,
+  }
+}</pre>
+      </div>
+
       <p class="block-label">Where it stands</p>
       <div class="status-row">
         <div class="status-card today">
           <p class="h">Shipping today</p>
-          <p><code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation), structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index. <code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.</p>
+          <p><code>pub</code> visibility enforced on both ways of naming a sibling&rsquo;s type (the named import and the <code>lib.Secret</code> annotation), structural <code>interface</code> bounds, <code>defer</code>, <code>std/task</code> (<code>all</code>/<code>race</code>/<code>all_settled</code>/<code>pool</code>/<code>pool_settled</code>), <code>async fn(A) -&gt; T</code> as a written type, a union that names itself in its own payload matched by an arm that nests a constructor pattern inside another one&rsquo;s field, <code>match</code> as the value of a <code>let</code> or a <code>mut</code> with blocks, <code>await</code>, and loop control in its arms, a <code>match</code> whose arms agree carrying their type into the rest of the program, a typed <code>T.parse</code>, <code>std/decimal</code> for exact money math, <code>bigint</code> for exact large integers, digit separators, a spec section owning the JS-inherited semantics, and a standard library with <code>string.slice</code>, <code>index_of</code>, <code>repeat</code>, <code>pad_start</code>, <code>pad_end</code>, <code>replace_all</code>, <code>trim_start</code>, <code>trim_end</code> and <code>array.fold</code>, <code>index_of</code>, <code>flat_map</code>, plus <code>fs.read_dir</code>, <code>fs.is_dir</code>, <code>fs.stat</code>, an <code>FsError.kind</code> taxonomy the checker holds you to, and <code>regex.captures_all</code>. Most of <code>std/string</code> and <code>std/array</code> now carry their return type into your program, so <code>string.split</code> is an <code>Array&lt;string&gt;</code> and the loop over it binds a numeric index. <code>std/record</code> is modeled too, with the value type read off the record you pass: <code>record.get(t, k)</code> on a <code>Record&lt;string, Array&lt;string&gt;&gt;</code> is an <code>Option&lt;Array&lt;string&gt;&gt;</code>, and <code>record.keys(t)</code> is an <code>Array&lt;string&gt;</code>, so <code>array.sort(record.keys(t), cmp)</code> keeps its element type.</p>
         </div>
         <div class="status-card next">
           <p class="h">Where it stops</p>

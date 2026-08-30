@@ -70,16 +70,18 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      # Pinned exactly. A range here means two runs of the same commit can
-      # install different compilers, so a green build stops being evidence
-      # about the code. Bump deliberately, not by drift.
-      - run: npm install -g tsx@4.23.13 typescript@6.0.3
-      # The gen-dts helper resolves `typescript` with `require`, from the target
-      # project first and then via NODE_PATH. A global install is only on that
-      # second path, so without this the helper cannot load it, writes nothing,
-      # and the test that was meant to exercise the classic compiler fails
-      # instead of running.
-      - run: echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      # Installed from a committed lockfile rather than `npm install -g`. A
+      # global install resolves a version; a lockfile resolves an integrity
+      # hash, so two runs of one commit get the same bytes rather than merely
+      # the same version number.
+      - run: npm ci --no-audit --no-fund
+        working-directory: .github/ci-tools
+      # `tsx` and `tsc` have to be runnable by name, and the gen-dts helper
+      # resolves `typescript` with `require` from the target project first and
+      # NODE_PATH second, so both paths point at the same locked tree.
+      - run: |
+          echo "$GITHUB_WORKSPACE/.github/ci-tools/node_modules/.bin" >> "$GITHUB_PATH"
+          echo "NODE_PATH=$GITHUB_WORKSPACE/.github/ci-tools/node_modules" >> "$GITHUB_ENV"
 
       # Lints before tests: a clippy finding is usually cheaper to read than a
       # test failure, and this is a compiler, so the lints that matter are the
@@ -167,7 +169,7 @@ jobs:
       # the property that catches a decoder gone lax. It exists because the
       # codecs were rewritten for speed once and could be again.
       - name: Check the bytes codecs against the platform
-        run: npx --yes tsx@4.23.13 scripts/check_bytes_codecs.mjs
+        run: tsx scripts/check_bytes_codecs.mjs
 
       # `docs/guide/external-imports.md` tells a user to install `@types/node`
       # for the full node surface, and the build then prefers it and skips the

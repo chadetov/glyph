@@ -5961,6 +5961,20 @@ concrete follow-ups, in priority order:
 
 ## Rolling · Ergonomics & polish
 
+**G149. Glyph's own checker does not catch a `let` annotation mismatch, and the
+editor is silent about it.** `let x: string = 42` produces no Glyph diagnostic;
+`tsc` reports `TS2322` at `glyph build` and the help line sends the reader to the
+generated `.ts`. Because `glyph lsp` runs the Glyph stages only, with no `tsc`
+anywhere in it, the editor says nothing at all while you type: driving the server
+against that line publishes one diagnostic, `E0107 unused variable`.
+
+A binding annotated with a type it is not is close to the most common mistake
+there is, and an editor catching it is close to the minimum anyone expects.
+This is the concrete, cheap instance of Q46's second item, so it belongs here
+rather than waiting for that whole track.
+
+
+
 The former rolling-lane items (`--out` cleanup, store pattern, `@redact`,
 `glyph regen`) are now scoped into 0.1.7 above. New small wins that surface later
 land here until they're assigned a release.

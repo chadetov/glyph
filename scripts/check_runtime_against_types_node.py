@@ -195,7 +195,7 @@ def check_name_parity(root: pathlib.Path, version: str) -> int:
     # package, a deprecated shim last published in 2016, and then fails saying
     # TypeScript is not installed. This check looked for `tsc` on PATH at the
     # top of the file and then ignored what it found.
-    tsc_cmd = [shutil.which("tsc")] if shutil.which("tsc") else ["npx", "--yes", "typescript@6", "tsc"]
+    tsc_cmd = [shutil.which("tsc")] if shutil.which("tsc") else ["npx", "--yes", "--package", "typescript@6", "tsc"]
     tsc = subprocess.run(
         # `bundler` resolution rather than the classic `node10`, which TypeScript
         # 6 reports as deprecated and fails on. Nothing here depends on the

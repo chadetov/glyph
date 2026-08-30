@@ -41,6 +41,9 @@ jobs:
         env:
           MINUTES: ${{ github.event.inputs.minutes || '10' }}
         run: |
+          # corpus/ is gitignored, so it does not exist on a fresh checkout and
+          # libfuzzer refuses a corpus directory that is not there.
+          mkdir -p fuzz/corpus/${{ matrix.target }}
           cargo +nightly fuzz run ${{ matrix.target }} \
             fuzz/corpus/${{ matrix.target }} fuzz/seeds -- \
             -max_total_time=$(( MINUTES * 60 )) \

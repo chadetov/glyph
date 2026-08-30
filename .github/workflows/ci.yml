@@ -70,7 +70,10 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      - run: npm install -g tsx typescript@6
+      # Pinned exactly. A range here means two runs of the same commit can
+      # install different compilers, so a green build stops being evidence
+      # about the code. Bump deliberately, not by drift.
+      - run: npm install -g tsx@4.23.13 typescript@6.0.3
       # The gen-dts helper resolves `typescript` with `require`, from the target
       # project first and then via NODE_PATH. A global install is only on that
       # second path, so without this the helper cannot load it, writes nothing,
@@ -129,7 +132,11 @@ jobs:
             app="$(dirname "$manifest")"
             if node -e "const p=JSON.parse(require('fs').readFileSync('$manifest','utf8')); process.exit(Object.keys(p.dependencies || {}).length ? 0 : 1)"; then
               echo "installing dependencies for $app"
-              (cd "$app" && npm install --no-audit --no-fund --loglevel=error)
+              # `ci` rather than `install`: every app with dependencies has a
+              # committed package-lock.json, so this resolves to the exact
+              # integrity-hashed tree the lockfile names and fails loudly if
+              # the manifest and the lock disagree.
+              (cd "$app" && npm ci --no-audit --no-fund --loglevel=error)
             fi
           done
           "$BIN" build ../examples --out "$RUNNER_TEMP/dist"
@@ -160,7 +167,7 @@ jobs:
       # the property that catches a decoder gone lax. It exists because the
       # codecs were rewritten for speed once and could be again.
       - name: Check the bytes codecs against the platform
-        run: npx --yes tsx scripts/check_bytes_codecs.mjs
+        run: npx --yes tsx@4.23.13 scripts/check_bytes_codecs.mjs
 
       # `docs/guide/external-imports.md` tells a user to install `@types/node`
       # for the full node surface, and the build then prefers it and skips the

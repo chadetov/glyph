@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-148 entries, 108 are fixed, 13 are partly fixed, 10 are decided or resolved, and
-17 are open. G144, the D28 boundary cast that never reached the returns a
+149 entries, 108 are fixed, 13 are partly fixed, 10 are decided or resolved, and
+18 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -5848,3 +5848,27 @@ through an object pattern's fields.
 
   *Found by review of the G141/G142 fix against 0.1.90, reproduced verbatim
   against 0.1.94 before the fix.*
+
+- **G149. A `let` annotation that disagrees with its initializer is caught by
+  `tsc`, not by Glyph, so the editor never mentions it.** `let x: string = 42`
+  produces no Glyph diagnostic. The whole report is `[TS2322] Type 'number' is
+  not assignable to type 'string'`, carrying the standard help line that sends
+  the reader to the generated `.ts`.
+
+  The reason it matters more than a missing check normally would is the language
+  server. `glyph lsp` runs the Glyph stages only; `tsc` appears nowhere in
+  `glyph-lsp/src/lib.rs`. So the class of errors only `tsc` catches is invisible
+  while you type and appears for the first time at `glyph build`. Driving the
+  server over stdio against `let x: string = 42` publishes exactly one
+  diagnostic, `E0107 unused variable`, and says nothing about the type.
+
+  A binding annotated with a type it is not is close to the most common mistake
+  there is, for a beginner and for an agent, and it is the one an editor is
+  expected to catch first. This is also the concrete form of Q46's second item:
+  215 lines in this file mention `tsc` or a `TS####` code, and each one is a
+  question the back end answered because the front end did not.
+
+  *Found while verifying the VS Code extension before publishing it.
+  Reproduced against 0.1.95, twice: with `glyph check`, which reports only
+  `TS2322`, and by driving `glyph lsp` over stdio, which publishes only
+  `E0107`.*

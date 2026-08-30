@@ -190,11 +190,17 @@ def check_name_parity(root: pathlib.Path, version: str) -> int:
             lines.append(f'import type {{ {name} as _{module.replace("/", "_").replace("-", "_")}_{name} }} from "{module}";')
     probe.write_text("\n".join(lines) + "\n")
 
+    # Prefer a `tsc` that is already on PATH. `npx --yes tsc` does not resolve
+    # to TypeScript when nothing local matches: it downloads the unrelated `tsc`
+    # package, a deprecated shim last published in 2016, and then fails saying
+    # TypeScript is not installed. This check looked for `tsc` on PATH at the
+    # top of the file and then ignored what it found.
+    tsc_cmd = [shutil.which("tsc")] if shutil.which("tsc") else ["npx", "--yes", "typescript@6", "tsc"]
     tsc = subprocess.run(
         # `bundler` resolution rather than the classic `node10`, which TypeScript
         # 6 reports as deprecated and fails on. Nothing here depends on the
         # resolution mode: every import names a bare node module.
-        ["npx", "--yes", "tsc", "--noEmit", "--strict", "--skipLibCheck",
+        tsc_cmd + ["--noEmit", "--strict", "--skipLibCheck",
          "--module", "esnext", "--moduleResolution", "bundler",
          "--types", "node", str(probe)],
         cwd=root, capture_output=True, text=True, timeout=900,

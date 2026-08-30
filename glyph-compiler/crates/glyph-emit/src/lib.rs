@@ -6029,8 +6029,17 @@ fn has_structured_field(p: &Pattern) -> bool {
         }),
         Pattern::Constructor { args, .. } => args.iter().any(has_structured_field),
         Pattern::Array { elements, rest, .. } => {
-            elements.iter().any(has_structured_field)
-                || rest.as_deref().is_some_and(has_structured_field)
+            elements.iter().any(|el| match el {
+                // A PascalCase array element (`[Black]`) is a nullary-variant
+                // tag test, not a binding (D9), the same reading an object
+                // field's `{ color: Black }` gets via `bound_name`. Without
+                // this arm the element looked untested and the whole match
+                // fell through to `emit_array_chain`, whose own condition/bind
+                // helpers bind every `Pattern::Ident` element regardless of
+                // case (G138).
+                Pattern::Ident { name, .. } => is_variant_shaped(name),
+                other => has_structured_field(other),
+            }) || rest.as_deref().is_some_and(has_structured_field)
         }
         _ => false,
     }
@@ -8200,6 +8209,31 @@ mod tests {
         assert!(ts.contains("} else {"), "{ts}");
         assert!(ts.contains("return \"other\";"), "{ts}");
         assert!(!ts.contains("non-exhaustive match"), "{ts}");
+    }
+
+    #[test]
+    fn array_match_element_names_a_nullary_variant_not_a_binding() {
+        // G138: a top-level array match arm whose element is a PascalCase
+        // nullary-variant name (`[Black]`) went through `emit_array_chain`,
+        // whose own condition/bind helpers treat every `Pattern::Ident` array
+        // element as a bind regardless of case. That emitted an unconditional
+        // `const Black = __m0[0];` instead of a `.tag ===` test, so
+        // `f([White])` matched the `[Black]` arm and returned the wrong arm's
+        // value at runtime. `pattern_conditions`/`emit_pattern_binds` already
+        // get this right (the machinery G137 wired for object fields); the
+        // fix routes an array pattern with a variant-shaped element through
+        // that same `emit_pattern_chain` path instead of `emit_array_chain`.
+        let ts = emit(
+            "module x\ntype Color =\n  | Red\n  | Black\n  | White\nfn f(xs: Array<Color>) -> string {\n  return match xs {\n    [] => \"empty\",\n    [Black] => \"one-black\",\n    [a, ...rest] => \"other\",\n  }\n}\n",
+        );
+        assert!(
+            ts.contains("__m0[0].tag === \"Black\""),
+            "expected a tag test on the length-1 branch, not a binding:\n{ts}"
+        );
+        assert!(
+            !ts.contains("const Black ="),
+            "`Black` names a variant, not a binding:\n{ts}"
+        );
     }
 
     #[test]

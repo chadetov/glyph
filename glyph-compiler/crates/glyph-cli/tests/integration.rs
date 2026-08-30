@@ -5238,6 +5238,47 @@ fn non_exhaustive_imported_union_match_is_caught() {
 /// `Y` completely unhandled, and `f(B(Y))` threw `Error: non-exhaustive
 /// match` at run time instead of failing at compile time.
 #[test]
+fn an_alias_to_a_union_is_not_accused_of_having_no_variants() {
+    // The G146 check asks whether a payload type is provably variant-free
+    // before flagging a constructor-shaped sub-pattern under it. Its first form
+    // asked the weaker question "is this declaration body syntactically a
+    // union", and an alias to a union is a path rather than a union. So
+    // `type MaybeAge = Option<int>` was ruled variant-free and `Ok(Some(n))`
+    // over it drew two E0220s on a program 0.1.95 compiled and emitted
+    // correctly. Rejecting working code is worse than the missing diagnostic
+    // the check exists to supply, so an accusation needs certainty here and
+    // silence is the safe answer.
+    let root = unique_tmp("aliasunionpayload");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/result { Result, Ok, Err }\n\
+         import std/option { Option, Some, None }\n\
+         pub type MaybeAge = Option<int>\n\
+         pub fn f(r: Result<MaybeAge, string>) -> string {\n\
+         \x20 return match r {\n\
+         \x20\x20\x20 Ok(Some(n)) => \"some\",\n\
+         \x20\x20\x20 Ok(None) => \"none\",\n\
+         \x20\x20\x20 Err(e) => \"err\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        !report.diagnostics.iter().any(|d| format!("{d:?}").contains("E0220")),
+        "an alias to a union must not be accused of having no variants: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        !report.has_errors(),
+        "this program compiles on 0.1.95 and must keep compiling: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
 fn nested_payload_of_an_imported_union_is_exhaustiveness_checked() {
     let root = unique_tmp("impnestedexhaust");
     let src = root.join("src");

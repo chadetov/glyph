@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-155 entries, 109 are fixed, 13 are partly fixed, 10 are decided or resolved, and
-23 are open. G144, the D28 boundary cast that never reached the returns a
+155 entries, 112 are fixed, 13 are partly fixed, 10 are decided or resolved, and
+20 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -5099,7 +5099,7 @@ through an object pattern's fields.
   is also where the conservative exhaustiveness rule is most visible: the two
   arms cover every `Wrapped`, and the match still needs an `else`.
 
-- **G138. [HALF] The same array pattern binds in one position and tests a tag
+- **G138. [FIXED] The same array pattern binds in one position and tests a tag
   in another.** Found reviewing G137 rather than in an app. An array element
   that names a variant is a tag test inside an object pattern's field and a
   binding at the top level of a match, in the same compiler:
@@ -5497,7 +5497,7 @@ through an object pattern's fields.
   in the tree: the two files above build clean, pass `tsc --strict`, and throw
   `non-exhaustive match` at run time.*
 
-- **G143. A match on an imported union never checks inside a variant's
+- **G143. [FIXED] A match on an imported union never checks inside a variant's
   payload.** Nothing to do with generics; the union below has no type parameter.
   Exhaustiveness on a *module-local* union recurses into a constructor pattern's
   payload, so `B(X)` over a payload that is itself a union reports the missing
@@ -5679,7 +5679,7 @@ through an object pattern's fields.
   *Found by an app round writing a CLI parser. Reproduced against 0.1.92, fixed
   in the same round.*
 
-- **G146. A constructor-shaped payload pattern over a non-union payload is a
+- **G146. [FIXED] A constructor-shaped payload pattern over a non-union payload is a
   `tsc` error naming a field the author never wrote.** A bare ident in payload
   position is a variant reference when the payload union's variant list says so,
   and by the name's shape when that list is unknown (G145). The shape rule has to
@@ -5719,7 +5719,7 @@ through an object pattern's fields.
 
   *Found by the review of the G145 fix. Reproduced against 0.1.92.*
 
-- **G147. A lowercase nullary variant of an *imported* payload union does not
+- **G147. [HALF FIXED] A lowercase nullary variant of an *imported* payload union does not
   dispatch; the build stops at E0305 instead.** The nested-arm rule (G145) reads
   the payload union's variant list first and falls back to the name's shape when
   that list is unreadable. Across a module boundary the list is unreadable: an
@@ -6011,3 +6011,59 @@ through an object pattern's fields.
   docs and the primitive disagree, the primitive is what people run.
 
   *Reproduced against 0.1.95: `r.bool()` is TS2554.*
+
+**Closed in 0.1.96, with what each fix does and does not cover.**
+
+G138 is closed and it was the live miscompile of the four. `has_structured_field`
+now reads a PascalCase array element as the nullary-variant tag test it is, so a
+top-level array match routes through `emit_pattern_chain` rather than
+`emit_array_chain`, whose bind helper treated every `Pattern::Ident` element as a
+binding whatever its case. `f([White])` returns the `else` arm's value; it
+returned the `[Black]` arm's before.
+
+G143 is closed. `check_imported_union_coverage` recurses into a variant's own
+sub-pattern, resolving `Ty::Imported` through `imported_type_body`. The recursion
+goes back into itself rather than into the general `check_patterns_exhaustive`,
+which was the decision in it: routing to the general checker also passed the new
+test and broke `cross_module_union_typo_is_module_local_scope_only`, a test that
+pins the deliberate boundary that a bare cross-module variant typo does not draw
+E0220 today.
+
+G146 is closed, and its first form shipped a worse bug than the one it fixed.
+`resolves_to_non_union_decl` asked whether a declaration body was *syntactically*
+a union and called everything else provably variant-free. An alias to a union is
+a path, so `type MaybeAge = Option<int>` was ruled variant-free and `Ok(Some(n))`
+over it drew two false `E0220`s on a program 0.1.95 compiles and emits correctly.
+Caught by adversarial review before it shipped, by two reviewers independently.
+The check now accuses only a body that is structurally incapable of aliasing a
+union, a record or a function type, which is exactly the shape G146 names.
+Following the alias would widen it and is worth doing later; the reason not to do
+it here is that this value decides whether to *accuse*, and an accusation needs
+certainty while silence costs only a missed diagnostic.
+`an_alias_to_a_union_is_not_accused_of_having_no_variants` pins it.
+
+**G147 is half closed, and the half that remains is worth stating exactly.**
+Fixed: a *prelude* scrutinee whose type argument is an imported union, which is
+`Result<int, ParseError>` and the common shape. A project-wide registry maps
+(module, union name) to variant names and `union_variant_names` consults it for
+`Ty::Imported`.
+
+Still open: an *imported outer* union. `nested_payload_variants` reaches a
+payload's variant list two ways, and neither survives an imported outer type.
+`outer_variant_payload_ty` needs a `Ty::App` and an imported union is a bare
+`Ty::Imported`; `user_variant_payload` needs a `Ty::Named` and walks this
+module's AST, which never sees the declaration. So
+
+```glyph
+// tree.glyph:  pub type Inner = | alpha | beta
+//              pub type G = | A | B(Inner)
+match g { A => .., B(alpha) => .., B(beta) => .. }
+```
+
+is still `[E0305] this match arm can never run: an earlier arm already matches
+`B``. Closing it needs a second registry, (module, union, variant) to payload
+type, rather than another lookup on the one that exists. That is an extension,
+not a missed line, which is why it is recorded rather than rushed.
+
+*Found by adversarial review of the 0.1.96 fixes, reproduced against the built
+binary rather than argued from the source.*

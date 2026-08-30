@@ -3291,7 +3291,22 @@ impl Assigner<'_> {
         let Some(Decl::Type(td)) = self.module.items.get(decl_idx as usize) else {
             return false;
         };
-        !matches!(&td.body, TypeExpr::Union { .. })
+        // Only a body that is structurally incapable of being a union counts.
+        //
+        // The earlier form asked `!matches!(body, Union { .. })`, which is a
+        // strictly weaker question: it answers "is this body syntactically a
+        // union" and calls everything else provably variant-free. A
+        // `TypeExpr::Path` is the counterexample, because an alias to a union
+        // is a path. `type MaybeAge = Option<int>` was therefore ruled
+        // variant-free, and `Ok(Some(n))` over it drew two false `E0220`s on a
+        // program 0.1.95 compiled and emitted correctly.
+        //
+        // Following the alias would widen this, and is worth doing, but not
+        // here: this value decides whether to accuse, and an accusation needs
+        // certainty while silence costs only a missed diagnostic. A record and
+        // a function type cannot alias a union no matter what they point at,
+        // which is exactly the shape G146 is about (`Ok(Point)` over a record).
+        matches!(&td.body, TypeExpr::Record { .. } | TypeExpr::Fn { .. })
     }
 
     /// The literal set of a string-literal-union type, resolving a named alias

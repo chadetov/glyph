@@ -54,7 +54,7 @@ glyph doctor                    <span class="cm"># confirms your toolchain is re
 
       <div class="detail">
         <p class="block-label">2 &middot; Scaffold a project</p>
-        <p><code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining where ambient declarations go, a <code>package.json</code>, and a <code>.gitignore</code>. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.</p>
+        <p><code>glyph init</code> creates a runnable starter: <code>src/main.glyph</code>, <code>src/.types/README.md</code> explaining where ambient declarations go, a <code>package.json</code>, a <code>.gitignore</code>, and two files coding agents read on their own: <code>AGENTS.md</code>, which points at <code>glyph llms</code> for the full language reference, and <code>.mcp.json</code>, which registers <code>glyph mcp</code> so an agent can ask the compiler for types and references instead of searching for them. In a project you already have, <code>glyph agents</code> writes those two. The <code>package.json</code> pins the compiler, <code>typescript</code> and <code>tsx</code> in <code>devDependencies</code>, so anyone who clones the project can build it with <code>npm install</code> and no global install.</p>
       </div>
       <div class="code">
         <span class="cap">terminal</span>

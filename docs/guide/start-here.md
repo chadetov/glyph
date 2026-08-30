@@ -22,9 +22,16 @@ glyph run
 # hello from glyph
 ```
 
-Four files: `src/main.glyph`, a `src/.types/README.md` saying where ambient
+Six files: `src/main.glyph`, a `src/.types/README.md` saying where ambient
 declarations go, a `package.json` pinning the compiler and the `typescript` and
 `tsx` it runs through, and a `.gitignore`.
+
+The last two are for coding agents rather than for you. `AGENTS.md` says what
+the project is and points at `glyph llms`, which prints the whole language
+reference offline. `.mcp.json` registers `glyph mcp`, so an agent can ask the
+compiler for diagnostics, types, definitions and references instead of guessing
+from a search. Agents read both files without being told to. In a project you
+already have, `glyph agents` writes them.
 
 `glyph run` type-checked the program, compiled it to TypeScript, and executed
 its `main(argv)`. `main` returns a `number`, the process exit code. Returning

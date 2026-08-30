@@ -142,6 +142,69 @@ here is a global, and Glyph resolves names from modules, so the global satisfies
 global the standard library does not wrap is a gap in the standard library, so\n\
 file it and it gets a typed wrapper the way timers and WebSocket did.\n";
 
+/// The file coding agents read on their own before touching a project.
+///
+/// It is deliberately short. Restating the language here would create a second
+/// source of truth that goes stale against the compiler, so this says what the
+/// project is and names the one command that prints the whole reference.
+const AGENTS_MD: &str = "# Working in this project\n\
+\n\
+This is a Glyph project. Glyph is a statically typed language that compiles to\n\
+TypeScript, and it is stricter than TypeScript on purpose.\n\
+\n\
+## Read this first\n\
+\n\
+```sh\n\
+glyph llms\n\
+```\n\
+\n\
+That prints the complete language reference to stdout. It works offline, it is\n\
+the same document the compiler ships, and it takes you from zero to correct,\n\
+runnable Glyph in one read. Read it before writing Glyph rather than inferring\n\
+the syntax from the TypeScript it resembles, because the places it differs are\n\
+the places a guess compiles into something you did not mean.\n\
+\n\
+## Ask the compiler instead of searching\n\
+\n\
+`glyph mcp` runs a Model Context Protocol server over stdio that answers from\n\
+the compiler's own analysis: diagnostics, the type at a cursor, definition,\n\
+references, and symbols. `.mcp.json` in this directory registers it, so an\n\
+agent that reads that file gets the tools without any setup.\n\
+\n\
+Prefer those tools over grep when the question is semantic. Grep finds text that\n\
+matches; the compiler resolved every name to emit the program, so its answer is\n\
+complete rather than a list of things that looked right.\n\
+\n\
+## Commands\n\
+\n\
+```sh\n\
+glyph check src          # typecheck, no output written\n\
+glyph build src --out dist\n\
+glyph run                # build and run the entry point\n\
+glyph fmt src            # format\n\
+glyph --explain E0200    # what a diagnostic code means\n\
+```\n\
+\n\
+## The generated TypeScript is not the source\n\
+\n\
+`dist/` is output. Do not edit it and do not read it to work out what a program\n\
+means. If a diagnostic sends you to generated TypeScript, that is worth\n\
+reporting as a bug in the diagnostic.\n";
+
+/// Registers the compiler's MCP server for any agent that reads `.mcp.json`.
+///
+/// `glyph` rather than a path, because the case this is for is a compiler on
+/// `PATH`. A project-local install is reached with `./node_modules/.bin/glyph`,
+/// which `AGENTS.md` names.
+const MCP_JSON: &str = "{\n\
+\x20 \"mcpServers\": {\n\
+\x20\x20\x20 \"glyph\": {\n\
+\x20\x20\x20\x20\x20 \"command\": \"glyph\",\n\
+\x20\x20\x20\x20\x20 \"args\": [\"mcp\"]\n\
+\x20\x20\x20 }\n\
+\x20 }\n\
+}\n";
+
 const GITIGNORE: &str = "dist/\n\
 node_modules/\n";
 
@@ -193,11 +256,17 @@ pub fn scaffold_template(dir: &Path, template: Template) -> Result<InitReport, I
     );
 
     let entry = dir.join("src").join(entry_name);
-    let files: [(PathBuf, &str); 4] = [
+    let files: [(PathBuf, &str); 6] = [
         (entry.clone(), entry_content),
         (dir.join("src").join(".types").join("README.md"), TYPES_README),
         (dir.join("package.json"), package_json.as_str()),
         (dir.join(".gitignore"), GITIGNORE),
+        // An agent dropped into a Glyph project used to see a manifest and a
+        // source file, be told nothing about a compiler-backed analysis server,
+        // and reach for grep. These two files are what agents already read
+        // without being asked.
+        (dir.join("AGENTS.md"), AGENTS_MD),
+        (dir.join(".mcp.json"), MCP_JSON),
     ];
 
     let mut created = Vec::new();
@@ -234,4 +303,34 @@ fn project_name(dir: &Path) -> String {
     } else {
         trimmed.to_string()
     }
+}
+
+/// Write just the two agent-facing files into an existing project.
+///
+/// The scaffold covers a new project, but the common case is someone who ran
+/// `npm install @glyphlang/glyph` in a directory that already has code. Without
+/// this they would have to know these files exist and hand-write them.
+pub fn scaffold_agent_files(dir: &Path, force: bool) -> Result<InitReport, InitError> {
+    let files: [(PathBuf, &str); 2] =
+        [(dir.join("AGENTS.md"), AGENTS_MD), (dir.join(".mcp.json"), MCP_JSON)];
+
+    let mut created = Vec::new();
+    let mut skipped = Vec::new();
+    for (path, contents) in files {
+        if path.exists() && !force {
+            skipped.push(path);
+            continue;
+        }
+        std::fs::write(&path, contents)
+            .map_err(|e| InitError::Io(format!("cannot write {}: {e}", path.display())))?;
+        created.push(path);
+    }
+
+    Ok(InitReport {
+        root: dir.to_path_buf(),
+        created,
+        skipped,
+        entry: dir.join("AGENTS.md"),
+        runnable: false,
+    })
 }

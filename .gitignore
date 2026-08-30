@@ -66,6 +66,10 @@ npm/**/node_modules/
 # use their existing dependencies is the 1.0 interop gate. The installed tree is
 # never committed; CI installs it in the job that builds those apps.
 examples/apps/*/node_modules/
+
+# The CI toolchain is installed from its committed lockfile; the tree it
+# produces is not committed.
+.github/ci-tools/node_modules/
 examples/apps/*/dist/
 
 # Output an example app writes when it is run. The sitegen app renders a site;

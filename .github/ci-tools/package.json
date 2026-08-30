@@ -1,0 +1,9 @@
+{
+  "name": "glyph-ci-tools",
+  "private": true,
+  "description": "The JavaScript toolchain CI needs, pinned by a lockfile so every run installs the same bytes. A global `npm install -g` resolves a version, not a hash, which is a weaker guarantee and one Scorecard is right to flag.",
+  "dependencies": {
+    "tsx": "4.23.13",
+    "typescript": "6.0.3"
+  }
+}

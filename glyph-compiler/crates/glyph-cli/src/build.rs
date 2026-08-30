@@ -512,12 +512,27 @@ fn build_project_inner_with(
         (String, String),
         glyph_ast::TypeExpr,
     > = Default::default();
+    // Cross-module union variant lists: `(module path, type name) -> variant
+    // names`, in declaration order, for every tagged union across all project
+    // modules. The emitter needs this to tell a bare-ident payload pattern
+    // (`Err(empty)`) apart as a variant reference rather than a fresh binding
+    // when the payload union is *imported* — a module-local scan sees nothing
+    // for the import, and the name's shape alone only recognizes a PascalCase
+    // variant, so a lowercase variant of an imported union read as a binding
+    // and produced a duplicate `case "Err":` label instead of dispatching on
+    // the inner tag (G147).
+    let mut union_variant_names: std::collections::BTreeMap<(String, String), Vec<String>> =
+        Default::default();
     for (module_path, sf) in &entries {
         let parsed = parse_module(&db, *sf);
         let Some(ast) = parsed.module() else { continue };
         for item in &ast.items {
             if let glyph_ast::Decl::Type(td) = item {
                 if let glyph_ast::TypeExpr::Union { variants, .. } = &td.body {
+                    union_variant_names.insert(
+                        (module_path.clone(), td.name.to_string()),
+                        variants.iter().map(|v| v.name.to_string()).collect(),
+                    );
                     for v in variants {
                         if matches!(v.payload, Some(glyph_ast::TypeExpr::Record { .. })) {
                             record_payload_variants
@@ -723,6 +738,7 @@ fn build_project_inner_with(
             generic_descriptor_arities: &generic_descriptor_arities,
             plain_descriptors: &plain_descriptors,
             descriptorless_aliases: &descriptorless_aliases,
+            union_variant_names: &union_variant_names,
         };
         match glyph_emit::emit_module_mapped(ast, resolved, types.type_map(), db.prelude(), ctx) {
             Ok(output) => {

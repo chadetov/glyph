@@ -331,7 +331,7 @@ A group that did not participate comes back as `""`, the same as one that matche
 empty. When a pattern alternates over several shapes and you need to know which
 one fired, put each branch's group around the whole construct rather than around
 the payload you want: a group that fired then starts with a literal character and
-can never be empty. `examples/apps/linkcheck.glyph` does this to tell a code
+can never be empty. `examples/apps/linkcheck/main.glyph` does this to tell a code
 span, an inline link, and an autolink apart in one pass.
 
 ## Validate with a string-literal union

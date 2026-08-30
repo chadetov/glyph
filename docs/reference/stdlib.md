@@ -126,7 +126,7 @@ That is the whole model, and it is not going to change: there is no codepoint
 accessor and none is planned, because an accessor that can hand back half of a
 surrogate pair is worse than no accessor at all. A program that has to walk
 codepoints (a percent-encoder, a width calculator) encodes to bytes first with
-`encoding.hex_encode` and reads two hex digits at a time; `examples/apps/shortlink.glyph`
+`encoding.hex_encode` and reads two hex digits at a time; `examples/apps/shortlink/main.glyph`
 does exactly that in its slug encoder.
 Two functions diverge from their TypeScript namesakes on purpose: `repeat`
 clamps a negative count to `""` where TS throws, which is what makes
@@ -574,7 +574,7 @@ import std/time { Duration }                    // the bare name `Duration`, as 
 They are independent. `import std/time` alone gives you `time.Duration.ms(5)`
 and `x: time.Duration`; `import std/time { Duration }` alone gives you
 `Duration.ms(5)` and `x: Duration`, but not `time.sleep`. Code that wants both
-spellings writes both lines, which is why `examples/apps/linkcheck.glyph` has
+spellings writes both lines, which is why `examples/apps/linkcheck/main.glyph` has
 them on consecutive lines.
 
 ```

@@ -793,7 +793,7 @@ A query returns rows as `Record<string, unknown>`, so a row is a validated
 boundary like a request body: reach for `RowType.parse(row)` before trusting it,
 never a cast. SQLite has no boolean type (a flag column is an integer `0`/`1`),
 so model the storage shape and the domain shape as separate types and map
-between them. A full example is `examples/apps/tasks.glyph`.
+between them. A full example is `examples/apps/tasks/main.glyph`.
 
 ### std/decimal (exact money math, no floats)
 

@@ -40,12 +40,12 @@
 // Run it end to end (copy the whole block):
 //
 //   rm -f leaderboard.json
-//   glyph run examples/apps/leaderboard.glyph -- submit alice 120
-//   glyph run examples/apps/leaderboard.glyph -- submit bob 150
-//   glyph run examples/apps/leaderboard.glyph -- submit carol 120
-//   glyph run examples/apps/leaderboard.glyph -- top 10
-//   glyph run examples/apps/leaderboard.glyph -- rank carol
-//   glyph run examples/apps/leaderboard.glyph -- range 100 130
+//   glyph run examples/apps/leaderboard/main.glyph -- submit alice 120
+//   glyph run examples/apps/leaderboard/main.glyph -- submit bob 150
+//   glyph run examples/apps/leaderboard/main.glyph -- submit carol 120
+//   glyph run examples/apps/leaderboard/main.glyph -- top 10
+//   glyph run examples/apps/leaderboard/main.glyph -- rank carol
+//   glyph run examples/apps/leaderboard/main.glyph -- range 100 130
 
 module main
 

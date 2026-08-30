@@ -31,7 +31,7 @@ let rows = db.query("SELECT id, title, done FROM tasks", [])
 ```
 
 A complete, persisted task API on `std/sqlite` is
-[`examples/apps/tasks.glyph`](https://github.com/chadetov/glyph/blob/main/examples/apps/tasks.glyph).
+[`examples/apps/tasks/main.glyph`](https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph).
 It shows the one modelling point SQLite forces: it has no boolean type, so a
 `done` column comes back as the integer `0`/`1`. Keep the storage shape and the
 domain shape as separate types and map between them, rather than casting an

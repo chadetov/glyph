@@ -5,7 +5,7 @@
 // counted. GET the code with a trailing `+` for a stats page. Everything is
 // server-rendered HTML, escaped, and the link table survives a restart.
 //
-// Run it:  glyph run examples/apps/shortlink.glyph
+// Run it:  glyph run examples/apps/shortlink/main.glyph
 // Then:
 //   curl -i -X POST localhost:8138/ --data-urlencode 'url=https://example.com/x'
 //   curl -i localhost:8138/<code>

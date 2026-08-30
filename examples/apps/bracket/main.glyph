@@ -25,9 +25,9 @@
 //   Elena
 //   Farid
 //   EOF
-//   glyph run examples/apps/bracket.glyph new /tmp/entrants.txt --title "Spring Cup" --file /tmp/cup.json
-//   glyph run examples/apps/bracket.glyph report Alice --score 3-1 --file /tmp/cup.json
-//   glyph run examples/apps/bracket.glyph standings --file /tmp/cup.json
+//   glyph run examples/apps/bracket/main.glyph new /tmp/entrants.txt --title "Spring Cup" --file /tmp/cup.json
+//   glyph run examples/apps/bracket/main.glyph report Alice --score 3-1 --file /tmp/cup.json
+//   glyph run examples/apps/bracket/main.glyph standings --file /tmp/cup.json
 
 module main
 

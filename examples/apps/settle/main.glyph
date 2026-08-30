@@ -22,17 +22,17 @@
 //
 //   L=/tmp/settle.json
 //   rm -f $L
-//   glyph run examples/apps/settle.glyph -- --file $L add "dinner" \
+//   glyph run examples/apps/settle/main.glyph -- --file $L add "dinner" \
 //     --payer alice --amount 84.30 --among alice,bob,carla --date 2026-01-03
-//   glyph run examples/apps/settle.glyph -- --file $L add "coffee" \
+//   glyph run examples/apps/settle/main.glyph -- --file $L add "coffee" \
 //     --payer bob --amount 10.00 --among alice,bob,carla --date 2026-01-04
-//   glyph run examples/apps/settle.glyph -- --file $L add "cab" \
+//   glyph run examples/apps/settle/main.glyph -- --file $L add "cab" \
 //     --payer bob --amount 21.00 --weights alice=2,bob=1 --date 2026-01-05
-//   glyph run examples/apps/settle.glyph -- --file $L add "tickets" \
+//   glyph run examples/apps/settle/main.glyph -- --file $L add "tickets" \
 //     --payer carla --amount 84.30 --shares alice=40.00,bob=44.30 --date 2026-01-06
-//   glyph run examples/apps/settle.glyph -- --file $L balances
-//   glyph run examples/apps/settle.glyph -- --file $L up
-//   glyph run examples/apps/settle.glyph -- --file $L log --since 2026-01-05
+//   glyph run examples/apps/settle/main.glyph -- --file $L balances
+//   glyph run examples/apps/settle/main.glyph -- --file $L up
+//   glyph run examples/apps/settle/main.glyph -- --file $L log --since 2026-01-05
 
 module main
 

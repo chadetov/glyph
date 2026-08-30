@@ -2,9 +2,9 @@
 //
 // Step-6 dogfood app. JSON on disk, errors as values, optional fields,
 // list mutations, and a persistence boundary that must parse back into a
-// real `Fridge`. Run it:  glyph run examples/apps/fridge.glyph add milk 2
+// real `Fridge`. Run it:  glyph run examples/apps/fridge/main.glyph add milk 2
 
-module fridge
+module main
 
 import std/result { Result, Ok, Err }
 import std/option { Option, Some, None }

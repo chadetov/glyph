@@ -48,7 +48,7 @@
 //
 //   Back to the [README](../README.md).
 //   EOF
-//   glyph run examples/apps/linkcheck.glyph /tmp/lc --offline
+//   glyph run examples/apps/linkcheck/main.glyph /tmp/lc --offline
 
 module main
 

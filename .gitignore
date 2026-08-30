@@ -48,7 +48,7 @@ Desktop.ini
 TODO.local.md
 NOTES.local.md
 
-# Runtime databases written by example apps (e.g. examples/apps/tasks.glyph)
+# Runtime databases written by example apps (e.g. examples/apps/tasks/main.glyph)
 tasks.db
 *.sqlite
 *.sqlite3

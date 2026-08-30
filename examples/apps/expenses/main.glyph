@@ -28,8 +28,8 @@
 //   2026-02-02,groceries,corner store,12.05
 //   2026-02-04,rent,february rent,1450.00
 //   EOF
-//   glyph run examples/apps/expenses.glyph /tmp/ledger.csv --month 2026-01
-//   glyph run examples/apps/expenses.glyph /tmp/ledger.csv --min -12.49
+//   glyph run examples/apps/expenses/main.glyph /tmp/ledger.csv --month 2026-01
+//   glyph run examples/apps/expenses/main.glyph /tmp/ledger.csv --min -12.49
 
 module main
 

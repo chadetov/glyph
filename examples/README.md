@@ -8,14 +8,13 @@ The whole directory builds in one command:
 glyph build examples --out /tmp/out
 ```
 
-Each of the twenty directories under `apps/` (`auth_api`, `chat`,
-`collections`, `csvql`, `depsolve`, `diff3`, `discord`, `feeds`, `i18n`,
-`intake`, `jobq`, `minilang`, `pulse`, `resilient`, `sheet`, `sitegen`,
-`watchrun`, `webhook_ingress`, `workflow`, `zipper`) is a program of its own whose
+Each of the thirty-one directories under `apps/` is a program of its own whose
 modules import each other by bare name, so each one carries a `package.json`
-with a `"glyph"` key. That marker makes the directory its own module-resolution root (D41), so
-`import catalog` inside `apps/csvql` finds `apps/csvql/catalog.glyph` no matter
-which enclosing directory you point `glyph build` at. Their output lands under
+with a `"glyph"` key. That marker makes the directory its own module-resolution
+root (D41), so `import catalog` inside `apps/csvql` finds
+`apps/csvql/catalog.glyph` no matter which enclosing directory you point
+`glyph build` at. Every app also carries a `README.md` saying what it is, how to
+run it, and which compiler gaps it found. Their output lands under
 `/tmp/out/apps/<name>/`.
 
 The same app still builds standalone, and emits the same files:
@@ -50,51 +49,48 @@ The other three files are faithful transfers, with template literals (D22) used 
 ## `apps/` — end-to-end dogfood applications
 
 Small but complete programs, each built by writing real Glyph against the
-stdlib and fixing whatever the language lacked along the way.
+stdlib and fixing whatever the language lacked along the way. Each is a
+directory carrying a `package.json` with a `"glyph"` key, so it is its own
+module-resolution root (D41) and builds standalone or as part of the tree.
+None contains a line of TypeScript: no `.d.ts`, no `extern_ts`, enforced by
+`scripts/check_apps_are_glyph.py`.
 
-| File | Stresses | Pillars |
+Each app has a `README.md` with the full account. The third column is the
+short version: what writing it changed in the compiler.
+
+| App | What it is | What it found |
 |---|---|---|
-| `fridge.glyph` | Shopping-list CLI: JSON-on-disk persistence, optional fields, list mutations, and a persistence boundary that must `parse` back into a real `Fridge` | Verifiability + greppability |
-| `tasks.glyph` | Persisted task API: `std/sqlite` (Node's built-in SQLite) for durable storage, a storage/domain type split at the DB boundary (SQLite has no `bool`), `std/http` routes, wire-body validation, all errors-as-values. Data survives restarts | Verifiability + greppability |
-| `minesweeper.glyph` | Terminal Minesweeper: a 9x9 grid, lazy first-click mine placement, flood-fill reveal, a flag/unflag stdin command loop, and a seeded RNG so a piped transcript replays byte for byte | Verifiability + diff stability |
-| `expenses.glyph` | Expense-report CLI over a CSV ledger: every row validated at the boundary with its source line number, exact money via `std/decimal`, per-category totals and shares, and a nonzero exit that lists every bad row at once | Verifiability + greppability |
-| `adventure.glyph` | Ten-room text adventure: a keyed world where every exit names a room id, a command parser over free-form stdin, conditional world rules (the cellar is dark until the lantern is lit), and a save file that must validate back into a `World` | Verifiability + greppability |
-| `schedule.glyph` | Meeting scheduler over a JSON calendar: validate participants and busy blocks at the boundary, merge overlapping blocks, subtract the union from a working window per day, and print the slots long enough to hold the meeting | Verifiability + abstraction |
-| `linkcheck.glyph` | Markdown link checker: inline links, reference definitions, autolinks, and image sources across a file or a directory, with links inside code fences and code spans deliberately excluded, and bounded concurrency on the network checks | Verifiability + greppability |
-| `bracket.glyph` | Single-elimination tournament bracket: the whole tournament is one recursive value (a `Match` of two `Slot`s, each an entrant, a bye, or another `Match`), so advancing a winner is a read, not a write into a parallel table | Abstraction + verifiability |
-| `shortlink.glyph` | URL shortener you can point a browser at: an HTML form, base62 codes, a 302 redirect with click counting, a stats page, and escaped server-rendered output. No `extern/` shim and no Node import: `std/http`'s `html`, `redirect`, and `form` carry the whole wire | Verifiability + greppability |
-| `settle.glyph` | Group expense splitter: split evenly, by exact shares, or by weights, in whole cents with a documented rule for the leftover, then compute the fewest payments that settle everyone up. Its ledger round-trips through `WireLedger.parse` at the boundary | Verifiability + abstraction |
-| `leaderboard.glyph` | Speedrun leaderboard over an append-only JSON log: every submission is folded into a persistent order-statistics red-black tree keyed by score, so a rank, a top-N and a range count are O(log n) walks instead of a re-sort. The four Okasaki rotation cases are four match arms nesting a constructor pattern inside another one's field, over a union that names itself with both its type parameters | Abstraction + verifiability |
-
-### Multi-module apps
-
-Each is a directory carrying a `package.json` with a `"glyph"` key, so it is its
-own module-resolution root (D41) and builds standalone or as part of the tree.
-None of them contains a line of TypeScript: no `.d.ts`, no `extern_ts`, enforced
-by `scripts/check_apps_are_glyph.py`.
-
-| Directory | What it is | Stresses |
-|---|---|---|
-| `auth_api` | Signup/login HTTP API with sessions | Boundary validation, hashing, errors-as-values |
-| `chat` | Chat **server** holding several TCP clients at once | Long-lived sockets, line framing over TCP, per-client routing |
-| `collections` | Generic `Heap`, `Cache`, and `Trie`, plus a fallible pipeline | Generics, `Option` returns, recursive structure |
-| `csvql` | SQL-ish query engine over CSV files | Lexing, planning, joins, aggregate rollups |
-| `depsolve` | Dependency resolver with conflict and cycle reporting | Recursive types, backtracking, diagnostics |
-| `diff3` | Three-way text merge, by line or by whitespace-separated word | Generic LCS diff, edit-script merging, conflict reporting |
-| `discord` | Discord gateway client: handshake, heartbeat, resume | WebSocket, timers, reconnect backoff, `owned` sockets (D25) |
-| `feeds` | RSS reader over the `fast-xml-parser` npm package | An npm dependency imported by name with no adapter, its `any` stopped at `Document.parse` |
-| `i18n` | Localized message formatter with one catalogue per locale | CLDR plural selection, fallback chains, locale-aware numbers and currency |
-| `intake` | Batch validator for JSON applicant records | Per-field checks merged into one report instead of stopping at the first bad record |
-| `jobq` | Durable job queue: HTTP API, SQLite store, workers | Persistence, retry with backoff, dead-lettering, state transitions |
-| `minilang` | Interpreter for a small language, with a REPL | Parsing, evaluation, interactive stdin |
-| `pulse` | Uptime monitor for HTTPS endpoints | DNS, a certificate-verified TLS handshake, hand-written HTTP/1.1, an append-only history file |
-| `resilient` | Retry, backoff, circuit breaker, and concurrency limiting against a server that misbehaves on purpose | Policy composition, timers, failure classification |
-| `sheet` | Spreadsheet with formulas and dependency order | Topological evaluation, cycle detection |
-| `sitegen` | Static site generator over `content/*.md` | The `marked` and `gray-matter` npm packages, front-matter validated at the boundary |
-| `watchrun` | Dev-loop tool: watch a directory, debounce a burst, run a command | The `minimatch` npm package, child-process spawn, streamed stdout |
-| `webhook_ingress` | HTTP service that verifies inbound webhooks and serves an admin page | HMAC-SHA256 signatures, a bounded per-source history |
-| `workflow` | State-machine runner over a JSON definition | Wire/domain type split, optional fields, exhaustive transitions |
-| `zipper` | CLI shell over a virtual filesystem, navigated by a Huet zipper | A generic rose tree, a zipper that rebuilds the path on every move, illegal moves as values |
+| [`adventure`](adventure/README.md) | Ten-room text adventure over a keyed world | `glyph run` threw its own diagnostics away (G38) |
+| [`auth_api`](auth_api/README.md) | Signup/login HTTP API with sessions | A boundary said which field was wrong, never which rule (G79) |
+| [`bracket`](bracket/README.md) | Single-elimination tournament as one recursive value | `@example` was opt-in, so a false assertion built green (G49) |
+| [`chat`](chat/README.md) | TCP chat server holding several clients at once | `glyph run` killed any program still working when `main` returned (G84) |
+| [`collections`](collections/README.md) | Generic `Heap`, `Cache`, `Trie`, and a fallible pipeline | A `for` over an unsettled type bound a string index (G109) |
+| [`csvql`](csvql/README.md) | SQL-ish query engine over CSV files | An imported literal union lost exhaustiveness, and the help said to delete it (G76) |
+| [`depsolve`](depsolve/README.md) | Dependency resolver with conflicts and cycles | `std/record` was not modeled in the typechecker at all (G71) |
+| [`diff3`](diff3/README.md) | Three-way text merge, by line or by word | Nothing. A deliberate probe that found no gap |
+| [`discord`](discord/README.md) | Discord gateway client: handshake, heartbeat, resume | An exhaustive `match` could throw at run time (G94) |
+| [`expenses`](expenses/README.md) | Expense report over a CSV ledger, exact money | `time.parse_iso` failed open while its docs promised closed (G31) |
+| [`feeds`](feeds/README.md) | RSS reader on the `fast-xml-parser` npm package | The app behind the 1.0 interop gate. Open: G118, G119 |
+| [`fridge`](fridge/README.md) | Shopping-list CLI, JSON on disk | `json.parse<T>` was a cast, not a validating parse (G3) |
+| [`i18n`](i18n/README.md) | Localized formatter, one catalogue per locale | `Intl` was unreachable, so CLDR plurals had no route (G113) |
+| [`intake`](intake/README.md) | Batch validator merging every field's failure | Nothing recorded. Demonstrates `Validated` where `Result` short-circuits |
+| [`jobq`](jobq/README.md) | Durable job queue: HTTP, SQLite, workers | `==` meant deep equality in a test and reference equality in the code (G65) |
+| [`leaderboard`](leaderboard/README.md) | Order-statistics red-black tree over an append-only log | Nothing, by design. It is the proof four earlier releases landed |
+| [`linkcheck`](linkcheck/README.md) | Markdown link checker, bounded concurrency | A value-position `match` picked its lowering on the wrong test (G43) |
+| [`minilang`](minilang/README.md) | Interpreter for a small language, with a REPL | Nothing of its own. Shaped by the `read_line` defect (G81) |
+| [`minesweeper`](minesweeper/README.md) | Terminal Minesweeper, seeded and replayable | `glyph fmt` relocated comments out of the construct they documented (G23) |
+| [`pulse`](pulse/README.md) | Uptime monitor over DNS, TLS and a raw socket | A TLS dial that never settles, in a module promising values (G127) |
+| [`resilient`](resilient/README.md) | Retry, backoff, circuit breaker, concurrency limiting | Its source disproved a premise the roadmap carried eight releases (G99) |
+| [`schedule`](schedule/README.md) | Meeting-slot finder across calendars | A `where` refinement stopped working as a record field (G40) |
+| [`settle`](settle/README.md) | Group expense splitter and debt simplifier | A `match` expression always typed as `Unknown` (G57) |
+| [`sheet`](sheet/README.md) | Spreadsheet with formulas and dependency order | A declaration shadowed a global the emitted module needs (G63) |
+| [`shortlink`](shortlink/README.md) | URL shortener you can point a browser at | The build cache served a stale program under a clean build (G56) |
+| [`sitegen`](sitegen/README.md) | Static site generator on `marked` and `gray-matter` | No default import, so a callable npm package was unreachable (G112) |
+| [`tasks`](tasks/README.md) | Persisted task API on SQLite | None. The demonstration half of 0.1.25's database work |
+| [`watchrun`](watchrun/README.md) | Dev loop: watch, debounce, spawn, stream output | The bundled node shim was narrower than node, twice (G125, G126) |
+| [`webhook_ingress`](webhook_ingress/README.md) | Verifies inbound webhooks, serves an admin page | None. Found that taint is opt-in, not dataflow |
+| [`workflow`](workflow/README.md) | Statechart replay engine over a JSON definition | A namespaced `match` on an imported union was never checked (G73) |
+| [`zipper`](zipper/README.md) | CLI shell over a virtual filesystem, Huet zipper | Provoked G139; its filed reproduction did not reproduce |
 
 ## `corpus/` — self-contained regression programs
 

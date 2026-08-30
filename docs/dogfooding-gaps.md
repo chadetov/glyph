@@ -5959,6 +5959,13 @@ through an object pattern's fields.
   a reader concludes the warnings are unfixable rather than that the fixer has
   a hole, and an agent running `fix` in a loop never converges.
 
+  **How this gets mis-diagnosed, for whoever picks it up.** Reproduce it on a
+  file with no other errors. An unrelated unresolved name suppresses `E0106`
+  downstream, so a file that has one shows *no warnings at all*, and the
+  reading becomes "the lint does not fire" rather than "the lint fires and the
+  fixer ignores it". Both this session and the field tester hit that, from
+  opposite directions. The lint is fine; `fix` is the half that is wrong.
+
   *Reproduced against 0.1.95. Reported independently by a field tester on a
   fresh install before being reproduced here.*
 

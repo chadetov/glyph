@@ -4,17 +4,22 @@
 // `vscode-languageclient`, then launch (F5) or package.
 
 const { workspace } = require("vscode");
-const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
+const { LanguageClient } = require("vscode-languageclient/node");
 
 let client;
 
 function activate(_context) {
   const serverPath = workspace.getConfiguration("glyph").get("serverPath", "glyph");
 
-  // `glyph lsp` speaks LSP over stdio.
+  // `glyph lsp` speaks LSP over stdio, which is the default for a `command`
+  // server. Naming TransportKind.stdio here would make the client append a
+  // `--stdio` argument, and a compiler older than 0.1.96 rejects unknown
+  // arguments and exits 2, which the client retries five times before giving
+  // up. Newer compilers accept and ignore the flag; not sending it is what
+  // makes this work against the compiler people already have installed.
   const serverOptions = {
-    run: { command: serverPath, args: ["lsp"], transport: TransportKind.stdio },
-    debug: { command: serverPath, args: ["lsp"], transport: TransportKind.stdio },
+    run: { command: serverPath, args: ["lsp"] },
+    debug: { command: serverPath, args: ["lsp"] },
   };
 
   const clientOptions = {

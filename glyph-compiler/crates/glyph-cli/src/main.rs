@@ -180,7 +180,14 @@ enum Command {
         force: bool,
     },
     /// Run the language server over stdio (spawned by an editor extension).
-    Lsp,
+    Lsp {
+        /// Accepted and ignored. The server only ever speaks stdio, but LSP
+        /// clients pass this: `vscode-languageclient` appends it whenever the
+        /// transport is stdio, and rejecting it made the extension fail to
+        /// start five times and then give up.
+        #[arg(long, hide = true)]
+        stdio: bool,
+    },
     /// Run the Model Context Protocol server over stdio, exposing Glyph's
     /// analysis (diagnostics, hover, definition, references, symbols) to a coding
     /// agent as tools. ROOT is the project to query (default: current directory).
@@ -863,7 +870,7 @@ fn main() {
                 }
             }
         }
-        Some(Command::Lsp) => {
+        Some(Command::Lsp { stdio: _ }) => {
             // Hands control to the language server; runs until the editor closes
             // the stdio connection.
             glyph_lsp::run_stdio();

@@ -1,0 +1,107 @@
+// The plan tree.
+//
+// A bound query becomes a recursive tree of physical operators, each carrying
+// the schema it emits. Nothing in here executes; `exec` walks the same tree and
+// `render` prints it for `--explain`, so the plan the engine runs and the plan
+// it shows you are the same value.
+//
+// The shape is always the same pipeline, with the optional stages dropped:
+//
+//   Scan -> HashJoin -> Filter -> Group -> Project -> Sort -> Limit
+module plan
+
+import std/array
+import std/option { Some, None }
+import bind { AggSpec, Bound, BoundPred, Field, aggs_of }
+
+pub type Plan =
+  | Scan({ table: string, out: Array<Field> })
+  | HashJoin({ left: Plan, right: Plan, left_slot: int, right_slot: int, out: Array<Field> })
+  | Filter({ input: Plan, pred: BoundPred, out: Array<Field> })
+  | Group({ input: Plan, keys: Array<int>, aggs: Array<AggSpec>, out: Array<Field> })
+  | Project({ input: Plan, sources: Array<int>, out: Array<Field> })
+  | Sort({ input: Plan, slot: int, desc: bool, out: Array<Field> })
+  | Limit({ input: Plan, count: int, out: Array<Field> })
+
+pub fn schema(p: Plan) -> Array<Field> {
+  return match p {
+    Scan({ table, out }) => out,
+    HashJoin({ left, right, left_slot, right_slot, out }) => out,
+    Filter({ input, pred, out }) => out,
+    Group({ input, keys, aggs, out }) => out,
+    Project({ input, sources, out }) => out,
+    Sort({ input, slot, desc, out }) => out,
+    Limit({ input, count, out }) => out,
+  }
+}
+
+fn slice_fields(fields: Array<Field>, from: int, shift: int) -> Array<Field> {
+  let out: Array<Field> = []
+  for f in fields {
+    mut out = match f.slot >= from {
+      true => array.push(out, { table: f.table, name: f.name, kind: f.kind, slot: f.slot - shift }),
+      false => out,
+    }
+  }
+  return out
+}
+
+fn head_fields(fields: Array<Field>, width: int) -> Array<Field> {
+  return array.filter(fields, fn(f: Field) -> bool { return f.slot < width })
+}
+
+pub fn build(b: Bound) -> Plan {
+  let scan_left = Scan(
+    {
+      table: b.from,
+      out: match b.join {
+        Some(j) => head_fields(b.base, j.left_width),
+        None => b.base,
+      },
+    },
+  )
+
+  let source = match b.join {
+    None => scan_left,
+    Some(j) => HashJoin(
+      {
+        left: scan_left,
+        right: Scan({ table: j.table, out: slice_fields(b.base, j.left_width, j.left_width) }),
+        left_slot: j.left_slot,
+        // The right side is scanned on its own, so the key is an index into that
+        // table's row, not into the joined row.
+        right_slot: j.right_slot - j.left_width,
+        out: b.base,
+      },
+    ),
+  }
+
+  let filtered = match b.filter {
+    None => source,
+    Some(p) => Filter({ input: source, pred: p, out: b.base }),
+  }
+
+  let rolled = match b.grouped {
+    false => filtered,
+    true => Group(
+      {
+        input: filtered,
+        keys: array.map(b.keys, fn(f: Field) -> int { return f.slot }),
+        aggs: aggs_of(b),
+        out: b.group_out,
+      },
+    ),
+  }
+
+  let projected = Project({ input: rolled, sources: b.sources, out: b.out })
+
+  let sorted = match b.order {
+    None => projected,
+    Some(o) => Sort({ input: projected, slot: o.slot, desc: o.desc, out: b.out }),
+  }
+
+  return match b.limit {
+    None => sorted,
+    Some(n) => Limit({ input: sorted, count: n, out: b.out }),
+  }
+}

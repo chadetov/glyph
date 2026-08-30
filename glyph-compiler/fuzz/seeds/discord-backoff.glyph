@@ -1,0 +1,69 @@
+// How long to wait before reconnecting.
+//
+// A bot that reconnects immediately and forever is a bot that hammers the
+// gateway while it is down, and Discord will stop answering it. The delay
+// doubles per consecutive failure and stops growing at a ceiling, and a
+// connection that lasts resets the count so a long-lived bot that blips once
+// does not carry a minute-long delay around for the rest of the day.
+module backoff
+
+// Attempts so far, and the delay the next one waits.
+pub type Backoff = { attempts: int, delay_ms: int }
+
+const FIRST_MS = 1000
+
+const CEILING_MS = 60000
+
+pub fn fresh() -> Backoff {
+  return { attempts: 0, delay_ms: FIRST_MS }
+}
+
+// Record a failed connection. `delay_ms` is what the *next* attempt waits, so a
+// fresh backoff already carries the first delay and each failure doubles it.
+@example wait_ms(fresh()) == 1000
+@example failed(fresh()).delay_ms == 2000
+@example failed(failed(fresh())).delay_ms == 4000
+@example failed(failed(failed(fresh()))).delay_ms == 8000
+@example failed(fresh()).attempts == 1
+//
+// The ceiling holds however long the outage lasts.
+@example after(20).delay_ms == 60000
+@example after(50).delay_ms == 60000
+pub fn failed(current: Backoff) -> Backoff {
+  let doubled = current.delay_ms * 2
+  return {
+    attempts: current.attempts + 1,
+    delay_ms: match doubled > CEILING_MS {
+      true => CEILING_MS,
+      false => doubled,
+    },
+  }
+}
+
+// The delay to wait *now*, given the state before this attempt.
+
+@example wait_ms(failed(fresh())) == 2000
+pub fn wait_ms(current: Backoff) -> int {
+  return current.delay_ms
+}
+
+// A connection that stayed up is the signal that the outage is over.
+@example succeeded(after(9)).delay_ms == 1000
+@example succeeded(after(9)).attempts == 0
+pub fn succeeded(current: Backoff) -> Backoff {
+  return fresh()
+}
+
+fn after(n: int) -> Backoff {
+  let state = fresh()
+  let i = 0
+  loop {
+    match i >= n {
+      true => { break },
+      false => {},
+    }
+    mut state = failed(state)
+    mut i = i + 1
+  }
+  return state
+}

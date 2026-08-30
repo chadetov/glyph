@@ -1,0 +1,19 @@
+// Deployment knobs. One file, so `grep` finds every environment read.
+module config
+
+import std/option { Some, None }
+import std/process
+
+pub const PORT: int = 8141
+
+// The signing key. A real deployment sets AUTH_SECRET; the fallback exists so
+// the demo transcript runs with no setup, and it is obvious in the output that
+// it is a development key.
+pub const DEV_SECRET: string = "dev-secret-not-for-production"
+
+pub fn secret() -> string {
+  return match process.env("AUTH_SECRET") {
+    Some(v) => v,
+    None => DEV_SECRET,
+  }
+}

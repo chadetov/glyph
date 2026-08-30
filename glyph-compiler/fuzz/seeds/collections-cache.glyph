@@ -1,0 +1,133 @@
+module cache
+
+import std/array
+import std/option { Option, Some, None }
+
+pub type Entry<K, V> = { key: K, value: V }
+
+// A least-recently-used cache. `entries` is ordered oldest use first, so the
+// front is what eviction takes and the back is what was just touched. Keys
+// compare by value (D42), so a record key works as well as a string.
+pub type Cache<K, V> = { capacity: number, entries: Array<Entry<K, V>> }
+
+pub fn create<K, V>(capacity: number) -> Cache<K, V> {
+  return { capacity: capacity, entries: [] }
+}
+
+pub fn len<K, V>(c: Cache<K, V>) -> number {
+  return array.len(c.entries)
+}
+
+// Keys from least to most recently used, which is the order they will be
+// evicted in.
+pub fn keys<K, V>(c: Cache<K, V>) -> Array<K> {
+  return array.map(c.entries, fn(e: Entry<K, V>) -> K { e.key })
+}
+
+// A hit moves its entry to the back, so reading is what keeps a key alive.
+pub fn get<K, V>(c: Cache<K, V>, key: K) -> Option<V> {
+  return match find(c.entries, key) {
+    None => None,
+    Some(index) => {
+      let entry = c.entries[index]
+      mut c.entries = array.push(drop_at(c.entries, index), entry)
+      Some(entry.value)
+    },
+  }
+}
+
+// Reading without disturbing the eviction order.
+pub fn peek<K, V>(c: Cache<K, V>, key: K) -> Option<V> {
+  return match find(c.entries, key) {
+    None => None,
+    Some(index) => Some(c.entries[index].value),
+  }
+}
+
+pub fn put<K, V>(c: Cache<K, V>, key: K, value: V) -> void {
+  let base = match find(c.entries, key) {
+    None => c.entries,
+    Some(index) => drop_at(c.entries, index),
+  }
+  let grown = array.push(base, { key: key, value: value })
+  let size = array.len(grown)
+  mut c.entries = match size > c.capacity {
+    true => array.slice(grown, size - c.capacity),
+    false => grown,
+  }
+}
+
+// Past capacity the front of the order goes, so the third `put` drops `a`.
+@example keys_after_overflow() == ["b", "c"]
+fn keys_after_overflow() -> Array<string> {
+  let c = create<string, number>(2)
+  put(c, "a", 1)
+  put(c, "b", 2)
+  put(c, "c", 3)
+  return keys(c)
+}
+
+// A read is a use: touching `a` moves it to the back, so `b` is what the next
+// `put` evicts.
+@example keys_after_touch() == ["a", "c"]
+fn keys_after_touch() -> Array<string> {
+  let c = create<string, number>(2)
+  put(c, "a", 1)
+  put(c, "b", 2)
+  let _ = get(c, "a")
+  put(c, "c", 3)
+  return keys(c)
+}
+
+// `peek` deliberately does not count as a use.
+@example keys_after_peek() == ["b", "c"]
+fn keys_after_peek() -> Array<string> {
+  let c = create<string, number>(2)
+  put(c, "a", 1)
+  put(c, "b", 2)
+  let _ = peek(c, "a")
+  put(c, "c", 3)
+  return keys(c)
+}
+
+@example evicted_key_is_gone() == None
+fn evicted_key_is_gone() -> Option<number> {
+  let c = create<string, number>(2)
+  put(c, "a", 1)
+  put(c, "b", 2)
+  put(c, "c", 3)
+  return get(c, "a")
+}
+
+@example surviving_key_reads_back() == Some(3)
+fn surviving_key_reads_back() -> Option<number> {
+  let c = create<string, number>(2)
+  put(c, "a", 1)
+  put(c, "b", 2)
+  put(c, "c", 3)
+  return get(c, "c")
+}
+
+// Re-putting an existing key refreshes it instead of growing the cache.
+@example reput_refreshes() == ["b", "a"]
+fn reput_refreshes() -> Array<string> {
+  let c = create<string, number>(2)
+  put(c, "a", 1)
+  put(c, "b", 2)
+  put(c, "a", 9)
+  return keys(c)
+}
+
+fn find<K, V>(entries: Array<Entry<K, V>>, key: K) -> Option<number> {
+  for index, entry in entries {
+    match entry.key == key {
+      true => { return Some(index) },
+      false => void,
+    }
+  }
+  return None
+}
+
+fn drop_at<K, V>(entries: Array<Entry<K, V>>, index: number) -> Array<Entry<K, V>> {
+  return array.concat(array.slice(entries, 0, index), array.slice(entries, index + 1))
+}

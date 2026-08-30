@@ -1,5 +1,10 @@
 [workspace]
 resolver = "2"
+# The fuzz crate is deliberately outside the workspace: it needs nightly
+# and libfuzzer, and pulling it in would make `cargo test --workspace` on the
+# pinned stable toolchain fail to resolve.
+exclude = ["fuzz"]
+
 members = [
     "crates/glyph-lexer",
     "crates/glyph-ast",

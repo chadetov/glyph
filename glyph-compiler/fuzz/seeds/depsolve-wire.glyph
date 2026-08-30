@@ -1,0 +1,24 @@
+// The shapes of the two fixtures the resolver reads, and nothing else.
+//
+// They live in their own module so the side that *parses* (`main`) imports a
+// descriptor rather than declaring one. `ManifestFile.parse(value)` and
+// `RegistryFile.parse(value)` run the checks written here, at the one point
+// where untrusted JSON becomes a typed value.
+module wire
+
+// A dependency table as it appears on disk: package name -> constraint text,
+// verbatim. The strings are parsed into constraints by the resolver; the
+// boundary only promises that they are strings.
+pub type DependencyTable = Record<string, string>
+
+// A project manifest: who I am, and what I ask for.
+pub type ManifestFile = { name: string, version: string, dependencies: DependencyTable }
+
+// One published version of one package.
+pub type ReleaseSpec = { version: string, dependencies: DependencyTable }
+
+// Every version of one package. The registry does not promise them in order;
+// the resolver sorts by precedence after parsing.
+pub type PackageSpec = { name: string, versions: Array<ReleaseSpec> }
+
+pub type RegistryFile = { packages: Array<PackageSpec> }

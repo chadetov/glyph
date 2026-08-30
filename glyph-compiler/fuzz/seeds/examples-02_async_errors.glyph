@@ -1,0 +1,128 @@
+// An async pipeline: fetch a user, fetch their posts, fetch each post's
+// comments in parallel, return a denormalized view. Every step can fail.
+// No thrown exceptions. Errors are values.
+
+module user_feed
+
+import std/result { Result, Ok, Err }
+import std/http
+import std/array
+import std/result
+import std/task
+
+// ---------------------------------------------------------------------------
+// Domain types
+// ---------------------------------------------------------------------------
+
+type User = {
+  id: string,
+  name: string,
+}
+
+type Post = {
+  id: string,
+  author_id: string,
+  title: string,
+}
+
+type Comment = {
+  id: string,
+  post_id: string,
+  body: string,
+}
+
+type PostWithComments = {
+  post: Post,
+  comments: Array<Comment>,
+}
+
+type Feed = {
+  user: User,
+  posts: Array<PostWithComments>,
+}
+
+// One error type for the whole module. No string errors, no exception classes.
+type FeedError =
+  | NetworkError({ url: string, status: number })
+  | DecodeError({ url: string, reason: string })
+  | NotFound({ resource: string, id: string })
+
+// ---------------------------------------------------------------------------
+// Building blocks
+// ---------------------------------------------------------------------------
+
+async fn fetch_json<T>(url: string, schema: Schema<T>) -> Result<T, FeedError> {
+  let response = await http.get(url)
+    .map_err(fn(e) { NetworkError({ url: url, status: e.status }) })?
+
+  match schema.parse(response.body) {
+    Ok(value) => Ok(value),
+    Err(issues) => Err(DecodeError({
+      url: url,
+      reason: issues[0].message,
+    })),
+  }
+}
+
+async fn fetch_user(id: string) -> Result<User, FeedError> {
+  return await fetch_json("/api/users/${id}", User.schema)
+}
+
+async fn fetch_posts(user_id: string) -> Result<Array<Post>, FeedError> {
+  return await fetch_json("/api/users/${user_id}/posts", Post.schema.array())
+}
+
+async fn fetch_comments(post_id: string) -> Result<Array<Comment>, FeedError> {
+  return await fetch_json("/api/posts/${post_id}/comments", Comment.schema.array())
+}
+
+// ---------------------------------------------------------------------------
+// Composition
+// ---------------------------------------------------------------------------
+
+async fn load_feed(user_id: string) -> Result<Feed, FeedError> {
+  let user = await fetch_user(user_id)?
+  let posts = await fetch_posts(user.id)?
+
+  // Parallel fan-out: fetch comments for all posts at once. `array.map` builds
+  // the work as thunks and `task.all` runs them, which is what D40 names; then
+  // `result.all` collapses `Array<Result<T, E>>` into `Result<Array<T>, E>` by
+  // short-circuiting on the first `Err`.
+  let comment_results = await task.all(
+    array.map(posts, fn(post) { return async fn() { return await fetch_comments(post.id) } })
+  )
+  let comments_per_post = result.all(comment_results)?
+
+  let posts_with_comments = array.zip(posts, comments_per_post, fn(post, comments) {
+    return { post: post, comments: comments }
+  })
+
+  return Ok({
+    user: user,
+    posts: posts_with_comments,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Caller
+// ---------------------------------------------------------------------------
+
+async fn handle_request(user_id: string) -> http.Response {
+  match await load_feed(user_id) {
+    Ok(feed) => http.json(200, feed),
+    Err(NetworkError({ status })) => http.json(502, {
+      error: "upstream_failed",
+      status: status,
+    }),
+    Err(DecodeError({ url, reason })) => http.json(500, {
+      error: "decode_failed",
+      url: url,
+      reason: reason,
+    }),
+    Err(NotFound({ resource, id })) => http.json(404, {
+      error: "not_found",
+      resource: resource,
+      id: id,
+    }),
+  }
+}

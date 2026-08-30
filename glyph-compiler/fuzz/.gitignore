@@ -1,0 +1,8 @@
+target/
+artifacts/
+coverage/
+Cargo.lock
+# The working corpus is generated: cargo-fuzz grows it to megabytes within
+# minutes, and it is reproducible from seeds/. What gets committed is seeds/
+# and any minimized crash input, not the coverage set.
+corpus/

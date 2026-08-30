@@ -1,0 +1,154 @@
+// The generic two-way diff core that both the line mode and the `--words`
+// mode of the merge tool are built on. `build_table` fills an (n+1) x (m+1)
+// dynamic-programming grid of LCS lengths bottom-up, using a caller-supplied
+// `eq` in place of `==` so the same table-builder works for any element type,
+// then `diff` walks the grid from the top-left, emitting a `Same`/`Added`/
+// `Removed` edit at each step. This is the same shape as the pure-Glyph line
+// differ in `examples/corpus/diff.glyph`, generalized from `Array<string>` to
+// `Array<T>` with an explicit equality function standing in for `string`'s
+// built-in `==`.
+module diff
+
+import std/array
+import std/math
+
+// One element's fate between `base` and `other`: unchanged, inserted, or
+// removed. `merge.glyph` instantiates this twice from one CLI, once at
+// `Edit<string>` for whole lines and once at `Edit<string>` again for
+// whitespace-split words — the element type is the same, but the two
+// `diff` calls that produce it are otherwise independent.
+pub type Edit<T> =
+  | Same(T)
+  | Added(T)
+  | Removed(T)
+
+// A row of `cols` zeros.
+fn zero_row(cols: number) -> Array<number> {
+  let row: Array<number> = []
+  let j = 0
+  loop {
+    match j >= cols {
+      true => {
+        break
+      },
+      false => {},
+    }
+    mut row.push(0)
+    mut j = j + 1
+  }
+  return row
+}
+
+// A fresh `rows` x `cols` grid of zeros.
+fn zeros(rows: number, cols: number) -> Array<Array<number>> {
+  let grid: Array<Array<number>> = []
+  let i = 0
+  loop {
+    match i >= rows {
+      true => {
+        break
+      },
+      false => {},
+    }
+    mut grid.push(zero_row(cols))
+    mut i = i + 1
+  }
+  return grid
+}
+
+// The LCS-length grid: `table[i][j]` is the length of the longest common
+// subsequence of `base[i..]` and `other[j..]`, under `eq`. Filled from the
+// bottom-right corner so that when cell `(i, j)` is computed its three
+// neighbors already hold their final values.
+fn build_table<T>(
+  base: Array<T>,
+  other: Array<T>,
+  eq: fn(T, T) -> bool,
+) -> Array<Array<number>> {
+  let n = array.len(base)
+  let m = array.len(other)
+  let table = zeros(n + 1, m + 1)
+  let i = n - 1
+  loop {
+    match i < 0 {
+      true => {
+        break
+      },
+      false => {},
+    }
+    let j = m - 1
+    loop {
+      match j < 0 {
+        true => {
+          break
+        },
+        false => {},
+      }
+      match eq(base[i], other[j]) {
+        true => {
+          mut table[i][j] = table[i + 1][j + 1] + 1
+        },
+        false => {
+          mut table[i][j] = math.max(table[i + 1][j], table[i][j + 1])
+        },
+      }
+      mut j = j - 1
+    }
+    mut i = i - 1
+  }
+  return table
+}
+
+// The edit script that turns `base` into `other`: a `Same` or `Removed` entry
+// for every element of `base`, in base order, interleaved with an `Added`
+// entry for every element `other` introduces. Ties prefer `Removed`, which
+// keeps a replaced element's deletion ahead of its replacement's insertion —
+// the shape the merge walk in `merge.glyph` depends on to recognize a
+// same-position two-sided edit as `Removed` paired with `Removed`, followed by
+// `Added` paired with `Added`.
+pub fn diff<T>(base: Array<T>, other: Array<T>, eq: fn(T, T) -> bool) -> Array<Edit<T>> {
+  let table = build_table(base, other, eq)
+  let n = array.len(base)
+  let m = array.len(other)
+  let edits: Array<Edit<T>> = []
+  let i = 0
+  let j = 0
+  loop {
+    match i >= n && j >= m {
+      true => {
+        break
+      },
+      false => {},
+    }
+    match i < n && j < m && eq(base[i], other[j]) {
+      true => {
+        mut edits.push(Same(base[i]))
+        mut i = i + 1
+        mut j = j + 1
+      },
+      false => match i >= n {
+        true => {
+          mut edits.push(Added(other[j]))
+          mut j = j + 1
+        },
+        false => match j >= m {
+          true => {
+            mut edits.push(Removed(base[i]))
+            mut i = i + 1
+          },
+          false => match table[i + 1][j] >= table[i][j + 1] {
+            true => {
+              mut edits.push(Removed(base[i]))
+              mut i = i + 1
+            },
+            false => {
+              mut edits.push(Added(other[j]))
+              mut j = j + 1
+            },
+          },
+        },
+      },
+    }
+  }
+  return edits
+}

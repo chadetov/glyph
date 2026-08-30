@@ -1,0 +1,93 @@
+// render — the formatter an application actually calls.
+//
+// `text` renders a simple message; `counted` picks a plural form with the
+// locale's CLDR rules and renders that. Both resolve the key through the
+// fallback chain and both report the locale that answered, so a UI can mark a
+// string that fell back instead of silently showing English.
+module render
+
+import std/option { Some, None }
+import std/record
+import catalog
+import catalog { Catalogue, Simple, Plural, Hit }
+import format
+import pattern
+import plural
+
+pub type Rendered = { text: string, locale: string, fell_back: bool }
+
+pub type Failure =
+  | UnknownKey({ key: string, locale: string })
+  | NoFormFor({ key: string, locale: string, category: string })
+
+pub fn explain(f: Failure) -> string {
+  return match f {
+    UnknownKey({ key, locale }) => "no catalogue in the `${locale}` chain defines `${key}`",
+    NoFormFor({ key, locale, category }) => "`${key}` in `${locale}` has no `${category}` form",
+  }
+}
+
+pub type Bundle = { catalogues: Record<string, Catalogue>, reference: string }
+
+fn resolve(bundle: Bundle, locale: string, key: string) -> Option<Hit> {
+  return catalog.lookup(bundle.catalogues, locale, bundle.reference, key)
+}
+
+pub fn text(bundle: Bundle, locale: string, key: string, args: Record<string, string>) -> Result<Rendered, Failure> {
+  return match resolve(bundle, locale, key) {
+    None => Err(UnknownKey({ key: key, locale: locale })),
+    Some(hit) => match hit.message {
+      Simple({ text: body }) => Ok(
+        { text: pattern.render(body, args), locale: hit.locale, fell_back: hit.locale != locale },
+      ),
+      Plural({ forms }) => match record.get<string>(forms, "other") {
+        None => Err(NoFormFor({ key: key, locale: hit.locale, category: "other" })),
+        Some(body) => Ok(
+          { text: pattern.render(body, args), locale: hit.locale, fell_back: hit.locale != locale },
+        ),
+      },
+    },
+  }
+}
+
+// The plural path. The category comes from the *requested* locale's rules, not
+// the locale that answered: a `pl-PL` request served out of the `pl` catalogue
+// still selects with Polish rules. `{count}` is filled with the locale-formatted
+// number, so Polish gets `1 234` where English gets `1,234`.
+pub fn counted(
+  bundle: Bundle,
+  locale: string,
+  key: string,
+  count: number,
+  args: Record<string, string>,
+) -> Result<Rendered, Failure> {
+  let category = plural.category_name(plural.select(locale, count))
+  let with_count = record.set<string>(args, "count", format.decimal(locale, count))
+  return match resolve(bundle, locale, key) {
+    None => Err(UnknownKey({ key: key, locale: locale })),
+    Some(hit) => match hit.message {
+      Simple({ text: body }) => Ok(
+        {
+          text: pattern.render(body, with_count),
+          locale: hit.locale,
+          fell_back: hit.locale != locale,
+        },
+      ),
+      Plural({ forms }) => match record.get<string>(forms, category) {
+        None => Err(NoFormFor({ key: key, locale: hit.locale, category: category })),
+        Some(body) => Ok(
+          {
+            text: pattern.render(body, with_count),
+            locale: hit.locale,
+            fell_back: hit.locale != locale,
+          },
+        ),
+      },
+    },
+  }
+}
+
+// A message whose only argument is a money amount.
+pub fn money(bundle: Bundle, locale: string, key: string, amount: number, code: string) -> Result<Rendered, Failure> {
+  return text(bundle, locale, key, { amount: format.currency(locale, amount, code) })
+}

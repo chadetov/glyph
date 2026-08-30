@@ -1,0 +1,35 @@
+[package]
+name = "glyph-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+glyph-lexer = { path = "../crates/glyph-lexer" }
+glyph-parser = { path = "../crates/glyph-parser" }
+glyph-formatter = { path = "../crates/glyph-formatter" }
+
+[[bin]]
+name = "parse"
+path = "fuzz_targets/parse.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "lex"
+path = "fuzz_targets/lex.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "format_idempotent"
+path = "fuzz_targets/format_idempotent.rs"
+test = false
+doc = false
+bench = false

@@ -5961,6 +5961,26 @@ concrete follow-ups, in priority order:
 
 ## Rolling · Ergonomics & polish
 
+**G150 is fixed and G151 is open, both found by the fuzz target within minutes
+of it existing.** G150 grew a file by one copy of a comment on every `glyph fmt`
+run, without bound: format-on-save grew it for as long as the editor stayed
+open and `--check` could never pass. The cause was `raw_args` being verbatim
+source, so an argument that does not close cleanly swallows the following
+comment, the annotation emits it, and the comment machinery emits it again.
+
+G151 is the same family and milder: the first pass and the second disagree, then
+it is stable. It converges, so it is not a growing file, but `glyph fmt --check`
+still fails on output `glyph fmt` just produced, which is the one thing `--check`
+has to be trusted about.
+
+**The nightly fuzz job will be red until G151 is fixed, and that is correct.** A
+green fuzz job with a known open crash in it would be the useless kind of green.
+Both are the G23 family: that one moved a comment out of the construct it
+documented and its corruption was itself a fixed point, so nothing downstream
+noticed. Diff stability is the pillar all three attack.
+
+
+
 **G149. Glyph's own checker does not catch a `let` annotation mismatch, and the
 editor is silent about it.** `let x: string = 42` produces no Glyph diagnostic;
 `tsc` reports `TS2322` at `glyph build` and the help line sends the reader to the

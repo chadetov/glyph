@@ -3315,12 +3315,14 @@ worth keeping.
   does it is four lines of `match acc` ceremony each time. `max_by`/`min_by`
   taking a key function is the shape that closes it; `max`/`min`/`sum` over
   `Array<number>` are the trivial cases of the same thing.
-  *Reproduced against 0.1.90, and the five diagnostics are word for word what
+  *Reproduced against 0.1.96, and the five diagnostics are word for word what
   0.1.84 printed: all five are `[E0105] not exported by std/array`, `max` is
   still answered with `(did you mean `map`?)`, and the other four append the
   export list (`any, concat, contains, filter, find, flat_map, fold, get, and 10
   more`). `runtime/std/array.ts` exports 18 functions and none of them is `max`,
   `min`, `sum`, `max_by` or `min_by`.*
+
+  *Re-run for 0.1.96: `runtime/std/array.ts` exports none of `max`, `min`, `sum`, `max_by`, `min_by`.*
 
 - **G101. `array.fold` cannot stop early, so every short-circuiting accumulation
   is hand-written index recursion.** The app's requirements ask for alpha-beta
@@ -3335,7 +3337,7 @@ worth keeping.
   and not pruning. A `fold_while`/`try_fold` whose callback returns a continue-or-
   stop is the missing piece. Not a soundness bug: the hand-written form is
   correct, just long.
-  *Reproduced against 0.1.90: `fold_while` and `try_fold` are each `[E0105] not
+  *Reproduced against 0.1.96: `fold_while` and `try_fold` are each `[E0105] not
   exported by std/array`, with the module's export list appended (`exports: any,
   concat, contains, filter, find, flat_map, fold, get, and 10 more`).
   `runtime/std/array.ts` defines `fold` and nothing that can stop early, and
@@ -3378,6 +3380,8 @@ The two that reached furthest, `sitegen` (marked + gray-matter) and `logmerge`
 **The convergence is the result.** `pngmeta` (a PNG chunk reader) and `totp` (an
 RFC 6238 authenticator) were assigned different apps, ran in different processes,
 and stopped on the same sentence: Glyph has no bytes.
+
+  *Re-run for 0.1.96: `fold` is still `xs.reduce(f, init)` and is still the only fold; no `try_fold`, no `scan`.*
 
 - **G102. [FIXED] There is no byte type, so no binary file, no real HMAC, and no
   bytes/text bridge.** Every external boundary in the standard library is
@@ -3547,7 +3551,7 @@ and stopped on the same sentence: Glyph has no bytes.
   has to decide what to call it. The only expressible version of the app is
   `read_text` plus `array.sort`, which is the memory shape the round existed to
   avoid.
-  *Reproduced against 0.1.90: `fs.open` and `fs.read_line_at` are both `[E0105]
+  *Reproduced against 0.1.96: `fs.open` and `fs.read_line_at` are both `[E0105]
   not exported by std/fs`, the diagnostic listing `ErrorKind, FileInfo, FsError,
   append_bytes, append_text, exists, is_dir, make_dir, and 7 more`, and
   `runtime/` still contains no `asyncIterator`, `AsyncIterable`,
@@ -3558,6 +3562,8 @@ and stopped on the same sentence: Glyph has no bytes.
   anywhere under `runtime/`, a `position` that can be null, and any iteration
   protocol at all, so the streaming shape stays unwritable. `std/stream` is still
   the property-testing sampler, so the naming problem is unchanged.*
+
+  *Re-run for 0.1.96: `std/fs` still exposes whole-file reads only, and `std/stream` is still the property-testing sampler.*
 
 - **G106. E0106 calls an import dead when only an `@example` uses it.** A module
   whose `@example` annotations reference `Some`/`None`, a union's constructors,
@@ -3573,7 +3579,7 @@ and stopped on the same sentence: Glyph has no bytes.
       @example wrap(1) == Some(1)
       pub fn wrap(n: number) -> Option<number> { Some(n) }
 
-  *Reproduced against 0.1.90, and the four-line repro above still does not show
+  *Reproduced against 0.1.96, and the four-line repro above still does not show
   it, the same way it stopped showing it at 0.1.84. Usage tracking got more
   accurate in 0.1.78: `Some(n)` in `wrap`'s body counts as a use, so the build
   flags only the dead `None` and the contradiction is masked. Isolating the claim
@@ -3624,6 +3630,8 @@ roadmap says is next.
 Not an app round. Found while wiring CI to let an app carry npm dependencies,
 which is the infrastructure round 28 left blocked.
 
+  *Re-run for 0.1.96: an import referenced only from an `@example` still draws `unused import`.*
+
 - **G107. In a multi-project build, a `tsc` error is reported against a
   same-named module in a *different project*.** `glyph build examples` builds
   each `apps/<name>/` as its own project (D41). When `tsc` reports an error in
@@ -3649,7 +3657,7 @@ which is the infrastructure round 28 left blocked.
   0.1.60 closed for single-project builds ("the compiler stops blaming the wrong
   line"); the multi-project path kept it, and it only shows when two projects
   share a module name, which for `main.glyph` is every app in the tree.
-  *Reproduced against 0.1.90: two directories, each carrying a `package.json`
+  *Reproduced against 0.1.96: two directories, each carrying a `package.json`
   with a `"glyph"` key and a `main.glyph`, the missing module in `beta`. The
   build prints `2 project(s)` and then the `TS2307` quoting `alpha`'s unrelated
   and correct `import std/io { println }` at `main:3:1`, with no project name in
@@ -3664,6 +3672,8 @@ which is the infrastructure round 28 left blocked.
 Four claims verified against the compiler and node before any were acted on; the
 full review is in `feedbacks/linus/04-server-lifetime-and-std-net.md`. Most of it
 was fixed in 0.1.80. Two were not, and are here.
+
+  *Re-run for 0.1.96: two projects each with a `main`: the `TS2307` for beta's bad import still quotes alpha's `import std/io`.*
 
 - **G120. [FIXED] `http.read_request` has no body size cap and never settles when a
   client disconnects mid-body.** It accumulates `raw += chunk` with no limit and
@@ -4483,13 +4493,15 @@ until this one.
   deadline the way `tls.connect` did (a breaking change to the two most-used
   functions in the stdlib), or whether `request` stops treating 0 as permission
   and `fetch_of` ships a real default instead. Scheduled in the rolling lane.
-  *Reproduced against 0.1.90, on the shape the entry describes: a TCP listener
+  *Reproduced against 0.1.96, on the shape the entry describes: a TCP listener
   that accepts the connection and sends nothing, dialled with `http.get`. The
   program printed `listening, dialing` and nothing else, and was still pending
   when it was killed at 50 seconds. `runtime/std/http.ts` is unchanged in the two
   places this entry names: `fetch_of` returns `timeout_ms: 0`, and `request` arms
   its timer only under `bounds.timeout_ms > 0`. `get` and `post` still take a URL
   and no deadline.*
+
+  *Re-run for 0.1.96: `fetch_of` and `head` still set `timeout_ms: 0`, and 0 still means no timeout.*
 
 - **G129. [FIXED] A variant name in an object pattern's field position
   compiled to a renamed binding, so the arm matched everything.** D9 reads a

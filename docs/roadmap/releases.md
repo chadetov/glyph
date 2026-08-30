@@ -6649,6 +6649,206 @@ The compiler already suppresses cascades.
 fast enough to run per edit. The bottleneck is the fidelity of the answer, not
 the speed of getting it.
 
+## Semantic graph requirements (Q45, R1 through R8)
+
+An outside requirements pass on the semantic graph, ordered by dependency rather
+than by value, with the expensive-to-revise items first. It is compatible with
+Q45 and sharper than Q45 on identity and serialization, which Q45 left implicit.
+Recorded here with what was checked against the compiler, because three of its
+premises had drifted.
+
+**The invariant, which is the part worth adopting verbatim.** Every edge is exact
+or absent, and absence of an edge means absence of a relation, never "analysis
+did not reach here." Any requirement that cannot hold this is a non-goal. This is
+the same rule as Q45's provenance and Q46's report of what was not checked,
+arriving a third time from a different direction, which is a good sign it is
+load-bearing.
+
+**Prerequisites, rechecked.** The pass lists three. Two are already done rather
+than pending: the incremental query architecture is salsa and has been since the
+pipeline was built, and lexer spans plus AST trivia exist because the formatter
+needs them. One declaration form per symbol holds by the greppability pillar.
+So the graph starts from a database that already exists, which moves it earlier
+than the pass assumed.
+
+**R1. Entity identity.** Stable IDs that survive edits elsewhere in the file.
+`module::kind::name` for declarations, parent plus field name for fields and
+payloads, and match arms keyed by the variant they cover rather than by position.
+Closures are the one unstable corner, keyed by parent plus ordinal. Positional
+IDs would reintroduce diff churn at the tooling layer, which is the failure the
+formatter exists to prevent. Decide before R4 through R7, because every later
+requirement encodes these IDs. Acceptance: inserting a declaration at the top of
+a file changes no other entity's ID.
+
+**R2. One type identity, not three.** The graph's identity for a type is the same
+identity as the runtime descriptor and the emitted brand. Note the drift: there
+is no brand scheme today, so this constrains a design that has not been written
+rather than correcting one that has. Keep it as a constraint on that future work.
+
+**R3. Boundary node kinds.** Every node is `glyph`, `extern`, or `opaque-ts`. A
+codebase that imports npm and is consumed from `.ts` has a frontier at many
+points, and the frontier has to be a node kind or the invariant fails on the
+first npm import. This gives `extern_ts` a second job beyond binding
+implementations: marking where the guarantees stop. Acceptance: no reachable
+identifier resolves to a node with no kind.
+
+**R4. Retain the exhaustiveness relation.** Store arm-to-variant edges and a
+per-site exhaustive or catch-all flag. The checker computes this and throws it
+away. Retaining it turns "what breaks if I add a variant" from a search into a
+lookup. Highest value per unit of cost in the list, and it is the direct
+instrument for the bug shape this project has now hit five times: G139, G141,
+G142, G143 and G148 were each one site not unwrapping `Ty::App` to its base.
+
+**R5. Provenance edges for generated code.** Codegen emits `generated-from` edges
+carrying source path and content hash. Codegen already holds both. Without the
+edge a hand-edit to a generated wire type is silently discarded on the next run
+and nothing tells the agent the repair belongs in the schema.
+
+**R6. Bind `@example` blocks to their entity.** One edge over shipping `@example`
+at all, and it turns "how is this called" into a compiler-verified answer.
+`@example` is real and parsed today, so this one is cheap and available now.
+
+**R7. Serialization.** Stable, versioned, line-oriented, sorted by entity ID,
+byte-identical across runs on unchanged input. The graph will be diffed and
+possibly checked in, and a format that reorders between runs recreates the churn
+the formatter prevents.
+
+**R8. Query surface, deferred.** Do not design before the workload is observed.
+Note the drift: the pass proposes instrumenting "the hookrelay probe", and
+hookrelay was a dogfood app from the 0.1.33 through 0.1.35 window, not a live
+probe. The intent still holds and needs a real instrumentation point. The
+honest one is Thor: its agents already issue every grep, glob and read against
+this repo, and the tick ledger already records them.
+
+**Non-goals it records, all of which stand.** Interprocedural dataflow edges are
+unsound under first-class functions and would break the invariant; signature
+reachability answers most of the real query exactly. Refinement facts beyond
+`where` are not expressible. Invariant preservation is a different product.
+Rename and find-references stay at v1.1. Greppability is not relaxed for the
+graph: if the graph is ever cited to justify a second declaration form, the
+pillar wins.
+
+## Capability audit against an outside review
+
+A twenty-item ranked list of "missing capabilities" arrived from a review written
+without repository access. Checked item by item against the compiler and the
+thirty-six stdlib modules, six are already shipped, seven are partial, and seven
+are open. Two of its four critical items are wrong, which is worth recording so
+the list is not re-adopted whole later.
+
+**Already shipped, and the review did not know.**
+
+- *A first-class `Result`/`Option` model*, ranked critical. `std/result` and
+  `std/option` exist, D15 gives them named imports, and D18 makes postfix `?`
+  bind tighter than `.`.
+- *An async model*, ranked critical. `async` and `await` are lexer keywords,
+  `std/task` exists, and `async fn f() -> Result<string, string>` compiles and
+  passes `tsc --strict` today.
+- *Serialization and schemas.* `std/json`, `std/schema`, D28 `infer_output`, and
+  `glyph gen openapi|dts|zod`.
+- *Time and duration.* `std/time`, `std/timers`, `std/intl`.
+- *Generated API and client tooling.* This is `glyph gen`, shipped.
+- *A testing framework.* `std/test` exports `property`, so property testing is
+  there, alongside `@example`.
+
+**Partial, and the remaining half is real.**
+
+- *Stdlib maturity.* The breadth exists: thirty-six modules including `net`,
+  `websocket`, `tls`, `dns`, `crypto`, `fs`, `encoding`, `collections`. What is
+  missing is stability of those APIs, not their existence.
+- *Ownership and mutation.* D5 `mut` and D25 `owned` cover the resource case.
+  The manifesto rules out general linear types, so "a principled model" here
+  means finishing the narrow one.
+- *Databases.* `std/sqlite` and `std/store` exist. Postgres does not.
+- *Observability.* `std/log` has structured logging with `with_fields`. There is
+  no metrics or tracing module.
+- *Configuration and secrets.* Reachable through `std/process`, not typed.
+- *FFI.* `extern_ts` and D29 cover the TypeScript direction, which is the only
+  direction that matters while TS is the runtime target.
+- *Package and dependency story.* D41 settles the project root; npm interop is
+  the 1.0 gate and is tracked above.
+
+**Open, and correctly ranked.**
+
+- *The semantic graph.* Q45, and the requirements section above.
+- *Effect and side-effect boundaries.* Whether a function is pure, does I/O, or
+  touches the network is not expressible. This is the strongest item on the list
+  that we do not already have, and it is the one that most helps an agent reason.
+- *Exhaustiveness completeness.* Five gaps in one shape, most recently G148.
+  R4 above is the instrument for it.
+- *Generics completeness.* Same family, same fix direction.
+- *A CLI application framework.*
+- *Memory and performance controls*, which are constrained by transpiling to TS.
+- *Profiling.* Last, and the review agrees.
+
+## Teaching models Glyph, and where that work lives
+
+Glyph is new, so no model has seen it. Four levels of "a model knows Glyph" are
+worth separating, because only the first two are ours to control.
+
+**Discoverability now.** `web/llms.txt` is 1104 lines and `glyph llms` reprints
+it offline, so the reference exists. What is missing is that nothing puts it in
+front of an agent working in a project. That is Q45's discovery item and it is
+scheduled there.
+
+**A corpus.** The unusual asset here is that Glyph compiles to TypeScript, and
+TypeScript has an enormous public corpus. A TypeScript-to-Glyph pipeline that
+round-trips through the compiler and its tests generates verified pairs rather
+than plausible ones. The compiler is the label. Start at roughly a thousand
+examples that are checked rather than a million that are not, and include the
+three kinds that documentation cannot express: wrong Glyph, the diagnostic it
+produces, and the corrected Glyph. That last kind is the training analogue of
+Q46, and both need the same thing from the compiler.
+
+**A benchmark.** Because we own the compiler we own the grader, and it can score
+past syntax: parse, typecheck, `tsc --strict`, run the tests. That is harder to
+game than a generation benchmark, and it is a stronger public position than
+another language announcement.
+
+**Vendor training.** Not directly available, and not worth planning around. The
+realistic path is being an excellent public target, which the three items above
+are.
+
+**Where it lives.** The compiler, runtime, stdlib, spec and examples stay here.
+A corpus, a benchmark harness, evaluation runs and any fine-tuning belong in a
+separate repository, because their lifecycle is different: dataset releases and
+model evaluations move on a different clock from language releases, and a
+half-gigabyte of data does not belong in the repository someone clones to build
+the compiler. The split rule this project already uses applies cleanly, which is
+to split when the lifecycle differs and keep it when a test enforces the
+coupling. The exception is the agent-facing guide itself, which stays here so an
+agent landing on the repository finds it without a second fetch.
+
+The semantic graph is a different case and should not be split. It is a
+projection of the compiler's own model, so a test enforces the coupling, and
+moving it out would create exactly the second source of truth the invariant
+forbids.
+
+## Fuzz the parser
+
+The parser is the one component where a crash is reachable from untrusted input
+and where a corpus of interesting failures compounds. Scope:
+
+- A recognized harness rather than a bespoke loop, so the corpus and the crash
+  format are ones other tools understand.
+- The parser first, then the lexer, since lexer bugs surface as parser crashes
+  anyway.
+- A scheduled run in Actions rather than per-PR, because a fuzzer that gates a
+  PR either runs too briefly to find anything or blocks the PR.
+- The corpus committed, minimized, and each entry named for what it broke. A
+  crash without a committed reproduction is a crash that comes back.
+- Findings go through the same gap ledger as everything else, so nothing is
+  found and then lost.
+
+## salsa 0.28 migration
+
+Dependabot #47 is not a version bump. 0.28 moves the `Update` trait, so the
+derive macro fails with `cannot find trait Update in crate salsa` at every call
+site in the query layer. It is an API migration on the incremental engine, which
+is the component every other feature reads through, so it wants its own change
+and its own testing rather than riding a dependency sweep.
+
+
 ## Parked (v2 / later)
 
 - **GitHub Linguist submission (a real "Glyph" language on GitHub).** Get `.glyph`

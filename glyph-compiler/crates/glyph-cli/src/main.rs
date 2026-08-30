@@ -1,4 +1,4 @@
-//! Glyph CLI — stub for Phase 0.
+//! The `glyph` binary.
 //!
 //! Commands (per `docs/implementation-plan.md §Phase 1 week 5`):
 //! - `glyph build src/ --out dist/ [--no-tsc] [--no-test]`  walk module graph,
@@ -26,7 +26,6 @@
 //! `check`, and `run`. `--no-check` is the old spelling of it on `build` and
 //! `run`, still accepted and hidden from `--help`.
 //!
-//! Phase 0 ships only the CLI structure; commands return "not yet implemented."
 
 #![forbid(unsafe_code)]
 
@@ -161,7 +160,7 @@ enum Command {
         path: Option<std::path::PathBuf>,
     },
     /// Scaffold a runnable starter project (src/main.glyph, .types/, package.json,
-    /// .gitignore) in DIR (default: the current directory).
+    /// .gitignore, AGENTS.md, .mcp.json) in DIR (default: the current directory).
     Init {
         #[arg(value_name = "DIR")]
         dir: Option<std::path::PathBuf>,
@@ -169,6 +168,16 @@ enum Command {
         /// (a library of `pub` functions, no `main`).
         #[arg(long, default_value = "cli")]
         template: String,
+    },
+    /// Write `AGENTS.md` and `.mcp.json` into an existing project, so a coding
+    /// agent finds the language reference and the compiler's analysis server
+    /// without being told they exist. `glyph init` already writes both.
+    Agents {
+        #[arg(value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+        /// Overwrite the files if they already exist.
+        #[arg(long)]
+        force: bool,
     },
     /// Run the language server over stdio (spawned by an editor extension).
     Lsp,
@@ -929,6 +938,30 @@ fn main() {
                 Err(e) => {
                     eprintln!("glyph upgrade: {e}");
                     std::process::exit(2);
+                }
+            }
+        }
+        Some(Command::Agents { dir, force }) => {
+            let dir = dir.unwrap_or_else(|| std::path::PathBuf::from("."));
+            match glyph_cli::init::scaffold_agent_files(&dir, force) {
+                Ok(report) => {
+                    for path in &report.created {
+                        eprintln!("created {}", path.display());
+                    }
+                    for path in &report.skipped {
+                        eprintln!("skipped {} (already exists; --force to replace)", path.display());
+                    }
+                    if !report.created.is_empty() {
+                        eprintln!();
+                        eprintln!(
+                            "An agent reading this directory now finds the language reference \
+                             (`glyph llms`) and the analysis server (`glyph mcp`)."
+                        );
+                    }
+                }
+                Err(e) => {
+                    eprintln!("glyph agents: {e}");
+                    std::process::exit(1);
                 }
             }
         }

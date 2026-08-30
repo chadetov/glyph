@@ -17,7 +17,7 @@ fn unique_tmp() -> PathBuf {
 fn scaffold_writes_a_runnable_starter() {
     let dir = unique_tmp();
     let report = scaffold(&dir).expect("scaffold");
-    assert_eq!(report.created.len(), 4, "expected four files created");
+    assert_eq!(report.created.len(), 6, "expected six files created");
     assert!(report.skipped.is_empty());
 
     for rel in ["src/main.glyph", "src/.types/README.md", "package.json", ".gitignore"] {
@@ -76,7 +76,7 @@ fn re_running_never_overwrites() {
 
     let second = scaffold(&dir).expect("second scaffold");
     assert_eq!(second.created.len(), 0, "second run should create nothing");
-    assert_eq!(second.skipped.len(), 4, "second run should skip all four files");
+    assert_eq!(second.skipped.len(), 6, "second run should skip all six files");
 
     let main = std::fs::read_to_string(dir.join("src/main.glyph")).unwrap();
     assert!(main.contains("edited by the user"), "user edit was clobbered");
@@ -173,4 +173,56 @@ fn a_scaffold_pins_the_compiler_that_wrote_it() {
     );
 
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The scaffold writes the two files a coding agent reads without being asked.
+///
+/// An agent dropped into a Glyph project used to see a manifest and a source
+/// file, be told nothing about the compiler's analysis server, and reach for
+/// grep. These assert the discovery path exists and points somewhere real.
+#[test]
+fn the_scaffold_tells_an_agent_where_the_reference_is() {
+    let dir = unique_tmp();
+    scaffold(&dir).expect("scaffold");
+
+    let agents = std::fs::read_to_string(dir.join("AGENTS.md")).expect("AGENTS.md");
+    assert!(agents.contains("glyph llms"), "AGENTS.md must name the offline reference");
+    assert!(agents.contains("glyph mcp"), "AGENTS.md must name the analysis server");
+
+    let mcp = std::fs::read_to_string(dir.join(".mcp.json")).expect(".mcp.json");
+    let parsed: serde_json::Value = serde_json::from_str(&mcp).expect(".mcp.json must be valid JSON");
+    assert_eq!(parsed["mcpServers"]["glyph"]["command"], "glyph");
+    assert_eq!(parsed["mcpServers"]["glyph"]["args"][0], "mcp");
+}
+
+/// The common case is a project that already exists, where `glyph init` would
+/// refuse to touch anything. `glyph agents` covers it.
+#[test]
+fn agent_files_can_be_added_to_a_project_that_already_exists() {
+    use glyph_cli::init::scaffold_agent_files;
+
+    let dir = unique_tmp();
+    std::fs::create_dir_all(&dir).expect("mkdir");
+    std::fs::write(dir.join("package.json"), "{\"name\":\"legacy\"}\n").expect("write");
+
+    let first = scaffold_agent_files(&dir, false).expect("first run");
+    assert_eq!(first.created.len(), 2, "both files are new");
+    assert!(dir.join("AGENTS.md").exists());
+    assert!(dir.join(".mcp.json").exists());
+
+    // Re-running must not clobber an AGENTS.md the project has since edited.
+    std::fs::write(dir.join("AGENTS.md"), "hand written\n").expect("edit");
+    let second = scaffold_agent_files(&dir, false).expect("second run");
+    assert_eq!(second.created.len(), 0, "nothing is rewritten without --force");
+    assert_eq!(second.skipped.len(), 2);
+    assert_eq!(
+        std::fs::read_to_string(dir.join("AGENTS.md")).unwrap(),
+        "hand written\n",
+        "an edited AGENTS.md survives"
+    );
+
+    // --force is the escape hatch, and it does replace.
+    let third = scaffold_agent_files(&dir, true).expect("forced run");
+    assert_eq!(third.created.len(), 2);
+    assert!(std::fs::read_to_string(dir.join("AGENTS.md")).unwrap().contains("glyph llms"));
 }

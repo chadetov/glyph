@@ -226,3 +226,87 @@ fn agent_files_can_be_added_to_a_project_that_already_exists() {
     assert_eq!(third.created.len(), 2);
     assert!(std::fs::read_to_string(dir.join("AGENTS.md")).unwrap().contains("glyph llms"));
 }
+
+/// `glyph lsp` must tolerate `--stdio`.
+///
+/// `vscode-languageclient` appends it whenever the transport is named as stdio,
+/// and rejecting it exits 2 before a single LSP message is read. VS Code retries
+/// five times and then stops, so the whole extension is dead with an error that
+/// names an argument the user never typed. The extension no longer sends it, but
+/// other clients do, and an LSP server that refuses the flag every client sends
+/// is broken for them.
+#[test]
+fn the_language_server_tolerates_the_stdio_flag_clients_send() {
+    use std::io::{BufRead, BufReader, Write};
+
+    let exe = env!("CARGO_BIN_EXE_glyph");
+    for args in [vec!["lsp", "--stdio"], vec!["lsp"]] {
+        let mut child = std::process::Command::new(exe)
+            .args(&args)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .expect("spawn glyph lsp");
+
+        let body = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"processId":null,"rootUri":null,"capabilities":{}}}"#;
+        {
+            let stdin = child.stdin.as_mut().expect("stdin");
+            write!(stdin, "Content-Length: {}\r\n\r\n{}", body.len(), body).expect("write");
+            stdin.flush().expect("flush");
+        }
+
+        // Read the header, then the body, rather than killing the child and
+        // hoping its output survived: a debug build is slow enough that a fixed
+        // sleep raced and reported an empty stdout as a failure to answer.
+        let stdout = child.stdout.take().expect("stdout");
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut r = BufReader::new(stdout);
+            let mut header = String::new();
+            loop {
+                let mut line = String::new();
+                if r.read_line(&mut line).unwrap_or(0) == 0 {
+                    break;
+                }
+                if line == "\r\n" {
+                    break;
+                }
+                header.push_str(&line);
+            }
+            let n: usize = header
+                .lines()
+                .find_map(|l| l.strip_prefix("Content-Length: "))
+                .and_then(|v| v.trim().parse().ok())
+                .unwrap_or(0);
+            let mut buf = vec![0u8; n];
+            use std::io::Read;
+            let _ = r.read_exact(&mut buf);
+            let _ = tx.send(String::from_utf8_lossy(&buf).into_owned());
+        });
+
+        let answer = rx
+            .recv_timeout(std::time::Duration::from_secs(30))
+            .unwrap_or_default();
+        let _ = child.kill();
+        let mut stderr = String::new();
+        if let Some(mut e) = child.stderr.take() {
+            use std::io::Read;
+            let _ = e.read_to_string(&mut stderr);
+        }
+        // Reap it. A killed child that is never waited on is a zombie, and
+        // clippy fails the build over it.
+        let _ = child.wait();
+
+        assert!(
+            !stderr.contains("unexpected argument"),
+            "`glyph {}` rejected an argument its clients send: {stderr}",
+            args.join(" ")
+        );
+        assert!(
+            answer.contains("serverInfo"),
+            "`glyph {}` did not answer initialize. body: {answer} stderr: {stderr}",
+            args.join(" ")
+        );
+    }
+}

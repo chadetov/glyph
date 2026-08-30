@@ -493,6 +493,15 @@ pub struct EmitContext<'a> {
     /// G76 closed for `match` exhaustiveness.
     /// Empty for a single-module build (no imported aliases).
     pub descriptorless_aliases: &'a std::collections::BTreeMap<(String, String), TypeExpr>,
+    /// `(module path, type name) -> variant names` for every tagged union
+    /// declared across the project, in declaration order. A match arm's bare
+    /// ident payload (`Err(empty)`) has to tell a variant reference apart from
+    /// a fresh binding; `union_variant_names` (this module's own scan) sees
+    /// nothing for an *imported* union, and shape alone (`is_variant_shaped`)
+    /// only covers a PascalCase variant. This registry is the other half: a
+    /// lowercase variant of an imported union is still found by name here
+    /// (G147). Empty for a single-module build (no imported unions).
+    pub union_variant_names: &'a std::collections::BTreeMap<(String, String), Vec<String>>,
 }
 
 impl<'a> EmitContext<'a> {
@@ -506,12 +515,17 @@ impl<'a> EmitContext<'a> {
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
+            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
         }
     }
 }
 
 static EMPTY_VARIANTS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
+
+static EMPTY_UNION_VARIANT_NAMES: std::sync::LazyLock<
+    std::collections::BTreeMap<(String, String), Vec<String>>,
+> = std::sync::LazyLock::new(Default::default);
 
 static EMPTY_DESCRIPTORS: std::sync::LazyLock<std::collections::BTreeSet<(String, String)>> =
     std::sync::LazyLock::new(std::collections::BTreeSet::new);
@@ -2530,6 +2544,19 @@ impl<'a> Emitter<'a> {
             Ty::App { base, .. } => base.as_ref(),
             other => other,
         };
+        // A union declared in another module lowers to `Ty::Imported { module,
+        // name }` rather than `Ty::Named` (this module's AST never sees the
+        // declaration to walk). The project-wide registry is the only place
+        // its variant list is readable from here; without this the payload
+        // union's variants were invisible whenever they arrived through an
+        // import rather than a same-module declaration (G147).
+        if let Ty::Imported { module, name } = ty {
+            return self
+                .ctx
+                .union_variant_names
+                .get(&(module.as_str().to_string(), name.to_string()))
+                .cloned();
+        }
         let Ty::Named { symbol, path } = ty else {
             return None;
         };
@@ -2962,11 +2989,11 @@ impl<'a> Emitter<'a> {
     /// reference and the emitter read it as a binding, the two arms lowered to
     /// duplicate `case "Err":` labels and the first silently swallowed every
     /// error. Shape alone cannot close that, because Glyph accepts a lowercase
-    /// variant name; the variant list alone cannot either, because an imported
-    /// payload union reaches the emitter as a `Ty::Imported` with no variants
-    /// attached. The one case neither half answers is a lowercase variant of an
-    /// imported union: it reads as a binding, and the duplicate-label guard
-    /// stops the build rather than letting it miscompile (G147).
+    /// variant name; `nested_payload_variants` closes the other half by
+    /// consulting the project-wide `union_variant_names` registry for a
+    /// payload union that reaches the emitter as `Ty::Imported`, so a
+    /// lowercase variant of an imported union is found by name rather than
+    /// falling through to the shape check (G147).
     fn is_nested_variant_name(&self, name: &Ident, scrutinee_ty: &Ty, outer: &str) -> bool {
         self.nested_payload_variants(scrutinee_ty, outer)
             .is_some_and(|vs| vs.iter().any(|v| v.as_str() == name.as_ref()))
@@ -6819,6 +6846,7 @@ mod tests {
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
+            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -6848,6 +6876,7 @@ mod tests {
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
+            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7328,6 +7357,7 @@ mod tests {
             generic_descriptor_arities: &arities,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
+            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(
@@ -7448,6 +7478,7 @@ mod tests {
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &EMPTY_DESCRIPTORS,
             descriptorless_aliases: &EMPTY_ALIASES,
+            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit");
         assert!(ts.contains("from \"./helpers\""), "{ts}");
@@ -9645,6 +9676,7 @@ mod tests {
             generic_descriptor_arities: &EMPTY_ARITIES,
             plain_descriptors: &descriptors,
             descriptorless_aliases: &EMPTY_ALIASES,
+            union_variant_names: &EMPTY_UNION_VARIANT_NAMES,
         };
         let ts = emit_module(&module, &resolved, &types, &prelude, ctx).expect("emit failed");
         assert!(

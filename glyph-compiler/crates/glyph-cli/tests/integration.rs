@@ -5132,6 +5132,54 @@ fn nested_imported_nullary_variant_dispatches_on_the_inner_tag() {
 }
 
 #[test]
+fn nested_lowercase_imported_nullary_variant_dispatches_on_the_inner_tag() {
+    // G147: the same shape as the test above, but the nullary variant is
+    // spelled lowercase (`empty`, not `EmptyOctet`). A lowercase bare ident in
+    // pattern position is still a legal variant reference in Glyph (D9 does
+    // not require PascalCase), but the emitter's only fallback for an
+    // unresolvable imported payload union was the name's *shape*
+    // (`is_variant_shaped`), which is uppercase-only. `Err(empty)` read as a
+    // fresh binding instead of a variant reference, so it and the following
+    // `Err(e) => ..` both lowered to `case "Err":` and the build refused to
+    // emit the duplicate label (E0305) rather than silently letting the first
+    // arm swallow every error. If this regresses, a real program with a
+    // lowercase nullary variant in an imported union (`empty`, `none`,
+    // `blank`, any name D9 does not force PascalCase on) stops compiling.
+    let root = unique_tmp("nested-nullary-imported-lowercase");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "net.glyph",
+        "module net\npub type ParseError =\n  | empty\n  | NotANumber({ got: string })\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import net { ParseError, empty, NotANumber }\n\
+         import std/result { Result, Ok, Err }\n\
+         pub fn describe(r: Result<int, ParseError>) -> string {\n\
+         \x20 return match r {\n\
+         \x20\x20\x20 Err(empty) => \"empty\",\n\
+         \x20\x20\x20 Err(e) => \"other\",\n\
+         \x20\x20\x20 Ok(v) => \"ok\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    assert_eq!(
+        ts.matches("case \"Err\"").count(),
+        1,
+        "one `case \"Err\"` with an inner tag switch, not the duplicate-label miscompile:\n{ts}"
+    );
+    assert!(ts.contains("case \"empty\""), "{ts}");
+    assert!(!ts.contains("const empty ="), "{ts}");
+}
+
+#[test]
 fn non_exhaustive_imported_union_match_is_caught() {
     // The imported-union type-resolution pass: a match on an imported union that
     // omits a variant is now E0200, resolved cross-module by the union's real
@@ -5173,6 +5221,103 @@ fn non_exhaustive_imported_union_match_is_caught() {
             .any(|d| d.contains("E0200") && d.contains("`NotANumber`")),
         "missing variants must be backticked on the imported path: {:?}",
         report.diagnostics
+    );
+}
+
+/// G143: the imported-union coverage check only ever counted the outer
+/// union's variant tags, with no equivalent of `check_patterns_exhaustive`'s
+/// recursion into a constructor arm's payload. `B(X)` over an imported
+/// `type G = A | B(Inner)`, where `Inner = X | Y` is a sibling declaration in
+/// the same imported module, marked `B` fully covered without ever looking
+/// at whether the nested `Inner` pattern covered `X` alone. The module-local
+/// spelling of the identical program was already caught by
+/// `a_generic_union_whose_payload_is_a_union_recurses_into_the_payload`'s
+/// non-generic twin; only the cross-module path had the hole.
+///
+/// If this regresses, a program built clean and passed `tsc --strict` with
+/// `Y` completely unhandled, and `f(B(Y))` threw `Error: non-exhaustive
+/// match` at run time instead of failing at compile time.
+#[test]
+fn nested_payload_of_an_imported_union_is_exhaustiveness_checked() {
+    let root = unique_tmp("impnestedexhaust");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "tree.glyph",
+        "module tree\n\
+         pub type Inner =\n\
+         \x20 | X\n\
+         \x20 | Y\n\
+         pub type G =\n\
+         \x20 | A\n\
+         \x20 | B(Inner)\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import std/io { println }\n\
+         import tree { X, Y, G, A, B }\n\
+         fn f(g: G) -> string {\n\
+         \x20 return match g {\n\
+         \x20\x20\x20 A => \"a\",\n\
+         \x20\x20\x20 B(X) => \"x\",\n\
+         \x20 }\n\
+         }\n\
+         fn main() {\n\
+         \x20 println(f(B(Y)))\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.has_errors(),
+        "a missing nested variant of an imported union's payload must be caught: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.contains("E0200") && d.contains("Inner") && d.contains("`Y`")),
+        "the missing inner variant `Y` must be reported by name through the \
+         imported outer union `G`: {:?}",
+        report.diagnostics
+    );
+
+    // The control: the identical two declarations moved into one module
+    // build clean once `Y` is handled — this is not a false positive on the
+    // valid spelling.
+    let ok_root = unique_tmp("impnestedexhaustok");
+    let ok_src = ok_root.join("src");
+    write_file(
+        &ok_src,
+        "tree.glyph",
+        "module tree\n\
+         pub type Inner =\n\
+         \x20 | X\n\
+         \x20 | Y\n\
+         pub type G =\n\
+         \x20 | A\n\
+         \x20 | B(Inner)\n",
+    );
+    write_file(
+        &ok_src,
+        "main.glyph",
+        "module main\n\
+         import tree { X, Y, G, A, B }\n\
+         fn f(g: G) -> string {\n\
+         \x20 return match g {\n\
+         \x20\x20\x20 A => \"a\",\n\
+         \x20\x20\x20 B(X) => \"x\",\n\
+         \x20\x20\x20 B(Y) => \"y\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let ok_report = build_project_inner(&ok_src, &ok_root.join("dist"), false).expect("build");
+    assert!(
+        !ok_report.has_errors(),
+        "covering every nested variant must build clean: {:?}",
+        ok_report.diagnostics
     );
 }
 

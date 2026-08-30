@@ -25,8 +25,8 @@ use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind}
 
 use crate::lower::Lowerer;
 use crate::ty::{
-    ty_display, FnParam, ImportedTypeDecl, ParamOwner, Primitive, RecordField, SymbolRef, Ty,
-    UnionVariant,
+    ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField,
+    SymbolRef, Ty, UnionVariant,
 };
 use crate::type_map::TypeMap;
 use crate::TypeError;
@@ -2250,8 +2250,13 @@ impl Assigner<'_> {
         // arity is not something the exhaustiveness bar may depend on, the
         // same rule `resolve_named_union` applies on the module-local side.
         if matches!(union_base(scrutinee_ty), Ty::Unknown | Ty::Imported { .. }) {
-            if let Some((type_name, required)) = self.imported_union_variants_from_arms(arms) {
-                self.check_imported_union_coverage(&type_name, &required, arms, match_span);
+            if let Some((module, type_name, required)) =
+                self.imported_union_variants_from_arms(arms)
+            {
+                let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
+                self.check_imported_union_coverage(
+                    &module, &type_name, &required, &patterns, match_span,
+                );
                 return;
             }
         }
@@ -2312,10 +2317,14 @@ impl Assigner<'_> {
     /// `import model as m`) is resolved through its *head* instead: the variant
     /// name is not a symbol under a namespace import, so the `ImportNamed`
     /// lookup below can never find it and the whole match went unchecked.
+    /// Returns the source module alongside the type name and variant set so a
+    /// caller that needs to resolve a payload deeper (`check_imported_union_coverage`'s
+    /// nested-pattern recursion) can ask the same module for a different type
+    /// without re-deriving it from the arms a second time.
     fn imported_union_variants_from_arms(
         &self,
         arms: &[MatchArm],
-    ) -> Option<(String, Vec<Ident>)> {
+    ) -> Option<(ModuleKey, String, Vec<Ident>)> {
         for arm in arms {
             if let Pattern::Constructor { path, .. } = &arm.pattern {
                 if path.len() >= 2 {
@@ -2344,24 +2353,25 @@ impl Assigner<'_> {
                 continue;
             };
             let module_path = crate::lower::module_key(path);
-            if let Some(found) = self
+            if let Some((type_name, variants)) = self
                 .decl_ty_resolver
                 .imported_union_of_variant(module_path.as_str(), original)
             {
-                return Some(found);
+                return Some((module_path, type_name, variants));
             }
         }
         None
     }
 
-    /// The `(type name, variant set)` a qualified constructor pattern names,
-    /// when its head is a namespace import of a project sibling: `model.Yes(_)`
-    /// resolves `model` to its `ImportNamespace`/`ImportAlias` path and asks the
-    /// resolver which union in that module declares `Yes`. `None` for a head
-    /// that is not a namespace import, or a module that declares no such
-    /// variant (a stdlib namespace such as `option` has no project file, so it
-    /// falls through here and is typed by the lowerer instead).
-    fn qualified_union_variants(&self, path: &[Ident]) -> Option<(String, Vec<Ident>)> {
+    /// The `(module, type name, variant set)` a qualified constructor pattern
+    /// names, when its head is a namespace import of a project sibling:
+    /// `model.Yes(_)` resolves `model` to its `ImportNamespace`/`ImportAlias`
+    /// path and asks the resolver which union in that module declares `Yes`.
+    /// `None` for a head that is not a namespace import, or a module that
+    /// declares no such variant (a stdlib namespace such as `option` has no
+    /// project file, so it falls through here and is typed by the lowerer
+    /// instead).
+    fn qualified_union_variants(&self, path: &[Ident]) -> Option<(ModuleKey, String, Vec<Ident>)> {
         let head = path.first()?;
         let variant = path.last()?;
         let &sym_id = self.resolved.symbols.by_name.get(head)?;
@@ -2371,30 +2381,47 @@ impl Assigner<'_> {
             _ => return None,
         };
         let module_path = crate::lower::module_key(import_path);
-        self.decl_ty_resolver
-            .imported_union_of_variant(module_path.as_str(), variant)
+        let (type_name, variants) = self
+            .decl_ty_resolver
+            .imported_union_of_variant(module_path.as_str(), variant)?;
+        Some((module_path, type_name, variants))
     }
 
     /// Coverage check for a `match` on an imported union: every required variant
-    /// must be covered by an arm, or a catch-all must absorb the rest. Whole-
-    /// variant coverage only (nested-pattern exhaustiveness of an imported union
-    /// is not tracked cross-module in v1). Emits `NonExhaustiveMatch`, and
-    /// `UnknownVariantPattern` for a constructor head that names no variant of
-    /// the union — that arm used to be inserted into `covered` unexamined, so a
-    /// misspelling reached `tsc` and came back as a raw `TS2678` instead of a
-    /// Glyph diagnostic pointing at the arm.
+    /// must be covered by an arm, or a catch-all must absorb the rest. A variant
+    /// covered only by a single-payload constructor sub-pattern (`B(X)`) is not
+    /// enough on its own — the payload might itself be a tagged union with
+    /// variants the arm never names — so that sub-pattern is checked
+    /// recursively against the payload's own variant set, exactly as
+    /// `check_patterns_exhaustive` recurses on the module-local side. The
+    /// payload's declaration is resolved cross-module the same way the outer
+    /// union was (`DeclTyResolver::imported_type_decl`), so nesting composes
+    /// across a chain of imported unions of arbitrary depth, whether the inner
+    /// union is a sibling declaration in the same source module or itself
+    /// re-imported from a third one.
+    ///
+    /// Also emits `UnknownVariantPattern` for a constructor head that names no
+    /// variant of the union — that arm used to be inserted into `covered`
+    /// unexamined, so a misspelling reached `tsc` and came back as a raw
+    /// `TS2678` instead of a Glyph diagnostic pointing at the arm.
     fn check_imported_union_coverage(
         &mut self,
+        module: &ModuleKey,
         type_name: &str,
         required: &[Ident],
-        arms: &[MatchArm],
+        patterns: &[&Pattern],
         match_span: glyph_ast::Span,
     ) {
         let mut covered: std::collections::HashSet<&str> = std::collections::HashSet::new();
+        // Variants covered only via a nested constructor sub-pattern
+        // (`B(X)`): the payload's own exhaustiveness is a separate question,
+        // checked below by recursion, once it's known the payload's variant
+        // set can even be resolved.
+        let mut nested: HashMap<&str, Vec<&Pattern>> = HashMap::new();
         let mut has_catch_all = false;
         let mut unknown: Vec<(String, glyph_ast::Span)> = Vec::new();
-        for arm in arms {
-            match &arm.pattern {
+        for pat in patterns {
+            match pat {
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => has_catch_all = true,
                 Pattern::Ident { name, .. } => {
                     if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
@@ -2403,10 +2430,38 @@ impl Assigner<'_> {
                         has_catch_all = true;
                     }
                 }
-                Pattern::Constructor { path, span, .. } => {
+                Pattern::Constructor {
+                    path, args, span, ..
+                } => {
                     if let Some(v) = path.last() {
                         if required.iter().any(|r| r == v) {
-                            covered.insert(v.as_ref());
+                            match args.as_slice() {
+                                // Same rule as `check_patterns_exhaustive`: a
+                                // record destructure sub-pattern that can
+                                // itself fail (tests a field's value) covers
+                                // nothing on its own, so the variant is
+                                // neither `covered` nor `nested` — a missing
+                                // variant still surfaces below.
+                                [sub]
+                                    if sub.is_refutable()
+                                        && matches!(sub, Pattern::Object { .. }) => {}
+                                // A single payload sub-pattern covers the
+                                // *variant* here, but whether it covers the
+                                // payload's own variant set is a question for
+                                // the payload's type — deferred to the
+                                // recursive check below. Folding this
+                                // straight into `covered` was the shallow
+                                // bug: `B(X)` over `Inner = X | Y` marked `B`
+                                // fully handled without ever looking at `Y`.
+                                [sub] => {
+                                    nested.entry(v.as_ref()).or_default().push(sub);
+                                }
+                                // No-arg or multi-arg payloads fully cover
+                                // the variant at this level.
+                                _ => {
+                                    covered.insert(v.as_ref());
+                                }
+                            }
                         } else if is_constructor_shaped(v) {
                             unknown.push((v.to_string(), *span));
                         }
@@ -2430,12 +2485,37 @@ impl Assigner<'_> {
         // Backticked, exactly like the module-local path in
         // `check_patterns_exhaustive`: E0200 has one shape whether the union was
         // declared here or imported (greppability — one rule, one rendering).
-        let missing: Vec<String> = required
-            .iter()
-            .map(|v| v.as_ref())
-            .filter(|v| !covered.contains(v))
-            .map(|v| format!("`{v}`"))
-            .collect();
+        let mut missing: Vec<String> = Vec::new();
+        for v in required {
+            let v = v.as_ref();
+            if covered.contains(v) {
+                continue;
+            }
+            match nested.get(v) {
+                Some(subs) => {
+                    // The variant IS present (a `V(...)` arm exists); recurse
+                    // into its payload, when the payload is itself an
+                    // imported union, to check the nested patterns. A payload
+                    // this module can't resolve to a union (not exported as
+                    // one, or not a union at all) makes this a no-op — the
+                    // same conservative "skip, don't false-positive" the
+                    // module-local recursion takes when `variant_payload`
+                    // comes back empty.
+                    if let Some((inner_module, inner_type_name, inner_required)) =
+                        self.imported_variant_payload_union(module, type_name, v)
+                    {
+                        self.check_imported_union_coverage(
+                            &inner_module,
+                            &inner_type_name,
+                            &inner_required,
+                            subs,
+                            match_span,
+                        );
+                    }
+                }
+                None => missing.push(format!("`{v}`")),
+            }
+        }
         if !missing.is_empty() {
             self.errors.push(TypeError::NonExhaustiveMatch {
                 type_name: type_name.to_string(),
@@ -2443,6 +2523,62 @@ impl Assigner<'_> {
                 span: match_span,
             });
         }
+    }
+
+    /// The payload of `variant` (a variant of the imported union `type_name`
+    /// declared in `module`), when that payload is itself resolvable as a
+    /// tagged union: its own `(module, type name, required variants)`. This is
+    /// the type-driven counterpart of `imported_union_variants_from_arms`'s
+    /// arm-driven top-level discovery — here the variant is already known, so
+    /// only its payload's declaration needs resolving, via the same
+    /// `imported_type_decl` query the outer union itself was resolved
+    /// through.
+    ///
+    /// `None` when the union or the variant can't be found, the variant is
+    /// nullary, or the payload doesn't resolve to a union (a record payload,
+    /// a primitive, or a type this module has no cross-module view of).
+    fn imported_variant_payload_union(
+        &self,
+        module: &ModuleKey,
+        type_name: &str,
+        variant: &str,
+    ) -> Option<(ModuleKey, String, Vec<Ident>)> {
+        let decl = self.decl_ty_resolver.imported_type_decl(module.as_str(), type_name)?;
+        let Ty::Union { variants } = &decl.body else {
+            return None;
+        };
+        let payload = variants
+            .iter()
+            .find(|v| v.name.as_ref() == variant)?
+            .payload
+            .as_ref()?;
+        // A type named inside an exported union's body lowers to
+        // `Ty::Imported` off the export view (`Lowerer::for_export`)
+        // regardless of whether it's a sibling declaration in this same
+        // source module or itself re-imported from a third one, so this one
+        // match handles both. `union_base` first unwraps a generic
+        // application (`B(Tree<K>)`) to its base.
+        let Ty::Imported {
+            module: inner_module,
+            name: inner_name,
+        } = union_base(payload)
+        else {
+            return None;
+        };
+        let inner_decl = self
+            .decl_ty_resolver
+            .imported_type_decl(inner_module.as_str(), inner_name)?;
+        let Ty::Union {
+            variants: inner_variants,
+        } = &inner_decl.body
+        else {
+            return None;
+        };
+        Some((
+            inner_module.clone(),
+            inner_decl.name.to_string(),
+            inner_variants.iter().map(|v| v.name.clone()).collect(),
+        ))
     }
 
     /// A `match` over a `number`/`string` is exhaustive only if it has a
@@ -2867,9 +3003,56 @@ impl Assigner<'_> {
                     // The variant IS present (a `V(...)` arm exists); recurse
                     // into its payload to check the nested patterns. A payload
                     // that isn't a tagged union makes `required_variants`
-                    // return None and the recursion a no-op.
+                    // return None — but that None hides two very different
+                    // cases the recursion cannot tell apart from inside: the
+                    // payload is genuinely uninspectable (imported, or its
+                    // type never resolved), where staying silent is the only
+                    // safe answer, or the payload resolved all the way to a
+                    // concrete declaration that simply has no variants (a
+                    // record, most often), where the compiler knows exactly
+                    // what shape values take. In the second case a
+                    // variant-shaped sub-pattern (`Ok(Point)` against `type
+                    // Point = { .. }`) can never match anything; left
+                    // unflagged here it passed Glyph's typecheck clean and
+                    // only failed downstream at the tsc backend, on a `.tag`
+                    // property the emitter's own PascalCase shape fallback
+                    // (`is_variant_shaped`) invented for a value the author
+                    // never asked to be tag-tested (G146). `type_name` here
+                    // is the *enclosing* union's display name (`Result`, not
+                    // `Point`), which is what actually reads correctly in
+                    // "`Point` is not a variant of `Result`" — recursing
+                    // normally would instead have `Point` resolve its own
+                    // (empty) variant set and report against itself.
                     if let Some(payload_ty) = self.variant_payload(scrutinee_ty, v) {
-                        self.check_patterns_exhaustive(&payload_ty, subs, match_span);
+                        if self.required_variants(&payload_ty).is_some() {
+                            self.check_patterns_exhaustive(&payload_ty, subs, match_span);
+                        } else if self.resolves_to_non_union_decl(&payload_ty) {
+                            for sub in subs {
+                                let (name, span) = match sub {
+                                    Pattern::Ident { name, span }
+                                        if is_constructor_shaped(name) =>
+                                    {
+                                        (name.clone(), *span)
+                                    }
+                                    Pattern::Constructor {
+                                        path, span, ..
+                                    } if path.last().is_some_and(is_constructor_shaped) => {
+                                        (path.last().unwrap().clone(), *span)
+                                    }
+                                    // A lowercase binding of the whole payload
+                                    // (`Ok(p)`), or a destructure of it
+                                    // (`Ok({ x, y })`), is legitimate against a
+                                    // record payload and covers nothing to flag.
+                                    _ => continue,
+                                };
+                                self.errors.push(TypeError::UnknownVariantPattern {
+                                    union: type_name.clone(),
+                                    name: name.to_string(),
+                                    suggestion: None,
+                                    span,
+                                });
+                            }
+                        }
                     }
                 }
                 None => missing.push(v),
@@ -3081,6 +3264,34 @@ impl Assigner<'_> {
             return None;
         };
         matches!(&td.body, TypeExpr::Union { .. }).then_some((td, args))
+    }
+
+    /// Whether `ty` resolves all the way to a module-local type declaration
+    /// that is concretely *not* a tagged union (most often a record). Walks
+    /// the same symbol/decl resolution as `resolve_named_union`, but answers
+    /// the opposite question: not "is this a union", but "does the compiler
+    /// know for certain it has no variants at all", as distinct from a type
+    /// it simply cannot see into (imported, or unresolved). G146's nested
+    /// exhaustiveness recursion needs exactly that distinction: a payload the
+    /// compiler cannot resolve must stay silently unchecked (it might be a
+    /// real union the resolver just can't reach across a module boundary),
+    /// while a payload that resolves right down to a record declaration is
+    /// provably not a union and a variant-shaped pattern against it can be
+    /// flagged on the spot.
+    fn resolves_to_non_union_decl(&self, ty: &Ty) -> bool {
+        let (base, _args) = split_type_app(ty);
+        let Ty::Named { symbol, path } = base else { return false };
+        let Some(sym) = self.resolved.symbols.table.get(SymbolId(symbol.0)) else {
+            return false;
+        };
+        if path.last().map(|n| n.as_ref()) != Some(sym.name.as_ref()) {
+            return false;
+        }
+        let SymbolKind::Type { decl_idx } = sym.kind else { return false };
+        let Some(Decl::Type(td)) = self.module.items.get(decl_idx as usize) else {
+            return false;
+        };
+        !matches!(&td.body, TypeExpr::Union { .. })
     }
 
     /// The literal set of a string-literal-union type, resolving a named alias
@@ -4782,6 +4993,56 @@ fn run(r: Result<Option<number>, string>) -> number {
             }
             other => panic!("expected NonExhaustiveMatch, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn nested_bare_ident_naming_a_record_type_is_e0220() {
+        // `Point` is a record, not a union: a bare `Point` as `Ok`'s payload
+        // sub-pattern reads (by shape, D9) as a variant reference, but the
+        // payload it is tested against has no variants at all. Before this
+        // fix `check_patterns_exhaustive`'s recursive call resolved
+        // `payload_ty` to `Point` fine, then `required_variants(payload_ty)`
+        // came back `None` for it the same way it does for an imported or
+        // unresolvable type, and the whole check silently returned. The arm
+        // then reached the tsc backend clean and failed there instead, on a
+        // `.tag` property the emitter's PascalCase shape fallback
+        // (`is_variant_shaped`) invented for a value nobody asked to be
+        // tag-tested (G146). This must be caught here, at Glyph typecheck
+        // time, distinctly from a genuinely unresolvable/imported payload
+        // (which must stay silent) and from a wrong variant of a real union
+        // (already covered by `typo_constructor_form_with_payload_is_e0220`).
+        let src = r#"module x
+type Point = { x: int, y: int }
+fn f(r: Result<Point, string>) -> int {
+  return match r {
+    Ok(Point) => 1,
+    Err(e) => 0,
+  }
+}
+"#;
+        let errs = ty_errors_of(src);
+        let e0220 = errs
+            .iter()
+            .find(|e| e.code() == "E0220")
+            .unwrap_or_else(|| {
+                panic!("expected E0220 for the record-shaped nested payload; got {errs:?}")
+            });
+        let TypeError::UnknownVariantPattern {
+            name,
+            union,
+            suggestion,
+            ..
+        } = e0220
+        else {
+            panic!("expected UnknownVariantPattern, got {e0220:?}");
+        };
+        assert_eq!(name, "Point");
+        assert_eq!(union, "Result");
+        assert_eq!(suggestion.as_deref(), None);
+        assert!(
+            !errs.iter().any(|e| e.code() == "E0200"),
+            "`Ok` has a real arm; it must not also be reported as a missing variant: {errs:?}"
+        );
     }
 
     #[test]

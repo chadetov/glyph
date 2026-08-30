@@ -4497,6 +4497,82 @@ and G140's namespace half moved on to 0.1.96, unchanged.
 
 *Found by an app round. Reproduced against 0.1.91 and fixed in the same round.*
 
+## Road to 0.1.105
+
+The committed sequence. Each release is cut and published as soon as it is
+ready rather than batched, and each gets its own `###` entry with a review
+stamp when it is cut, because a plan written ten releases ahead is a claim
+about a compiler that has not stopped moving.
+
+Ordering rule, in force for the whole sequence: a program that compiles clean
+and misbehaves at run time outranks a missing diagnostic, which outranks
+anything an agent or a person merely finds annoying, which outranks
+infrastructure, which outranks polish. Dependencies are respected where the
+entries below name them.
+
+**0.1.96 — The variants of a union the emitter did not declare**
+- Hand the emitter an imported union's variant names so a lowercase nested arm stops failing E0305 (G147)
+- Deepen the shallow imported-union coverage check off that same variant list (G143)
+- Report a constructor-shaped pattern over a non-union payload as an E0220-class Glyph error (G146)
+- Route the top-level array-pattern chain through `pattern_conditions` so `[Black]` tests instead of binds (G138)
+
+**0.1.97 — One identity for a function across a module boundary**
+- Add an `exported_fn` signature query so a call into another module stops typing as Unknown (G133)
+- Decide that query's shape: full `Ty::Fn` or return type only, and the emitter's answer on an empty registry (G133)
+- Record an imported union's payload type under the namespace spelling so `tree.Node` stops being E0300 (G140)
+- Type a match scrutinee bound by an inferred `let` so the arm stops falling back to `.value` (G132)
+
+**0.1.98 — The for loop finally knows its element type**
+- Bind an element type for `Stmt::For` so `array.slice`/`map` iterands stop lowering to `Object.entries` (G37)
+- Keep D30 string-union exhaustiveness alive inside a loop; E0218 stops suggesting the `else` (G67)
+- Diagnose a module that declares no `pub` and emits zero exports, before the host toolchain does (G124)
+- Count `@example` references in the unused-import lint so E0106 stops firing on live imports (G106)
+
+**0.1.99 — The front end answers instead of tsc**
+- Check an annotated `let` against its initializer, so `let x: string = 42` is a Glyph error rather than TS2322 (G149)
+- Reject member access, call arity, and argument types against a receiver that is still Unknown (G39)
+- Resolve E0010 and E0300's opposite claims about positional variant patterns into one rule (G135)
+- Make an unresolved import a resolver diagnostic naming the modules that exist, not TS2307 (Q46)
+- Report an `is`-narrowed value used outside its binding as a Glyph diagnostic rather than a tsc one (G98)
+
+**0.1.100 — Nothing at the network boundary is unbounded**
+- Decide and ship the http deadline: required on `get`/`post`, or `request` stops reading 0 as skip-the-timer (G128)
+- Give `Response` a text accessor so a JSON body stops printing as `[object Object]` (G118)
+- Decide how `Option<T>` reads ordinary JSON: loosen `.parse`, or add a distinct nullable boundary type (G91)
+
+**0.1.101 — The hybrid app's dev loop**
+- `glyph build --watch`, so the Glyph half stops being compile-by-hand next to Vite's HMR (G123)
+- A browser target that stops materializing the seven host modules under `.glyph-runtime` (G115)
+- Make `glyph fmt` reach a fixed point in one pass so `--check` stops failing on fmt's own output (G151)
+- Stop `fmt` reprinting `=> ({})` as `=> {}`; the AST needs a grouping node (G60)
+- Remap a tsc error onto the right project's module in a multi-project build (G107)
+
+**0.1.102 — salsa 0.28, and the pipeline's own gaps**
+- Migrate the query layer to salsa 0.28's moved `Update` trait, alone, with no feature work beside it
+- Execute darwin-x64 somewhere in CI (macos-13 is the honest fix)
+- Run `check_binary_fresh.py` from the release workflow instead of by hand
+- Ship license text in all six npm packages
+- Detect musl and diagnose it rather than handing Alpine a glibc binary
+
+**0.1.103 — MCP stops re-analyzing the workspace per call**
+- One semantic query boundary shared by LSP and MCP over `resolve`, `module_symbols`, `type_map`, `decl_ty`, `module_exports`
+- Stop `glyph_references` running 175 full analyses of the examples tree to answer one question
+- Write the projection constraint into the spec: the semantic view derives from the compiler and never re-derives (Q45)
+- Measure the agent success rate, first-compile fraction and cycles to green, from what Thor already produces (Q46)
+
+**0.1.104 — Entity identity, and where the graph meets npm**
+- R1: `TypeId`, `ModuleId` and `ScopeId` beside `SymbolId`; inserting a declaration renumbers nothing
+- R1: key match arms by the variant they cover rather than by position
+- R3: `glyph` / `extern` / `opaque-ts` node kinds, so exact-or-absent survives the first npm import
+- R6: bind `@example` blocks to the entity they document
+
+**0.1.105 — The exhaustiveness relation, and the tools reading it**
+- R4: retain the checker's arm-to-variant edges with a per-site exhaustive or catch-all flag (G139, G141, G142, G143, G148)
+- An MCP tool for every match site over a type and which variants each one covers
+- `CALLS` distinct from `REFERENCES`, and what a declaration was generated from, each answer carrying provenance
+- R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
+- R8's wider query surface stays out until the tick ledger shows the workload
+
 ### 0.1.96 — Next · The variants of a union the emitter did not declare
 
 This was the 0.1.95 plan and it did not ship there. 0.1.95 shipped the item that
@@ -4583,7 +4659,7 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.97 — Planned · Build the semantic graph, and expose it through MCP
+### 0.1.103 — Planned · Build the semantic graph, and expose it through MCP
 
 The compiler resolves every name, types every expression and finds every
 reference, because compiling requires it. Almost none of that is reachable from

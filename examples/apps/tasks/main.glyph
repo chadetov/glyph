@@ -4,7 +4,7 @@
 // durable storage, boundary validation on the way out of the database *and* off
 // the wire, errors as values, and an `std/http` server. Data survives restarts.
 //
-// Run it:  glyph run examples/apps/tasks.glyph
+// Run it:  glyph run examples/apps/tasks/main.glyph
 // Then:
 //   curl -X POST localhost:8137/tasks  -d '{"title":"buy milk"}'
 //   curl        localhost:8137/tasks

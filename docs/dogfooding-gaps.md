@@ -1,7 +1,7 @@
 # Step 6 dogfooding — gap list
 
 Findings from building and running the fridge shopping-list app
-(`examples/apps/fridge.glyph`) and probing the compiler/stdlib with real-app
+(`examples/apps/fridge/main.glyph`) and probing the compiler/stdlib with real-app
 patterns. The app itself builds, passes `tsc --strict`, runs end to end, and its
 six `@example` tests pass — but writing it surfaced concrete gaps, several of
 them silent-miscompile **bugs** (code that passes `glyph build` and `tsc` and
@@ -764,7 +764,7 @@ directly surfaced one new gap.
 ## Round 6 — Minesweeper in the terminal (no framework, no dependency)
 
 The improve-glyph loop pointed at an ordinary program instead of an integration:
-Minesweeper (`examples/apps/minesweeper.glyph`), a 9x9 grid, lazy first-click
+Minesweeper (`examples/apps/minesweeper/main.glyph`), a 9x9 grid, lazy first-click
 mine placement, flood-fill reveal, a flag/unflag command loop, and a deterministic
 seeded RNG so a transcript compares byte for byte. No npm dependency, no server,
 no JSX. It builds, passes `tsc --strict`, and plays. Eight gaps came out of
@@ -912,7 +912,7 @@ on a decision in `docs/roadmap/releases.md`.
 
 ## Round 7 — an expense report CLI (a ledger, a parser, and money)
 
-The loop pointed at a plain command-line tool: `examples/apps/expenses.glyph`
+The loop pointed at a plain command-line tool: `examples/apps/expenses/main.glyph`
 reads a CSV ledger, validates every row, and prints a per-category report with
 exact money. Fifteen findings came out of it. Thirteen are "Glyph made me type
 more" (a missing `string.repeat`/`pad_start`, no `array.fold`, no
@@ -1022,7 +1022,7 @@ workaround for the first and is still open.
   nothing to join. `T.parse` now types as `Result<T, Array<Issue>>` for the
   non-generic record, union, and refined-primitive types that emit a descriptor,
   read off the same shape the emitter writes. With both pieces in place the
-  annotation came out of `examples/apps/settle.glyph` and the loop still binds a
+  annotation came out of `examples/apps/settle/main.glyph` and the loop still binds a
   number: a corrupt third entry reports `expense 3`, not `expense 21`.
 
   The half that remains is the one that was always a decision: an iterand whose
@@ -1056,7 +1056,7 @@ workaround for the first and is still open.
   `linkcheck.glyph`, and one in `bracket.glyph`, where the deleted line also
   carried a two-line comment saying the annotation was load-bearing. `bracket`'s
   `put` now reads `for i, c in string.split(text, "")` and emits `.entries()`;
-  its ASCII bracket renders byte-identically. `examples/apps/expenses.glyph:139`
+  its ASCII bracket renders byte-identically. `examples/apps/expenses/main.glyph:139`
   is the one site that had to keep its annotation, because it slices, and its
   comment was narrowed from "the type of a std-module call" to `array.slice`
   specifically. `shortlink.glyph:348` keeps its annotation for the same reason
@@ -1091,7 +1091,7 @@ workaround for the first and is still open.
 
 ## Round 8 — a text adventure, and the return of "silent green"
 
-The loop pointed at `examples/apps/adventure.glyph`, a text adventure: rooms, an
+The loop pointed at `examples/apps/adventure/main.glyph`, a text adventure: rooms, an
 inventory, a command parser. Thirteen findings came out of it. Twelve are the
 compiler not knowing something (member access and call arguments against a
 `Ty::Unknown` receiver go unchecked at the stdlib boundary) or the stdlib not
@@ -1246,7 +1246,7 @@ the same hole on a second axis, and the two are one defect.
 
 ## Round 10 — a Markdown link checker, and the emitter as the source of truth
 
-The loop pointed at `examples/apps/linkcheck.glyph`: walk a directory, scan text
+The loop pointed at `examples/apps/linkcheck/main.glyph`: walk a directory, scan text
 for Markdown links, fan out HTTP requests, report. It could not do any of those
 three things without reaching past the language, so the round produced a long
 stdlib list. The headline is not on that list. Five separate findings ended with
@@ -1376,7 +1376,7 @@ of truth. On the async path it was a preprocessor with opinions.
   `tests/negative/fs_error_kind_not_exhaustive.glyph`. The model is hand-kept
   against `runtime/std/fs.ts`; a kind or field added there has to be added to
   both. The `else` arm and its four-line "required" comment are gone from
-  `examples/apps/linkcheck.glyph`, replaced by
+  `examples/apps/linkcheck/main.glyph`, replaced by
   `fs.ErrorKind.Other({ code }) => "${e.message} (${code})"`; deleting the
   `PermissionDenied` arm from that app now fails `glyph build` with
   `E0200 ... missing variants 'PermissionDenied'`.
@@ -1404,7 +1404,7 @@ of truth. On the async path it was a preprocessor with opinions.
   "Content-Type": "application/json", }` now parses as an object literal, since a
   block cannot begin with `"str" :`. What is not fixed is the thing the gap's
   last sentence is about. There is still no way to spell an empty record in arm
-  position, so `examples/apps/linkcheck.glyph:738` still carries `fn no_cache()
+  position, so `examples/apps/linkcheck/main.glyph:738` still carries `fn no_cache()
   -> Record<string, Outcome> { return {} }` and line 1017 still calls it with a
   comment naming this gap. E0223 makes the workaround's absence a hard error
   instead of a runtime `undefined`, which is progress, not closure. The `=>
@@ -1454,7 +1454,7 @@ of truth. On the async path it was a preprocessor with opinions.
   the half reads as a character right up to the point where it is written out,
   and the failure lands far from the call. A program that has to walk codepoints
   converts to bytes first, with `encoding.hex_encode` and two hex digits at a
-  time, which is what `examples/apps/shortlink.glyph` does in its slug encoder.
+  time, which is what `examples/apps/shortlink/main.glyph` does in its slug encoder.
   Written down in D12, `docs/reference/stdlib.md`, and the `std/string` runtime
   header. Be plain about what this decision buys: **no workaround comes out of
   any app.** The hex walk stays; it is now the documented answer rather than a
@@ -1601,7 +1601,7 @@ of truth. On the async path it was a preprocessor with opinions.
 
 ## Round 11 — a URL shortener, and a green build running yesterday's code
 
-The loop pointed at `examples/apps/shortlink.glyph`: shorten a URL, redirect a
+The loop pointed at `examples/apps/shortlink/main.glyph`: shorten a URL, redirect a
 visitor, count the hits. Most of what came out of it is stdlib shape (`std/http`
 has no headers, so a 302 and an HTML page are both unspellable), and that is
 recorded with the trip in [`roadmap/releases.md`](roadmap/releases.md). One
@@ -1633,7 +1633,7 @@ only false *green* in the batch.
 
 ## Round 12 — a group expense splitter, and a `match` with no type
 
-The loop pointed at `examples/apps/settle.glyph`: read a ledger of shared
+The loop pointed at `examples/apps/settle/main.glyph`: read a ledger of shared
 expenses, split each one, and compute the smallest set of payments that squares
 the group up. Sixteen findings came back and twelve of them already carried a
 G-number, mostly stdlib shape. The one below is new, and it is the reason the app
@@ -1838,7 +1838,7 @@ cause.
   round-trips unchanged, the one beside it comes back as `"hello ${name}\nsecond
   line\n"`. So the documented spelling survives only until someone saves the
   file, and under format-on-save it never survives at all. That is why
-  `examples/apps/shortlink.glyph` still writes all five of its HTML builders with
+  `examples/apps/shortlink/main.glyph` still writes all five of its HTML builders with
   `\n` escapes: the multi-line rewrite was made and checked (`glyph check` clean,
   all five pages byte-identical), then reverted, because `glyph fmt --check`
   fails on it and shipping a curated example the formatter reformats is worse
@@ -1861,7 +1861,7 @@ cause.
   fixed point against one less formatting service. Note that under either answer
   the escapes inside a multi-line template stop being canonicalized, because
   `TemplatePart::Text` carries the whole-literal span rather than its own.
-  `examples/apps/shortlink.glyph` now writes all five HTML builders as real
+  `examples/apps/shortlink/main.glyph` now writes all five HTML builders as real
   multi-line strings: the rewrite that was reverted before is back, the emitted
   `shortlink.ts` is byte-identical to the `\n`-escaped version, and
   `glyph fmt --check` reports the file already formatted.*
@@ -2106,7 +2106,7 @@ did not need a new entry.
   whose type is honestly unknown; that one is a decision, not a patch.
 
 - **G72. [FIXED] `glyph check` on one file compiles every `.glyph` under that file's
-  directory.** `glyph check examples/apps/bracket.glyph` reports "13 module(s)",
+  directory.** `glyph check examples/apps/bracket/main.glyph` reports "13 module(s)",
   and `glyph check examples/corpus/calendar.glyph` reports 57: the walk is
   recursive from the file's directory rather than the file plus what it imports.
   The visible cost is a diagnostic about a program you did not ask about. Because

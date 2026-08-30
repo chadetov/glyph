@@ -37,7 +37,7 @@
 //     ]
 //   }
 //   EOF
-//   glyph run examples/apps/schedule.glyph /tmp/calendar.json \
+//   glyph run examples/apps/schedule/main.glyph /tmp/calendar.json \
 //     --from 2026-01-05 --days 5 --duration 60 --hours 09:00-17:00
 
 module main

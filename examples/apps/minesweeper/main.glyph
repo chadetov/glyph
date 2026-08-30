@@ -1,13 +1,13 @@
 // minesweeper — a terminal Minesweeper with a seeded, reproducible board.
 //
 // Run it interactively:
-//   glyph run examples/apps/minesweeper.glyph beginner --seed 7
+//   glyph run examples/apps/minesweeper/main.glyph beginner --seed 7
 //
 // Or pipe a script of commands, which plays deterministically to completion:
 //   printf 'reveal 4 4\nflag 0 0\nreveal 1 1\nquit\n' \
-//     | glyph run examples/apps/minesweeper.glyph beginner --seed 7
+//     | glyph run examples/apps/minesweeper/main.glyph beginner --seed 7
 
-module minesweeper
+module main
 
 import std/result { Result, Ok, Err }
 import std/option { Option, Some, None }

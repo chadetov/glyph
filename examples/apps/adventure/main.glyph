@@ -2,13 +2,13 @@
 // conditional world rules, and a validating save file.
 //
 // Play it:
-//   glyph run examples/apps/adventure.glyph
+//   glyph run examples/apps/adventure/main.glyph
 //
 // Or pipe a script, which plays deterministically to completion:
 //   printf 'north\ntake lantern\ndown\nlook\nquit\n' \
-//     | glyph run examples/apps/adventure.glyph
+//     | glyph run examples/apps/adventure/main.glyph
 
-module adventure
+module main
 
 import std/result { Result, Ok, Err }
 import std/option { Option, Some, None }

@@ -40,8 +40,8 @@ fi
 
 cp "$SRC" "$WORK/glyph.tmLanguage.json"
 # Samples travel with it: a grammar change is checked against real programs.
-cp "$ROOT/examples/apps/minesweeper.glyph" "$WORK/samples/minesweeper.glyph"
-cp "$ROOT/examples/apps/expenses.glyph" "$WORK/samples/expenses.glyph"
+cp "$ROOT/examples/apps/minesweeper/main.glyph" "$WORK/samples/minesweeper.glyph"
+cp "$ROOT/examples/apps/expenses/main.glyph" "$WORK/samples/expenses.glyph"
 cp "$ROOT/examples/apps/csvql/sql.glyph" "$WORK/samples/sql.glyph"
 
 git -C "$WORK" add -A

@@ -1,7 +1,7 @@
 # Step 6 — Dogfooding
 
 Status: **core complete; soft exit pending.** The fridge app
-(`examples/apps/fridge.glyph`) is built, runs end to end via `glyph run`, passes
+(`examples/apps/fridge/main.glyph`) is built, runs end to end via `glyph run`, passes
 `tsc --strict`, and its `@example` tests pass. It was dogfooded over three
 rounds: (1) build + use across the whole command surface, producing a 20-item
 gap list in [`docs/dogfooding-gaps.md`](../dogfooding-gaps.md); (2) extend

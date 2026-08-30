@@ -325,7 +325,7 @@ type User = { name: string; age: number };
         </p>
 
         <p>
-          This one came out of writing an <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses.glyph">expense-report
+          This one came out of writing an <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/expenses/main.glyph">expense-report
           CLI in Glyph</a>. Every ledger row carries a date,
           and filing a row under the wrong month is the bug that matters, so the app didn't trust
           the old <code>parse_iso</code>: it checked the shape with a regex first, then round-tripped
@@ -520,7 +520,7 @@ if (row.done === true) { ... }   // never runs
 
       <div class="detail">
         <p>
-          The whole thing is a working example: <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks.glyph"><code>examples/apps/tasks.glyph</code></a>
+          The whole thing is a working example: <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/tasks/main.glyph"><code>examples/apps/tasks/main.glyph</code></a>
           is a persisted task API, <code>std/sqlite</code> for storage and <code>std/http</code> for
           routes, with data that survives a restart and validation on both the wire and the database
           side. No hand-written validators anywhere in it.

@@ -183,7 +183,7 @@ let cache = <span class="add">match</span> args.offline {
           argument or an operand, still becomes a closure, which means its arms
           have to be single expressions. Hoisting it to its own <code>let</code>
           lifts that. Both snippets are from
-          <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck.glyph"><code>examples/apps/linkcheck.glyph</code></a>,
+          <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/linkcheck/main.glyph"><code>examples/apps/linkcheck/main.glyph</code></a>,
           a Markdown link checker written to find exactly this kind of thing.
         </p>
       </div>
@@ -291,7 +291,7 @@ for i, w in wire.expenses {        <span class="cm"># i is 0, 1, 2 ... not "0", 
           it still binds a number. The same chain over <code>record.get</code>
           works for the same reason: all six <code>std/record</code> functions
           carry the value type off the record you pass. The snippet is from
-          <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle.glyph"><code>examples/apps/settle.glyph</code></a>,
+          <a href="https://github.com/chadetov/glyph/blob/main/examples/apps/settle/main.glyph"><code>examples/apps/settle/main.glyph</code></a>,
           which carried the annotation this deleted.
         </p>
       </div>
@@ -575,7 +575,7 @@ async fn dispatch(routes: Record&lt;string, Handler&gt;, name: string, arg: stri
           balancing rules of a red-black tree are four arms: each one names the
           exact shape it rewrites, and the compiler is the thing checking the
           shape rather than a comment above it claiming it.
-          <code>examples/apps/leaderboard.glyph</code> is the whole program, a
+          <code>examples/apps/leaderboard/main.glyph</code> is the whole program, a
           leaderboard that keeps every score in the tree and answers rank,
           top-N and range queries by walking it instead of re-sorting a log.
         </p>

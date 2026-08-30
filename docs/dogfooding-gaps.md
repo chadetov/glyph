@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-151 entries, 109 are fixed, 13 are partly fixed, 10 are decided or resolved, and
-19 are open. G144, the D28 boundary cast that never reached the returns a
+155 entries, 109 are fixed, 13 are partly fixed, 10 are decided or resolved, and
+23 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -5947,3 +5947,60 @@ through an object pattern's fields.
   *Found by the same fuzz target immediately after G150 was fixed, which is the
   argument for keeping it running rather than treating one finding as the job
   done. Reproduced against 0.1.95 plus the G150 fix.*
+
+- **G152. `glyph fix` reports "removed 0 unused import(s)" while the lint is
+  reporting two.** A three-name import with two dead names draws `E0106` on
+  `filter` and on `fold`, and `glyph fix` on the same file answers `removed 0
+  unused import(s) across 0 file(s)` and changes nothing. It appears to act on
+  a whole unused import and not on an unused *item* within a named import list,
+  which is the common shape.
+
+  The failure mode is worse than doing nothing. The command reports success, so
+  a reader concludes the warnings are unfixable rather than that the fixer has
+  a hole, and an agent running `fix` in a loop never converges.
+
+  *Reproduced against 0.1.95. Reported independently by a field tester on a
+  fresh install before being reproduced here.*
+
+- **G153. `\u{HEX}` works, is in the spec, and appears nowhere an agent reads.**
+  `io.println("\u{1b}[31mred\u{1b}[0m")` compiles and emits a real ESC. D12 in
+  `docs/language/spec.md` names `\u{HEX}` among the decoded escapes. The string
+  `u{` appears **zero times** in all three copies of the agent bootstrap:
+  `llms.txt`, `AGENTS.md`, and `web/llms.txt`.
+
+  So the feature is documented where a person browsing the spec might find it
+  and absent from the one file this project tells agents to read first. A field
+  tester hit `E0001` on a different escape, read a Help line that does not name
+  `\u{...}`, concluded the escape was unavailable, and wrote an eleven-line
+  workaround for something that has always worked.
+
+  Two things are wrong and they are separable. The bootstrap does not carry the
+  escape table. And `E0001`'s help ("Check for an unterminated string, an
+  invalid escape, or a stray character") describes the category rather than
+  naming what is legal, which is the Q46 failure: a refusal that does not tell
+  you the working spelling.
+
+  *Reproduced against 0.1.95: the program runs and prints red, and the three
+  bootstrap files return zero for `u{`.*
+
+- **G154. `std/random` is listed in the bootstrap with no signatures, so its
+  entry point is unfindable.** `std/random` appears once. `seeded` and `Rng`
+  appear zero times. A module named without its surface cannot be called
+  without guessing, and guessing at a stdlib signature is what the bootstrap
+  exists to prevent.
+
+  *Reproduced against 0.1.95 by counting in `llms.txt`.*
+
+- **G155. `Rng.bool`'s doc comment promises a default its signature does not
+  have.** `runtime/std/random.ts:19` reads "A boolean, true with the given
+  probability (default 0.5)" directly above `bool: (probability: number) =>
+  boolean`, which is not optional. Calling `r.bool()` fails, and it fails as
+  `[TS2554] Expected 1 arguments, but got 0`, so the reader is told about the
+  emitted TypeScript rather than about Glyph.
+
+  A comment that describes a default the code does not implement is the same
+  class as a stdlib whose reference docs promised a rejection it did not make
+  (G31), and that one is the entry this file opens with the rule for: when the
+  docs and the primitive disagree, the primitive is what people run.
+
+  *Reproduced against 0.1.95: `r.bool()` is TS2554.*

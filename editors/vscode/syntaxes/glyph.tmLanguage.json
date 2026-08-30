@@ -3,15 +3,39 @@
   "name": "Glyph",
   "scopeName": "source.glyph",
   "patterns": [
-    { "include": "#comments" },
-    { "include": "#strings" },
-    { "include": "#annotations" },
-    { "include": "#declarations" },
-    { "include": "#keywords" },
-    { "include": "#constants" },
-    { "include": "#types" },
-    { "include": "#numbers" },
-    { "include": "#calls" }
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#annotations"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#calls"
+    },
+    {
+      "include": "#members"
+    },
+    {
+      "include": "#operators"
+    }
   ],
   "repository": {
     "comments": {
@@ -34,14 +58,29 @@
           "begin": "\"",
           "end": "\"",
           "patterns": [
-            { "name": "constant.character.escape.glyph", "match": "\\\\." },
+            {
+              "name": "constant.character.escape.glyph",
+              "match": "\\\\."
+            },
             {
               "name": "meta.template.expression.glyph",
               "begin": "\\$\\{",
               "end": "\\}",
-              "beginCaptures": { "0": { "name": "punctuation.definition.template-expression.begin.glyph" } },
-              "endCaptures": { "0": { "name": "punctuation.definition.template-expression.end.glyph" } },
-              "patterns": [{ "include": "$self" }]
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.definition.template-expression.begin.glyph"
+                }
+              },
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.definition.template-expression.end.glyph"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "$self"
+                }
+              ]
             }
           ]
         }
@@ -58,18 +97,8 @@
     "declarations": {
       "patterns": [
         {
-          "match": "\\b(fn|component)\\s+([A-Za-z_][A-Za-z0-9_]*)",
-          "captures": {
-            "1": { "name": "keyword.declaration.glyph" },
-            "2": { "name": "entity.name.function.glyph" }
-          }
-        },
-        {
-          "match": "\\b(type)\\s+([A-Za-z_][A-Za-z0-9_]*)",
-          "captures": {
-            "1": { "name": "keyword.declaration.glyph" },
-            "2": { "name": "entity.name.type.glyph" }
-          }
+          "name": "storage.type.glyph",
+          "match": "\\b(component|fn|import|interface|module|pub|record|type)\\b"
         }
       ]
     },
@@ -77,11 +106,11 @@
       "patterns": [
         {
           "name": "keyword.control.glyph",
-          "match": "\\b(match|return|loop|for|in|break|continue|else|is|await)\\b"
+          "match": "\\b(async|await|break|continue|defer|else|for|if|in|loop|match|return)\\b"
         },
         {
-          "name": "keyword.declaration.glyph",
-          "match": "\\b(fn|type|component|const|let|mut|import|module|async|owned|resource)\\b"
+          "name": "keyword.other.glyph",
+          "match": "\\b(as|const|is|let|mut|new|owned|resource|void|where)\\b"
         }
       ]
     },
@@ -89,7 +118,7 @@
       "patterns": [
         {
           "name": "constant.language.glyph",
-          "match": "\\b(true|false|void)\\b"
+          "match": "\\b(false|true)\\b"
         }
       ]
     },
@@ -97,7 +126,11 @@
       "patterns": [
         {
           "name": "support.type.primitive.glyph",
-          "match": "\\b(string|number|bool|unknown)\\b"
+          "match": "\\b(string|number|int|bigint|bool|unknown|never|void)\\b"
+        },
+        {
+          "name": "entity.name.function.constructor.glyph",
+          "match": "\\b([A-Z][A-Za-z0-9_]*)(?=\\s*\\()"
         },
         {
           "name": "entity.name.type.glyph",
@@ -118,6 +151,54 @@
         {
           "name": "entity.name.function.call.glyph",
           "match": "\\b[a-z_][A-Za-z0-9_]*(?=\\()"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.glyph",
+          "match": "->|=>"
+        },
+        {
+          "name": "keyword.operator.comparison.glyph",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.glyph",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.union.glyph",
+          "match": "\\|"
+        },
+        {
+          "name": "keyword.operator.try.glyph",
+          "match": "\\?"
+        },
+        {
+          "name": "keyword.operator.assignment.glyph",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.arithmetic.glyph",
+          "match": "\\+|-|\\*|/|%"
+        },
+        {
+          "name": "punctuation.accessor.glyph",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.separator.glyph",
+          "match": "[,:;]"
+        }
+      ]
+    },
+    "members": {
+      "patterns": [
+        {
+          "name": "variable.other.property.glyph",
+          "match": "(?<=\\.)\\s*[a-z_][A-Za-z0-9_]*\\b"
         }
       ]
     }

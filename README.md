@@ -10,37 +10,124 @@ A statically typed, transpile-to-TypeScript language designed so AI agents can r
 [![Socket Badge](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.95)](https://badge.socket.dev/npm/package/@glyphlang/glyph/0.1.95)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/chadetov/glyph/badge)](https://scorecard.dev/viewer/?uri=github.com/chadetov/glyph)
 
-Glyph looks almost like TypeScript. A TS developer reads a Glyph file on day one without a tutorial. The differences are deliberate and small in number, and every one of them exists to make code an agent can reason about correctly, edit without breakage, and explain back to a human without lying.
-
 ```sh
 npm install -g @glyphlang/glyph
 ```
 
-Website: **[glyphlang.io](https://glyphlang.io)** · Try it: **[playground](https://glyphlang.io/playground/)** · **Building with an AI agent?** Point it at **[AGENTS.md](AGENTS.md)** / **[glyphlang.io/llms.txt](https://glyphlang.io/llms.txt)** — one file that takes an agent from zero to correct, runnable Glyph.
+**[glyphlang.io](https://glyphlang.io)** · **[playground](https://glyphlang.io/playground/)** · **[AGENTS.md](AGENTS.md)** if you are pointing an agent at this
+
+## What it looks like
+
+```glyph
+module main
+
+import std/array
+import std/option { Some, None }
+import std/result { Result, Ok, Err }
+
+type User = {
+  id: string,
+  name: string,
+}
+
+pub fn find_user(users: Array<User>, id: string) -> Result<User, string> {
+  let found = array.find(users, fn(u: User) -> bool {
+    return u.id == id
+  })
+  return match found {
+    Some(u) => Ok(u),
+    None => Err("no user with id ${id}"),
+  }
+}
+```
+
+If you write TypeScript you can read that on day one. That is the point: Glyph
+compiles to TypeScript, runs anywhere TypeScript runs, and uses npm packages
+directly. The differences are few and each one exists so that a program stays
+correct when something other than its author changes it.
+
+## What the compiler catches
+
+Add a variant to a union and every `match` over it stops compiling until you
+handle the new case. This is the whole idea in one error:
+
+```glyph
+type PaymentStatus =
+  | Pending
+  | Settled({ cents: int })
+  | Refunded({ cents: int })
+```
+
+```text
+[E0200] non-exhaustive match on `PaymentStatus`: missing variants `Refunded`
+   Help: Add an arm for each missing variant, or an `else` arm to catch the rest.
+   Note: Tagged unions are sealed (D9): adding a variant forces every match to
+         be updated. A `_`/`else` catch-all is allowed but forfeits that
+         guarantee.
+```
+
+An agent adding a payment state cannot quietly leave a branch unhandled, because
+the build stops. In TypeScript the same change compiles and fails later, at a
+customer.
+
+## Why not just TypeScript
+
+TypeScript is the thing to beat, and mostly Glyph does not try to. It keeps the
+ecosystem and changes the layer above it. What changes, and why:
+
+| TypeScript | Glyph | Why it matters when a machine is editing |
+|---|---|---|
+| `any` erases what the type says | no `any` | an agent cannot satisfy the checker by escaping it |
+| exceptions are invisible in a signature | errors are values in the return type | what can fail is readable without running anything |
+| a `switch` can silently miss a case | `match` must be exhaustive | adding a variant surfaces every site that must change |
+| several ways to declare the same thing | one form per declaration | `grep "fn parse_user"` finds the definition, always |
+| formatting is a matter of taste | formatting is fixed | a one-line change makes a one-line diff |
+| types are erased before runtime | types carry a runtime descriptor | untrusted input is validated at the boundary, not cast |
+
+Every one of those is a property an agent depends on and a human merely
+appreciates. That asymmetry is the bet.
 
 ## The four pillars
 
-Every design decision is tested against these. If a feature improves one without harming the others, it ships. If not, it doesn't.
+Every design decision is tested against these. If a feature improves one without
+harming the others, it ships.
 
-1. **Abstraction** — express intent at the level the writer is thinking. Pattern matching over switch ladders, `Result` over thrown exceptions, named records over positional tuples.
-2. **Verifiability** — anything the type system claims must be true at runtime. No `any`. No structural-typing surprises. No type erasure.
-3. **Diff stability** — a one-line change produces a one-line diff. Fixed-width, single-element-per-line formatting. No barrel files. Trailing commas everywhere.
-4. **Greppability** — every symbol has exactly one syntactic form at its declaration site. `grep -n "fn parseUser"` finds the definition. Always.
+1. **Verifiability.** Anything the type system claims is true at runtime.
+2. **Greppability.** Every symbol has one syntactic form at its declaration site.
+3. **Abstraction.** Express intent at the level the writer is thinking: pattern
+   matching over switch ladders, `Result` over thrown exceptions, named records
+   over positional tuples.
+4. **Diff stability.** A one-line change produces a one-line diff.
 
-Verifiability and greppability are the wedge. Abstraction and diff stability are the polish.
+Verifiability and greppability are the wedge. Abstraction and diff stability are
+the polish.
 
-## Why Glyph
+## Status
 
-1. **Built for AI agents.** They can read, write, and change code safely.
-2. **Looks like TypeScript.** You can read it on day one, no tutorial.
-3. **Compiles to TypeScript.** It runs anywhere TS runs and uses any npm package.
-4. **No `any`.** What the types say is true when the code runs.
-5. **One name, one form.** `grep` always finds where something is defined.
-6. **Errors are values, not exceptions.** You handle them with `match`.
-7. **`match` must cover every case.** The compiler tells you what you missed.
-8. **A one-line change makes a one-line diff.** Reviews stay small.
-9. **Tests live next to the code.** They run on every build.
-10. **Clear error messages.** Each one tells you how to fix the problem.
+Pre-1.0 and moving. The compiler, standard library, formatter, LSP and MCP
+server are usable now: the applications under [`examples/apps/`](examples/apps/)
+are real programs written in Glyph with no TypeScript in them, and each carries
+a README saying what writing it found in the compiler.
+
+What that means for you: the language works, and 0.1.x releases can still reject
+code that compiled before. Read the [release notes](https://glyphlang.io/versions/)
+before moving between versions, and pin the compiler in `devDependencies`, which
+`glyph init` does for you.
+
+## Editor support
+
+The TextMate grammar and a VS Code extension live in
+[`editors/vscode/`](editors/vscode/). Neither is on the Marketplace yet, so
+install it from source:
+
+```sh
+cd editors/vscode && npx @vscode/vsce package && code --install-extension glyph-vscode-*.vsix
+```
+
+The grammar is generated from the lexer's keyword table, so a keyword the
+compiler knows is a keyword the editor colours. Any editor with an LSP client
+can drive `glyph lsp` over stdio for diagnostics, hover, go-to-definition,
+completion, find-references and rename.
 
 ## Where to start
 

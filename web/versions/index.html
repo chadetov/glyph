@@ -49,8 +49,43 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.97</span>
+            <span class="rel-ver">0.1.98</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A two-binding loop keeps the guarantee a one-binding loop has</h3>
+            <p>Adding an index to a <code>for</code> used to cost you a compiler check, and the compiler suggested the thing that threw the check away.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>type Cmd = { op: "set" | "clear" }
+
+fn run(xs: Array&lt;Cmd&gt;) -&gt; number {
+  for i, c in xs {
+    match c.op {
+      "set" =&gt; io.println("set"),
+    }
+  }
+  return 0
+}
+
+<span class="del">// 0.1.97: [E0218] non-exhaustive match on `string`
+//         Help: Add an `else` arm.  ...which forfeits the guarantee.</span>
+<span class="add">// 0.1.98: [E0200] non-exhaustive match on `Cmd.op`: missing `"clear"`</span></pre>
+            </div>
+            <p>The loop element had no type in the two-binding form, so a string-literal union read through it decayed to plain <code>string</code>. Writing <code>for c in xs</code> instead was checked correctly; adding the index was not. Each loop name carries its own span now, and <code>examples/apps/sheet</code> dropped the annotation it had been carrying for this.</p>
+            <ul class="rel-list">
+              <li><span class="tag added">Added</span> <strong><code>E0112</code>, a module nothing can reach.</strong> No <code>pub</code>, no <code>main</code>, and no import anywhere naming it. That used to build clean and surface later as a TypeScript error about a module with no exports.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>An import your <code>@example</code> uses is not unused.</strong> The build runs those examples, so a name they reference counts, including one used only in a match arm's pattern or as a type argument.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.97</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

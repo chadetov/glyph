@@ -169,6 +169,7 @@ pub fn stage_label_for(err: &ResolveError) -> &'static str {
         ResolveError::ReservedWordName { .. } => "collect",
         ResolveError::ShadowedGlobalName { .. } => "collect",
         ResolveError::PrimitiveUnionType { .. } => "collect",
+        ResolveError::NoExportSurface { .. } => "lint",
     }
 }
 

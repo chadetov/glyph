@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-155 entries, 115 are fixed, 11 are partly fixed, 10 are decided or resolved, and
-19 are open. G144, the D28 boundary cast that never reached the returns a
+155 entries, 119 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+17 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -990,7 +990,7 @@ workaround for the first and is still open.
   binds to glyph wherever it appears (`glyph run x.glyph --no-check` is
   unchanged, and pinned by a test); `--` remains the answer for a program flag
   that collides with one of glyph's.*
-- **G37. [HALF FIXED] A two-binding `for` over a call's result binds a *string* index, and
+- **G37. [FIXED] A two-binding `for` over a call's result binds a *string* index, and
   nothing catches it.** With G32 documented, the app could drop its hand-rolled
   line counter, and the natural spelling was wrong:
   `for i, raw in array.slice(lines, 1)` emits
@@ -2011,7 +2011,7 @@ several rounds that the backlog grew.
   narrowing story or the parser should stop accepting `?`; accepting a
   declaration whose values cannot be used is the worst of the three.
 
-- **G67. [HALF FIXED] A `for` binding carries no element type, so D30 exhaustiveness
+- **G67. [FIXED] A `for` binding carries no element type, so D30 exhaustiveness
   evaporates inside a loop.** `Stmt::For` in the typechecker's assigner
   (`glyph-typechecker/src/assign.rs:452`) walks the iterand and the body and
   binds nothing for the loop variable. Iterating `Array<CommandSpec>` where
@@ -3590,7 +3590,7 @@ and stopped on the same sentence: Glyph has no bytes.
 
   *Re-run for 0.1.96: `std/fs` still exposes whole-file reads only, and `std/stream` is still the property-testing sampler.*
 
-- **G106. E0106 calls an import dead when only an `@example` uses it.** A module
+- **G106. [FIXED] E0106 calls an import dead when only an `@example` uses it.** A module
   whose `@example` annotations reference `Some`/`None`, a union's constructors,
   or `math.floor` gets `[E0106] unused import` for each, in the same build where
   those examples compile, run, and pass. Removing the import to satisfy the lint
@@ -4257,7 +4257,7 @@ live on the seam the whole architecture stands on.
 
   *Re-run for 0.1.97: `glyph build --help` still has no `--watch`.*
 
-- **G124. A module whose whole export surface is private builds green and
+- **G124. [FIXED] A module whose whole export surface is private builds green and
   exports nothing, and only a host toolchain notices.** The kanban author wrote
   his modules before D33 (0.1.16) made declarations module-private by default,
   and never marked anything `pub`. On the current compiler those modules build
@@ -6153,3 +6153,41 @@ shape occur" from a review question into a lookup.
 *Reproduced against 0.1.97 before and after: the local-outer case printed
 `Error: non-exhaustive match` at run time and is now `[E0200] missing variants
 \`Y\``.*
+
+**Closed in 0.1.98.**
+
+G37 and G67 were one change. `ForStmt.bindings` was `Vec<Ident>` with no
+per-binding span, so the typechecker could key an element type only for the
+single-binding form and `for i, c in xs` left both names unknown. A match on a
+string-literal-union field read through `c` then reported `E0218` and its help
+suggested the `else` that forfeits D30, while the single-binding form of the
+identical body reported nothing at all. `ForBinding { name, span }` gives each
+loop name its own def-site span, threaded through the parser, resolver,
+typechecker, emitter and formatter. The two-binding form now reports `E0200`
+naming the missing literal, and nothing on an exhaustive one.
+
+The proof it is complete rather than merely green: `examples/apps/sheet` carried
+a `let cmd: CommandSpec = bound` annotation with a comment saying it was
+load-bearing for exactly this gap. It is deleted, and the app builds with 46
+`@example` rows passing and `tsc --strict` passing.
+
+G124 is `E0112`: a module that declares no `pub`, has no `main`, and is named by
+no import anywhere in the project. That used to build silently and surface later
+as a host `tsc` error about a module with no exports.
+
+G106 counts a name an `@example` references as used, since the build executes
+those examples and fails on them.
+
+**Two defects this release introduced and caught before shipping, both by
+adversarial review.** `E0112` fired on a module whose only entry point was an
+`@example` the same build ran and passed, printing "nothing here is reachable"
+in the same output as "1 example(s) passed": the precise false report G106
+existed to remove, reintroduced by its sibling lint in the same cut. And the
+`E0106` fix walked an arm's body but not its pattern, so `Ok` and `Err` were
+reported unused on a match built entirely out of them; the same walk also missed
+a call's type arguments. All three are fixed with the release.
+
+*Reproduced against 0.1.97 before, and verified against 0.1.98 after: the
+two-binding form is `E0200` on a missing literal and clean on an exhaustive one,
+an `@example`-only module draws no `E0112`, and an import used only by an
+example draws no `E0106` while a genuinely unused one still does.*

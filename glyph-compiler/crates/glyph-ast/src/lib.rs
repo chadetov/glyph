@@ -340,11 +340,25 @@ pub enum MutKind {
     MethodCall { call: Expr },
 }
 
+/// One name in a `for` binding list, with its own def-site span.
+///
+/// D21's two-binding form `for K, V in expr` needs each name to carry a
+/// distinct span: the resolver keys a local binding by its def-site span
+/// start, and two bindings sharing one key (the whole statement's span, the
+/// only span `ForStmt` used to carry) collapse onto the same entry. That left
+/// the typechecker unable to give `V` the iterand's element type in the
+/// two-binding form without also mistyping `K` as the element (G37).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForBinding {
+    pub name: Ident,
+    pub span: Span,
+}
+
 /// D21: `for X in expr { body }` and the two-binding form
 /// `for K, V in expr { body }` (used for iterating record entries).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForStmt {
-    pub bindings: Vec<Ident>,
+    pub bindings: Vec<ForBinding>,
     pub iter: Expr,
     pub body: Block,
     pub span: Span,

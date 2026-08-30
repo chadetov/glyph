@@ -132,6 +132,19 @@ pub enum ResolveError {
     /// is the union body.
     #[error("`{names}` declares a tagged union whose variants are named after Glyph's primitive types, not a union of those types")]
     PrimitiveUnionType { names: String, span: Span },
+
+    /// Warning: a module with no `pub` declaration, no `main` (which
+    /// `Decl::is_public` already treats as exported, D33), and no `import`
+    /// anywhere in the project naming it. Its declarations are unreachable
+    /// from anywhere Glyph can see. This is a heuristic over what the Glyph
+    /// compiler itself can see: a hand-embedding host TypeScript project
+    /// importing the emitted `.ts` directly is invisible to it, which is
+    /// exactly the shape that used to build clean and fail only later, in the
+    /// host's `tsc` with TS2459 (G124). Warning rather than error for the same
+    /// reason: a module mid-build-out legitimately passes through this state
+    /// before its author adds `pub`.
+    #[error("this module declares nothing `pub`, has no `main`, and nothing in the project imports it: everything in it is unreachable")]
+    NoExportSurface { span: Span },
 }
 
 /// A diagnostic's severity. Mirrors the typechecker's `Severity`; the resolver
@@ -158,6 +171,7 @@ impl ResolveError {
             ResolveError::ReservedWordName { span, .. } => *span,
             ResolveError::ShadowedGlobalName { span, .. } => *span,
             ResolveError::PrimitiveUnionType { span, .. } => *span,
+            ResolveError::NoExportSurface { span } => *span,
         }
     }
 
@@ -166,7 +180,8 @@ impl ResolveError {
         match self {
             ResolveError::UnusedImport { .. }
             | ResolveError::UnusedBinding { .. }
-            | ResolveError::UnreachableCode { .. } => Severity::Warning,
+            | ResolveError::UnreachableCode { .. }
+            | ResolveError::NoExportSurface { .. } => Severity::Warning,
             _ => Severity::Error,
         }
     }
@@ -187,6 +202,7 @@ impl ResolveError {
             ResolveError::ReservedWordName { .. } => "E0109",
             ResolveError::ShadowedGlobalName { .. } => "E0110",
             ResolveError::PrimitiveUnionType { .. } => "E0111",
+            ResolveError::NoExportSurface { .. } => "E0112",
         }
     }
 
@@ -270,6 +286,9 @@ impl ResolveError {
             },
             ResolveError::PrimitiveUnionType { .. } => {
                 "Glyph has no primitive-union syntax: in `A | B` the members are variant *names* (D8 tagged unions), so this declares constructors called `string` and `number`. Give each case a named variant (`| Text(string) | Count(number)`), or use `extern_ts(\"string | number\")` for a raw TypeScript union."
+            }
+            ResolveError::NoExportSurface { .. } => {
+                "Mark what this module exports with `pub`, add a `fn main`, or import it from another module in this project. A module nothing reaches never runs."
             }
         })
     }

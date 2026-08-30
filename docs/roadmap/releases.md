@@ -4522,7 +4522,7 @@ entries below name them.
 - Record an imported union's payload type under the namespace spelling so `tree.Node` stops being E0300 (G140)
 - Type a match scrutinee bound by an inferred `let` so the arm stops falling back to `.value` (G132)
 
-**0.1.98 — Next · The for loop finally knows its element type**
+**0.1.98 — Shipped · The two-binding for loop knows its element type**
 - Bind an element type for `Stmt::For` so `array.slice`/`map` iterands stop lowering to `Object.entries` (G37)
 - Keep D30 string-union exhaustiveness alive inside a loop; E0218 stops suggesting the `else` (G67)
 - Diagnose a module that declares no `pub` and emits zero exports, before the host toolchain does (G124)
@@ -4548,7 +4548,7 @@ The scheduling was not wrong to include this; the justification was stale. A
 plan written ten releases ahead makes claims about a compiler that keeps
 moving, which is why triage re-runs every premise before anyone writes code.
 
-**0.1.99 — The front end answers instead of tsc**
+**0.1.99 — Next · The front end answers instead of tsc**
 - Check an annotated `let` against its initializer, so `let x: string = 42` is a Glyph error rather than TS2322 (G149)
 - Make `glyph fix` act on an unused item inside a named import list, not only on a whole unused import (G152)
 - Put the escape table in the bootstrap and make E0001's help name `\u{HEX}` rather than the category (G153)
@@ -4606,7 +4606,20 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - R8's wider query surface stays out until the tick ledger shows the workload
 
-### 0.1.98 — Next · The for loop finally knows its element type
+### 0.1.99 — Next · The front end answers instead of tsc
+
+- Check an annotated `let` against its initializer, so `let x: string = 42` is a Glyph error rather than TS2322 (G149)
+- Make `glyph fix` act on an unused item inside a named import list, not only a whole unused import (G152)
+- Put the escape table in the bootstrap and make E0001's help name `\u{HEX}` rather than the category (G153)
+- Give `std/random` its signatures in the bootstrap; `seeded` and `Rng` appear zero times today (G154)
+- Delete or implement `Rng.bool`'s promised 0.5 default; the comment describes a signature that does not exist (G155)
+
+*Reviewed against 0.1.98.* G152 through G155 came from an outside field test and
+were each reproduced here before filing. G149 was found while verifying the VS
+Code extension and is reproduced in its entry. The remaining items are
+re-checked at triage rather than assumed here.
+
+### 0.1.98 — Shipped · The two-binding for loop knows its element type
 
 - Bind an element type for the two-binding `Stmt::For`, so a string-literal union read through the second binding keeps D30 and stops downgrading `E0200` to `E0218` (G37, G67). The miscompile this item used to cite is already fixed; see the note below
 - Keep D30 string-union exhaustiveness alive inside a loop, so `E0218` stops suggesting the `else` that forfeits the guarantee (G67)

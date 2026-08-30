@@ -566,6 +566,65 @@ fn build_flags_unknown_cross_module_export() {
 }
 
 #[test]
+fn build_warns_on_a_module_with_no_pub_no_main_and_no_importer() {
+    // A module with nothing `pub`, no `main`, and no Glyph-side importer emits
+    // zero TypeScript `export` statements while `glyph build` reports "no
+    // diagnostics" (G124). The first tool to notice used to be a *host* `tsc`
+    // failing TS2459 on every import of the generated file, in whatever
+    // React/Vite project embeds the output. This asserts the compiler catches
+    // it itself, naming `pub`, before the build ever reaches that host.
+    let root = unique_tmp("no_export_surface");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "lib.glyph",
+        "module lib\nfn helper_one(x: number) -> number {\n  return x + 1\n}\nfn helper_two(x: number) -> number {\n  return x * 2\n}\n",
+    );
+    write_file(
+        &src,
+        "app.glyph",
+        "module app\npub fn main() -> number {\n  return 1\n}\n",
+    );
+
+    let report = build_project(&src, &out).expect("build_project ok");
+    assert!(
+        !report.has_errors(),
+        "the check is advisory and must not fail the build; got: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report.diagnostics.iter().any(|d| d.contains("E0112")),
+        "expected an E0112 warning on the dead module `lib`; got: {:?}",
+        report.diagnostics
+    );
+
+    // Sibling: `lib` still declares nothing `pub`, but `app` names it in an
+    // `import`, which is exactly the Glyph-side-importer case that must NOT
+    // warn (a host toolchain is not the only legitimate importer, but a
+    // Glyph one is enough to prove the module is reachable).
+    let root2 = unique_tmp("no_export_surface_imported");
+    let src2 = root2.join("src");
+    let out2 = root2.join("dist");
+    write_file(
+        &src2,
+        "lib.glyph",
+        "module lib\nfn helper() -> number {\n  return 1\n}\n",
+    );
+    write_file(
+        &src2,
+        "app.glyph",
+        "module app\nimport lib\npub fn main() -> number {\n  return 1\n}\n",
+    );
+    let report2 = build_project(&src2, &out2).expect("build_project ok");
+    assert!(
+        !report2.diagnostics.iter().any(|d| d.contains("E0112")),
+        "a module named by a sibling's import must not warn; got: {:?}",
+        report2.diagnostics
+    );
+}
+
+#[test]
 fn build_recurses_into_subdirectories() {
     let root = unique_tmp("subdir");
     let src = root.join("src");

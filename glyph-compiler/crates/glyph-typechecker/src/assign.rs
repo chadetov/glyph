@@ -534,7 +534,7 @@ impl Assigner<'_> {
             }
             Stmt::For(f) => {
                 self.walk_expr(&f.iter);
-                // Give the loop binding the iterand's element type.
+                // Give the loop's element binding the iterand's element type.
                 //
                 // Without it the binding is `Unknown`, so every judgement that
                 // depends on the element's type evaporates the moment the value
@@ -543,14 +543,26 @@ impl Assigner<'_> {
                 // be exhaustive, add an `else`", which is advice to switch off
                 // the check rather than to satisfy it.
                 //
-                // Only the single-binding form. `for i, x in xs` gives both
-                // names the statement's span as their def-site key (the AST
-                // carries no per-binding spans), so the two would share one
-                // entry and the index would be typed as the element. That needs
-                // the AST change G37 is about.
-                if f.bindings.len() == 1 {
+                // Each binding now has its own def-site span (G37), so the
+                // two-binding form (`for i, v in xs`) can type `v` without also
+                // mistyping the index `i` as the element — the two used to
+                // share one key (the statement's span) and only the
+                // single-binding form had a key to give a type to.
+                //
+                // Only the `Array<T>` iterand shape is modeled: `array_elem_ty`
+                // returns `None` for `Record<K, V>`, so a two-binding loop over
+                // a record's entries still leaves both bindings `Unknown`. That
+                // matches the single-binding form's existing scope; typing a
+                // record's key/value pair is a separate, unstarted piece of
+                // work.
+                let elem_binding = match f.bindings.as_slice() {
+                    [v] => Some(v),
+                    [_, v] => Some(v),
+                    _ => None,
+                };
+                if let Some(v) = elem_binding {
                     if let Some(elem) = array_elem_ty(&self.tm.get(f.iter.span()).clone()) {
-                        self.local_tys.insert(f.span.start, elem);
+                        self.local_tys.insert(v.span.start, elem);
                     }
                 }
                 self.walk_block(&f.body);
@@ -6860,6 +6872,41 @@ fn outer() -> string {
         assert!(
             errs.iter().any(|e| e.code() == "E0200"),
             "expected the missing-variant error, got {errs:?}"
+        );
+    }
+
+    /// The two-binding form (`for i, t in ts`) must keep the element's type
+    /// too, not just the single-binding form (G37).
+    ///
+    /// Before per-binding spans, every name in a `for` statement was keyed by
+    /// the whole statement's span, so a two-binding loop had no per-binding
+    /// slot to hang a type on and both `i` and `t` stayed `Unknown`. The same
+    /// D30 exhaustiveness match that reports E0200 for `for t in ts` degraded
+    /// to E0218 ("a string match can never be exhaustive, add an `else`") the
+    /// moment a caller wrote `for i, t in ts` instead, even though the body
+    /// is identical: advice to switch the check off rather than to satisfy
+    /// it, and silent in a clean `tsc --strict` build.
+    #[test]
+    fn a_two_binding_for_keeps_the_element_type() {
+        let errs = errors_of(
+            "module x\ntype Tier = \"free\" | \"pro\"\n\
+             pub fn f(ts: Array<Tier>) -> void {\n\
+             \x20 for i, t in ts {\n\
+             \x20   let _v = match t {\n\
+             \x20     \"free\" => 1,\n\
+             \x20   }\n\
+             \x20 }\n\
+             \x20 return void\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| e.code() == "E0200"),
+            "expected the missing-variant error, got {errs:?}"
+        );
+        assert!(
+            !errs.iter().any(|e| e.code() == "E0218"),
+            "the string-exhaustiveness fallback should not fire once `t` \
+             carries the element type, got {errs:?}"
         );
     }
 

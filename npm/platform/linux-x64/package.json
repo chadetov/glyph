@@ -1,6 +1,6 @@
 {
   "name": "@glyphlang/linux-x64",
-  "version": "0.1.97",
+  "version": "0.1.98",
   "description": "Prebuilt glyph compiler binary for Linux (x86_64).",
   "os": [
     "linux"

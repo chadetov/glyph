@@ -239,6 +239,25 @@ pub fn explain(code: &str) -> Option<&'static str> {
             verbatim, but it is opaque to Glyph's own checker, so prefer the \
             `unknown` + `is` form unless the type must cross into TypeScript by \
             name.",
+        "E0112" => "E0112: module has no public surface and no importer (warning)\n\n\
+            Nothing in this module is `pub`, it has no `fn main` (which is \
+            always exported regardless of `pub`), and no `import` anywhere in \
+            the project names this module. Its declarations are unreachable \
+            from anywhere Glyph can see.\n\n\
+            This exists because that shape used to build clean and fail only \
+            later, somewhere the Glyph compiler could not see: a module written \
+            for a host TypeScript project (React, Vite, or any app that embeds \
+            `glyph build` output directly) had every declaration silently \
+            private, and the first tool to notice was the host's own `tsc`, \
+            failing TS2459 on every import of the generated file.\n\n\
+            Mark what the module exports with `pub`:\n\n\
+            fn helper() -> number { return 1 }     // E0112: unreachable\n\
+            pub fn helper() -> number { return 1 } // exported\n\n\
+            or import it from another module in this project, or give it a \
+            `fn main` if it is the program's entry point. This is a warning — \
+            it does not fail the build, since the compiler cannot see a host \
+            TypeScript importer and a module mid-build-out legitimately passes \
+            through this state before its author adds `pub`.",
 
         // ----- typechecker (E02xx) -----
         "E0200" => "E0200: non-exhaustive match\n\n\
@@ -630,7 +649,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
 pub const ALL_CODES: &[&str] = &[
     "E0001", "E0002", "E0003", "E0004", "E0005", "E0006", "E0007", "E0008", "E0009", "E0010", "E0100", "E0101",
     "E0102", "E0103", "E0104",
-    "E0105", "E0106", "E0107", "E0108", "E0109", "E0110", "E0111", "E0200", "E0201", "E0202",
+    "E0105", "E0106", "E0107", "E0108", "E0109", "E0110", "E0111", "E0112", "E0200", "E0201", "E0202",
     "E0203", "E0204",
     "E0205",
     "E0206", "E0207", "E0208",

@@ -2108,16 +2108,19 @@ impl<'a> Emitter<'a> {
                     // team's benchmark recommended for a hot path (G117). It
                     // lowers to a counting `for` instead, which allocates
                     // nothing and is what a reader already assumes it is.
-                    [v] => match self.counting_range(&f.iter)? {
-                        Some(bounds) => {
-                            let end = self.fresh_temp("end");
-                            format!(
-                                "for (let {v} = {}, {end} = {}; {v} < {end}; {v}++) ",
-                                bounds.start, bounds.end
-                            )
+                    [v] => {
+                        let v = &v.name;
+                        match self.counting_range(&f.iter)? {
+                            Some(bounds) => {
+                                let end = self.fresh_temp("end");
+                                format!(
+                                    "for (let {v} = {}, {end} = {}; {v} < {end}; {v}++) ",
+                                    bounds.start, bounds.end
+                                )
+                            }
+                            None => format!("for (const {v} of {iter}) "),
                         }
-                        None => format!("for (const {v} of {iter}) "),
-                    },
+                    }
                     // `for k, v in it` over key/value pairs. An array's pairs are
                     // `it.entries()` — the index is a NUMBER. A record is a plain
                     // object, so its pairs are `Object.entries(it)` — the key is a
@@ -2135,6 +2138,7 @@ impl<'a> Emitter<'a> {
                     // defers to the run time, which knows exactly what the value
                     // is when the compiler does not.
                     [k, v] => {
+                        let (k, v) = (&k.name, &v.name);
                         let pairs = match self.iter_shape(&f.iter) {
                             IterShape::Array => format!("{iter}.entries()"),
                             IterShape::Record => format!("{}.entries({iter})", self.g("Object")),

@@ -532,11 +532,11 @@ impl Resolver<'_> {
                 self.walk_expr(&f.iter);
                 self.push_scope();
                 for b in &f.bindings {
-                    // For-binding spans are the statement's span — we don't
-                    // have per-binding spans in `ForStmt`. Use the for span as
-                    // the def-site marker. (Two bindings share a marker, but
-                    // local refs only need *some* def-site key.)
-                    self.bind_local(b.clone(), f.span);
+                    // Each binding carries its own def-site span (G37), so a
+                    // two-binding `for k, v in ...` gives `k` and `v` distinct
+                    // local-binding keys instead of collapsing onto the
+                    // statement's span.
+                    self.bind_local(b.name.clone(), b.span);
                 }
                 self.walk_block(&f.body);
                 self.pop_scope();

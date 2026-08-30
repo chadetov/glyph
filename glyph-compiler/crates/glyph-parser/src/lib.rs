@@ -1102,7 +1102,7 @@ fn main() {
         match &f.body.stmts[0] {
             glyph_ast::Stmt::For(s) => {
                 assert_eq!(s.bindings.len(), 1);
-                assert_eq!(s.bindings[0].as_ref(), "item");
+                assert_eq!(s.bindings[0].name.as_ref(), "item");
             }
             other => panic!("expected For, got {other:?}"),
         }
@@ -1118,8 +1118,15 @@ fn main() {
         match &f.body.stmts[0] {
             glyph_ast::Stmt::For(s) => {
                 assert_eq!(s.bindings.len(), 2);
-                assert_eq!(s.bindings[0].as_ref(), "key");
-                assert_eq!(s.bindings[1].as_ref(), "value");
+                assert_eq!(s.bindings[0].name.as_ref(), "key");
+                assert_eq!(s.bindings[1].name.as_ref(), "value");
+                // Each binding carries its own def-site span (G37) so the
+                // resolver can give `key` and `value` distinct local-binding
+                // keys instead of collapsing both onto the statement's span.
+                assert_ne!(
+                    s.bindings[0].span, s.bindings[1].span,
+                    "two bindings must not share a span"
+                );
             }
             other => panic!("expected For, got {other:?}"),
         }

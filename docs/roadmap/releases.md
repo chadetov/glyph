@@ -4530,10 +4530,23 @@ entries below name them.
 
 **0.1.99 — The front end answers instead of tsc**
 - Check an annotated `let` against its initializer, so `let x: string = 42` is a Glyph error rather than TS2322 (G149)
+- Make `glyph fix` act on an unused item inside a named import list, not only on a whole unused import (G152)
+- Put the escape table in the bootstrap and make E0001's help name `\u{HEX}` rather than the category (G153)
+- Give `std/random` its signatures in the bootstrap; `seeded` and `Rng` appear zero times today (G154)
+- Delete or implement `Rng.bool`'s promised 0.5 default; the comment describes a signature that does not exist (G155)
 - Reject member access, call arity, and argument types against a receiver that is still Unknown (G39)
 - Resolve E0010 and E0300's opposite claims about positional variant patterns into one rule (G135)
 - Make an unresolved import a resolver diagnostic naming the modules that exist, not TS2307 (Q46)
 - Report an `is`-narrowed value used outside its binding as a Glyph diagnostic rather than a tsc one (G98)
+
+**A measurement worth keeping.** Between 0.1.93 and 0.1.95 the agent bootstrap
+changed by exactly one line, and `u{` still appears in it zero times. Over those
+five releases the compiler got materially more correct, and the documentation
+surface that actually misleads a first-time reader did not move. That is not a
+complaint about prioritisation, since the union work was the right thing to fix
+first. It is the reason four of the five items above are documentation-shaped:
+a reader starting today hits the same walls in the same order, including
+rebuilding an eleven-line workaround for an escape that has always worked.
 
 **0.1.100 — Nothing at the network boundary is unbounded**
 - Decide and ship the http deadline: required on `get`/`post`, or `request` stops reading 0 as skip-the-timer (G128)

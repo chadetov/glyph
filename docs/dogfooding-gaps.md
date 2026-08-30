@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-155 entries, 112 are fixed, 13 are partly fixed, 10 are decided or resolved, and
-20 are open. G144, the D28 boundary cast that never reached the returns a
+155 entries, 115 are fixed, 11 are partly fixed, 10 are decided or resolved, and
+19 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3752,13 +3752,15 @@ hand-written adapter") now has an app behind it rather than only a guide.
   server sent. `http.raw` exists and is the server-side counterpart, taking a
   `Request`. The missing piece is its client-side twin, `http.text(response) ->
   Result<string, string>`, failing when the body was parsed rather than kept.
-  *Reproduced against 0.1.91: a client that GETs a local endpoint serving
+  *Reproduced against 0.1.97: a client that GETs a local endpoint serving
   `{"hello":"world"}` and applies the `string.from(response.body)` spelling
   `feeds` uses still prints the literal `[object Object]`, with a clean build and
   a zero exit. No diagnostic, no error, no narrowing accessor.
   `http.text(response) -> Result<string, string>` still does not exist; the
   `http.text` that does is `text(status, body)`, the server-side response
   constructor, and `http.raw` still takes a `Request`.*
+
+  *Re-run for 0.1.97: `std/http` does export `text`, but it is `text(status, body)`, the server-side constructor for a `text/plain` response. The client-side accessor this entry asks for, `text(response) -> Result<string, string>`, still does not exist and `Response.body` is still `unknown`.*
 
 - **G119. `url.join`'s `Err` branch is nearly unreachable, and nothing says so.**
   Against a valid base the WHATWG parser treats anything that is not a URL as a
@@ -3769,7 +3771,7 @@ hand-written adapter") now has an app behind it rather than only a guide.
   catch a malformed link and it never will. The fix is documentation: say which
   argument the failure comes from. `feeds` carries the case as an `@example` so
   the behaviour is pinned rather than assumed.
-  *Reproduced against 0.1.91: `url.join("https://x.test/feed.xml", ":::")` is
+  *Reproduced against 0.1.97: `url.join("https://x.test/feed.xml", ":::")` is
   still `Ok`, formatting to `https://x.test/:::`, while
   `url.join("not a base", "/x")` is still
   `Err(cannot resolve "/x" against "not a base")`. The `Err` arm remains
@@ -3790,6 +3792,8 @@ notes** ("reference to `Lexer` could not be resolved to a materialized type ...
 exactly the nine names that then failed. That is the honest floor doing its job;
 G103 was the case where nothing was said at all.
 
+  *Re-run for 0.1.97: `url.join("https://x.test/feed.xml", ":::")` still answers `Ok`, so the `Err` branch is still nearly unreachable against a valid base.*
+
 - **G108. The `.d.ts` reader materializes interfaces and type aliases, so a
   package whose surface is classes and TypeScript utility types is unusable
   through `gen dts` even when generation succeeds.** Against `marked`, the nine
@@ -3809,7 +3813,7 @@ G103 was the case where nothing was said at all.
   descriptor that only checks presence, or be skipped with its dependent fields
   widened, or make the whole type unmaterializable, is a design call with a real
   verifiability trade in it.
-  *Reproduced against 0.1.91, marked 18.0.11: `gen dts marked --out src/.types
+  *Reproduced against 0.1.97, marked 18.0.11: `gen dts marked --out src/.types
   --rename Tokens.List=ListToken` writes 49 types and exits 0 with 40 notes, and
   building the result is 14 `[E0103]`s across eight names, still in the same
   three groups: classes (`Lexer`, `Parser`, `Renderer`, `Tokenizer`, `Hooks`),
@@ -3832,6 +3836,8 @@ The severe one is not the one that looks severe. `sitegen`'s finding blocks a
 whole class of npm package, which is loud. `collections` found a program that
 computes the wrong number while both Glyph and `tsc` report success, which is
 the class this language exists to remove.
+
+  *Re-run for 0.1.97: `glyph gen dts marked` still writes nothing against marked 16.x, but the first wall has moved: it now stops on a name collision (`TokensList` is produced by both `Tokens.List` and `TokensList`) and asks for a `--rename`, before it reaches the unresolved classes this entry describes. The entry's own claim is unchanged; what a reader hits first is not.*
 
 - **G109. [FIXED] A `for k, v` over an iterand whose type the checker had not
   settled silently took the record protocol, so the index arrived as a string.**
@@ -4042,7 +4048,7 @@ compiler did not do for them. Three are real.
   between "the output is portable JavaScript" and "the output is deployable".
   A `--target browser` that emits pruned, relative-specifier ESM is the shape
   that would remove the file.
-  *Reproduced against 0.1.91: a program importing three modules (`array`,
+  *Reproduced against 0.1.97: a program importing three modules (`array`,
   `io`, `option`) still emits all 36 std modules, including the seven no
   browser can run (`dns`, `fs`, `http`, `net`, `process`, `sqlite`, `tls`),
   still under `.glyph-runtime`. `glyph build src --out dist --target browser` is
@@ -4084,6 +4090,8 @@ compiler produced **eleven** diagnostics: eight `E0105`, two `E0106`, one
 `E0103`. For 3,377 lines of a rules engine and an alpha-beta search, written by
 agents that had never seen the language, that is the manifesto's bet paying off
 rather than a list of complaints. What follows is the friction that remained.
+
+  *Re-run for 0.1.97: a program importing one std module still materializes 37 std modules into `dist`, which is more than the 31 this entry counted.*
 
 - **G116. [FIXED] `E0105` says the name is wrong and never says what is right,
   so an agent guesses.** All eight of the session's `E0105`s are one agent hunting a
@@ -4217,10 +4225,12 @@ live on the seam the whole architecture stands on.
   G122's answer is: a watcher on the CLI, or a Vite plugin that owns both the
   alias and the rebuild-on-change. G122's fix (relative specifiers) removed the
   alias half, so what a plugin would still own is the rebuild-on-change.
-  *Reproduced against 0.1.91: `glyph build src --out dist --watch` still
+  *Reproduced against 0.1.97: `glyph build src --out dist --watch` still
   fails with `error: unexpected argument '--watch' found` (exit 2), and none of
   the seventeen subcommands `glyph --help` lists offers a watch mode; `--help`
   on `build`, `check`, `run` and `fmt` mentions no watch flag.*
+
+  *Re-run for 0.1.97: `glyph build --help` still has no `--watch`.*
 
 - **G124. A module whose whole export surface is private builds green and
   exports nothing, and only a host toolchain notices.** The kanban author wrote
@@ -4234,7 +4244,7 @@ live on the seam the whole architecture stands on.
   architecture uses. A candidate fix is a diagnostic on the library case: a
   module with no `main`, no `pub` declaration, and no Glyph-side importer is
   useful to nobody, and saying so at build time turns a host-side TS2459 into
-  a Glyph error that names `pub`. *Reproduced against 0.1.91: a two-function module with no `pub`, no `main`
+  a Glyph error that names `pub`. *Reproduced against 0.1.97: a two-function module with no `pub`, no `main`
   and no Glyph-side importer still reports "1 module(s) checked, no
   diagnostics", passes `tsc --strict`, and emits zero `export` statements;
   adding `pub` to one function takes the count to 1* (the four
@@ -4256,6 +4266,8 @@ declares `spawnSync`/`execFileSync` but not the async `child_process.spawn`),
 and every build stopped. Not the app's build: any build. A file containing
 nothing but `pub fn main() -> number { return 0 }` failed, on a line of the
 compiler's own runtime.
+
+  *Re-run for 0.1.97: a project whose sibling module declares no `pub` still builds with no diagnostic at all.*
 
 - **G125. [FIXED] Installing `@types/node` broke every build, on the compiler's
   own runtime.** Two declarations in the bundled Node shim were narrower than
@@ -4616,7 +4628,7 @@ An app matched an imported union through its namespace (`outcome.Failed(d)`)
 rather than through a named import. The typechecker treated the two spellings
 alike; the emitter did not.
 
-- **G132. [HALF FIXED] A namespace-qualified match arm on an imported
+- **G132. [FIXED] [HALF FIXED] A namespace-qualified match arm on an imported
   record-payload variant bound `.value` and failed under `tsc`.** A union
   declared in one module with an inline-record payload, matched from another
   through the namespace spelling, emitted `const d = __m0.value;`. The runtime
@@ -4707,7 +4719,7 @@ alike; the emitter did not.
 
   *Reproduced against 0.1.87.*
 
-- **G133. The checker has no cross-module function signature, so every call
+- **G133. [FIXED] The checker has no cross-module function signature, so every call
   into another module returns `Unknown`.** `DeclTyResolver` reaches across
   modules for type declarations (`imported_type_decl`), unions
   (`imported_union_of_variant`) and string-literal unions, and `glyph_db`
@@ -5222,7 +5234,7 @@ through an object pattern's fields.
   the coverage: with the unwrap deleted, 198 of the 199 tests in the `glyph-cli`
   integration file still pass, and the one that fails is the one named above.
 
-- **G140. [HALF FIXED] A nested constructor in a field position needs the
+- **G140. [FIXED] A nested constructor in a field position needs the
   payload's storage decided, and two spellings cannot decide it.** The red-black
   tree of this round is spelled at one concrete key type and declared in the
   module that matches it, which was the one combination that worked. Two
@@ -6079,3 +6091,40 @@ not a missed line, which is why it is recorded rather than rushed.
 
 *Found by adversarial review of the 0.1.96 fixes, reproduced against the built
 binary rather than argued from the source.*
+
+**Closed in 0.1.97, and one sibling it exposed.**
+
+G133 is closed. `glyph_db` gained `exported_fn`, a tracked query mirroring
+`exported_type`, and `DeclTyResolver` gained `imported_fn_decl` with a `None`
+default the way `imported_type_decl` already had. A call into another module
+types as its declared return rather than `Unknown`, so a field typo on an
+inferred `let` over a cross-module call is `[E0210] type \`User\` has no field
+\`naem\`` and it names the type, which is the G75 rule.
+
+G132 closed with it rather than separately. The emitter already handled "the
+scrutinee is `Unknown` because an inferred `let` over a cross-module call has no
+type"; once the scrutinee carries a real `Ty::Imported`, the `.value` guess stops
+being reached.
+
+G140's namespace half is closed. `union_variant_payload` gained a `Ty::Imported`
+branch resolving through `imported_type_decl` with the same generic substitution
+the `Ty::Named` branch does, so `tree.Node({ left: tree.Node({ .. }) })` compiles
+where it was `E0300`. Two spellings of one import now give one answer, which is
+what G75 settled.
+
+**The sibling, found by review of that fix and fixed here too.** A union declared
+*locally* whose variant payload is an *imported* union had no variant list to
+require, because `named_union_variants` resolves only `Ty::Named`. Its inner
+match went unchecked: it built clean, passed `tsc --strict`, and threw
+`non-exhaustive match` at run time. `required_variants` now resolves
+`Ty::Imported` through the same query. Which side of the boundary happens to be
+the imported half no longer decides whether the compiler checks the match.
+
+That is the fifth time this project has fixed one site of this shape and found a
+sibling still broken, after G139, G141, G142, G143 and G148. It is also the
+argument for R4, the exhaustiveness relation, which turns "where else does this
+shape occur" from a review question into a lookup.
+
+*Reproduced against 0.1.97 before and after: the local-outer case printed
+`Error: non-exhaustive match` at run time and is now `[E0200] missing variants
+\`Y\``.*

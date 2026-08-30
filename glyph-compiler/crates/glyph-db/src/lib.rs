@@ -1203,6 +1203,42 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
         })?;
         exported_type(self.db, file, idx as u32).decl().cloned()
     }
+
+    fn imported_fn_decl(&self, module_path: &str, fn_name: &str) -> Option<Ty> {
+        // Same lookup shape as `imported_type_decl` just above — find the
+        // project sibling, parse it, locate the declaration by name — but the
+        // callable counterpart (G133): the answer is produced by the tracked
+        // `exported_fn(db, file, idx)` query, keyed on the source declaration
+        // rather than on the consumer, so one lowering serves every consumer
+        // and every legal import spelling (named import, namespace, alias)
+        // the same way a type's does.
+        let project = self.db.project_files_input();
+        let file = project
+            .entries(self.db)
+            .iter()
+            .find(|(p, _)| p == module_path)
+            .map(|(_, f)| *f)?;
+        let parsed = parse_module(self.db, file);
+        let module = parsed.module()?;
+        let idx = module.items.iter().position(|item| match item {
+            glyph_ast::Decl::Fn(f) => f.name.as_ref() == fn_name,
+            glyph_ast::Decl::Component(c) => c.name.as_ref() == fn_name,
+            _ => false,
+        })?;
+        let ty = exported_fn(self.db, file, idx as u32).ty().clone();
+        // `Ty::Unknown` is `exported_fn`'s sentinel for "no such decl" (already
+        // ruled out by the `position` above, so this only fires for a decl
+        // whose signature itself lowered to nothing decidable) as well as for
+        // "not a callable" (unreachable here, `position` only matches
+        // `Fn`/`Component`). Either way the caller's `.or_else` fallback is
+        // the right behavior, so surface it as a miss rather than a `Ty::Fn`
+        // with no real signature.
+        if matches!(ty, Ty::Unknown) {
+            None
+        } else {
+            Some(ty)
+        }
+    }
 }
 
 /// Extract the `decl_idx`-th top-level declaration from the parsed
@@ -1327,6 +1363,53 @@ pub fn exported_type(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ExportedTy
     let imports = SalsaDeclTy { db, file };
     let lowerer = Lowerer::for_export(resolved_module, db.prelude(), &imports, &module_path);
     ExportedTypeDecl::new(Some(lowerer.lower_exported_type(td)))
+}
+
+/// Lower the `decl_idx`-th declaration of `file` as **another module sees
+/// it**, when that declaration is a `fn`/`component`. The callable
+/// counterpart of `exported_type`: same three steps (find the project
+/// sibling, resolve it, lower on the export view) and the same reason the
+/// lowering has to happen on the source side — a return type or param type
+/// naming a sibling `type` renders as `Ty::Imported` only when lowered
+/// against the *declaring* module's own resolutions, not the consumer's.
+///
+/// Before this query, `glyph_db::exported_type` had no `fn` counterpart at
+/// all: a call into another module typed as `Ty::Unknown` regardless of what
+/// the callee actually returned, so an inferred `let` over a cross-module
+/// call result carried no field set and a typo'd field fell through to a
+/// degraded `tsc` diagnostic instead of Glyph's own `E0210` (G133).
+///
+/// Reuses `Ty::Unknown` as the "not found / not a callable" answer, the same
+/// sentinel `decl_ty` uses for a same-module lookup, so a caller can `.or_else`
+/// past a miss exactly the way it already does for the stdlib table.
+///
+/// This query answers `DeclTyResolver::imported_fn_decl`.
+#[salsa::tracked]
+pub fn exported_fn(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
+    let parsed = parse_module(db, file);
+    let Some(module) = parsed.module() else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let Some(decl @ (Decl::Fn(_) | Decl::Component(_))) = module.items.get(decl_idx as usize)
+    else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let resolved = resolve(db, file);
+    let Some(resolved_module) = resolved.resolved() else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let project = db.project_files_input();
+    let Some(module_path) = project
+        .entries(db)
+        .iter()
+        .find(|(_, f)| *f == file)
+        .map(|(p, _)| p.clone())
+    else {
+        return DeclTy::new(Ty::Unknown);
+    };
+    let imports = SalsaDeclTy { db, file };
+    let lowerer = Lowerer::for_export(resolved_module, db.prelude(), &imports, &module_path);
+    DeclTy::new(lowerer.lower_exported_fn_signature(decl))
 }
 
 /// Collect every span the `Lowerer` will query from the resolution map

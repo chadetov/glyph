@@ -1,6 +1,6 @@
 {
   "name": "@glyphlang/glyph",
-  "version": "0.1.96",
+  "version": "0.1.97",
   "description": "TypeScript your AI agents can't quietly break: a statically typed language that transpiles to TypeScript, with no any, exhaustive matching, and runtime-checked types.",
   "bin": {
     "glyph": "bin/glyph.js"
@@ -15,11 +15,11 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@glyphlang/darwin-x64": "0.1.96",
-    "@glyphlang/darwin-arm64": "0.1.96",
-    "@glyphlang/linux-x64": "0.1.96",
-    "@glyphlang/linux-arm64": "0.1.96",
-    "@glyphlang/win32-x64": "0.1.96"
+    "@glyphlang/darwin-x64": "0.1.97",
+    "@glyphlang/darwin-arm64": "0.1.97",
+    "@glyphlang/linux-x64": "0.1.97",
+    "@glyphlang/linux-arm64": "0.1.97",
+    "@glyphlang/win32-x64": "0.1.97"
   },
   "repository": {
     "type": "git",

@@ -4510,19 +4510,19 @@ anything an agent or a person merely finds annoying, which outranks
 infrastructure, which outranks polish. Dependencies are respected where the
 entries below name them.
 
-**0.1.96 — The variants of a union the emitter did not declare**
+**0.1.96 — Shipped · The variants of a union the emitter did not declare**
 - Hand the emitter an imported union's variant names so a lowercase nested arm stops failing E0305 (G147, half: fixed for a prelude scrutinee, an imported outer union still needs a payload-type registry)
 - Deepen the shallow imported-union coverage check off that same variant list (G143)
 - Report a constructor-shaped pattern over a non-union payload as an E0220-class Glyph error (G146)
 - Route the top-level array-pattern chain through `pattern_conditions` so `[Black]` tests instead of binds (G138)
 
-**0.1.97 — One identity for a function across a module boundary**
+**0.1.97 — Shipped · One identity for a function across a module boundary**
 - Add an `exported_fn` signature query so a call into another module stops typing as Unknown (G133)
 - Decide that query's shape: full `Ty::Fn` or return type only, and the emitter's answer on an empty registry (G133)
 - Record an imported union's payload type under the namespace spelling so `tree.Node` stops being E0300 (G140)
 - Type a match scrutinee bound by an inferred `let` so the arm stops falling back to `.value` (G132)
 
-**0.1.98 — The for loop finally knows its element type**
+**0.1.98 — Next · The for loop finally knows its element type**
 - Bind an element type for `Stmt::For` so `array.slice`/`map` iterands stop lowering to `Object.entries` (G37)
 - Keep D30 string-union exhaustiveness alive inside a loop; E0218 stops suggesting the `else` (G67)
 - Diagnose a module that declares no `pub` and emits zero exports, before the host toolchain does (G124)
@@ -4586,7 +4586,19 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - R8's wider query surface stays out until the tick ledger shows the workload
 
-### 0.1.96 — Next · The variants of a union the emitter did not declare
+### 0.1.98 — Next · The for loop finally knows its element type
+
+- Bind an element type for `Stmt::For` so `array.slice` and `array.map` iterands stop lowering to `Object.entries` and binding a string index (G37)
+- Keep D30 string-union exhaustiveness alive inside a loop, so `E0218` stops suggesting the `else` that forfeits the guarantee (G67)
+- Diagnose a module that declares no `pub` and emits zero exports before the host toolchain does (G124)
+- Count `@example` references in the unused-import lint, so `E0106` stops firing on an import the examples use (G106)
+
+*Reviewed against 0.1.97.* G106 was re-run for this cut: an import referenced
+only from an `@example` still draws `unused import`. G37 and G67 were last
+reproduced in the rounds that filed them and are re-checked at triage rather
+than assumed here, which is what the triage phase is for.
+
+### 0.1.96 — Shipped · The variants of a union the emitter did not declare
 
 This was the 0.1.95 plan and it did not ship there. 0.1.95 shipped the item that
 had already landed alongside it, G148, plus `glyph --update`; the four entries

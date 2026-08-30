@@ -144,6 +144,29 @@ pub trait DeclTyResolver {
     ) -> Option<ImportedTypeDecl> {
         None
     }
+
+    /// Cross-module function-signature resolution: for the project module at
+    /// `module_path`, return the lowered `Ty::Fn` of the `pub fn` named
+    /// `fn_name`, as the *declaring* module's signature renders on the export
+    /// view (so a return type naming a sibling `type` comes back as
+    /// `Ty::Imported` rather than a `Ty::Named` carrying a foreign symbol id).
+    /// `None` with no cross-module context (db-less callers), for a module
+    /// that is not a project sibling (`std/*`), or for a name that module does
+    /// not declare as a `fn`.
+    ///
+    /// Without this, a call into another module (`a.make()`, or `make()`
+    /// through a named import) has no signature at all: the call's own type
+    /// stays `Ty::Unknown` regardless of what the callee actually returns, so
+    /// an inferred `let` over the result loses field checking entirely and any
+    /// mistake surfaces only once the emitted TS reaches `tsc` — a typo'd
+    /// field degrades from `E0210` (names the type and field) to a bare
+    /// `TS2339` pinned to the whole statement.
+    ///
+    /// Answered by `glyph_db::exported_fn`, the callable counterpart of
+    /// `exported_type`.
+    fn imported_fn_decl(&self, _module_path: &str, _fn_name: &str) -> Option<Ty> {
+        None
+    }
 }
 
 /// Default `DeclTyResolver` for callers that don't have a salsa `Db`. Owns
@@ -1012,6 +1035,13 @@ impl Assigner<'_> {
                     // namespace path (`http.header`) does, so a modeled
                     // `Option`/`Result` return is enforced regardless of import
                     // style. Unmodeled members stay `Unknown` (permissive).
+                    //
+                    // A named import of a *project sibling's* `pub fn`
+                    // (`import a { make }`) is tried first: `stdlib_fn_ty` only
+                    // ever answers for a `std/*` key, so it would silently miss
+                    // a project module's own function every time, and G133 is
+                    // exactly that gap — a cross-module call typing as
+                    // `Unknown` regardless of what the callee returns.
                     SymbolKind::ImportNamed { path, original } => {
                         let key = path
                             .segments
@@ -1019,7 +1049,9 @@ impl Assigner<'_> {
                             .map(|s| s.as_ref())
                             .collect::<Vec<_>>()
                             .join("/");
-                        self.stdlib_fn_ty(&key, original.as_ref())
+                        self.decl_ty_resolver
+                            .imported_fn_decl(&key, original.as_ref())
+                            .or_else(|| self.stdlib_fn_ty(&key, original.as_ref()))
                             .unwrap_or(Ty::Unknown)
                     }
                     _ => Ty::Unknown,
@@ -1064,7 +1096,13 @@ impl Assigner<'_> {
             .map(|s| s.as_ref())
             .collect::<Vec<_>>()
             .join("/");
-        self.stdlib_fn_ty(&key, field.as_ref())
+        // The namespace spelling of the same G133 gap: `a.make()` reaches a
+        // project sibling's `pub fn` through `ImportNamespace`/`ImportAlias`
+        // rather than `ImportNamed`, so it needs the identical fallback the
+        // by-name arm in `type_of_ident_ref` tries first.
+        self.decl_ty_resolver
+            .imported_fn_decl(&key, field.as_ref())
+            .or_else(|| self.stdlib_fn_ty(&key, field.as_ref()))
     }
 
     /// The signature of `T.parse` for a module-local type `T` that emits a Q8
@@ -3627,6 +3665,17 @@ impl Assigner<'_> {
     /// application (`Tree<K>`) answers the same as its bare form: the variant
     /// set does not depend on the arguments, and `resolve_named_union` unwraps
     /// the application for us.
+    /// The variant list of a union declared in another module, read off the
+    /// export view through the same query an imported union's payload uses.
+    fn imported_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+        let (base, _args) = split_type_app(ty);
+        let Ty::Imported { module, name } = base else { return None };
+        let decl = self.decl_ty_resolver.imported_type_decl(module.as_str(), name)?;
+        let Ty::Union { variants } = &decl.body else { return None };
+        let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
+        Some((name.to_string(), names))
+    }
+
     fn named_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
         let (td, _) = self.resolve_named_union(ty)?;
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
@@ -3642,6 +3691,21 @@ impl Assigner<'_> {
             return Some(found);
         }
         if let Some(found) = self.named_union_variants(ty) {
+            return Some(found);
+        }
+        // A union declared in another module. `named_union_variants` resolves
+        // only `Ty::Named`, which is this module's own declarations, so without
+        // this a *module-local* union whose variant payload is an imported
+        // union had no variant list to require and its inner match was never
+        // checked: it built clean, passed `tsc --strict`, and threw
+        // `non-exhaustive match` at run time.
+        //
+        // This is the sibling of the payload resolution added for G140 and the
+        // same shape as G143. Both directions across the boundary now resolve
+        // through the same `imported_type_decl` query, which is the point:
+        // whether the union or the payload is the imported half should not
+        // decide whether the compiler checks it.
+        if let Some(found) = self.imported_union_variants(ty) {
             return Some(found);
         }
         match self.prelude_union(ty)? {
@@ -3798,9 +3862,9 @@ impl Assigner<'_> {
         }
     }
 
-    /// The lowered payload type of `variant_name` in the module-local
-    /// tagged union `ty` refers to, or None if `ty` isn't such a union, the
-    /// variant doesn't exist, or it carries no payload.
+    /// The lowered payload type of `variant_name` in the tagged union `ty`
+    /// refers to, or None if `ty` isn't such a union, the variant doesn't
+    /// exist, or it carries no payload.
     ///
     /// A generic union applied via `Ty::App` (`Tree<K>`) resolves through its
     /// base and substitutes the declaration's parameters into the payload, the
@@ -3809,7 +3873,37 @@ impl Assigner<'_> {
     /// this, a scrutinee of `Tree<K>` recorded no payload type, so nothing under
     /// the payload got a type and a nested field pattern was refused as
     /// undecidable while the identical arm over a non-generic `Tree` compiled.
+    ///
+    /// A union declared in another module lowers to `Ty::Imported { module,
+    /// name }` rather than `Ty::Named` — resolved through
+    /// `DeclTyResolver::imported_type_decl` instead of `resolve_named_union`,
+    /// which only ever sees this module's own AST. This is the caller behind
+    /// `record_pattern_tys`, which is what a *nested* pattern reached through a
+    /// payload field reads its own type from (`emit::payload_shape`'s registry
+    /// lookup only covers the outermost constructor of an arm). Without this
+    /// branch, an imported union's own type never resolved here, so nothing
+    /// nested under a payload-carrying variant's field got a recorded type at
+    /// all: the named-import spelling still built because a separate,
+    /// name-based fallback in the emitter happens to see the variant's own
+    /// symbol, but the namespace spelling (`import tree` / `tree.Node(...)`)
+    /// binds no such symbol, so it had no fallback and fell through to
+    /// `E0300`'s "cannot be decided here" refusal (G140). Resolving the same
+    /// declaration the same way regardless of import spelling is the fix, not
+    /// widening the emitter's fallback further.
     fn union_variant_payload(&self, ty: &Ty, variant_name: &Ident) -> Option<Ty> {
+        let (base, args) = split_type_app(ty);
+        if let Ty::Imported { module, name } = base {
+            let decl = self.decl_ty_resolver.imported_type_decl(module.as_str(), name)?;
+            let Ty::Union { variants } = &decl.body else { return None };
+            let variant = variants.iter().find(|v| &v.name == variant_name)?;
+            let payload = variant.payload.clone()?;
+            if decl.generics.is_empty() || args.is_empty() {
+                return Some(payload);
+            }
+            let subst: HashMap<Ident, Ty> =
+                decl.generics.iter().cloned().zip(args.iter().cloned()).collect();
+            return Some(substitute_type_params(&payload, &subst));
+        }
         let (td, args) = self.resolve_named_union(ty)?;
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
         let variant = variants.iter().find(|v| &v.name == variant_name)?;

@@ -5051,6 +5051,45 @@ fn namespaced_variant_shape_comes_from_the_scrutinee_not_a_same_named_import() {
 }
 
 #[test]
+fn inferred_let_scrutinee_types_from_the_cross_module_call_it_binds() {
+    // `let v = a.make()` with no type annotation: the call is cross-module, so
+    // inference has to resolve the callee's return type across the module
+    // boundary to type `v`. When that resolution didn't happen, `v` fell back
+    // to `Ty::Unknown`, the `variant_payload_is_record` check on the match arm
+    // couldn't fire, and the emitter fell back to `const r = __m0.value;` on a
+    // record payload, which tsc rejects (TS2339: no `value` on the tagged
+    // union member). The annotated spelling (`let v: a.A = a.make()`) and a
+    // plain parameter both already worked; only the inferred `let` was broken.
+    let root = unique_tmp("inferred-let-scrutinee");
+    let out = root.join("dist");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "a.glyph",
+        "module a\npub type A =\n  | Hit({ x: number })\n  | Miss\npub fn make() -> A {\n  return Hit({ x: 7, })\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import a\n\
+         import std/string { from }\n\
+         pub fn describe() -> string {\n\
+         \x20 let v = a.make()\n\
+         \x20 return match v {\n\
+         \x20\x20\x20 a.Hit(r) => from(r.x),\n\
+         \x20\x20\x20 a.Miss => \"none\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+    let ts = std::fs::read_to_string(out.join("main.ts")).unwrap();
+    // The record payload is the whole object, not `.value`.
+    assert!(ts.contains("const r = __m0;") && !ts.contains("const r = __m0.value"), "{ts}");
+}
+
+#[test]
 fn imported_union_nullary_variants_match_without_false_unreachable() {
     // Regression (improve-glyph loop batch 5): matching an imported union's
     // no-payload variants drew a false E0216 (the imported type lowers to
@@ -5274,6 +5313,60 @@ fn an_alias_to_a_union_is_not_accused_of_having_no_variants() {
     assert!(
         !report.has_errors(),
         "this program compiles on 0.1.95 and must keep compiling: {:?}",
+        report.diagnostics
+    );
+}
+
+#[test]
+fn a_local_unions_imported_payload_is_exhaustiveness_checked() {
+    // The mirror of the imported-outer case, and it was still a silent
+    // miscompile after that one was fixed: a union declared *here* whose
+    // variant payload is a union declared *elsewhere*. `named_union_variants`
+    // resolves only `Ty::Named`, so there was no variant list to require and
+    // the inner match went unchecked. It built clean, passed `tsc --strict`,
+    // and threw `non-exhaustive match` at run time.
+    //
+    // Which side of the boundary is the imported half must not decide whether
+    // the compiler checks the match. This is the fifth time this project has
+    // fixed one site of this shape and found a sibling still broken, which is
+    // why the sibling gets its own test rather than a note.
+    let root = unique_tmp("localunionimportedpayload");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "inner.glyph",
+        "module inner\n\
+         pub type Inner =\n\
+         \x20 | X\n\
+         \x20 | Y\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import inner { Inner, X, Y }\n\
+         type Outer =\n\
+         \x20 | A\n\
+         \x20 | B(Inner)\n\
+         pub fn label(o: Outer) -> string {\n\
+         \x20 return match o {\n\
+         \x20\x20\x20 A => \"a\",\n\
+         \x20\x20\x20 B(X) => \"bx\",\n\
+         \x20 }\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    assert!(
+        report.has_errors(),
+        "an omitted variant of a local union's imported payload must be caught: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|d| format!("{d:?}").contains("E0200") && format!("{d:?}").contains('Y')),
+        "expected E0200 naming the missing inner variant: {:?}",
         report.diagnostics
     );
 }
@@ -7255,6 +7348,47 @@ fn unknown_field_on_an_imported_record_is_e0210_naming_the_type() {
          import catalog { Sheet }\n\
          pub fn show(s: Sheet) -> void {\n\
          \x20 io.println(s.rowz)\n\
+         }\n",
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
+    let diag = report
+        .diagnostics
+        .iter()
+        .find(|d| d.contains("E0210"))
+        .unwrap_or_else(|| panic!("no E0210; diagnostics were: {:?}", report.diagnostics));
+    assert!(diag.contains("Sheet"), "must name the type: {diag}");
+    assert!(diag.contains("rowz"), "must name the field: {diag}");
+}
+
+#[test]
+fn unknown_field_via_inferred_let_on_cross_module_call_is_e0210_naming_the_type() {
+    // G133: the checker had no cross-module *function* signature at all,
+    // only cross-module type/union resolution. A call into another module
+    // (`make()`) typed as `Unknown`, so an inferred `let s = make()` bound
+    // `s` at `Unknown` too, and a later field typo on `s` fell straight
+    // through Glyph's own field-existence check. The mistake surfaced only
+    // once the emitted TS reached `tsc`, as a degraded `[TS2339]` pinned to
+    // the whole `return` statement rather than `[E0210]` naming the type
+    // and field the way an annotated binding already does (see
+    // `unknown_field_on_an_imported_record_is_e0210_naming_the_type` above).
+    // A cross-module `fn` now has a lowered signature the same way a
+    // cross-module `type` already does, so the inferred `let` sees a
+    // decidable `Sheet` and the typo is caught at the Glyph layer.
+    let root = unique_tmp("g133field");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "a.glyph",
+        "module a\npub type Sheet = { rows: number, }\npub fn make() -> Sheet {\n  return { rows: 3, }\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\
+         import a { make }\n\
+         pub fn go() -> number {\n\
+         \x20 let s = make()\n\
+         \x20 return s.rowz\n\
          }\n",
     );
     let report = build_project_inner(&src, &root.join("dist"), false).expect("build");
@@ -9824,6 +9958,80 @@ fn main() {
     assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
     assert!(stdout.contains("a=black"), "the Black arm matched: {stdout}");
     assert!(stdout.contains("b=red"), "the Red arm matched: {stdout}");
+    assert!(stdout.contains("c=leaf"), "the else arm took the rest: {stdout}");
+}
+
+/// The namespace-import twin of `a_nested_field_pattern_works_on_an_imported_union`:
+/// same declaration, same nested constructor pattern, only the import spelling
+/// and the match arms are written as `tree.Node(...)` instead of pulling
+/// `Node`/`Leaf` into scope by name. D9/G75 both say the import spelling must
+/// not change what a program means, but this one changed whether it *builds*
+/// at all: matched through `import tree { Tree, Leaf, Node }` the payload's
+/// storage is decided from the resolved-symbol lookup and the arm emits fine;
+/// matched through `import tree` + `tree.Node(...)` the same lookup misses
+/// because the constructor name carries a namespace prefix, so the emitter
+/// falls through to "cannot be decided here" on a pattern that is otherwise
+/// identical. If this regresses, a nested field pattern over a payload-carrying
+/// variant reached through a namespace import goes back to E0300 while the
+/// named-import spelling of the exact same code keeps compiling, which is
+/// exactly the two-answers-for-one-declaration bug G75 was written to close.
+#[test]
+fn a_nested_field_pattern_works_on_an_imported_union_through_its_namespace() {
+    let root = unique_tmp("nestedimportns");
+    let src = root.join("src");
+    write_file(
+        &src,
+        "tree.glyph",
+        r#"module tree
+
+pub type Tree =
+  | Leaf
+  | Node({ left: Tree, key: string, right: Tree })
+"#,
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/io { println }
+import tree
+
+fn shape(t: tree.Tree) -> string {
+  return match t {
+    tree.Node({ left: tree.Node({ key: lk, left: ll, right: lr }), key: k, right: r }) => "deep:" + lk + "/" + k,
+    tree.Node({ left: tree.Leaf, key: k, right: r }) => "shallow:" + k,
+    else => "leaf",
+  }
+}
+
+fn main() {
+  let deep = tree.Node({
+    left: tree.Node({ left: tree.Leaf, key: "inner", right: tree.Leaf, }),
+    key: "outer",
+    right: tree.Leaf,
+  })
+  let shallow = tree.Node({ left: tree.Leaf, key: "solo", right: tree.Leaf, })
+  println("a=" + shape(deep))
+  println("b=" + shape(shallow))
+  println("c=" + shape(tree.Leaf))
+}
+"#,
+    );
+    let report = build_project_inner(&src, &root.join("dist"), false).expect("build ok");
+    assert!(
+        !report.has_errors(),
+        "a nested constructor pattern on an imported union's payload-carrying \
+         variant must build the same way through the namespace spelling as it \
+         does through the named-import spelling: {:?}",
+        report.diagnostics
+    );
+
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) = spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(stdout.contains("a=deep:inner/outer"), "the nested payload-carrying arm matched: {stdout}");
+    assert!(stdout.contains("b=shallow:solo"), "the nested nullary-variant arm matched: {stdout}");
     assert!(stdout.contains("c=leaf"), "the else arm took the rest: {stdout}");
 }
 

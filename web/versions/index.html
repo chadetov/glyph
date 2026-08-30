@@ -49,8 +49,39 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.96</span>
+            <span class="rel-ver">0.1.97</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A function keeps its type across a module boundary</h3>
+            <p>Calling a <code>pub fn</code> in another module gave back a value the compiler knew nothing about, so anything you did with it went unchecked.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>import lib { make }
+
+fn main(argv: Array&lt;string&gt;) -&gt; number {
+  let u = make("a")
+  io.println(u.naem)
+  return 0
+}
+
+<span class="del">// 0.1.96: no diagnostic. The call typed as unknown, so the typo was invisible.</span>
+<span class="add">// 0.1.97: [E0210] type `User` has no field `naem`</span></pre>
+            </div>
+            <p>The compiler could already reach across a module for a type, a union and a string-literal union. A function had no equivalent, so every cross-module call answered "unknown" and every inference downstream of it stopped. It has one now, and the diagnostic names the type rather than saying "record".</p>
+            <ul class="rel-list">
+              <li><span class="tag fixed">Fixed</span> <strong>A namespace import and a named import give the same answer.</strong> A nested pattern like <code>tree.Node({ left: tree.Node({ ... }) })</code> compiled under <code>import tree { Node }</code> and was <code>E0300</code> under <code>import tree</code>. Which spelling you chose decided whether your program built.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A match on a union whose payload comes from another module is checked.</strong> Leaving out one of the payload's variants built clean, passed <code>tsc --strict</code>, and threw at run time. It is <code>E0200</code> now, naming the variant you left out. Found by review of the fix above, which had closed only the other direction across the same boundary.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.96</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

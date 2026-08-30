@@ -504,6 +504,19 @@ impl ExportLowerer<'_> {
             body: self.0.lower(&td.body),
         }
     }
+
+    /// Lower a `fn`/`component` declaration's signature as another module
+    /// sees it: the callable counterpart of `lower_exported_type`. A `pub fn`
+    /// whose return type (or a param type) names a sibling `type` needs the
+    /// same export view a `type` body does, so that sibling renders as
+    /// `Ty::Imported { module, name }` rather than a `Ty::Named` carrying this
+    /// module's own `SymbolId` — an id a consumer's table cannot resolve.
+    /// Delegates to `lower_decl_signature`, which is already shape-correct
+    /// for every `Decl` variant; the only thing the export view changes is
+    /// what a local-type reference *inside* that signature lowers to.
+    pub fn lower_exported_fn_signature(&self, decl: &glyph_ast::Decl) -> Ty {
+        self.0.lower_decl_signature(decl)
+    }
 }
 
 /// The registry key for a module path: its segments joined with `/`

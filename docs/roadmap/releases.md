@@ -4511,7 +4511,7 @@ infrastructure, which outranks polish. Dependencies are respected where the
 entries below name them.
 
 **0.1.96 — The variants of a union the emitter did not declare**
-- Hand the emitter an imported union's variant names so a lowercase nested arm stops failing E0305 (G147)
+- Hand the emitter an imported union's variant names so a lowercase nested arm stops failing E0305 (G147, half: fixed for a prelude scrutinee, an imported outer union still needs a payload-type registry)
 - Deepen the shallow imported-union coverage check off that same variant list (G143)
 - Report a constructor-shaped pattern over a non-union payload as an E0220-class Glyph error (G146)
 - Route the top-level array-pattern chain through `pattern_conditions` so `[Black]` tests instead of binds (G138)

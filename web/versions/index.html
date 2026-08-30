@@ -49,8 +49,46 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.95</span>
+            <span class="rel-ver">0.1.96</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An array pattern that names a variant tests it, and does not bind it</h3>
+            <p>A <code>match</code> over an array whose arm named a variant returned the wrong arm&rsquo;s value. It built clean and passed <code>tsc --strict</code>, which is the class of bug this language exists to remove.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>type Colour =
+  | Black
+  | White
+
+fn f(xs: Array&lt;Colour&gt;) -&gt; string {
+  return match xs {
+    [] =&gt; "empty",
+    [Black] =&gt; "one-black",
+    else =&gt; "other",
+  }
+}
+
+<span class="del">// 0.1.95: f([White]) returned "one-black". The arm emitted
+//         const Black = __m0[0], an unconditional binding.</span>
+<span class="add">// 0.1.96: f([White]) returns "other".</span></pre>
+            </div>
+            <p>A top-level array pattern reached the emitter&rsquo;s array path before the check that decides whether an element tests or binds, and that path treats every identifier element as a binding whatever its case. The pattern now routes through the same machinery an object field&rsquo;s <code>{ color: Black }</code> already used.</p>
+            <ul class="rel-list">
+              <li><span class="tag fixed">Fixed</span> <strong>A match on an imported union now checks inside a variant&rsquo;s payload.</strong> Omitting an inner variant of an imported nested payload union built clean, passed <code>tsc --strict</code>, and threw at run time. It is <code>E0200</code> now, naming the inner union and the variant you left out.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A constructor-shaped pattern over a payload that is not a union is a Glyph error.</strong> <code>Ok(Point)</code> over a record used to emit a test on a <code>.tag</code> nobody wrote, so <code>tsc</code> reported it against generated TypeScript. It is <code>E0220</code> naming the type and the pattern.</li>
+              <li><span class="tag fixed">Fixed</span> <strong>A lowercase variant of an imported union works in a nested arm.</strong> <code>Err(empty)</code> over an imported <code>| empty | NotANumber(..)</code> lowered both arms to one <code>case</code> label and stopped the build at <code>E0305</code>, so the spelling of a variant decided whether a cross-module match compiled. Fixed for a <code>Result</code> or <code>Option</code> scrutinee, which is the common shape. An imported <em>outer</em> union still hits it; that needs a second registry and is tracked.</li>
+            </ul>
+            <p class="rel-note">Known edge: a payload that is a type <em>alias</em> to a union is not checked by the new <code>E0220</code>. The check accuses only a type that cannot alias a union at all, because an accusation needs certainty and a missed diagnostic costs less than rejecting a program that works.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.95</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

@@ -27,20 +27,21 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      # `rustup default nightly` is not enough: rust-toolchain.toml pins 1.95
+      # and a toolchain file wins over the default, so every cargo call below
+      # names the toolchain explicitly with `+nightly`.
       - name: Install nightly
-        run: |
-          rustup toolchain install nightly --profile minimal
-          rustup default nightly
+        run: rustup toolchain install nightly --profile minimal
 
       - name: Install cargo-fuzz
-        run: cargo install cargo-fuzz --locked --version 0.13.2
+        run: cargo +nightly install cargo-fuzz --locked --version 0.13.2
 
       - name: Fuzz ${{ matrix.target }}
         working-directory: glyph-compiler
         env:
           MINUTES: ${{ github.event.inputs.minutes || '10' }}
         run: |
-          cargo fuzz run ${{ matrix.target }} \
+          cargo +nightly fuzz run ${{ matrix.target }} \
             fuzz/corpus/${{ matrix.target }} fuzz/seeds -- \
             -max_total_time=$(( MINUTES * 60 )) \
             -max_len=8192

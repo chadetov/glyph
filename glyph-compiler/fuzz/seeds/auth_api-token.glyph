@@ -1,0 +1,50 @@
+// A compact signed access token: `<payload>.<signature>`.
+//
+// The payload is base64url-encoded JSON; the signature is an HMAC-SHA256 of the
+// payload text under the service key, in hex. That is a JWT's structure with
+// the header dropped (there is one algorithm and it is not negotiable, which is
+// the safer half of that argument anyway) and a hex MAC instead of a base64url
+// one, because `std/crypto` hands back hex and Glyph has no bytes type to
+// re-encode from.
+//
+// Verification is: recompute the MAC, compare without an early exit, decode,
+// then validate the payload against `Claims` before a single field is read.
+module token
+
+import model { Claims, AuthError, TokenMalformed, TokenBadSignature, TokenExpired }
+import passwords
+import std/array
+import std/crypto
+import std/encoding
+import std/json
+import std/result { Result, Ok, Err }
+import std/string
+
+pub fn sign(claims: Claims, secret: string) -> string {
+  let payload = encoding.base64url_encode(json.stringify(claims))
+  let mac = crypto.hmac_sha256(secret, payload)
+  return "${payload}.${mac}"
+}
+
+pub fn verify(raw: string, secret: string, now: int) -> Result<Claims, AuthError> {
+  let parts = string.split(raw, ".")
+  match array.len(parts) == 2 {
+    true => {},
+    false => { return Err(TokenMalformed({ detail: "expected <payload>.<signature>" })) },
+  }
+  let payload = parts[0]
+  let presented = parts[1]
+  // Signature first. A payload is not worth decoding until we know we wrote it.
+  match passwords.secure_equals(crypto.hmac_sha256(secret, payload), presented) {
+    true => {},
+    false => { return Err(TokenBadSignature) },
+  }
+  let text = encoding.base64url_decode(payload)
+  return match json.parse<Claims>(text) {
+    Err(issues) => Err(TokenMalformed({ detail: "payload is not a claim set" })),
+    Ok(claims) => match claims.expires_at <= now {
+      true => Err(TokenExpired),
+      false => Ok(claims),
+    },
+  }
+}

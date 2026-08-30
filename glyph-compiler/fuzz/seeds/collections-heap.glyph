@@ -1,0 +1,161 @@
+module heap
+
+import std/array
+import std/math
+import std/option { Option, Some, None }
+
+// A binary heap ordered by a caller-supplied comparison. `compare(a, b)` is
+// negative when `a` comes out first, so a min-heap passes `a - b` and a
+// max-heap passes `b - a`.
+pub type Heap<T> = { items: Array<T>, compare: fn(T, T) -> number }
+
+pub fn create<T>(compare: fn(T, T) -> number) -> Heap<T> {
+  return { items: [], compare: compare }
+}
+
+pub fn len<T>(h: Heap<T>) -> number {
+  return array.len(h.items)
+}
+
+pub fn peek<T>(h: Heap<T>) -> Option<T> {
+  return match array.len(h.items) == 0 {
+    true => None,
+    false => Some(h.items[0]),
+  }
+}
+
+pub fn push<T>(h: Heap<T>, value: T) -> Heap<T> {
+  let grown = array.push(h.items, value)
+  return { items: sift_up(grown, array.len(grown) - 1, h.compare), compare: h.compare }
+}
+
+// Remove the front element, returning it and the heap that remains.
+pub fn pop<T>(h: Heap<T>) -> Option<Popped<T>> {
+  let size = array.len(h.items)
+  return match size == 0 {
+    true => None,
+    false => {
+      let front = h.items[0]
+      let last = h.items[size - 1]
+      let shrunk = array.slice(h.items, 0, size - 1)
+      let rest = match array.len(shrunk) == 0 {
+        true => shrunk,
+        false => {
+          let moved = array.slice(shrunk, 0)
+          mut moved[0] = last
+          sift_down(moved, h.compare)
+        },
+      }
+      Some({ value: front, rest: { items: rest, compare: h.compare } })
+    },
+  }
+}
+
+pub type Popped<T> = { value: T, rest: Heap<T> }
+
+// Every element in comparison order, front first.
+pub fn drain<T>(h: Heap<T>) -> Array<T> {
+  let out: Array<T> = []
+  let current = h
+  loop {
+    match pop(current) {
+      None => { break },
+      Some(p) => {
+        mut out.push(p.value)
+        mut current = p.rest
+      },
+    }
+  }
+  return out
+}
+
+// Anything carrying a numeric rank can be heaped without naming a comparison.
+pub interface Ranked {
+  rank: number
+}
+
+// A heap drained front-first is a sort, so the ordering after a sequence of
+// pushes and pops is checkable in one expression.
+@example sorted_with([5, 1, 4, 1, 3], fn(a: number, b: number) -> number { a - b }) == [1, 1, 3, 4, 5]
+@example sorted_with([5, 1, 4, 1, 3], fn(a: number, b: number) -> number { b - a }) == [5, 4, 3, 1, 1]
+@example sorted_with([], fn(a: number, b: number) -> number { a - b }) == []
+pub fn sorted_with(values: Array<number>, compare: fn(number, number) -> number) -> Array<number> {
+  let h = create(compare)
+  for value in values {
+    mut h = push(h, value)
+  }
+  return drain(h)
+}
+
+pub fn of_ranked<T: Ranked>(items: Array<T>) -> Heap<T> {
+  let out = create(fn(a: T, b: T) -> number { a.rank - b.rank })
+  for item in items {
+    mut out = push(out, item)
+  }
+  return out
+}
+
+type Job = { name: string, rank: number }
+
+// The bound is what makes `of_ranked` legal: `Job` never declares that it
+// satisfies `Ranked`, it just has the field.
+@example ranked_names() == ["build", "test", "deploy"]
+fn ranked_names() -> Array<string> {
+  let jobs: Array<Job> = [
+    { name: "deploy", rank: 3 },
+    { name: "build", rank: 1 },
+    { name: "test", rank: 2 },
+  ]
+  return array.map(drain(of_ranked(jobs)), fn(j: Job) -> string { j.name })
+}
+
+fn sift_down<T>(items: Array<T>, compare: fn(T, T) -> number) -> Array<T> {
+  let work = array.slice(items, 0)
+  let size = array.len(work)
+  let index = 0
+  loop {
+    let left = index * 2 + 1
+    let right = left + 1
+    let best = index
+    let best_left = match left < size && compare(work[left], work[best]) < 0 {
+      true => left,
+      false => best,
+    }
+    let best_final = match right < size && compare(work[right], work[best_left]) < 0 {
+      true => right,
+      false => best_left,
+    }
+    match best_final == index {
+      true => { break },
+      false => {
+        let hold = work[index]
+        mut work[index] = work[best_final]
+        mut work[best_final] = hold
+        mut index = best_final
+      },
+    }
+  }
+  return work
+}
+
+fn sift_up<T>(items: Array<T>, start: number, compare: fn(T, T) -> number) -> Array<T> {
+  let work = array.slice(items, 0)
+  let index = start
+  loop {
+    match index == 0 {
+      true => { break },
+      false => void,
+    }
+    let parent = math.floor((index - 1) / 2)
+    match compare(work[index], work[parent]) < 0 {
+      true => {
+        let hold = work[parent]
+        mut work[parent] = work[index]
+        mut work[index] = hold
+        mut index = parent
+      },
+      false => { break },
+    }
+  }
+  return work
+}

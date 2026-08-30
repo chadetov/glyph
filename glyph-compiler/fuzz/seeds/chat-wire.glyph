@@ -1,0 +1,7 @@
+// The shape of the session fixture, and the only place untrusted JSON is
+// admitted. `SessionFile.parse` is the boundary; past it everything is typed.
+module wire
+
+pub type Turn = { from: string, line: string }
+
+pub type SessionFile = { title: string, turns: Array<Turn> }

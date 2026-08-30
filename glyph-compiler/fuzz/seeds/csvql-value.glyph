@@ -1,0 +1,141 @@
+// The one cell type every stage of the engine agrees on.
+//
+// A CSV file holds text; a catalog says what that text means; everything past
+// the coercer works on `Value` and never looks at a raw field again.
+module value
+
+import std/string
+
+// A typed cell. `Null` is the absent value: an empty field, an outer row with
+// no inner match, or an aggregate over nothing.
+pub type Value =
+  | Text({ text: string })
+  | Num({ n: number })
+  | Bool({ flag: bool })
+  | Null
+
+// How a cell prints in a result table.
+pub fn render(v: Value) -> string {
+  return match v {
+    Text({ text }) => text,
+    Num({ n }) => number.to_string(n),
+    Bool({ flag }) => match flag {
+      true => "true",
+      false => "false",
+    },
+    Null => "NULL",
+  }
+}
+
+// The hash-join and group-by key. The type tag is part of the key, so the text
+// "1" and the number 1 never collide in a join bucket.
+pub fn key(v: Value) -> string {
+  return match v {
+    Text({ text }) => "t:${text}",
+    Num({ n }) => "n:${number.to_string(n)}",
+    Bool({ flag }) => match flag {
+      true => "b:1",
+      false => "b:0",
+    },
+    Null => "z:",
+  }
+}
+
+pub fn is_null(v: Value) -> bool {
+  return match v {
+    Null => true,
+    Text({ text }) => false,
+    Num({ n }) => false,
+    Bool({ flag }) => false,
+  }
+}
+
+pub fn is_num(v: Value) -> bool {
+  return match v {
+    Num({ n }) => true,
+    Null => false,
+    Text({ text }) => false,
+    Bool({ flag }) => false,
+  }
+}
+
+fn rank(v: Value) -> number {
+  return match v {
+    Null => 0,
+    Bool({ flag }) => 1,
+    Num({ n }) => 2,
+    Text({ text }) => 3,
+  }
+}
+
+fn num_of(v: Value) -> number {
+  return match v {
+    Num({ n }) => n,
+    Bool({ flag }) => match flag {
+      true => 1,
+      false => 0,
+    },
+    Text({ text }) => 0,
+    Null => 0,
+  }
+}
+
+fn text_of(v: Value) -> string {
+  return match v {
+    Text({ text }) => text,
+    Num({ n }) => number.to_string(n),
+    Bool({ flag }) => match flag {
+      true => "true",
+      false => "false",
+    },
+    Null => "",
+  }
+}
+
+// -1, 0, or 1. Cells of different kinds order by kind so a sort is total:
+// NULL first, then bools, then numbers, then text.
+pub fn cmp(a: Value, b: Value) -> number {
+  let ra = rank(a)
+  let rb = rank(b)
+  match ra == rb {
+    true => {},
+    false => {
+      return match ra < rb {
+        true => -1,
+        false => 1,
+      }
+    },
+  }
+  return match ra {
+    0 => 0,
+    3 => cmp_text(text_of(a), text_of(b)),
+    else => cmp_number(num_of(a), num_of(b)),
+  }
+}
+
+pub fn cmp_number(a: number, b: number) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+pub fn cmp_text(a: string, b: string) -> number {
+  return match a < b {
+    true => -1,
+    false => match a > b {
+      true => 1,
+      false => 0,
+    },
+  }
+}
+
+// Two cells are equal for `=` / `<>` when they compare equal and neither is
+// NULL. SQL's three-valued logic is not modelled: a comparison against NULL is
+// false, never unknown, and that is what the WHERE clause tests.
+pub fn equal(a: Value, b: Value) -> bool {
+  return !is_null(a) && !is_null(b) && cmp(a, b) == 0
+}

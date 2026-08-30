@@ -1,0 +1,184 @@
+// An RFC 4180 reader.
+//
+// Quoted fields, embedded commas, doubled quotes inside a quoted field,
+// embedded newlines, CRLF or LF line endings, a header row, and ragged-row
+// detection. It hands back text; giving that text a meaning is `table`'s job.
+//
+// Row numbers in a diagnostic are 1-based *data* rows, so row 1 is the first
+// line after the header even when an earlier field held a newline.
+module csv
+
+import std/array
+import std/result { Result, Ok, Err }
+import std/string
+import fail { QueryFail, RaggedRow, UnterminatedQuote, EmptyFile }
+
+pub type Sheet = { header: Array<string>, rows: Array<Array<string>> }
+
+const QUOTE = "\""
+
+const COMMA = ","
+
+const CR = "\r"
+
+const LF = "\n"
+
+// The reader's position: what has been accumulated, and whether the scanner is
+// inside a quoted field. Carried as one record so the loop body reassigns one
+// binding per step instead of five.
+type Scan = {
+  records: Array<Array<string>>,
+  row: Array<string>,
+  field: string,
+  quoted: bool,
+  open: bool,
+}
+
+fn end_field(s: Scan) -> Scan {
+  return {
+    records: s.records,
+    row: array.push(s.row, s.field),
+    field: "",
+    quoted: false,
+    open: false,
+  }
+}
+
+fn end_record(s: Scan) -> Scan {
+  let closed = end_field(s)
+  return {
+    records: array.push(closed.records, closed.row),
+    row: [],
+    field: "",
+    quoted: false,
+    open: false,
+  }
+}
+
+fn take(s: Scan, c: string) -> Scan {
+  return { records: s.records, row: s.row, field: "${s.field}${c}", quoted: s.quoted, open: true }
+}
+
+// Split the whole text into records of fields. Everything RFC 4180 says about
+// quoting is decided here and nowhere else.
+fn split_records(name: string, text: string) -> Result<Array<Array<string>>, QueryFail> {
+  let n = string.len(text)
+  let s: Scan = { records: [], row: [], field: "", quoted: false, open: false }
+  let i = 0
+  loop {
+    match i >= n {
+      true => { break },
+      false => {},
+    }
+    let c = text[i]
+    let next = match i + 1 < n {
+      true => text[i + 1],
+      false => "",
+    }
+    match s.quoted {
+      true => {
+        match c == QUOTE && next == QUOTE {
+          true => {
+            mut s = take(s, QUOTE)
+            mut i = i + 2
+          },
+          false => {
+            match c == QUOTE {
+              true => {
+                mut s = {
+                  records: s.records,
+                  row: s.row,
+                  field: s.field,
+                  quoted: false,
+                  open: true,
+                }
+                mut i = i + 1
+              },
+              false => {
+                mut s = take(s, c)
+                mut i = i + 1
+              },
+            }
+          },
+        }
+      },
+      false => {
+        // The arm heads are literals, not the `QUOTE`/`COMMA`/`LF`/`CR`
+        // constants above: an uppercase arm head is read as a union variant.
+        match c {
+          "\"" => {
+            mut s = { records: s.records, row: s.row, field: s.field, quoted: true, open: true }
+            mut i = i + 1
+          },
+          "," => {
+            mut s = end_field(s)
+            mut i = i + 1
+          },
+          "\n" => {
+            mut s = end_record(s)
+            mut i = i + 1
+          },
+          "\r" => {
+            mut s = match next == LF {
+              true => s,
+              false => end_record(s),
+            }
+            mut i = i + 1
+          },
+          else => {
+            mut s = take(s, c)
+            mut i = i + 1
+          },
+        }
+      },
+    }
+  }
+  match s.quoted {
+    true => { return Err(UnterminatedQuote({ table: name, row: array.len(s.records) })) },
+    false => {},
+  }
+  // A file that ends with a newline has nothing pending; one that does not has
+  // a final record still in hand.
+  let done = match s.open || array.len(s.row) > 0 {
+    true => end_record(s),
+    false => s,
+  }
+  return Ok(done.records)
+}
+
+// `QUOTE` and friends are `const`s so the scanner's match arms read as names;
+// this is the one place the raw characters are asserted to be what they say.
+@example read("t", "a,b\n1,2\n") == Ok({ header: ["a", "b"], rows: [["1", "2"]] })
+@example read("t", "a,b\r\n1,2\r\n") == Ok({ header: ["a", "b"], rows: [["1", "2"]] })
+@example read("t", "a,b\n\"x,y\",2\n") == Ok({ header: ["a", "b"], rows: [["x,y", "2"]] })
+@example read("t", "a,b\n\"he said \"\"hi\"\"\",2") == Ok({ header: ["a", "b"], rows: [["he said \"hi\"", "2"]] })
+@example read("t", "a,b\n\"two\nlines\",2\n") == Ok({ header: ["a", "b"], rows: [["two\nlines", "2"]] })
+@example read("t", "a,b\n1,2,3\n") == Err(RaggedRow({ table: "t", row: 1, expected: 2, found: 3 }))
+@example read("t", "a,b\n\"oops\n") == Err(UnterminatedQuote({ table: "t", row: 1 }))
+@example read("t", "") == Err(EmptyFile({ table: "t", path: "" }))
+pub fn read(name: string, text: string) -> Result<Sheet, QueryFail> {
+  let records = split_records(name, text)?
+  match array.len(records) == 0 {
+    true => { return Err(EmptyFile({ table: name, path: "" })) },
+    false => {},
+  }
+  let header = records[0]
+  let width = array.len(header)
+  let rows: Array<Array<string>> = []
+  // The annotation is load-bearing: `array.slice` is one of the stdlib calls
+  // the checker leaves untyped, and an unannotated `for i, x in` over it binds
+  // `i` as a string key.
+  let data: Array<Array<string>> = array.slice(records, 1)
+  // `record` would be the natural name for one CSV record; it is a reserved
+  // word, so the binding is `line`.
+  for i, line in data {
+    match array.len(line) == width {
+      true => {},
+      false => {
+        return Err(RaggedRow({ table: name, row: i + 1, expected: width, found: array.len(line) }))
+      },
+    }
+    mut rows = array.push(rows, line)
+  }
+  return Ok({ header: header, rows: rows })
+}

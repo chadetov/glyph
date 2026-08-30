@@ -1,0 +1,100 @@
+// pattern — named-placeholder patterns: `"Hello, {name}"`.
+//
+// A pattern is scanned once for its placeholder set (used by catalogue
+// validation, so a translation that drops `{name}` is caught on load) and once
+// more to render it against a set of arguments.
+module pattern
+
+import std/array
+import std/option { Some, None }
+import std/record
+import std/string
+
+// Every `{...}` name in a pattern, deduplicated and sorted, so two patterns are
+// comparable by their placeholder set alone.
+@example placeholders("Hello, {name}") == ["name"]
+@example placeholders("no placeholders here") == []
+@example placeholders("{b} then {a} then {b}") == ["a", "b"]
+@example placeholders("{count} of {total}") == ["count", "total"]
+@example placeholders("unclosed {oops") == []
+pub fn placeholders(text: string) -> Array<string> {
+  let found: Array<string> = []
+  let cursor = 0
+  loop {
+    let open = string.index_of(text, "{", cursor)
+    let open_at = match open {
+      None => -1,
+      Some(o) => o,
+    }
+    match open_at < 0 {
+      true => { break },
+      false => void,
+    }
+    let close = string.index_of(text, "}", open_at + 1)
+    let close_at = match close {
+      None => -1,
+      Some(c) => c,
+    }
+    match close_at < 0 {
+      true => { break },
+      false => void,
+    }
+    let name = string.trim(string.slice(text, open_at + 1, close_at))
+    match array.contains(found, name) {
+      true => void,
+      false => { mut found = array.push(found, name) },
+    }
+    mut cursor = close_at + 1
+  }
+  return array.sort(
+    found,
+    fn(a: string, b: string) -> number {
+      match a < b {
+        true => -1,
+        false => match a == b {
+          true => 0,
+          false => 1,
+        },
+      }
+    },
+  )
+}
+
+// Render a pattern against its arguments. A placeholder with no argument is
+// left in place; catalogue validation is what makes that unreachable.
+@example render("Hello, {name}", { name: "Ada" }) == "Hello, Ada"
+@example render("{a}-{b}", { a: "1", b: "2" }) == "1-2"
+@example render("plain", {}) == "plain"
+pub fn render(text: string, args: Record<string, string>) -> string {
+  let out = ""
+  let cursor = 0
+  loop {
+    let open = string.index_of(text, "{", cursor)
+    let open_at = match open {
+      None => -1,
+      Some(o) => o,
+    }
+    match open_at < 0 {
+      true => { break },
+      false => void,
+    }
+    let close = string.index_of(text, "}", open_at + 1)
+    let close_at = match close {
+      None => -1,
+      Some(c) => c,
+    }
+    match close_at < 0 {
+      true => { break },
+      false => void,
+    }
+    let name = string.trim(string.slice(text, open_at + 1, close_at))
+    let literal = string.slice(text, cursor, open_at)
+    let replacement = match record.get<string>(args, name) {
+      Some(v) => v,
+      None => string.slice(text, open_at, close_at + 1),
+    }
+    mut out = "${out}${literal}${replacement}"
+    mut cursor = close_at + 1
+  }
+  return "${out}${string.slice(text, cursor)}"
+}

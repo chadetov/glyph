@@ -1,0 +1,76 @@
+module pipeline
+
+import std/array
+import std/result { Result, Ok, Err }
+
+pub type Split<B, E> = { ok: Array<B>, errors: Array<E> }
+
+// Map a fallible function over every element and report either all the
+// successes or all the failures. Nothing short-circuits, which is the point:
+// `?` stops at the first bad row, and someone validating a file wants the
+// whole list in one pass.
+pub fn try_map<A, B, E>(items: Array<A>, f: fn(A) -> Result<B, E>) -> Result<Array<B>, Array<E>> {
+  let split = partition(items, f)
+  return match array.len(split.errors) == 0 {
+    true => Ok(split.ok),
+    false => Err(split.errors),
+  }
+}
+
+// The same walk, keeping both sides. Useful when a partial result is still
+// worth having.
+pub fn partition<A, B, E>(items: Array<A>, f: fn(A) -> Result<B, E>) -> Split<B, E> {
+  let ok: Array<B> = []
+  let errors: Array<E> = []
+  for item in items {
+    match f(item) {
+      Ok(value) => { mut ok.push(value) },
+      Err(error) => { mut errors.push(error) },
+    }
+  }
+  return { ok: ok, errors: errors }
+}
+
+pub type Failure<E> = { index: number, error: E }
+
+// Every failure with the position it came from, so a caller can point at the
+// row that broke.
+pub fn try_map_located<A, B, E>(items: Array<A>, f: fn(A) -> Result<B, E>) -> Result<Array<B>, Array<Failure<E>>> {
+  let ok: Array<B> = []
+  let errors: Array<Failure<E>> = []
+  for index, item in items {
+    match f(item) {
+      Ok(value) => { mut ok.push(value) },
+      Err(error) => { mut errors.push({ index: index, error: error }) },
+    }
+  }
+  return match array.len(errors) == 0 {
+    true => Ok(ok),
+    false => Err(errors),
+  }
+}
+
+fn parse_all(inputs: Array<string>) -> Result<Array<number>, Array<string>> {
+  return try_map(inputs, fn(s: string) -> Result<number, string> { number.parse(s) })
+}
+
+// Every element good: one `Ok` carrying every result, in order.
+@example parse_all(["1", "2", "3"]) == Ok([1, 2, 3])
+@example parse_all([]) == Ok([])
+// One element bad: an `Err` carrying every failure, not just the first.
+@example failure_count(["1", "x", "3", "y"]) == 2
+@example first_failure_index(["1", "x", "3", "y"]) == Ok(1)
+fn failure_count(inputs: Array<string>) -> number {
+  return match parse_all(inputs) {
+    Ok(_) => 0,
+    Err(errors) => array.len(errors),
+  }
+}
+
+fn first_failure_index(inputs: Array<string>) -> Result<number, string> {
+  let located = try_map_located(inputs, fn(s: string) -> Result<number, string> { number.parse(s) })
+  return match located {
+    Ok(_) => Err("expected failures"),
+    Err(failures) => Ok(failures[0].index),
+  }
+}

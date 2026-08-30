@@ -1,0 +1,57 @@
+// report — bucket a batch's problems by cause and render both outcomes
+// (a clean batch, and a rejected one) as text a human reads on a terminal.
+module report
+
+import std/array
+import std/string
+import model { Problem, Missing, OutOfRange, BadFormat, kind_label }
+
+pub type Bucketed = {
+  missing: Array<Problem>,
+  out_of_range: Array<Problem>,
+  bad_format: Array<Problem>,
+}
+
+// Every problem lands in exactly one bucket: the match is exhaustive over
+// `IssueKind`, so a fourth cause added to that union would fail this build
+// until this function accounts for it too.
+pub fn bucket(problems: Array<Problem>) -> Bucketed {
+  let missing: Array<Problem> = []
+  let out_of_range: Array<Problem> = []
+  let bad_format: Array<Problem> = []
+  for p in problems {
+    match p.kind {
+      Missing => { mut missing.push(p) },
+      OutOfRange => { mut out_of_range.push(p) },
+      BadFormat => { mut bad_format.push(p) },
+    }
+  }
+  return { missing: missing, out_of_range: out_of_range, bad_format: bad_format }
+}
+
+fn render_group(label: string, problems: Array<Problem>) -> Array<string> {
+  return match array.len(problems) == 0 {
+    true => [],
+    false => array.concat(
+      ["${label} (${number.to_string(array.len(problems))}):"],
+      array.map(problems, fn(p: Problem) -> string { return "  ${p.field}: ${p.message}" }),
+    ),
+  }
+}
+
+pub fn render_rejected(total: number, problems: Array<Problem>) -> string {
+  let b = bucket(problems)
+  let lines: Array<string> = ["${number.to_string(total)} record(s) submitted, batch rejected."]
+  mut lines = array.concat(lines, render_group(kind_label(Missing), b.missing))
+  mut lines = array.concat(lines, render_group(kind_label(OutOfRange), b.out_of_range))
+  mut lines = array.concat(lines, render_group(kind_label(BadFormat), b.bad_format))
+  return string.join(lines, "\n")
+}
+
+pub fn render_accepted(lines: Array<string>) -> string {
+  let header = "${number.to_string(array.len(lines))} record(s) submitted, all passed:"
+  return string.join(
+    array.concat([header], array.map(lines, fn(l: string) -> string { return "  ${l}" })),
+    "\n",
+  )
+}

@@ -1,0 +1,196 @@
+// diff3 — a three-way text merge tool.
+//
+// Given a base file and two files that diverged from it, this computes a
+// line-level (or, with `--words`, whitespace-word-level) diff of base-to-ours
+// and base-to-theirs with the generic LCS differ in `diff.glyph`, then merges
+// the two edit scripts with the generic merge core in `merge.glyph`. A clean
+// result prints the merged text and exits 0; a conflicted one prints the
+// merged text with `<<<<<<<`/`=======`/`>>>>>>>` markers around every
+// disputed run and exits 1. A missing file or a bad argument list exits 2.
+//
+// Usage:
+//
+//   glyph run examples/apps/diff3/main.glyph -- base.txt ours.txt theirs.txt
+//   glyph run examples/apps/diff3/main.glyph -- --words base.txt ours.txt theirs.txt
+//
+// Run it end to end against the fixtures shipped alongside this file:
+//
+//   glyph run examples/apps/diff3/main.glyph -- \
+//     examples/apps/diff3/base.txt \
+//     examples/apps/diff3/ours.txt \
+//     examples/apps/diff3/theirs.txt
+module main
+
+import std/array
+import std/fs
+import std/io
+import std/process
+import std/regex
+import std/result { Result, Ok, Err }
+import std/string
+import merge
+import merge { Hunk, Clean, Conflicted, Merged, Conflict }
+
+const USAGE = "usage: diff3 <base> <ours> <theirs> [--words]"
+
+type Args = { base: string, ours: string, theirs: string, words: bool }
+
+// ---------------------------------------------------------------------------
+// Arguments
+// ---------------------------------------------------------------------------
+
+fn parse_args(argv: Array<string>) -> Result<Args, string> {
+  let positional: Array<string> = []
+  let words = false
+  for a in argv {
+    match a == "--words" {
+      true => {
+        mut words = true
+      },
+      false => {
+        mut positional.push(a)
+      },
+    }
+  }
+  return match array.len(positional) == 3 {
+    true => Ok({
+      base: positional[0],
+      ours: positional[1],
+      theirs: positional[2],
+      words: words,
+    }),
+    false => Err(USAGE),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Splitting
+// ---------------------------------------------------------------------------
+
+fn str_eq(a: string, b: string) -> bool {
+  return a == b
+}
+
+// Split `text` into lines, dropping one trailing newline if present so a file
+// that ends with `\n` (the normal case) does not produce a phantom empty
+// final line.
+fn lines_of(text: string) -> Array<string> {
+  let trimmed = match string.ends_with(text, "\n") {
+    true => string.slice(text, 0, string.len(text) - 1),
+    false => text,
+  }
+  return match trimmed == "" {
+    true => [],
+    false => string.split(trimmed, "\n"),
+  }
+}
+
+// Split `text` into whitespace-separated words, for `--words` mode.
+fn words_of(text: string) -> Array<string> {
+  let parts = regex.split("\\s+", text)
+  return array.filter(parts, fn(w: string) -> bool { return string.len(w) > 0 })
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+
+fn render_clean(items: Array<string>, joiner: string) -> string {
+  return string.join(items, joiner)
+}
+
+// Render a conflicted merge as one string, one item per line regardless of
+// whether the merge ran over lines or words: a conflict is easier to read
+// with its markers on their own lines either way.
+fn render_conflicted(hunks: Array<Hunk<string>>) -> string {
+  let out: Array<string> = []
+  for h in hunks {
+    match h {
+      Merged(vs) => {
+        for v in vs {
+          mut out.push(v)
+        }
+      },
+      Conflict(c) => {
+        mut out.push("<<<<<<< ours (after base line ${number.to_string(c.start)})")
+        for v in c.ours {
+          mut out.push(v)
+        }
+        mut out.push("=======")
+        for v in c.theirs {
+          mut out.push(v)
+        }
+        mut out.push(">>>>>>> theirs")
+      },
+    }
+  }
+  return string.join(out, "\n")
+}
+
+// ---------------------------------------------------------------------------
+// Entry point
+// ---------------------------------------------------------------------------
+
+fn read_or_fail(path: string) -> Result<string, string> {
+  return match fs.read_text(path) {
+    Ok(t) => Ok(t),
+    Err(e) => Err("${path}: ${e.message}"),
+  }
+}
+
+fn run(args: Args) -> number {
+  let base_text = match read_or_fail(args.base) {
+    Ok(t) => t,
+    Err(msg) => {
+      io.eprintln(msg)
+      return 2
+    },
+  }
+  let ours_text = match read_or_fail(args.ours) {
+    Ok(t) => t,
+    Err(msg) => {
+      io.eprintln(msg)
+      return 2
+    },
+  }
+  let theirs_text = match read_or_fail(args.theirs) {
+    Ok(t) => t,
+    Err(msg) => {
+      io.eprintln(msg)
+      return 2
+    },
+  }
+
+  let joiner = match args.words {
+    true => " ",
+    false => "\n",
+  }
+  let result = match args.words {
+    true => merge.merge3(words_of(base_text), words_of(ours_text), words_of(theirs_text), str_eq),
+    false => merge.merge3(lines_of(base_text), lines_of(ours_text), lines_of(theirs_text), str_eq),
+  }
+
+  // The render/exit-code boundary: the one place `MergeResult<string>` is
+  // matched exhaustively to decide both what gets printed and what the
+  // process exits with.
+  return match result {
+    Clean(items) => {
+      io.println(render_clean(items, joiner))
+      0
+    },
+    Conflicted(hunks) => {
+      io.println(render_conflicted(hunks))
+      1
+    },
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  return match parse_args(process.args()) {
+    Err(msg) => {
+      io.eprintln(msg)
+      2
+    },
+    Ok(args) => run(args),
+  }
+}

@@ -1,0 +1,160 @@
+// Raw CSV text plus a catalog entry becomes a typed table.
+//
+// This is the only place a cell stops being a string. A field that does not
+// coerce to its declared type is reported with the row and column it came
+// from, not silently turned into NaN.
+//
+// Two rules the rest of the engine relies on:
+//
+//   - An empty field is NULL for every declared type, including `text`. A CSV
+//     has no way to say "the empty string" and "absent" separately, and NULL is
+//     the more useful of the two readings for a query engine.
+//   - The CSV header must name exactly the catalog's columns, in order. A file
+//     whose columns drifted from the catalog is a load failure, not a query
+//     that quietly reads the wrong column.
+module table
+
+import std/array
+import std/option { Option, Some, None }
+import std/result { Result, Ok, Err }
+import std/string
+import catalog { ColType, ColumnSpec, TableSpec }
+import csv { Sheet }
+import fail { QueryFail, BadCell, HeaderMismatch }
+import value { Value, Text, Num, Bool, Null }
+
+pub type Table = { name: string, columns: Array<ColumnSpec>, rows: Array<Array<Value>> }
+
+// Every loaded table, by name.
+pub type Tables = Record<string, Table>
+
+fn is_digits(text: string) -> bool {
+  match string.len(text) == 0 {
+    true => { return false },
+    false => {},
+  }
+  for i in array.range(string.len(text)) {
+    let c = text[i]
+    match c >= "0" && c <= "9" {
+      true => {},
+      false => { return false },
+    }
+  }
+  return true
+}
+
+@example looks_like_int("42") == true
+@example looks_like_int("-7") == true
+@example looks_like_int("4.5") == false
+@example looks_like_int("") == false
+@example looks_like_int("-") == false
+pub fn looks_like_int(text: string) -> bool {
+  let body = match string.starts_with(text, "-") {
+    true => string.slice(text, 1),
+    false => text,
+  }
+  return is_digits(body)
+}
+
+fn parse_real(text: string) -> Option<number> {
+  return match number.parse(text) {
+    Ok(n) => Some(n),
+    Err(_) => None,
+  }
+}
+
+fn parse_bool(text: string) -> Option<bool> {
+  return match string.lower(text) {
+    "true" => Some(true),
+    "false" => Some(false),
+    "1" => Some(true),
+    "0" => Some(false),
+    "yes" => Some(true),
+    "no" => Some(false),
+    else => None,
+  }
+}
+
+// One cell. `None` means "the text does not mean anything of this type", which
+// the caller turns into a located `BadCell`.
+@example coerce_cell("int", "42") == Some(Num({ n: 42 }))
+@example coerce_cell("int", "4.5") == None
+@example coerce_cell("real", "4.5") == Some(Num({ n: 4.5 }))
+@example coerce_cell("bool", "TRUE") == Some(Bool({ flag: true }))
+@example coerce_cell("bool", "maybe") == None
+@example coerce_cell("text", "hello") == Some(Text({ text: "hello" }))
+@example coerce_cell("text", "") == Some(Null)
+@example coerce_cell("int", "  8  ") == Some(Num({ n: 8 }))
+pub fn coerce_cell(t: ColType, raw: string) -> Option<Value> {
+  let trimmed = string.trim(raw)
+  match trimmed == "" {
+    true => { return Some(Null) },
+    false => {},
+  }
+  return match t {
+    "text" => Some(Text({ text: raw })),
+    "int" => match looks_like_int(trimmed) {
+      true => match parse_real(trimmed) {
+        Some(n) => Some(Num({ n: n })),
+        None => None,
+      },
+      false => None,
+    },
+    "real" => match parse_real(trimmed) {
+      Some(n) => Some(Num({ n: n })),
+      None => None,
+    },
+    "bool" => match parse_bool(trimmed) {
+      Some(b) => Some(Bool({ flag: b })),
+      None => None,
+    },
+  }
+}
+
+fn same_names(a: Array<string>, b: Array<string>) -> bool {
+  match array.len(a) == array.len(b) {
+    true => {},
+    false => { return false },
+  }
+  for i in array.range(array.len(a)) {
+    match a[i] == b[i] {
+      true => {},
+      false => { return false },
+    }
+  }
+  return true
+}
+
+pub fn build(spec: TableSpec, sheet: Sheet) -> Result<Table, QueryFail> {
+  let declared = array.map(spec.columns, fn(c: ColumnSpec) -> string { return c.name })
+  let found = array.map(sheet.header, fn(h: string) -> string { return string.trim(h) })
+  match same_names(declared, found) {
+    true => {},
+    false => { return Err(HeaderMismatch({ table: spec.name, expected: declared, found: found })) },
+  }
+  let rows: Array<Array<Value>> = []
+  for i, raw_row in sheet.rows {
+    let typed: Array<Value> = []
+    for j, col in spec.columns {
+      let cell = match coerce_cell(col.kind, raw_row[j]) {
+        Some(v) => v,
+        None => {
+          return Err(
+            BadCell(
+              {
+                table: spec.name,
+                row: i + 1,
+                column: col.name,
+                raw: raw_row[j],
+                expected: col.kind,
+              },
+            ),
+          )
+        },
+      }
+      mut typed = array.push(typed, cell)
+    }
+    mut rows = array.push(rows, typed)
+  }
+  return Ok({ name: spec.name, columns: spec.columns, rows: rows })
+}

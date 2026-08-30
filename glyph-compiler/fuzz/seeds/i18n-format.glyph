@@ -1,0 +1,39 @@
+// format — locale-aware number and currency formatting.
+//
+// Everything here goes through `value.toLocaleString(locale, options)`, which is
+// a method on a value and so passes through to TypeScript, where `tsc` checks
+// the options against `Intl.NumberFormatOptions`. The `Intl` namespace itself is
+// a host global and Glyph resolves names from modules, so
+// `new Intl.NumberFormat(locale)` is `[E0103] unresolved name Intl` and there is
+// no way to build a formatter once and reuse it. Every call below rebuilds one.
+module format
+
+// Grouped decimal: `1,234,567.89` in en-US, `1 234 567,89` in pl-PL.
+pub fn decimal(locale: string, value: number) -> string {
+  return value.toLocaleString(locale)
+}
+
+// Fixed fraction digits, for a figure that must not shrink to `1.5`.
+pub fn fixed(locale: string, value: number, digits: number) -> string {
+  return value.toLocaleString(
+    locale,
+    { minimumFractionDigits: digits, maximumFractionDigits: digits },
+  )
+}
+
+// Currency in the locale's own conventions: `$1,234.50` in en-US, the zloty sign
+// trailing the amount in pl-PL, symbol placement and grouping and all.
+pub fn currency(locale: string, value: number, code: string) -> string {
+  return value.toLocaleString(locale, { style: "currency", currency: code })
+}
+
+// `value` is a ratio: 0.075 renders as `7.5%`.
+pub fn percent(locale: string, value: number) -> string {
+  return value.toLocaleString(locale, { style: "percent", maximumFractionDigits: 1 })
+}
+
+// Locale-aware collation, so Polish orders its accented letters where a reader
+// expects them instead of by UTF-16 code unit.
+pub fn compare(locale: string, a: string, b: string) -> number {
+  return a.localeCompare(b, locale)
+}

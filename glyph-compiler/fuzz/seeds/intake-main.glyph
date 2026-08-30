@@ -1,0 +1,72 @@
+// intake — validate a batch of JSON applicant records, one field check at a
+// time, and merge every field's failure into one batch report instead of
+// stopping at the first bad record.
+//
+// Usage:
+//   intake <records.json>
+//
+// Exit codes: 0 the whole batch passed, 1 at least one record was rejected,
+// 2 the file could not be read or was not JSON.
+//
+// Try it:
+//   glyph run examples/apps/intake -- examples/apps/intake/sample.json
+module main
+
+import std/array
+import std/fs
+import std/json
+import std/option { Some, None }
+import std/result { Ok, Err }
+import model { Applicant, Problem, validate_applicant }
+import report
+import validated { Validated, Valid, Invalid, map, sequence }
+
+fn describe(a: Applicant) -> string {
+  return "${a.name} (${number.to_string(a.age)}) <${a.email}>, $${number.to_string(a.salary)}, ${a.zip}"
+}
+
+fn run(path: string) -> number {
+  let text = match fs.read_text(path) {
+    Ok(t) => t,
+    Err(e) => {
+      print("cannot read ${path}: ${e.message}")
+      return 2
+    },
+  }
+
+  let rows = match json.parse<Array<Record<string, unknown>>>(text) {
+    Ok(r) => r,
+    Err(issues) => {
+      print("${path} is not a JSON array: ${array.len(issues)} issue(s)")
+      return 2
+    },
+  }
+
+  let results: Array<Validated<Problem, string>> = array.map(
+    rows,
+    fn(row: Record<string, unknown>) -> Validated<Problem, string> {
+      return map(validate_applicant(row), describe)
+    },
+  )
+
+  return match sequence(results) {
+    Valid({ value: lines }) => {
+      print(report.render_accepted(lines))
+      0
+    },
+    Invalid({ errors }) => {
+      print(report.render_rejected(array.len(rows), errors))
+      1
+    },
+  }
+}
+
+fn main(argv: Array<string>) -> number {
+  return match array.get(argv, 0) {
+    None => {
+      print("usage: intake <records.json>")
+      2
+    },
+    Some(path) => run(path),
+  }
+}

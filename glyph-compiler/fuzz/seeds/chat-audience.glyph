@@ -1,0 +1,96 @@
+// Who sees an event.
+//
+// The replay transcript printed every event to one terminal, so this question
+// never came up. A server with several clients connected has to answer it for
+// every event it produces: a room post reaches that room's members and nobody
+// else, a direct message reaches exactly two people, and a `/who` listing goes
+// back only to the client that asked.
+//
+// It is a pure function of the server state after the event, so it is checked
+// by `@example` rather than by connecting sockets.
+module audience
+
+import std/array
+import std/option { Some, None }
+import std/record
+import std/set
+import model
+import model { Server, Event }
+
+// Where an event goes, before it is resolved against the roster.
+//
+// Keeping this separate from the nick list means the routing decision reads as
+// a rule ("this is a room event") instead of as a list that happens to be right
+// for one state.
+pub type Route =
+  | Broadcast
+  | InRoom({ room: string })
+  | InRoomAnd({ room: string, nicks: Array<string> })
+  | ToNicks({ nicks: Array<string> })
+
+// The routing rule for one event, given the client whose command produced it.
+//
+// `Parted` names the leaver explicitly because the roster no longer holds them
+// by the time this runs, and a client that leaves should still be told it did.
+pub fn route(from: string, event: Event) -> Route {
+  return match event {
+    model.Connected(_) => Broadcast,
+    model.Renamed(_) => Broadcast,
+    model.Quit(_) => Broadcast,
+    model.Joined({ room }) => InRoom({ room: room }),
+    model.TopicSet({ room }) => InRoom({ room: room }),
+    model.Posted({ message }) => InRoom({ room: message.room }),
+    model.Parted({ nick, room }) => InRoomAnd({ room: room, nicks: [nick] }),
+    model.Delivered({ direct }) => ToNicks({ nicks: [direct.from, direct.to] }),
+    model.Roster(_) => ToNicks({ nicks: [from] }),
+    model.Listed(_) => ToNicks({ nicks: [from] }),
+    model.Replayed(_) => ToNicks({ nicks: [from] }),
+  }
+}
+
+fn members_of(state: Server, room: string) -> Array<string> {
+  return match record.get(state.rooms, room) {
+    Some(found) => found.members,
+    None => [],
+  }
+}
+
+// Every nick currently known to the server.
+fn everyone(state: Server) -> Array<string> {
+  return record.keys(state.users)
+}
+
+// The concrete recipients of one event: the routing rule resolved against the
+// roster, de-duplicated so a client that is both sender and member is written
+// to once.
+//
+// A direct message to yourself collapses to a single delivery rather than two.
+@example len_of(recipients(seeded(), "alice", model.Delivered({
+  direct: { seq: 1, from: "alice", to: "alice", text: "note" },
+}))) == 1
+pub fn recipients(state: Server, from: string, event: Event) -> Array<string> {
+  let target = route(from, event)
+  let raw = match target {
+    Broadcast => everyone(state),
+    InRoom({ room }) => members_of(state, room),
+    InRoomAnd({ room, nicks }) => array.concat(members_of(state, room), nicks),
+    ToNicks({ nicks }) => nicks,
+  }
+  return set.unique(raw)
+}
+
+fn len_of(nicks: Array<string>) -> int {
+  return array.len(nicks)
+}
+
+// A one-user server, enough to resolve the `@example` above without reaching
+// for the engine.
+fn seeded() -> Server {
+  let user: model.User = {
+    nick: "alice",
+    joined: [],
+    active: None,
+    inbox: [],
+  }
+  return { users: { alice: user }, rooms: {}, seq: 1 }
+}

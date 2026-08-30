@@ -1,0 +1,60 @@
+// Turning a TCP byte stream back into lines.
+//
+// A socket delivers whatever arrived, not whatever was sent. One `write` can
+// surface as three `data` events, and three writes can arrive as one. So a
+// chunk is not a message: the tail of a chunk is usually half a line, and it
+// has to be held until the rest turns up.
+//
+// `feed` is the whole rule. It is pure, so the cases that are painful to
+// provoke over a real socket (a split in the middle of a word, a chunk that is
+// two complete lines, a bare carriage return from a telnet client) are
+// `@example` rows instead of timing-dependent tests.
+module framing
+
+import std/array
+import std/string
+
+// Complete lines, plus whatever was left over and belongs to the next chunk.
+pub type Framed = { lines: Array<string>, rest: string }
+
+// Add a chunk to what was already buffered for this connection.
+//
+// A chunk that completes no line yields no lines and grows the remainder.
+@example feed("", "hel").lines == []
+@example feed("", "hel").rest == "hel"
+//
+// The remainder is consumed once the newline arrives.
+@example feed("hel", "lo\n").lines == ["hello"]
+@example feed("hel", "lo\n").rest == ""
+//
+// Several lines in one chunk all come out, in order.
+@example feed("", "a\nb\nc\n").lines == ["a", "b", "c"]
+//
+// A trailing fragment after complete lines is held, not delivered.
+@example feed("", "a\nb").lines == ["a"]
+@example feed("", "a\nb").rest == "b"
+//
+// Telnet and many terminals send CRLF; the carriage return is not part of the
+// message.
+@example feed("", "hi\r\n").lines == ["hi"]
+//
+// A blank line is a real line. The protocol layer rejects it, but framing must
+// not silently swallow it, or a client pressing return would get no answer.
+@example feed("", "\n").lines == [""]
+pub fn feed(buffered: string, chunk: string) -> Framed {
+  let joined = buffered + chunk
+  let parts = string.split(joined, "\n")
+  let count = array.len(parts)
+  let complete = array.slice(parts, 0, count - 1)
+  let rest = parts[count - 1]
+  return { lines: array.map(complete, strip_cr), rest: rest }
+}
+
+// `split` on "\n" leaves the carriage return of a CRLF pair at the end of the
+// line before it.
+fn strip_cr(line: string) -> string {
+  return match string.ends_with(line, "\r") {
+    true => string.slice(line, 0, string.len(line) - 1),
+    false => line,
+  }
+}

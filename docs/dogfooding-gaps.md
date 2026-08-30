@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-149 entries, 108 are fixed, 13 are partly fixed, 10 are decided or resolved, and
-18 are open. G144, the D28 boundary cast that never reached the returns a
+151 entries, 109 are fixed, 13 are partly fixed, 10 are decided or resolved, and
+19 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -5872,3 +5872,78 @@ through an object pattern's fields.
   Reproduced against 0.1.95, twice: with `glyph check`, which reports only
   `TS2322`, and by driving `glyph lsp` over stdio, which publishes only
   `E0107`.*
+
+- **G150. [FIXED] `glyph fmt` duplicated a comment on every run, without bound.** Each
+  pass adds one more copy of the same comment, so the file grows by two lines
+  every time it is formatted. Forty-nine bytes reproduce it:
+
+  ```glyph
+  @x ([5)
+  // c
+  }
+
+  fn f() -> U {
+    return 0
+  }
+  ```
+
+  Three passes turn one `// c` into four. Format-on-save grows the file for as
+  long as the editor is open, and `glyph fmt --check` can never pass, because
+  there is no fixed point to reach.
+
+  Three things are jointly required, and removing any one makes it stable: an
+  annotation whose parenthesized argument contains an unbalanced `[`, a comment
+  after it, and a stray `}` at top level before the next declaration. Balancing
+  the bracket is stable. Deleting the stray brace is stable. Deleting the
+  comment leaves nothing to duplicate.
+
+  This is the G23 family, which is why it matters more than its odd-looking
+  input suggests. G23 was the formatter moving a comment out of the construct it
+  documented, and the corruption was a *fixed point*, so nothing downstream
+  noticed. This one is the opposite failure of the same machinery and diff
+  stability is the pillar both attack: the whole promise is that a one-line
+  change makes a one-line diff, and here no change at all makes a growing one.
+
+  The reproduction is committed at
+  `glyph-compiler/fuzz/seeds/g150-fmt-duplicates-a-comment.glyph`.
+
+  *Found by the `format_idempotent` fuzz target on its first CI run, seven
+  seconds in. Reproduced against 0.1.95 through `glyph fmt` directly, and
+  minimized by hand from the 76 bytes `cargo fuzz tmin` reached.*
+
+  **Fixed.** `raw_args` is verbatim source, so when the argument text does not
+  close cleanly the parser's capture runs past it and takes the comment with it.
+  The annotation emitted that text, and then the comment machinery emitted the
+  same comment again because its cursor had not moved. The emitter now advances
+  the comment cursor past anything inside the annotation's own span. Formatting
+  the reproduction five times leaves one copy. The examples tree reports the
+  same 80 would-reformat and 95 already-formatted before and after, so nothing
+  else moved.
+
+- **G151. `glyph fmt` needs two passes to reach a fixed point when an annotation
+  swallows a comment.** Milder than G150 and the same family. Forty-four bytes:
+
+  ```glyph
+  @orre t// o.
+  /%
+
+  fn ar(n: int) ->koff {
+    }
+  ```
+
+  One pass gives two lines, a second gives three, and it is stable after that.
+  It converges rather than growing, so it is not the unbounded failure G150 was,
+  but it still means `glyph fmt --check` fails on output `glyph fmt` just
+  produced, which is the thing `--check` exists to be trusted about.
+
+  The shape is an annotation whose argument text runs into a line comment with
+  no space, so the comment ends up inside `raw_args` and is reflowed rather than
+  re-emitted. G150's fix stops the duplicate; it does not make the first pass
+  produce the same text as the second.
+
+  The reproduction is committed at
+  `glyph-compiler/fuzz/seeds/g151-fmt-needs-two-passes.glyph`.
+
+  *Found by the same fuzz target immediately after G150 was fixed, which is the
+  argument for keeping it running rather than treating one finding as the job
+  done. Reproduced against 0.1.95 plus the G150 fix.*

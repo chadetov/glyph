@@ -486,6 +486,18 @@ impl Printer {
                 self.push(args);
             }
             self.push("\n");
+            // `raw_args` is verbatim source, and when the argument text does not
+            // close cleanly the parser's capture runs past it and swallows
+            // whatever follows, a comment included. That comment has now been
+            // emitted as part of the annotation, so the comment cursor has to
+            // move past it too. Without this the comment machinery emitted it a
+            // second time, the output became the next run's input, and `glyph
+            // fmt` added one more copy every single time it ran (G150).
+            while self.cidx < self.comments.len()
+                && self.comments[self.cidx].span.start < a.span.end
+            {
+                self.cidx += 1;
+            }
         }
         // A comment between the last annotation and the declaration keyword.
         self.flush_comments_before(keyword_start);

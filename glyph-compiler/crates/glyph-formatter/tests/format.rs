@@ -730,3 +730,35 @@ fn the_empty_map_keeps_its_parentheses() {
     );
     assert_eq!(once, fmt(&once), "and formatting must be idempotent");
 }
+
+/// G150: formatting must not add a copy of a comment on every run.
+///
+/// `raw_args` is verbatim source, so an annotation argument that does not close
+/// cleanly makes the parser's capture run past it and take the following
+/// comment with it. The annotation emitted that text and the comment machinery
+/// emitted the same comment again, so each pass added one more copy: the file
+/// grew by two lines every time `glyph fmt` ran, format-on-save grew it for as
+/// long as the editor was open, and `--check` could never pass because there
+/// was no fixed point to reach.
+///
+/// Found by the `format_idempotent` fuzz target, minimized from 76 bytes.
+#[test]
+fn formatting_does_not_duplicate_a_comment_it_already_emitted() {
+    let src = "@x ([5)\n// c\n}\n\nfn f() -> U {\n  return 0\n}\n";
+
+    let mut current = src.to_string();
+    let mut seen = Vec::new();
+    for _ in 0..5 {
+        let module = glyph_parser::parse(&current).expect("reproduction must parse");
+        let comments = glyph_lexer::comments(&current);
+        current = format_module(&module, &comments, &current);
+        seen.push(current.matches("// c").count());
+    }
+
+    assert_eq!(
+        seen,
+        vec![1, 1, 1, 1, 1],
+        "the comment count must not grow with the number of passes; got {seen:?}\n\
+         final output:\n{current}"
+    );
+}

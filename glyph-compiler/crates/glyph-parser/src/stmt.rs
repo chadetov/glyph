@@ -1,8 +1,8 @@
 //! Statement and block parsing.
 
 use glyph_ast::{
-    Block, BreakStmt, ContinueStmt, Expr, ForStmt, LetStmt, LoopStmt, MutKind, MutStmt,
-    ReturnStmt, Stmt, TypeExpr,
+    Block, BreakStmt, ContinueStmt, Expr, ForBinding, ForStmt, LetStmt, LoopStmt, MutKind,
+    MutStmt, ReturnStmt, Stmt, TypeExpr,
 };
 use glyph_lexer::{Span, Token};
 
@@ -159,12 +159,12 @@ fn is_method_call(e: &Expr) -> bool {
 /// D21: `for X in expr { body }` and `for K, V in expr { body }`.
 fn parse_for(p: &mut Cursor) -> Result<ForStmt, ParseError> {
     let for_span = p.expect(&Token::For, "`for`")?;
-    let (first, _) = p.expect_ident("loop binding name")?;
-    let mut bindings = vec![first];
+    let (first, first_span) = p.expect_ident("loop binding name")?;
+    let mut bindings = vec![ForBinding { name: first, span: first_span }];
     while matches!(p.peek(), Token::Comma) {
         p.advance();
-        let (next, _) = p.expect_ident("additional loop binding name")?;
-        bindings.push(next);
+        let (next, next_span) = p.expect_ident("additional loop binding name")?;
+        bindings.push(ForBinding { name: next, span: next_span });
     }
     p.expect(&Token::In, "`in` between bindings and iterator")?;
     let iter = expr::parse_expr(p)?;

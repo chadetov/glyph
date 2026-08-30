@@ -1197,10 +1197,7 @@ type CommandError = { index: int, message: string }
 fn apply_batch(s: Sheet, commands: Array<CommandSpec>) -> Result<Sheet, CommandError> {
   let cells = s.cells
   for i, bound in commands {
-    // The annotation is load-bearing. A `for` binding carries no element type,
-    // so without it `cmd.op` reads as `string` and the match below stops being
-    // exhaustive over `"set" | "clear"`.
-    let cmd: CommandSpec = bound
+    let cmd = bound
     let addr = match parse_ref(cmd.ref) {
       Ok(a) => a,
       Err(e) => { return Err({ index: i, message: describe_ref_error(e) }) },

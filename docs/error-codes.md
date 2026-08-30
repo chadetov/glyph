@@ -51,10 +51,18 @@ below.
 | `E0109` | A TypeScript reserved word (`class`, `new`, `switch`, `eval`, ...) used as a declaration, parameter, or binding name |
 | `E0110` | A top-level declaration whose name shadows a global the emitted module depends on (`Error`, `Number`, `Object`, `Array`, `Promise`, `Record`, or a prelude name such as `number`, `par`, `print`, `string`, `Issue`) |
 | `E0111` | `type Key = string \| number`: bare primitive names on the right of `\|` declare tagged-union variants, not a union of those types |
+| `E0112` | A module with no `pub` declaration, no `main`, and no `import` anywhere in the project naming it: nothing in it is reachable (warning) |
 
 `E0106`–`E0108` are the lint tier: warnings, not errors. They surface in the
 build output but never fail the build or block emission. `E0107` exempts names
-led by `_` (the conventional "intentionally unused" marker).
+led by `_` (the conventional "intentionally unused" marker). `E0112` is the
+same tier, computed project-wide rather than per module: a module written for
+a host TypeScript project (the hybrid embedding shape, `glyph build` output
+imported directly by a React/Vite app) can have its whole export surface
+silently private, and the first tool to notice used to be the host's own
+`tsc`, failing TS2459 on every import of the generated file. Mark what the
+module exports with `pub`, give it a `fn main`, or import it from another
+module in the project.
 
 `E0109` is an error: Glyph permits these words as identifiers (they are not
 Glyph keywords), but they cannot name a binding in the emitted TypeScript, so

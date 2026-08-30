@@ -1077,8 +1077,20 @@ Module {
                                                                                         For(
                                                                                             ForStmt {
                                                                                                 bindings: [
-                                                                                                    "key",
-                                                                                                    "sub_schema",
+                                                                                                    ForBinding {
+                                                                                                        name: "key",
+                                                                                                        span: Span {
+                                                                                                            start: 2674,
+                                                                                                            end: 2677,
+                                                                                                        },
+                                                                                                    },
+                                                                                                    ForBinding {
+                                                                                                        name: "sub_schema",
+                                                                                                        span: Span {
+                                                                                                            start: 2679,
+                                                                                                            end: 2689,
+                                                                                                        },
+                                                                                                    },
                                                                                                 ],
                                                                                                 iter: Ident {
                                                                                                     name: "shape",
@@ -1250,7 +1262,13 @@ Module {
                                                                                                                                     For(
                                                                                                                                         ForStmt {
                                                                                                                                             bindings: [
-                                                                                                                                                "issue",
+                                                                                                                                                ForBinding {
+                                                                                                                                                    name: "issue",
+                                                                                                                                                    span: Span {
+                                                                                                                                                        start: 2907,
+                                                                                                                                                        end: 2912,
+                                                                                                                                                    },
+                                                                                                                                                },
                                                                                                                                             ],
                                                                                                                                             iter: Ident {
                                                                                                                                                 name: "sub_issues",
@@ -1930,8 +1948,20 @@ Module {
                                                                                         For(
                                                                                             ForStmt {
                                                                                                 bindings: [
-                                                                                                    "index",
-                                                                                                    "item",
+                                                                                                    ForBinding {
+                                                                                                        name: "index",
+                                                                                                        span: Span {
+                                                                                                            start: 3492,
+                                                                                                            end: 3497,
+                                                                                                        },
+                                                                                                    },
+                                                                                                    ForBinding {
+                                                                                                        name: "item",
+                                                                                                        span: Span {
+                                                                                                            start: 3499,
+                                                                                                            end: 3503,
+                                                                                                        },
+                                                                                                    },
                                                                                                 ],
                                                                                                 iter: Ident {
                                                                                                     name: "input",
@@ -2076,7 +2106,13 @@ Module {
                                                                                                                                     For(
                                                                                                                                         ForStmt {
                                                                                                                                             bindings: [
-                                                                                                                                                "issue",
+                                                                                                                                                ForBinding {
+                                                                                                                                                    name: "issue",
+                                                                                                                                                    span: Span {
+                                                                                                                                                        start: 3683,
+                                                                                                                                                        end: 3688,
+                                                                                                                                                    },
+                                                                                                                                                },
                                                                                                                                             ],
                                                                                                                                             iter: Ident {
                                                                                                                                                 name: "sub_issues",
@@ -2866,7 +2902,13 @@ Module {
                                                     For(
                                                         ForStmt {
                                                             bindings: [
-                                                                "issue",
+                                                                ForBinding {
+                                                                    name: "issue",
+                                                                    span: Span {
+                                                                        start: 5058,
+                                                                        end: 5063,
+                                                                    },
+                                                                },
                                                             ],
                                                             iter: Ident {
                                                                 name: "issues",

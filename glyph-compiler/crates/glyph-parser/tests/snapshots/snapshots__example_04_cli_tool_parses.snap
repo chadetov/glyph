@@ -4557,7 +4557,13 @@ Module {
                                                                                 For(
                                                                                     ForStmt {
                                                                                         bindings: [
-                                                                                            "item",
+                                                                                            ForBinding {
+                                                                                                name: "item",
+                                                                                                span: Span {
+                                                                                                    start: 4623,
+                                                                                                    end: 4627,
+                                                                                                },
+                                                                                            },
                                                                                         ],
                                                                                         iter: Ident {
                                                                                             name: "visible",

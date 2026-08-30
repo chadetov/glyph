@@ -523,10 +523,19 @@ fn build_project_inner_with(
     // the inner tag (G147).
     let mut union_variant_names: std::collections::BTreeMap<(String, String), Vec<String>> =
         Default::default();
+    // Every module path named by an `import` anywhere in the project,
+    // regardless of whether that import resolves or the imported names exist.
+    // G124's diagnostic needs only the textual fact "some sibling module
+    // names this path", not a successful resolution of it — a module is
+    // reachable the moment something in the project reaches for it.
+    let mut imported_module_paths: std::collections::BTreeSet<String> = Default::default();
     for (module_path, sf) in &entries {
         let parsed = parse_module(&db, *sf);
         let Some(ast) = parsed.module() else { continue };
         for item in &ast.items {
+            if let glyph_ast::Decl::Import(imp) = item {
+                imported_module_paths.insert(glyph_resolver::path_key(&imp.path));
+            }
             if let glyph_ast::Decl::Type(td) = item {
                 if let glyph_ast::TypeExpr::Union { variants, .. } = &td.body {
                     union_variant_names.insert(
@@ -720,6 +729,28 @@ fn build_project_inner_with(
         // module that resolved with no errors, so the resolution map is
         // complete and a used binding can't be mistaken for a dead one.
         for e in glyph_resolver::module_lints(ast, resolved) {
+            report
+                .diagnostics
+                .push(render_resolve_error(module_path, &source, &e, with_color));
+            report.structured.push(crate::diagnostic::from_resolve_error(
+                module_path,
+                &source,
+                &e,
+                crate::render::stage_label_for(&e),
+            ));
+        }
+
+        // A module with nothing `pub`, no `main`, and no import elsewhere in
+        // the project naming it is unreachable from anywhere Glyph can see
+        // (G124). This is project-wide (needs `imported_module_paths` above),
+        // so it can't live inside `module_lints`, which only ever sees one
+        // module; advisory like the lint tier above, since a host TypeScript
+        // project embedding the emitted `.ts` directly is invisible to the
+        // Glyph compiler and a still-in-progress module legitimately passes
+        // through this state before its author adds `pub`.
+        if let Some(e) =
+            glyph_resolver::no_export_surface_lint(ast, imported_module_paths.contains(module_path))
+        {
             report
                 .diagnostics
                 .push(render_resolve_error(module_path, &source, &e, with_color));

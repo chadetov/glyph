@@ -790,7 +790,12 @@ impl Printer {
             }
             Stmt::For(f) => {
                 self.push("for ");
-                self.push(&join(&f.bindings, ", "));
+                // `join` takes a slice of `Ident`; a `ForBinding` carries its
+                // own def-site span alongside the name (G37), so pull just
+                // the names out for formatting.
+                let names: Vec<glyph_ast::Ident> =
+                    f.bindings.iter().map(|b| b.name.clone()).collect();
+                self.push(&join(&names, ", "));
                 self.push(" in ");
                 self.expr(&f.iter);
                 self.push(" ");

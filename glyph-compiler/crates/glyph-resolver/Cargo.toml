@@ -10,9 +10,9 @@ description = "Name resolution and module graph for Glyph. Salsa-backed per Q5 h
 
 [dependencies]
 glyph-ast.workspace = true
+glyph-parser.workspace = true
 salsa.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-glyph-parser.workspace = true
 insta.workspace = true

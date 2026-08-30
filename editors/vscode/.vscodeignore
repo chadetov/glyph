@@ -1,0 +1,6 @@
+.gitignore
+.vscodeignore
+PUBLISHING.md
+node_modules/.bin/**
+**/*.map
+**/.DS_Store

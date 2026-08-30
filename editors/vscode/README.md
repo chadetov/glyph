@@ -1,50 +1,62 @@
 # Glyph for VS Code
 
-Syntax highlighting plus the Glyph language server: live diagnostics, hover
-types, go-to-definition, completion, and format-on-save.
+Syntax highlighting and the Glyph language server for `.glyph` files.
+
+[Glyph](https://glyphlang.io) is a statically typed language that compiles to
+TypeScript, designed so AI agents can read, write, and modify code safely.
+
+## Setup
+
+The extension needs the `glyph` binary, which carries the language server:
+
+```sh
+npm install -g @glyphlang/glyph
+```
+
+Open any `.glyph` file and it starts. If the binary is not on your `PATH`, point
+the extension at it:
+
+```json
+{ "glyph.serverPath": "/absolute/path/to/glyph" }
+```
 
 ## What you get
 
-- **Highlighting** — a TextMate grammar for `.glyph` files (keywords, types,
-  strings with `${…}` interpolation, comments, annotations).
-- **Language server** — the extension launches `glyph lsp` (the server built
-  into the `glyph` binary) and wires it over stdio. It provides:
-  - diagnostics (parse / resolve / typecheck errors, with their `E0xxx` codes),
-  - hover types,
-  - go-to-definition, following imports across modules,
-  - find-references and rename, workspace-wide,
-  - completion (keywords, in-scope declarations, prelude names),
-  - document and workspace symbols,
-  - document formatting (the canonical `glyph fmt` layout).
+**Highlighting.** The TextMate grammar is generated from the compiler's own
+keyword table rather than maintained by hand, so a keyword the compiler knows is
+a keyword the editor colours. It covers declarations, control flow, the
+primitive types including `int` and `bigint`, operators, `${...}` interpolation,
+annotations, member access, and it scopes a variant constructor differently from
+a type, so `Some(x)` in a match arm does not read as an annotation.
 
-## Prerequisites
+**Language server.** The extension runs `glyph lsp` and gives you diagnostics
+with their `E0xxx` codes, hover types, go-to-definition following imports across
+modules, workspace-wide find-references and rename, completion, document and
+workspace symbols, inlay hints, code actions, and formatting in the canonical
+`glyph fmt` layout.
 
-1. **Build the `glyph` binary** and put it on your `PATH` (or set
-   `glyph.serverPath`):
-   ```sh
-   cd glyph-compiler && cargo build --release
-   # then add target/release to PATH, or:
-   #   "glyph.serverPath": "/absolute/path/to/glyph-compiler/target/release/glyph"
-   ```
-2. **`tsx` + `typescript`** on `PATH` for `glyph run` / `--check` (not required
-   for the editor features above).
+## What it does not do yet
 
-## Run it (no packaging needed)
+The server runs Glyph's own analysis and does not run `tsc`. Errors that only
+TypeScript catches therefore do not appear while you type; they arrive at
+`glyph build`. The smallest example is `let x: string = 42`, which the editor
+reports only as an unused variable. This is tracked as G149 and is scheduled.
 
-```sh
-cd editors/vscode
-npm install            # fetches vscode-languageclient
-code .                 # open this folder in VS Code
-# press F5 — an Extension Development Host opens; open any .glyph file.
-```
-
-The server is plain CommonJS (`extension.js`), so there is no compile step.
+Member completion after `.` is not implemented.
 
 ## Settings
 
-- `glyph.serverPath` (default `glyph`) — path to the `glyph` binary the
-  extension runs as `glyph lsp`.
+| Setting | Default | What it does |
+|---|---|---|
+| `glyph.serverPath` | `glyph` | Path to the `glyph` binary the extension runs as `glyph lsp`. |
 
-## Not yet
+## Links
 
-Member completion after `.`.
+[Website](https://glyphlang.io) ·
+[Playground](https://glyphlang.io/playground/) ·
+[Source](https://github.com/chadetov/glyph) ·
+[Issues](https://github.com/chadetov/glyph/issues)
+
+## License
+
+MIT or Apache-2.0, at your option.

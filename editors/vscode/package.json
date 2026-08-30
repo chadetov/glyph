@@ -2,20 +2,35 @@
   "name": "glyph-vscode",
   "displayName": "Glyph",
   "description": "Glyph language support: syntax highlighting + the glyph language server (diagnostics, hover, go-to-definition, completion, format-on-save).",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "glyph",
   "license": "MIT OR Apache-2.0",
-  "repository": { "type": "git", "url": "https://github.com/chadetov/glyph" },
-  "engines": { "vscode": "^1.75.0" },
-  "categories": ["Programming Languages"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chadetov/glyph",
+    "directory": "editors/vscode"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
   "main": "./extension.js",
-  "activationEvents": ["onLanguage:glyph"],
+  "activationEvents": [
+    "onLanguage:glyph"
+  ],
   "contributes": {
     "languages": [
       {
         "id": "glyph",
-        "aliases": ["Glyph", "glyph"],
-        "extensions": [".glyph"],
+        "aliases": [
+          "Glyph",
+          "glyph"
+        ],
+        "extensions": [
+          ".glyph"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -39,5 +54,23 @@
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
-  }
+  },
+  "icon": "icon.png",
+  "homepage": "https://glyphlang.io",
+  "bugs": {
+    "url": "https://github.com/chadetov/glyph/issues"
+  },
+  "keywords": [
+    "glyph",
+    "glyphlang",
+    "typescript",
+    "language server",
+    "ai agents",
+    "static types"
+  ],
+  "galleryBanner": {
+    "color": "#1b1f3a",
+    "theme": "dark"
+  },
+  "qna": "https://github.com/chadetov/glyph/issues"
 }

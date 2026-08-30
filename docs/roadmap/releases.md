@@ -376,7 +376,7 @@ that shipped in 0.1.11 (the README only updates on publish). No code changes.
 pending a publish). All sixteen findings closed.** The improve-glyph loop applied
 to a real networked app: `hookrelay`, a webhook receiver and dispatcher, built
 end to end in Glyph — like
-`examples/apps/tasks.glyph` (0.1.25) but harder (raw-body HMAC verification, a
+`examples/apps/tasks/main.glyph` (0.1.25) but harder (raw-body HMAC verification, a
 recursive and/or/not rule engine, bounded-concurrency dispatch with retry,
 lossless NDJSON round-trip, a subcommand CLI with exit codes). All 16 findings
 from that build fold into three releases, sequenced additive-first. The headline
@@ -520,7 +520,7 @@ Q&A, and marks its finding resolved in the same change.
 ## minesweeper dogfood trip — a terminal app, no framework
 
 The improve-glyph loop applied to a plain program: Minesweeper in the terminal
-(`examples/apps/minesweeper.glyph`). No npm dependency, no server, no JSX. The
+(`examples/apps/minesweeper/main.glyph`). No npm dependency, no server, no JSX. The
 point was to find what an ordinary developer hits writing ordinary code, and what
 they hit is a formatter that quietly rewrites their source, a stdlib missing the
 three string functions any grid renderer needs, and an array index that lies.
@@ -687,7 +687,7 @@ parked; it should be scheduled as a designed release once the fork is resolved.
 ## expense-CLI dogfood trip — a ledger, a parser, and money
 
 The loop pointed at another ordinary program: an expense-report CLI
-(`examples/apps/expenses.glyph`) that reads a CSV ledger, validates every row,
+(`examples/apps/expenses/main.glyph`) that reads a CSV ledger, validates every row,
 and prints a per-category report with exact `Decimal` money. Fifteen findings
 came out of it. Thirteen are "Glyph made me type more". Two are a different
 category: the standard library returned a value where its own reference docs
@@ -785,7 +785,7 @@ nested string literal, which is a lexer artifact rather than a rule.
 
 ## text-adventure dogfood trip — the command developers run all day
 
-The loop pointed at `examples/apps/adventure.glyph`: rooms, an inventory, a
+The loop pointed at `examples/apps/adventure/main.glyph`: rooms, an inventory, a
 command parser, no dependencies. Thirteen findings came out of it. Twelve are the
 compiler not knowing something or the stdlib not having something, and a user can
 read an error about those. One is the compiler knowing the answer and hiding it,
@@ -955,7 +955,7 @@ regression test asserts the value import.
 
 ## linkcheck dogfood trip — one wrong condition, three TypeScript errors
 
-The loop pointed at `examples/apps/linkcheck.glyph`: walk a directory, scan
+The loop pointed at `examples/apps/linkcheck/main.glyph`: walk a directory, scan
 Markdown for links, fan out HTTP requests with a bounded pool, report what is
 broken. Thirteen findings came out of it and most are stdlib breadth
 (`fs.read_dir`, capture groups in `regex`, timeouts in `http`). The one that
@@ -1004,7 +1004,7 @@ implicit `any[]` (TS7034/TS7005).
 Verifiability, inverted and put back. Every one of these built clean under
 `glyph build` and failed at `tsc` on the emitted TypeScript. The compiler is
 supposed to be the source of truth; on this path it was a preprocessor with
-opinions. `examples/apps/linkcheck.glyph` ships with the release with all three
+opinions. `examples/apps/linkcheck/main.glyph` ships with the release with all three
 workarounds deleted, and its offline output is byte-identical to what the
 workaround version produced.
 
@@ -1131,7 +1131,7 @@ workaround version produced.
 
 ## bracket dogfood trip — the build said ok on a false assertion
 
-The loop pointed at `examples/apps/bracket.glyph`: a single-elimination
+The loop pointed at `examples/apps/bracket/main.glyph`: a single-elimination
 tournament bracket, seeding, results, standings. Twelve findings came out of it,
 six of them re-reports of gaps already on this page. The one worth the release is
 none of the syntax complaints: the app carried its own `@example`s, and the build
@@ -1198,7 +1198,7 @@ minimal-image build of a project with examples needs either `tsx` installed or
 
 ## shortlink dogfood trip — a green build running yesterday's shim
 
-The loop pointed at `examples/apps/shortlink.glyph`: shorten a URL, redirect a
+The loop pointed at `examples/apps/shortlink/main.glyph`: shorten a URL, redirect a
 visitor, count the hits. The loudest finding is `std/http`: `Response` is
 `{ status, body }` with no headers, `respond` hard-codes the content type, and
 the constructors are `json` and `text`, so a 302 and an HTML page are both
@@ -1243,7 +1243,7 @@ supported, not a bug to patch.
 
 ## settle dogfood trip — the only branching construct had no type
 
-The loop pointed at `examples/apps/settle.glyph`, a shared-expense settler: parse
+The loop pointed at `examples/apps/settle/main.glyph`, a shared-expense settler: parse
 a ledger, split expenses, minimize the transfers that square everyone up. The
 review that came back listed sixteen findings, twelve of which already carried a
 G-number. The one taken here is the one with no design question attached.
@@ -1291,11 +1291,11 @@ arity differs and it stays `Unknown`. This is the boundary between untrusted
 input and typed data, so leaving it opaque undid every inference downstream of
 it. With both pieces in, `let rows: Array<WireExpense> = wire.expenses` and its
 "the annotation is load-bearing" comment are gone from
-`examples/apps/settle.glyph`, the loop below it reads `for i, w in wire.expenses`
+`examples/apps/settle/main.glyph`, the loop below it reads `for i, w in wire.expenses`
 and still binds a number: feed it a ledger whose third entry has three decimal
 places and it reports `expense 3`, not `expense 21`.
 
-Also in the release: the app ships as `examples/apps/settle.glyph`. Record a
+Also in the release: the app ships as `examples/apps/settle/main.glyph`. Record a
 shared expense, split it evenly, by exact shares, or by weights, print the
 balances, and settle up in as few payments as possible, with every amount an
 exact whole number of cents. It builds and runs under the same `examples/` gate
@@ -1329,7 +1329,7 @@ header and a `text/html` page were both unspellable. The app declared its own
 not look inside, and ran as unverified TypeScript wearing Glyph syntax. The stale
 `extern/` cache that forced the deferral last time shipped in 0.1.44, so the
 reason to wait is gone. The shim is gone with this release:
-`examples/apps/shortlink.glyph` imports no `extern/*` and no Node builtin, and
+`examples/apps/shortlink/main.glyph` imports no `extern/*` and no Node builtin, and
 `examples/extern/web.ts` is deleted. 0.1.47 below was picked off this trip's open
 list. 0.1.48 sits after it in shipping order but belongs to the linkcheck trip
 above, whose four stdlib findings it closes. No release carries the Next marker
@@ -1376,7 +1376,7 @@ a 500 from `Err`, CR/LF stripped out of an injected `location`, an astral
 character stripped from a `location` with the server still answering afterwards,
 and a form body decoded.
 
-The app is the proof. `examples/apps/shortlink.glyph` went from 615 lines to 494:
+The app is the proof. `examples/apps/shortlink/main.glyph` went from 615 lines to 494:
 its own `Response` type, its `node:http` server, its form parser, and its
 keep-alive loop are all deleted, and it still serves the 302 and the HTML page it
 was written for. `serve` stays pending while the server listens, so `main` needs
@@ -1474,7 +1474,7 @@ rode on the deleted functions; the equivalent assertions are in
 
 The linkcheck trip filed thirteen findings and four of them said the same thing:
 the stdlib cannot do this, so the app does it by hand. This release adds the four
-capabilities and then rewrites `examples/apps/linkcheck.glyph` until none of the
+capabilities and then rewrites `examples/apps/linkcheck/main.glyph` until none of the
 workarounds are left. Both halves are the release. A function that ships and a
 workaround that survives it are different claims, and the app is what settles the
 second one.
@@ -1600,7 +1600,7 @@ match arm".
 "not implemented yet" while the same code in a block arm compiled and emitted
 correctly (G24). The arm body now goes through the same hoisting path as any
 other statement value, so the unwrap and its early `return` land inside the arm's
-own `case`. `examples/apps/bracket.glyph` lost the block-arm workaround and the
+own `case`. `examples/apps/bracket/main.glyph` lost the block-arm workaround and the
 comment explaining it, eight lines for two, and the emitted TypeScript is
 byte-identical. The two positions that stay rejected say why now instead of
 claiming a missing feature: **E0302** for an arm of a `match` nested inside a
@@ -1621,7 +1621,7 @@ itself did not check.
   S). `{}` is a no-op block in statement position, used nine-plus times across
   the corpus, so it cannot silently become the empty record. E0223 reports the
   value-position case rather than answering the question, and
-  `examples/apps/linkcheck.glyph` still carries the `no_cache()` constructor.
+  `examples/apps/linkcheck/main.glyph` still carries the `no_cache()` constructor.
   Four candidates: a named `record.empty<V>()`, a context-sensitive `{}`,
   rejecting `{}` as an arm body outright, or a grouping node in the AST so
   `=> ({})` survives `glyph fmt`. The last one is also the fix for G60 below.
@@ -1766,7 +1766,7 @@ directory, runs `build`'s pipeline into a temp directory it deletes on the way
 out, and runs `tsc --strict` over the emitted TypeScript unless you pass
 `--no-tsc`. Nothing lands in your tree and nothing executes: the regression test
 checks a program whose `main` writes a sentinel file, then asserts the file is
-absent and stdout is empty. On `examples/apps/expenses.glyph` it reports "10
+absent and stdout is empty. On `examples/apps/expenses/main.glyph` it reports "10
 module(s) checked, no diagnostics" in about a second and leaves `git status`
 clean. `glyph build one.glyph` still refuses a file, but the refusal now names
 `glyph check <file>`.
@@ -1792,14 +1792,14 @@ positional, so `glyph run app.glyph data.csv --min -12.50` already worked and
 `glyph run app.glyph --min -12.50` did not. `allow_hyphen_values` on the trailing
 argument closes that. A flag glyph knows still binds to glyph wherever it
 appears, so `glyph run app.glyph --no-tsc` is unchanged and `--` remains the
-answer for a program flag that collides. `examples/apps/expenses.glyph` grew a
+answer for a program flag that collides. `examples/apps/expenses/main.glyph` grew a
 `--min AMOUNT` filter that exercises it with an exact `Decimal` comparison.
 
 G55 was the docs round it asked for: three things the author of a previous app
 reimplemented because they could not find them. `math.max` was reachable only
 through a slash-grouped line, so grepping the reference for it found nothing;
 every grouped line on that page is now one call per line, and
-`examples/apps/linkcheck.glyph` lost its hand-rolled `max_of`. The two-import
+`examples/apps/linkcheck/main.glyph` lost its hand-rolled `max_of`. The two-import
 rule for `std/time` was stated once in a page preamble that had it wrong, and is
 now in both AGENTS.md and the reference with what each line buys. Multi-line
 strings are described in AGENTS.md's "Template strings" section, with the caveat
@@ -1831,7 +1831,7 @@ had not.
   gated on the slice containing a raw newline, so a single-line template still
   gets its `${...}` interiors normalized. Whether to drop that normalization and
   copy every template verbatim, as `Expr::String` does, is still open.
-  `examples/apps/shortlink.glyph` writes all five HTML builders as real
+  `examples/apps/shortlink/main.glyph` writes all five HTML builders as real
   multi-line strings now: the rewrite that had to be reverted before is back, the
   emitted `shortlink.ts` is byte-identical to the `\n`-escaped version, and
   `glyph fmt --check` reports the file already formatted.
@@ -1875,7 +1875,7 @@ them. And a `T.parse` call allocates the two combinator closures the
 constructors build, which is what any `Ok(...)` costs, except that this one sits
 on the per-request boundary path rather than on a function return. `?` applied
 to a parse result and `infer_output<S>` both still work.
-`examples/apps/bracket.glyph` was the app carrying the workaround: two identity
+`examples/apps/bracket/main.glyph` was the app carrying the workaround: two identity
 re-wrap `match`es around `Bracket.parse` and `SeedFile.parse`, each an
 `Ok(b) => Ok(b)` arm beside an `Err` arm that only reworded the message. Both
 are `.map_err(...)` now, and both rejection paths were run against a malformed
@@ -1909,7 +1909,7 @@ format-on-save, which is the same family as G60: formatting must not change what
 a program prints. `template` now copies the literal verbatim through the helper
 `string_literal` already used, gated on the slice containing a raw newline so a
 single-line template still gets its `${...}` interiors normalized.
-`examples/apps/shortlink.glyph` writes all five HTML builders as real multi-line
+`examples/apps/shortlink/main.glyph` writes all five HTML builders as real multi-line
 strings now, the emitted `shortlink.ts` is byte-identical to the `\n`-escaped
 version, and `glyph fmt --check` reports the file already formatted.
 
@@ -1989,7 +1989,7 @@ G50's codepoint half closed as a decision, not code. Glyph strings index by
 UTF-16 code unit and will keep doing so; `chars` and `char_at` are not shipping,
 because an accessor that can split a surrogate pair is worse than none. A
 program that needs codepoints encodes to bytes with `encoding.hex_encode` and
-walks pairs, as `examples/apps/shortlink.glyph` does. No workaround comes out of
+walks pairs, as `examples/apps/shortlink/main.glyph` does. No workaround comes out of
 any app for that one; the hex walk is now the documented answer.
 
 Pillar: verifiability. Every item above moves a check that `tsc` was doing (or
@@ -4583,6 +4583,75 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
+### 0.1.97 — Planned · Build the semantic graph, and expose it through MCP
+
+The compiler resolves every name, types every expression and finds every
+reference, because compiling requires it. Almost none of that is reachable from
+outside. This release builds the graph over what the compiler already knows and
+puts MCP on top of it, so an agent can ask the compiler a question instead of
+searching for the answer.
+
+The invariant is the whole feature and it is not negotiable: every edge is exact
+or absent, and absence of an edge means absence of a relation, never "analysis
+did not reach here." An answer that quietly stops at the TypeScript boundary is
+a green build that proves nothing, which this project treats as worse than being
+wrong. The requirements are written up under "Semantic graph requirements
+(Q45, R1 through R8)" below, and the constraint that outranks every item in them
+is that the graph is a projection of the compiler's model and never a second
+parser.
+
+**Route MCP through salsa first, because everything else is cheaper afterwards.**
+`glyph-lsp/src/mcp.rs` contains no reference to the database. It calls
+`analyze_full` on raw file text and walks `workspace_files` per request, so
+`glyph_references` re-analyzes every file on every call: 175 full analyses
+against the examples tree to answer one question. Every query worth adding is
+multi-file, so each one built on the current path is built expensive and has to
+be moved later. One semantic query boundary that LSP and MCP share, over the
+tracked queries that already exist (`resolve`, `module_symbols`, `type_map`,
+`decl_ty`, `module_exports`).
+
+**Then the graph, in the order the requirements set.** Entity identity (R1)
+comes first because every later item encodes those IDs, and match arms key by
+the variant they cover rather than by position, so inserting an arm does not
+renumber the others. Boundary node kinds (R3) come with it, because the frontier
+with npm and with hand-written TypeScript has to be a node kind or the invariant
+fails on the first import. Then the exhaustiveness relation (R4), which is the
+highest value per unit of cost in the list: the checker computes arm-to-variant
+edges and throws them away, and retaining them turns "what breaks if I add a
+variant" into a lookup. That is the direct instrument for the bug shape this
+project has hit five times, G139, G141, G142, G143 and G148, each one a site not
+unwrapping `Ty::App` to its base.
+
+*Reviewed against 0.1.95.* Every claim above was re-run rather than carried
+forward, and two numbers had moved. `mcp.rs` still contains no reference to the
+database at all, and still calls `analyze_full` on raw text at three sites plus
+a `workspace_files` walk, so the gating finding holds unchanged. All five named
+salsa queries exist in `glyph-db/src/lib.rs`. The examples tree is 175 `.glyph`
+files now rather than 174, and the sites that unwrap `Ty::App` to its base are
+39 rather than the 29 counted when this was written, which makes the argument
+for R4 stronger rather than weaker: the bug shape's surface grew while the
+release that would instrument it sat unscheduled.
+
+**The new MCP tools follow from the graph, not the other way round.** The five
+that exist today answer about a position in a file. What the graph adds is the
+questions an agent actually gets stuck on: every match site over a type and
+which variants each one covers, callers and callees as a first-class `CALLS`
+relation distinct from `REFERENCES`, and what a declaration was generated from.
+Each answer carries its provenance, so an agent can tell a fact the compiler
+proved from one asserted by a `.d.ts` it cannot check.
+
+Deliberately not in this release: the wider query surface (R8). The workload has
+not been observed yet, and freezing a query API before knowing which questions
+get asked is the same mistake as locking codegen defaults before generated files
+proliferate. Thor's agents are the instrument for observing it, because they
+already issue every search against this repo and the tick ledger already records
+them.
+
+How this gets judged. The fix lane is 59.6% of all agent-minutes; one gap took
+four review rounds and about six hours. If these queries help, minutes per closed
+gap fall. If they do not move, that is worth learning before the later items
+rather than after them.
+
 ### 0.1.95 — Shipped · An imported union is checked whether or not it is generic
 
 **G148, the imported union whose arity switched exhaustiveness checking off.**
@@ -4663,7 +4732,7 @@ resolved `@glyphlang/darwin-x64`, the one platform CI cannot execute, at mode
 and matches its `SHA256SUMS` entry.
 
 No compiler change in this one. What it carries is
-`examples/apps/leaderboard.glyph`, and the reason to cut it is that the app
+`examples/apps/leaderboard/main.glyph`, and the reason to cut it is that the app
 compiles. The union work in 0.1.90, 0.1.91 and 0.1.93 was found each time by a
 program somebody could not finish writing. This is that program, finished.
 
@@ -5728,7 +5797,7 @@ green with the boundary catching a genuine bug on the first try.
   trusting it, never a cast. Wired into the bundled runtime, the resolver stub, and
   the stdlib reference; a `node:sqlite` shim was added for projects without
   `@types/node`. Drift tests hold the stub, the runtime, and the docs in sync.
-- **`examples/apps/tasks.glyph`** — a persisted task API: `std/sqlite` for storage,
+- **`examples/apps/tasks/main.glyph`** — a persisted task API: `std/sqlite` for storage,
   `std/http` for routes (`GET /tasks`, `POST /tasks`, `POST /toggle`), wire bodies
   validated with `.parse`, all errors-as-values, and data that survives a restart.
   Built end to end, curled on every route, and restarted to prove persistence. It
@@ -5816,7 +5885,7 @@ iterations did not land) plus two emit/typecheck fixes:
 
 ### 0.2.x — Prove it (the evidence gate)
 
-One CLI dogfood app (`examples/apps/fridge.glyph`) is not enough to bet a project
+One CLI dogfood app (`examples/apps/fridge/main.glyph`) is not enough to bet a project
 on.
 
 - **A second real app with persisted data on a real DB client** (L), no wrapper.
@@ -6486,6 +6555,115 @@ parses, sub-nav consistent) and nothing checks *claims*. The two fixed cases wer
 mechanical enough to gate. Whether a status-row sentence is still true is not,
 and that is the honest limit.
 
+## The loop this is all for
+
+Everything in the three sections below serves one target, and it is worth
+writing the target down concretely rather than as "better agent support",
+because stated concretely it becomes testable.
+
+A developer says "add OAuth login". The agent says it will change `auth.glyph`.
+Before it edits anything, it asks the compiler six questions:
+
+1. What is `AuthResult`?
+2. Where is `Session` constructed?
+3. What consumes a `Session`?
+4. What resources must be closed?
+5. Which errors are possible here?
+6. Which `match` branches become non-exhaustive if I change this union?
+
+It edits. The compiler answers with semantic errors, not TypeScript ones. The
+agent fixes them, the tests run, and the change ships.
+
+**The compiler already knows all six answers. It exposes one and a half.** That
+is the whole gap, and it is smaller than it sounds:
+
+| Question | Compiler knows it | Reachable today |
+|---|---|---|
+| What is `AuthResult`? | yes, `type_map` | partly: `glyph_hover`, but only at a cursor position, not by name |
+| Where is `Session` constructed? | yes, resolution | no. `glyph_references` returns references, and a construction is not distinguished from a mention |
+| What consumes a `Session`? | yes, every signature | no. Needs signature reachability: which functions take or return `T` |
+| What must be closed? | yes, D25 `owned`/`resource`, 82 sites in the typechecker | no |
+| Which errors are possible? | yes, the error arm of the `Result` | no |
+| Which matches go non-exhaustive? | yes, computed in three functions in `assign.rs` and then discarded | no. This is R4 |
+
+All five MCP tools today (`glyph_diagnostics`, `glyph_hover`,
+`glyph_definition`, `glyph_references`, `glyph_symbols`) answer about a position
+in a file. Every question above is about a *thing*: a type, a value, a
+guarantee. That difference is the work, and it is why entity identity (R1) is
+first: a query about a thing needs a name for the thing.
+
+**Two consequences for the plan.**
+
+*Question 6 is the one to build first,* and R4 already says so for a different
+reason. It is the question with the most direct evidence behind it: five gaps in
+one shape, and a bug class where the failing program compiles clean and passes
+`tsc --strict`. It is also the only one of the six where the compiler is
+currently throwing away an answer it has already computed.
+
+*The loop does not close on reads.* The diagram has an edit step in it, and
+every tool listed above is a read. An agent that has all six answers still
+changes code by editing text. That half is not scheduled and should be, with the
+sequencing stated: reads first, because a wrong read costs a turn and a wrong
+write costs a file, and entity identity is a precondition for both. A rename
+that cannot name what it is renaming is a search and replace with extra steps.
+
+**What "semantic errors, not TypeScript ones" costs.** The diagram's fourth box
+assumes the compiler answers in Glyph's own terms. 215 lines in the gap ledger
+mention `tsc` or a `TS####` code, so today a meaningful share of what the agent
+would get back is a TypeScript error about generated code it did not write. That
+is Q46's second item, and this loop is the reason it is not cosmetic.
+
+## Four questions about a payment API, and which of them we can answer
+
+A useful way to pressure-test the semantic-graph plan is to take an application
+nobody would write casually, a payment API with idempotency and audit logging,
+and ask what an agent would actually want to know about it. Four questions came
+out of an outside review. Checked against what the compiler can prove, one is
+already answered more strongly than the question assumes, two are the scheduled
+work, and one is a recorded non-goal that must not be promised.
+
+**"Can this database connection leak?" Already answered, today, and not as a
+query.** This is D25. A `resource` type held as `owned` must be consumed on
+every path, and failing to is `E0206`, with `E0205` and `E0207` for the
+neighbouring mistakes. It is a compile error rather than something an agent has
+to think to ask, which is the stronger form: the agent cannot forget to ask, and
+cannot ship the leak. The gap is that nothing advertises this. An agent has no
+way to learn that the guarantee exists, which is the discovery problem again.
+
+**"What endpoints are affected if I change `PaymentStatus`?" This is the
+scheduled work, and it is the best argument for R4.** Impact follows from the
+exhaustiveness relation plus `CALLS`: every match site over the type, which
+variants each covers, and who reaches those functions. The compiler computes the
+first half already and discards it.
+
+**"What happens if Stripe returns this error?" Derivable and not exposed.** The
+error arm of a `Result` is in the signature, and which branches handle it is the
+same relation as above. This one needs no new analysis, only a query.
+
+**"Can this payment ever be processed twice?" Not answerable soundly, and we
+should say so rather than demo it.** As posed, this is a question about ordering
+along a path: is the idempotency key persisted before the charge call. Answering
+it in general needs interprocedural dataflow, which the requirements record as a
+non-goal because it is unsound under first-class functions and would break the
+invariant that every edge is exact or absent. A plausible answer here is worse
+than no answer, because the whole value of a compiler-backed reply is that the
+agent can stop looking.
+
+What is soundly answerable is narrower and still useful: which functions take or
+return the key, which paths reach the charge without one in scope by signature,
+and whether the audit write is on every branch. That is signature reachability
+and exhaustiveness, not dataflow. The honest framing is "here is the set of
+places this value crosses, and here is what I could not check", which is Q46's
+report of what was not verified arriving from the query side.
+
+**The rule this establishes for any future demo.** Show the three we can prove
+and state the fourth as the thing the compiler declines to claim. We have made
+the other mistake once already, in reverse: a marketing draft showed a
+diagnostic proving a branch unreachable from a balance guarantee, which
+`where` refinements do not do, because D39 is boundary-validated rather than
+statically tracked. A demo of a guarantee we do not have is the fastest way to
+lose the credibility the guarantees we do have would earn.
+
 ## Semantic model and agent queries (Q45)
 
 The compiler resolves every name, types every expression and finds every
@@ -6848,6 +7026,126 @@ site in the query layer. It is an API migration on the incremental engine, which
 is the component every other feature reads through, so it wants its own change
 and its own testing rather than riding a dependency sweep.
 
+
+## The stub that made the project look immature, and the dead crate behind it
+
+An outside review read this repository and concluded that Glyph's "compiler
+runtime execution" is far less mature than its type system, resolver, emitter
+and diagnostics. The facts it cited are true and the conclusion is wrong, and
+the gap between those two things is entirely our own doing.
+
+**What is true.** `crates/glyph-runtime` is 41 lines. Its whole content is a
+`RuntimeError::NotImplemented` and a `run_example()` that returns it. It is a
+workspace member and `glyph-cli` declares it as a dependency. Until this was
+written, `glyph-cli/src/main.rs` opened with "Glyph CLI, stub for Phase 0" and
+closed its header with "Phase 0 ships only the CLI structure; commands return
+not yet implemented."
+
+**What is false.** That execution is immature. `@example` and `@doc @run`
+assertions run on every build and are the tree's main verification surface: 382
+of them across twelve apps, 54 in `resilient`, 47 in `sheet`, 40 in `discord`,
+39 in `depsolve`. `glyph build` on `resilient` reports "51 example(s) passed"
+followed by "tsc --strict passed". None of it goes through `glyph-runtime`,
+because the architecture went the other way: implementation decision I5 planned
+a sandboxed tree-walking interpreter in Rust, and what shipped instead executes
+the emitted TypeScript through node, in `glyph-cli/src/examples.rs`. The
+interpreter was not deferred. It stopped being necessary, and nobody deleted it.
+
+**So the finding is dead code plus two comments that lie, and the cost is
+already paid.** A reviewer read them and misjudged the project. That is the
+exact failure the "no obsolete documents" rule exists to prevent, applied to
+code comments rather than to markdown, where nothing was checking. The headers
+are corrected now and `glyph-runtime` says what it is.
+
+Two things are scheduled rather than done, because both are decisions:
+
+- **Remove `glyph-runtime`, or give it a job.** Deleting a workspace member is
+  not a tidy-up. The alternative is real: if the semantic graph or a future
+  `@example` sandbox wants an in-process evaluator, this is where it goes. What
+  is not acceptable is the current state, where a crate nothing calls sits in
+  the tree describing work that was abandoned.
+- **A gate for stale code comments.** `check_doc_claims.py` reads markdown and
+  would never have caught this, because the lie was in a `//!` header. The
+  narrow, checkable version: no source file may describe the project as a stub,
+  a phase, or "not yet implemented" while the thing it describes ships.
+
+## The spec is ahead of the implementation, and that four-way distinction is an asset
+
+The same review noted that the spec runs to D44 while naming the hand-written
+Rust parser as normative, and that the repository consistently separates four
+states: implemented, deliberately limited, known bug, and future work. That is
+accurate and it is worth keeping deliberately rather than by habit, because it
+is unusual and it is what makes an outside evaluation of Glyph possible at all.
+
+The gap is that the distinction lives only in prose. A person reading
+`docs/language/spec.md`, `docs/dogfooding-gaps.md` and this file can tell a
+deliberate v1 limit from an open bug. Nothing the compiler emits can. An agent
+that hits `E0300` gets "not implemented yet" and a pointer at the spec, and has
+no way to learn whether it has found a decision, a scheduled fix, or a wall
+nobody has recorded.
+
+That is the same conclusion Q46 reaches from the diagnostic side, and it is the
+same asset: 148 documented gaps, each with a reproduction and a status. Making
+the four-way state machine-readable, and having a diagnostic name which state it
+is in, is one piece of work serving both. It is scheduled under Q46's
+known-limitations item rather than duplicated here.
+
+## A nine-step outside roadmap, checked against the tree
+
+An outside review proposed nine steps. Checked one at a time: one is wrong, four
+are already scheduled or shipped, and two are real additions that were not on
+this page. Recording the disposition so the list is not adopted whole later.
+
+**1. "Finish the runtime." Rejected, and it is the review's own earlier mistake
+repeated.** There is nothing to finish. `glyph-runtime` is dead code from an
+abandoned design, execution ships and runs 382 `@example` assertions across the
+apps tree, and the only evidence for the claim was two stale comments that are
+now corrected. The section above has the full account. The action here is
+deletion, not completion.
+
+**2 and 3. "Make the semantic graph explicit" and "expose it through MCP."
+Already scheduled, as 0.1.97.** The ordering the review implies is right and the
+entry keeps it: route MCP through salsa first, because MCP today calls
+`analyze_full` on raw text and re-analyzes the workspace per request, and every
+query worth adding is multi-file.
+
+**4. "Make agents able to navigate and modify Glyph." Half scheduled, and the
+other half is a real gap.** Navigation is 0.1.97. Modification is not: every MCP
+tool is a read, rename and find-references are deferred to v1.1, and an agent
+that wants to change code has no compiler-backed way to do it. It edits text and
+hopes. This is worth separating from the graph work because it has a different
+risk profile: a wrong read wastes a turn, a wrong write corrupts a file. The
+precondition is R1 entity identity, since a rename that cannot name what it is
+renaming is a search and replace.
+
+**5. "Strengthen conformance, property and fuzz testing." One third missing.**
+Conformance snapshots exist (14 of them, in `glyph-emit/tests/snapshots`).
+Property testing exists and ships: `std/test` exports `property`. Fuzzing does
+not exist and is scheduled above.
+
+**6. "Close the remaining cross-module semantic holes." This is 0.1.96, the
+release carrying the Next marker.** G147, G146, G143, G138 and the namespace
+half of G140, which share one address: the emitter cannot see an imported
+union's variant list, so it falls back to the shape of a name.
+
+**7. "Make the generated TypeScript boringly reliable." Real, and larger than it
+sounds.** 215 lines in the gap ledger mention `tsc` or a `TS####` code. The goal
+is not that the TypeScript is correct, which it largely is; it is that a
+TypeScript error never reaches the person writing Glyph. Every one of those is a
+place where the back end answered a question the front end should have. This is
+Q46's second item and it stays there rather than becoming a separate track.
+
+**8. "Dogfood increasingly large real applications." Ongoing, and the loop is the
+main source of everything on this page.** 31 apps now, each in its own
+directory. The constraint that makes it work is the one worth restating: an app
+stops at the first thing Glyph cannot express and reports it, rather than
+working around it. An app that ships having quietly absorbed three gaps has done
+negative work.
+
+**9. "Build the agent tooling around Glyph." Partly shipped this cycle.** `glyph
+init` now writes `AGENTS.md` and `.mcp.json`, and `glyph agents` adds them to a
+project that already exists, so an agent finds `glyph llms` and the analysis
+server without being told they exist. The rest of this step is items 2, 3 and 4.
 
 ## Parked (v2 / later)
 

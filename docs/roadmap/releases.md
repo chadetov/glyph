@@ -4528,6 +4528,26 @@ entries below name them.
 - Diagnose a module that declares no `pub` and emits zero exports, before the host toolchain does (G124)
 - Count `@example` references in the unused-import lint so E0106 stops firing on live imports (G106)
 
+**Correction, made when 0.1.98 was triaged.** This release was scheduled around
+a live miscompile: a two-binding `for` over `array.slice` binding a string
+index, printing `01:` for `1:`. That is fixed and has been for several
+releases, closed by real stdlib signatures on `slice`/`map` and by
+`__glyph_pairs` dispatching the iteration protocol at run time. The
+`examples/apps/expenses` annotation cited as load-bearing was deletable
+independently of anything here, and is deleted.
+
+What remains is real but narrower, and it is a diagnostic downgrade rather than
+a wrong answer: the typechecker types a loop element only for the
+single-binding form, so a two-binding `for i, c in xs` leaves both names
+unknown and a match on a string-literal-union field read through `c` reports
+`E0218` where the single-binding form reports nothing at all. Closing it is a
+`ForStmt` per-binding-span change, which the parser already has the span for
+and discards.
+
+The scheduling was not wrong to include this; the justification was stale. A
+plan written ten releases ahead makes claims about a compiler that keeps
+moving, which is why triage re-runs every premise before anyone writes code.
+
 **0.1.99 — The front end answers instead of tsc**
 - Check an annotated `let` against its initializer, so `let x: string = 42` is a Glyph error rather than TS2322 (G149)
 - Make `glyph fix` act on an unused item inside a named import list, not only on a whole unused import (G152)
@@ -4588,7 +4608,7 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 
 ### 0.1.98 — Next · The for loop finally knows its element type
 
-- Bind an element type for `Stmt::For` so `array.slice` and `array.map` iterands stop lowering to `Object.entries` and binding a string index (G37)
+- Bind an element type for the two-binding `Stmt::For`, so a string-literal union read through the second binding keeps D30 and stops downgrading `E0200` to `E0218` (G37, G67). The miscompile this item used to cite is already fixed; see the note below
 - Keep D30 string-union exhaustiveness alive inside a loop, so `E0218` stops suggesting the `else` that forfeits the guarantee (G67)
 - Diagnose a module that declares no `pub` and emits zero exports before the host toolchain does (G124)
 - Count `@example` references in the unused-import lint, so `E0106` stops firing on an import the examples use (G106)

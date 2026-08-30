@@ -1098,6 +1098,31 @@ compiler not knowing something (member access and call arguments against a
 having something (`string.slice`, `string.lines`, `array.fold`, a `compare`).
 One is different in kind, and it is the one fixed here.
 
+  **Re-checked for 0.1.98, and the symptom this entry is written around is
+  gone.** `for i, x in array.slice(xs, 1)` binds `i` as a real number today and
+  the emitter produces a `.entries()` call: the program prints `1: b` and
+  `2: c`, not `01:` and `11:`. Two changes closed it, both several releases
+  back: `array.slice` and `array.map` gained real stdlib signatures, and an
+  iterand whose type is genuinely unknown now dispatches its iteration protocol
+  at run time through `__glyph_pairs` instead of guessing a record.
+
+  The `examples/apps/expenses` annotation this entry called load-bearing is not,
+  and is deleted in 0.1.98's correction: without it the app builds, nine
+  `@example` rows pass, `tsc --strict` passes, and a corrupted row still reports
+  `line 3` rather than the shifted number the string index produced.
+
+  **What is still true is narrower and is not a miscompile.** The typechecker
+  types the loop element only for the single-binding form; `assign.rs` checks
+  `bindings.len() == 1`. A two-binding `for i, c in xs` leaves both names
+  unknown, so a match on a string-literal-union field read through `c` degrades
+  from `E0200` to `E0218` and the help text suggests the `else` that forfeits
+  D30. The single-binding form of the identical body builds clean. That is
+  G67's residue, and closing it is the `ForStmt` per-binding-span change this
+  entry names.
+
+  *Reproduced against 0.1.97: the two-binding form is `[E0218] non-exhaustive
+  match on `string``, the single-binding form has no diagnostics.*
+
 - **G38. [FIXED] `glyph run` computed a build report and threw its diagnostics
   away.** On the success path `run_file` read `report.emitted` and nothing else,
   so `report.diagnostics`, `report.structured` and `report.error_count` never

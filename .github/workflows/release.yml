@@ -471,6 +471,12 @@ jobs:
           installed=""
           pkg=""
           for attempt in $(seq 1 10); do
+            # Deliberately not pinned by hash, and it cannot be. This step
+            # exists to fetch the artifact that was just published and prove it
+            # installs and runs; resolving it from a hash recorded beforehand
+            # would test a tree the registry never served. The version is
+            # exact, the registry is the thing under test, and every later
+            # check in this job is an assertion about what came back.
             npm install "@glyphlang/glyph@$VERSION" --no-audit --no-fund --prefer-online || true
             if [ -f node_modules/@glyphlang/glyph/bin/resolve.js ]; then
               pkg="$(node -p "require('./node_modules/@glyphlang/glyph/bin/resolve.js').packageForPlatform(process.platform, process.arch)")"

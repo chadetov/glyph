@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -44,9 +45,16 @@ def tsc_accepts(ts: pathlib.Path) -> tuple[bool, str]:
     with tempfile.TemporaryDirectory() as tmp:
         out = pathlib.Path(tmp)
         (out / "in.ts").write_text(ts.read_text())
+        # A `tsc` on PATH, or the package named explicitly. Bare `npx tsc`
+        # resolves to the unrelated `tsc` package, a shim deprecated since 2016,
+        # which prints "This is not the tsc command you are looking for" and
+        # exits non-zero. Every case then reads as "the TypeScript no longer
+        # passes tsc --strict", which is a false report about the evidence this
+        # script exists to check.
+        tsc = [shutil.which("tsc")] if shutil.which("tsc") else ["npx", "--yes", "--package", "typescript@6", "tsc"]
         r = subprocess.run(
-            [
-                "npx", "tsc", "--strict", "--noEmit", "--target", "es2022",
+            tsc + [
+                "--strict", "--noEmit", "--target", "es2022",
                 "--moduleResolution", "bundler", "--module", "esnext",
                 str(out / "in.ts"),
             ],

@@ -466,6 +466,27 @@ impl Assigner<'_> {
                     Some(te) => self.lowerer.lower(te),
                     None => self.tm.get(l.value.span()).clone(),
                 };
+                // G149: an explicit annotation that disagrees with the
+                // initializer's inferred type must be flagged here, the same
+                // way `check_return_type` flags a mismatched `return` value.
+                // Without this, `let x: string = 42` records `string` as the
+                // binding's type (below) and moves on silently; every later
+                // read of `x` is then typed `string` while holding a number,
+                // so the lie is load-bearing, not just cosmetic. Judged only
+                // when there IS an explicit annotation: unannotated `let`
+                // has nothing to disagree with, and `found` is read off the
+                // initializer's own span so the diagnostic underlines the
+                // value, not the annotation.
+                if l.ty.is_some() {
+                    let found = self.tm.get(l.value.span()).clone();
+                    if self.assign_incompatible(&found, &ty) {
+                        self.errors.push(TypeError::TypeMismatch {
+                            expected: ty_display(&ty),
+                            found: ty_display(&found),
+                            span: l.value.span(),
+                        });
+                    }
+                }
                 if l.ty.is_some() || !ty.is_unknown() {
                     self.local_tys.insert(l.span.start, ty);
                 }
@@ -6788,6 +6809,26 @@ fn run(r: Result<number, E>) -> number {
             [TypeError::TypeMismatch { expected, found, .. }]
                 if expected == "string" && found == "number"
         ), "errs: {errs:?}");
+    }
+
+    #[test]
+    fn let_string_annotation_with_number_initializer_is_flagged() {
+        // G149: `let x: string = 42` must draw the same TypeMismatch a
+        // mismatched `return` already draws (`check_return_type`, above).
+        // Left unflagged, a `let` annotation is a lie the compiler prints
+        // but never checks: an agent editing an initializer past its
+        // declared type gets nothing from `glyph check` (only tsc's TS2322,
+        // reported against the generated `.ts`) and nothing from `glyph lsp`
+        // (a stale-annotation edit surfaces no diagnostic at all).
+        let errs = ty_errors_of("module x\nfn f() -> void {\n  let x: string = 42\n}\n");
+        assert_eq!(errs.len(), 1, "errs: {errs:?}");
+        match &errs[0] {
+            TypeError::TypeMismatch { expected, found, .. } => {
+                assert_eq!(expected, "string");
+                assert_eq!(found, "number");
+            }
+            other => panic!("expected TypeMismatch, got {other:?}"),
+        }
     }
 
     #[test]

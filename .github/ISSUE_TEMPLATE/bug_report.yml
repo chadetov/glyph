@@ -12,7 +12,7 @@ body:
     attributes:
       label: Glyph version
       description: Output of `glyph --version`.
-      placeholder: "glyph 0.1.98"
+      placeholder: "glyph 0.1.99"
     validations:
       required: true
   - type: textarea

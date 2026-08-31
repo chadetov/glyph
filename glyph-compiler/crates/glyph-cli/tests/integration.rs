@@ -2073,6 +2073,39 @@ fn stale_node_shim_is_removed_when_types_node_appears() {
 }
 
 #[test]
+fn rng_bool_can_be_called_with_no_argument() {
+    // G155: `Rng.bool`'s own doc comment says "true with the given probability
+    // (default 0.5)", but the generated type signature made `probability`
+    // required, so the documented zero-arg call failed at the tsc stage
+    // (TS2554) instead of either working or failing with a Glyph diagnostic.
+    // A caller who trusts the doc comment (as any generation-and-simulation
+    // code that wants a plain coin flip would) hits a raw TypeScript error
+    // pointing at generated code they never wrote.
+    if !tsc_available() {
+        eprintln!("skipping rng bool tsc check: tsc not available");
+        return;
+    }
+    let root = unique_tmp("rngbool");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\nimport std/io\nimport std/random { seeded }\n\nfn main(argv: Array<string>) -> number {\n  let r = seeded(42)\n  let b = r.bool()\n  io.println(\"coin flip: ${b}\")\n  return 0\n}\n",
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("r.bool() with no argument should type-check:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
+    }
+}
+
+#[test]
 fn new_constructs_an_external_class_and_type_checks() {
     // D37 interop constructor: `new` on a class declared in a `.types` ambient
     // file type-checks against that constructor under `tsc --strict`, and a
@@ -4834,11 +4867,14 @@ fn run_type_checks_by_default_and_refuses_tsc_broken_code() {
         return;
     }
     let root = unique_tmp("runcheck");
-    write_file(
-        &root,
-        "broken.glyph",
-        "module broken\nimport std/string\nimport std/io\nfn main(argv: Array<string>) -> number {\n  let n: number = string.upper(\"hi\")\n  io.println(\"done\")\n  return 0\n}\n",
-    );
+    // The fixture has to be one Glyph's own checker passes, or this stops
+    // testing the tsc stage. Its previous body was `let n: number =
+    // string.upper("hi")`, which 0.1.99 started catching as `E0204` before tsc
+    // ever ran (G149), so the outcome became `BuildFailed` and the test failed
+    // on the improvement it was measuring. `TSC_RED_GLYPH_CLEAN` is
+    // Glyph-clean by construction and red at `tsc`, which is the shape this
+    // test needs.
+    write_file(&root, "broken.glyph", TSC_RED_GLYPH_CLEAN);
     let file = root.join("broken.glyph");
     match glyph_cli::run::run_file(&file, &[], false, true).expect("run_file ok").outcome {
         glyph_cli::run::RunOutcome::TypeCheckFailed(msg) => {

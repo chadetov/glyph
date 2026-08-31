@@ -310,6 +310,12 @@ component Greeting(name: string) {
 thing the interior cannot hold is another string literal (`"${f("x")}"`) — bind
 it to a `let` first.
 
+A `"..."` string decodes six escapes and nothing else: `\n` (newline), `\t`
+(tab), `\r` (carriage return), `\"` (a literal quote), `\\` (a literal
+backslash), and `\u{HEX}` for an arbitrary Unicode code point by its hex value,
+`\u{1b}` for ESC among them. Anything else after a backslash is a lex error
+(E0001).
+
 A normal string may also span lines: a raw newline inside `"…"` is kept
 verbatim, and it means the same thing as `\n`.
 
@@ -687,6 +693,20 @@ record.keys<V>(r) -> Array<string>
 record.values<V>(r) -> Array<V>
 record.set<V>(r, key, value) -> Record<string, V>   // returns a new record
 record.remove<V>(r, key) -> Record<string, V>
+```
+
+### std/random
+
+A seeded, reproducible PRNG (mulberry32), not cryptographic (use `std/crypto`
+for security-sensitive randomness):
+
+```
+type Rng
+seeded(seed: number) -> Rng                       // a generator fixed by the seed
+rng.next() -> number                              // method: next float in [0, 1)
+rng.int(lo: number, hi: number) -> number         // method: whole number in [lo, hi)
+rng.bool(probability: number) -> bool             // method: true with this probability
+rng.pick<T>(items: Array<T>) -> T                 // method: a uniform element
 ```
 
 ### std/time

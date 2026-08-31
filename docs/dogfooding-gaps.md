@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-157 entries, 119 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-19 are open. G144, the D28 boundary cast that never reached the returns a
+157 entries, 124 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+14 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -4919,11 +4919,15 @@ which is the intended answer; the finding is that the compiler never said so.
   genuine emitter deferral and the current wording is honest for it. The two are
   currently one error, and separating them is a scope call, not a patch.
 
-  *Reproduced against 0.1.93.* First reproduced against 0.1.87; re-checked and
+  *Reproduced against 0.1.99.* First reproduced against 0.1.87; re-checked and
   the claim still holds: the same `Node(c, l, k, r) => 1` arm still hits
   `[E0300] Error: emit: TS emission for a nested or multi-argument pattern in
   a match arm is not implemented yet`, word for word. The recorded snippet
   still demonstrates the claim.
+
+  *Re-run for 0.1.99: a positional pattern over a record payload still answers
+  `E0300`, the emitter's "not implemented yet", so the disagreement this entry
+  records is unchanged.*
 
 - **G136. [FIXED] A `bool` binding could not be matched, because TypeScript
   had already decided it was `false`.** Found by an app bridging a
@@ -5898,7 +5902,7 @@ through an object pattern's fields.
   *Found by review of the G141/G142 fix against 0.1.90, reproduced verbatim
   against 0.1.94 before the fix.*
 
-- **G149. A `let` annotation that disagrees with its initializer is caught by
+- **G149. [FIXED] A `let` annotation that disagrees with its initializer is caught by
   `tsc`, not by Glyph, so the editor never mentions it.** `let x: string = 42`
   produces no Glyph diagnostic. The whole report is `[TS2322] Type 'number' is
   not assignable to type 'string'`, carrying the standard help line that sends
@@ -5997,7 +6001,7 @@ through an object pattern's fields.
   argument for keeping it running rather than treating one finding as the job
   done. Reproduced against 0.1.95 plus the G150 fix.*
 
-- **G152. `glyph fix` reports "removed 0 unused import(s)" while the lint is
+- **G152. [FIXED] `glyph fix` reports "removed 0 unused import(s)" while the lint is
   reporting two.** A three-name import with two dead names draws `E0106` on
   `filter` and on `fold`, and `glyph fix` on the same file answers `removed 0
   unused import(s) across 0 file(s)` and changes nothing. It appears to act on
@@ -6018,7 +6022,7 @@ through an object pattern's fields.
   *Reproduced against 0.1.95. Reported independently by a field tester on a
   fresh install before being reproduced here.*
 
-- **G153. `\u{HEX}` works, is in the spec, and appears nowhere an agent reads.**
+- **G153. [FIXED] `\u{HEX}` works, is in the spec, and appears nowhere an agent reads.**
   `io.println("\u{1b}[31mred\u{1b}[0m")` compiles and emits a real ESC. D12 in
   `docs/language/spec.md` names `\u{HEX}` among the decoded escapes. The string
   `u{` appears **zero times** in all three copies of the agent bootstrap:
@@ -6039,7 +6043,7 @@ through an object pattern's fields.
   *Reproduced against 0.1.95: the program runs and prints red, and the three
   bootstrap files return zero for `u{`.*
 
-- **G154. `std/random` is listed in the bootstrap with no signatures, so its
+- **G154. [FIXED] `std/random` is listed in the bootstrap with no signatures, so its
   entry point is unfindable.** `std/random` appears once. `seeded` and `Rng`
   appear zero times. A module named without its surface cannot be called
   without guessing, and guessing at a stdlib signature is what the bootstrap
@@ -6047,7 +6051,7 @@ through an object pattern's fields.
 
   *Reproduced against 0.1.95 by counting in `llms.txt`.*
 
-- **G155. `Rng.bool`'s doc comment promises a default its signature does not
+- **G155. [FIXED] `Rng.bool`'s doc comment promises a default its signature does not
   have.** `runtime/std/random.ts:19` reads "A boolean, true with the given
   probability (default 0.5)" directly above `bool: (probability: number) =>
   boolean`, which is not optional. Calling `r.bool()` fails, and it fails as
@@ -6247,3 +6251,50 @@ example draws no `E0106` while a genuinely unused one still does.*
   *Reproduced against 0.1.98: the string is still in the file, and the
   reproduction it calls open now reports `[E0200] non-exhaustive match on
   `Inner`: missing variants `Y``.*
+
+**Closed in 0.1.99.**
+
+G149 is the one that changes what an editor can tell you. `let x: string = 42`
+now draws `E0204` from Glyph's own checker at the span the author wrote, rather
+than `TS2322` about generated TypeScript at the end of a build. Because
+`glyph lsp` runs the Glyph stages and never runs `tsc`, this class was invisible
+while typing and appeared first at `glyph build`; the LSP surfaces it now with
+no change on its side, since it already forwards every type error.
+
+Blast radius checked rather than assumed: all 31 apps build with zero `E0204`.
+
+G152 makes `glyph fix` trim a dead name out of a partially-used import instead
+of reporting "removed 0" and doing nothing. G153 puts the escape table in all
+three bootstrap copies and makes `E0001` name the legal spellings
+(`\n \t \r \" \\ \u{HEX}`) rather than the category. G154 gives `std/random` its
+surface in the bootstrap. G155 makes `Rng.bool`'s `probability` optional, so the
+signature matches the comment that promised a 0.5 default.
+
+**A source-destroying defect this release introduced, caught by review before
+the cut.** The G152 rewrite made `glyph fix` delete the line *after* an unused
+import: removing `import std/string` also removed the `fn main() -> void {`
+under it, leaving the file unparseable, and two adjacent dead imports panicked
+on overlapping edit ranges. All three reviewers found it independently.
+
+The cause is worth keeping. An import decl's span already ends *past* its own
+newline, because the parser takes the end from `peek_span()` while the peeked
+token is the `Newline`. Scanning forward from that end finds the *next* line's
+newline. The code being replaced was accidentally immune, because its
+line-intersection test was half-open and `e == next_line_start` fails a strict
+`>`. The rewrite lost a protection nobody knew was load-bearing.
+
+A tool that edits source is held to a higher bar than one that only reports: a
+wrong report wastes a minute, a wrong edit costs work. Two regression tests pin
+it and both fail when the fix is reverted.
+
+**Two tests in this release encoded the world before it.** One locked in
+"`glyph fix` leaves a partially-used import alone", which is the behaviour G152
+existed to change. The other used `let n: number = string.upper("hi")` as its
+*tsc-broken* fixture, and G149 started catching it first, so the test failed on
+the improvement it was measuring; it now uses a fixture that is Glyph-clean by
+construction and red at `tsc`.
+
+*Reproduced against 0.1.98 before and verified against 0.1.99 after: the `let`
+mismatch is `E0204` not `TS2322`, `glyph fix` reports "removed 2" and leaves
+`import std/result { Ok }`, `u{` appears in all three bootstrap copies, and
+`fn main` survives a fix that removes the import above it.*

@@ -65,6 +65,26 @@ fn cheatsheet_shows_both_std_time_import_lines() {
 }
 
 #[test]
+fn cheatsheet_documents_std_random_signatures() {
+    // The "standard library" paragraph names `std/random` alongside a dozen
+    // other modules with no signature block of its own, unlike std/time and
+    // std/record just below it. An agent asked for a seeded, reproducible
+    // random number (`seeded(42).int(0, 10)`) has nothing on this page to
+    // copy from and reaches for `Math.random()` or an `extern_ts` escape
+    // hatch instead of the stdlib module that already does it. Guard that the
+    // constructor and at least one instance method are spelled out as call
+    // signatures, not just the module name.
+    assert!(
+        glyph_cli::LLMS_BOOTSTRAP.contains("seeded(seed: number) -> Rng"),
+        "cheatsheet has no std/random constructor signature for `seeded`"
+    );
+    assert!(
+        glyph_cli::LLMS_BOOTSTRAP.contains("rng.int(lo: number, hi: number) -> number"),
+        "cheatsheet has no std/random `.int` method signature"
+    );
+}
+
+#[test]
 fn root_and_web_mirrors_match_agents_md() {
     let agents = fs::read_to_string(repo_file("AGENTS.md")).expect("read AGENTS.md");
     for mirror in ["llms.txt", "web/llms.txt"] {
@@ -145,6 +165,24 @@ fn agents_md_inlines_every_diagnostic_code() {
         "AGENTS.md is missing diagnostic codes documented in docs/error-codes.md: {missing:?} \
          (add a row to the 'Diagnostic codes' table, then re-mirror to llms.txt)"
     );
+}
+
+#[test]
+fn bootstrap_documents_the_legal_escape_sequences() {
+    // The "Template strings" section covers interpolation and the raw `"""`
+    // form but never listed the six escapes a string literal actually
+    // decodes. An agent that writes `\q` (or guesses at `\0`, `\x41`, a bare
+    // `\u1b`) gets E0001 with nothing on this page to check against, and
+    // `\u{HEX}` — the escape that lets a Glyph program emit ANSI color codes
+    // or other control characters — is undiscoverable by reading the
+    // bootstrap at all. Guard that every legal escape is spelled out.
+    for escape in ["\\n", "\\t", "\\r", "\\\"", "\\\\", "\\u{HEX}"] {
+        assert!(
+            glyph_cli::LLMS_BOOTSTRAP.contains(escape),
+            "bootstrap is missing the escape sequence `{escape}`; an agent has \
+             no on-page reference for the legal string escapes"
+        );
+    }
 }
 
 /// The resolver's export seed lists every name the runtime actually exports.

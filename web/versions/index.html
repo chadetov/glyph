@@ -49,8 +49,35 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.98</span>
+            <span class="rel-ver">0.1.99</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">August 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Your editor tells you the type is wrong</h3>
+            <p>A <code>let</code> whose annotation disagreed with its value drew nothing from Glyph. TypeScript caught it at the end of the build and reported it against generated code, and the language server never runs TypeScript, so nothing said anything while you typed.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>let x: string = 42
+
+<span class="del">// 0.1.98: nothing in the editor.
+//         [TS2322] at build time, about the generated .ts</span>
+<span class="add">// 0.1.99: [E0204] type mismatch: expected `string`, found `number`</span></pre>
+            </div>
+            <p>The error is Glyph's now, at the span you wrote, and the editor shows it as you type. Checked against every application in the repository: all 31 still build with no new diagnostics.</p>
+            <ul class="rel-list">
+              <li><span class="tag fixed">Fixed</span> <strong><code>glyph fix</code> removes a dead name from an import list.</strong> It used to answer <code>removed 0 unused import(s)</code> on a three-name import with two dead names, reporting success while changing nothing, so the warnings looked unfixable.</li>
+              <li><span class="tag fixed">Fixed</span> <strong><code>E0001</code> names the escapes that work.</strong> It said "an invalid escape" and left you guessing; it lists <code>\n \t \r \" \\ \u{HEX}</code> now, and so does the agent reference, which never mentioned <code>\u{HEX}</code> at all. Someone wrote eleven lines of workaround for an escape that always worked.</li>
+              <li><span class="tag fixed">Fixed</span> <strong><code>std/random</code> has its signatures in the agent reference</strong>, and <code>Rng.bool</code>'s probability is optional, which is what its own comment had promised.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.98</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

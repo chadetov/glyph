@@ -1060,6 +1060,25 @@ fn main() {
     }
 
     #[test]
+    fn invalid_escape_help_names_the_legal_spellings() {
+        // The inline help on every E0001 used to say only "an invalid escape",
+        // a category with nothing to check a guess against. An author who
+        // mistypes `\q` (or reaches for `\0`/`\x41`) sees that line by default
+        // (the fuller explanation is behind `--explain E0001`, not shown here)
+        // and has no on-screen list of what actually works. Guard that the
+        // default help line itself names the legal escapes, `\u{HEX}` included.
+        let src = "module x\nfn main() { let y = \"\\q\" }\n";
+        let err = parse(src).unwrap_err();
+        let help = err.help().expect("E0001 has a help line");
+        for escape in ["\\n", "\\t", "\\r", "\\\"", "\\\\", "\\u{HEX}"] {
+            assert!(
+                help.contains(escape),
+                "help should name the legal escape `{escape}`: {help}"
+            );
+        }
+    }
+
+    #[test]
     fn object_literal_allows_quoted_string_keys() {
         let m = parse_or_panic(
             "module x\nfn main() { let y = { \"Content-Type\": a, plain: b } }\n",

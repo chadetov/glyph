@@ -17,7 +17,7 @@ export type Rng = {
   // A whole number in the half-open range [lo, hi).
   int: (lo: number, hi: number) => number;
   // A boolean, true with the given probability (default 0.5).
-  bool: (probability: number) => boolean;
+  bool: (probability?: number) => boolean;
   // A uniformly chosen element of a non-empty array.
   pick: <T>(items: ReadonlyArray<T>) => T;
 };
@@ -33,7 +33,7 @@ export function seeded(seed: number): Rng {
   return {
     next: nextFloat,
     int: (lo: number, hi: number) => lo + Math.floor(nextFloat() * (hi - lo)),
-    bool: (probability: number) => nextFloat() < probability,
+    bool: (probability: number = 0.5) => nextFloat() < probability,
     pick: <T>(items: ReadonlyArray<T>) => items[Math.floor(nextFloat() * items.length)],
   };
 }

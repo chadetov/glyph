@@ -108,7 +108,8 @@ impl ParseError {
     pub fn help(&self) -> Option<Cow<'static, str>> {
         Some(match self {
             ParseError::Lex { .. } => Cow::Borrowed(
-                "Check for an unterminated string, an invalid escape, or a stray character.",
+                "Check for an unterminated string, an invalid escape (only \\n \\t \\r \\\" \\\\ \
+                 \\u{HEX} are allowed), or a stray character.",
             ),
             ParseError::Expected { .. } => Cow::Borrowed(
                 "Add the expected token. Glyph is deliberately stricter than TypeScript (e.g. trailing commas required, no `if`/`else`).",

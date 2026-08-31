@@ -1095,6 +1095,19 @@ mod tests {
     }
 
     #[test]
+    fn let_annotation_mismatch_produces_a_diagnostic() {
+        // G149: the LSP has no tsc pass of its own (`analyze` runs parse ->
+        // resolve -> assign_types only), so this class of error is invisible
+        // here unless the typechecker itself raises it. A `let` annotation
+        // that disagrees with its initializer must show up over stdio, not
+        // just from `glyph check`'s tsc-backed TS2322.
+        let src = "fn a() -> void {\n  let x: string = \"a\"\n  print(x)\n}\n";
+        assert!(analyze(src).is_empty(), "sanity: matching annotation is clean");
+        let src = "fn a() -> void {\n  let x: string = 42\n  print(x)\n}\n";
+        assert!(!analyze(src).is_empty(), "mismatched let annotation must be flagged");
+    }
+
+    #[test]
     fn inlay_hints_show_inferred_let_types() {
         let text = "module m\nfn f() -> number {\n  let x = 1\n  let y: number = 2\n  return x + y\n}\n";
         let a = analysis::analyze_full(text).expect("analyze");

@@ -4634,7 +4634,7 @@ The scheduling was not wrong to include this; the justification was stale. A
 plan written ten releases ahead makes claims about a compiler that keeps
 moving, which is why triage re-runs every premise before anyone writes code.
 
-**0.1.99 — Next · The front end answers instead of tsc**
+**0.1.99 — Shipped · The front end answers instead of tsc**
 - Check an annotated `let` against its initializer, so `let x: string = 42` is a Glyph error rather than TS2322 (G149)
 - Make `glyph fix` act on an unused item inside a named import list, not only on a whole unused import (G152)
 - Put the escape table in the bootstrap and make E0001's help name `\u{HEX}` rather than the category (G153)
@@ -4654,7 +4654,7 @@ first. It is the reason four of the five items above are documentation-shaped:
 a reader starting today hits the same walls in the same order, including
 rebuilding an eleven-line workaround for an escape that has always worked.
 
-**0.1.100 — Nothing at the network boundary is unbounded**
+**0.1.100 — Next · Nothing at the network boundary is unbounded**
 - Decide and ship the http deadline: required on `get`/`post`, or `request` stops reading 0 as skip-the-timer (G128)
 - Give `Response` a text accessor so a JSON body stops printing as `[object Object]` (G118)
 - Decide how `Option<T>` reads ordinary JSON: loosen `.parse`, or add a distinct nullable boundary type (G91)
@@ -4692,7 +4692,20 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - R8's wider query surface stays out until the tick ledger shows the workload
 
-### 0.1.99 — Next · The front end answers instead of tsc
+### 0.1.100 — Next · Nothing at the network boundary is unbounded
+
+- Decide and ship the http deadline: required on `get`/`post`, or `request` stops reading 0 as skip-the-timer (G128)
+- Give `Response` a text accessor so a JSON body stops printing as `[object Object]` (G118)
+- Decide how `Option<T>` reads ordinary JSON: loosen `.parse`, or add a distinct nullable boundary type (G91)
+
+*Reviewed against 0.1.99.* G128 and G118 were both re-run for the 0.1.97 cut and
+still reproduce: `fetch_of` and `head` still set `timeout_ms: 0` and 0 still
+means no timeout, and `std/http` still exposes only the server-side
+`text(status, body)` rather than a client accessor. G91 is re-checked at triage.
+Two of the three are decisions rather than patches, and the agents are told to
+report the fork rather than pick.
+
+### 0.1.99 — Shipped · The front end answers instead of tsc
 
 - Check an annotated `let` against its initializer, so `let x: string = 42` is a Glyph error rather than TS2322 (G149)
 - Make `glyph fix` act on an unused item inside a named import list, not only a whole unused import (G152)

@@ -4497,6 +4497,92 @@ and G140's namespace half moved on to 0.1.96, unchanged.
 
 *Found by an app round. Reproduced against 0.1.91 and fixed in the same round.*
 
+## What Glyph checks that tsc does not, measured rather than asserted
+
+An outside analysis proposed twenty checks Glyph performs that `tsc --strict`
+does not, and a positioning line built on them. Each was written as a real
+program and run against the shipped 0.1.98 binary, with the equivalent
+TypeScript run through `tsc --strict` for comparison. Five hold. Nine are false.
+
+| | count | rows |
+|---|---|---|
+| Rejected at compile time by a Glyph diagnostic | 5 | 1, 3, 4, 10, 19 |
+| Glyph accepts it, so the claim is false | 9 | 2, 5, 6, 7, 8, 13, 14, 18, 20 |
+| TypeScript catches it too, so Glyph adds nothing | 3 | 9, 11, 17 |
+| Not expressible in the language at all | 2 | 15, 16 |
+| Checked at a runtime boundary, not at compile time | 1 | 12 |
+
+**What is real is one theme, and it is the theme of the last three releases.**
+Glyph knows every case of a closed union and refuses a `match` that mishandles
+them. `E0200` for a missing variant, `E0305` for an arm that can never run, and
+it holds in all four spellings tested: a named import, a namespace import, a
+nested payload union, and the nested case through a namespace. The equivalent
+TypeScript exits 0 and prints `undefined` for the omitted branch. The
+comparison is also stronger than it first looks: `tsc --strict` catches a
+missing case in a *return-typed* switch as a side effect of return analysis,
+and misses it entirely in the void, side-effect-only switch that most real code
+is.
+
+`E0220` on a constructor-shaped pattern over a record is genuine and
+Glyph-native, but there is no TypeScript construct that mirrors that syntax, so
+it is Glyph catching a mistake in Glyph-only spelling rather than being stricter
+on shared ground. Worth documenting, wrong to headline.
+
+**Three findings the audit produced, which matter more than the table.**
+
+*Nominal record identity is inconsistent, and the inconsistency is one line
+wide.* Two structurally identical named records are not interchangeable at a
+call site or a return: `ship(d)` where `d: Draft` and `ship` takes `Paid` is
+`E0211`, and `tsc --strict` accepts the identical TypeScript. But `let p: Paid =
+d` compiles clean, and so does passing the value through a union constructor. So
+the guarantee holds at some sites and evaporates at others, and the compiler
+does not steer anyone toward the encoding that works. Filed as G156.
+
+*`docs/language/spec.md` D44 still describes G143 as open.* It closed in 0.1.97.
+A reader who takes the marketing claim and then checks the spec finds the two
+contradicting each other. Filed as G157.
+
+*One finding from the audit did not survive re-checking, and is recorded here so
+it is not re-adopted.* The assessment reported that a union's generated
+descriptor accepts an unexpected key, which would have undercut the one runtime
+guarantee worth marketing. It does not: `json.parse<Shape>` over a payload
+carrying a surplus field returns `Err`, and so does the record case. Both were
+re-run before filing. The audit's own conclusion, that a claim gets written as a
+program before it is written as a sentence, applies to the audit.
+
+**The positioning line does not survive.** "TypeScript checks what your values
+are, Glyph checks what your program is allowed to do with them" promises
+permitted operations, legal transitions, and invariants that survive use. Every
+row that would carry it came back false or inexpressible: state transitions,
+invariants after mutation, facts carried across a call, impossible states in a
+record, relationships between fields or between variables, whole-structure
+invariants, unreachable paths. A reader disproves it with `let p: Paid = d` in
+under a minute, on a green build.
+
+What the evidence supports:
+
+> Add a variant, and Glyph shows you every match that no longer handles it.
+> TypeScript compiles it and you find out in production.
+
+Every clause there is a reproduced `E0200` against a confirmed `tsc --strict`
+exit 0.
+
+**What must not be claimed, in any form.** That Glyph tracks invariants, proves
+a branch unreachable from a value fact, verifies a state transition, or carries
+a refinement through a function call. Four were tested and are false, and three
+of them are recorded non-goals in this file rather than unbuilt features:
+interprocedural dataflow is unsound under first-class functions, refinement
+facts beyond `where` are not expressible, and `requires`/`ensures` clauses are
+on the manifesto's abandoned list. A function-level precondition does not even
+parse.
+
+This is the second time a proposed claim has outrun the compiler. The first
+showed a diagnostic proving a branch unreachable from a balance guarantee, which
+`where` refinements do not do, because D39 is boundary-validated rather than
+statically tracked. The rule this establishes: a public claim about what the
+compiler refuses gets written as a program and run before it is written as a
+sentence.
+
 ## Road to 0.1.105
 
 The committed sequence. Each release is cut and published as soon as it is
@@ -6094,6 +6180,23 @@ concrete follow-ups, in priority order:
   checked for presence only until materialized with `glyph gen dts`.
 
 ## Rolling · Ergonomics & polish
+
+**G156. Named-record identity is inconsistent, and the fork has to be settled
+before it is fixed.** `ship(d)` where `d: Draft` and `ship` takes a structurally
+identical `Paid` is `E0211`, which is more than `tsc --strict` does. `let p:
+Paid = d` then `ship(p)` is clean. So the compiler decides something here and
+decides it in only some positions. Either a named record is nominal, and the
+`let` and the union constructor should reject too, or it is structural and the
+`E0211` is the anomaly. Both are defensible and the present state is not,
+because it teaches a guarantee that a reader disproves in one line. It also
+happens to be the encoding a state machine must use, since Glyph has no
+transition construct and `typestate` is abandoned.
+
+**G157. `spec.md` D44 still calls G143 open.** It closed in 0.1.97. Cheap to
+fix, and it sits in the document a sceptical reader opens right after a claim
+about what the compiler catches.
+
+
 
 **G150 is fixed and G151 is open, both found by the fuzz target within minutes
 of it existing.** G150 grew a file by one copy of a comment on every `glyph fmt`

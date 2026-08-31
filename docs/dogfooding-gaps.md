@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-155 entries, 119 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-17 are open. G144, the D28 boundary cast that never reached the returns a
+157 entries, 119 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+19 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6191,3 +6191,59 @@ a call's type arguments. All three are fixed with the release.
 two-binding form is `E0200` on a missing literal and clean on an exhaustive one,
 an `@example`-only module draws no `E0112`, and an import used only by an
 example draws no `E0106` while a genuinely unused one still does.*
+
+- **G156. Two structurally identical named records are not interchangeable at a
+  call site, and are interchangeable through a `let`.** The guarantee holds
+  where it is checked and evaporates one line away:
+
+  ```glyph
+  type Draft = { id: string }
+  type Paid  = { id: string }
+
+  fn ship(o: Paid) -> string { return o.id }
+
+  // [E0211] argument type mismatch: expected `Paid`, found `Draft`
+  pub fn direct(d: Draft) -> string { return ship(d) }
+
+  // no diagnostics
+  pub fn laundered(d: Draft) -> string {
+    let p: Paid = d
+    return ship(p)
+  }
+  ```
+
+  The rejection is real and is more than `tsc --strict` does: the equivalent
+  TypeScript compiles, because its records are structural and the two shapes are
+  identical. So Glyph is deciding something here, and the problem is that it
+  decides it inconsistently. An annotated `let` re-labels the value and the
+  next call is clean. Passing the value through a union constructor does the
+  same.
+
+  This matters beyond tidiness because it is the encoding a state machine has to
+  use. Glyph has no transition-graph construct, and `typestate` is on the
+  abandoned list, so one nominal record per state with transitions typed to
+  accept only their legal predecessor is the way to get the property at all.
+  That encoding is one `let` from being bypassed, and nothing warns.
+
+  The fork to settle before fixing, and it is a real one: whether a named record
+  is nominal (then the `let` and the constructor should also reject, and D34's
+  structural-interface stance needs restating) or structural (then `E0211` here
+  is the anomaly and should stop firing). Both are defensible; the present state
+  is not, because it teaches a guarantee that does not hold.
+
+  *Reproduced against 0.1.98: `direct` is `E0211`, `laundered` reports no
+  diagnostics, and the hand-written TypeScript equivalent of the first passes
+  `tsc --strict` with exit 0.*
+
+- **G157. `docs/language/spec.md` D44 still describes G143 as open.** G143, the
+  imported union's nested payload going unchecked, closed in 0.1.97 and holds in
+  0.1.98. The spec still carries "G143, open, in `docs/dogfooding-gaps.md`".
+
+  Small, and worth its number because of where it sits. The spec is the document
+  a sceptical reader opens after reading a claim about what the compiler
+  catches, and finding it contradict the gap ledger and the binary is the
+  cheapest possible way to lose that reader.
+
+  *Reproduced against 0.1.98: the string is still in the file, and the
+  reproduction it calls open now reports `[E0200] non-exhaustive match on
+  `Inner`: missing variants `Y``.*

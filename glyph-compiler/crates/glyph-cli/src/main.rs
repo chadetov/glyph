@@ -83,6 +83,10 @@ enum Command {
         /// instead of human-readable text. Includes remapped `tsc` errors.
         #[arg(long)]
         json: bool,
+        /// Rebuild automatically whenever a source file under SRC changes,
+        /// instead of exiting after the first build. Runs until killed.
+        #[arg(long)]
+        watch: bool,
     },
     /// Type-check a Glyph file or tree without running it or writing output.
     ///
@@ -417,199 +421,11 @@ fn main() {
             eprintln!("glyph: run `glyph --help` for usage");
             std::process::exit(2);
         }
-        Some(Command::Build { src, out, no_tsc, no_check, check: _, no_test, test: _, json }) => {
-            // Type-checking is the default (verifiability is the lead pillar);
-            // `--no-tsc` opts out, and `--no-check` is its old spelling. The old
-            // `--check` flag is now redundant.
-            let do_check = !(no_tsc || no_check);
-            // ariadne's `auto-color` feature isn't enabled in our
-            // workspace, so it never auto-detects non-TTY at runtime.
-            // We detect explicitly: if stderr (where diagnostics go) is
-            // a terminal, render with color; otherwise (redirect, CI
-            // logs, file) render plain so the output stays usable. JSON output
-            // never carries color.
-            use std::io::IsTerminal;
-            let with_color = !json && std::io::stderr().is_terminal();
-            match glyph_cli::build::build_tree(&src, &out, with_color) {
-            Ok(tree) => {
-                // One project is the overwhelmingly common case, and its output
-                // must stay byte-identical to what it was before D41. The
-                // flattened view is what every gate reads.
-                let project_count = tree.projects.len();
-                let report = tree.flatten();
-                for notice in &tree.notices {
-                    eprintln!("glyph build: {notice}");
-                }
-                // Which roots were discovered is the thing to confirm when the
-                // root is inferred from the filesystem rather than spelled in
-                // source: a fat-fingered marker would otherwise be a silent
-                // partial build. Single-project output is untouched.
-                if project_count > 1 && !json {
-                    eprintln!("glyph build: {project_count} project(s):");
-                    for p in &tree.projects {
-                        let rel = p.project.out_rel.display().to_string();
-                        eprintln!(
-                            "  {} ({} module(s))",
-                            if rel.is_empty() { "." } else { &rel },
-                            p.report.modules.len()
-                        );
-                    }
-                }
-                if json {
-                    // D23/D26 checks run on every build, and the JSON path is no
-                    // exception: `emit_build_json` diverges, so the examples have
-                    // to run before it is called or the agent-facing channel can
-                    // never report a failing colocated test. Examples are skipped
-                    // when the build already has errors (the augmented copy could
-                    // not compile either); `ok` is false there regardless.
-                    let examples = if no_test || report.has_errors() {
-                        ExamplesOutcome::Skipped
-                    } else {
-                        // A nested project's `@example`s must build in their own
-                        // root (D41), so the runner is invoked per project.
-                        match run_examples_across(&tree) {
-                            Ok(r) => ExamplesOutcome::Ran(r),
-                            Err(e) => ExamplesOutcome::Failed(e.to_string()),
-                        }
-                    };
-                    emit_build_json(&report, &out, do_check, &examples);
-                }
-                for diag in &report.diagnostics {
-                    eprintln!("{diag}");
-                }
-                if report.has_errors() {
-                    let across = if project_count > 1 {
-                        format!(" in {project_count} project(s)")
-                    } else {
-                        String::new()
-                    };
-                    eprintln!(
-                        "glyph build: {} error(s) across {} module(s){across}",
-                        report.error_count,
-                        report.modules.len()
-                    );
-                    std::process::exit(1);
-                }
-                let warnings = report.warning_count();
-                // Every green line is held back until the gates below have had
-                // their say. The Glyph-stage summary used to print here, above
-                // the `tsc` stage, so a build that failed type-checking opened
-                // with "no diagnostics" and then printed its own errors. One
-                // rule now: nothing signs off until everything that can fail
-                // has run.
-                let mut tsc_passed = false;
-                if do_check {
-                    use glyph_cli::runtime::TscOutcome;
-                    match glyph_cli::runtime::check_tree_with_tsc(&tree, &out) {
-                        Ok(TscOutcome::Passed) => {
-                            tsc_passed = true;
-                        }
-                        Ok(TscOutcome::Failed(msg)) => {
-                            let remapped = glyph_cli::tscmap::remap_tsc_output(
-                                &msg,
-                                &report.module_maps,
-                                with_color,
-                            );
-                            eprint!("{remapped}");
-                            eprintln!("glyph build: tsc reported type errors (mapped to Glyph source).");
-                            std::process::exit(1);
-                        }
-                        Ok(TscOutcome::NotFound) => {
-                            // The check was requested (the default) but tsc is
-                            // absent. Fail rather than emit an unchecked build
-                            // that looks verified. `--no-check` is the opt-out.
-                            eprintln!(
-                                "glyph build: tsc not found on PATH, so the type check can't run. \
-                                 Install TypeScript (`npm install -g typescript`), or pass \
-                                 `--no-tsc` to emit without it."
-                            );
-                            std::process::exit(2);
-                        }
-                        Err(e) => {
-                            eprintln!("glyph build: failed to run tsc: {e}");
-                            std::process::exit(2);
-                        }
-                    }
-                }
-                if !no_test {
-                    match run_examples_across(&tree) {
-                        Ok(ex) => {
-                            for f in &ex.failures {
-                                eprintln!("glyph build: example failed: {f}");
-                            }
-                            if let Some(diags) = &ex.build_failed {
-                                for d in diags {
-                                    eprintln!("{d}");
-                                }
-                                eprintln!("glyph build: examples did not compile");
-                                std::process::exit(1);
-                            }
-                            if !ex.ran && ex.total > 0 {
-                                // Same stance as the missing-`tsc` gate above:
-                                // don't emit a build that looks verified when
-                                // the verification could not run.
-                                eprintln!(
-                                    "glyph build: {} example(s) not run: tsx was not \
-                                     found on PATH (install tsx, or pass --no-test)",
-                                    ex.total
-                                );
-                                std::process::exit(2);
-                            }
-                            if !ex.ok() {
-                                eprintln!(
-                                    "glyph build: {} of {} example(s) failed.",
-                                    ex.failures.len(),
-                                    ex.total
-                                );
-                                std::process::exit(1);
-                            }
-                            if ex.total > 0 {
-                                eprintln!("glyph build: {} example(s) passed.", ex.total);
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("glyph build: failed to run examples: {e}");
-                            std::process::exit(2);
-                        }
-                    }
-                } else if let Ok(n) = glyph_cli::examples::count_examples(&src) {
-                    if n > 0 {
-                        eprintln!("glyph build: {n} example(s) skipped (--no-test)");
-                    }
-                }
-                eprintln!(
-                    "glyph build: {} module(s) checked, {}; \
-                     {} TypeScript file(s) emitted.",
-                    report.modules.len(),
-                    if warnings == 0 {
-                        "no diagnostics".to_string()
-                    } else {
-                        format!("{warnings} warning(s)")
-                    },
-                    report.emitted.len()
-                );
-                if tsc_passed {
-                    eprintln!("glyph build: tsc --strict passed.");
-                }
-                std::process::exit(0);
-            }
-            Err(e) => {
-                eprintln!("glyph build: {e}");
-                // `glyph build one.glyph` is the first thing everyone types, and
-                // it cannot work: `build` takes a tree and writes output. The
-                // command that answers "does this file compile?" now exists, so
-                // the dead end points at it instead of stopping here.
-                if let glyph_cli::build::BuildError::SrcNotDir(p) = &e {
-                    if p.extension().and_then(|x| x.to_str()) == Some("glyph") {
-                        eprintln!(
-                            "  to type-check a single file without running it, use \
-                             `glyph check {}`",
-                            p.display()
-                        );
-                    }
-                }
-                std::process::exit(2);
-            }
+        Some(Command::Build { src, out, no_tsc, no_check, check: _, no_test, test: _, json, watch }) => {
+            if watch {
+                run_build_watch(&src, &out, no_tsc, no_check, no_test, json);
+            } else {
+                std::process::exit(run_build_once(&src, &out, no_tsc, no_check, no_test, json));
             }
         }
         Some(Command::Check { path, no_test, no_tsc, json }) => {
@@ -1210,6 +1026,277 @@ fn main() {
     }
 }
 
+/// Run one `glyph build` over `src` and return the process exit code (`0`
+/// clean, `1` a build/type/example failure, `2` a usage or environment
+/// problem such as `tsc` missing from `PATH`) instead of exiting the process.
+///
+/// This is the exact body a plain `glyph build` has always run, pulled out of
+/// the `main` match arm so `--watch` can call it once per rebuild. It has to
+/// return rather than call `std::process::exit` on every branch: a watch loop
+/// must survive a failed build and keep watching, and a function that exits
+/// the process on its failure branches cannot be called in a loop that must
+/// not exit.
+fn run_build_once(
+    src: &std::path::Path,
+    out: &std::path::Path,
+    no_tsc: bool,
+    no_check: bool,
+    no_test: bool,
+    json: bool,
+) -> i32 {
+    // Type-checking is the default (verifiability is the lead pillar);
+    // `--no-tsc` opts out, and `--no-check` is its old spelling. The old
+    // `--check` flag is now redundant.
+    let do_check = !(no_tsc || no_check);
+    // ariadne's `auto-color` feature isn't enabled in our
+    // workspace, so it never auto-detects non-TTY at runtime.
+    // We detect explicitly: if stderr (where diagnostics go) is
+    // a terminal, render with color; otherwise (redirect, CI
+    // logs, file) render plain so the output stays usable. JSON output
+    // never carries color.
+    use std::io::IsTerminal;
+    let with_color = !json && std::io::stderr().is_terminal();
+    match glyph_cli::build::build_tree(src, out, with_color) {
+    Ok(tree) => {
+        // One project is the overwhelmingly common case, and its output
+        // must stay byte-identical to what it was before D41. The
+        // flattened view is what every gate reads.
+        let project_count = tree.projects.len();
+        let report = tree.flatten();
+        for notice in &tree.notices {
+            eprintln!("glyph build: {notice}");
+        }
+        // Which roots were discovered is the thing to confirm when the
+        // root is inferred from the filesystem rather than spelled in
+        // source: a fat-fingered marker would otherwise be a silent
+        // partial build. Single-project output is untouched.
+        if project_count > 1 && !json {
+            eprintln!("glyph build: {project_count} project(s):");
+            for p in &tree.projects {
+                let rel = p.project.out_rel.display().to_string();
+                eprintln!(
+                    "  {} ({} module(s))",
+                    if rel.is_empty() { "." } else { &rel },
+                    p.report.modules.len()
+                );
+            }
+        }
+        if json {
+            // D23/D26 checks run on every build, and the JSON path is no
+            // exception: it returns the exit code straight out of this
+            // function, so the examples have to run before it is called or
+            // the agent-facing channel can never report a failing colocated
+            // test. Examples are skipped when the build already has errors
+            // (the augmented copy could not compile either); `ok` is false
+            // there regardless.
+            let examples = if no_test || report.has_errors() {
+                ExamplesOutcome::Skipped
+            } else {
+                // A nested project's `@example`s must build in their own
+                // root (D41), so the runner is invoked per project.
+                match run_examples_across(&tree) {
+                    Ok(r) => ExamplesOutcome::Ran(r),
+                    Err(e) => ExamplesOutcome::Failed(e.to_string()),
+                }
+            };
+            return emit_build_json(&report, out, do_check, &examples);
+        }
+        for diag in &report.diagnostics {
+            eprintln!("{diag}");
+        }
+        if report.has_errors() {
+            let across = if project_count > 1 {
+                format!(" in {project_count} project(s)")
+            } else {
+                String::new()
+            };
+            eprintln!(
+                "glyph build: {} error(s) across {} module(s){across}",
+                report.error_count,
+                report.modules.len()
+            );
+            return 1;
+        }
+        let warnings = report.warning_count();
+        // Every green line is held back until the gates below have had
+        // their say. The Glyph-stage summary used to print here, above
+        // the `tsc` stage, so a build that failed type-checking opened
+        // with "no diagnostics" and then printed its own errors. One
+        // rule now: nothing signs off until everything that can fail
+        // has run.
+        let mut tsc_passed = false;
+        if do_check {
+            use glyph_cli::runtime::TscOutcome;
+            match glyph_cli::runtime::check_tree_with_tsc(&tree, out) {
+                Ok(TscOutcome::Passed) => {
+                    tsc_passed = true;
+                }
+                Ok(TscOutcome::Failed(msg)) => {
+                    let remapped = glyph_cli::tscmap::remap_tsc_output(
+                        &msg,
+                        &report.module_maps,
+                        with_color,
+                    );
+                    eprint!("{remapped}");
+                    eprintln!("glyph build: tsc reported type errors (mapped to Glyph source).");
+                    return 1;
+                }
+                Ok(TscOutcome::NotFound) => {
+                    // The check was requested (the default) but tsc is
+                    // absent. Fail rather than emit an unchecked build
+                    // that looks verified. `--no-check` is the opt-out.
+                    eprintln!(
+                        "glyph build: tsc not found on PATH, so the type check can't run. \
+                         Install TypeScript (`npm install -g typescript`), or pass \
+                         `--no-tsc` to emit without it."
+                    );
+                    return 2;
+                }
+                Err(e) => {
+                    eprintln!("glyph build: failed to run tsc: {e}");
+                    return 2;
+                }
+            }
+        }
+        if !no_test {
+            match run_examples_across(&tree) {
+                Ok(ex) => {
+                    for f in &ex.failures {
+                        eprintln!("glyph build: example failed: {f}");
+                    }
+                    if let Some(diags) = &ex.build_failed {
+                        for d in diags {
+                            eprintln!("{d}");
+                        }
+                        eprintln!("glyph build: examples did not compile");
+                        return 1;
+                    }
+                    if !ex.ran && ex.total > 0 {
+                        // Same stance as the missing-`tsc` gate above:
+                        // don't emit a build that looks verified when
+                        // the verification could not run.
+                        eprintln!(
+                            "glyph build: {} example(s) not run: tsx was not \
+                             found on PATH (install tsx, or pass --no-test)",
+                            ex.total
+                        );
+                        return 2;
+                    }
+                    if !ex.ok() {
+                        eprintln!(
+                            "glyph build: {} of {} example(s) failed.",
+                            ex.failures.len(),
+                            ex.total
+                        );
+                        return 1;
+                    }
+                    if ex.total > 0 {
+                        eprintln!("glyph build: {} example(s) passed.", ex.total);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("glyph build: failed to run examples: {e}");
+                    return 2;
+                }
+            }
+        } else if let Ok(n) = glyph_cli::examples::count_examples(src) {
+            if n > 0 {
+                eprintln!("glyph build: {n} example(s) skipped (--no-test)");
+            }
+        }
+        eprintln!(
+            "glyph build: {} module(s) checked, {}; \
+             {} TypeScript file(s) emitted.",
+            report.modules.len(),
+            if warnings == 0 {
+                "no diagnostics".to_string()
+            } else {
+                format!("{warnings} warning(s)")
+            },
+            report.emitted.len()
+        );
+        if tsc_passed {
+            eprintln!("glyph build: tsc --strict passed.");
+        }
+        0
+    }
+    Err(e) => {
+        eprintln!("glyph build: {e}");
+        // `glyph build one.glyph` is the first thing everyone types, and
+        // it cannot work: `build` takes a tree and writes output. The
+        // command that answers "does this file compile?" now exists, so
+        // the dead end points at it instead of stopping here.
+        if let glyph_cli::build::BuildError::SrcNotDir(p) = &e {
+            if p.extension().and_then(|x| x.to_str()) == Some("glyph") {
+                eprintln!(
+                    "  to type-check a single file without running it, use \
+                     `glyph check {}`",
+                    p.display()
+                );
+            }
+        }
+        2
+    }
+    }
+}
+
+/// Run `glyph build` once, then keep rebuilding whenever a source file under
+/// `src` changes, until the process is killed. Never returns.
+///
+/// Watching is a poll on `build::tree_fingerprint`, not a filesystem
+/// notification API (inotify/FSEvents/kqueue): the fingerprint is built out of
+/// the same per-project hash `build_project_inner` uses to skip an unchanged
+/// rebuild, it covers exactly the set of files a build actually depends on
+/// (`.glyph` sources, `.types/**/*.d.ts`, `extern/**`, in every project under
+/// the target), and it needs no new dependency in a workspace that has to
+/// compile everywhere `glyph` ships. A
+/// notification-based watcher would cut the poll latency at the cost of a new
+/// crate and a platform-specific backend; nothing about this task needs
+/// sub-300ms latency, so that tradeoff was not worth making here.
+fn run_build_watch(
+    src: &std::path::Path,
+    out: &std::path::Path,
+    no_tsc: bool,
+    no_check: bool,
+    no_test: bool,
+    json: bool,
+) -> ! {
+    loop {
+        // Sampled *before* the build, never after. A build reads the whole
+        // tree up front and takes as long as it takes; a save landing after
+        // that read is not in the output this build is about to produce. A
+        // baseline taken afterwards has already absorbed that save, so the
+        // watcher compares every later tick against a fingerprint that
+        // already includes an edit it never built, and the edit is not late,
+        // it is lost -- permanently, with the watcher still reporting an idle
+        // tree.
+        let before = glyph_cli::build::tree_fingerprint(src).ok();
+        run_build_once(src, out, no_tsc, no_check, no_test, json);
+        let after = glyph_cli::build::tree_fingerprint(src).ok();
+        // Something changed while the build was running. Go straight back
+        // around rather than settling into the poll: the output on disk is
+        // known to be stale already, so there is nothing to wait for.
+        if before.is_some() && after.is_some() && before != after {
+            continue;
+        }
+        let baseline = before.or(after);
+        eprintln!("glyph build: watching {} for changes...", src.display());
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            let current = match glyph_cli::build::tree_fingerprint(src) {
+                Ok(fp) => fp,
+                // A source tree that briefly fails to read (a save in
+                // progress, a file mid-rename) must not crash the watcher;
+                // it just tries again on the next tick.
+                Err(_) => continue,
+            };
+            if Some(&current) != baseline.as_ref() {
+                break;
+            }
+        }
+    }
+}
+
 /// Print a check's diagnostics as a JSON object on stdout and exit.
 ///
 /// Deliberately the same key names `glyph build --json` uses (`ok`, `errors`,
@@ -1250,17 +1337,26 @@ enum ExamplesOutcome {
     Failed(String),
 }
 
-/// Print the build's diagnostics as a JSON object on stdout and exit. Runs
-/// `tsc` (when `do_check` and the build had no errors) and appends its remapped
-/// diagnostics. Example failures (already computed by the caller, since this
-/// diverges) fold into `errors` and `ok`, so `--json` and the human output
-/// agree on the exit code. Diverges: control never returns to the text path.
+/// Print the build's diagnostics as a JSON object on stdout and return the
+/// exit code that object implies. Runs `tsc` (when `do_check` and the build had
+/// no errors) and appends its remapped diagnostics. Example failures (computed
+/// by the caller, which needs them for the text path too) fold into `errors`
+/// and `ok`, so `--json` and the human output agree on the exit code.
+///
+/// It returns rather than exiting because `--watch --json` has to keep going.
+/// This used to call `std::process::exit` at the end, which under `--watch`
+/// ended the watcher after its first build while printing an ordinary,
+/// perfectly successful-looking report: a tool reading the JSON channel got one
+/// object and then silence it could not tell from a tree nobody was editing.
+/// One object per build, on stdout, with the banners on stderr, is what the
+/// watch loop needs; the one-shot path exits with what this returns, so its
+/// behaviour is unchanged.
 fn emit_build_json(
     report: &glyph_cli::build::BuildReport,
     out: &std::path::Path,
     do_check: bool,
     examples: &ExamplesOutcome,
-) -> ! {
+) -> i32 {
     use glyph_cli::runtime::TscOutcome;
     let mut diags = report.structured.clone();
     let mut tsc_status = "not-run";
@@ -1308,11 +1404,11 @@ fn emit_build_json(
             ExamplesOutcome::Failed(_) => true,
             ExamplesOutcome::Skipped => false,
         };
-    std::process::exit(match (ok, gate_unavailable) {
+    match (ok, gate_unavailable) {
         (true, _) => 0,
         (false, true) => 2,
         (false, false) => 1,
-    });
+    }
 }
 
 /// Render the example gate as the JSON `examples` object, plus how many errors

@@ -199,14 +199,29 @@ fn parse_tsc_line(line: &str) -> Option<TscError<'_>> {
 }
 
 /// Find the module whose emitted `.ts` matches `tsc`'s reported path. `tsc`
-/// prints an out-dir-relative or absolute path; we match on the trailing
-/// segment being our `ts_rel` at a path boundary.
+/// prints a path relative to its own cwd (or an absolute one); we match on the
+/// trailing segments being our `ts_rel` at a path boundary.
+///
+/// The **longest** match wins, not the first (G107). A tree build folds every
+/// project's maps into one list, keyed by where each file landed in the out
+/// tree, so a nested project's `dist/beta/main.ts` and the root project's
+/// `dist/main.ts` are distinct keys. Were a bare `main.ts` ever to reach this
+/// list, first-wins would let it claim `dist/beta/main.ts` and quote a
+/// diagnostic against a file that has nothing to do with it. A more qualified
+/// key is a more specific claim on the path, so it outranks a shorter one;
+/// among equally long matches the first still wins, keeping the result stable.
 fn find_module<'a>(maps: &'a [ModuleMap], tsc_path: &str) -> Option<&'a ModuleMap> {
     let norm = tsc_path.replace('\\', "/");
-    maps.iter().find(|m| {
-        norm == m.ts_rel
-            || norm.ends_with(&format!("/{}", m.ts_rel))
-    })
+    let mut best: Option<&'a ModuleMap> = None;
+    for m in maps {
+        if norm != m.ts_rel && !norm.ends_with(&format!("/{}", m.ts_rel)) {
+            continue;
+        }
+        if best.is_none_or(|b| m.ts_rel.len() > b.ts_rel.len()) {
+            best = Some(m);
+        }
+    }
+    best
 }
 
 /// Byte offset of a 1-based `(line, col)` in `src`. `col` counts characters
@@ -292,6 +307,46 @@ mod tests {
         assert!(out.contains("main.glyph"), "renders against glyph: {out}");
         assert!(out.contains("TS2322"), "keeps the tsc code: {out}");
         assert!(!out.contains("main.ts(3,7)"), "the raw .ts location is gone: {out}");
+    }
+
+    #[test]
+    fn the_most_qualified_module_claims_the_path() {
+        // G107, the matcher's half. A tree build folds every project's maps
+        // into one list; `build.rs` keys them by where each file landed, but
+        // the matcher must not depend on that keying being perfect. A bare
+        // `main.ts` sitting first must never claim `dist/beta/main.ts` away
+        // from the entry that names the whole path.
+        let module = |ts_rel: &str, glyph_path: &str| ModuleMap {
+            ts_rel: ts_rel.to_string(),
+            glyph_path: glyph_path.to_string(),
+            glyph_source: "module main\n".to_string(),
+            ts_source: "x\n".to_string(),
+            source_map: vec![(0, span(0, 11))],
+        };
+        let maps = vec![
+            module("main.ts", "root/main"),
+            module("beta/main.ts", "beta/main"),
+        ];
+        assert_eq!(
+            find_module(&maps, "dist/beta/main.ts").map(|m| m.glyph_path.as_str()),
+            Some("beta/main"),
+            "the longer key wins over a bare one that also matches"
+        );
+        // The shorter key still owns the path that only it matches.
+        assert_eq!(
+            find_module(&maps, "dist/main.ts").map(|m| m.glyph_path.as_str()),
+            Some("root/main"),
+        );
+        // Order must not decide it either way.
+        let flipped = vec![
+            module("beta/main.ts", "beta/main"),
+            module("main.ts", "root/main"),
+        ];
+        assert_eq!(
+            find_module(&flipped, "dist/beta/main.ts").map(|m| m.glyph_path.as_str()),
+            Some("beta/main"),
+        );
+        assert!(find_module(&maps, "dist/gamma/other.ts").is_none());
     }
 
     #[test]

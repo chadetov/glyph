@@ -228,6 +228,10 @@ pub struct TreeReport {
     /// Problems with the tree rather than with any source file: a `package.json`
     /// that would not parse, so its directory is not a project root (P8).
     pub notices: Vec<String>,
+    /// The directory this tree was built into. `flatten` needs it to key each
+    /// project's module maps by where its output actually landed; nothing else
+    /// reads it.
+    pub out: PathBuf,
 }
 
 impl TreeReport {
@@ -262,19 +266,58 @@ impl TreeReport {
     /// project is the overwhelmingly common case, and its output must stay
     /// byte-identical to what it was before D41.
     ///
-    /// `module_maps` keeps each `ts_rel` relative to its own project's output
-    /// directory, which is where `tsc` ran, so a remapped `tsc` diagnostic
-    /// matches without rebasing.
+    /// Each project's `ModuleMap`s arrive with `ts_rel` relative to that
+    /// project's own output directory (`main.ts` for the conventional entry
+    /// name, regardless of project). Folded into one flat list unqualified,
+    /// every project's `main.ts` collides, and `tscmap::find_module`'s suffix
+    /// match resolves to whichever project happens to come first in this loop,
+    /// regardless of which project's `tsc` invocation produced the error
+    /// (G107). So each `ts_rel` is keyed here by where the file actually
+    /// landed in the out tree, which is the tail of the path `tsc` prints for
+    /// it: `tsc` runs once per project and reports paths relative to the
+    /// invoking process's cwd, so every one of them ends with
+    /// `<out dir>/<out_rel>/<module>.ts`.
+    ///
+    /// The out directory's own name is part of that key, and it has to be. A
+    /// project at the tree root has an empty `out_rel`, so qualifying by
+    /// `out_rel` alone leaves the root's entry bare (`main.ts`) while a nested
+    /// project's is `beta/main.ts`. `dist/beta/main.ts` then still matches the
+    /// root's bare entry, and since the root is always first in the list it
+    /// wins: the exact shadowing this is meant to remove. Keying the root as
+    /// `dist/main.ts` makes the two unrelated. Only the out directory's last
+    /// component is used, never the whole path, because `tsc` prints whatever
+    /// route reaches the file from its cwd (`../../dist/main.ts`, a realpath
+    /// through a symlinked temp dir) and only the tail is stable.
     pub fn flatten(&self) -> BuildReport {
         let mut flat = BuildReport::default();
+        let out_dir = self
+            .out
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default();
         for p in &self.projects {
             flat.diagnostics.extend(p.report.diagnostics.iter().cloned());
             flat.structured.extend(p.report.structured.iter().cloned());
             flat.error_count += p.report.error_count;
             flat.modules.extend(p.report.modules.iter().cloned());
             flat.emitted.extend(p.report.emitted.iter().cloned());
+            let out_rel = p
+                .project
+                .out_rel
+                .to_string_lossy()
+                .replace(std::path::MAIN_SEPARATOR, "/");
+            let prefix = [out_dir, out_rel.as_str()]
+                .into_iter()
+                .filter(|part| !part.is_empty())
+                .collect::<Vec<_>>()
+                .join("/");
             flat.module_maps
-                .extend(p.report.module_maps.iter().cloned());
+                .extend(p.report.module_maps.iter().cloned().map(|mut m| {
+                    if !prefix.is_empty() {
+                        m.ts_rel = format!("{prefix}/{}", m.ts_rel);
+                    }
+                    m
+                }));
         }
         flat
     }
@@ -310,6 +353,7 @@ pub fn build_tree(target: &Path, out: &Path, with_color: bool) -> Result<TreeRep
     let mut tree = TreeReport {
         projects: Vec::new(),
         notices: found.notices,
+        out: out.to_path_buf(),
     };
     for (i, (project, files)) in project_files.iter().enumerate() {
         if files.is_empty() {
@@ -378,6 +422,7 @@ pub fn build_one_project(src: &Path, out: &Path, with_color: bool) -> Result<Tre
             report,
         }],
         notices: Vec::new(),
+        out: out.to_path_buf(),
     })
 }
 
@@ -839,10 +884,12 @@ fn build_project_inner_with(
         // emitted module files are pruned — the bundled `.glyph-runtime/` tree,
         // any `.d.ts`, and the `glyph run` entrypoint are left untouched.
         prune_stale_outputs(out, &report.emitted)?;
-        crate::runtime::write_build_support(out, src, nested_out_dirs).map_err(|e| BuildError::Io {
-            path: out.to_path_buf(),
-            source: e,
-        })?;
+        crate::runtime::write_build_support(out, src, nested_out_dirs, &report.emitted).map_err(
+            |e| BuildError::Io {
+                path: out.to_path_buf(),
+                source: e,
+            },
+        )?;
     }
 
     Ok(report)
@@ -999,6 +1046,56 @@ pub fn source_fingerprint(src: &Path) -> Result<String, BuildError> {
             rel.to_string_lossy().hash(&mut hasher);
             text.hash(&mut hasher);
         }
+    }
+    Ok(format!("{:016x}", hasher.finish()))
+}
+
+/// A content fingerprint of every project under `target` (D41), for
+/// `glyph build --watch`.
+///
+/// `source_fingerprint` answers one *project's* question, and it walks with
+/// `walk_glyph_files`, which stops at a nested project's boundary. That is
+/// right for what it was written for: a nested project's files are not part of
+/// the enclosing project's compilation, so they must not bust the enclosing
+/// project's build cache. A watch over a *tree* needs the opposite guarantee,
+/// that the fingerprint covers every file the build it drives will read. On a
+/// tree whose projects are all nested (`src/alpha`, `src/beta`, each with its
+/// own marker, nothing compilable at `src` itself) the root walk covers zero
+/// files, so the root fingerprint was constant and no edit anywhere ever
+/// triggered a rebuild.
+///
+/// So this fingerprints each *discovered* project with the same per-project
+/// function, and combines the results keyed by the project's output-relative
+/// path. Combining rather than teaching the walker to cross the boundary keeps
+/// every other caller's D41 semantics exactly as they were, and it picks up
+/// each project's own `.types` and `extern` inputs for free, which a single
+/// boundary-crossing walk from the root would have missed. Keying by path is
+/// what makes adding or removing a project -- a new `package.json` marker
+/// appearing under the target -- change the fingerprint too, rather than only
+/// edits inside the projects that already existed.
+pub fn tree_fingerprint(target: &Path) -> Result<String, BuildError> {
+    use std::hash::{Hash, Hasher};
+    let found = discover_projects(target)?;
+    let mut parts: Vec<(String, String)> = Vec::new();
+    for project in &found.projects {
+        // A marker directory whose sources all live in a subproject has no
+        // source dir of its own; `build_tree` skips it for the same reason.
+        if !project.src.is_dir() {
+            continue;
+        }
+        let key = project
+            .out_rel
+            .to_string_lossy()
+            .replace(std::path::MAIN_SEPARATOR, "/");
+        parts.push((key, source_fingerprint(&project.src)?));
+    }
+    // `discover_projects` is already ordered, but the combination must not
+    // depend on that staying true.
+    parts.sort();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    for (key, fingerprint) in &parts {
+        key.hash(&mut hasher);
+        fingerprint.hash(&mut hasher);
     }
     Ok(format!("{:016x}", hasher.finish()))
 }

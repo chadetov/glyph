@@ -144,21 +144,35 @@ impl Printer {
         }
     }
 
+    /// End the line the printer is on: drop whatever layout whitespace it ends
+    /// with, then break.
+    ///
+    /// Every line the printer closes goes through here, which is what makes
+    /// trailing whitespace unreachable rather than merely absent. A printer that
+    /// *can* emit `push(" ")` and then a break eventually does: one rejected fix
+    /// left trailing whitespace on 95 of 200 generated files, and no reviewer
+    /// spots a space at end of line. Only the printer's own spacing is dropped —
+    /// a string literal ends in its closing quote, so this never reaches inside
+    /// one, and a D12 literal's interior lines are pushed whole and are not
+    /// lines this closes.
+    fn end_line(&mut self) {
+        while self.out.ends_with(' ') || self.out.ends_with('\t') {
+            self.out.pop();
+        }
+        self.out.push('\n');
+    }
+
     /// Newline followed by the current indentation.
     fn newline(&mut self) {
-        self.out.push('\n');
+        self.end_line();
         self.pad();
     }
 
     /// Insert one blank line at a point where the cursor is already on a fresh
-    /// (padded) line. Drops the pad so the blank line carries no trailing
-    /// whitespace, ends the current line, then re-pads for what follows.
+    /// (padded) line. `end_line` drops the pad it is closing, so the blank line
+    /// carries no trailing whitespace, and the re-pad sets up what follows.
     fn blank_line(&mut self) {
-        while self.out.ends_with(' ') {
-            self.out.pop();
-        }
-        self.out.push('\n');
-        self.pad();
+        self.newline();
     }
 
     /// Whether the source between byte offsets `from` and `to` contains a blank
@@ -171,6 +185,18 @@ impl Printer {
         };
         src.get(from as usize..to as usize)
             .is_some_and(|s| s.bytes().filter(|&b| b == b'\n').count() >= 2)
+    }
+
+    /// Whether the source between byte offsets `from` and `to` holds a line
+    /// break. `true` when there is no source to consult, or when the range does
+    /// not slice cleanly: the caller reads a *negative* answer as "these two
+    /// things are on one line", and that is the claim that has to be earned.
+    fn newline_in_source(&self, from: u32, to: u32) -> bool {
+        let Some(src) = &self.source else {
+            return true;
+        };
+        src.get(from as usize..to as usize)
+            .is_none_or(|s| s.contains('\n'))
     }
 
     /// The start offset of the next pending comment if it begins before
@@ -333,7 +359,7 @@ impl Printer {
         if let Some(mp) = &m.module_path {
             self.push("module ");
             self.push(&join(&mp.segments, "/"));
-            self.push("\n");
+            self.end_line();
         }
         let mut prev_was_import = false;
         for decl in &m.items {
@@ -346,7 +372,7 @@ impl Printer {
             // between two imports, and the negation reads as those two rules.
             #[allow(clippy::nonminimal_bool)]
             if !self.out.is_empty() && !(is_import && prev_was_import) {
-                self.push("\n");
+                self.end_line();
             }
             let last_comment_end = self.flush_comments_before(decl_start(decl));
             // Preserve a blank line the author left between a section comment
@@ -362,7 +388,7 @@ impl Printer {
         // Comments trailing after the last declaration.
         if self.cidx < self.comments.len() {
             if !self.out.is_empty() {
-                self.push("\n");
+                self.end_line();
             }
             self.flush_comments_before(u32::MAX);
         }
@@ -376,19 +402,39 @@ impl Printer {
     /// preserve a blank line between a trailing comment block and the item it
     /// precedes.
     fn flush_comments_before(&mut self, offset: u32) -> Option<u32> {
+        let taken = self.take_comments_before(offset);
+        self.emit_comments(&taken)
+    }
+
+    /// Detach every pending comment whose span begins before `offset`, advancing
+    /// the cursor past them, and hand them back unemitted.
+    ///
+    /// Splitting this out of `flush_comments_before` is what lets `annotations`
+    /// decide which annotation each comment belongs to before any of them is
+    /// printed. The cursor is monotone over source offsets, so a caller that
+    /// visits nodes out of source order cannot use the flush directly.
+    fn take_comments_before(&mut self, offset: u32) -> Vec<Comment> {
+        let mut taken = Vec::new();
+        while self.has_comment_before(offset) {
+            taken.push(self.comments[self.cidx].clone());
+            self.cidx += 1;
+        }
+        taken
+    }
+
+    /// Emit `cs`, each on its own line at the current indentation, preserving a
+    /// blank line the author left between two of them. Returns the end offset of
+    /// the last one.
+    fn emit_comments(&mut self, cs: &[Comment]) -> Option<u32> {
         let mut last_end: Option<u32> = None;
-        while self.cidx < self.comments.len() && self.comments[self.cidx].span.start < offset {
-            let start = self.comments[self.cidx].span.start;
-            let end = self.comments[self.cidx].span.end;
-            let text = self.comments[self.cidx].text.clone();
+        for c in cs {
             // Preserve a blank line the author left between two comments.
-            if last_end.is_some_and(|prev| self.blank_line_in_source(prev, start)) {
+            if last_end.is_some_and(|prev| self.blank_line_in_source(prev, c.span.start)) {
                 self.blank_line();
             }
-            self.push(&text);
+            self.push(&c.text);
             self.newline();
-            last_end = Some(end);
-            self.cidx += 1;
+            last_end = Some(c.span.end);
         }
         last_end
     }
@@ -411,7 +457,8 @@ impl Printer {
         self.push(&i.name);
         self.generics(&i.generics);
         if i.members.is_empty() && !self.has_comment_before(i.span.end) {
-            self.push(" {}\n");
+            self.push(" {}");
+            self.end_line();
             return;
         }
         self.push(" {");
@@ -449,14 +496,15 @@ impl Printer {
         self.drain_comments_before(i.span.end);
         self.indent -= 1;
         self.newline();
-        self.push("}\n");
+        self.push("}");
+        self.end_line();
     }
 
     /// Emit a declaration's annotations, with any `//` comments the author put
     /// between them.
     ///
     /// `keyword_start` is where the declaration itself begins (`fn`, `type`,
-    /// ...). Comments inside the annotation block have to be flushed here,
+    /// ...). Comments inside the annotation block have to be handled here,
     /// because the declaration-level flush ran at the *first annotation's*
     /// offset and so passed over them. Left pending, they surfaced in the next
     /// construct that flushes comments, which is the parameter list: a comment
@@ -464,42 +512,97 @@ impl Printer {
     /// expanding the parameters to one per line to accommodate it. A formatter
     /// that runs on save must never relocate a comment into unrelated syntax.
     fn annotations(&mut self, anns: &[Annotation], keyword_start: u32) {
+        // Each comment is bound to the annotation its author attached it to,
+        // walking the block in *source* order, and is then carried through the
+        // sort below with that annotation.
+        //
+        // Flushing inside the sorted loop instead is what produced G161. The
+        // comment cursor is monotone over source offsets and the sorted loop
+        // visits those offsets out of order, so every comment in the block was
+        // emitted above whichever annotation sorted first: a note written about
+        // `@pure` came out above `@example`, reading as its documentation. That
+        // output is itself a fixed point, so `fmt --check` passed on it forever
+        // and no idempotence test could see it. Misattributed text is worse than
+        // lost text, because it reads as if the author wrote it there.
+        //
+        // Both kinds of attachment count, and the second is not optional. A
+        // comment on its own line documents the annotation beneath it. A comment
+        // at the end of an annotation's line documents *that* annotation, and
+        // its offset falls after that annotation's span: in `@pure // this fn is
+        // pure`, binding a comment only to what follows it hands the note to
+        // `@example` and reproduces the bug on its own reproduction.
+        let mut in_source_order: Vec<&Annotation> = anns.iter().collect();
+        in_source_order.sort_by_key(|a| a.span.start);
+
+        let mut carried: Vec<(&Annotation, Vec<Comment>, Option<Comment>)> =
+            Vec::with_capacity(anns.len());
+        for (i, &a) in in_source_order.iter().enumerate() {
+            // A trailing note has to stop at the next annotation (or at the
+            // declaration keyword) even when no line break separates them.
+            let next = in_source_order
+                .get(i + 1)
+                .map_or(keyword_start, |b| b.span.start);
+            let leading = self.take_comments_before(a.span.start);
+            // `raw_args` is verbatim source, and when the argument text does not
+            // close cleanly the parser's capture runs past it and swallows
+            // whatever follows, a comment included. That comment is emitted as
+            // part of the annotation, so the cursor has to move past it too.
+            // Without this the comment machinery emitted it a second time, the
+            // output became the next run's input, and `glyph fmt` added one more
+            // copy every single time it ran (G150).
+            while self.has_comment_before(a.span.end) {
+                self.cidx += 1;
+            }
+            let trailing = self.comments.get(self.cidx).cloned().filter(|c| {
+                c.span.start < next && !self.newline_in_source(a.span.end, c.span.start)
+            });
+            if trailing.is_some() {
+                self.cidx += 1;
+            }
+            carried.push((a, leading, trailing));
+        }
+
         // D27 fixes the order of annotation *kinds*, not the order of repeated
         // annotations of one kind. `sort_by` is stable, so several `@example`s
         // keep the order the author wrote them in — which is the order they read
         // in (`f(7)` before `f(12)`), and the order a reader of the doc expects.
         // Sorting them by argument text as a tiebreaker reordered documentation
         // behind the author's back.
-        let mut sorted: Vec<&Annotation> = anns.iter().collect();
-        sorted.sort_by(|a, b| a.name.cmp(&b.name));
-        for a in sorted {
-            // A comment the author wrote above this annotation stays above it.
-            // Repeated annotations of one kind keep source order, so for the
-            // common case (several `@example`s with notes between them) this is
-            // exactly where it was written.
-            self.flush_comments_before(a.span.start);
-            self.push("@");
-            self.push(&a.name);
-            let args = a.raw_args.trim();
-            if !args.is_empty() {
+        carried.sort_by(|(a, ..), (b, ..)| a.name.cmp(&b.name));
+
+        for (a, leading, trailing) in carried {
+            self.emit_comments(&leading);
+            // `raw_args` joins an annotation's continuation lines into one, and
+            // that joined form is what the printer emits. It cannot carry a `//`
+            // note written at the end of a continued line: the parser has to
+            // splice such a note out, because the space it leaves in place of
+            // the newline would let the note swallow the continuation on re-lex.
+            // A note is not something a formatter may drop, so an annotation
+            // holding one is printed the way its author laid it out instead.
+            // The note stays against the line it documents, and the output is
+            // trivially a fixed point.
+            match self.annotation_verbatim_if_note_spliced(a) {
+                Some(text) => self.push(&text),
+                None => {
+                    self.push("@");
+                    self.push(&a.name);
+                    let args = a.raw_args.trim();
+                    if !args.is_empty() {
+                        self.push(" ");
+                        self.push(args);
+                    }
+                }
+            }
+            // The author's own layout: a note written at the end of this
+            // annotation's line goes back at the end of it.
+            if let Some(c) = trailing {
                 self.push(" ");
-                self.push(args);
+                self.push(&c.text);
             }
-            self.push("\n");
-            // `raw_args` is verbatim source, and when the argument text does not
-            // close cleanly the parser's capture runs past it and swallows
-            // whatever follows, a comment included. That comment has now been
-            // emitted as part of the annotation, so the comment cursor has to
-            // move past it too. Without this the comment machinery emitted it a
-            // second time, the output became the next run's input, and `glyph
-            // fmt` added one more copy every single time it ran (G150).
-            while self.cidx < self.comments.len()
-                && self.comments[self.cidx].span.start < a.span.end
-            {
-                self.cidx += 1;
-            }
+            self.end_line();
         }
-        // A comment between the last annotation and the declaration keyword.
+        // A comment on its own line between the last annotation and the
+        // declaration keyword documents the declaration, and stays there.
         self.flush_comments_before(keyword_start);
     }
 
@@ -525,7 +628,7 @@ impl Printer {
                 self.push(" }");
             }
         }
-        self.push("\n");
+        self.end_line();
     }
 
     /// `pub ` visibility prefix (0.1.16). Sits between the annotations and the
@@ -556,7 +659,7 @@ impl Printer {
         }
         self.push(" ");
         self.block(&f.body);
-        self.push("\n");
+        self.end_line();
     }
 
     fn component_decl(&mut self, c: &ComponentDecl) {
@@ -575,7 +678,7 @@ impl Printer {
         }
         self.push(" ");
         self.block(&c.body);
-        self.push("\n");
+        self.end_line();
     }
 
     fn const_decl(&mut self, c: &ConstDecl) {
@@ -589,7 +692,7 @@ impl Printer {
         }
         self.push(" = ");
         self.expr(&c.value);
-        self.push("\n");
+        self.end_line();
     }
 
     fn type_decl(&mut self, t: &TypeDecl) {
@@ -606,7 +709,7 @@ impl Printer {
         if let TypeExpr::Union { variants, .. } = &t.body {
             self.push(" =");
             self.union_multiline(variants);
-            self.push("\n");
+            self.end_line();
             return;
         }
         self.push(" = ");
@@ -617,7 +720,7 @@ impl Printer {
             self.push(" where ");
             self.expr(pred);
         }
-        self.push("\n");
+        self.end_line();
     }
 
     fn generics(&mut self, generics: &[GenericParam]) {
@@ -1197,6 +1300,41 @@ impl Printer {
             .as_deref()
             .and_then(|src| src.get(span.start as usize..span.end as usize))
             .map(str::to_string)
+    }
+
+    /// An annotation's own source text, when the parser had to splice a `//`
+    /// note out of its `raw_args`; `None` otherwise.
+    ///
+    /// A note is spliced when the newline that terminated it is one the parser
+    /// removed to join a D27 continuation. The joined `raw_args` no longer holds
+    /// that note, so printing from it would delete the note outright. Printing
+    /// the annotation's source keeps it where it was written, and re-parses to
+    /// the same annotation, so a second pass produces the same bytes.
+    ///
+    /// A note inside a bracketed argument list is the other case, and it stays
+    /// on the ordinary path: the lexer emits no newline at bracket depth (D1),
+    /// so the real newline after the note survives in `raw_args` and the note is
+    /// printed with it already. Only the lexer knows which newlines exist, so
+    /// the two are told apart by re-tokenizing the annotation's own source. A
+    /// `Newline` token sitting at a note's end is a newline the parser spliced.
+    /// An annotation always begins at bracket depth zero, so the region lexes
+    /// standing alone the way it lexed in the file.
+    fn annotation_verbatim_if_note_spliced(&self, a: &Annotation) -> Option<String> {
+        let in_span = |c: &Comment| c.span.start >= a.span.start && c.span.start < a.span.end;
+        if !self.comments.iter().any(in_span) {
+            return None;
+        }
+        let text = self.verbatim(a.span)?;
+        let tokens = glyph_lexer::tokenize(&text).ok()?;
+        let breaks: Vec<u32> = tokens
+            .iter()
+            .filter(|t| matches!(t.token, glyph_lexer::Token::Newline))
+            .map(|t| a.span.start + t.span.start)
+            .collect();
+        self.comments
+            .iter()
+            .any(|c| in_span(c) && breaks.contains(&c.span.end))
+            .then_some(text)
     }
 
     fn string_literal(&mut self, value: &str, span: Span) {

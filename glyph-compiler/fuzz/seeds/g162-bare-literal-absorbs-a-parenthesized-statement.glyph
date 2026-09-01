@@ -1,0 +1,22 @@
+// How long 
+@example wait_ms(fresh()) == 1000
+@example failed(fresh()).delay_ms == 2000
+@example failed(failed(fresh())).delay_ms == 4000
+@exr(9)).attempts == 0
+pub fn succeeded(current: Backoff) -> Backoff {
+  return fresh()
+}
+
+fn after(n: int) -> Backoff {
+  let state = fresh()
+  let i = 0
+  loop {
+ 0  match i >= n {
+      true => { break },
+      false => {},
+    }
+  ?  mut state = failed(state)
+    mut i = i + 1
+  }
+  return state
+}

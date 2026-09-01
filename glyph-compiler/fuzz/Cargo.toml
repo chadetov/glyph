@@ -12,6 +12,7 @@ libfuzzer-sys = "0.4"
 glyph-lexer = { path = "../crates/glyph-lexer" }
 glyph-parser = { path = "../crates/glyph-parser" }
 glyph-formatter = { path = "../crates/glyph-formatter" }
+glyph-ast = { path = "../crates/glyph-ast" }
 
 [[bin]]
 name = "parse"

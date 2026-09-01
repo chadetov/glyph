@@ -4659,7 +4659,7 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Give `Response` a text accessor so a JSON body stops printing as `[object Object]` (G118)
 - Decide how `Option<T>` reads ordinary JSON: loosen `.parse`, or add a distinct nullable boundary type (G91)
 
-**0.1.101 — Next · The hybrid app's dev loop**
+**0.1.101 — Shipped · A note on an example line no longer verifies a false claim**
 - `glyph build --watch`, so the Glyph half stops being compile-by-hand next to Vite's HMR (G123)
 - A browser target that stops materializing the seven host modules under `.glyph-runtime` (G115)
 - Make `glyph fmt` reach a fixed point in one pass so `--check` stops failing on fmt's own output (G151)
@@ -4667,12 +4667,14 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Format the repo's own Glyph and gate it, so the corpus matches the formatter (G158)
 - Make the benchmark fixtures compile, and gate that they keep compiling (G159)
 - Remap a tsc error onto the right project's module in a multi-project build (G107)
+- Close the false green: a comment must not eat an `@example` assertion (G160)
+- Stop `fmt` reattaching a comment to the wrong annotation (G161)
 
-**0.1.102 — salsa 0.28, and the pipeline's own gaps**
+**0.1.102 — Next · salsa 0.28, and the pipeline's own gaps**
 - Migrate the query layer to salsa 0.28's moved `Update` trait, alone, with no feature work beside it
+- Stop `fmt` emitting a bare literal statement and a parenthesized one that reparse as a call (G162)
 - Execute darwin-x64 somewhere in CI (macos-13 is the honest fix)
 - Run `check_binary_fresh.py` from the release workflow instead of by hand
-- Ship license text in all six npm packages
 - Detect musl and diagnose it rather than handing Alpine a glibc binary
 
 **0.1.103 — MCP stops re-analyzing the workspace per call**
@@ -4700,7 +4702,45 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Queries chain, so following type to fields to callers to usages does not re-derive between hops
 - Repair the five-times bug shape end to end, measured against the same task done by search alone
 
-### 0.1.101 — Next · The hybrid app's dev loop
+### 0.1.102 — Next · salsa 0.28, and the pipeline's own gaps
+
+A release with no feature work in it. The query layer moves to salsa 0.28, whose
+`Update` trait has moved, and that migration travels alone: a dependency bump
+that touches every tracked query is not something to review alongside anything
+else. Dependabot has been carrying it since 2026-08-16 (PR #47) and the
+workspace still pins `salsa = "0.26"`.
+
+Beside it, the items that keep turning up in release verification rather than in
+the compiler.
+
+**G162, the formatter bug the fuzzer found the moment it could see.** `fmt`
+prints a bare literal statement and then a parenthesized one, and the pair
+reparses as a call, so the output means something the input did not. Present in
+0.1.100 and earlier, invisible for as long as `format_idempotent` was failing on
+its own G151 seed every night. The seed is committed and skipped by name until
+this lands.
+
+**darwin-x64 is built and never executed.** Every other platform binary runs
+somewhere in CI. The honest fix is a `macos-13` runner, which is x86, rather than
+trusting that a binary nobody has run works.
+
+**`check_binary_fresh.py` runs by hand.** It is in the release ceremony and not
+in `release.yml`, which makes it exactly the kind of step a tired person skips.
+It caught a stale binary during the 0.1.101 cut, twice.
+
+**Alpine gets a glibc binary and a confusing failure.** Detecting musl and saying
+so is a diagnostic, not a port.
+
+*Reviewed against 0.1.101.* Every claim above was re-checked rather than carried
+forward, and one item was dropped because it is already done: license text ships
+in all six npm packages today. `npm/glyph` and each platform package carry
+`LICENSE-MIT` and `LICENSE-APACHE` and list both in their `files` field, so
+there is nothing to do. The rest hold: `salsa = "0.26"` in the workspace
+manifest, no `macos-13` or `darwin-x64` execution in `ci.yml`, no reference to
+`check_binary_fresh` in `release.yml`, and no musl detection in the npm
+launcher.
+
+### 0.1.101 — Shipped · A note on an example line no longer verifies a false claim
 
 - `glyph build --watch`, so the Glyph half stops being compile-by-hand next to Vite's HMR (G123)
 - A browser target that stops materializing the seven host modules under `.glyph-runtime` (G115)
@@ -4708,11 +4748,36 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Stop `fmt` reprinting `=> ({})` as `=> {}`; the AST needs a grouping node (G60)
 - Remap a tsc error onto the right project's module in a multi-project build (G107)
 
+**What shipped, against what was planned.** G160 and G161 were not on the plan
+when this release opened; they came out of adversarial review of two rejected
+G151 fixes and G160 outranked everything else here. G60 was already fixed and
+closed at triage with no code written. G151's two-pass symptom went with G160,
+since they were one defect. G158 and G159 moved to the polish lane: this release
+was already carrying a verifiability fix and four regressions of its own making,
+and a 92-file reformat on top of that would have made the diff unreviewable.
+
+**Three regressions this release introduced and then fixed before shipping.**
+The first G151 attempt made `fmt` rewrite the inside of string literals. The
+second relocated comments out of bracketed argument lists and left trailing
+whitespace on 95 of 200 generated files. Std-module pruning broke `extern/*.ts`
+shims, and then, once fixed, left a stale staged copy that failed every later
+build after a shim was deleted. Each was found by review rather than by the
+suite, which is the argument for the review phase existing.
+
 *Reviewed against 0.1.100.* G123, G115 and G107 were each re-run for the 0.1.97
 cut and still reproduce: there is no `--watch`, a one-import program still
 materializes 37 std modules, and a two-project build still quotes the wrong
 project's source under a `TS2307`. G151 is the fuzzer's own open finding and
-G60 is re-checked at triage. G158 makes the release coherent: three formatter
+G60 is re-checked at triage.
+
+**G160 is the reason this release grew, and it outranks everything else in it.**
+Adversarial review of the two rejected G151 fixes found that the same parser
+defect silently deletes an `@example` assertion, so the compiler reports a false
+claim as verified. That is a verifiability failure in the shipped 0.1.100, not a
+formatting papercut, and the ledger entry that called G151 harmless is what let
+two fixes be written and judged against the wrong premise. G161 came out of the
+same read: `fmt` reattaches a comment to the wrong annotation and the result is a
+fixed point, so `--check` passes on the damage forever. G158 makes the release coherent: three formatter
 items and the reason to trust the output of all three, which is that 121 of the
 284 tracked `.glyph` files currently disagree with `glyph fmt` and nothing
 notices.
@@ -4888,15 +4953,21 @@ variant" into a lookup. That is the direct instrument for the bug shape this
 project has hit five times, G139, G141, G142, G143 and G148, each one a site not
 unwrapping `Ty::App` to its base.
 
-*Reviewed against 0.1.95.* Every claim above was re-run rather than carried
-forward, and two numbers had moved. `mcp.rs` still contains no reference to the
-database at all, and still calls `analyze_full` on raw text at three sites plus
-a `workspace_files` walk, so the gating finding holds unchanged. All five named
-salsa queries exist in `glyph-db/src/lib.rs`. The examples tree is 175 `.glyph`
-files now rather than 174, and the sites that unwrap `Ty::App` to its base are
-39 rather than the 29 counted when this was written, which makes the argument
-for R4 stronger rather than weaker: the bug shape's surface grew while the
-release that would instrument it sat unscheduled.
+*Reviewed against 0.1.101.* Every claim re-run rather than carried forward, and
+one number moved in a way worth noting. `mcp.rs` still contains no reference to
+the database at all, so the gating finding holds unchanged, and the
+`analyze_full`-on-raw-text calls have grown from three sites to five while the
+`workspace_files` walk is unchanged at three: the cost this release exists to
+remove is still being added to. All five named salsa queries exist in
+`glyph-db/src/lib.rs`. The examples tree is 175 `.glyph` files, unchanged.
+
+The `Ty::App` count needs a correction rather than an update. An earlier stamp
+said "39 sites unwrap `Ty::App` to its base", counted against 29 before it. The
+honest number today is 33 sites that destructure it to reach a base, out of 71
+mentions in total, and the two figures are not the same measure, so the earlier
+39 may have been counting mentions rather than unwraps. The direction of the
+argument for R4 is unchanged either way: this is the shape behind G139, G141,
+G142, G143 and G148, and the surface is in the dozens.
 
 **What the whole arc has to add up to.** A nine-capability target arrived for
 this line of work, and most of it is what 0.1.103 through 0.1.105 already commit

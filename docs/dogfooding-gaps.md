@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-159 entries, 125 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-15 are open. G144, the D28 boundary cast that never reached the returns a
+162 entries, 125 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+18 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -5989,6 +5989,13 @@ through an object pattern's fields.
   but it still means `glyph fmt --check` fails on output `glyph fmt` just
   produced, which is the thing `--check` exists to be trusted about.
 
+  **This entry was wrong about its own severity, and the error was expensive.**
+  It described a fixed-point problem and nobody asked what `raw_args` does
+  downstream. It is split accordingly: G151a below is a verifiability hole and
+  the real bug; G151b is this two-pass symptom, which falls out of fixing it.
+  Two fix attempts were written and both rejected against a premise ("mild and
+  lossless") that this entry supplied and that was false.
+
   **The nightly fuzz job fails on this every night, and will until it is fixed.**
   The reproduction is committed as `fuzz/seeds/g151-fmt-needs-two-passes.glyph`,
   so `format_idempotent` rediscovers it from the seed corpus in seconds: run
@@ -6392,3 +6399,118 @@ and is the owner's to confirm.
   *Reproduced against 0.1.100: each fixture copied into its own project and
   built. `check.sh` run against the same binary to confirm the public claim is
   unaffected.*
+
+- **G160. A comment before a continuation line silently deletes an `@example` assertion, and the compiler reports the false claim as verified.**
+  The same parser defect as G151. `Annotation.raw_args` is a raw source slice
+  with continuation newlines replaced by a single space
+  (`glyph-parser/src/decl.rs`), and every consumer re-lexes it
+  (`glyph-cli/src/examples.rs`, `glyph-resolver/src/lints.rs`). Replacing the
+  newline with a space when a `//` comment precedes it joins the comment to the
+  continuation, so the comment eats the rest of the assertion. `collect_tests`
+  then treats a non-equality expression as "assert this is true", so an
+  assertion that lost its `== rhs` does not error. It quietly becomes something
+  else, and passes.
+
+  Two byte-identical claims about the same function, differing only by a note on
+  the first line:
+
+  ```glyph
+  @example has_bug(3)
+    == false
+  @example has_bug(3) // the same claim, with a note on the first line
+    == false
+  pub fn has_bug(n: number) -> bool {
+    return true
+  }
+  ```
+
+  `glyph check` reports `1 of 2 example(s) failed`. The first is correctly red.
+  The second is green, and it is a false claim: `has_bug(3)` is `true` and the
+  example asserts it is `false`. A compiler that says "verified" about something
+  false is the failure this language exists to prevent, and it is worth more
+  than every formatting item in the release it was found in.
+
+  It needs the continuation form. The bracketed form is safe, because inside
+  brackets the lexer emits no newline (D1) so `raw_args` keeps a real newline
+  that terminates the comment. No tracked `.glyph` in the repo currently hits
+  it, so it is latent rather than burning, which is exactly why it survived.
+
+  *Reproduced against 0.1.100, the published release and not a local build: `glyph check` on the
+  program above reports one failure where it must report two. Found by
+  adversarial review after two fix attempts for G151 had been written and
+  rejected on the premise that the bug was cosmetic.*
+
+- **G161. `glyph fmt` reattaches a comment to the wrong annotation, and the result is a fixed point.**
+  `glyph-formatter/src/lib.rs` sorts a declaration's annotations by kind, then
+  flushes pending comments with `flush_comments_before(a.span.start)` using a
+  monotone cursor over source offsets. Sorting makes those starts non-monotone,
+  so a comment whose offset precedes the first sorted annotation is emitted
+  there regardless of which annotation the author attached it to. Because the
+  cursor only moves forward, a comment can only ever move earlier, onto an
+  annotation the author wrote it after.
+
+  ```glyph
+  @pure // this fn is pure
+  @example f(1) == 1
+  pub fn f(a: int) -> int {
+    return 1
+  }
+  ```
+
+  becomes, and then stays:
+
+  ```glyph
+  // this fn is pure
+  @example f(1) == 1
+  @pure
+  ```
+
+  The comment now documents the wrong thing. Exit 0, no warning, `tsc` clean.
+
+  **The output is a fixed point, which is why nothing catches it.** `glyph fmt
+  --check` passes on the corrupted file forever, and the `format_idempotent`
+  fuzz target checks only that formatting twice equals formatting once, so it is
+  structurally incapable of finding a bug that stabilises. Misattributed text is
+  worse than lost text: it reads as if the author wrote it.
+
+  *Reproduced against 0.1.100, the published release: `glyph fmt` rewrites the file as shown,
+  and `glyph fmt --check` then reports it already formatted.*
+
+- **G162. `glyph fmt` prints a bare literal statement and a parenthesized statement so they reparse as a call.**
+  Given a block holding a bare expression statement followed by a parenthesized
+  one, the formatter emits
+
+  ```glyph
+  0
+  (match i >= n {
+    true => { break },
+    false => {},
+  })?
+  ```
+
+  and a second pass reads `0` and the `(` as one call, printing
+
+  ```glyph
+  0(
+    match i >= n {
+      true => { break },
+      false => {},
+    },
+  )?
+  ```
+
+  The output means something the input did not. It is not only a fixed-point
+  problem: the first pass produces text whose parse differs from the AST it was
+  printed from, so `fmt` has changed the program.
+
+  Real code rarely writes a bare literal as a statement, which is why this has
+  survived. The formatter should not emit a statement starting with `(`
+  immediately after one that could absorb it; either it separates them or it
+  keeps the parentheses attached to the construct that owns them.
+
+  *Reproduced against 0.1.100, the published release: formatting the seed twice
+  gives two different files. Found by the `format_idempotent` fuzz target within
+  five minutes of G151 being fixed, which is the first time that target could
+  see past its own permanently failing seed. Seed committed as
+  `fuzz/seeds/g162-bare-literal-absorbs-a-parenthesized-statement.glyph` and
+  skipped by name in `fuzz_seeds_are_format_fixed_points`.*

@@ -12,7 +12,7 @@ The whole pipeline is shipped and running on `main`:
 - **Emitter** — the AST→TS visitor emits every construct, lowers `match`/`?`/JSX, and generates the descriptors and source maps; `glyph build` runs `tsc --strict` (`--no-tsc` opts out).
 - **CLI + tooling** — `glyph build [--no-tsc] [--no-test] [--json]`, `check [--no-tsc] [--json]`, `run`, `fmt`, `regen`, `gen` (openapi/dts/zod), `init`, `publish`, plus the language server and MCP server (`lsp`/`mcp`) and `--explain`. Ariadne-rendered diagnostics with caret pointers, source context, TTY-aware color, and UTF-8-correct byte spans.
 
-**1111 workspace tests pass.**
+**1147 workspace tests pass.**
 
 *Since these decisions were written, two deferrals below have shipped: `infer_shape` landed as the narrow `infer_output<S>` operator (D28) and later a first-class `z.infer<typeof s>` via the `typeof` query (D32); runtime descriptors grew from "shallow validation" to deep structural, generic, membership, and integer validation, and in 0.1.41 descriptor resolution was completed on both axes it was missing, so a `where` refinement (D39) and a type imported from another module are validated by their own descriptors in field, element, and payload position instead of falling back to a presence check. In 0.1.42 the two `match` lowerings were split on the right condition: a `match` that is the whole value of a `let` or a `mut` assignment always emits the flat `switch`, and the closure form is reserved for a `match` nested inside a larger expression, where an `await` in an arm makes it an awaited async arrow.*
 

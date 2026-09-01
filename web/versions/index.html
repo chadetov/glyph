@@ -49,8 +49,38 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.100</span>
+            <span class="rel-ver">0.1.101</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A note on an example line no longer verifies a false claim</h3>
+            <p>Writing a <code>//</code> note on the first line of a wrapped <code>@example</code> deleted the assertion. The example still ran, and still reported success, having checked something else.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>@example has_bug(3)
+  == false
+@example has_bug(3) <span class="del">// a note</span>
+  == false
+
+pub fn has_bug(n: number) -&gt; bool {
+  return true
+}
+
+<span class="del">// before: 1 of 2 example(s) failed  &lt;- the noted one passed</span>
+<span class="add">// now:    2 of 2 example(s) failed</span></pre>
+            </div>
+            <p>Two identical false claims, and only one was caught. The comment merged into the annotation's argument text, the assertion's right-hand side went with it, and an example with no comparison left is treated as asserting the expression is true. It fired in both directions: a module of nine examples had five false claims pass, and the same defect failed five true ones.</p>
+            <p>The parser now keeps a comment out of the argument text it captures, so the assertion survives. Formatting also reaches its final shape in one pass, and a comment written above one annotation stays with that annotation instead of moving to the one above it.</p>
+            <p class="rel-note">Also here: <code>glyph build --watch</code> rebuilds nested projects and catches edits that land mid-build, a tsc error is reported against the project that caused it, only the standard-library modules a program reaches are written out, and deleting a hand-written <code>extern/</code> shim no longer leaves a stale copy that fails every later build.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.100</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

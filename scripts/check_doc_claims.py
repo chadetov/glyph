@@ -106,7 +106,15 @@ def live_files() -> list[pathlib.Path]:
 
 def newest_source() -> float:
     newest = 0.0
-    for pat in ("glyph-compiler/crates/**/*.rs", "glyph-compiler/**/Cargo.toml"):
+    # The runtime `.ts` files count as sources: they are materialized by the
+    # compiler and a change to one breaks emit tests exactly the way a change to
+    # a crate does. Leaving them out meant a stale log could pass this gate after
+    # a runtime edit, which is the one thing the gate exists to prevent.
+    for pat in (
+        "glyph-compiler/crates/**/*.rs",
+        "glyph-compiler/**/Cargo.toml",
+        "glyph-compiler/runtime/**/*.ts",
+    ):
         for p in ROOT.glob(pat):
             if "/target/" in p.as_posix():
                 continue

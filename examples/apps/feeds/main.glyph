@@ -13,7 +13,6 @@ import std/http
 import std/io
 import std/option { Some, None }
 import std/result { Result, Ok, Err }
-import std/string
 import digest
 import digest { Entry }
 import fast-xml-parser { XMLParser }
@@ -55,15 +54,13 @@ pub async fn main(argv: Array<string>) -> number {
 }
 
 // `response.body` is an `unknown`, which is right: a body is whatever the
-// server sent. What is missing is a way to say "this one is text". `http.get`
-// parses JSON when it can and hands back the raw string when it cannot, so for
-// XML the string is already there and `string.from` is the identity on it. That
-// works, and it is the wrong shape: on a JSON response the same line renders
-// `[object Object]` and reports nothing. Recorded as a finding rather than
-// worked around with TypeScript.
+// server sent. It is also the JSON parse of the body, which for a feed is a
+// lossy view of it. `http.to_text` reads the bytes the server actually sent,
+// where `string.from(response.body)` used to stringify a JSON object into
+// `[object Object]` and report nothing (G118).
 async fn fetch(source: string) -> Result<string, string> {
   return match await http.get(source) {
-    Ok(response) => Ok(string.from(response.body)),
+    Ok(response) => http.to_text(response),
     Err(e) => Err("cannot fetch ${source}: ${e.message}"),
   }
 }

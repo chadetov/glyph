@@ -43,6 +43,12 @@ export type Response = {
   status: number;
   headers: Record<string, string>;
   body: unknown;
+  /// The unparsed response body exactly as received, mirroring `Request.raw`.
+  /// `body` is `parse_body(raw)`, which is lossy: a `text/plain` body of `42`
+  /// parses to the number 42 and a body of `"hi"` to the string `hi`, so the
+  /// parsed value cannot tell you what the server actually sent. `to_text`
+  /// reads this. Empty string when there is no body.
+  raw: string;
   /// The URL the response actually came from. After a followed redirect this is
   /// where you landed, not where you asked, which is the only way a client can
   /// tell it was redirected at all. Empty for a response a handler builds:
@@ -119,9 +125,39 @@ export async function del(url: string): Promise<Result<Response, HttpError>> {
   return request(url, "DELETE", undefined);
 }
 
+/// The response body as the exact text the server sent.
+///
+/// `Response.body` is the best-effort JSON parse of that text, and the parse is
+/// lossy in a way that matters: a `text/plain` body of `42` becomes the number
+/// 42, one of `"hi"` becomes the string `hi`, and an empty body becomes `null`.
+/// The parsed value cannot tell you what arrived. Before this, printing a body
+/// went through `string.from(response.body)`, and `String(...)` on an object is
+/// a legal, silent operation, so a JSON endpoint printed `[object Object]` with
+/// no diagnostic anywhere in the pipeline.
+///
+/// This returns `Result` rather than `string` because the failing case is
+/// coming, not because it exists yet: today every response carries its bytes, so
+/// the answer is always `Ok`. Whether a non-text `content-type` should be `Err`
+/// is an open call recorded against G118 in the gap ledger.
+export function to_text(response: Response): Result<string, string> {
+  // The exact bytes, not a guess from the parsed value. Testing
+  // `typeof body === "string"` looked right and was wrong three ways: an empty
+  // body is stored as `null` so it reported "not text" for a body that was
+  // simply absent, a `text/plain` body of `42` parses to a number and failed,
+  // and a JSON body that happens to be a string succeeded. `raw` is what the
+  // server sent.
+  return Ok(response.raw);
+}
+
 /// Build an `application/json` response.
 export function json(status: number, body: unknown): Response {
-  return { status, headers: { "content-type": "application/json" }, body, url: "" };
+  return {
+    status,
+    headers: { "content-type": "application/json" },
+    body,
+    raw: JSON.stringify(body),
+    url: "",
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -136,19 +172,31 @@ export type Handler = (
 
 /// Build a `text/plain` response.
 export function text(status: number, body: string): Response {
-  return { status, headers: { "content-type": "text/plain; charset=utf-8" }, body, url: "" };
+  return {
+    status,
+    headers: { "content-type": "text/plain; charset=utf-8" },
+    body,
+    raw: body,
+    url: "",
+  };
 }
 
 /// Build a `text/html` response, so a browser renders the markup instead of
 /// showing it as source.
 export function html(status: number, body: string): Response {
-  return { status, headers: { "content-type": "text/html; charset=utf-8" }, body, url: "" };
+  return {
+    status,
+    headers: { "content-type": "text/html; charset=utf-8" },
+    body,
+    raw: body,
+    url: "",
+  };
 }
 
 /// Build a redirect: the given status (302, 301, 303, 307, 308) and a
 /// `location` header pointing at `location`. The body is empty.
 export function redirect(status: number, location: string): Response {
-  return { status, headers: { location }, body: "", url: "" };
+  return { status, headers: { location }, body: "", raw: "", url: "" };
 }
 
 /// A copy of `resp` with one more header set (replacing any header of the same
@@ -164,7 +212,7 @@ export function with_header(resp: Response, name: string, value: string): Respon
     }
   }
   headers[name] = value;
-  return { status: resp.status, headers, body: resp.body, url: resp.url };
+  return { status: resp.status, headers, body: resp.body, raw: resp.raw, url: resp.url };
 }
 
 /// The URL query string parsed into a record (`/x?a=1&b=2` -> `{ a: "1", b: "2" }`).
@@ -424,6 +472,7 @@ async function request(
     const res = await fetch(url, init);
     const text = method === "HEAD" ? "" : await res.text();
     const parsed: unknown = text === "" ? null : parse_body(text);
+    const raw = text;
     const headers: Record<string, string> = {};
     res.headers.forEach((value, key) => {
       headers[key.toLowerCase()] = value;
@@ -432,11 +481,11 @@ async function request(
       // A `manual` redirect lands here (3xx is not ok), and the caller asked to
       // see it, so hand back the response rather than an error.
       if (bounds.redirect === "manual" && res.status >= 300 && res.status < 400) {
-        return Ok({ status: res.status, headers, body: parsed, url: res.url });
+        return Ok({ status: res.status, headers, body: parsed, raw, url: res.url });
       }
       return Err({ status: res.status, message: text, kind: "status" });
     }
-    return Ok({ status: res.status, headers, body: parsed, url: res.url });
+    return Ok({ status: res.status, headers, body: parsed, raw, url: res.url });
   } catch (e: unknown) {
     if (controller.signal.aborted) {
       return Err({

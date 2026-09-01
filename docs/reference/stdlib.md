@@ -1169,7 +1169,20 @@ http.del(url: string) -> Result<Response, HttpError>    // `del`, not `delete` (
 http.head(url: string) -> Result<Response, HttpError>   // status and headers, no body fetched
 http.send(f: Fetch) -> Result<Response, HttpError>      // the bounded form
 http.fetch_of(url: string, method: string) -> Fetch     // a Fetch with the defaults get/post use
+http.to_text(response: Response) -> Result<string, string>  // the body as the exact text received
 ```
+
+`Response.body` is `unknown` because a body is whatever the server sent, and a
+client best-effort JSON-parses it. That parse is lossy: a `text/plain` body of
+`42` becomes the number 42 and an empty body becomes `null`, so the parsed value
+cannot tell you what arrived. `to_text` reads the unparsed bytes instead.
+Reaching for `string.from(response.body)` was the alternative, and it
+stringifies a JSON object into the literal `[object Object]` with nothing to
+catch it, because `String(...)` on an object is legal.
+
+It returns `Result` for a failure that does not exist yet: every response
+carries its bytes, so today the answer is always `Ok`. Whether a non-text
+`content-type` should be `Err` is still open.
 
 `get` and friends follow redirects and wait forever, which is fine for a script
 and not for a service. `send` takes the whole request as one record so it can

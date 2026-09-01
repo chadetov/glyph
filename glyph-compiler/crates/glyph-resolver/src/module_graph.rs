@@ -325,6 +325,10 @@ impl StdlibStubs {
                 // The bounded client (G52): one request record, a timeout that
                 // aborts, a redirect policy, and HEAD.
                 "send", "head", "fetch_of",
+                // G118: the client-side counterpart to `raw` above. `Response.body`
+                // is `unknown` and already best-effort JSON-parsed, so this is the
+                // only way to read it as text without stringifying a JSON object.
+                "to_text",
                 "Request", "Response", "HttpError", "HttpErrorKind", "Handler", "Fetch", "RedirectPolicy",
             ],
         );

@@ -1386,6 +1386,95 @@ fn free_port() -> u16 {
 }
 
 #[test]
+fn http_response_text_accessor_returns_the_exact_bytes_the_server_sent() {
+    // G118: `Response.body` is `unknown` and already best-effort JSON-parsed by
+    // the client before a Glyph program ever sees it. A caller who wanted the
+    // body as text had no accessor and reached for `string.from(response.body)`,
+    // which compiles clean, passes `tsc --strict`, and prints the literal
+    // `[object Object]` for a JSON endpoint with no diagnostic anywhere in the
+    // pipeline. `http.to_text` reads `Response.raw` instead, so both endpoints
+    // hand back exactly what was sent over the socket. Needs node/tsx.
+    if !js_toolchain_available() {
+        eprintln!("skipping http response-text accessor run: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("httptextaccessor");
+    let src = root.join("src");
+    let port = free_port();
+    write_file(
+        &src,
+        "main.glyph",
+        &format!(
+            r#"module main
+
+import std/http
+import std/io
+import std/net
+import std/result {{ Result, Ok, Err }}
+
+pub async fn main(argv: Array<string>) -> number {{
+  let started = await http.listen("127.0.0.1", {port}, handler)
+  return match started {{
+    Err(e) => {{
+      io.eprintln("listen failed: ${{e.message}}")
+      1
+    }},
+    Ok(srv) => {{
+      let plain = await http.get("http://127.0.0.1:{port}/plain")
+      match plain {{
+        Err(e) => io.eprintln("plain get failed: ${{e.message}}"),
+        Ok(response) => match http.to_text(response) {{
+          Ok(t) => io.println("plain=Ok(${{t}})"),
+          Err(e) => io.println("plain=Err(${{e}})"),
+        }},
+      }}
+      let api = await http.get("http://127.0.0.1:{port}/api")
+      match api {{
+        Err(e) => io.eprintln("api get failed: ${{e.message}}"),
+        Ok(response) => match http.to_text(response) {{
+          Ok(t) => io.println("api=Ok(${{t}})"),
+          Err(e) => io.println("api=Err(${{e}})"),
+        }},
+      }}
+      net.stop(srv)
+      0
+    }},
+  }}
+}}
+
+fn handler(req: http.Request) -> Result<http.Response, string> {{
+  return match http.path(req) {{
+    "/plain" => Ok(http.text(200, "plain body")),
+    "/api" => Ok(http.json(200, {{ hello: "world" }})),
+    else => Ok(http.text(404, "not found")),
+  }}
+}}
+"#
+        ),
+    );
+    let entry = src.join("main.glyph");
+    let (code, stdout, stderr, _) =
+        spawn_glyph(&[std::ffi::OsStr::new("run"), entry.as_os_str()]);
+    assert_eq!(code, 0, "the program should run: {stdout}\n{stderr}");
+    assert!(
+        stdout.contains("plain=Ok(plain body)"),
+        "a text/plain response must round-trip exactly: {stdout}"
+    );
+    // `to_text` hands back the exact bytes the server sent, so a JSON body
+    // returns its JSON text rather than an error: the server did send text.
+    // What it must never do is what `string.from(response.body)` did, which is
+    // render the parsed object as `[object Object]` and report nothing.
+    assert!(
+        stdout.contains("api=Ok({"),
+        "a JSON body comes back as its exact text: {stdout}"
+    );
+    assert!(
+        !stdout.contains("[object Object]"),
+        "the documented workaround's failure mode must be gone: {stdout}"
+    );
+}
+
+#[test]
 fn value_position_match_type_checks() {
     // A `match` that is the whole value of a `let` or a `mut` assignment lowers
     // to a flat statement `switch`. Before that, an `await` arm landed inside a

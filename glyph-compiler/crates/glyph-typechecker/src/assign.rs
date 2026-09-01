@@ -1444,6 +1444,17 @@ impl Assigner<'_> {
 
         // (arity, ok, err, is_async)
         let (arity, ok, err, is_async): (usize, Ty, Ty, bool) = match (module_key, field) {
+            // Without an entry here the return type is unknown, D30
+            // exhaustiveness never fires, and a `match` with only an `Ok` arm
+            // builds clean, passes `tsc --strict`, and throws at run time. The
+            // accessor exists so a failure is a value you must handle, so the
+            // checker has to know its shape.
+            ("std/http", "to_text") => (
+                1,
+                Ty::Prim(Primitive::String),
+                Ty::Prim(Primitive::String),
+                false,
+            ),
             ("std/http", "get") => (
                 1,
                 stdlib_named("http", "Response"),

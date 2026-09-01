@@ -4689,10 +4689,16 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 
 **0.1.105 — The exhaustiveness relation, and the tools reading it**
 - R4: retain the checker's arm-to-variant edges with a per-site exhaustive or catch-all flag (G139, G141, G142, G143, G148)
-- An MCP tool for every match site over a type and which variants each one covers
+- `glyph_variants`: for a type, every match site and which variants each one covers
+- Read the same edges forward: "if I add a variant, what must change" is the impact query
 - `CALLS` distinct from `REFERENCES`, and what a declaration was generated from, each answer carrying provenance
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - R8's wider query surface stays out until the tick ledger shows the workload
+
+**0.1.106 — The loop closes: an agent repairs an error without searching**
+- Diagnostics carry structured semantic context: what is missing, why, and where the definition lives
+- Queries chain, so following type to fields to callers to usages does not re-derive between hops
+- Repair the five-times bug shape end to end, measured against the same task done by search alone
 
 ### 0.1.101 — Next · The hybrid app's dev loop
 
@@ -4892,6 +4898,25 @@ files now rather than 174, and the sites that unwrap `Ty::App` to its base are
 for R4 stronger rather than weaker: the bug shape's surface grew while the
 release that would instrument it sat unscheduled.
 
+**What the whole arc has to add up to.** A nine-capability target arrived for
+this line of work, and most of it is what 0.1.103 through 0.1.105 already commit
+to, which is worth stating so the arc is judged against the outcome rather than
+per release. MCP becomes the boundary between the compiler's knowledge and an
+outside agent (this release). The query surface stays deliberately small, four
+questions an agent can chain: type, definition, variants and references. Three of
+those four ship today and are easy to mistake for done, because they answer about
+a position in a file, come from the language server rather than the graph, and
+carry no provenance; making them graph-backed is this release and the next.
+Variants does not exist in any form and is the one the rest rests on, which is
+another way of saying R4 is the item to protect if the release has to shrink.
+
+Two capabilities in that target are not on this arc and are not scheduled, because
+each collides with a recorded non-goal for a technical reason rather than a
+scheduling one. They are written up against those non-goals below: tracing data
+flow through the program, and verifying value-level semantic invariants. A third,
+graph-driven refactoring, is a live scheduling question rather than a design
+conflict, and is noted with the v1.1 deferral it belongs to.
+
 **The new MCP tools follow from the graph, not the other way round.** The five
 that exist today answer about a position in a file. What the graph adds is the
 questions an agent actually gets stuck on: every match site over a type and
@@ -4911,6 +4936,50 @@ How this gets judged. The fix lane is 59.6% of all agent-minutes; one gap took
 four review rounds and about six hours. If these queries help, minutes per closed
 gap fall. If they do not move, that is worth learning before the later items
 rather than after them.
+
+### 0.1.106 — Planned · The loop closes: an agent repairs an error without searching
+
+Everything before this builds the graph and puts MCP on it. This is the release
+where an agent uses it for the thing the work exists for: it hits a compiler
+error, asks the graph what the error is about, fixes every site the change
+touched, and recompiles. No grep anywhere in that loop.
+
+Three pieces, and none of them is another query.
+
+**Diagnostics stop being prose an agent has to re-parse.** `E0218: missing
+variant` is a sentence carrying facts the compiler had and threw away. The
+structured form carries what is missing, why it is required, and where the
+governing definition lives, as data beside the human text. The rendered
+diagnostic does not change; this is an added channel. Without it, an agent's only
+route from an error back into the model is to re-parse the file it was just told
+about, which is the search this whole line of work exists to delete.
+
+**Queries chain without re-derivation.** Following a thread (this type, its
+fields, the functions taking it, their callers, the sites using the result) is
+several questions, and each answer has to carry the IDs the next one needs. Built
+naively each hop re-analyzes the workspace, which is exactly the cost 0.1.103
+removes and would reintroduce one level up. This depends on entity identity from
+0.1.104 and is cheap once that exists.
+
+**Then the repair itself, on the bug shape that has hit this compiler five
+times.** Adding a variant to a union: G139, G141, G142, G143 and G148 were each a
+site that failed to unwrap `Ty::App` to its base. The sites doing that unwrapping
+numbered 29 when the graph requirements were written and 39 when last counted, so
+the surface grew while the instrument for it sat unscheduled. A repair loop that
+handles this shape is not built for a demo; it is the thing we have needed five
+times.
+
+**How it gets judged, and the constraint that binds the measurement.** The same
+task twice: once with these queries, once with the same agent and the same prompt
+using search alone. Define the instrument before seeing the result, publish the
+losing run, and never demonstrate a guarantee the compiler does not make. If
+minutes per closed gap do not move, that is the finding, and it is worth having
+before the wider query surface is designed rather than after.
+
+*Reviewed against 0.1.100.* The five shipping MCP tools were read off the source:
+`glyph_definition`, `glyph_diagnostics`, `glyph_hover`, `glyph_references`,
+`glyph_symbols`. None is graph-backed, none carries provenance, and diagnostics
+are rendered text with a span and no machine-readable payload beyond the code.
 
 ### 0.1.95 — Shipped · An imported union is checked whether or not it is generic
 
@@ -7208,6 +7277,44 @@ hookrelay was a dogfood app from the 0.1.33 through 0.1.35 window, not a live
 probe. The intent still holds and needs a real instrumentation point. The
 honest one is Thor: its agents already issue every grep, glob and read against
 this repo, and the tick ledger already records them.
+
+**Three requested capabilities meet these non-goals, and the meeting is recorded
+rather than resolved quietly.** Two are design conflicts; one is only scheduling.
+
+*Tracing data flow through the program* (`Request` to validate to `User` to
+authorize to `Response`) is a non-goal above, for a technical reason and not a
+scheduling one. Under first-class functions the call target is not always known
+statically, so interprocedural dataflow edges cannot be exact, and a graph that
+answers "no relation" when it means "I could not follow it" has broken the one
+promise everything else rests on. Three ways forward, cheapest first:
+signature reachability alone, which the non-goal entry already says "answers most
+of the real query exactly" and which stays sound but cannot follow a value
+through a callback; dataflow with an explicit third state, exact where the target
+is known and named as unknown where it is not, which keeps the invariant honest
+at the cost of every consumer handling three cases; or full interprocedural
+dataflow, which answers the question as asked and gives up exact-or-absent. The
+last is not recommended, because the guarantee is the product.
+
+*Verifying value-level semantic invariants* ("can this function ever receive a
+non-Captured payment?") meets two non-goals: refinement facts beyond `where` are
+not expressible, and D39 makes `where` boundary-validated rather than statically
+tracked, deliberately. The type-level form is answerable with edges the graph
+will already have, namely which call sites reach a function and what types they
+pass. The value-level form needs the compiler to track that a particular payment
+was captured along every path, which is refinement typing, and the entry above
+calls invariant preservation "a different product." Answering it approximately
+would advertise a guarantee the compiler does not make.
+
+*Graph-driven refactoring* is different in kind: nothing technical blocks it, and
+"rename and find-references stay at v1.1" above is a sequencing choice. It is
+worth naming because every MCP tool shipped so far reads, so this would be the
+first that writes, and a write surface is its own risk category rather than a
+ride-along. Pulling it forward is the owner's call. Two constraints if it
+happens: greppability is not relaxed to make writing easier, and a write tool
+must never be the only path to a change.
+
+Neither of the two design conflicts is scheduled. The sound subset of each is
+cheap enough to be worth doing regardless of how the larger question lands.
 
 **Non-goals it records, all of which stand.** Interprocedural dataflow edges are
 unsound under first-class functions and would break the invariant; signature

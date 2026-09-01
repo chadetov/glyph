@@ -49,8 +49,33 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.99</span>
+            <span class="rel-ver">0.1.100</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Reading a response body as text</h3>
+            <p>A client had no way to ask for a response as text. The body arrives best-effort JSON-parsed, so printing it went through <code>string.from</code> and a JSON body rendered as <code>[object Object]</code>, silently.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>match http.to_text(response) {
+  Ok(body) =&gt; io.println(body),
+  Err(e) =&gt; io.println("no body: ${e}"),
+}
+
+<span class="del">// before: string.from(response.body) -&gt; [object Object]</span>
+<span class="add">// now:    the exact bytes the server sent</span></pre>
+            </div>
+            <p><code>Response</code> now carries the unparsed body alongside the parsed one, mirroring what <code>Request</code> has always done for signature verification. The parsed value is lossy: a <code>text/plain</code> body of <code>42</code> parses to a number, so it cannot tell you what arrived. <code>to_text</code> reads the bytes instead.</p>
+            <p class="rel-note">Two items planned for this release are still open because both are API decisions rather than fixes: whether <code>http.get</code> should require a timeout the way <code>tls.connect</code> does, and how an <code>Option</code> field should read an explicit <code>null</code> from ordinary JSON.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.99</span>
             <span class="rel-date">August 2026</span>
           </div>
           <div class="rel-body">

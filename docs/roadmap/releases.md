@@ -4654,16 +4654,18 @@ first. It is the reason four of the five items above are documentation-shaped:
 a reader starting today hits the same walls in the same order, including
 rebuilding an eleven-line workaround for an escape that has always worked.
 
-**0.1.100 — Next · Nothing at the network boundary is unbounded**
+**0.1.100 — Shipped · A client can read a response as text**
 - Decide and ship the http deadline: required on `get`/`post`, or `request` stops reading 0 as skip-the-timer (G128)
 - Give `Response` a text accessor so a JSON body stops printing as `[object Object]` (G118)
 - Decide how `Option<T>` reads ordinary JSON: loosen `.parse`, or add a distinct nullable boundary type (G91)
 
-**0.1.101 — The hybrid app's dev loop**
+**0.1.101 — Next · The hybrid app's dev loop**
 - `glyph build --watch`, so the Glyph half stops being compile-by-hand next to Vite's HMR (G123)
 - A browser target that stops materializing the seven host modules under `.glyph-runtime` (G115)
 - Make `glyph fmt` reach a fixed point in one pass so `--check` stops failing on fmt's own output (G151)
 - Stop `fmt` reprinting `=> ({})` as `=> {}`; the AST needs a grouping node (G60)
+- Format the repo's own Glyph and gate it, so the corpus matches the formatter (G158)
+- Make the benchmark fixtures compile, and gate that they keep compiling (G159)
 - Remap a tsc error onto the right project's module in a multi-project build (G107)
 
 **0.1.102 — salsa 0.28, and the pipeline's own gaps**
@@ -4692,7 +4694,32 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - R5 generated-from edges with path and content hash; R7 sorted, line-oriented, byte-identical serialization
 - R8's wider query surface stays out until the tick ledger shows the workload
 
-### 0.1.100 — Next · Nothing at the network boundary is unbounded
+### 0.1.101 — Next · The hybrid app's dev loop
+
+- `glyph build --watch`, so the Glyph half stops being compile-by-hand next to Vite's HMR (G123)
+- A browser target that stops materializing the seven host modules under `.glyph-runtime` (G115)
+- Make `glyph fmt` reach a fixed point in one pass so `--check` stops failing on output `fmt` just produced (G151, and the nightly fuzz job is red on it every night until this lands)
+- Stop `fmt` reprinting `=> ({})` as `=> {}`; the AST needs a grouping node (G60)
+- Remap a tsc error onto the right project's module in a multi-project build (G107)
+
+*Reviewed against 0.1.100.* G123, G115 and G107 were each re-run for the 0.1.97
+cut and still reproduce: there is no `--watch`, a one-import program still
+materializes 37 std modules, and a two-project build still quotes the wrong
+project's source under a `TS2307`. G151 is the fuzzer's own open finding and
+G60 is re-checked at triage. G158 makes the release coherent: three formatter
+items and the reason to trust the output of all three, which is that 121 of the
+284 tracked `.glyph` files currently disagree with `glyph fmt` and nothing
+notices.
+
+**Two items carried out of 0.1.100, both decisions rather than patches.** G128,
+whether `http.get` and friends take a required deadline the way `tls.connect`
+does since G127, or whether `request` stops reading a 0 timeout as permission.
+And G91, whether `Option<T>.parse` loosens to accept an explicit `null`, or a
+distinct nullable boundary type decodes into `Option<T>` and `Option` stays
+strict. Both change the public surface and neither is the agents' to pick;
+they reported the fork, which is what they were asked to do.
+
+### 0.1.100 — Shipped · A client can read a response as text
 
 - Decide and ship the http deadline: required on `get`/`post`, or `request` stops reading 0 as skip-the-timer (G128)
 - Give `Response` a text accessor so a JSON body stops printing as `[object Object]` (G118)

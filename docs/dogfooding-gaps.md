@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-157 entries, 124 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-14 are open. G144, the D28 boundary cast that never reached the returns a
+159 entries, 125 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3766,7 +3766,7 @@ is the first application in the tree to use a real npm package, so the 1.0 gate
 ("can a working engineer use their existing npm dependencies without a
 hand-written adapter") now has an app behind it rather than only a guide.
 
-- **G118. A client cannot say "this response body is text".** `http.get` returns
+- **G118. [FIXED] A client cannot say "this response body is text".** `http.get` returns
   a `Response` whose `body` is `unknown`, which is right, and there is no
   accessor that narrows it to a string. The client parses JSON when it can and
   keeps the raw string when it cannot, so for XML, HTML, CSV or plain text the
@@ -5989,6 +5989,19 @@ through an object pattern's fields.
   but it still means `glyph fmt --check` fails on output `glyph fmt` just
   produced, which is the thing `--check` exists to be trusted about.
 
+  **The nightly fuzz job fails on this every night, and will until it is fixed.**
+  The reproduction is committed as `fuzz/seeds/g151-fmt-needs-two-passes.glyph`,
+  so `format_idempotent` rediscovers it from the seed corpus in seconds: run
+  33488240277 on 2026-09-01 exited 77 and uploaded
+  `crash-de08c26231a7b7b9ad520ff69d8bb5b63922267e`, which is these same 44 bytes.
+  A permanently red nightly is worse than no nightly, because a genuinely new
+  finding arrives looking exactly like the failure everyone has learned to skip.
+  Fixing G151 clears it. If it ever needs to outlive one more release, the job
+  has to separate a known seed failure from a new one rather than being muted.
+
+  *Reproduced against 0.1.100: pass one gives `@orre t// o. /%`, pass two splits
+  the comment onto its own line, and it is stable from there.*
+
   The shape is an annotation whose argument text runs into a line comment with
   no space, so the comment ends up inside `raw_args` and is reflowed rather than
   re-emitted. G150's fix stops the duplicate; it does not make the first pass
@@ -6298,3 +6311,84 @@ construction and red at `tsc`.
 mismatch is `E0204` not `TS2322`, `glyph fix` reports "removed 2" and leaves
 `import std/result { Ok }`, `u{` appears in all three bootstrap copies, and
 `fn main` survives a fix that removes the import above it.*
+
+**Closed in 0.1.100: G118 only. G128 and G91 are decisions and stay open.**
+
+`http.to_text(response)` gives a client the body as text. It reads `Response.raw`,
+a new field mirroring `Request.raw`, which that module has carried for the same
+reason since signature verification needed the exact payload. `body` is
+`parse_body(raw)` and that is lossy: a `text/plain` body of `42` parses to a
+number and one of `"hi"` to a bare string, so the parsed value cannot tell you
+what the server sent. `examples/apps/feeds` dropped the
+`string.from(response.body)` workaround and its comment.
+
+**The first version of this shipped-in-branch accessor was wrong three ways, all
+caught by review.** It tested `typeof body === "string"`, so an empty body,
+stored as `null`, came back as `Err("response body is not text; it parsed as
+JSON")` when nothing had parsed and there was no body; a `text/plain` body of
+`42` failed for the same reason; and a JSON body that happened to be a string
+succeeded. Worse, no entry was added to the typechecker's stdlib signature
+table, so the return type was unknown, D30 exhaustiveness never fired, and a
+`match` with only an `Ok` arm built clean, passed `tsc --strict`, and threw at
+run time. An accessor whose whole purpose is that a failure is a value you must
+handle, which the compiler then did not make you handle.
+
+**One semantic choice is recorded rather than hidden.** `to_text` now returns the
+exact bytes, so a JSON response comes back as its JSON text rather than an
+error: the server did send text. That makes the `Result` close to vacuous, and
+the alternative is to fail on a non-text content-type. The choice is one line
+and is the owner's to confirm.
+
+*Reproduced against 0.1.99 before and verified against 0.1.100 after: a
+`text/plain` body round-trips exactly, a JSON body no longer renders as
+`[object Object]`, and a `match` missing its `Err` arm is now `E0200`.*
+
+- **G158. Most of the repo's own Glyph is not what `glyph fmt` produces.**
+  121 of 284 tracked `.glyph` files disagree with the formatter, and nothing
+  gates it. Six of those are `tests/negative/` fixtures that are deliberately
+  unparseable, so the real number is about 115 files that parse cleanly and are
+  simply not formatted. It is not the G151 two-pass bug: `examples/corpus/url.glyph`
+  reaches a fixed point in one pass, it just never had the first pass run on it.
+  The formatter is the one that is right. `url.glyph` opens with a five-line
+  parameter list that `fmt` collapses to a 58-character line, and
+  `examples/apps/jobq/store.glyph` is missing blank lines `fmt` inserts. A
+  language whose own corpus does not match its own formatter has a real problem
+  with the diff-stability pillar, since the pillar's whole claim is that the
+  canonical form is canonical.
+
+  The work is not one `fmt` run. Reformatting
+  `glyph-compiler/crates/glyph-parser/tests/fixtures/` moves spans and so
+  rewrites AST snapshots, and the conformance fixtures under
+  `glyph-compiler/crates/glyph-emit/tests/conformance/` need their emitted output
+  compared before and after rather than assumed equal. The gate that stops it
+  recurring is the deliverable; the reformat is the easy half.
+
+  *Reproduced against 0.1.100: `glyph fmt --check` over every tracked `.glyph`
+  reports 121 of 284 not clean. Found while checking whether an edit to
+  `examples/apps/feeds/main.glyph` had broken formatting. It had not: that file
+  was already unformatted on main, and so were 120 others.*
+
+- **G159. Two of the three token-count benchmark fixtures are not Glyph the compiler accepts.**
+  `benchmarks/glyph/slugify.glyph` calls `.replace_all(/[^a-z0-9]+/, "-")`, and
+  Glyph has no regex literal, so it is `[E0003] unexpected token: Slash`.
+  `benchmarks/glyph/load_feed.glyph` is `[E0203]`: it `?`-propagates an
+  `http.HttpError` out of a function returning `Result<_, FeedError>`. Only
+  `parse_user.glyph` compiles. Nothing under `scripts/` or `.github/` builds any
+  of them, which is why this survived.
+
+  The benchmark counts lines and tokens per language, so the comparison is
+  Glyph-that-does-not-compile against TypeScript, Python, Rust and Go that do,
+  and both broken fixtures are shorter than the working Glyph would be. A regex
+  literal is not a small rewrite: the language has no such syntax, so
+  `slugify.glyph` has to be rewritten around what `std/string` actually offers,
+  and that changes the number the benchmark reports.
+
+  The public benchmarks page does not rest on these. Its headline claim is the
+  paired verifiability demos, and those hold: `benchmarks/verifiability/check.sh`
+  passes all four assertions against this build, with both `.glyph` cases
+  rejected and both `.ts` cases accepted by `tsc --strict`. The stale numbers are
+  the committed JSON under `benchmarks/results/`, last measured 2026-06-15.
+
+  *Reproduced against 0.1.100: each fixture copied into its own project and
+  built. `check.sh` run against the same binary to confirm the public claim is
+  unaffected.*

@@ -340,15 +340,48 @@ fn parse_annotations(p: &mut Cursor) -> Result<Vec<Annotation>, ParseError> {
         // Only the recorded gaps are touched, never the slice as a whole. A
         // blanket replace would also rewrite anything that looked like a line
         // break inside a string literal, which is the author's data.
+        //
+        // A `//` note at the end of a continued line is the one thing that
+        // space destroys. The note runs to the newline, so replacing that
+        // newline with a space joins the note to the continuation and the note
+        // swallows the rest of the expression on re-lex: `@example f(3) // note`
+        // over `== false` captured `f(3)`, and `collect_tests` reads an
+        // assertion with no `==` as "assert this is true", so a claim the
+        // compiler had disproved was reported as verified. A note in that
+        // position is dropped from the slice, and nothing is put in its place.
+        // A space there would show up as trailing whitespace in the printed
+        // form.
+        //
+        // Only a note ending *at* a spliced newline is in danger. A note inside
+        // a bracketed argument list keeps a real newline after it (the lexer
+        // emits none at bracket depth, D1) and that newline still terminates it,
+        // so the note is left exactly where its author put it.
         let raw_args = if args_end > args_start {
+            // Notes come from the lexer, never from a scan of the text: `//`
+            // inside a string literal is data, and searching the slice for the
+            // note's wording would cut it inside the literal and change what
+            // the literal says.
+            let notes: Vec<Span> = if gaps.is_empty() {
+                Vec::new()
+            } else {
+                glyph_lexer::comments(p.slice(args_start, args_end))
+                    .into_iter()
+                    .map(|c| Span::new(args_start + c.span.start, args_start + c.span.end))
+                    .collect()
+            };
             let mut out = String::new();
             let mut at = args_start;
             for (gs, ge) in &gaps {
                 if *gs >= args_end {
                     break;
                 }
-                out.push_str(p.slice(at, *gs));
-                out.push(' ');
+                match notes.iter().find(|n| n.end == *gs && n.start >= at) {
+                    Some(note) => out.push_str(p.slice(at, note.start)),
+                    None => {
+                        out.push_str(p.slice(at, *gs));
+                        out.push(' ');
+                    }
+                }
                 at = *ge;
             }
             out.push_str(p.slice(at, args_end));

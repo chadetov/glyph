@@ -1746,4 +1746,79 @@ component C() -> Component {
             other => panic!("expected Call, got {other:?}"),
         }
     }
+
+    /// A `//` note at the end of a continued annotation's first line used to
+    /// swallow the continuation. `raw_args` replaces a continuation newline
+    /// with a space, which joined the comment to the text after it, so on
+    /// re-lex the comment ran to the end of the slice and took `== false` with
+    /// it. `collect_tests` reads an assertion with no `==` as "assert this is
+    /// true", so the example did not error, it silently passed. Both spellings
+    /// of one claim must capture the same arguments.
+    #[test]
+    fn a_comment_before_an_annotation_continuation_does_not_eat_it() {
+        let src = "module x\n\
+                   @example has_bug(3)\n  == false\n\
+                   @example has_bug(3) // the same claim, with a note\n  == false\n\
+                   fn has_bug(n: number) -> bool { return true }\n";
+        let m = parse_or_panic(src);
+        match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => {
+                assert_eq!(f.annotations.len(), 2);
+                assert_eq!(f.annotations[0].raw_args, "has_bug(3) == false");
+                assert_eq!(f.annotations[1].raw_args, "has_bug(3) == false");
+            }
+            other => panic!("expected Fn, got {other:?}"),
+        }
+    }
+
+    /// The comment is located with the lexer, so `//` inside a string literal
+    /// is text and not a comment. A substring search for the comment's own
+    /// wording would cut the slice inside the literal and change its value.
+    #[test]
+    fn slashes_inside_an_annotation_string_are_not_the_comment() {
+        let src = "module x\n\
+                   @example f(\"// a note\") // a note\n  == 1\n\
+                   fn f(s: string) -> number { return 1 }\n";
+        let m = parse_or_panic(src);
+        match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => {
+                assert_eq!(f.annotations[0].raw_args, "f(\"// a note\") == 1");
+            }
+            other => panic!("expected Fn, got {other:?}"),
+        }
+    }
+
+    /// A comment inside a bracketed argument list is not in danger: the lexer
+    /// emits no newline at bracket depth (D1), so the real `\n` after the
+    /// comment stays in the slice and terminates it on re-lex. It must survive
+    /// verbatim.
+    #[test]
+    fn a_comment_inside_a_bracketed_annotation_argument_list_is_kept() {
+        let src = "module x\n\
+                   @example f([\n  1, // one\n  2,\n]) == 3\n\
+                   fn f(xs: Array<number>) -> number { return 3 }\n";
+        let m = parse_or_panic(src);
+        match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => {
+                assert_eq!(f.annotations[0].raw_args, "f([\n  1, // one\n  2,\n]) == 3");
+            }
+            other => panic!("expected Fn, got {other:?}"),
+        }
+    }
+
+    /// Both kinds in one annotation: the bracketed note stays, the one holding
+    /// the continuation newline goes.
+    #[test]
+    fn only_the_comment_holding_the_continuation_newline_is_spliced() {
+        let src = "module x\n\
+                   @example f([\n  1, // keep me\n]) // drop me\n  == 2\n\
+                   fn f(xs: Array<number>) -> number { return 2 }\n";
+        let m = parse_or_panic(src);
+        match &m.items[0] {
+            glyph_ast::Decl::Fn(f) => {
+                assert_eq!(f.annotations[0].raw_args, "f([\n  1, // keep me\n]) == 2");
+            }
+            other => panic!("expected Fn, got {other:?}"),
+        }
+    }
 }

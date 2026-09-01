@@ -1050,14 +1050,223 @@ fn build_writes_the_runtime_and_a_tsconfig() {
     assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
     // The generated config and bundled runtime sit next to the emitted output.
     assert!(out.join("tsconfig.json").is_file(), "tsconfig.json");
+    // Every emitted module unconditionally imports the bootstrap, and the
+    // bootstrap itself unconditionally imports `std/result` for its `Result`
+    // wrapping — so both are written no matter what the program imports.
     for rel in [
         ".glyph-runtime/std/result.ts",
-        ".glyph-runtime/std/option.ts",
-        ".glyph-runtime/std/schema.ts",
+        ".glyph-runtime/glyph-bootstrap.ts",
         ".glyph-runtime/glyph-prelude.d.ts",
         ".glyph-runtime/glyph-stdlib.d.ts",
     ] {
         assert!(out.join(rel).is_file(), "missing bundled runtime file {rel}");
+    }
+    // This program imports no stdlib module and uses no descriptor or `Option`,
+    // so `option.ts` and `schema.ts` are unreached (G115): writing them anyway
+    // is exactly the unfiltered-bundle behavior a browser deploy target cannot
+    // tolerate (see `build_prunes_unreached_std_modules_from_a_browser_hostile_program`).
+    for rel in [".glyph-runtime/std/option.ts", ".glyph-runtime/std/schema.ts"] {
+        assert!(
+            !out.join(rel).is_file(),
+            "{rel} written despite the program never reaching it"
+        );
+    }
+}
+
+/// A program is not required to declare a deploy target for pruning to matter:
+/// even a plain build must not hand every consumer all 36 std modules, seven of
+/// which (`dns`, `fs`, `http`, `net`, `process`, `sqlite`, `tls`) are Node-only
+/// and break a browser bundler that tries to include them (G115). A program
+/// that imports only `std/array` (which itself only reaches `std/option`) must
+/// come out of the build with exactly its reachable set of std modules on disk,
+/// bootstrap/result always included, and every unreached module — most
+/// pointedly the seven host-only ones — absent.
+#[test]
+fn build_prunes_unreached_std_modules_from_a_browser_hostile_program() {
+    let root = unique_tmp("prune_std");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import std/array
+
+fn main() {
+  let xs = [1, 2, 3]
+  let _doubled = array.map(xs, fn(x) -> int {
+    return x * 2
+  })
+  print("done")
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    // Reached: what the program imports (`array`), what that module itself
+    // imports (`option`, for its `Option`-returning helpers), and the two
+    // files every build always writes.
+    for rel in [
+        ".glyph-runtime/std/array.ts",
+        ".glyph-runtime/std/option.ts",
+        ".glyph-runtime/std/result.ts",
+        ".glyph-runtime/glyph-bootstrap.ts",
+    ] {
+        assert!(out.join(rel).is_file(), "missing reachable runtime file {rel}");
+    }
+
+    // Unreached, including all seven browser-hostile Node modules: a program
+    // that never imports them, and whose transitive std dependencies never
+    // reach them either, must not have them materialize into the output at all.
+    for rel in [
+        ".glyph-runtime/std/dns.ts",
+        ".glyph-runtime/std/fs.ts",
+        ".glyph-runtime/std/http.ts",
+        ".glyph-runtime/std/net.ts",
+        ".glyph-runtime/std/process.ts",
+        ".glyph-runtime/std/sqlite.ts",
+        ".glyph-runtime/std/tls.ts",
+        ".glyph-runtime/std/schema.ts",
+        ".glyph-runtime/std/json.ts",
+    ] {
+        assert!(
+            !out.join(rel).is_file(),
+            "{rel} written despite the program never reaching it"
+        );
+    }
+}
+
+/// The prune pass must see what a hand-written `extern/*.ts` shim imports.
+/// `<src>/extern/**` is staged into `<out>/extern/` and type-checked by the
+/// generated tsconfig, which deliberately maps `"std/*"` onto the bundled
+/// runtime so a shim can reach the stdlib (D29). Reachability derived only from
+/// the emitted Glyph modules prunes a std module only a shim pulls in, and the
+/// build then fails with TS2307 on a program that used to compile. Both
+/// spellings a shim can legally use count: the bare `std/<name>` the tsconfig
+/// maps, and the relative `../.glyph-runtime/std/<name>`.
+#[test]
+fn rebuilding_after_deleting_an_extern_shim_does_not_leave_it_behind() {
+    // Staging into `<out>/extern/` only ever added files. That was harmless
+    // while every std module was written unconditionally: a shim left behind
+    // after its source was deleted still resolved. Pruning made it fatal. The
+    // stale copy is still inside the tsconfig's `include`, so it is still
+    // type-checked, and the std module only it imported has just been pruned.
+    // The build then failed on a path with no source, kept failing on every
+    // rebuild, and only `rm -rf <out>` cleared it. Under `--watch` the session
+    // stayed red for the rest of its life.
+    //
+    // This is incremental-only, which is why the whole suite stayed green: every
+    // other extern test builds once into a fresh out dir.
+    let root = unique_tmp("extern_stale");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "extern/clock.ts",
+        "import * as time from \"std/time\";\n\nexport function stamp(): string {\n  return String(time.now());\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\n\nimport extern/clock { stamp }\n\nfn main() {\n  print(stamp())\n}\n",
+    );
+
+    let first = build_project_inner(&src, &out, false).expect("first build ok");
+    assert!(!first.has_errors(), "first build diags: {:?}", first.diagnostics);
+    assert!(out.join("extern/clock.ts").is_file(), "the shim should be staged");
+
+    // Delete the shim and the import that reached it, then rebuild into the
+    // SAME out dir. This is the ordinary edit-and-rebuild path.
+    std::fs::remove_file(src.join("extern/clock.ts")).expect("remove shim");
+    write_file(&src, "main.glyph", "module main\n\nfn main() {\n  print(\"hi\")\n}\n");
+
+    let second = build_project_inner(&src, &out, false).expect("second build ok");
+    assert!(
+        !second.has_errors(),
+        "a build after deleting an extern shim must not fail: {:?}",
+        second.diagnostics
+    );
+    assert!(
+        !out.join("extern/clock.ts").exists(),
+        "the staged copy of a deleted shim must not survive into the next build"
+    );
+}
+
+#[test]
+fn build_keeps_std_modules_reached_only_by_an_extern_shim() {
+    let root = unique_tmp("prune_extern");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "extern/clock.ts",
+        "import * as time from \"std/time\";\n\nexport function stamp(): string {\n  return String(time.now());\n}\n",
+    );
+    write_file(
+        &src,
+        "extern/measure.ts",
+        "import * as math from \"../.glyph-runtime/std/math\";\n\nexport function half(n: number): string {\n  return String(math.floor(n / 2));\n}\n",
+    );
+    write_file(
+        &src,
+        "main.glyph",
+        r#"module main
+
+import extern/clock { stamp }
+import extern/measure { half }
+
+fn main() {
+  print(stamp())
+  print(half(10))
+}
+"#,
+    );
+
+    let report = build_project_inner(&src, &out, false).expect("build ok");
+    assert!(!report.has_errors(), "diags: {:?}", report.diagnostics);
+
+    for rel in [
+        // Reached only through the bare `std/time` spelling.
+        ".glyph-runtime/std/time.ts",
+        // Reached only through the relative `../.glyph-runtime/std/math` spelling.
+        ".glyph-runtime/std/math.ts",
+        // `time.ts` imports it, so the closure has to run over extern hits too.
+        ".glyph-runtime/std/option.ts",
+        ".glyph-runtime/std/result.ts",
+    ] {
+        assert!(
+            out.join(rel).is_file(),
+            "{rel} pruned even though an extern shim reaches it"
+        );
+    }
+
+    // Pruning still prunes: nothing here is reachable from the program or its
+    // shims, and a fix that simply stopped pruning would pass the block above.
+    for rel in [
+        ".glyph-runtime/std/dns.ts",
+        ".glyph-runtime/std/http.ts",
+        ".glyph-runtime/std/sqlite.ts",
+        ".glyph-runtime/std/tls.ts",
+        ".glyph-runtime/std/schema.ts",
+    ] {
+        assert!(
+            !out.join(rel).is_file(),
+            "{rel} written despite nothing reaching it"
+        );
+    }
+
+    if !tsc_available() {
+        eprintln!("skipping extern-prune tsc check: tsc not available");
+        return;
+    }
+    use glyph_cli::runtime::{check_with_tsc, TscOutcome};
+    match check_with_tsc(&out).expect("run tsc") {
+        TscOutcome::Passed => {}
+        TscOutcome::Failed(msg) => panic!("a shim reaching std failed tsc:\n{msg}"),
+        TscOutcome::NotFound => eprintln!("skipping: tsc not found at check time"),
     }
 }
 
@@ -6733,6 +6942,450 @@ fn missing_tsx_refuses_to_look_verified() {
     assert_eq!(json.status.code(), Some(2), "--json agrees on the code: {v}");
 }
 
+// --- `glyph build --watch` (G123) -------------------------------------------
+//
+// Without a watch mode, an agent driving a fast edit-compile loop has to pay
+// full process startup on every change, because `glyph build` has always been
+// one-shot: it builds once and exits. This pins both halves of the guarantee
+// a watch mode has to provide: the process must still be alive after its
+// first build completes (a plain `glyph build` would already have exited by
+// then), and editing a watched source file while it runs must produce a
+// second build without the process being restarted.
+
+/// Read one of a spawned child's pipes on a background thread into a shared
+/// buffer while the child stays alive. `spawn_glyph_bounded` (used elsewhere in
+/// this file) deliberately leaves its reader threads unjoined on timeout, which
+/// is right for a hang test but wrong here: a `--watch` test needs to observe
+/// rebuild banners *while the process keeps running*, not just its final
+/// output after it exits or is killed.
+///
+/// Generic over the pipe because `--watch --json` writes its per-build objects
+/// to stdout while the banners stay on stderr, and both have to be watched at
+/// once.
+fn stream_pipe_into<R: std::io::Read + Send + 'static>(
+    mut pipe: R,
+) -> std::sync::Arc<std::sync::Mutex<String>> {
+    let buf = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+    let writer = std::sync::Arc::clone(&buf);
+    std::thread::spawn(move || {
+        let mut chunk = [0u8; 4096];
+        loop {
+            match pipe.read(&mut chunk) {
+                Ok(0) | Err(_) => break,
+                Ok(n) => {
+                    let text = String::from_utf8_lossy(&chunk[..n]).into_owned();
+                    writer.lock().unwrap().push_str(&text);
+                }
+            }
+        }
+    });
+    buf
+}
+
+#[test]
+fn build_watch_rebuilds_on_source_change_without_exiting() {
+    let root = unique_tmp("buildwatch");
+    let src = root.join("src");
+    let out = root.join("dist");
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\npub fn value() -> number {\n  return 1\n}\n",
+    );
+
+    // Through `spawn_build_watch` rather than an inline spawn, so the child is a
+    // `WatchChild` and dies on unwind. This test used to kill it with an inline
+    // `kill -9` on the success path only.
+    let mut child = spawn_build_watch(&src, &out, &[]);
+    // Drop stdout eagerly so the child never blocks writing to a full pipe
+    // buffer nobody is draining; only stderr carries the banners we assert on.
+    drop(child.take_stdout());
+    let captured = stream_pipe_into(child.take_stderr().expect("stderr is piped"));
+
+    let banner_count = |text: &str| text.matches("TypeScript file(s) emitted").count();
+
+    // Wait for the first build to land, while continuously checking the
+    // process is still alive: a build that exits early would otherwise just
+    // look like a slow build to the polling loop below.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
+        if banner_count(&captured.lock().unwrap()) >= 1 {
+            break;
+        }
+        assert!(
+            child.try_wait().expect("poll child").is_none(),
+            "glyph build --watch exited before completing its first build: {}",
+            captured.lock().unwrap()
+        );
+        assert!(
+            std::time::Instant::now() < deadline,
+            "watch mode never completed an initial build: {}",
+            captured.lock().unwrap()
+        );
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+
+    // The defining behavior: a one-shot `glyph build` would have exited with
+    // its first build. Watch mode must still be running.
+    assert!(
+        child.try_wait().expect("poll child after first build").is_none(),
+        "glyph build --watch exited instead of staying alive after its first build"
+    );
+
+    // Edit the watched source and expect a second build banner, with no
+    // restart: the pid must not change underneath us.
+    let pid_before = child.id();
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\npub fn value() -> number {\n  return 2\n}\n",
+    );
+
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    loop {
+        if banner_count(&captured.lock().unwrap()) >= 2 {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "editing a watched source file never triggered a rebuild: {}",
+            captured.lock().unwrap()
+        );
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    assert_eq!(
+        child.id(),
+        pid_before,
+        "the rebuild must happen in the same long-running process, not a restart"
+    );
+
+    // Watch mode has no natural end; only a signal stops it. `WatchChild` kills
+    // on drop, so this holds whether the test passes or unwinds above.
+    kill_watch(child);
+}
+
+
+// --- `--watch` on the layouts and timings the dev loop actually hits --------
+//
+// Three regressions in the first cut of watch mode, each of which left the
+// watcher alive and apparently healthy while it silently stopped doing its
+// job. That shape is what makes them worth pinning: a watcher that crashes
+// gets noticed in a second, and a watcher that quietly serves stale output
+// costs an afternoon.
+
+/// Spawn `glyph build <src> --out <out> --no-tsc --no-test --watch` with both
+/// pipes captured, plus any extra flags. Watch mode has no natural end, so
+/// every caller owns killing the child; `kill_watch` does that.
+fn spawn_build_watch(src: &Path, out: &Path, extra: &[&str]) -> WatchChild {
+    let mut cmd = std::process::Command::new(env!("CARGO_BIN_EXE_glyph"));
+    cmd.arg("build")
+        .arg(src)
+        .arg("--out")
+        .arg(out)
+        .arg("--no-tsc")
+        .arg("--no-test")
+        .arg("--watch");
+    for flag in extra {
+        cmd.arg(flag);
+    }
+    WatchChild(Some(
+        cmd.stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .expect("spawn glyph build --watch"),
+    ))
+}
+
+/// Stop a watch child. Only a signal ends watch mode, so a test that just
+/// returned would leave it running past the end of the run.
+///
+/// Kept as a function so a test can end the child early and then assert on what
+/// it wrote. It is no longer the only thing standing between a failure and a
+/// leaked process: see `WatchChild`.
+fn kill_watch(child: WatchChild) {
+    drop(child);
+}
+
+/// A `glyph build --watch` child that dies when it goes out of scope, including
+/// when a test unwinds out of an assertion.
+///
+/// `std::process::Child` does not kill on drop, and every watch test used to
+/// call `kill_watch` on its success path only. Any earlier assertion left a
+/// watcher polling forever, outliving `cargo test` itself: measured at about
+/// 13% of a core re-hashing 1501 source files every 300ms, for the life of the
+/// machine. A failing test that also wedges the developer's laptop is a bad
+/// trade for one line of cleanup.
+struct WatchChild(Option<std::process::Child>);
+
+impl WatchChild {
+    fn id(&self) -> u32 {
+        self.0.as_ref().expect("child still owned").id()
+    }
+    fn try_wait(&mut self) -> std::io::Result<Option<std::process::ExitStatus>> {
+        self.0.as_mut().expect("child still owned").try_wait()
+    }
+    fn take_stdout(&mut self) -> Option<std::process::ChildStdout> {
+        self.0.as_mut().expect("child still owned").stdout.take()
+    }
+    fn take_stderr(&mut self) -> Option<std::process::ChildStderr> {
+        self.0.as_mut().expect("child still owned").stderr.take()
+    }
+}
+
+impl Drop for WatchChild {
+    fn drop(&mut self) {
+        if let Some(mut child) = self.0.take() {
+            // SIGKILL: watch mode has no other exit, and a test that is already
+            // unwinding must not block on a graceful shutdown.
+            let _ = std::process::Command::new("kill")
+                .arg("-9")
+                .arg(child.id().to_string())
+                .status();
+            let _ = child.wait();
+        }
+    }
+}
+
+/// Poll `cond` every 25ms for up to `secs`, reporting whether it ever held.
+fn wait_until(secs: u64, mut cond: impl FnMut() -> bool) -> bool {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(secs);
+    loop {
+        if cond() {
+            return true;
+        }
+        if std::time::Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+}
+
+/// How many builds a stderr transcript has reported finishing.
+fn watch_build_count(text: &str) -> usize {
+    text.matches("TypeScript file(s) emitted").count()
+}
+
+#[test]
+fn build_watch_rebuilds_when_a_nested_project_changes() {
+    // The watch fingerprint walked the build target with the same walker the
+    // build uses, and that walker stops at a nested project's boundary
+    // (D41) -- correctly, because a nested project's files are not part of
+    // the enclosing project's compilation. A tree whose projects are *all*
+    // nested (`src/alpha`, `src/beta`, each carrying its own marker, nothing
+    // compilable at `src` itself) therefore had a root fingerprint covering
+    // zero files, which cannot change, so no edit anywhere in the tree ever
+    // triggered a second build. That is the layout the hybrid app uses, so
+    // watch mode was broken on exactly the dev loop it was written for.
+    let root = unique_tmp("buildwatchnested");
+    let src = root.join("src");
+    let out = root.join("dist");
+    let source = |n: u32| format!("module main\npub fn value() -> number {{\n  return {n}\n}}\n");
+    write_file(&src, "alpha/package.json", "{ \"glyph\": {} }\n");
+    write_file(&src, "alpha/main.glyph", &source(1));
+    write_file(&src, "beta/package.json", "{ \"glyph\": {} }\n");
+    write_file(&src, "beta/main.glyph", &source(1));
+
+    let mut child = spawn_build_watch(&src, &out, &[]);
+    drop(child.take_stdout());
+    let captured = stream_pipe_into(child.take_stderr().expect("stderr is piped"));
+
+    assert!(
+        wait_until(30, || watch_build_count(&captured.lock().unwrap()) >= 1),
+        "watch mode never completed an initial build: {}",
+        captured.lock().unwrap()
+    );
+    // Guard the premise: this test only means something on a tree that really
+    // discovered more than one project.
+    assert!(
+        captured.lock().unwrap().contains("2 project(s)"),
+        "the fixture must build as two nested projects: {}",
+        captured.lock().unwrap()
+    );
+
+    let pid_before = child.id();
+    write_file(&src, "alpha/main.glyph", &source(42));
+
+    // The banner is printed once the whole build has finished, so it is the
+    // later of the two signals; waiting on the emitted file first and then
+    // asserting on the banner would be a race against the build's own output.
+    assert!(
+        wait_until(30, || watch_build_count(&captured.lock().unwrap()) >= 2),
+        "editing a nested project's source never triggered a rebuild: {}",
+        captured.lock().unwrap()
+    );
+    let emitted = out.join("alpha").join("main.ts");
+    let landed = wait_until(30, || {
+        std::fs::read_to_string(&emitted).is_ok_and(|ts| ts.contains("return 42"))
+    });
+    assert!(
+        landed,
+        "the rebuild did not carry the edit into the output: {}\n{}",
+        captured.lock().unwrap(),
+        std::fs::read_to_string(&emitted).unwrap_or_default()
+    );
+    assert_eq!(
+        child.id(),
+        pid_before,
+        "the rebuild must happen in the same long-running process, not a restart"
+    );
+    kill_watch(child);
+}
+
+#[test]
+fn build_watch_rebuilds_when_an_edit_lands_during_a_build() {
+    // The baseline fingerprint was sampled *after* the build returned, so a
+    // save that landed while the build was running got folded into the
+    // baseline it would later be compared against. The build that had already
+    // read the old text was the last one to run, and the edit was never built
+    // -- not late, never. The watcher then sat there reporting nothing to do.
+    //
+    // The fixture makes "during a build" observable rather than guessed at.
+    // A build reads every source in the tree before it emits the first `.ts`,
+    // so the appearance of the first emitted file proves the sources are read
+    // and the output for this edit is already decided; and with 1500 modules
+    // still to emit after it, there is well over a second of build left to
+    // write into. The test asserts no build has finished both immediately
+    // before and immediately after the write, so an edit that lost the race
+    // fails the test instead of passing it vacuously.
+    const FILLER: usize = 1500;
+    let root = unique_tmp("buildwatchmidbuild");
+    let src = root.join("src");
+    let out = root.join("dist");
+    for i in 0..FILLER {
+        write_file(
+            &src,
+            &format!("filler{i:04}.glyph"),
+            &format!("module filler{i:04}\npub fn v() -> number {{\n  return {i}\n}}\n"),
+        );
+    }
+    // Sorted last of all the module names, so it is emitted last too.
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\npub fn value() -> number {\n  return 1\n}\n",
+    );
+
+    let mut child = spawn_build_watch(&src, &out, &[]);
+    drop(child.take_stdout());
+    let captured = stream_pipe_into(child.take_stderr().expect("stderr is piped"));
+
+    let first_emitted = out.join("filler0000.ts");
+    assert!(
+        wait_until(60, || first_emitted.exists()),
+        "the first build never emitted anything: {}",
+        captured.lock().unwrap()
+    );
+    assert_eq!(
+        watch_build_count(&captured.lock().unwrap()),
+        0,
+        "the first build finished before the edit could be written, so this \
+         test would not be exercising a mid-build edit at all"
+    );
+    let pid_before = child.id();
+    write_file(
+        &src,
+        "main.glyph",
+        "module main\npub fn value() -> number {\n  return 2\n}\n",
+    );
+    assert_eq!(
+        watch_build_count(&captured.lock().unwrap()),
+        0,
+        "the first build finished while the edit was being written, so this \
+         test would not be exercising a mid-build edit at all"
+    );
+
+    let emitted = out.join("main.ts");
+    let landed = wait_until(60, || {
+        std::fs::read_to_string(&emitted).is_ok_and(|ts| ts.contains("return 2"))
+    });
+    assert!(
+        landed,
+        "an edit that landed while a build was running was never built: {}\n{}",
+        captured.lock().unwrap(),
+        std::fs::read_to_string(&emitted).unwrap_or_default()
+    );
+    assert_eq!(
+        child.id(),
+        pid_before,
+        "the rebuild must happen in the same long-running process, not a restart"
+    );
+    kill_watch(child);
+}
+
+#[test]
+fn build_watch_with_json_stays_alive_and_reports_every_build() {
+    // `--json` printed its object and exited the process, which under
+    // `--watch` meant the watcher was gone after one build while its output
+    // looked like a perfectly ordinary successful build. An agent driving the
+    // loop through the JSON channel got one report and then silence it had no
+    // way to tell from a quiet tree.
+    let root = unique_tmp("buildwatchjson");
+    let src = root.join("src");
+    let out = root.join("dist");
+    let source = |n: u32| format!("module main\npub fn value() -> number {{\n  return {n}\n}}\n");
+    write_file(&src, "main.glyph", &source(1));
+
+    let mut child = spawn_build_watch(&src, &out, &["--json"]);
+    let stdout = stream_pipe_into(child.take_stdout().expect("stdout is piped"));
+    let stderr = stream_pipe_into(child.take_stderr().expect("stderr is piped"));
+    // Each build's object is pretty-printed, so a line that is exactly `}`
+    // closes one of them.
+    let objects = |text: &str| text.lines().filter(|line| *line == "}").count();
+
+    assert!(
+        wait_until(30, || objects(&stdout.lock().unwrap()) >= 1),
+        "watch mode with --json never emitted a build object: {}\n{}",
+        stdout.lock().unwrap(),
+        stderr.lock().unwrap()
+    );
+    assert!(
+        child.try_wait().expect("poll child").is_none(),
+        "--watch --json exited after its first build instead of watching: {}",
+        stdout.lock().unwrap()
+    );
+
+    let pid_before = child.id();
+    write_file(&src, "main.glyph", &source(7));
+    assert!(
+        wait_until(30, || objects(&stdout.lock().unwrap()) >= 2),
+        "a rebuild under --json produced no second object: {}\n{}",
+        stdout.lock().unwrap(),
+        stderr.lock().unwrap()
+    );
+    assert_eq!(
+        child.id(),
+        pid_before,
+        "the rebuild must happen in the same long-running process, not a restart"
+    );
+
+    // Every object on the stream is a whole, parseable report, not a fragment
+    // of one long document.
+    let text = stdout.lock().unwrap().clone();
+    let mut current = String::new();
+    let mut parsed = Vec::new();
+    for line in text.lines() {
+        current.push_str(line);
+        current.push('\n');
+        if line == "}" {
+            let value: serde_json::Value = serde_json::from_str(&current)
+                .unwrap_or_else(|e| panic!("a build object did not parse ({e}): {current}"));
+            parsed.push(value);
+            current.clear();
+        }
+    }
+    assert!(parsed.len() >= 2, "expected one object per build: {text}");
+    for value in &parsed {
+        assert_eq!(value["ok"], serde_json::json!(true), "{value}");
+    }
+    assert!(
+        std::fs::read_to_string(out.join("main.ts"))
+            .expect("read emitted main.ts")
+            .contains("return 7"),
+        "the rebuild reported by --json must be the edited source"
+    );
+    kill_watch(child);
+}
+
 // ---------------------------------------------------------------------------
 // `glyph check` (G28), the summary-line ordering (G42), and `glyph run`'s
 // hyphenated argv passthrough (G36).
@@ -8325,6 +8978,168 @@ fn a_nested_projects_tsc_only_error_still_fails_the_tree_build() {
             );
         }
     }
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// The G107 layout, built once: a root project with a working `main`, and a
+/// nested `beta` project whose `main` has one unresolvable import.
+///
+/// This is the arrangement that actually collides. Both projects emit a module
+/// at `main.ts` (the conventional entry name), and the *root* project's output
+/// sits at the top of the out tree, so its emitted path is a suffix of the
+/// nested project's. Two sibling subdirectories do not reproduce it: there the
+/// root contributes no sources, every remaining project carries a directory of
+/// its own, and no path can shadow another.
+fn build_root_and_nested_beta(tag: &str) -> (PathBuf, PathBuf, glyph_cli::build::TreeReport) {
+    let root = unique_tmp(tag);
+    let out = unique_tmp(&format!("{tag}_out"));
+
+    write_file(
+        &root,
+        "package.json",
+        "{ \"name\": \"root\", \"private\": true, \"glyph\": {} }\n",
+    );
+    write_file(
+        &root,
+        "main.glyph",
+        "module main\n\nimport std/io { println }\n\npub fn run() -> number {\n  println(\"root\")\n  return 1\n}\n",
+    );
+
+    let beta = root.join("beta");
+    std::fs::create_dir_all(&beta).expect("create beta");
+    write_file(
+        &beta,
+        "package.json",
+        "{ \"name\": \"beta\", \"private\": true, \"glyph\": {} }\n",
+    );
+    write_file(
+        &beta,
+        "main.glyph",
+        "module main\n\nimport totally-not-installed { thing }\n\npub fn run() -> number {\n  return 1\n}\n",
+    );
+
+    let tree = glyph_cli::build::build_tree(&root, &out, false).expect("build tree");
+    assert!(
+        !tree.has_errors(),
+        "sanity: the bad import is a tsc-only error (an unresolvable npm \
+         package, not a Glyph resolve error): {:?}",
+        tree.diagnostics().collect::<Vec<_>>()
+    );
+    assert_eq!(tree.projects.len(), 2, "sanity: root and beta both build");
+    assert!(
+        out.join("main.ts").is_file() && out.join("beta").join("main.ts").is_file(),
+        "sanity: the root project emits at the top of the out tree, the nested \
+         one below it"
+    );
+    (root, out, tree)
+}
+
+/// G107: a multi-project tree's `tsc` error must quote *its own* project's
+/// source, not a same-named module from another project in the tree.
+///
+/// The root project builds clean; `beta` has one broken import. If the remap
+/// picks the wrong project's `ModuleMap` for `main.ts`, the rendered diagnostic
+/// quotes the root's working import line instead of `beta`'s broken one, and a
+/// developer staring at correct code for an error that is not there has no way
+/// to find the real bug. The root's import line must never appear in the
+/// remapped output, and `beta`'s own broken import line must.
+///
+/// No `tsc` needed: the collision is entirely in how the flattened module maps
+/// are keyed and matched, so the error line is written out here exactly as
+/// `tsc` prints one. A test that needs a toolchain is a test that passes on a
+/// machine where it never ran.
+#[test]
+fn a_tsc_error_is_quoted_against_its_own_projects_source() {
+    let (root, out, tree) = build_root_and_nested_beta("multiproject_tscmap");
+
+    // Verbatim `tsc` shape: `path(line,col): error TSxxxx: message`, naming the
+    // nested project's emitted file. Line 3 is the import line in the emitted
+    // `.ts` as well as in the source.
+    let beta_ts = out.join("beta").join("main.ts");
+    let raw = format!(
+        "{}(3,23): error TS2307: Cannot find module 'totally-not-installed' or \
+         its corresponding type declarations.\n",
+        beta_ts.display()
+    );
+
+    let flat = tree.flatten();
+
+    // Half one of the fix, checked on its own: every project's map is keyed by
+    // where its output landed, the root project's included. A key that is a
+    // path suffix of another key *is* the collision, whatever the matcher then
+    // makes of it, so assert the shape and not just the outcome.
+    let keys: Vec<&str> = flat.module_maps.iter().map(|m| m.ts_rel.as_str()).collect();
+    let out_dir = out.file_name().and_then(|n| n.to_str()).expect("out dir name");
+    assert!(
+        keys.iter().all(|k| k.starts_with(&format!("{out_dir}/"))),
+        "every module map must name the out path its file landed at: {keys:?}"
+    );
+    for a in &keys {
+        for b in &keys {
+            assert!(
+                a == b || !a.ends_with(&format!("/{b}")),
+                "`{b}` is a path suffix of `{a}`, so it can shadow it: {keys:?}"
+            );
+        }
+    }
+
+    // Half two, and the behaviour the whole thing exists for.
+    let rendered = glyph_cli::tscmap::remap_tsc_output(&raw, &flat.module_maps, false);
+    assert!(
+        rendered.contains("import totally-not-installed { thing }"),
+        "the remapped diagnostic must quote beta's own broken import line:\n{rendered}"
+    );
+    assert!(
+        !rendered.contains("import std/io { println }"),
+        "the error is beta's, not the root project's: the root's own working \
+         import line must never be quoted as the failing source:\n{rendered}"
+    );
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&out);
+}
+
+/// The same G107 collision, end to end through a real `tsc` run, so the
+/// hand-written error line above cannot drift from the shape `tsc` emits.
+///
+/// Skipped when `tsc` is absent, and it says so: the assertions below are the
+/// point of the test, and a green result that skipped them means nothing.
+#[test]
+fn a_real_tsc_error_is_quoted_against_its_own_projects_source() {
+    if !tsc_available() {
+        eprintln!("skipping G107 end-to-end check: tsc not available");
+        return;
+    }
+    let (root, out, tree) = build_root_and_nested_beta("multiproject_tscmap_e2e");
+
+    let raw = match glyph_cli::runtime::check_tree_with_tsc(&tree, &out).expect("run tsc") {
+        glyph_cli::runtime::TscOutcome::Failed(msg) => msg,
+        glyph_cli::runtime::TscOutcome::NotFound => {
+            panic!("tsc answered --version a moment ago; it must not vanish mid-test")
+        }
+        glyph_cli::runtime::TscOutcome::Passed => {
+            panic!("sanity: beta's unresolvable import must fail tsc");
+        }
+    };
+    assert!(
+        raw.contains("TS2307"),
+        "sanity: the failure must be the unresolvable import:\n{raw}"
+    );
+
+    let flat = tree.flatten();
+    let rendered = glyph_cli::tscmap::remap_tsc_output(&raw, &flat.module_maps, false);
+
+    assert!(
+        rendered.contains("import totally-not-installed { thing }"),
+        "the remapped diagnostic must quote beta's own broken import line:\n{rendered}"
+    );
+    assert!(
+        !rendered.contains("import std/io { println }"),
+        "the error is beta's, not the root project's: the root's own working \
+         import line must never be quoted as the failing source:\n{rendered}"
+    );
 
     let _ = std::fs::remove_dir_all(&root);
     let _ = std::fs::remove_dir_all(&out);
@@ -10693,5 +11508,163 @@ fn main() {
     assert!(
         text.contains("E0226"),
         "a match with only refutable arms and no catch-all must be reported: {text}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// A `//` note on a continued annotation's first line used to make the example
+// pass. `raw_args` turns the continuation newline into a space, which joined
+// the note to the text after it, so the note swallowed `== false` on re-lex and
+// `collect_tests` read the remainder as "assert this is true".
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_note_on_an_example_line_does_not_turn_it_green() {
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("exnote");
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\
+         \n\
+         @example has_bug(3)\n\
+         \x20 == false\n\
+         @example has_bug(3) // the same claim, with a note on the first line\n\
+         \x20 == false\n\
+         pub fn has_bug(n: number) -> bool {\n\
+         \x20 return true\n\
+         }\n\
+         \n\
+         pub fn main(argv: Array<string>) -> number {\n\
+         \x20 return 0\n\
+         }\n",
+    );
+    let src = root.join("src");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 1, "two false examples must fail: {stderr}");
+    assert!(
+        stderr.contains("2 of 2 example(s) failed"),
+        "both byte-identical claims must fail, not one: {stderr}"
+    );
+}
+
+#[test]
+fn an_example_with_a_bracketed_argument_list_still_runs() {
+    // The bracketed spelling was already correct and has to stay correct: the
+    // lexer emits no newline at bracket depth (D1), so the comment inside the
+    // list keeps a real newline to terminate it.
+    if !js_toolchain_available() {
+        eprintln!("skipping: node/tsx not available");
+        return;
+    }
+    let root = unique_tmp("exbracket");
+    write_file(
+        &root,
+        "src/main.glyph",
+        "module main\n\
+         \n\
+         @example sum([\n\
+         \x20 1, // one\n\
+         \x20 2,\n\
+         ]) == 99\n\
+         pub fn sum(xs: Array<number>) -> number {\n\
+         \x20 return 3\n\
+         }\n\
+         \n\
+         pub fn main(argv: Array<string>) -> number {\n\
+         \x20 return 0\n\
+         }\n",
+    );
+    let src = root.join("src");
+    let (code, _stdout, stderr, _) = spawn_glyph(&[
+        std::ffi::OsStr::new("check"),
+        src.as_os_str(),
+        std::ffi::OsStr::new("--no-tsc"),
+    ]);
+    assert_eq!(code, 1, "the bracketed example is false and must fail: {stderr}");
+    assert!(
+        stderr.contains("1 of 1 example(s) failed"),
+        "it runs rather than landing in malformed: {stderr}"
+    );
+}
+
+#[test]
+fn fmt_keeps_a_comment_inside_a_bracketed_annotation_argument_list() {
+    let root = unique_tmp("fmtbracketnote");
+    let src = "module m\n\
+               @example sum([\n\
+               \x20 1, // one\n\
+               \x20 2,\n\
+               ]) == 3\n\
+               pub fn sum(xs: Array<number>) -> number {\n\
+               \x20 return 3\n\
+               }\n";
+    write_file(&root, "m.glyph", src);
+    let file = root.join("m.glyph");
+    glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
+    let once = std::fs::read_to_string(&file).unwrap();
+    for _ in 0..4 {
+        glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
+    }
+    let five = std::fs::read_to_string(&file).unwrap();
+    assert_eq!(once, five, "formatting is idempotent");
+    assert_eq!(
+        five.matches("// one").count(),
+        1,
+        "the bracketed note is kept exactly once:\n{five}"
+    );
+    assert!(
+        !five.lines().any(|l| l.ends_with(' ')),
+        "no line gains trailing whitespace:\n{five:?}"
+    );
+}
+
+#[test]
+fn fmt_keeps_a_note_on_a_continued_annotation_line() {
+    // The note is no longer part of `raw_args`, so the printer has to emit it
+    // through the comment machinery instead. Losing it and duplicating it are
+    // both failures.
+    let root = unique_tmp("fmtcontnote");
+    let src = "module m\n\
+               @example has_bug(3) // a note\n\
+               \x20 == false\n\
+               pub fn has_bug(n: number) -> bool {\n\
+               \x20 return true\n\
+               }\n";
+    write_file(&root, "m.glyph", src);
+    let file = root.join("m.glyph");
+    glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
+    let once = std::fs::read_to_string(&file).unwrap();
+    for _ in 0..4 {
+        glyph_cli::fmt::format_path(&file, false).expect("fmt ok");
+    }
+    let five = std::fs::read_to_string(&file).unwrap();
+    assert_eq!(once, five, "formatting is idempotent:\n{once}\n---\n{five}");
+    assert_eq!(
+        five.matches("// a note").count(),
+        1,
+        "the note is neither dropped nor duplicated:\n{five}"
+    );
+    assert!(
+        !five.lines().any(|l| l.ends_with(' ')),
+        "no line gains trailing whitespace:\n{five:?}"
+    );
+    // And the assertion still reads as one: the formatted file re-parses to the
+    // same claim the author wrote, note and all.
+    let m = glyph_parser::parse(&five).expect("formatted file must re-parse");
+    let f = match &m.items[0] {
+        glyph_ast::Decl::Fn(f) => f,
+        other => panic!("expected Fn, got {other:?}"),
+    };
+    assert_eq!(
+        f.annotations[0].raw_args, "has_bug(3) == false",
+        "the assertion survives the round trip:\n{five}"
     );
 }

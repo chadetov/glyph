@@ -348,20 +348,232 @@ pub(crate) fn find_project_node_modules(src: &Path) -> Option<PathBuf> {
     }
 }
 
+/// The stem (e.g. `"array"`) of a `RUNTIME_FILES` entry under `.glyph-runtime/std/`,
+/// or `None` for an entry outside `std/` (the bootstrap and the two `.d.ts`
+/// files, which are not part of the reachability graph and are always written).
+fn std_stem(rel: &str) -> Option<&str> {
+    rel.strip_prefix(".glyph-runtime/std/")
+        .and_then(|f| f.strip_suffix(".ts"))
+}
+
+/// Every `.ts`/`.tsx` file under `dir`, recursively, or an empty vector when
+/// `dir` is not a directory.
+///
+/// Symlinks are followed, because a project that shares one shim between two
+/// build roots is likely to link it into each `<src>/extern/`, and a shim the
+/// walk skips is a shim whose std imports get pruned. `seen` holds the canonical
+/// path of each directory already walked so a cycle (`extern/loop -> ..`)
+/// terminates. A read that fails is skipped rather than raised: this walk only
+/// decides how much of the runtime to keep, and the staging copy right after it
+/// reports a genuinely unreadable `<src>/extern/`.
+fn extern_shims(dir: &Path) -> Vec<std::path::PathBuf> {
+    fn walk(
+        dir: &Path,
+        seen: &mut std::collections::HashSet<std::path::PathBuf>,
+        out: &mut Vec<std::path::PathBuf>,
+    ) {
+        let canonical = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+        if !seen.insert(canonical) {
+            return;
+        }
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            // `metadata` resolves a link, so a link to a file reports as a file
+            // and a broken link has no metadata at all and is skipped.
+            let Ok(meta) = std::fs::metadata(&path) else {
+                continue;
+            };
+            if meta.is_dir() {
+                walk(&path, seen, out);
+            } else if meta.is_file()
+                && path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| n.ends_with(".ts") || n.ends_with(".tsx"))
+            {
+                out.push(path);
+            }
+        }
+    }
+
+    let mut out = Vec::new();
+    if dir.is_dir() {
+        walk(dir, &mut std::collections::HashSet::new(), &mut out);
+    }
+    out
+}
+
+/// The `std/*` modules a build must materialize: every module reachable from
+/// what the emitted program actually imports, closed over each std module's own
+/// sibling imports (`array.ts` imports `option.ts`, for instance), plus `result`
+/// and the bootstrap, which every emitted module pulls in unconditionally (see
+/// `bootstrap_specifier` in `glyph-emit`) regardless of what the *program*
+/// imports.
+///
+/// This is what keeps a one-import program from materializing all 36 bundled
+/// std modules on every build (G115) — seven of which (`dns`, `fs`, `http`,
+/// `net`, `process`, `sqlite`, `tls`) are Node-only and unusable, dead weight at
+/// best, in a browser bundle. `emitted` is the list of `.ts` rel paths this
+/// build just wrote to `out` (`BuildReport::emitted`); their contents are read
+/// back off disk rather than threaded through in memory, since `write_build_support`
+/// runs after they are written and this keeps the reachability walk decoupled
+/// from the emitter's in-memory representation.
+///
+/// The emitted program is not the only thing the generated tsconfig type-checks.
+/// Hand-written TypeScript under `<src>/extern/` is staged into `<out>/extern/`,
+/// is covered by the tsconfig `include`, and reaches the stdlib through the
+/// deliberate `"std/*"` path mapping (D29). A std module only a shim imports is
+/// therefore reachable, and pruning it turns a build that passed into
+/// `TS2307: Cannot find module 'std/time'`. The shims are read from `<src>`
+/// rather than from the staged copy in `<out>`: this runs before the staging
+/// pass below, so `<out>/extern/` is either absent (a first build) or a previous
+/// build's copy, and `copy_dir` never deletes, so a shim removed from `<src>`
+/// would go on holding its std modules alive forever.
+fn reachable_std_modules(
+    out: &Path,
+    src: &Path,
+    emitted: &[String],
+) -> std::collections::HashSet<String> {
+    use std::collections::HashSet;
+
+    // Every std module a bundled runtime file (not the program) imports from a
+    // sibling, e.g. `std/array.ts`'s `import { ... } from "./option"`. Built by
+    // scanning the embedded runtime sources themselves rather than hand-maintained,
+    // so a new cross-module `std/*` import stays correct with no second place to
+    // update.
+    fn sibling_imports(ts: &str) -> HashSet<String> {
+        let mut out = HashSet::new();
+        let mut rest = ts;
+        while let Some(idx) = rest.find("from \"./") {
+            let after = &rest[idx + "from \"./".len()..];
+            let name: String = after.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            let len = name.len();
+            if !name.is_empty() {
+                out.insert(name);
+            }
+            rest = &after[len..];
+        }
+        out
+    }
+
+    // Same scan, applied to a program's own emitted `.ts`: what it imports is a
+    // relative specifier ending in `.glyph-runtime/std/<name>` (see
+    // `runtime_specifier` in `glyph-emit`), regardless of how many `../` reach it.
+    fn program_std_imports(ts: &str) -> HashSet<String> {
+        let mut out = HashSet::new();
+        let mut rest = ts;
+        const MARK: &str = ".glyph-runtime/std/";
+        while let Some(idx) = rest.find(MARK) {
+            let after = &rest[idx + MARK.len()..];
+            let name: String = after.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            let len = name.len();
+            if !name.is_empty() {
+                out.insert(name);
+            }
+            rest = &after[len..];
+        }
+        out
+    }
+
+    // What a hand-written `extern/*.ts` shim imports. A shim may spell a std
+    // module either way: bare `std/<name>`, which the generated tsconfig maps
+    // onto the bundled runtime, or the relative `../.glyph-runtime/std/<name>`
+    // the emitter itself uses. Both are legal, so both count. Requiring the
+    // match to sit right after a quote or after `.glyph-runtime/` is what keeps
+    // an unrelated path like `./mystd/x` from registering as a std module.
+    fn extern_std_imports(ts: &str) -> HashSet<String> {
+        let mut out = HashSet::new();
+        const MARK: &str = "std/";
+        let mut from = 0;
+        while let Some(idx) = ts[from..].find(MARK) {
+            let at = from + idx;
+            let after = &ts[at + MARK.len()..];
+            let name: String = after.chars().take_while(|c| c.is_alphanumeric() || *c == '_').collect();
+            from = at + MARK.len() + name.len();
+            if name.is_empty() {
+                continue;
+            }
+            let before = &ts[..at];
+            let quoted = before.ends_with('"') || before.ends_with('\'') || before.ends_with('`');
+            if quoted || before.ends_with(".glyph-runtime/") {
+                out.insert(name);
+            }
+        }
+        out
+    }
+
+    let adjacency: Vec<(&str, HashSet<String>)> = RUNTIME_FILES
+        .iter()
+        .filter_map(|(rel, contents)| std_stem(rel).map(|stem| (stem, sibling_imports(contents))))
+        .collect();
+
+    // `result` is always reachable: the bootstrap (always written) imports it
+    // unconditionally, and every emitted module imports the bootstrap.
+    let mut reached: HashSet<String> = HashSet::new();
+    reached.insert("result".to_string());
+    for rel in emitted {
+        if let Ok(ts) = std::fs::read_to_string(out.join(rel)) {
+            reached.extend(program_std_imports(&ts));
+        }
+    }
+    for shim in extern_shims(&src.join("extern")) {
+        if let Ok(ts) = std::fs::read_to_string(&shim) {
+            reached.extend(extern_std_imports(&ts));
+        }
+    }
+
+    // Close over sibling imports until nothing new is added.
+    loop {
+        let mut added = false;
+        for (stem, deps) in &adjacency {
+            if reached.contains(*stem) {
+                for dep in deps {
+                    if reached.insert(dep.clone()) {
+                        added = true;
+                    }
+                }
+            }
+        }
+        if !added {
+            break;
+        }
+    }
+    reached
+}
+
 /// Write the bundled runtime, a `tsconfig.json`, and any `<src>/.types/`
 /// ambient declarations into `out`, so `tsc -p <out>/tsconfig.json` can type
 /// the emitted TypeScript.
 ///
 /// `nested_out_dirs` names the output directories of projects nested inside this
 /// one, relative to `out`, so the generated config does not type-check them; see
-/// `TSCONFIG_TEMPLATE`. Empty for a single-project build.
+/// `TSCONFIG_TEMPLATE`. `emitted` is the rel paths of the `.ts` files this build
+/// just wrote (`BuildReport::emitted`), used together with the `<src>/extern/`
+/// shims staged below to compute which `std/*` modules this build actually
+/// reaches (G115) — everything outside `std/` (the bootstrap, the two `.d.ts`
+/// files) is written unconditionally.
 pub fn write_build_support(
     out: &Path,
     src: &Path,
     nested_out_dirs: &[String],
+    emitted: &[String],
 ) -> std::io::Result<()> {
+    let reachable = reachable_std_modules(out, src, emitted);
     for (rel, contents) in RUNTIME_FILES {
         let path = out.join(rel);
+        // An `std/*` module not reached from this build's program (directly or
+        // through another std module) is skipped, and any file a *previous*
+        // build left behind for it is removed, so shrinking a program's imports
+        // shrinks its bundled runtime on the next build too.
+        if let Some(stem) = std_stem(rel) {
+            if !reachable.contains(stem) {
+                let _ = std::fs::remove_file(&path);
+                continue;
+            }
+        }
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -407,7 +619,51 @@ pub fn write_build_support(
     // prune pass skips `extern/`, so it survives a rebuild.
     let src_extern = src.join("extern");
     if src_extern.is_dir() {
-        copy_dir(&src_extern, &out.join("extern"))?;
+        mirror_dir(&src_extern, &out.join("extern"))?;
+    }
+    Ok(())
+}
+
+/// Copy `from` into `to`, and delete anything in `to` that `from` no longer has.
+///
+/// `copy_dir` only ever adds, which was harmless while every std module was
+/// written unconditionally: a shim left behind after its source was deleted
+/// still resolved its imports. Pruning changed that. The stale copy is still
+/// inside the generated tsconfig's `include`, so it is still type-checked, and
+/// the std module only it imported has just been pruned away. The build then
+/// fails on a path that no longer exists in `src`, keeps failing on every
+/// subsequent build, and only `rm -rf <out>` clears it. Under `--watch` the
+/// session stays red for good.
+///
+/// Deleting is confined to this one call site rather than folded into
+/// `copy_dir`, which also stages `.types` and backs the examples runner; making
+/// that one prune would reach further than the problem.
+fn mirror_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+    copy_dir(from, to)?;
+    prune_absent(from, to)
+}
+
+/// Remove every entry under `to` with no counterpart under `from`.
+fn prune_absent(from: &Path, to: &Path) -> std::io::Result<()> {
+    let entries = match std::fs::read_dir(to) {
+        Ok(e) => e,
+        // Nothing staged yet, so nothing can be stale.
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e),
+    };
+    for entry in entries {
+        let entry = entry?;
+        let mirror = from.join(entry.file_name());
+        let is_dir = entry.file_type()?.is_dir();
+        if is_dir {
+            if mirror.is_dir() {
+                prune_absent(&mirror, &entry.path())?;
+            } else {
+                std::fs::remove_dir_all(entry.path())?;
+            }
+        } else if !mirror.is_file() {
+            std::fs::remove_file(entry.path())?;
+        }
     }
     Ok(())
 }
@@ -558,7 +814,7 @@ pub fn exported_items(ts: &str) -> Vec<ExportedItem> {
 
 #[cfg(test)]
 mod tests {
-    use super::{find_project_node_modules, tsconfig_json, RUNTIME_FILES};
+    use super::{find_project_node_modules, reachable_std_modules, tsconfig_json, RUNTIME_FILES};
     use glyph_resolver::StdlibStubs;
     use std::collections::{BTreeMap, BTreeSet};
     use std::path::{Path, PathBuf};
@@ -807,5 +1063,100 @@ mod tests {
              seed it in StdlibStubs::new, or add it to UNSEEDED if it is emitter-internal.",
             unadvertised.join("\n")
         );
+    }
+
+    /// `reachable_std_modules` closes over an emitted program's `std/*` imports:
+    /// a program that imports only `std/array` also reaches `std/option`
+    /// (`array.ts` imports it internally) and `std/result` (always, via the
+    /// bootstrap every emitted module carries), but nothing else — least of
+    /// all a Node-only module the program never touched (G115: an unfiltered
+    /// bundle is exactly what breaks a browser deploy target).
+    #[test]
+    fn reachable_std_modules_closes_over_sibling_imports_but_stays_narrow() {
+        let out = tmp_tree("reachable");
+        std::fs::write(
+            out.join("main.ts"),
+            "import \"./.glyph-runtime/glyph-bootstrap\";\n\n\
+             import * as array from \"./.glyph-runtime/std/array\";\n\n\
+             export function main() {\n  array.map([1], (x) => x);\n}\n",
+        )
+        .expect("write fake emitted module");
+
+        let src = tmp_tree("reachable_src");
+        let reached = reachable_std_modules(&out, &src, &["main.ts".to_string()]);
+        for want in ["array", "option", "result"] {
+            assert!(reached.contains(want), "expected {want} reachable, got {reached:?}");
+        }
+        for unwanted in ["dns", "fs", "http", "net", "process", "sqlite", "tls", "schema", "json"] {
+            assert!(
+                !reached.contains(unwanted),
+                "{unwanted} should not be reachable from an array-only import, got {reached:?}"
+            );
+        }
+    }
+
+    /// A program with no `std/*` import at all still reaches `result` (and
+    /// nothing else): the bootstrap every emitted module carries imports it
+    /// unconditionally for its `Result` wrapping.
+    #[test]
+    fn reachable_std_modules_with_no_program_imports_still_reaches_result() {
+        let out = tmp_tree("reachable_empty");
+        std::fs::write(
+            out.join("main.ts"),
+            "import \"./.glyph-runtime/glyph-bootstrap\";\n\nexport function main() {}\n",
+        )
+        .expect("write fake emitted module");
+
+        let src = tmp_tree("reachable_empty_src");
+        let reached = reachable_std_modules(&out, &src, &["main.ts".to_string()]);
+        assert_eq!(
+            reached,
+            std::iter::once("result".to_string()).collect::<std::collections::HashSet<_>>()
+        );
+    }
+
+    /// A hand-written `<src>/extern/*.ts` shim is type-checked alongside the
+    /// emitted program and can import the stdlib either way the tsconfig allows,
+    /// so both spellings hold their module (and whatever it imports) against the
+    /// prune. A path that merely ends in `std/` is not one of them.
+    #[test]
+    fn reachable_std_modules_counts_both_spellings_an_extern_shim_can_use() {
+        let out = tmp_tree("reachable_extern_out");
+        std::fs::write(
+            out.join("main.ts"),
+            "import \"./.glyph-runtime/glyph-bootstrap\";\n\nexport function main() {}\n",
+        )
+        .expect("write fake emitted module");
+
+        let src = tmp_tree("reachable_extern_src");
+        std::fs::create_dir_all(src.join("extern/nested")).expect("mkdir extern");
+        std::fs::write(
+            src.join("extern/clock.ts"),
+            "import * as time from \"std/time\";\nexport const t = time.now();\n",
+        )
+        .expect("write bare-spelling shim");
+        std::fs::write(
+            src.join("extern/nested/measure.tsx"),
+            "import * as math from \"../../.glyph-runtime/std/math\";\nexport const h = math.floor(1);\n",
+        )
+        .expect("write relative-spelling shim");
+        std::fs::write(
+            src.join("extern/decoy.ts"),
+            "import * as x from \"./mystd/http\";\nexport const y = x;\n",
+        )
+        .expect("write decoy shim");
+
+        let reached = reachable_std_modules(&out, &src, &["main.ts".to_string()]);
+        // `time` and `math` came from the shims; `option` is `time.ts`'s own
+        // import, so the closure ran over the extern hits as well.
+        for want in ["time", "math", "option", "result"] {
+            assert!(reached.contains(want), "expected {want} reachable, got {reached:?}");
+        }
+        for unwanted in ["http", "dns", "sqlite", "tls", "schema"] {
+            assert!(
+                !reached.contains(unwanted),
+                "{unwanted} should not be reachable, got {reached:?}"
+            );
+        }
     }
 }

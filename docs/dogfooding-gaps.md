@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-166 entries, 132 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+167 entries, 133 are fixed, 9 are partly fixed, 10 are decided or resolved, and
 15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -6665,3 +6665,31 @@ and is the owner's to confirm.
   shows the three processes above, and the run that spawned them had already
   exited. Two independent verification passes hit the same test in the same way
   under concurrent load.*
+
+- **G167. [FIXED] One release's stuck job blocked the next release's publish, twice.**
+  `.github/workflows/release.yml` held a single global concurrency group,
+  `group: release`, so only one release run could be in flight across the whole
+  repository. A `Smoke macos-13` job that was never assigned a runner then held
+  that group open long after everything real about its release had finished:
+  6h29m on 0.1.102, and 4h36m on 0.1.103. Each time the next release's run sat
+  queued behind a job on a run that had already published, and each time a human
+  had to notice and cancel it.
+
+  A `timeout-minutes` does not address this and the first attempt at a fix was
+  therefore the wrong one. GitHub does not count queued time against a job
+  timeout, so a job that never starts is never bounded by it. The 0.1.102 job is
+  the proof: it outlived even the default 360-minute cap without ever being
+  assigned a runner.
+
+  The group is now keyed by tag. The property worth protecting is that two runs
+  must not publish the same version concurrently, and a re-run of one tag still
+  serialises against itself. Two different tags racing was never the hazard: the
+  versions differ so the publishes cannot collide, and `preflight` already
+  refuses a tag whose version disagrees with the manifests.
+  `cancel-in-progress: false` is unchanged, because cancelling between two of a
+  run's `npm publish` calls is the one outcome with no clean recovery.
+
+  *Reproduced twice against the live pipeline, on 0.1.102 and again on 0.1.104
+  where the 0.1.103 run had been queued 4h36m on the same job. Both were
+  observed rather than inferred, from `gh run view` showing every other job
+  complete and `Smoke macos-13: queued`.*

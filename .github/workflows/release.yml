@@ -21,10 +21,10 @@ name: Release
 # both are written up in the steps that fix them: the execute bit lost in the
 # artifact round trip, and the tag nobody compared against the manifests.
 #
-# Every job carries a `timeout-minutes`. This workflow holds one global
-# concurrency group, so an unfinished job of one release run keeps the next
-# release's run queued behind it: on 0.1.102 a smoke job held the group for six
-# and a half hours, and the 0.1.103 run behind it waited 50 minutes to start.
+# Every job carries a `timeout-minutes`. The concurrency group below is keyed by
+# tag rather than being one global `release`, which is what actually fixed the
+# queue-blocking; the bounds cover the different case of a job that starts and
+# then stalls.
 #
 # A bound caps a job that has started and then hangs. It does not cap the wait
 # for a runner, because GitHub does not count queued time against it, and the
@@ -48,12 +48,26 @@ on:
         type: boolean
         default: false
 
-# One release at a time, globally, and never cancelled part-way. Two tags pushed
-# close together would otherwise run two pipelines into the same immutable
-# registry, and cancelling a run between its third and fourth `npm publish` is
-# the one outcome with no clean recovery.
+# One run per version, and never cancelled part-way.
+#
+# `cancel-in-progress: false` is not negotiable: cancelling a run between its
+# third and fourth `npm publish` is the one outcome with no clean recovery,
+# because those versions are burned on the registry forever.
+#
+# The group used to be the constant `release`, one run at a time globally, and
+# that was the wrong shape twice in two days. A `Smoke macos-13` job that never
+# got a runner held the group for 6h29m on 0.1.102 and 4h36m on 0.1.103, and
+# each time the NEXT release's publish sat queued behind a job that had already
+# published, on a runner it was never going to be assigned. A `timeout-minutes`
+# cannot help: GitHub does not count queued time against it.
+#
+# Keying the group by tag keeps the property that matters, since the hazard is
+# two runs publishing the SAME version concurrently, and a re-run of one tag
+# still serialises against itself. Two different tags racing is not the danger:
+# the versions differ, so the publishes cannot collide, and `preflight` already
+# refuses a tag whose version disagrees with the manifests.
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 # Least privilege by default: the workflow-level token can only read.

@@ -1099,12 +1099,11 @@ fn fuzz_seeds_are_format_fixed_points() {
     // A seed for a filed, still-open finding is skipped by name rather than
     // deleted. The seed is the durable artifact of the bug; removing it to make
     // a suite green is how the same thing gets refiled six weeks later.
-    const OPEN: &[&str] = &[
-        // G162: `fmt` prints a bare literal statement and then a parenthesized
-        // statement on the next line, and the pair reparses as a call. Present
-        // in 0.1.100 and earlier; found once G151 stopped masking it.
-        "g162-bare-literal-absorbs-a-parenthesized-statement.glyph",
-    ];
+    //
+    // G162 (a bare literal statement followed by a parenthesized one reparsing
+    // as a call) is fixed and its seed runs like every other one below; no
+    // entries remain open as of this commit.
+    const OPEN: &[&str] = &[];
     for f in seed_files() {
         let name = f.file_name().unwrap().to_string_lossy().to_string();
         if OPEN.contains(&name.as_str()) {

@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import os
 import pathlib
-import shutil
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -66,8 +65,19 @@ def find() -> pathlib.Path | None:
         p = COMPILER / rel
         if p.exists():
             return p
-    found = shutil.which("glyph")
-    return pathlib.Path(found) if found else None
+    # Deliberately NOT falling back to a `glyph` on PATH.
+    #
+    # The gates that use this do not merely read the binary's mtime, they RUN it
+    # against the docs and the catches corpus. A globally installed release on
+    # PATH is a different compiler from the one in this tree, so falling back to
+    # it means those gates can report a clean tree for code that was never
+    # compiled. That is the same class as a stale binary, which the rest of this
+    # file exists to refuse, and it fails in the more expensive direction:
+    # staleness reports a false failure, the wrong binary reports a false pass.
+    #
+    # `GLYPH_BIN` above is the deliberate override for anyone who really does
+    # want to point these at something else.
+    return None
 
 
 def staleness(binary: pathlib.Path) -> pathlib.Path | None:

@@ -27,6 +27,7 @@
 //! access through these imports; nothing breaks.
 
 use std::collections::{BTreeSet, HashMap};
+use std::sync::Arc;
 
 use glyph_ast::{Decl, Ident, ImportKind, Module, ModulePath};
 
@@ -580,6 +581,106 @@ pub fn path_key(path: &ModulePath) -> String {
         .join("/")
 }
 
+// ============================================================================
+// ModuleId: one interned identity per module
+// ============================================================================
+
+/// Interned identity of one module inside one project.
+///
+/// Three parts of the compiler already name a declaration by the module it is
+/// declared in plus its own name: `Ty::Imported { module, name }` in
+/// glyph-typechecker, `SymbolTarget::Global { module, name }` in glyph-lsp, and
+/// [`ModuleExports`]'s name-keyed set here. `ModuleId` and [`crate::DeclKey`] are
+/// convention with a type on it, so the next thing that needs it reuses this
+/// rather than inventing a fourth spelling of the same idea.
+///
+/// **What an id survives.** Which of D15's three import forms brought the
+/// module into scope: `import db/catalog`, `import db/catalog { Sheet }` and
+/// `import db/catalog as c` all intern to one id, because interning reads the
+/// path segments through [`path_key`] and nothing else. A `ModulePath` carries
+/// its span in its `PartialEq`, so two occurrences of one path in one file are
+/// two unequal paths and still one `ModuleId`. It survives every edit inside a
+/// module too, since no part of an id depends on what the module contains.
+/// Identity that moved with the import spelling is what 0.1.56 and 0.1.57 were
+/// both spent undoing, and canonicalizing here is where it stays undone.
+///
+/// **What an id does not survive.** It is an index into the [`ModuleInterner`]
+/// that issued it and means nothing outside that interner: ids from two
+/// interners are not comparable, and adding or removing a module from the set
+/// an interner was filled from can renumber the rest. So an id is a handle
+/// within one build, never something to serialize, cache across builds, or put
+/// in a diagnostic. The durable half of a declaration's identity is its name,
+/// which is why [`crate::DeclKey`] carries an `Ident` instead of a second index.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ModuleId(u32);
+
+/// The interner that hands out [`ModuleId`]s, and the one place a module path
+/// is canonicalized into one.
+///
+/// Both doors reach the same id. [`ModuleInterner::intern`] takes a parsed
+/// `ModulePath` (an `import` statement's, or a file's own `module`
+/// declaration) and [`ModuleInterner::intern_key`] takes the slash-joined
+/// string a build already keys files by. They agree because the first is
+/// defined as [`path_key`] followed by the second, so an id reached from an
+/// import and an id reached from the project's file list cannot disagree about
+/// which module they name.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ModuleInterner {
+    by_key: HashMap<Arc<str>, ModuleId>,
+    keys: Vec<Arc<str>>,
+}
+
+impl ModuleInterner {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Intern a parsed module path. Canonicalized through [`path_key`], which
+    /// discards the span it was parsed at and the import form it appeared in.
+    pub fn intern(&mut self, path: &ModulePath) -> ModuleId {
+        self.intern_key(&path_key(path))
+    }
+
+    /// Intern the canonical slash-joined form (`"db/catalog"`) directly, for a
+    /// caller that already holds one: a project's file list, a `Ty::Imported`'s
+    /// module, an `UnknownExportedName`'s.
+    pub fn intern_key(&mut self, key: &str) -> ModuleId {
+        if let Some(id) = self.by_key.get(key) {
+            return *id;
+        }
+        let id = ModuleId(self.keys.len() as u32);
+        let key: Arc<str> = Arc::from(key);
+        self.keys.push(Arc::clone(&key));
+        self.by_key.insert(key, id);
+        id
+    }
+
+    /// The id `key` already interns to, or `None`. Never interns, so asking
+    /// about a module the project does not have cannot grow the table.
+    pub fn get(&self, key: &str) -> Option<ModuleId> {
+        self.by_key.get(key).copied()
+    }
+
+    /// The canonical path an id was interned from, or `None` when the id is out
+    /// of range. An in-range id from a *different* interner answers with the
+    /// wrong module rather than `None`, which is why the [`ModuleId`] docs say
+    /// not to move ids between interners.
+    pub fn path_of(&self, id: ModuleId) -> Option<&str> {
+        self.keys.get(id.0 as usize).map(|k| &**k)
+    }
+
+    /// How many distinct modules have been interned.
+    pub fn len(&self) -> usize {
+        self.keys.len()
+    }
+
+    /// Whether nothing has been interned yet. Paired with [`ModuleInterner::len`]
+    /// so a caller can ask directly instead of comparing a count to zero.
+    pub fn is_empty(&self) -> bool {
+        self.keys.is_empty()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -829,5 +930,113 @@ mod local_import_tests {
         );
         assert_eq!(e.len(), 1, "{e:?}");
         assert_eq!(e[0].code(), "E0104");
+    }
+}
+
+#[cfg(test)]
+mod module_id_tests {
+    use super::*;
+    use glyph_parser::parse;
+
+    /// The `ModulePath`s of every import in `src`, in source order.
+    fn import_paths(src: &str) -> Vec<ModulePath> {
+        let m = parse(src).expect("parse failed");
+        m.items
+            .iter()
+            .filter_map(|i| match i {
+                Decl::Import(imp) => Some(imp.path.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn two_occurrences_of_one_path_intern_to_one_id() {
+        // A `ModulePath` carries its span, so two textual occurrences of
+        // `db/catalog` are two unequal `ModulePath` values. They name one
+        // module and must be one `ModuleId`.
+        let paths = import_paths("module x\nimport db/catalog { Sheet }\nimport db/catalog as c\n");
+        assert_ne!(paths[0], paths[1], "the spans differ, so the paths do");
+        let mut ids = ModuleInterner::new();
+        assert_eq!(ids.intern(&paths[0]), ids.intern(&paths[1]));
+        assert_eq!(ids.len(), 1);
+    }
+
+    #[test]
+    fn all_three_import_spellings_intern_to_one_id() {
+        // D15's three forms. Identity that varied with the spelling cost
+        // 0.1.56 and 0.1.57; this is the test that keeps it from returning.
+        let paths = import_paths(
+            "module x\nimport db/catalog\nimport db/catalog { Sheet }\nimport db/catalog as c\n",
+        );
+        let mut ids = ModuleInterner::new();
+        let interned: Vec<ModuleId> = paths.iter().map(|p| ids.intern(p)).collect();
+        assert_eq!(interned[0], interned[1]);
+        assert_eq!(interned[1], interned[2]);
+        assert_eq!(ids.len(), 1, "one module, one id");
+    }
+
+    #[test]
+    fn different_paths_get_different_ids() {
+        let paths = import_paths("module x\nimport db/catalog\nimport db/ledger\n");
+        let mut ids = ModuleInterner::new();
+        assert_ne!(ids.intern(&paths[0]), ids.intern(&paths[1]));
+        assert_eq!(ids.len(), 2);
+    }
+
+    #[test]
+    fn a_nested_path_is_not_confused_with_a_flat_one() {
+        // `path_key` joins on `/`; a single segment spelled `db/catalog`
+        // is not a legal identifier, so there is no collision to worry
+        // about, but the canonical form still has to distinguish these two.
+        let paths = import_paths("module x\nimport db/catalog\nimport catalog\n");
+        let mut ids = ModuleInterner::new();
+        assert_ne!(ids.intern(&paths[0]), ids.intern(&paths[1]));
+    }
+
+    #[test]
+    fn path_of_round_trips_the_canonical_form() {
+        let mut ids = ModuleInterner::new();
+        let id = ids.intern_key("db/catalog");
+        assert_eq!(ids.path_of(id), Some("db/catalog"));
+
+        // An id is not portable between interners, per the type docs. Here the
+        // failure is benign because the id is out of range; in general it is
+        // not, which is why the docs say what they say.
+        let other = ModuleInterner::new();
+        assert_eq!(other.path_of(id), None);
+    }
+
+    #[test]
+    fn get_does_not_intern() {
+        let mut ids = ModuleInterner::new();
+        assert_eq!(ids.get("db/catalog"), None);
+        assert_eq!(ids.len(), 0, "a failed lookup must not create an id");
+        let id = ids.intern_key("db/catalog");
+        assert_eq!(ids.get("db/catalog"), Some(id));
+    }
+
+    #[test]
+    fn intern_key_and_intern_agree() {
+        // The parsed-path door and the string door must land on one id, or a
+        // `ModuleId` from the graph and one from an import would disagree.
+        let paths = import_paths("module x\nimport db/catalog\n");
+        let mut ids = ModuleInterner::new();
+        let from_key = ids.intern_key("db/catalog");
+        let from_path = ids.intern(&paths[0]);
+        assert_eq!(from_key, from_path);
+    }
+
+    #[test]
+    fn the_module_declaration_path_interns_like_an_import_path() {
+        // `module db/catalog` in the declaring file and `import db/catalog` in
+        // the consuming one have to name the same entity.
+        let decl = parse("module db/catalog\npub fn read() {}\n")
+            .expect("parse")
+            .module_path
+            .expect("module decl");
+        let paths = import_paths("module x\nimport db/catalog\n");
+        let mut ids = ModuleInterner::new();
+        assert_eq!(ids.intern(&decl), ids.intern(&paths[0]));
     }
 }

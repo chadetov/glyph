@@ -15,10 +15,67 @@ use std::sync::Arc;
 
 use glyph_ast::{Ident, ModulePath, Span};
 
+use crate::module_graph::ModuleId;
+
 /// Stable handle to a `Symbol` inside a `SymbolTable`. Cheap to copy. The
 /// `u32` is an index into the table's `Vec<Symbol>` storage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SymbolId(pub u32);
+
+/// The identity of one top-level declaration: the module it is declared in,
+/// and the name it is declared under.
+///
+/// The crate now has two identity schemes, and this one exists because
+/// [`SymbolId`] cannot do this job. A `SymbolId` is a dense index into one
+/// module's [`SymbolTable`], so it is a *position*, and positions move:
+/// inserting `fn audit` above `fn charge` moves `charge` from `SymbolId(1)` to
+/// `SymbolId(2)`, and the renumbering reaches the lowered types: with `charge`
+/// byte-identical, adding a `type Tax` above `type Money` changes its return
+/// type from `SymbolRef(0)` to `SymbolRef(1)`. Anything that has to keep
+/// pointing at a declaration across an edit (a semantic-graph edge, a
+/// cross-file reference, a stored answer) needs the name, not the position.
+/// Carrying the position instead is the same class of mistake as carrying a
+/// foreign module's symbol id, which `Ty::Imported`'s doc comment describes.
+///
+/// **What a key survives.** Any edit that neither renames the declaration nor
+/// moves it to another module: a declaration inserted above, below or between;
+/// a rewritten body; a changed signature. Also the declaration's *kind*, which
+/// is deliberately not part of the key. Glyph's module namespace is flat and
+/// single (`fn Foo` beside `type Foo`, a hoisted variant beside a function of
+/// that name, and `const NAME` beside `fn NAME` are all already rejected as
+/// duplicate declarations), so a kind buys no uniqueness, and including one
+/// would make rewriting `const Limit` into `fn Limit()` a different entity when
+/// it is the same one.
+///
+/// **What a key does not survive.** A rename, or a move to another module.
+/// Both are the correct answer: both are what every other consumer of the name
+/// sees change too. It is also no more portable than its [`ModuleId`], which is
+/// an interner index rather than a durable name; see that type's docs.
+///
+/// Locals are out of scope. A `let`, a parameter and a match binding are not
+/// declarations, live in transient scopes rather than the table, and have no
+/// key here.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DeclKey {
+    module: ModuleId,
+    name: Ident,
+}
+
+impl DeclKey {
+    pub fn new(module: ModuleId, name: Ident) -> Self {
+        Self { module, name }
+    }
+
+    /// The module the declaration is declared in.
+    pub fn module(&self) -> ModuleId {
+        self.module
+    }
+
+    /// The name the declaration is declared under.
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Symbol {
@@ -224,5 +281,76 @@ mod tests {
         let id = t.intern(prelude_symbol("Ok", PreludeKind::Ok));
         let sym = t.get(id).unwrap();
         assert_eq!(sym.name.as_ref(), "Ok");
+    }
+}
+
+#[cfg(test)]
+mod decl_key_tests {
+    use super::*;
+    use crate::module_graph::ModuleInterner;
+
+    #[test]
+    fn same_module_and_name_is_the_same_key() {
+        let mut ids = ModuleInterner::new();
+        let m = ids.intern_key("pay/charges");
+        assert_eq!(
+            DeclKey::new(m, Ident::from("charge")),
+            DeclKey::new(m, Ident::from("charge"))
+        );
+    }
+
+    #[test]
+    fn a_different_name_in_the_same_module_is_a_different_key() {
+        let mut ids = ModuleInterner::new();
+        let m = ids.intern_key("pay/charges");
+        assert_ne!(
+            DeclKey::new(m, Ident::from("charge")),
+            DeclKey::new(m, Ident::from("audit"))
+        );
+    }
+
+    #[test]
+    fn the_same_name_in_a_different_module_is_a_different_key() {
+        let mut ids = ModuleInterner::new();
+        let a = ids.intern_key("pay/charges");
+        let b = ids.intern_key("pay/refunds");
+        assert_ne!(
+            DeclKey::new(a, Ident::from("charge")),
+            DeclKey::new(b, Ident::from("charge"))
+        );
+    }
+
+    #[test]
+    fn keys_order_by_module_then_name() {
+        // The ordering is what lets a caller hold keys in a `BTreeSet` and get
+        // one module's declarations as a contiguous range.
+        let mut ids = ModuleInterner::new();
+        let a = ids.intern_key("a");
+        let b = ids.intern_key("b");
+        let mut keys = vec![
+            DeclKey::new(b, Ident::from("alpha")),
+            DeclKey::new(a, Ident::from("zeta")),
+            DeclKey::new(a, Ident::from("alpha")),
+        ];
+        keys.sort();
+        assert_eq!(
+            keys,
+            vec![
+                DeclKey::new(a, Ident::from("alpha")),
+                DeclKey::new(a, Ident::from("zeta")),
+                DeclKey::new(b, Ident::from("alpha")),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_key_hashes_by_module_and_name() {
+        use std::collections::HashSet;
+        let mut ids = ModuleInterner::new();
+        let m = ids.intern_key("pay/charges");
+        let mut set = HashSet::new();
+        set.insert(DeclKey::new(m, Ident::from("charge")));
+        assert!(set.contains(&DeclKey::new(m, Ident::from("charge"))));
+        assert!(!set.contains(&DeclKey::new(m, Ident::from("refund"))));
     }
 }

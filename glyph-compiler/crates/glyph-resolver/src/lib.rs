@@ -38,14 +38,15 @@ pub use lints::{module_lints, no_export_surface_lint};
 pub use reserved::JS_GLOBALS;
 pub use module_graph::{
     path_key, verify_imports, verify_local_imports, verify_qualified_type_refs, CompositeGraph,
-    ModuleExports, ModuleGraph, ModuleResolution, ModuleSite, StdlibStubs,
+    ModuleExports, ModuleGraph, ModuleId, ModuleInterner, ModuleResolution, ModuleSite,
+    StdlibStubs,
 };
 pub use stdlib_types::{is_stdlib_type_only, stdlib_type_only_pairs};
 pub use prelude::{build_prelude, Prelude};
 pub use resolve::{
     resolve_module, QualifiedTypeRef, ResolutionMap, ResolvedModule, ResolvedRef,
 };
-pub use symbol::{PreludeKind, Symbol, SymbolId, SymbolKind, SymbolTable};
+pub use symbol::{DeclKey, PreludeKind, Symbol, SymbolId, SymbolKind, SymbolTable};
 
 #[cfg(test)]
 mod smoke {

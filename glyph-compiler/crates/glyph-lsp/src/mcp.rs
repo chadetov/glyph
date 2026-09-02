@@ -26,7 +26,10 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 
 use glyph_db::{CompilerDb, EventSink, Setter, SourceFile};
-use glyph_resolver::{build_prelude, collect_module_symbols, resolve_module, StdlibStubs};
+use glyph_resolver::{
+    build_prelude, collect_module_symbols, resolve_module, ResolvedModule, StdlibStubs,
+    SymbolKind,
+};
 
 use crate::analysis::{
     analyze, analyze_full, global_occurrences_in, outline_of, references_at, symbol_target_at,
@@ -364,6 +367,7 @@ fn tool_specs() -> Value {
     let file = json!({ "type": "string", "description": "Path to a .glyph file, relative to the project root or absolute." });
     let line = json!({ "type": "integer", "description": "0-based line number." });
     let character = json!({ "type": "integer", "description": "0-based character offset (UTF-16 code units)." });
+    let name = json!({ "type": "string", "description": "Name of a top-level declaration, a tagged-union variant, or an imported binding in that file. Addresses the symbol itself, so the answer stays about the same symbol when declarations above it are added or removed. A local binding has no name; address one by position." });
     json!([
         {
             "name": "glyph_diagnostics",
@@ -382,8 +386,8 @@ fn tool_specs() -> Value {
         },
         {
             "name": "glyph_references",
-            "description": "Every reference to the symbol at a position across the whole project — the declaration, all uses, and each importing module's import binding. A local binding is file-scoped.",
-            "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character }, "required": ["path", "line", "character"] }
+            "description": "Every reference to a symbol across the whole project: the declaration, all uses, and each importing module's import binding. Address the symbol by position (`line` and `character`, what an editor has under its cursor) or by `name` (a declaration in that file, which still means the same symbol after the lines above it move). Sending both checks one against the other, and a call whose position and name are different symbols is an error rather than a guess. A local binding is file-scoped and can only be addressed by position.",
+            "inputSchema": { "type": "object", "properties": { "path": file, "line": line, "character": character, "name": name }, "required": ["path"] }
         },
         {
             "name": "glyph_symbols",
@@ -473,10 +477,166 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
     Ok(to_json(&value))
 }
 
-/// Every reference to the symbol at a position, across the file's own project.
+/// The global identity of the top-level name `name` in this module, or `None`
+/// when the module has no such name.
+///
+/// This is the by-name half of `symbol_target_at`, and it answers by the same
+/// rule: an imported name reports the module that *declares* it, anything else
+/// reports the file's own module. `module::name` is the identity every
+/// cross-file query here is already keyed by, for the reason `Ty::Imported`
+/// gives: a foreign module's symbol ids index an unrelated symbol in the
+/// consumer's table.
+///
+/// The name alone is enough, with no kind beside it, because Glyph's module
+/// namespace is flat and single. `fn Foo` beside `type Foo`, or a hoisted
+/// variant beside a function of that name, is already rejected as a duplicate
+/// declaration, so `module::name` picks out one symbol. `resolved.symbols` is
+/// that namespace, which is why a hoisted union variant and an import binding
+/// are both nameable and a `let` is not.
+///
+/// A namespace or aliased import names a module rather than a symbol, so there
+/// is no identity to return for one.
+fn named_target(resolved: &ResolvedModule, name: &str, this_module: &str) -> Option<SymbolTarget> {
+    let sym = resolved.symbols.table.get(resolved.symbols.lookup(name)?)?;
+    match &sym.kind {
+        SymbolKind::ImportNamed { path, original } => Some(SymbolTarget::Global {
+            module: path
+                .segments
+                .iter()
+                .map(|s| s.as_ref())
+                .collect::<Vec<&str>>()
+                .join("/"),
+            name: original.to_string(),
+        }),
+        SymbolKind::ImportNamespace { .. }
+        | SymbolKind::ImportAlias { .. }
+        | SymbolKind::Prelude { .. } => None,
+        _ => Some(SymbolTarget::Global {
+            module: this_module.to_string(),
+            name: sym.name.to_string(),
+        }),
+    }
+}
+
+/// The error for a `name` the module does not declare.
+///
+/// It lists what the module does declare, because a caller reaching this is
+/// holding a name that has since been renamed or moved, and the current list is
+/// the useful next step. This is the answer a renamed symbol has to produce:
+/// resolving to whatever is nearby instead is the bug a name exists to fix.
+fn not_declared(name: &str, this_module: &str, resolved: &ResolvedModule) -> String {
+    /// How many names the error lists before it stops. A module with a hundred
+    /// declarations should not spend the caller's context on all of them.
+    const LISTED: usize = 20;
+
+    // Only names this tool could actually answer about. `by_name` also holds
+    // namespace imports, aliased imports and prelude entries, and `named_target`
+    // returns nothing for those because they name a module rather than a symbol
+    // with an identity. Listing them made the message deny a name and then
+    // advertise it: asking for `a` in a module that does `import a` answered
+    // "declares no top-level name `a`. It declares: a, also", which sends the
+    // caller back to the name that just failed. The list is only useful if
+    // everything in it is a name that would work.
+    let mut declared: Vec<&str> = resolved
+        .symbols
+        .by_name
+        .keys()
+        .filter(|n| named_target(resolved, n.as_ref(), this_module).is_some())
+        .map(|n| n.as_ref())
+        .collect();
+    // `by_name` is a hash map, and one question must get one answer every time
+    // it is asked.
+    declared.sort_unstable();
+    let listed = match declared.len() {
+        0 => "nothing".to_string(),
+        n if n <= LISTED => declared.join(", "),
+        n => format!("{}, and {} more", declared[..LISTED].join(", "), n - LISTED),
+    };
+    format!("module `{this_module}` declares no top-level name `{name}`. It declares: {listed}")
+}
+
+/// The symbol one call is asking about, from whichever address it gave.
+///
+/// A call that gives both has to have them agree. They disagree exactly when
+/// the coordinate has gone stale, which is what a name is there to catch, so
+/// the answer is an error naming both sides. Preferring one would hand back a
+/// well-formed answer about the caller's other address and leave them nothing
+/// to notice, which is the whole failure.
+fn resolve_address(
+    address: &Address,
+    module: &glyph_ast::Module,
+    resolved: &ResolvedModule,
+    index: &LineIndex,
+    text: &str,
+    this_module: &str,
+) -> Result<Option<SymbolTarget>, String> {
+    let at = |line: u32, character: u32| {
+        let offset = index.offset(text, line, character);
+        symbol_target_at(module, resolved, offset, text, this_module)
+    };
+    match address {
+        Address::Position { line, character } => Ok(at(*line, *character)),
+        Address::Name(name) => match named_target(resolved, name, this_module) {
+            Some(target) => Ok(Some(target)),
+            None => Err(not_declared(name, this_module, resolved)),
+        },
+        Address::Both {
+            line,
+            character,
+            name,
+        } => {
+            let by_position = at(*line, *character);
+            let by_name = named_target(resolved, name, this_module);
+            if by_position == by_name {
+                return Ok(by_name);
+            }
+            let found = |target: &Option<SymbolTarget>| match target {
+                None => None,
+                Some(SymbolTarget::Local) => Some("a local binding".to_string()),
+                Some(SymbolTarget::Global { module, name }) => {
+                    Some(format!("`{name}` from module `{module}`"))
+                }
+            };
+            let here = found(&by_position).unwrap_or_else(|| "no name".to_string());
+            let there = found(&by_name)
+                .unwrap_or_else(|| format!("not a top-level name in module `{this_module}`"));
+            Err(format!(
+                "the two addresses disagree: line {line}, character {character} is on {here}, \
+                 but `name` \"{name}\" is {there}. Send one address, not two that point at \
+                 different symbols."
+            ))
+        }
+    }
+}
+
+/// The answer when the file cannot be analysed far enough to resolve an
+/// address.
+///
+/// A position addresses nothing when there is no tree to point into, so an
+/// empty answer is honest and is what this tool has always given. A name is a
+/// different claim: the caller named a symbol, and `[]` would read as "that
+/// symbol has no references" when the truth is that we could not look.
+fn unresolvable(address: &Address, this_module: &str, why: &str) -> Result<String, String> {
+    match address.name() {
+        None => Ok("[]".to_string()),
+        Some(name) => Err(format!(
+            "cannot look up `{name}` in module `{this_module}`: {why}. \
+             Run glyph_diagnostics on the file."
+        )),
+    }
+}
+
+/// Every reference to one symbol, across the file's own project.
+///
+/// The symbol is addressed by a position or by name (see `Address`). Either way
+/// the first thing that happens is that the address becomes a
+/// `SymbolTarget::Global { module, name }` identity, and nothing downstream
+/// sees the address again: the position argument was already only a way to name
+/// a symbol, which is why a name can stand in its place without changing
+/// anything else here.
 ///
 /// This is the one tool on the incremental database, and it takes the database
-/// only when it has to. The position is classified from the queried file alone
+/// only when it has to. The address is resolved from the queried file alone
 /// first; a local binding, or a position that names nothing, is answered right
 /// there. Only a module-level symbol reaches the project.
 ///
@@ -492,7 +652,7 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
 fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> {
     let root = server.root.clone();
     let (path, text) = read_file(args, &root)?;
-    let (line, character) = position(args)?;
+    let address = read_address(args)?;
     // Module paths, and so the search for other files naming this symbol, are
     // scoped to the file's own project (D41): another project's `import lib`
     // names its own `lib`, not this one. That is also why each project gets its
@@ -500,27 +660,34 @@ fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> 
     let project_root = crate::project_root_for(&path, &root);
     let this_module =
         module_path_of(&project_root, &path).ok_or("the file is not under the project root")?;
-    let offset = LineIndex::new(&text).offset(&text, line, character);
+    let index = LineIndex::new(&text);
 
     // Deliberately not `analyze_full`: that also assigns types, and every query
     // below reads the resolution table only. This is the same front end the
     // database runs (`parse_module` → `module_symbols` → `resolve`), on one
     // file, and it costs a fraction of a millisecond.
     let Ok(module) = glyph_parser::parse(&text) else {
-        return Ok("[]".to_string());
+        return unresolvable(&address, &this_module, "the file does not parse");
     };
     let Ok(symbols) = collect_module_symbols(&module) else {
-        return Ok("[]".to_string());
+        return unresolvable(&address, &this_module, "the file does not resolve");
     };
     let (resolved, _errs) = resolve_module(&module, symbols, &build_prelude());
 
-    let (sym_module, name) = match symbol_target_at(&module, &resolved, offset, &text, &this_module)
-    {
+    let target = resolve_address(&address, &module, &resolved, &index, &text, &this_module)?;
+    let (sym_module, name) = match target {
         Some(SymbolTarget::Global { module, name }) => (module, name),
         // A local binding cannot be named from another file, so the project has
         // nothing to add and is never built.
+        //
+        // Only a position reaches this arm: `named_target` reads the module's
+        // top-level table, and a `let` has no entry there, so a name never
+        // resolves to a local.
         Some(SymbolTarget::Local) => {
-            let index = LineIndex::new(&text);
+            let Some((line, character)) = address.position() else {
+                return Ok("[]".to_string());
+            };
+            let offset = index.offset(&text, line, character);
             let file = FileCtx { path: &path, root: &root, text: &text };
             let out: Vec<Value> = references_at(&module, &resolved, offset, &text, true)
                 .into_iter()
@@ -683,6 +850,80 @@ fn position(args: &Value) -> Result<(u32, u32), String> {
     Ok((line, character))
 }
 
+/// How one call addressed the thing it is asking about.
+///
+/// A position is what an editor has. It is the only way to point at an
+/// expression or at a local binding, and it is the right question for a cursor.
+/// A name is what an agent has, and it is the only address that survives an
+/// edit elsewhere in the file: inserting one declaration above `charge` moves
+/// every line below it, so a line and character recorded a few edits ago now
+/// covers the neighbour, and the answer about the neighbour is well formed.
+enum Address {
+    Position {
+        line: u32,
+        character: u32,
+    },
+    Name(String),
+    /// Both, which is a cross-check rather than a choice. See `resolve_address`.
+    Both {
+        line: u32,
+        character: u32,
+        name: String,
+    },
+}
+
+impl Address {
+    fn position(&self) -> Option<(u32, u32)> {
+        match self {
+            Address::Position { line, character } | Address::Both { line, character, .. } => {
+                Some((*line, *character))
+            }
+            Address::Name(_) => None,
+        }
+    }
+
+    fn name(&self) -> Option<&str> {
+        match self {
+            Address::Name(name) | Address::Both { name, .. } => Some(name),
+            Address::Position { .. } => None,
+        }
+    }
+}
+
+/// Read the `line`, `character`, and `name` arguments as one address.
+///
+/// A malformed `name` is an error rather than an ignored key. Falling back to a
+/// position the caller also sent would answer a different question from the one
+/// they asked, and answer it confidently, which is the failure the name is here
+/// to remove.
+fn read_address(args: &Value) -> Result<Address, String> {
+    let name = match args.get("name") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(s)) if s.trim().is_empty() => return Err("`name` is empty".to_string()),
+        Some(Value::String(s)) => Some(s.clone()),
+        Some(other) => return Err(format!("`name` must be a string, got `{other}`")),
+    };
+    let given = |key: &str| args.get(key).is_some_and(|v| !v.is_null());
+    match (name, given("line") || given("character")) {
+        (Some(name), false) => Ok(Address::Name(name)),
+        (Some(name), true) => {
+            let (line, character) = position(args)?;
+            Ok(Address::Both {
+                line,
+                character,
+                name,
+            })
+        }
+        (None, true) => {
+            let (line, character) = position(args)?;
+            Ok(Address::Position { line, character })
+        }
+        (None, false) => {
+            Err("no address: give either `line` and `character`, or `name`".to_string())
+        }
+    }
+}
+
 /// One file, as every location-producing helper here needs it: where it is,
 /// what project it belongs to, and its text. The three always travel together
 /// and were threaded separately through five call sites, which is what pushed
@@ -774,8 +1015,10 @@ mod tests {
         std::fs::write(root.join(name), text).unwrap();
     }
 
-    /// Invoke a tool on `server` and return the parsed JSON of its text content.
-    fn call_on(server: &mut Server, name: &str, args: Value) -> (Value, bool) {
+    /// Invoke a tool on `server` and return its raw text content plus the error
+    /// flag. A tool error is prose, not JSON, so a test that asserts on the
+    /// message has to read the text before anything tries to parse it.
+    fn call_raw(server: &mut Server, name: &str, args: Value) -> (String, bool) {
         let req = json!({
             "jsonrpc": "2.0", "id": 1, "method": "tools/call",
             "params": { "name": name, "arguments": args }
@@ -783,8 +1026,14 @@ mod tests {
         let resp = handle(&req, server).expect("response");
         let result = &resp["result"];
         let is_error = result["isError"].as_bool().unwrap();
-        let text = result["content"][0]["text"].as_str().unwrap();
-        (serde_json::from_str(text).unwrap_or(Value::Null), is_error)
+        let text = result["content"][0]["text"].as_str().unwrap().to_string();
+        (text, is_error)
+    }
+
+    /// Invoke a tool on `server` and return the parsed JSON of its text content.
+    fn call_on(server: &mut Server, name: &str, args: Value) -> (Value, bool) {
+        let (text, is_error) = call_raw(server, name, args);
+        (serde_json::from_str(&text).unwrap_or(Value::Null), is_error)
     }
 
     /// Invoke a tool on a fresh server rooted at `root`.
@@ -813,10 +1062,49 @@ mod tests {
             .collect()
     }
 
+    /// The source text each reported reference covers, so a test can assert
+    /// *which entity* an answer is about rather than which line it landed on.
+    /// Inserting a declaration above one moves every line below it, so the line
+    /// numbers are the one part of the answer that legitimately changes.
+    fn ref_names(server: &mut Server, root: &Path, args: Value) -> Vec<String> {
+        let (value, is_error) = call_on(server, "glyph_references", args);
+        assert!(!is_error, "{value}");
+        let root = std::fs::canonicalize(root).unwrap();
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|loc| {
+                let file = root.join(loc["path"].as_str().unwrap());
+                let text = std::fs::read_to_string(&file).unwrap();
+                let index = LineIndex::new(&text);
+                let at = |end: &str| {
+                    let p = &loc["range"][end];
+                    index.offset(
+                        &text,
+                        p["line"].as_u64().unwrap() as u32,
+                        p["character"].as_u64().unwrap() as u32,
+                    )
+                };
+                text[at("start")..at("end")].to_string()
+            })
+            .collect()
+    }
+
     const DECL: &str = "module a\npub fn foo() -> number {\n  return 1\n}\n";
     const IMPORTER: &str =
         "module b\nimport a { foo }\npub fn use_it() -> number {\n  return foo()\n}\n";
     const NO_IMPORT: &str = "module b\npub fn use_it() -> number {\n  return 1\n}\n";
+    /// The insertion demonstration: a module, the same module with one
+    /// unrelated declaration inserted above `charge`, and a module importing
+    /// it. `charge` sits at line 1, character 7 in the first and at line 4,
+    /// character 7 in the second, which is the whole problem with recording a
+    /// coordinate.
+    const CHARGE: &str = "module a\npub fn charge(m: number) -> number {\n  return m\n}\n";
+    const AUDIT_ABOVE_CHARGE: &str = "module a\npub fn audit() -> number {\n  return 0\n}\npub fn charge(m: number) -> number {\n  return m\n}\n";
+    const CHARGE_IMPORTER: &str =
+        "module b\nimport a { charge }\npub fn bill() -> number {\n  return charge(1)\n}\n";
+
     /// A third importer of `a`, used from a directory the walk skips.
     const OUTSIDE_IMPORTER: &str =
         "module c\nimport a { foo }\npub fn also() -> number {\n  return foo()\n}\n";
@@ -1098,6 +1386,48 @@ mod tests {
         );
     }
 
+    /// The not-found message must not list a name it would refuse.
+    ///
+    /// `by_name` holds namespace imports, aliased imports and prelude entries
+    /// beside real declarations, and none of those has an identity to return.
+    /// Listing them made the error deny a name and then offer it back, which is
+    /// a loop rather than a next step.
+    #[test]
+    fn the_not_found_list_only_holds_names_that_would_answer() {
+        let root = tmp_root();
+        std::fs::write(root.join("package.json"), r#"{"name":"p","glyph":{}}"#).unwrap();
+        write(&root, "a.glyph", DECL);
+        write(
+            &root,
+            "c.glyph",
+            "module c\nimport a\nimport a as alias_a\npub fn also() -> number {\n  return 1\n}\n",
+        );
+
+        let mut server = Server::new(root.clone());
+        let (text, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "c.glyph", "name": "a" }),
+        );
+        assert!(is_error, "a namespace import has no identity to return: {text}");
+
+        let listed = text.split("It declares: ").nth(1).unwrap_or("").to_string();
+        // The failing name and the alias both name modules, so neither may be
+        // offered as a name that would have worked.
+        for refused in ["a", "alias_a"] {
+            assert!(
+                !listed
+                    .split(", ")
+                    .any(|n| n.trim().trim_end_matches('.') == refused),
+                "the list offers `{refused}`, which this tool refuses: {text}"
+            );
+        }
+        assert!(
+            listed.contains("also"),
+            "a real declaration should still be listed: {text}"
+        );
+    }
+
     /// A `.glyph` file the directory walk skips is not part of the project.
     /// Asking about it answers from its own contents, because the caller asked
     /// about that file; what it must not do is change the answer to a question
@@ -1229,5 +1559,316 @@ mod tests {
             events.is_empty(),
             "an unchanged repeat about a non-member executed queries: {events:?}"
         );
+    }
+
+    // ---- addressing an entity by name ----
+    //
+    // A position is what an editor has. An agent has a name, and a coordinate
+    // it recorded a few edits ago is not the same address it was.
+
+    /// The demonstration the `name` argument exists for.
+    ///
+    /// Against published 0.1.103 the position was the only address, so an agent
+    /// that recorded line 1 and asked again after a declaration was inserted
+    /// above got a well-formed answer about the inserted declaration instead.
+    /// No error, nothing in the result to notice.
+    #[test]
+    fn a_name_survives_a_declaration_inserted_above_it() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let mut server = Server::new(root.clone());
+
+        // The declaration in a, the import binding in b, and b's one call.
+        let named = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "charge" }));
+        assert_eq!(named, ["charge", "charge", "charge"], "{named:?}");
+        let positioned = ref_names(
+            &mut server,
+            &root,
+            json!({ "path": "a.glyph", "line": 1, "character": 7 }),
+        );
+        assert_eq!(positioned, named, "the two addresses must start out equal");
+
+        // One unrelated declaration inserted above. Nothing about `charge`
+        // changed; every line below it moved.
+        write(&root, "a.glyph", AUDIT_ABOVE_CHARGE);
+
+        let named_again =
+            ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "charge" }));
+        assert_eq!(
+            named_again,
+            ["charge", "charge", "charge"],
+            "the name stopped addressing `charge`: {named_again:?}"
+        );
+
+        // And the recorded coordinate now answers about the neighbour.
+        let positioned_again = ref_names(
+            &mut server,
+            &root,
+            json!({ "path": "a.glyph", "line": 1, "character": 7 }),
+        );
+        assert_eq!(positioned_again, ["audit"], "{positioned_again:?}");
+    }
+
+    /// The inverse, so the guarantee above is not vacuous: a name that no
+    /// longer names anything must come back not-found rather than quietly
+    /// resolving to whatever is nearby.
+    #[test]
+    fn a_renamed_entity_is_not_found_under_its_old_name() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let mut server = Server::new(root.clone());
+        let before = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "charge" }));
+        assert_eq!(before, ["charge", "charge", "charge"], "{before:?}");
+
+        // A real rename, both sides of the import, so the project stays valid.
+        write(&root, "a.glyph", &CHARGE.replace("charge", "settle"));
+        write(&root, "b.glyph", &CHARGE_IMPORTER.replace("charge", "settle"));
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "name": "charge" }),
+        );
+        assert!(is_error, "the old name still answered: {message}");
+        assert!(message.contains("charge"), "{message}");
+        assert!(
+            message.contains("settle"),
+            "the message should say what the module does declare: {message}"
+        );
+
+        // The new name answers, so the error above is a missing name and not a
+        // broken lookup.
+        let after = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "settle" }));
+        assert_eq!(after, ["settle", "settle", "settle"], "{after:?}");
+    }
+
+    /// Both addresses at once is a cross-check, not a preference: they agree
+    /// and the call answers, or they disagree and the call fails naming both.
+    ///
+    /// This is also the guard that keeps the two lookups honest. The position
+    /// path resolves through `symbol_target_at` and the name path through
+    /// `named_target`, and the agreeing half of this test fails the moment the
+    /// two identity rules drift apart.
+    #[test]
+    fn a_position_and_a_name_that_disagree_are_an_error() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let mut server = Server::new(root.clone());
+
+        let both = ref_names(
+            &mut server,
+            &root,
+            json!({ "path": "a.glyph", "line": 1, "character": 7, "name": "charge" }),
+        );
+        assert_eq!(both, ["charge", "charge", "charge"], "{both:?}");
+
+        write(&root, "a.glyph", AUDIT_ABOVE_CHARGE);
+
+        // The stale coordinate covers `audit` now. Answering either side would
+        // be a guess, so the caller is told instead.
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "line": 1, "character": 7, "name": "charge" }),
+        );
+        assert!(is_error, "a disagreeing address answered: {message}");
+        assert!(
+            message.contains("audit") && message.contains("charge"),
+            "the error must name both sides: {message}"
+        );
+
+        // The moved coordinate agrees with the name again.
+        let moved = ref_names(
+            &mut server,
+            &root,
+            json!({ "path": "a.glyph", "line": 4, "character": 7, "name": "charge" }),
+        );
+        assert_eq!(moved, ["charge", "charge", "charge"], "{moved:?}");
+    }
+
+    /// One of the two addresses is required, and a malformed `name` is a
+    /// malformed call. Ignoring it and falling back to the position is how a
+    /// typo becomes a confident answer about something else.
+    #[test]
+    fn a_call_needs_exactly_one_kind_of_address() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let mut server = Server::new(root.clone());
+
+        let (message, is_error) =
+            call_raw(&mut server, "glyph_references", json!({ "path": "a.glyph" }));
+        assert!(is_error, "a call with no address answered: {message}");
+        assert!(message.contains("name"), "{message}");
+
+        // A position that would otherwise answer, alongside a `name` that is
+        // not a string.
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "a.glyph", "line": 1, "character": 7, "name": 7 }),
+        );
+        assert!(is_error, "a non-string `name` was ignored: {message}");
+        assert!(message.contains("name"), "{message}");
+    }
+
+    /// A name is looked up in the module namespace of the file it is asked
+    /// about, and that namespace includes imports, so naming `charge` from the
+    /// importing module answers about the module that declares it. That is the
+    /// identity the position form already reports for an import binding.
+    #[test]
+    fn a_name_asked_of_an_importing_module_resolves_to_the_declaring_one() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let mut server = Server::new(root.clone());
+
+        let declaring = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "charge" }));
+        assert_eq!(declaring, ["charge", "charge", "charge"], "{declaring:?}");
+        let importing = ref_names(&mut server, &root, json!({ "path": "b.glyph", "name": "charge" }));
+        assert_eq!(importing, declaring, "{importing:?}");
+
+        // `charge` in `import a { charge }`, the position form of the same
+        // question.
+        let at_binding = ref_names(
+            &mut server,
+            &root,
+            json!({ "path": "b.glyph", "line": 1, "character": 11 }),
+        );
+        assert_eq!(at_binding, declaring, "{at_binding:?}");
+    }
+
+    /// The module namespace is flat, so a hoisted union variant is a top-level
+    /// name like any other and can be addressed as one.
+    #[test]
+    fn a_union_variant_can_be_addressed_by_name() {
+        let root = tmp_root();
+        write(
+            &root,
+            "a.glyph",
+            "module a\npub type Color = Red | Blue\npub fn pick() -> Color {\n  return Red\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+        let red = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "Red" }));
+        assert_eq!(red, ["Red", "Red"], "{red:?}");
+    }
+
+    /// A `let` has no name-address: it is not in the module's top-level table,
+    /// so naming it is not-found rather than a match on something else. The
+    /// position form still answers it, file-scoped, without building the
+    /// project.
+    #[test]
+    fn a_local_binding_cannot_be_addressed_by_name() {
+        let root = tmp_root();
+        write(
+            &root,
+            "c.glyph",
+            "module c\npub fn f() -> number {\n  let total = 1\n  return total\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        let (message, is_error) = call_raw(
+            &mut server,
+            "glyph_references",
+            json!({ "path": "c.glyph", "name": "total" }),
+        );
+        assert!(is_error, "a local answered a name address: {message}");
+        assert!(message.contains("total"), "{message}");
+
+        let local = ref_names(
+            &mut server,
+            &root,
+            json!({ "path": "c.glyph", "line": 2, "character": 6 }),
+        );
+        assert_eq!(local, ["total", "total"], "{local:?}");
+        assert!(
+            server.projects.is_empty(),
+            "a file-scoped question walked the project"
+        );
+    }
+
+    /// The name form keeps what the position form established: a repeat call
+    /// with nothing changed executes no salsa queries, and an edit still gets
+    /// through.
+    #[test]
+    fn a_repeat_call_addressed_by_name_executes_no_queries() {
+        let root = tmp_root();
+        write(&root, "a.glyph", CHARGE);
+        write(&root, "b.glyph", CHARGE_IMPORTER);
+        let (mut server, log) = recording_server(&root);
+
+        let first = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "charge" }));
+        assert_eq!(first, ["charge", "charge", "charge"], "{first:?}");
+        let cold: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(
+            cold.iter().filter(|k| k.starts_with("parse_module")).count(),
+            2,
+            "the cold call must parse both files: {cold:?}"
+        );
+
+        let second = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "charge" }));
+        let events: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(second, first);
+        assert!(
+            events.is_empty(),
+            "an unchanged repeat addressed by name executed queries: {events:?}"
+        );
+
+        // A declaration inserted above is a real edit: the file re-parses, and
+        // the answer is still about `charge`.
+        write(&root, "a.glyph", AUDIT_ABOVE_CHARGE);
+        let third = ref_names(&mut server, &root, json!({ "path": "a.glyph", "name": "charge" }));
+        let after: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(third, ["charge", "charge", "charge"], "{third:?}");
+        assert_eq!(
+            after.iter().filter(|k| k.starts_with("parse_module")).count(),
+            1,
+            "only the edited file should re-parse: {after:?}"
+        );
+    }
+
+    /// The schema says what the tool takes: `path` is the only required
+    /// argument on `glyph_references`, and `name` sits beside the position. The
+    /// two tools that answer about an expression or a reference occurrence
+    /// rather than about an entity are deliberately left position-only.
+    #[test]
+    fn only_the_references_tool_takes_a_name() {
+        let mut server = Server::new(tmp_root());
+        let list = handle(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }),
+            &mut server,
+        )
+        .unwrap();
+        let tools = list["result"]["tools"].as_array().unwrap().clone();
+        let spec = |want: &str| {
+            tools
+                .iter()
+                .find(|t| t["name"] == want)
+                .unwrap_or_else(|| panic!("missing {want}"))
+                .clone()
+        };
+
+        let refs = spec("glyph_references");
+        assert!(
+            refs["inputSchema"]["properties"]["name"].is_object(),
+            "{refs}"
+        );
+        assert_eq!(refs["inputSchema"]["required"], json!(["path"]), "{refs}");
+
+        for name in ["glyph_hover", "glyph_definition"] {
+            let tool = spec(name);
+            assert_eq!(
+                tool["inputSchema"]["required"],
+                json!(["path", "line", "character"]),
+                "{name} changed its required arguments"
+            );
+            assert!(
+                tool["inputSchema"]["properties"]["name"].is_null(),
+                "{name} grew a `name` argument"
+            );
+        }
     }
 }

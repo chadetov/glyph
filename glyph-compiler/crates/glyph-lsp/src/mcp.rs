@@ -5,28 +5,305 @@
 //! symbol search, and diagnostics — so the agent surface is a thin adapter over
 //! the same semantics the editor path uses, not a second implementation.
 //!
+//! Unlike the language server, this one keeps a salsa database per project
+//! (see `Server`), so a repeated whole-project query costs a directory walk
+//! instead of re-parsing every file. The two servers share the analysis
+//! *functions* but not the database, because they disagree about what is
+//! authoritative: the editor's truth is the unsaved buffer it sent in
+//! `didChange`, this server's is what is on disk, and a `SourceFile` holds one
+//! text. Handing disk to the language server would overwrite a dirty buffer
+//! with stale bytes.
+//!
 //! Positions are LSP-style: 0-based `line` and a 0-based UTF-16 `character`.
 //! Paths in tool arguments are relative to the project root (or absolute); paths
 //! in results are reported relative to the root when possible.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use serde_json::{json, Value};
 
+use glyph_db::{CompilerDb, EventSink, Setter, SourceFile};
+use glyph_resolver::{build_prelude, collect_module_symbols, resolve_module, StdlibStubs};
+
 use crate::analysis::{
-    analyze, analyze_full, outline_of, Analysis, Definition, LineIndex, OutlineKind, OutlineSymbol,
-    SymbolTarget,
+    analyze, analyze_full, global_occurrences_in, outline_of, references_at, symbol_target_at,
+    Definition, LineIndex, OutlineKind, OutlineSymbol, SymbolTarget,
 };
 use crate::{collect_glyph_files, module_path_of};
 
 /// The MCP protocol revision this server implements.
 const PROTOCOL_VERSION: &str = "2024-11-05";
 
+/// How many project databases stay live at once, least-recently-used evicted.
+///
+/// A database retains roughly 35x the source it analyzed (39.5 MB of memo for
+/// 1.1 MB of `.glyph` on the examples tree) and `glyph-db` evicts nothing on
+/// its own, so an unbounded map is a leak in a server that runs for as long as
+/// the agent session does.
+const MAX_LIVE_DATABASES: usize = 4;
+
+/// One file the database knows about: its salsa input and the module path that
+/// names it inside its project.
+struct ProjectFile {
+    module_path: String,
+    file: SourceFile,
+}
+
+/// One project's incremental database, plus the disk state it was built from.
+///
+/// Keyed by *project* root rather than by the server's root because module
+/// paths are counted per project (D41): merging two projects into one
+/// `ProjectFiles` would merge their module namespaces, so a sibling `lib` in
+/// one project would answer an `import lib` in the other.
+struct Project {
+    root: PathBuf,
+    db: CompilerDb,
+    /// The project's members: absolute path → the database's handle, for every
+    /// `.glyph` file the directory walk reaches. The walk is what defines
+    /// membership, and this set is what every query answers from.
+    files: BTreeMap<PathBuf, ProjectFile>,
+    /// The file the current call asked about, when the walk does not reach it.
+    ///
+    /// A `.glyph` file under a dot directory, `target/`, or `node_modules/` is
+    /// not a member of the project. Answering a question asked *about* one of
+    /// them from its own contents is fine, since the caller named it; making it
+    /// a member is not. It used to be force-inserted into `files`, where it
+    /// stayed for the life of the database, so a later question about a
+    /// *different* file answered differently for having been asked — and
+    /// answered differently again once the LRU evicted the database and the
+    /// walk rebuilt it without the intruder. This slot holds one file, is
+    /// rewritten by every refresh, and never reaches `files` or `entries`.
+    outsider: Option<(PathBuf, ProjectFile)>,
+    /// The entry list last pushed to the database, so `set_project` fires only
+    /// when the set actually changed (see `refresh`).
+    entries: Vec<(String, SourceFile)>,
+}
+
+impl Project {
+    fn new(root: PathBuf, sink: Option<&EventSink>) -> Self {
+        let db = match sink {
+            Some(sink) => CompilerDb::with_event_sink(
+                build_prelude(),
+                Arc::new(StdlibStubs::new()),
+                Arc::clone(sink),
+            ),
+            None => CompilerDb::with_default_stdlib(),
+        };
+        Self {
+            root,
+            db,
+            files: BTreeMap::new(),
+            outsider: None,
+            entries: Vec::new(),
+        }
+    }
+
+    /// Bring the database back in line with what is on disk, then hand back a
+    /// read-only view of it.
+    ///
+    /// Every `.glyph` file under the project root is re-read and compared, on
+    /// every call. There is no watcher and no mtime heuristic: the walk costs
+    /// about 4 ms warm and the reads about 5 ms against a query that used to
+    /// cost 169 ms, and the walk is also what notices a file that did not exist
+    /// when the server started.
+    ///
+    /// The candidate set is the walk, plus the members the database already
+    /// holds so a file that has been deleted is noticed and dropped. `target`
+    /// is not in it: when the walk does not reach `target` it is loaded into
+    /// `outsider` instead, for this call only.
+    ///
+    /// **The comparison is the whole point.** salsa 0.28 does not backdate an
+    /// input write: `set_text` with byte-identical text still opens a new
+    /// revision and forces every dependent query to re-execute. A refresh that
+    /// wrote unconditionally would miss on every call forever while looking
+    /// exactly like a cache, and would be slower than the code it replaced,
+    /// because it would pay the reads on top of the full analysis. The same
+    /// applies to `set_project`, which is written only when the entry set
+    /// changes.
+    fn refresh(&mut self, target: &Path) {
+        let mut walked = Vec::new();
+        collect_glyph_files(&self.root, &mut walked);
+        let mut candidates: BTreeSet<PathBuf> = walked.into_iter().collect();
+        // Members the database already holds are re-read too, so a file the
+        // walk no longer reaches is re-checked rather than left frozen.
+        candidates.extend(self.files.keys().cloned());
+
+        let mut next: BTreeMap<PathBuf, ProjectFile> = BTreeMap::new();
+        for path in candidates {
+            let Some(module_path) = module_path_of(&self.root, &path) else {
+                continue;
+            };
+            // An unreadable path is a deleted (or never-present) file: leaving
+            // it out of `next` is what drops it from the entry list.
+            let Ok(text) = std::fs::read_to_string(&path) else {
+                continue;
+            };
+            let existing = self.files.remove(&path);
+            next.insert(path, load(&mut self.db, existing, module_path, text));
+        }
+        self.files = next;
+        self.load_outsider(target);
+
+        let entries: Vec<(String, SourceFile)> = self
+            .files
+            .values()
+            .map(|f| (f.module_path.clone(), f.file))
+            .collect();
+        if entries != self.entries {
+            self.db.set_project(entries.clone());
+            self.entries = entries;
+        }
+    }
+
+    /// Load `target` into the `outsider` slot when the walk does not reach it,
+    /// so the question asked about it can be answered from its own contents.
+    ///
+    /// The slot is rewritten on every refresh, so a non-member file is readable
+    /// exactly while it is the file being asked about. It is deliberately kept
+    /// out of `entries`: a non-member must not answer another module's
+    /// `import`, any more than it should turn up in another file's references.
+    fn load_outsider(&mut self, target: &Path) {
+        if self.files.contains_key(target) {
+            // A member. The slot must not hold a second handle on the same
+            // path, or every occurrence in it would be reported twice.
+            self.outsider = None;
+            return;
+        }
+        let Some(module_path) = module_path_of(&self.root, target) else {
+            self.outsider = None;
+            return;
+        };
+        let Ok(text) = std::fs::read_to_string(target) else {
+            self.outsider = None;
+            return;
+        };
+        // Reuse the handle when the same file is asked about again, so a repeat
+        // call still writes nothing and executes no queries.
+        let existing = match self.outsider.take() {
+            Some((p, pf)) if p == target => Some(pf),
+            _ => None,
+        };
+        let file = load(&mut self.db, existing, module_path, text);
+        self.outsider = Some((target.to_path_buf(), file));
+    }
+
+    /// Every file this call may read, in path order: the project's members,
+    /// plus the queried file when the walk does not reach it.
+    fn searched(&self) -> Vec<(&Path, &ProjectFile)> {
+        let mut files: Vec<(&Path, &ProjectFile)> = self
+            .files
+            .iter()
+            .map(|(p, f)| (p.as_path(), f))
+            .collect();
+        if let Some((p, f)) = &self.outsider {
+            files.push((p.as_path(), f));
+            files.sort_by(|a, b| a.0.cmp(b.0));
+        }
+        files
+    }
+}
+
+/// Put `text` into the database under `module_path`, reusing `existing`'s salsa
+/// input when the file already had one.
+///
+/// The inequality is load-bearing: salsa 0.28 does not backdate an input write,
+/// so `set_text` with byte-identical text still opens a new revision and forces
+/// every dependent query to re-execute.
+fn load(
+    db: &mut CompilerDb,
+    existing: Option<ProjectFile>,
+    module_path: String,
+    text: String,
+) -> ProjectFile {
+    match existing {
+        Some(existing) => {
+            if existing.file.text(&*db) != &text {
+                existing.file.set_text(db).to(text);
+            }
+            existing
+        }
+        None => {
+            let file = SourceFile::new(&*db, module_path.clone(), text);
+            ProjectFile { module_path, file }
+        }
+    }
+}
+
+/// The MCP server's state across calls: the root it was started on and the
+/// live project databases, most-recently-used first.
+pub struct Server {
+    root: PathBuf,
+    projects: Vec<Project>,
+    /// Set only by tests, which use it to prove a repeat call executed no
+    /// queries. `None` in the shipped server, where salsa installs no callback.
+    sink: Option<EventSink>,
+}
+
+/// The server root, canonicalized once so every later comparison has both sides
+/// in the same spelling.
+///
+/// `read_file` canonicalizes the path it is handed, and a project root is found
+/// by walking up from that path, so a root left in its original spelling
+/// compares against something it can never match. On macOS this is not an edge
+/// case: a temporary directory under `/var` canonicalizes to `/private/var`, so
+/// every membership test fails and every file becomes a non-member.
+///
+/// Falls back to the given path when it cannot be resolved, because a root that
+/// does not exist yet is the caller's problem to report, not this function's to
+/// panic on.
+fn canonical_root(root: PathBuf) -> PathBuf {
+    std::fs::canonicalize(&root).unwrap_or(root)
+}
+
+impl Server {
+    pub fn new(root: PathBuf) -> Self {
+        Self {
+            root: canonical_root(root),
+            projects: Vec::new(),
+            sink: None,
+        }
+    }
+
+    /// A server whose databases report every salsa event to `sink`.
+    #[cfg(test)]
+    fn with_event_sink(root: PathBuf, sink: EventSink) -> Self {
+        Self {
+            root: canonical_root(root),
+            projects: Vec::new(),
+            sink: Some(sink),
+        }
+    }
+
+    /// The database for the project rooted at `project_root`, refreshed from
+    /// disk and moved to the front of the LRU. `target` is the file the caller
+    /// is asking about; it is guaranteed to be in the returned database when it
+    /// is readable and under the project root.
+    fn project(&mut self, project_root: &Path, target: &Path) -> &Project {
+        match self.projects.iter().position(|p| p.root == project_root) {
+            Some(i) => {
+                let project = self.projects.remove(i);
+                self.projects.insert(0, project);
+            }
+            None => {
+                let project = Project::new(project_root.to_path_buf(), self.sink.as_ref());
+                self.projects.insert(0, project);
+                self.projects.truncate(MAX_LIVE_DATABASES);
+            }
+        }
+        let project = &mut self.projects[0];
+        project.refresh(target);
+        project
+    }
+}
+
 /// Run the MCP server over stdio until stdin closes. `root` is the project root
 /// used for workspace queries (references, symbols) and to resolve relative file
 /// paths in tool arguments.
 pub fn run_stdio(root: PathBuf) {
+    let mut server = Server::new(root);
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut out = stdout.lock();
@@ -39,7 +316,7 @@ pub fn run_stdio(root: PathBuf) {
         let Ok(req) = serde_json::from_str::<Value>(&line) else {
             continue;
         };
-        if let Some(resp) = handle(&req, &root) {
+        if let Some(resp) = handle(&req, &mut server) {
             // `to_string` escapes any newline inside a string, so the message is
             // a single line as the transport requires.
             let s = serde_json::to_string(&resp).unwrap_or_default();
@@ -52,7 +329,7 @@ pub fn run_stdio(root: PathBuf) {
 
 /// Dispatch one JSON-RPC message. Returns the response for a request, or `None`
 /// for a notification (no `id`) or a message we do not answer.
-fn handle(req: &Value, root: &Path) -> Option<Value> {
+fn handle(req: &Value, server: &mut Server) -> Option<Value> {
     let method = req.get("method")?.as_str()?;
     let id = req.get("id").cloned();
     match method {
@@ -61,7 +338,7 @@ fn handle(req: &Value, root: &Path) -> Option<Value> {
         "tools/call" => {
             let id = id?;
             let params = req.get("params").cloned().unwrap_or(Value::Null);
-            let (text, is_error) = match call_tool(&params, root) {
+            let (text, is_error) = match call_tool(&params, server) {
                 Ok(t) => (t, false),
                 Err(e) => (e, true),
             };
@@ -119,18 +396,22 @@ fn tool_specs() -> Value {
 /// Run a `tools/call`. `Ok` is the tool's textual result (JSON we serialize for
 /// the agent to parse); `Err` is a human-readable failure that becomes an
 /// `isError` result rather than a protocol error.
-fn call_tool(params: &Value, root: &Path) -> Result<String, String> {
+fn call_tool(params: &Value, server: &mut Server) -> Result<String, String> {
     let name = params
         .get("name")
         .and_then(|v| v.as_str())
         .ok_or("missing tool `name`")?;
     let args = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
+    let root = server.root.clone();
     match name {
-        "glyph_diagnostics" => tool_diagnostics(&args, root),
-        "glyph_hover" => tool_hover(&args, root),
-        "glyph_definition" => tool_definition(&args, root),
-        "glyph_references" => tool_references(&args, root),
-        "glyph_symbols" => tool_symbols(&args, root),
+        // The three single-file tools answer in well under a millisecond from a
+        // fresh parse, so they stay off the database: routing them through it
+        // would buy nothing and charge them the project-wide directory walk.
+        "glyph_diagnostics" => tool_diagnostics(&args, &root),
+        "glyph_hover" => tool_hover(&args, &root),
+        "glyph_definition" => tool_definition(&args, &root),
+        "glyph_references" => tool_references(&args, server),
+        "glyph_symbols" => tool_symbols(&args, &root),
         other => Err(format!("unknown tool: {other}")),
     }
 }
@@ -192,45 +473,103 @@ fn tool_definition(args: &Value, root: &Path) -> Result<String, String> {
     Ok(to_json(&value))
 }
 
-fn tool_references(args: &Value, root: &Path) -> Result<String, String> {
-    let (path, text) = read_file(args, root)?;
+/// Every reference to the symbol at a position, across the file's own project.
+///
+/// This is the one tool on the incremental database, and it takes the database
+/// only when it has to. The position is classified from the queried file alone
+/// first; a local binding, or a position that names nothing, is answered right
+/// there. Only a module-level symbol reaches the project.
+///
+/// The sweep used to run first, so a question whose answer never left the file
+/// still walked and re-read every file in the project: 11 ms on a 175-file tree
+/// and 77 ms on a 340-file one, all of it discarded. That cost scales with the
+/// project where the single-file answer does not.
+///
+/// On the project path it reads `parse_module` and `resolve` and never touches
+/// `type_map`: the occurrence scan reads the resolution table only, so computing
+/// types for the whole project was 47 ms of work whose 68,425 entries were
+/// dropped unread.
+fn tool_references(args: &Value, server: &mut Server) -> Result<String, String> {
+    let root = server.root.clone();
+    let (path, text) = read_file(args, &root)?;
     let (line, character) = position(args)?;
-    let Some(a) = analyze_full(&text) else {
-        return Ok("[]".to_string());
-    };
-    let offset = LineIndex::new(&text).offset(&text, line, character);
     // Module paths, and so the search for other files naming this symbol, are
     // scoped to the file's own project (D41): another project's `import lib`
-    // names its own `lib`, not this one.
-    let project = crate::project_root_for(&path, root);
+    // names its own `lib`, not this one. That is also why each project gets its
+    // own database rather than one database over the server's root.
+    let project_root = crate::project_root_for(&path, &root);
     let this_module =
-        module_path_of(&project, &path).ok_or("the file is not under the project root")?;
+        module_path_of(&project_root, &path).ok_or("the file is not under the project root")?;
+    let offset = LineIndex::new(&text).offset(&text, line, character);
 
-    let mut out: Vec<Value> = Vec::new();
-    match a.symbol_target(offset, &text, &this_module) {
-        Some(SymbolTarget::Global { module, name }) => {
-            for (fpath, ftext) in workspace_files(&project) {
-                let Some(fm) = module_path_of(&project, &fpath) else {
-                    continue;
-                };
-                let Some(fa) = analyze_full(&ftext) else {
-                    continue;
-                };
-                let file = FileCtx { path: &fpath, root, text: &ftext };
-                push_occurrences(&mut out, file, &fa, &fm, &module, &name);
-            }
-        }
+    // Deliberately not `analyze_full`: that also assigns types, and every query
+    // below reads the resolution table only. This is the same front end the
+    // database runs (`parse_module` → `module_symbols` → `resolve`), on one
+    // file, and it costs a fraction of a millisecond.
+    let Ok(module) = glyph_parser::parse(&text) else {
+        return Ok("[]".to_string());
+    };
+    let Ok(symbols) = collect_module_symbols(&module) else {
+        return Ok("[]".to_string());
+    };
+    let (resolved, _errs) = resolve_module(&module, symbols, &build_prelude());
+
+    let (sym_module, name) = match symbol_target_at(&module, &resolved, offset, &text, &this_module)
+    {
+        Some(SymbolTarget::Global { module, name }) => (module, name),
+        // A local binding cannot be named from another file, so the project has
+        // nothing to add and is never built.
         Some(SymbolTarget::Local) => {
             let index = LineIndex::new(&text);
-            for (s, e) in a.references(offset, &text, true) {
-                out.push(location_value(FileCtx { path: &path, root, text: &text }, &index, s, e));
-            }
+            let file = FileCtx { path: &path, root: &root, text: &text };
+            let out: Vec<Value> = references_at(&module, &resolved, offset, &text, true)
+                .into_iter()
+                .map(|(s, e)| location_value(file, &index, s, e))
+                .collect();
+            return Ok(to_json(&out));
         }
-        None => {}
+        None => return Ok("[]".to_string()),
+    };
+
+    let project = server.project(&project_root, &path);
+    let db = &project.db;
+    let mut out: Vec<Value> = Vec::new();
+    for (fpath, entry) in project.searched() {
+        let ftext = entry.file.text(db);
+        let fparsed = glyph_db::parse_module(db, entry.file);
+        let fresolved = glyph_db::resolve(db, entry.file);
+        let (Some(fmodule), Some(fresolved)) = (fparsed.module(), fresolved.resolved()) else {
+            continue;
+        };
+        let spans = global_occurrences_in(
+            fmodule,
+            fresolved,
+            &entry.module_path,
+            &sym_module,
+            &name,
+            ftext,
+            true,
+        );
+        if spans.is_empty() {
+            continue;
+        }
+        let index = LineIndex::new(ftext);
+        let file = FileCtx { path: fpath, root: &root, text: ftext };
+        for (s, e) in spans {
+            out.push(location_value(file, &index, s, e));
+        }
     }
     Ok(to_json(&out))
 }
 
+/// Search the whole server root's top-level declarations.
+///
+/// Deliberately still an uncached walk. This tool spans project boundaries by
+/// design — an agent asking "where is `parse_row`" wants the answer from every
+/// project under the root, not just the one holding some file it happened to
+/// name — and the per-project databases cannot answer a question that crosses
+/// them. Changing what a tool returns as a side effect of a caching change is
+/// the wrong way to decide that, so its behaviour is untouched.
 fn tool_symbols(args: &Value, root: &Path) -> Result<String, String> {
     let query = args
         .get("query")
@@ -249,22 +588,6 @@ fn tool_symbols(args: &Value, root: &Path) -> Result<String, String> {
         }
     }
     Ok(to_json(&out))
-}
-
-/// Collect every global occurrence of `(sym_module, name)` in one analyzed file
-/// into `out` as location values.
-fn push_occurrences(
-    out: &mut Vec<Value>,
-    file: FileCtx<'_>,
-    fa: &Analysis,
-    file_module: &str,
-    sym_module: &str,
-    name: &str,
-) {
-    let index = LineIndex::new(file.text);
-    for (s, e) in fa.global_occurrences(file_module, sym_module, name, file.text, true) {
-        out.push(location_value(file, &index, s, e));
-    }
 }
 
 fn push_symbol(
@@ -301,12 +624,32 @@ fn workspace_files(root: &Path) -> Vec<(PathBuf, String)> {
 
 // ----- argument + result helpers -----
 
+/// Resolve the `path` argument to a real, canonical `.glyph` file.
+///
+/// Both halves of this are load-bearing, and each one was a wrong answer before
+/// it was here.
+///
+/// **Canonicalize**, because a path is an identity and one file must have one.
+/// Symlinks are the clearest case: `collect_glyph_files` reads directory
+/// entries without traversing links, so an aliased spelling is never a walk
+/// member and the same physical file was reported twice, once under each name.
+/// A `..` segment was worse than cosmetic: `project_root_for` resolved
+/// `p/sub/..` to a root distinct from `p`, building a second copy of a
+/// project's memo and spending a second cache slot on it, while
+/// `p/../outside.glyph` was captured by `p`'s marker because the prefix test
+/// succeeds on an unnormalized path. Case-only spellings forked a project the
+/// same way on a case-insensitive filesystem.
+///
+/// **Check the extension**, because the module path is derived by dropping it.
+/// Without the check `a.txt` becomes module `a`, collides with the real `a.glyph`,
+/// and a declaration gets reported in two files. A rename driven off that answer
+/// would be handed a text file as a site to edit.
 fn read_file(args: &Value, root: &Path) -> Result<(PathBuf, String), String> {
     let raw = args
         .get("path")
         .and_then(|v| v.as_str())
         .ok_or("missing `path`")?;
-    let path = {
+    let joined = {
         let p = Path::new(raw);
         if p.is_absolute() {
             p.to_path_buf()
@@ -314,6 +657,15 @@ fn read_file(args: &Value, root: &Path) -> Result<(PathBuf, String), String> {
             root.join(p)
         }
     };
+    // Canonicalize before anything reads the path, so every later comparison
+    // (project root, walk membership, the emitted location) sees one spelling.
+    // It also fails cleanly for a path that does not exist, which is the same
+    // error the read would have produced.
+    let path = std::fs::canonicalize(&joined)
+        .map_err(|e| format!("cannot read {}: {e}", joined.display()))?;
+    if path.extension().and_then(|e| e.to_str()) != Some("glyph") {
+        return Err(format!("not a Glyph source file: {}", path.display()));
+    }
     let text = std::fs::read_to_string(&path)
         .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
     Ok((path, text))
@@ -422,32 +774,70 @@ mod tests {
         std::fs::write(root.join(name), text).unwrap();
     }
 
-    /// Invoke a tool and return the parsed JSON of its text content.
-    fn call(root: &Path, name: &str, args: Value) -> (Value, bool) {
+    /// Invoke a tool on `server` and return the parsed JSON of its text content.
+    fn call_on(server: &mut Server, name: &str, args: Value) -> (Value, bool) {
         let req = json!({
             "jsonrpc": "2.0", "id": 1, "method": "tools/call",
             "params": { "name": name, "arguments": args }
         });
-        let resp = handle(&req, root).expect("response");
+        let resp = handle(&req, server).expect("response");
         let result = &resp["result"];
         let is_error = result["isError"].as_bool().unwrap();
         let text = result["content"][0]["text"].as_str().unwrap();
         (serde_json::from_str(text).unwrap_or(Value::Null), is_error)
     }
 
+    /// Invoke a tool on a fresh server rooted at `root`.
+    fn call(root: &Path, name: &str, args: Value) -> (Value, bool) {
+        call_on(&mut Server::new(root.to_path_buf()), name, args)
+    }
+
+    /// The reference locations for a position, as `(path, start line)` pairs.
+    fn refs_at(server: &mut Server, path: &str, line: u32, character: u32) -> Vec<(String, u64)> {
+        let (value, is_error) = call_on(
+            server,
+            "glyph_references",
+            json!({ "path": path, "line": line, "character": character }),
+        );
+        assert!(!is_error, "{value}");
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|l| {
+                (
+                    l["path"].as_str().unwrap().to_string(),
+                    l["range"]["start"]["line"].as_u64().unwrap(),
+                )
+            })
+            .collect()
+    }
+
+    const DECL: &str = "module a\npub fn foo() -> number {\n  return 1\n}\n";
+    const IMPORTER: &str =
+        "module b\nimport a { foo }\npub fn use_it() -> number {\n  return foo()\n}\n";
+    const NO_IMPORT: &str = "module b\npub fn use_it() -> number {\n  return 1\n}\n";
+    /// A third importer of `a`, used from a directory the walk skips.
+    const OUTSIDE_IMPORTER: &str =
+        "module c\nimport a { foo }\npub fn also() -> number {\n  return foo()\n}\n";
+
     #[test]
     fn initialize_and_tools_list() {
         let root = tmp_root();
+        let mut server = Server::new(root);
         let init = handle(
             &json!({ "jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {} }),
-            &root,
+            &mut server,
         )
         .unwrap();
         assert_eq!(init["result"]["protocolVersion"], PROTOCOL_VERSION);
         assert_eq!(init["result"]["serverInfo"]["name"], "glyph-mcp");
 
-        let list =
-            handle(&json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }), &root).unwrap();
+        let list = handle(
+            &json!({ "jsonrpc": "2.0", "id": 1, "method": "tools/list" }),
+            &mut server,
+        )
+        .unwrap();
         let names: Vec<&str> = list["result"]["tools"]
             .as_array()
             .unwrap()
@@ -467,10 +857,10 @@ mod tests {
 
     #[test]
     fn a_notification_gets_no_response() {
-        let root = tmp_root();
+        let mut server = Server::new(tmp_root());
         assert!(handle(
             &json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }),
-            &root
+            &mut server
         )
         .is_none());
     }
@@ -537,5 +927,307 @@ mod tests {
         let root = tmp_root();
         let (_v, is_error) = call(&root, "glyph_diagnostics", json!({ "path": "nope.glyph" }));
         assert!(is_error);
+    }
+    // ---- the database-backed references path ----
+    //
+    // Three properties, and no one of them substitutes for another: the answer
+    // must follow disk with no notification (`not stale`), a repeat must cost
+    // nothing (`actually a cache`), and a file that did not exist when the
+    // server started must be found.
+
+    #[test]
+    fn a_file_rewritten_behind_the_server_is_seen() {
+        let root = tmp_root();
+        write(&root, "a.glyph", DECL);
+        write(&root, "b.glyph", IMPORTER);
+        let mut server = Server::new(root.clone());
+
+        // Declaration in a, import binding + one use in b.
+        let before = refs_at(&mut server, "a.glyph", 1, 7);
+        assert_eq!(before.len(), 3, "{before:?}");
+
+        // Rewrite b on disk behind the server's back: no notification, no
+        // restart, nothing told the server anything happened.
+        write(&root, "b.glyph", NO_IMPORT);
+
+        let after = refs_at(&mut server, "a.glyph", 1, 7);
+        assert_eq!(after.len(), 1, "stale answer: {after:?}");
+        assert_eq!(after[0].0, "a.glyph");
+    }
+
+    #[test]
+    fn a_file_created_after_the_server_started_is_found() {
+        let root = tmp_root();
+        write(&root, "a.glyph", DECL);
+        let mut server = Server::new(root.clone());
+        assert_eq!(refs_at(&mut server, "a.glyph", 1, 7).len(), 1);
+
+        // The directory walk, not a watcher, is what notices this.
+        write(&root, "b.glyph", IMPORTER);
+
+        let after = refs_at(&mut server, "a.glyph", 1, 7);
+        assert_eq!(after.len(), 3, "{after:?}");
+        assert!(after.iter().any(|(p, _)| p == "b.glyph"), "{after:?}");
+    }
+
+    #[test]
+    fn a_deleted_file_leaves_the_database() {
+        let root = tmp_root();
+        write(&root, "a.glyph", DECL);
+        write(&root, "b.glyph", IMPORTER);
+        let mut server = Server::new(root.clone());
+        assert_eq!(refs_at(&mut server, "a.glyph", 1, 7).len(), 3);
+
+        std::fs::remove_file(root.join("b.glyph")).unwrap();
+
+        let after = refs_at(&mut server, "a.glyph", 1, 7);
+        assert_eq!(after.len(), 1, "{after:?}");
+    }
+
+
+    /// A server whose databases log the name of every query they execute, and
+    /// the log. `WillExecute` is the only event that means work happened.
+    ///
+    /// salsa renders a `DatabaseKeyIndex` as its query name only while the
+    /// database is attached, which it is inside the event callback.
+    fn recording_server(root: &Path) -> (Server, Arc<std::sync::Mutex<Vec<String>>>) {
+        let log: Arc<std::sync::Mutex<Vec<String>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let recorder = Arc::clone(&log);
+        let sink: EventSink = Arc::new(move |event: &glyph_db::Event| {
+            if let glyph_db::EventKind::WillExecute { database_key } = &event.kind {
+                recorder.lock().unwrap().push(format!("{database_key:?}"));
+            }
+        });
+        (Server::with_event_sink(root.to_path_buf(), sink), log)
+    }
+
+    /// A repeat call with nothing changed must execute **zero** salsa queries.
+    ///
+    /// This is the test that catches the trap the whole refresh is written
+    /// around: salsa 0.28 does not backdate an input write, so a refresh that
+    /// called `set_text` unconditionally would re-execute `parse_module` for
+    /// every file on every call — a cache with a permanent zero hit rate, and
+    /// slower than no cache at all, while every other test here still passed.
+    #[test]
+    fn a_repeat_call_executes_no_queries() {
+        let root = tmp_root();
+        write(&root, "a.glyph", DECL);
+        write(&root, "b.glyph", IMPORTER);
+
+        let (mut server, log) = recording_server(&root);
+
+        let first_answer = refs_at(&mut server, "a.glyph", 1, 7);
+        let first: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(first_answer.len(), 3, "{first_answer:?}");
+        assert_eq!(
+            first.iter().filter(|k| k.starts_with("parse_module")).count(),
+            2,
+            "the cold call must parse both files: {first:?}"
+        );
+
+        let second_answer = refs_at(&mut server, "a.glyph", 1, 7);
+        let second: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(second_answer, first_answer);
+        assert_eq!(
+            second.iter().filter(|k| k.starts_with("parse_module")).count(),
+            0,
+            "parse_module re-executed on an unchanged repeat call: {second:?}"
+        );
+        assert!(
+            second.is_empty(),
+            "an unchanged repeat call executed queries: {second:?}"
+        );
+
+        // And an edit still gets through: only the edited file re-parses.
+        write(&root, "b.glyph", NO_IMPORT);
+        let third_answer = refs_at(&mut server, "a.glyph", 1, 7);
+        let third: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(third_answer.len(), 1, "{third_answer:?}");
+        assert_eq!(
+            third.iter().filter(|k| k.starts_with("parse_module")).count(),
+            1,
+            "only the edited file should re-parse: {third:?}"
+        );
+    }
+
+    #[test]
+    fn each_project_under_the_root_gets_its_own_database() {
+        // Two sibling projects, each marked by a package.json "glyph" key, each
+        // with its own `a` module. A reference query in one must not reach into
+        // the other (D41).
+        let root = tmp_root();
+        for project in ["one", "two"] {
+            let dir = root.join(project);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("package.json"), r#"{"name":"p","glyph":{}}"#).unwrap();
+            write(&dir, "a.glyph", DECL);
+            write(&dir, "b.glyph", IMPORTER);
+        }
+        let mut server = Server::new(root.clone());
+        let one = refs_at(&mut server, "one/a.glyph", 1, 7);
+        assert_eq!(one.len(), 3, "{one:?}");
+        assert!(one.iter().all(|(p, _)| p.starts_with("one/")), "{one:?}");
+        let two = refs_at(&mut server, "two/a.glyph", 1, 7);
+        assert_eq!(two.len(), 3, "{two:?}");
+        assert!(two.iter().all(|(p, _)| p.starts_with("two/")), "{two:?}");
+        assert_eq!(server.projects.len(), 2);
+    }
+
+    #[test]
+    fn only_four_databases_stay_live() {
+        let root = tmp_root();
+        for n in 0..6 {
+            let dir = root.join(format!("p{n}"));
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("package.json"), r#"{"name":"p","glyph":{}}"#).unwrap();
+            write(&dir, "a.glyph", DECL);
+        }
+        let mut server = Server::new(root.clone());
+        for n in 0..6 {
+            refs_at(&mut server, &format!("p{n}/a.glyph"), 1, 7);
+        }
+        assert_eq!(server.projects.len(), MAX_LIVE_DATABASES);
+        // Most-recently-used first, so the last project queried is at the front
+        // and the first two were evicted. The expectation is canonicalized
+        // because the server canonicalizes its root: on macOS a temporary
+        // directory under `/var` resolves to `/private/var`, and comparing the
+        // two spellings tests the test rather than the code.
+        assert_eq!(
+            server.projects[0].root,
+            std::fs::canonicalize(root.join("p5")).unwrap()
+        );
+    }
+
+    /// A `.glyph` file the directory walk skips is not part of the project.
+    /// Asking about it answers from its own contents, because the caller asked
+    /// about that file; what it must not do is change the answer to a question
+    /// about a different file, then or later.
+    ///
+    /// The second half is the one that matters most. Before this was fixed the
+    /// answer to an unchanged question moved from 3 to 5 and back to 3, and the
+    /// move back was the LRU evicting the database. An answer that depends on
+    /// what else was asked, and reverts when a cache forgets, is worse than a
+    /// slow answer.
+    #[test]
+    fn asking_about_a_file_outside_the_walk_leaves_other_answers_alone() {
+        let root = tmp_root();
+        for n in 0..5 {
+            let dir = root.join(format!("p{n}"));
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("package.json"), r#"{"name":"p","glyph":{}}"#).unwrap();
+            write(&dir, "a.glyph", DECL);
+            write(&dir, "b.glyph", IMPORTER);
+        }
+        // Under a dot directory, so `collect_glyph_files` never reaches it.
+        let hidden = root.join("p0").join(".hidden");
+        std::fs::create_dir_all(&hidden).unwrap();
+        write(&hidden, "c.glyph", OUTSIDE_IMPORTER);
+
+        let mut server = Server::new(root.clone());
+
+        // Declaration in a, import binding + one use in b.
+        let before = refs_at(&mut server, "p0/a.glyph", 1, 7);
+        assert_eq!(before.len(), 3, "{before:?}");
+
+        // The question asked *about* the skipped file still reads it: the three
+        // above plus its own import binding and use.
+        let outside = refs_at(&mut server, "p0/.hidden/c.glyph", 1, 11);
+        assert_eq!(outside.len(), 5, "{outside:?}");
+
+        // Nothing changed on disk, so the first question answers the same.
+        let after = refs_at(&mut server, "p0/a.glyph", 1, 7);
+        assert_eq!(
+            after, before,
+            "asking about p0/.hidden/c.glyph changed a different file's answer: {after:?}"
+        );
+
+        // And it still answers the same once the LRU has evicted p0's database
+        // and rebuilt it from disk: eviction must not be what decides.
+        for n in 1..5 {
+            refs_at(&mut server, &format!("p{n}/a.glyph"), 1, 7);
+        }
+        let rebuilt = refs_at(&mut server, "p0/a.glyph", 1, 7);
+        assert_eq!(
+            rebuilt, before,
+            "the answer moved when the cache evicted the database: {rebuilt:?}"
+        );
+    }
+
+    /// A local binding is a single-file question. Answering it must not build
+    /// the project: no directory walk, no re-reading every file, no database.
+    ///
+    /// The sweep used to run before the position was resolved, so a question
+    /// whose answer never left the file still paid for the whole project, and
+    /// paid more the bigger the project got. On a 340-file tree that was 77 ms
+    /// of work thrown away.
+    #[test]
+    fn a_local_binding_is_answered_without_building_the_project() {
+        let root = tmp_root();
+        write(&root, "a.glyph", DECL);
+        write(&root, "b.glyph", IMPORTER);
+        write(
+            &root,
+            "c.glyph",
+            "module c\nfn f() -> number {\n  let total = 1\n  return total\n}\n",
+        );
+        let mut server = Server::new(root.clone());
+
+        // `total`, declared on line 2 and used on line 3.
+        let local = refs_at(&mut server, "c.glyph", 2, 6);
+        assert_eq!(local.len(), 2, "{local:?}");
+        assert!(local.iter().all(|(p, _)| p == "c.glyph"), "{local:?}");
+        assert!(
+            server.projects.is_empty(),
+            "a local binding walked the project"
+        );
+
+        // A position that names nothing is the same question, cheaper.
+        let nothing = refs_at(&mut server, "c.glyph", 1, 0);
+        assert!(nothing.is_empty(), "{nothing:?}");
+        assert!(
+            server.projects.is_empty(),
+            "an unresolved position walked the project"
+        );
+
+        // A global symbol still does build it, and still answers across files.
+        let global = refs_at(&mut server, "a.glyph", 1, 7);
+        assert_eq!(global.len(), 3, "{global:?}");
+        assert_eq!(server.projects.len(), 1);
+    }
+
+    /// The same holds for a file the walk does not reach: asking about it twice
+    /// must not re-read it into a second salsa input.
+    ///
+    /// It lives in a slot that every refresh rewrites, and the cheap way to
+    /// write that is to build a fresh `SourceFile` each time. That would
+    /// re-parse the file on every call and leave the old input behind in a
+    /// database that frees nothing.
+    #[test]
+    fn a_repeat_call_about_a_file_outside_the_walk_executes_no_queries() {
+        let root = tmp_root();
+        write(&root, "a.glyph", DECL);
+        let hidden = root.join(".hidden");
+        std::fs::create_dir_all(&hidden).unwrap();
+        write(&hidden, "c.glyph", OUTSIDE_IMPORTER);
+        let (mut server, log) = recording_server(&root);
+
+        // The declaration in a, plus the import binding and use in the file the
+        // walk skips.
+        let first = refs_at(&mut server, ".hidden/c.glyph", 1, 11);
+        assert_eq!(first.len(), 3, "{first:?}");
+        let cold: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(
+            cold.iter().filter(|k| k.starts_with("parse_module")).count(),
+            2,
+            "the cold call must parse both files: {cold:?}"
+        );
+
+        let second = refs_at(&mut server, ".hidden/c.glyph", 1, 11);
+        let events: Vec<String> = std::mem::take(&mut log.lock().unwrap());
+        assert_eq!(second, first);
+        assert!(
+            events.is_empty(),
+            "an unchanged repeat about a non-member executed queries: {events:?}"
+        );
     }
 }

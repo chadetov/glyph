@@ -20,6 +20,19 @@ name: Release
 # Two of those stages exist because of bugs this pipeline actually shipped, and
 # both are written up in the steps that fix them: the execute bit lost in the
 # artifact round trip, and the tag nobody compared against the manifests.
+#
+# Every job carries a `timeout-minutes`. This workflow holds one global
+# concurrency group, so an unfinished job of one release run keeps the next
+# release's run queued behind it: on 0.1.102 a smoke job held the group for six
+# and a half hours, and the 0.1.103 run behind it waited 50 minutes to start.
+#
+# A bound caps a job that has started and then hangs. It does not cap the wait
+# for a runner, because GitHub does not count queued time against it, and the
+# 0.1.102 job is the proof: it sat for 6h29m without ever being assigned one,
+# outliving even the default 360-minute cap. So these values are a floor under
+# the damage, not a cure for it. Each one sits well clear of the observed run
+# time and of any wait the job's own steps are designed to perform, so reaching
+# one means something is stuck rather than slow.
 
 on:
   push:
@@ -51,6 +64,9 @@ jobs:
   preflight:
     name: Preflight
     runs-on: ubuntu-latest
+    # The CI-conclusion step below polls for up to 20 minutes by design. The job
+    # itself has been finishing in about five.
+    timeout-minutes: 30
     permissions:
       contents: read
       # Reading the CI conclusion for this commit.
@@ -157,6 +173,10 @@ jobs:
     name: Build ${{ matrix.key }}
     needs: preflight
     runs-on: ${{ matrix.os }}
+    # A cold release build of the compiler; nothing in this workflow caches
+    # anything. The slowest of the five (windows-latest) has been taking four
+    # minutes.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -224,6 +244,9 @@ jobs:
     name: Verify ${{ matrix.key }}
     needs: [preflight, build]
     runs-on: ${{ matrix.os }}
+    # Download one artifact, untar it, run `--version`. Under ten seconds on
+    # every runner across the last five releases.
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -315,6 +338,14 @@ jobs:
     # published unmerged code to npm as `latest`.
     if: startsWith(github.ref, 'refs/tags/') && !inputs.skip_npm
     runs-on: ubuntu-latest
+    # Deliberately the loosest bound here. Cancelling this job between its third
+    # and fourth `npm publish` is the one outcome with no clean recovery, and a
+    # timeout is a cancellation. The job has never taken a minute, and 45
+    # minutes is far past any publish that is merely slow, so the bound can only
+    # fire on a registry that has stopped answering. Leaving it unbounded would
+    # not avoid that either; it would only move the same cancellation to the
+    # 360-minute default, eight times deeper into the next release's wait.
+    timeout-minutes: 45
     permissions:
       # OIDC token for npm build provenance (`npm publish --provenance`), which
       # links each published tarball to this workflow run + commit. Verifiable
@@ -426,6 +457,26 @@ jobs:
     needs: [preflight, publish]
     if: startsWith(github.ref, 'refs/tags/') && !inputs.skip_npm
     runs-on: ${{ matrix.os }}
+    # These run after `publish`, so npm already has the release and nothing here
+    # can prevent it. A bound matters anyway, because an unfinished job holds the
+    # release concurrency group. On 0.1.102, the first release to include
+    # `macos-13`, that job was never assigned a runner and held the group for
+    # 6h29m until someone cancelled it, with 0.1.103's publish queued behind it.
+    #
+    # Ten minutes bounds this job once it has a runner, which is not what the
+    # 0.1.102 job spent, so the scarce-runner exposure is unchanged and the fix
+    # for that is not a timeout. What the bound does cover is a job that starts
+    # and then stalls. The install-and-run below takes about 20 seconds on Linux
+    # and macOS and has reached two minutes on windows-latest.
+    #
+    # The bound is 20 rather than 10 because the propagation retry below sleeps
+    # 13m45s across its ten attempts, before counting ten `npm install`s. A
+    # ten-minute bound cancelled that loop around attempt seven, so a genuinely
+    # slow registry would show an operator a bare timeout instead of the error
+    # the loop exists to print. A retry budget that cannot reach its last
+    # attempt is not a retry budget, and the honest choice is to bound above it
+    # rather than to leave a designed number unreachable.
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -547,6 +598,10 @@ jobs:
       && needs.preflight.result == 'success'
       && (needs.publish.result == 'success' || inputs.skip_npm)
     runs-on: ubuntu-latest
+    # Repack five archives, attest them, create the release. Fifteen seconds so
+    # far, and it is the one job that can be re-cut on its own through a
+    # `skip_npm` dispatch.
+    timeout-minutes: 20
     permissions:
       contents: write
       # OIDC + attestation write for SLSA build provenance over the archives,

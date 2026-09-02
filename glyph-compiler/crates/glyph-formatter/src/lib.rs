@@ -1789,6 +1789,17 @@ fn is_atom(e: &Expr) -> bool {
             | Expr::Object { .. }
             | Expr::Jsx(_)
             | Expr::Extern { .. }
+            // `match` is parsed as a primary (see `parse_primary`), so the
+            // postfix loop already continues straight onto it — `match {
+            // ... }?` and `match { ... }.field` reparse to the same AST as
+            // their parenthesized spelling with no parens at all. Treating it
+            // as needing a wrap here bought nothing but a synthetic leading
+            // `(` that isn't in the source, and that `(` is exactly what
+            // glues onto a preceding atom-ending statement and reparses as a
+            // call (G162): `0\n(match ...)?` reparses as `0(match ...)?`.
+            // Printing the bare `match` keeps its own braces as the
+            // delimiter, so the hazard has nothing to attach to.
+            | Expr::Match { .. }
     )
 }
 

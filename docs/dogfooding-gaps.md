@@ -50,7 +50,7 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-165 entries, 131 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+166 entries, 132 are fixed, 9 are partly fixed, 10 are decided or resolved, and
 15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
@@ -6283,11 +6283,11 @@ example draws no `E0106` while a genuinely unused one still does.*
   is the anomaly and should stop firing). Both are defensible; the present state
   is not, because it teaches a guarantee that does not hold.
 
-  *Reproduced against 0.1.98: `direct` is `E0211`, `laundered` reports no
+  *Reproduced against 0.1.104: `let p: Paid = d` where `d` is a `Draft` and both are `{ id: string }` still type-checks, the only diagnostic being an unused-variable lint on `p`: `direct` is `E0211`, `laundered` reports no
   diagnostics, and the hand-written TypeScript equivalent of the first passes
   `tsc --strict` with exit 0.*
 
-- **G157. `docs/language/spec.md` D44 still describes G143 as open.** G143, the
+- **G157. [FIXED] `docs/language/spec.md` D44 still describes G143 as open.** G143, the
   imported union's nested payload going unchecked, closed in 0.1.97 and holds in
   0.1.98. The spec still carries "G143, open, in `docs/dogfooding-gaps.md`".
 
@@ -6378,6 +6378,14 @@ and is the owner's to confirm.
 `text/plain` body round-trips exactly, a JSON body no longer renders as
 `[object Object]`, and a `match` missing its `Err` arm is now `E0200`.*
 
+  Corrected in 0.1.104. D44 now states what the compiler does: an imported
+  union's nested payload is recursed into, and a missing variant one level down
+  is reported through a module boundary as it is locally.
+
+  *Verified against 0.1.104 before changing the text, so the new sentence is a
+  claim about a binary rather than about a commit message: a `match` on an
+  imported `Box` omitting `Full` reports `E0200: non-exhaustive match on Box:
+  missing variants Full`.*
 - **G158. Most of the repo's own Glyph is not what `glyph fmt` produces.**
   121 of 284 tracked `.glyph` files disagree with the formatter, and nothing
   gates it. Six of those are `tests/negative/` fixtures that are deliberately
@@ -6628,3 +6636,32 @@ and is the owner's to confirm.
   real MCP stdio protocol: the control, the `..` spelling and the case-only
   spelling now return identical answers, the symlinked path no longer
   duplicates, and a non-Glyph file is rejected with a message naming why.*
+
+- **G166. A `std/net` integration test can hang without end, and leaks a `tsx` process tree when it does.**
+  `net_carries_a_split_character_and_reports_a_bind_failure` in
+  `glyph-cli/tests/integration.rs` has no timeout of its own. Under load it
+  passes; under enough load it reports "has been running for over 60 seconds"
+  and then does not stop. Three separate runs during the 0.1.104 work hit it,
+  and each left the test binary plus its `tsx` and `esbuild` children behind at
+  PPID 1 rather than exiting.
+
+  Measured on this machine: `integration-e0d1f8311b0c0b0f` alive 8h12m, its
+  `tsx` child 8h10m, an `esbuild` service 8h07m, all reparented to init. The
+  test binary holds an ESTABLISHED socket at 0.0% CPU with no data flowing, so
+  it is waiting on something that will not arrive rather than spinning.
+
+  Two consequences worth separating. The hang itself wastes a suite run and is
+  load-sensitive, which makes it the kind of flake that gets re-run rather than
+  investigated. The leak is worse: a `cargo test` that has exited leaves
+  processes holding a port and a temp directory, so the next run can inherit a
+  conflict from a run nobody remembers, and the `glyph-run-cache` directory
+  those children reference is never cleaned.
+
+  A per-test deadline would convert the hang into a failure with a message,
+  which is the minimum. Whether the socket wait itself is wrong is a separate
+  question the deadline would give evidence for.
+
+  *Reproduced against 0.1.104 during release verification: `ps -eo etime,pid`
+  shows the three processes above, and the run that spawned them had already
+  exited. Two independent verification passes hit the same test in the same way
+  under concurrent load.*

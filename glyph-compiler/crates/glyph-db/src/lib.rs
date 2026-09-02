@@ -61,7 +61,13 @@
 
 use std::sync::Arc;
 
-pub use salsa::Setter;
+pub use salsa::{Event, EventKind, Setter};
+
+/// A sink for salsa's event stream, installed by
+/// [`CompilerDb::with_event_sink`]. Called from inside salsa's own callback,
+/// so the database is attached and a `DatabaseKeyIndex` in the event formats
+/// as its query name.
+pub type EventSink = Arc<dyn Fn(&salsa::Event) + Send + Sync>;
 
 use std::collections::{HashMap, HashSet};
 
@@ -157,17 +163,52 @@ impl CompilerDb {
 
     /// Build a database with the given prelude and graph.
     pub fn new(prelude: Prelude, module_graph: Arc<dyn ModuleGraph + Send + Sync>) -> Self {
+        Self::build(prelude, module_graph, None)
+    }
+
+    /// Build a database that also reports every salsa event to `sink`.
+    ///
+    /// This is how a consumer outside this crate proves a query did or did not
+    /// re-execute: `glyph-db`'s own `EventLog` is `cfg(test)`, so it does not
+    /// exist in a dependency build, and there is otherwise no way to observe
+    /// the runtime from the caller's tests.
+    ///
+    /// The sink runs **inside** salsa's callback, where the database is still
+    /// attached, so `format!("{:?}", event.kind)` renders the real query name
+    /// (`parse_module(Id(0))`). Formatting a `DatabaseKeyIndex` after the
+    /// callback returns yields bare numeric ingredient ids instead.
+    pub fn with_event_sink(
+        prelude: Prelude,
+        module_graph: Arc<dyn ModuleGraph + Send + Sync>,
+        sink: EventSink,
+    ) -> Self {
+        Self::build(prelude, module_graph, Some(sink))
+    }
+
+    fn build(
+        prelude: Prelude,
+        module_graph: Arc<dyn ModuleGraph + Send + Sync>,
+        sink: Option<EventSink>,
+    ) -> Self {
         #[cfg(test)]
         let events = tests::EventLog::default();
         #[cfg(test)]
         let storage = {
             let events = events.clone();
             salsa::Storage::new(Some(Box::new(move |ev: salsa::Event| {
+                if let Some(sink) = &sink {
+                    sink(&ev);
+                }
                 events.record(ev.kind);
             })))
         };
+        // Without a sink the production database installs no callback at all,
+        // exactly as before: salsa then skips building the `Event` entirely.
         #[cfg(not(test))]
-        let storage = salsa::Storage::default();
+        let storage = match sink {
+            Some(sink) => salsa::Storage::new(Some(Box::new(move |ev: salsa::Event| sink(&ev)))),
+            None => salsa::Storage::default(),
+        };
         // Two-step initialization: construct the db with `project_files:
         // None`, then create the `ProjectFiles` salsa input against the
         // live db, then assign. `ProjectFiles::new` requires `&dyn Db`,

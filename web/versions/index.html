@@ -49,8 +49,32 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.102</span>
+            <span class="rel-ver">0.1.103</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An agent asking where a symbol is used gets an answer in 15ms</h3>
+            <p>The MCP server used to analyse every file in the project on every call. Asking where one function was referenced meant 175 full analyses to return three locations, and it cost the same on the tenth call as the first.</p>
+            <div class="code">
+              <span class="cap">glyph_references, same question, warm</span>
+<pre><span class="del">before:  183 ms   (175 files analysed, every time)</span>
+<span class="add">after:    15 ms   (answered from the compiler's own memo)</span>
+
+<span class="del">before:  192 ms   first call</span>
+<span class="add">after:   128 ms   first call, before any cache can help</span></pre>
+            </div>
+            <p>The first call got faster on its own: finding occurrences never needed the type map it was computing, which was 47ms spent building 68,425 type entries and discarding them.</p>
+            <p>Answers still come from what is on disk right now. Every file is re-read and compared on each call, because measuring said that costs 9ms against a 169ms baseline, and the cheaper options trade correctness for milliseconds. A file changed by an editor, a checkout, or another agent is picked up on the next question.</p>
+            <p class="rel-note">A path is now resolved before it is used, so a symlinked or relative spelling of a file no longer answers differently from its real one, and a file that is not Glyph source is refused rather than treated as a module. The language server is unchanged: its source of truth is your unsaved buffer, not the file on disk, and those are different questions.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.102</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

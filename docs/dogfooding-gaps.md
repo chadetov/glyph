@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-164 entries, 128 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-17 are open. G144, the D28 boundary cast that never reached the returns a
+165 entries, 131 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3809,7 +3809,7 @@ hand-written adapter") now has an app behind it rather than only a guide.
   catch a malformed link and it never will. The fix is documentation: say which
   argument the failure comes from. `feeds` carries the case as an `@example` so
   the behaviour is pinned rather than assumed.
-  *Reproduced against 0.1.97: `url.join("https://x.test/feed.xml", ":::")` is
+  *Reproduced against 0.1.103: `url.join("https://x.test/feed.xml", ":::")` is `Ok(https://x.test/:::)`, and only an invalid base fails, giving `Err(cannot resolve "/p" against "not a url at all")`: `url.join("https://x.test/feed.xml", ":::")` is
   still `Ok`, formatting to `https://x.test/:::`, while
   `url.join("not a base", "/x")` is still
   `Err(cannot resolve "/x" against "not a base")`. The `Err` arm remains
@@ -3851,7 +3851,7 @@ G103 was the case where nothing was said at all.
   descriptor that only checks presence, or be skipped with its dependent fields
   widened, or make the whole type unmaterializable, is a design call with a real
   verifiability trade in it.
-  *Reproduced against 0.1.97, marked 18.0.11: `gen dts marked --out src/.types
+  *Reproduced against 0.1.103: there is still no `.d.ts` reader source handling classes or TypeScript utility types; the generator's module set has no class-declaration path at all, marked 18.0.11: `gen dts marked --out src/.types
   --rename Tokens.List=ListToken` writes 49 types and exits 0 with 40 notes, and
   building the result is 14 `[E0103]`s across eight names, still in the same
   three groups: classes (`Lexer`, `Parser`, `Renderer`, `Tokenizer`, `Hooks`),
@@ -4074,7 +4074,7 @@ compiler did not do for them. Three are real.
   `verbatimModuleSyntax` is now clean over the whole emitted tree, including
   `glyph-hello`'s 3,377 lines.
 
-- **G115. `glyph build` materializes the whole standard library, under a
+- **G115. [FIXED] `glyph build` materializes the whole standard library, under a
   directory name a static host hides.** The engine imports five std modules;
   the output carries **31**, including `sqlite`, `http`, `fs` and `process` —
   modules a browser worker must not contain at all. Tree-shaking answers this
@@ -4131,6 +4131,14 @@ rather than a list of complaints. What follows is the friction that remained.
 
   *Re-run for 0.1.97: a program importing one std module still materializes 37 std modules into `dist`, which is more than the 31 this entry counted.*
 
+  Closed in 0.1.101. Materialization follows the transitive closure of the
+  program's imports, and hand-written `extern/*.ts` shims are scanned as roots
+  too, since a shim may reach the standard library by either the bare or the
+  relative spelling.
+
+  *Verified fixed against 0.1.103: a program importing one std module
+  materializes three files, `io.ts`, `option.ts` and `result.ts`, where it
+  previously wrote 31 including `sqlite`, `http`, `fs` and `process`.*
 - **G116. [FIXED] `E0105` says the name is wrong and never says what is right,
   so an agent guesses.** All eight of the session's `E0105`s are one agent hunting a
   single function in `std/random`, in order: `int`, `next`, `float`, `number`,
@@ -4255,7 +4263,7 @@ live on the seam the whole architecture stands on.
   entry said was missing. The one seam edge that is *not* closed here is
   split out as G124.
 
-- **G123. No watch mode, so the hybrid dev loop is compile-by-hand.**
+- **G123. [FIXED] No watch mode, so the hybrid dev loop is compile-by-hand.**
   `glyph build --watch` is an unknown argument. The app's `dev` script compiles
   once and starts Vite, so every domain-logic change means rerunning
   `glyph build` by hand while the UI half of the same app gets HMR on save. The
@@ -4270,6 +4278,13 @@ live on the seam the whole architecture stands on.
 
   *Re-run for 0.1.97: `glyph build --help` still has no `--watch`.*
 
+  Closed in 0.1.101. `glyph build --watch` rebuilds on change, and two details
+  decide whether it is usable: the fingerprint covers nested project roots,
+  which the ordinary source walk skips by D41, and the baseline is sampled
+  before the build rather than after, so an edit landing mid-build is not folded
+  into the baseline and lost.
+
+  *Verified fixed against 0.1.103: `glyph build --help` lists `--watch`.*
 - **G124. [FIXED] A module whose whole export surface is private builds green and
   exports nothing, and only a host toolchain notices.** The kanban author wrote
   his modules before D33 (0.1.16) made declarations module-private by default,
@@ -6576,3 +6591,40 @@ and is the owner's to confirm.
   *Reproduced against 0.1.101 during the salsa 0.28 migration: both crates
   declared the dependency with zero uses, and the tree query resolved through
   `glyph-emit`. Confirmed fixed: the same query now reports no match.*
+
+- **G165. [FIXED] The MCP tools treated a path as an identity without making it one.**
+  `read_file` in `crates/glyph-lsp/src/mcp.rs` neither canonicalized its `path`
+  argument nor checked its extension, and four wrong answers came out of that
+  one omission. Two were introduced by the per-project database in this release
+  and two predate it.
+
+  A non-`.glyph` file became a module, because the module path is the file path
+  with its extension dropped: a byte copy of `a.glyph` at `a.txt` answered as
+  module `a` and the declaration was reported in two files. A rename driven off
+  that answer would have been handed a text file as a site to edit.
+
+  A symlinked spelling duplicated a real file. The directory walk reads entries
+  without traversing links, so an aliased path is never a walk member and always
+  lands in the outsider slot, and the same physical file came back twice under
+  two names.
+
+  A case-only spelling on a case-insensitive filesystem answered one location
+  where the real spelling answered nine, and forked a second project database
+  alongside the first. This one was wrong before the database existed too, just
+  differently: 0.1.100 answered zero.
+
+  A `..` segment forked a duplicate database, because `project_root_for`
+  resolved `p/sub/..` to a root distinct from `p`, and `p/../outside.glyph` was
+  captured by `p`'s marker because the prefix test succeeds on an unnormalized
+  path.
+
+  `std::fs::canonicalize` on the argument plus an extension check collapses all
+  four. The server root is canonicalized at construction for the same reason:
+  with only one side normalized, every membership test fails, and on macOS that
+  is not an edge case, since a temporary directory under `/var` resolves to
+  `/private/var`.
+
+  *Reproduced against this tree before the fix and verified after, through the
+  real MCP stdio protocol: the control, the `..` spelling and the case-only
+  spelling now return identical answers, the symlinked path no longer
+  duplicates, and a non-Glyph file is rejected with a message naming why.*

@@ -4677,13 +4677,13 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Run `check_binary_fresh.py` from the release workflow instead of by hand
 - Detect musl and diagnose it rather than handing Alpine a glibc binary
 
-**0.1.103 — Next · MCP stops re-analyzing the workspace per call**
+**0.1.103 — Shipped · MCP answers from the compiler's own memo**
 - One semantic query boundary shared by LSP and MCP over `resolve`, `module_symbols`, `type_map`, `decl_ty`, `module_exports`
 - Stop `glyph_references` running 175 full analyses of the examples tree to answer one question
 - Write the projection constraint into the spec: the semantic view derives from the compiler and never re-derives (Q45)
 - Measure the agent success rate, first-compile fraction and cycles to green, from what Thor already produces (Q46)
 
-**0.1.104 — Entity identity, and where the graph meets npm**
+**0.1.104 — Next · Entity identity, and where the graph meets npm**
 - R1: `TypeId`, `ModuleId` and `ScopeId` beside `SymbolId`; inserting a declaration renumbers nothing
 - R1: key match arms by the variant they cover rather than by position
 - R3: `glyph` / `extern` / `opaque-ts` node kinds, so exact-or-absent survives the first npm import
@@ -4995,7 +4995,121 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.103 — Next · Build the semantic graph, and expose it through MCP
+### 0.1.104 — Next · Entity identity, and where the graph meets npm
+
+The release before this made the MCP tools fast by answering from the compiler's
+memo. This one gives the things in that memo names that survive an edit, which is
+what every later item in the graph work encodes.
+
+**R1, stable identity.** `SymbolId` is the only id the resolver has, and a match
+arm is addressed by its position in a list: `assign.rs` navigates to the
+`arm_idx`-th arm and panics if the shape is not what it expected. Inserting a
+declaration above another renumbers it, and inserting an arm renumbers every arm
+after it, so any edge recorded against those numbers is invalidated by an edit
+that had nothing to do with it. `TypeId`, `ModuleId` and `ScopeId` beside
+`SymbolId`, and an arm keyed by the variant it covers rather than by where it
+sits.
+
+**R3, the boundary as a node kind.** There is no distinction anywhere between a
+declaration Glyph owns, one a hand-written `extern` shim asserts, and one that
+came out of a `.d.ts` nobody can check. Without that distinction the graph's
+central promise fails on the first npm import: an edge either exists or it does
+not, and "the analysis stopped at the TypeScript boundary" has to be
+representable as something other than absence.
+
+**R6, examples bound to what they document.** `collect_tests` gathers `@example`
+blocks by scanning; nothing ties one to the entity it is an example of. An agent
+that wants to know how a function is meant to be called cannot ask.
+
+*Reviewed against 0.1.103.* Every premise re-checked rather than carried
+forward, and all four still hold: `grep` finds exactly one id type,
+`pub struct SymbolId(pub u32)` in `glyph-resolver/src/symbol.rs`, and no
+`TypeId`, `ModuleId` or `ScopeId` anywhere; `arm_idx` addressing is still in
+`assign.rs` around line 6400; no node-kind distinction exists for the extern or
+opaque cases; and `collect_tests` in `glyph-cli/src/examples.rs` is still
+scan-based.
+
+### 0.1.103 — Shipped · MCP answers from the compiler's own memo
+
+#### Decisions taken before the code was written
+
+A read-only design pass measured this release instead of reasoning about it, and
+the numbers settled three questions and raised two. Recorded here because the
+first of them would otherwise have shipped as a bug.
+
+**What a call actually costs.** Against the 175-file examples tree, through the
+real MCP stdio protocol: `glyph_references` 169 ms to return three locations,
+`glyph_symbols` 142 ms, `glyph_diagnostics` 0.7 ms, `glyph_hover` 0.6 ms. The
+win is concentrated in the two whole-project tools; the single-file ones are
+already fast and are not worth caching.
+
+**Freshness is not a tradeoff, because exactness is nearly free.** Walking the
+tree costs 4 ms warm, reading every file 5 ms, hashing 7 ms, against a 169 ms
+baseline. So the MCP server re-reads and content-compares every file on every
+request, unconditionally. No file watcher: a dependency, a thread, and
+platform-specific missed-event modes to save 5 ms. No mtime heuristic: one-second
+filesystem granularity, same-second rewrites and `git checkout` of an older tree
+buy a class of silent wrong answers to save 4 ms. The residual race, a write
+landing between the read and the query, exists identically today.
+
+**salsa 0.28 does not backdate input writes, and this is the finding that
+matters.** Proved with a throwaway crate at the pinned version: `set_text` with
+byte-identical text bumps the revision and forces re-execution. So the obvious
+refresh loop, re-reading every file and calling `set_text` on each, would have a
+zero percent hit rate forever, paying the full analysis plus new IO and being
+slower than the code it replaced while looking like a cache. Calling `set_text`
+only on a real content difference is load-bearing, not an optimization, and the
+same applies to `set_project`. Two tests are required rather than optional: one
+proving a file rewritten behind the server's back is seen, one proving a repeat
+call with no change executes zero queries.
+
+**Fork 1, decided: the MCP moves onto the query layer this release; the language
+server does not.** They disagree about what is authoritative. The server's truth
+is the unsaved editor buffer arriving through `didChange`; the MCP server's is
+the bytes on disk, and `SourceFile` has one text field. Letting disk win would
+overwrite a dirty buffer with stale bytes, which is actively wrong for the
+editor. A dirty-buffer overlay is defensible and is arguably what an agent
+working beside a human wants, but it introduces a new semantic, that
+`glyph_references` may report a symbol which does not exist on disk, and that
+deserves its own decision rather than arriving as a side effect of a caching
+change. The free functions are shared now; the database is not. The cost is one
+release in which two caching stories coexist.
+
+**Fork 2, decided: one database per project root, and `glyph_symbols` keeps its
+current behaviour.** A single database over the whole MCP root would merge every
+project's module namespace into one `ProjectFiles`, which is exactly what D41
+exists to prevent and what 0.1.56 and 0.1.57 were spent fixing, so it is not on
+the table. Per-root databases follow D41. `glyph_symbols` deliberately spans
+project boundaries today, and changing a tool's observable behaviour as a side
+effect of a caching change is the wrong way to make that call, so it keeps its
+uncached whole-root walk this release.
+
+**That makes memory a new cost, and it gets a bound.** Today's server holds
+nothing between calls. A database retains parse, resolve and types for a project
+for the process lifetime: 39.5 MB peak for 1.1 MB of source, about 35 times the
+source size. `glyph-db` has no eviction of any kind, so an agent walking many
+projects would accumulate without limit. The live databases are capped at a small
+number, least-recently-used, which bounds the worst case and matches how an agent
+works.
+
+**A separate 47 ms that has nothing to do with caching.** `tool_references`
+calls `analyze_full`, which runs `assign_types`, and the occurrence scan never
+reads the type map. That is 47 ms of the 169, computing and allocating 68,425
+type entries across the tree and dropping them unread. Splitting the boundary by
+what each query needs is what exposes it, and it is worth taking whether or not
+anything else here lands.
+
+*Reviewed against 0.1.102.* Every number here was measured against a binary
+built from this tree, not carried forward. The timings come from a driver
+speaking the real MCP stdio protocol; the phase breakdown from a harness with
+path dependencies on the workspace crates; the salsa input-write behaviour from a
+throwaway crate pinned to the same 0.28.2 the lockfile carries. Two claims that
+were assumptions until checked: `glyph-lsp` gaining a `glyph-db` dependency adds
+nothing to the shipped binary, because `glyph-cli` already links salsa through
+`glyph-db` and is the only consumer of `glyph-lsp`; and the comment in
+`glyph-wasm/Cargo.toml` claiming salsa is excluded is true again as of 0.1.102
+and stays true after this change, since `glyph-wasm` does not depend on
+`glyph-lsp`.
 
 The compiler resolves every name, types every expression and finds every
 reference, because compiling requires it. Almost none of that is reachable from

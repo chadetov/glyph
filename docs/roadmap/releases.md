@@ -4673,6 +4673,7 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 **0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps**
 - Migrate the query layer to salsa 0.28's moved `Update` trait, alone, with no feature work beside it
 - Stop `fmt` emitting a bare literal statement and a parenthesized one that reparse as a call (G162)
+- Give the `std/net` integration test a deadline so a hang fails instead of leaking a process tree (G166)
 - Execute darwin-x64 somewhere in CI (macos-13 is the honest fix)
 - Run `check_binary_fresh.py` from the release workflow instead of by hand
 - Detect musl and diagnose it rather than handing Alpine a glibc binary
@@ -4683,13 +4684,20 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Write the projection constraint into the spec: the semantic view derives from the compiler and never re-derives (Q45)
 - Measure the agent success rate, first-compile fraction and cycles to green, from what Thor already produces (Q46)
 
-**0.1.104 — Next · Entity identity, and where the graph meets npm**
-- R1: `TypeId`, `ModuleId` and `ScopeId` beside `SymbolId`; inserting a declaration renumbers nothing
-- R1: key match arms by the variant they cover rather than by position
-- R3: `glyph` / `extern` / `opaque-ts` node kinds, so exact-or-absent survives the first npm import
-- R6: bind `@example` blocks to the entity they document
+**0.1.104 — Shipped · An entity keeps its name when the file around it changes**
+- R1: `ModuleId` and a `module::name` declaration key; inserting a declaration renumbers nothing
+- R1: the MCP tools answer about an entity, not about a line and column that moved
+- R6: an `@example` failure names the function it is about, not `example #1`
+- Bound the release smoke jobs so a queued runner cannot block the next publish
 
-**0.1.105 — The exhaustiveness relation, and the tools reading it**
+Deferred with reasons recorded above, not dropped: `ScopeId` and locals (no
+question this line of work exists to answer is about a `let`), `TypeId` as a
+separate identity (a type is a declaration; a second name for one thing is what
+0.1.56 and 0.1.57 cost), arm identity (R4's foundation, and production code has
+none today), and the boundary node kinds (the origin question belongs where the
+generator already knows the answer).
+
+**0.1.105 — Next · The exhaustiveness relation, and the tools reading it**
 - R4: retain the checker's arm-to-variant edges with a per-site exhaustive or catch-all flag (G139, G141, G142, G143, G148)
 - `glyph_variants`: for a type, every match site and which variants each one covers
 - Read the same edges forward: "if I add a variant, what must change" is the impact query
@@ -4995,7 +5003,56 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.104 — Next · Entity identity, and where the graph meets npm
+### 0.1.105 — Next · The exhaustiveness relation, and the tools reading it
+
+The compiler works out which match arms cover which variants on every build, and
+then throws the answer away. Retaining it turns "what breaks if I add a variant"
+from a search into a lookup, and that is the question this whole line of work
+exists to answer.
+
+**R4, the edges themselves.** `check_patterns_exhaustive`, `check_arm_reachability`
+and `required_variants` in `assign.rs` each compute part of the relation. None of
+it survives the pass. Keep the arm-to-variant edges with a per-site flag for
+exhaustive or catch-all, so a consumer can tell a site that covers everything
+from one that ends in `else`.
+
+**Arm identity is decided and it is the match site plus the ordinal.** That was
+settled during 0.1.104 and the reasoning stands: order is semantic in Glyph,
+first match wins, and `check_arm_reachability` enforces it with E0216. A content
+key would be stable under insertion and would also lose which arm won, and it is
+not even unique, since two arms can cover one variant with different patterns.
+The ordinal churns when an arm is inserted above; that is accepted for this one
+entity kind, because an identity that cannot express first-match-wins is not an
+identity for this construct.
+
+**An arm whose coverage the checker declined to determine is marked, and the mark
+sits on the match site.** Three branches of `check_patterns_exhaustive`
+deliberately decline: a value-testing object sub-pattern, a non-`Path` `IsType`,
+and a top-level literal or object or array pattern over a union. Silence is not
+available, because an absent `covers` edge asserts there is no relation and the
+checker never claimed that. Flagging the site keeps the cost with the graph
+instead of giving every arm a third state that every consumer must handle, and a
+coverage question about a flagged site is declined rather than answered
+approximately.
+
+**Then the tool that reads it.** For a type, every match site over it and which
+variants each one covers. That is the query an agent needs before adding a
+variant, and it is the same edges read forward.
+
+**Why this shape and not another.** Adding a variant to a union is the failure
+this compiler has hit five times: G139, G141, G142, G143 and G148, each a site
+that failed to unwrap `Ty::App` to its base. All five are now fixed, which is
+exactly why the instrument matters: the fixes were found one at a time, by
+someone noticing. The unwrap surface is 33 sites today.
+
+*Reviewed against 0.1.104.* Re-checked rather than carried forward: the three
+coverage functions are still in `assign.rs` and nothing retains their output,
+`glyph-db` holds no coverage edge, all five named gaps are marked fixed, and the
+`Ty::App` unwrap count is 33 sites out of 71 mentions. That count is the
+corrected measure recorded in the 0.1.103 entry, not the older figure which
+counted mentions.
+
+### 0.1.104 — Shipped · An entity keeps its name when the file around it changes
 
 The release before this made the MCP tools fast by answering from the compiler's
 memo. This one gives the things in that memo names that survive an edit, which is
@@ -5021,13 +5078,116 @@ representable as something other than absence.
 blocks by scanning; nothing ties one to the entity it is an example of. An agent
 that wants to know how a function is meant to be called cannot ask.
 
-*Reviewed against 0.1.103.* Every premise re-checked rather than carried
-forward, and all four still hold: `grep` finds exactly one id type,
-`pub struct SymbolId(pub u32)` in `glyph-resolver/src/symbol.rs`, and no
-`TypeId`, `ModuleId` or `ScopeId` anywhere; `arm_idx` addressing is still in
-`assign.rs` around line 6400; no node-kind distinction exists for the extern or
-opaque cases; and `collect_tests` in `glyph-cli/src/examples.rs` is still
-scan-based.
+#### What a design pass measured, and where this plan was wrong
+
+The premise holds and is worse than stated, but three of the four items were
+described inaccurately, and one of the corrections changes the scoping.
+
+**Positional identity breaks, demonstrated rather than argued.** Inserting
+`fn audit` above `charge` moves `charge` from `SymbolId(1)` to `SymbolId(2)`.
+The renumbering reaches into lowered type values: with `fn charge(m: Money) ->
+Money` byte-identical across the edit, inserting an unrelated `type Tax` above
+`type Money` changes the return type from `Named { symbol: SymbolRef(0) }` to
+`SymbolRef(1)`, so a `Ty` for an untouched declaration compares unequal. It
+costs measured work too, because every per-declaration salsa query is keyed by
+`decl_idx`: on a 30-declaration file, appending re-executes 0 of 30 `decl_ty`
+queries, inserting in the middle 15, and inserting at the top all 30.
+
+**The externally visible identity is worse than `SymbolId` and fails silently.**
+The MCP tools address entities by line and character. Against 0.1.103, asking
+for references at line 7 returned `charge` and its one call site; after
+inserting `fn audit` above it, the identical request returned `audit`, with no
+error and a well-formed answer. That is the graph's invariant broken from the
+caller's side: an agent holding a coordinate gets an exact-looking answer about
+a different entity.
+
+**Correction one: `collect_tests` is not a text scan.** It iterates
+`module.items` and reads each declaration's `annotations`, so the AST already
+binds an `@example` to its declaration. What it does is discard that binding by
+flattening to a vector of pairs, which is why a failure reports `example #1`
+rather than naming `triple`, and why adding an example to an unrelated function
+renumbers the label. R6 is not building a binding; it is not throwing one away.
+
+**Correction two, and it changes the scope: production code holds no arm
+identity at all.** The `arm_idx` addressing cited above is inside
+`#[cfg(test)]`, a test helper. There is no arm id, no arm index, nothing keyed
+by arm position outside one emitter special case. So this item is not replacing
+a wrong key, it is introducing an identity that does not exist, which is larger
+and more open than the plan assumed.
+
+**Correction three, and the most useful finding: the design is already in the
+tree three times.** `Ty::Imported { module, name }`, `SymbolTarget::Global
+{ module, name }`, and `ModuleExports`'s name-keyed set all identify an entity
+by module and name rather than by an id, each discovered independently. The
+`Ty::Imported` doc says why: a foreign module's symbol ids index an unrelated
+symbol in the consumer's table, so carrying one is a live mis-resolution bug.
+R1's job is to name that convention, not to invent one.
+
+**A flat name key is sufficient, and adding `kind` to it would be a mistake.**
+Glyph's module namespace is single and flat: `fn Foo` beside `type Foo`, a
+variant beside a function of the same name, `const NAME` beside `fn NAME` are
+all already rejected as duplicate declarations, hoisted variants included. So
+`module::name` is unique across every declaration kind, `kind` buys no
+uniqueness, and putting it in the key would make changing `const Limit` to
+`fn Limit()` a different entity when it is the same one renamed in shape only.
+
+**The blast radius is smaller than 61 grep hits suggests.** One site creates an
+id. Two compare ids, and both compare a carried id against a fresh by-name
+prelude lookup, so both already work name-mediated. Three loops depend on ids
+being dense and cost nothing if `SymbolId` is preserved alongside the new key.
+The rest is pass-through and doc comments.
+
+*Reviewed against 0.1.103.* Every number above was measured against this tree
+with harnesses outside the repo, and the MCP demonstration ran through the real
+stdio protocol against the published 0.1.103 binary.
+
+#### The six forks, decided
+
+**Locals are not in the graph, so `ScopeId` is not in this release.** A
+reference to a local resolves to a byte offset and nothing is interned, so
+naming locals means building a scope tree from nothing. The questions this line
+of work exists to answer are about declarations: what breaks if I add a variant,
+where is this type used, what does this function's contract say. None of them is
+about a `let`. Deferred without a date, because the case for it has not been
+made rather than because it is expensive.
+
+**`TypeId` is not a separate newtype.** A type is a declaration, the flat
+namespace makes `module::name` unique across kinds, and a newtype wrapping the
+same content under a second name is precisely the shape that cost 0.1.56 and
+0.1.57. If a type ever needs an identity distinct from its declaration it will
+be because the runtime descriptor and the emitted brand need to share one, and
+that is R2's problem to raise with its own evidence.
+
+**An arm's identity is the pair of its match site and its ordinal, with the
+covered variant as an attribute.** Order is semantic in Glyph: first match wins,
+and `check_arm_reachability` enforces it with E0216. A content key would be
+stable under insertion and would also lose which arm won, and it is not unique,
+since two arms can cover one variant with different patterns. So the ordinal
+stays, and the churn it causes on insertion is accepted for this one entity
+kind. This is the opposite call from the one the requirement suggested, and the
+reason is that an identity which cannot express first-match-wins is not an
+identity for this construct.
+
+**An arm whose coverage the checker declined to determine is marked, and the
+mark is on the match site.** Three branches of `check_patterns_exhaustive`
+deliberately decline. Silence is not available: an absent `covers` edge asserts
+there is no relation, which the checker never claimed. Flagging the site rather
+than giving every arm a third state keeps the cost with the graph instead of
+with every consumer, and a question about a flagged site is declined rather than
+answered approximately.
+
+**Origin is an attribute of the node, not part of its key.** A declaration's
+identity must not change when the same declaration arrives through a different
+route, which is the G75 lesson: identity that varies with spelling was worth two
+releases of fixes. So `glyph` / `extern` / `opaque-ts` is a field, and the key
+stays `module::name`.
+
+**This release ships the key and the module id, and nothing else.** Name the
+convention already present three times in the tree, add `ModuleId` and the
+declaration key, and stop. Arm identity is R4's foundation and belongs with R4
+rather than ahead of it; binding examples to their declaration is small and can
+ride along; boundary kinds need the origin question answered where the
+generator already knows the answer.
 
 ### 0.1.103 — Shipped · MCP answers from the compiler's own memo
 

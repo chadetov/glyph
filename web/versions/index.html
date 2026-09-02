@@ -49,8 +49,35 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.101</span>
+            <span class="rel-ver">0.1.102</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Housekeeping, and a formatter that stops changing what code means</h3>
+            <p>No new language features. The query layer moves to salsa 0.28, and four things that kept turning up during release checks are fixed.</p>
+            <div class="code">
+              <span class="cap">before, and after</span>
+<pre><span class="del">// glyph fmt turned this</span>
+0
+match i &gt;= n { true =&gt; { break }, false =&gt; {}, }?
+
+<span class="del">// into a call, because it wrapped the match in parentheses</span>
+<span class="del">0(match i &gt;= n { ... },)?</span>
+
+<span class="add">// a match delimits itself; the parentheses are gone</span></pre>
+            </div>
+            <p>A <code>match</code> used as the target of <code>?</code> or <code>.</code> was printed wrapped in parentheses it never needed. Formatting again read the leading bracket as a call on whatever preceded it, so the output meant something the input did not. This was present in every release up to now.</p>
+            <p>Installing on Alpine used to hand you a glibc binary and let the loader fail with a bare "not found". The launcher now recognises musl and says what is wrong. If it cannot tell, it proceeds as before, because a wrong diagnosis on a working machine is worse than the error it replaces.</p>
+            <p class="rel-note">The Intel Mac binary is now executed in CI rather than only built. Glyph's own stages are about 7% slower under the new query engine on a large project, which is invisible next to TypeScript's own type-checking in a normal build.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.101</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

@@ -32,7 +32,7 @@ cargo test --workspace
 
 Locked in `Cargo.toml` workspace dependencies. Pin rationale per `../docs/implementation-plan.md §P5`:
 
-- `salsa = "0.26"` — incremental query architecture (Q5 hybrid). v0.26+ is the rewrite; v0.16 was the legacy generation.
+- `salsa = "0.28"` — incremental query architecture (Q5 hybrid). v0.26+ is the rewrite; v0.16 was the legacy generation.
 - `ariadne = "0.4"` — Elm-quality diagnostic rendering (Q6)
 - `insta = "1"` — golden snapshot tests
 - `proptest = "1"` — property-based fuzzing of the parser/lexer and the exhaustiveness checker

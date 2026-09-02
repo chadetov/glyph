@@ -4670,14 +4670,14 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Close the false green: a comment must not eat an `@example` assertion (G160)
 - Stop `fmt` reattaching a comment to the wrong annotation (G161)
 
-**0.1.102 — Next · salsa 0.28, and the pipeline's own gaps**
+**0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps**
 - Migrate the query layer to salsa 0.28's moved `Update` trait, alone, with no feature work beside it
 - Stop `fmt` emitting a bare literal statement and a parenthesized one that reparse as a call (G162)
 - Execute darwin-x64 somewhere in CI (macos-13 is the honest fix)
 - Run `check_binary_fresh.py` from the release workflow instead of by hand
 - Detect musl and diagnose it rather than handing Alpine a glibc binary
 
-**0.1.103 — MCP stops re-analyzing the workspace per call**
+**0.1.103 — Next · MCP stops re-analyzing the workspace per call**
 - One semantic query boundary shared by LSP and MCP over `resolve`, `module_symbols`, `type_map`, `decl_ty`, `module_exports`
 - Stop `glyph_references` running 175 full analyses of the examples tree to answer one question
 - Write the projection constraint into the spec: the semantic view derives from the compiler and never re-derives (Q45)
@@ -4702,13 +4702,66 @@ rebuilding an eleven-line workaround for an escape that has always worked.
 - Queries chain, so following type to fields to callers to usages does not re-derive between hops
 - Repair the five-times bug shape end to end, measured against the same task done by search alone
 
-### 0.1.102 — Next · salsa 0.28, and the pipeline's own gaps
+### 0.1.102 — Shipped · salsa 0.28, and the pipeline's own gaps
 
-A release with no feature work in it. The query layer moves to salsa 0.28, whose
-`Update` trait has moved, and that migration travels alone: a dependency bump
-that touches every tracked query is not something to review alongside anything
-else. Dependabot has been carrying it since 2026-08-16 (PR #47) and the
-workspace still pins `salsa = "0.26"`.
+A release with no feature work in it. The query layer moves to salsa 0.28, and
+that migration travels alone: a dependency bump touching every tracked query is
+not something to review beside anything else. Dependabot has been carrying it
+since 2026-08-16 (PR #47).
+
+**This plan was wrong about what the bump involves, and reading the crate rather
+than the changelog is what found it.** Two breaking changes landed together in
+0.28.0, not one.
+
+The first is the one named here. `Update` was not moved, it was deleted, and
+replaced by an empty marker trait `SalsaValue` plus a `PartialEq` bound salsa now
+uses directly for backdating. That is a same-shape rename of the manual impls in
+`glyph-db`.
+
+The second is not mentioned anywhere in this roadmap: `#[salsa::tracked]` now
+returns `&Output` by default where 0.26 always returned owned. Twelve tracked
+functions are consumed as owned values at about 32 internal call sites and seven
+more in `glyph-cli/src/build.rs`, so applying only the first change leaves the
+tree failing to compile everywhere.
+
+**Decision: keep owned-value semantics, by pinning each tracked fn to
+`returns(clone)`.** Not for being the smaller diff. Every wrapper is an
+`Arc`-backed newtype, so `clone` is a refcount bump and adopting `ref` leaves no
+performance on the table, which removes the only real argument for it. Against
+that, `ref` ties a query result to a `'db` borrow in a compiler whose core loop
+mutates the database through `SourceFile::set_text`, and a live borrow held
+across a mutation is a conflict at best and a staleness bug at worst. Taking that
+risk wants a measured reason and there is none. Adopting the new default stays
+open as a later, separately reviewed, per-query change.
+
+The bar for this item is not that it compiles. A migration that quietly stopped
+memoizing would compile, pass the suite, and only show up as builds getting
+slower. `glyph-db`'s own memoization and backdating tests are the acceptance
+criteria, and a test rewritten to accommodate the migration counts as a finding
+rather than a pass.
+
+**What it cost, measured rather than assumed.** Nothing outside `glyph-db`
+changed: `glyph-cli/src/build.rs` needed no edits, which is the direct evidence
+that `returns(clone)` preserved the calling convention. No test was rewritten;
+every change inside the test module is a comment. Memoization was checked by
+breaking it on purpose, twice and independently: forcing `DeclAst`'s `PartialEq`
+to `false` fails exactly the two backdating tests and nothing else, so those
+tests are live instruments rather than decoration. Sixteen probes built against
+0.26 and 0.28 side by side return identical `WillExecute` counts.
+
+The Glyph stages are about 7% slower, and that is recorded rather than waved
+past. It scales with project size, from 5.9 ms on the largest app in the tree to
+nothing on the smallest, which is the shape of per-query overhead rather than
+lost memoization; lost memoization costs multiples. In the driver a user
+actually runs it disappears, because `tsc` is roughly 1.75 s of a 1.8 s check
+and the delta is inside the noise. The binary is also 197 KB smaller. Accepted
+on that basis.
+
+**One thing the migration turned up that had nothing to do with salsa versions.**
+`glyph-resolver` and `glyph-typechecker` both declared salsa and neither used it,
+so salsa reached `glyph-wasm` through `glyph-emit` despite a comment in
+`glyph-wasm/Cargo.toml` saying it is deliberately kept out because it "would
+bloat the wasm binary". Filed and fixed as G164.
 
 Beside it, the items that keep turning up in release verification rather than in
 the compiler.
@@ -4724,12 +4777,40 @@ this lands.
 somewhere in CI. The honest fix is a `macos-13` runner, which is x86, rather than
 trusting that a binary nobody has run works.
 
-**`check_binary_fresh.py` runs by hand.** It is in the release ceremony and not
-in `release.yml`, which makes it exactly the kind of step a tired person skips.
-It caught a stale binary during the 0.1.101 cut, twice.
+**The gates run by hand, and one of them cannot run where this planned to put
+it.** The item as written was "run `check_binary_fresh.py` from the release
+workflow", and that is wrong: the gate compares a local `target/release/glyph`
+against local sources, and CI builds from the tag in a later job, so a fresh
+checkout has nothing to check. Adding it to `release.yml` would fail every
+release for a reason unrelated to the release. Verified by running it in a fresh
+clone.
+
+What the item was reaching for is real: thirteen commands typed by hand is a
+list, not a control, and the failure is not refusing to run one, it is running
+twelve at two in the morning without noticing which was skipped. That is how the
+0.1.74 cut reached CI with a lint failure. `scripts/check_release.py` runs all
+thirteen and reports every result rather than stopping at the first, with
+`--suite` to run the test suite into the log `check_doc_claims` reads.
+
+Checking that premise turned up G163, which is worse than the item it came from:
+the same helper fell back to a `glyph` on `PATH` when no local build existed, so
+the three gates that RUN the compiler could have exercised an installed release
+instead of this tree's code and reported a clean result for something never
+compiled. Fixed, with `GLYPH_BIN` kept as the deliberate override.
 
 **Alpine gets a glibc binary and a confusing failure.** Detecting musl and saying
-so is a diagnostic, not a port.
+so is a diagnostic, not a port. The signal is `process.report`'s
+`header.glibcVersionRuntime`, which Node embeds on glibc builds and omits on
+musl. Failure to read it is treated as glibc: a wrong musl diagnosis on a real
+glibc machine is worse than the `ENOENT` it replaces.
+
+The detection answers for the platform it is given rather than for
+`process.platform`, and that is not a detail. The glibc field is Linux-only, so
+its absence means nothing on macOS or Windows, and a version that read
+`process.platform` internally answered `true` on every Mac. Nothing broke,
+because the caller checked the platform first, but the correctness lived in the
+caller remembering to. Two independent reads of one fact can disagree, and when
+they do the guard silently stops matching the condition it guards.
 
 *Reviewed against 0.1.101.* Every claim above was re-checked rather than carried
 forward, and one item was dropped because it is already done: license text ships
@@ -4914,7 +4995,7 @@ and what the emitter should do when the registry answers nothing for a project
 module's union, which today is a silent guess at the single-value shape whose
 consequence `tsc` reports at a span that is not the arm.
 
-### 0.1.103 — Planned · Build the semantic graph, and expose it through MCP
+### 0.1.103 — Next · Build the semantic graph, and expose it through MCP
 
 The compiler resolves every name, types every expression and finds every
 reference, because compiling requires it. Almost none of that is reachable from

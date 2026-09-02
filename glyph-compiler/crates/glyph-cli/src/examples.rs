@@ -53,12 +53,76 @@ impl ExampleReport {
 struct FileExamples {
     rel: PathBuf,
     module_path: String,
-    /// `(lhs_src, rhs_src)` for each `@example`, already rendered to Glyph text.
-    cases: Vec<(String, String)>,
-    /// Glyph code for each ` ```glyph @run ``` ` block in a `@doc` (D26).
-    runs: Vec<String>,
-    /// Malformed `@example` argument strings that did not parse.
-    malformed: Vec<String>,
+    /// Every `@example` in the file, in declaration order.
+    cases: Vec<ExampleCase>,
+    /// Every ` ```glyph @run ``` ` block in a `@doc` (D26), in declaration order.
+    runs: Vec<DocRun>,
+    /// Every `@example` whose argument did not parse.
+    malformed: Vec<MalformedExample>,
+}
+
+/// One `@example`, with the declaration it sits above.
+///
+/// A failure has to say which declaration it is about, so the binding the AST
+/// already carries is kept rather than flattened away. `nth` counts within that
+/// one declaration, which is what keeps a label stable: an `@example` added to
+/// a different declaration used to renumber every label after it.
+struct ExampleCase {
+    /// The declaration the annotation is attached to, e.g. `triple`.
+    decl: String,
+    /// 1-based position among that declaration's own `@example`s.
+    nth: usize,
+    /// The left side of the equality, rendered back to Glyph text.
+    lhs: String,
+    /// The right side. A non-equality `@example` asserts its expression is
+    /// `true`, and carries `true` here.
+    rhs: String,
+}
+
+/// One ` ```glyph @run ``` ` block, with the declaration whose `@doc` holds it.
+struct DocRun {
+    decl: String,
+    /// 1-based position among that declaration's own `@run` blocks.
+    nth: usize,
+    /// The block's Glyph code.
+    code: String,
+}
+
+/// An `@example` whose argument did not parse, with the declaration it sits
+/// above.
+struct MalformedExample {
+    decl: String,
+    /// The annotation's raw argument text, verbatim.
+    args: String,
+}
+
+/// A declaration's identity, the way the rest of the compiler names one:
+/// `orders/pricing::total`. Glyph's module namespace is flat and single, so
+/// `module::name` is unique across declaration kinds.
+fn qualified(module_path: &str, decl: &str) -> String {
+    format!("{module_path}::{decl}")
+}
+
+impl ExampleCase {
+    /// How a failure names this example: `orders/pricing::total example #2`.
+    fn label(&self, module_path: &str) -> String {
+        format!(
+            "{} example #{}",
+            qualified(module_path, &self.decl),
+            self.nth
+        )
+    }
+}
+
+impl DocRun {
+    /// How a failure names this block: `orders/pricing::total doc-run #1`.
+    fn label(&self, module_path: &str) -> String {
+        format!(
+            "{} doc-run #{}",
+            qualified(module_path, &self.decl),
+            self.nth
+        )
+    }
 }
 
 /// Walk the project and collect every file that carries a test, along with the
@@ -117,9 +181,11 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
     };
     for fe in &per_file {
         for m in &fe.malformed {
-            report
-                .failures
-                .push(format!("{}: malformed @example `{m}`", fe.module_path));
+            report.failures.push(format!(
+                "{}: malformed @example `{}`",
+                qualified(&fe.module_path, &m.decl),
+                m.args
+            ));
         }
     }
     if total == 0 {
@@ -148,13 +214,17 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
         let mut text = read(&path)?;
         // These synthesized functions are imported by the external harness, so
         // they must be `pub` to export (0.1.16 module-private default).
-        for (i, (l, r)) in fe.cases.iter().enumerate() {
+        for (i, case) in fe.cases.iter().enumerate() {
             text.push_str(&format!(
-                "\npub fn __glyph_example_{i}() {{\n  return {{ lhs: {l}, rhs: {r} }}\n}}\n"
+                "\npub fn __glyph_example_{i}() {{\n  return {{ lhs: {}, rhs: {} }}\n}}\n",
+                case.lhs, case.rhs
             ));
         }
-        for (i, code) in fe.runs.iter().enumerate() {
-            text.push_str(&format!("\npub fn __glyph_run_{i}() -> void {{\n{code}\n}}\n"));
+        for (i, run) in fe.runs.iter().enumerate() {
+            text.push_str(&format!(
+                "\npub fn __glyph_run_{i}() -> void {{\n{}\n}}\n",
+                run.code
+            ));
         }
         write(&path, &text)?;
     }
@@ -196,30 +266,62 @@ pub fn run_examples(src: &Path) -> Result<ExampleReport, ExampleError> {
     }
 }
 
-/// For a module, collect: `@example` `(lhs, rhs)` pairs (rendered to Glyph
-/// text), `@doc` `@run` code blocks, and any `@example` whose argument failed to
-/// parse.
+/// For a module, collect its `@example`s, its `@doc` `@run` blocks, and any
+/// `@example` whose argument failed to parse. Each one keeps the declaration it
+/// was written above, and is numbered within that declaration.
 fn collect_tests(
     module: &glyph_ast::Module,
-) -> (Vec<(String, String)>, Vec<String>, Vec<String>) {
+) -> (Vec<ExampleCase>, Vec<DocRun>, Vec<MalformedExample>) {
     let mut cases = Vec::new();
     let mut runs = Vec::new();
     let mut malformed = Vec::new();
     for decl in &module.items {
-        for ann in decl_annotations(decl) {
+        let Some((name, annotations)) = decl_target(decl) else {
+            continue;
+        };
+        let mut examples_here = 0;
+        let mut runs_here = 0;
+        for ann in annotations {
             match ann.name.as_ref() {
-                "example" => match glyph_parser::parse_expression(&ann.raw_args) {
-                    Ok(Expr::Binary {
-                        op: glyph_ast::BinOp::Eq,
-                        left,
-                        right,
-                        ..
-                    }) => cases.push((format_expr(&left), format_expr(&right))),
-                    // A non-equality example asserts the expression is `true`.
-                    Ok(other) => cases.push((format_expr(&other), "true".to_string())),
-                    Err(_) => malformed.push(ann.raw_args.clone()),
-                },
-                "doc" => runs.extend(extract_run_blocks(doc_body(&ann.raw_args))),
+                "example" => {
+                    // Position among this declaration's `@example`s, counted
+                    // whether or not the argument parses, so one that does not
+                    // does not shift the numbering of the rest.
+                    examples_here += 1;
+                    let (lhs, rhs) = match glyph_parser::parse_expression(&ann.raw_args) {
+                        Ok(Expr::Binary {
+                            op: glyph_ast::BinOp::Eq,
+                            left,
+                            right,
+                            ..
+                        }) => (format_expr(&left), format_expr(&right)),
+                        // A non-equality example asserts the expression is `true`.
+                        Ok(other) => (format_expr(&other), "true".to_string()),
+                        Err(_) => {
+                            malformed.push(MalformedExample {
+                                decl: name.to_string(),
+                                args: ann.raw_args.clone(),
+                            });
+                            continue;
+                        }
+                    };
+                    cases.push(ExampleCase {
+                        decl: name.to_string(),
+                        nth: examples_here,
+                        lhs,
+                        rhs,
+                    });
+                }
+                "doc" => {
+                    for code in extract_run_blocks(doc_body(&ann.raw_args)) {
+                        runs_here += 1;
+                        runs.push(DocRun {
+                            decl: name.to_string(),
+                            nth: runs_here,
+                            code,
+                        });
+                    }
+                }
                 _ => {}
             }
         }
@@ -258,14 +360,17 @@ fn extract_run_blocks(markdown: &str) -> Vec<String> {
     blocks
 }
 
-fn decl_annotations(d: &Decl) -> &[glyph_ast::Annotation] {
+/// A declaration's name together with its annotations. `None` for an `import`,
+/// which declares no name of its own and carries no annotations, so there is no
+/// case where an annotation is found with no declaration to attribute it to.
+fn decl_target(d: &Decl) -> Option<(&str, &[glyph_ast::Annotation])> {
     match d {
-        Decl::Fn(x) => &x.annotations,
-        Decl::Type(x) => &x.annotations,
-        Decl::Const(x) => &x.annotations,
-        Decl::Component(x) => &x.annotations,
-        Decl::Interface(x) => &x.annotations,
-        Decl::Import(_) => &[],
+        Decl::Fn(x) => Some((x.name.as_ref(), &x.annotations)),
+        Decl::Type(x) => Some((x.name.as_ref(), &x.annotations)),
+        Decl::Const(x) => Some((x.name.as_ref(), &x.annotations)),
+        Decl::Component(x) => Some((x.name.as_ref(), &x.annotations)),
+        Decl::Interface(x) => Some((x.name.as_ref(), &x.annotations)),
+        Decl::Import(_) => None,
     }
 }
 
@@ -284,17 +389,21 @@ fn generate_harness(per_file: &[FileExamples]) -> String {
     out.push_str(DEEP_EQUAL);
     out.push_str("let failed = 0;\nlet total = 0;\n");
     for (k, fe) in with_tests.iter().enumerate() {
-        for (i, (l, r)) in fe.cases.iter().enumerate() {
-            let label = js_string(&format!("{} example #{i}", fe.module_path));
-            let detail = js_string(&format!("({}) != ({})", one_line(l), one_line(r)));
+        for (i, case) in fe.cases.iter().enumerate() {
+            let label = js_string(&case.label(&fe.module_path));
+            let detail = js_string(&format!(
+                "({}) != ({})",
+                one_line(&case.lhs),
+                one_line(&case.rhs)
+            ));
             out.push_str(&format!(
                 "total++;\ntry {{\n  const __e = m{k}.__glyph_example_{i}();\n  \
                  if (!deepEqual(__e.lhs, __e.rhs)) {{ console.log(\"FAIL \" + {label} + \": \" + {detail}); failed++; }}\n\
                  }} catch (err) {{ console.log(\"FAIL \" + {label} + \": threw \" + String(err)); failed++; }}\n"
             ));
         }
-        for i in 0..fe.runs.len() {
-            let label = js_string(&format!("{} doc-run #{i}", fe.module_path));
+        for (i, run) in fe.runs.iter().enumerate() {
+            let label = js_string(&run.label(&fe.module_path));
             out.push_str(&format!(
                 "total++;\ntry {{\n  m{k}.__glyph_run_{i}();\n\
                  }} catch (err) {{ console.log(\"FAIL \" + {label} + \": \" + String(err)); failed++; }}\n"
@@ -445,4 +554,85 @@ fn copy_dir(from: &Path, to: &Path) -> Result<(), ExampleError> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Two functions, one `@example` each. `triple`'s is deliberately wrong:
+    /// nothing here executes it, the tests read the label the harness would
+    /// print when it fails.
+    const ONE_EACH: &str = "\
+@example double(2) == 4
+fn double(n: number) -> number { return n * 2 }
+
+@example triple(2) == 7
+fn triple(n: number) -> number { return n * 3 }
+";
+
+    /// The same file with one more `@example` added to `double`.
+    const TWO_ON_DOUBLE: &str = "\
+@example double(2) == 4
+@example double(3) == 6
+fn double(n: number) -> number { return n * 2 }
+
+@example triple(2) == 7
+fn triple(n: number) -> number { return n * 3 }
+";
+
+    fn file_examples(module_path: &str, source: &str) -> FileExamples {
+        let module = glyph_parser::parse(source).expect("the test source parses");
+        let (cases, runs, malformed) = collect_tests(&module);
+        FileExamples {
+            rel: PathBuf::from(format!("{module_path}.glyph")),
+            module_path: module_path.to_string(),
+            cases,
+            runs,
+            malformed,
+        }
+    }
+
+    /// Every `FAIL` line the generated harness can print, as `(label, rest of
+    /// the message)`. Assumes no test expression contains `);`.
+    fn fail_lines(source: &str) -> Vec<(String, String)> {
+        let harness = generate_harness(&[file_examples("main", source)]);
+        let mut out = Vec::new();
+        for seg in harness.split("console.log(\"FAIL \" + ").skip(1) {
+            let call = &seg[..seg.find(");").expect("a complete console.log call")];
+            // The odd-indexed pieces of a `"` split are the string literals.
+            let mut lits = call.split('"').skip(1).step_by(2);
+            let label = lits.next().expect("a label literal").to_string();
+            out.push((label, lits.collect::<Vec<_>>().join("")));
+        }
+        out
+    }
+
+    /// The label of the one `FAIL` line whose message mentions `needle`.
+    fn label_of(source: &str, needle: &str) -> String {
+        let lines = fail_lines(source);
+        match lines.iter().find(|(_, msg)| msg.contains(needle)) {
+            Some((label, _)) => label.clone(),
+            None => panic!("no FAIL line mentions `{needle}`: {lines:?}"),
+        }
+    }
+
+    #[test]
+    fn an_example_failure_names_the_declaration_it_is_about() {
+        let mut labels: Vec<String> = fail_lines(ONE_EACH).into_iter().map(|(l, _)| l).collect();
+        labels.dedup();
+        let expected = ["main::double example #1", "main::triple example #1"];
+        assert_eq!(labels, expected);
+    }
+
+    #[test]
+    fn an_example_added_to_another_declaration_does_not_relabel_this_one() {
+        let before = label_of(ONE_EACH, "triple(2)");
+        let after = label_of(TWO_ON_DOUBLE, "triple(2)");
+        assert_eq!(
+            after, before,
+            "an @example added to `double` renumbered `triple`'s label"
+        );
+        assert_eq!(before, "main::triple example #1");
+    }
 }

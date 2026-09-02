@@ -69,14 +69,14 @@ pub use salsa::{Event, EventKind, Setter};
 /// as its query name.
 pub type EventSink = Arc<dyn Fn(&salsa::Event) + Send + Sync>;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use glyph_ast::{Decl, Ident, Module, ModulePath, TypeExpr};
 use glyph_parser::ParseError;
 use glyph_resolver::{
-    build_prelude, collect_module_symbols, path_key, resolve_module, verify_imports,
-    ModuleExports, ModuleGraph, ModuleSymbols, Prelude, ResolveError, ResolvedModule,
-    StdlibStubs, SymbolKind,
+    build_prelude, collect_module_symbols, path_key, resolve_module, verify_imports, DeclKey,
+    ModuleExports, ModuleGraph, ModuleId, ModuleInterner, ModuleSymbols, Prelude, ResolveError,
+    ResolvedModule, StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
     assign_types_with_resolver, DeclTyResolver, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
@@ -894,6 +894,98 @@ impl ModuleGraph for ProjectExports {
 impl_wrapper_salsa_value!(ProjectExports);
 
 // ============================================================================
+// Stage 11 wrapper: DeclIndex (project-wide declaration identities)
+// ============================================================================
+
+/// Every top-level declaration in the project, keyed by `(ModuleId, Ident)`.
+///
+/// This is the consumer the [`DeclKey`] convention was named for. The other
+/// three places that reached the same shape independently (`Ty::Imported`,
+/// `SymbolTarget::Global`, `ModuleExports`) keep their own spellings for now;
+/// converting them is a follow-up worth judging on its own.
+///
+/// It is an *identity* index, not an export surface. [`module_exports`] filters
+/// on `pub`, because it answers what another module may name; this answers what
+/// exists, so a private helper is keyed too. Imports are not keyed here:
+/// `import std/array { map }` binds `map` locally, and the declaration it names
+/// is already keyed under `std/array`, so keying it again under the importer
+/// would turn one declaration into two entities.
+///
+/// Modules are interned in module-path order, so the [`ModuleId`]s are a
+/// function of the project's file set rather than of `ProjectFiles::entries`
+/// order, since nothing promises a build lists its files the same way twice.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclIndex {
+    inner: Arc<DeclIndexInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DeclIndexInner {
+    modules: ModuleInterner,
+    by_module: BTreeMap<ModuleId, BTreeSet<Ident>>,
+}
+
+impl DeclIndex {
+    fn new(modules: ModuleInterner, by_module: BTreeMap<ModuleId, BTreeSet<Ident>>) -> Self {
+        Self {
+            inner: Arc::new(DeclIndexInner { modules, by_module }),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(ModuleInterner::new(), BTreeMap::new())
+    }
+
+    /// The id this project knows `module_key` (`"db/catalog"`) by, or `None`
+    /// when no file in the project answers to that path.
+    pub fn module_id(&self, module_key: &str) -> Option<ModuleId> {
+        self.inner.modules.get(module_key)
+    }
+
+    /// The canonical module path an id names.
+    pub fn module_path(&self, id: ModuleId) -> Option<&str> {
+        self.inner.modules.path_of(id)
+    }
+
+    /// The key for `name` as declared in `module_key`, or `None` when that
+    /// module declares no such name. Built from the stored `Ident`, so
+    /// answering costs no allocation.
+    pub fn key_of(&self, module_key: &str, name: &str) -> Option<DeclKey> {
+        let module = self.module_id(module_key)?;
+        let stored = self.inner.by_module.get(&module)?.get(name)?;
+        Some(DeclKey::new(module, stored.clone()))
+    }
+
+    /// Whether `key` names a declaration this project has. A key that outlived
+    /// the declaration it named (renamed, deleted, moved) answers `false`.
+    pub fn contains(&self, key: &DeclKey) -> bool {
+        self.inner
+            .by_module
+            .get(&key.module())
+            .is_some_and(|names| names.contains(key.name()))
+    }
+
+    /// Every declaration key, ordered by module and then by name.
+    pub fn keys(&self) -> impl Iterator<Item = DeclKey> + '_ {
+        self.inner
+            .by_module
+            .iter()
+            .flat_map(|(module, names)| names.iter().map(move |n| DeclKey::new(*module, n.clone())))
+    }
+
+    /// How many declarations are keyed across the whole project.
+    pub fn len(&self) -> usize {
+        self.inner.by_module.values().map(BTreeSet::len).sum()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
+impl_wrapper_salsa_value!(DeclIndex);
+
+// ============================================================================
 // ProjectGraph — a ModuleGraph backed by salsa-cached file exports
 // ============================================================================
 
@@ -1059,6 +1151,69 @@ pub fn project_exports(db: &dyn Db, project: ProjectFiles) -> ProjectExports {
         );
     }
     ProjectExports::new(by_path)
+}
+
+/// Project-wide declaration identities: one [`DeclKey`] per top-level
+/// declaration in every registered file.
+///
+/// Re-runs when the project's file list changes or when any file's set of
+/// top-level names does. A body-only edit produces a content-equal index, so
+/// salsa backdates the memo and anything downstream of this query skips, which
+/// is the protocol [`project_exports`] relies on.
+///
+/// A file that does not currently parse contributes no keys, but its module is
+/// still interned: it is a module of this project whether or not it parses this
+/// revision, and dropping it would renumber every id after it on each keystroke
+/// inside a broken file.
+#[salsa::tracked(returns(clone))]
+pub fn project_decl_keys(db: &dyn Db, project: ProjectFiles) -> DeclIndex {
+    let mut entries: Vec<(&str, SourceFile)> = project
+        .entries(db)
+        .iter()
+        .map(|(path, file)| (path.as_str(), *file))
+        .collect();
+    entries.sort_by(|a, b| a.0.cmp(b.0));
+
+    let mut modules = ModuleInterner::new();
+    let mut by_module: BTreeMap<ModuleId, BTreeSet<Ident>> = BTreeMap::new();
+
+    for (path, file) in entries {
+        let module = modules.intern_key(path);
+        debug_assert!(
+            !by_module.contains_key(&module),
+            "project_decl_keys: duplicate module path `{path}` in ProjectFiles \
+             entries: two files' declarations merged under one key. Match the \
+             safety contract of `ProjectGraph::build`."
+        );
+        let names = by_module.entry(module).or_default();
+        let syms = module_symbols(db, file);
+        let Some(table) = syms.symbols() else {
+            continue;
+        };
+        for (name, id) in table.by_name.iter() {
+            let sym = table
+                .table
+                .get(*id)
+                .expect("by_name points at table entry");
+            // **Include-list, not exclude-list**, for the same reason
+            // `module_exports` uses one: a new `SymbolKind` is rejected by
+            // default and the exhaustiveness check forces a decision about
+            // whether it names a declaration. Imports are excluded on purpose;
+            // see the `DeclIndex` docs.
+            if matches!(
+                sym.kind,
+                SymbolKind::Function { .. }
+                    | SymbolKind::Type { .. }
+                    | SymbolKind::Const { .. }
+                    | SymbolKind::Component { .. }
+                    | SymbolKind::Variant { .. }
+            ) {
+                names.insert(name.clone());
+            }
+        }
+    }
+
+    DeclIndex::new(modules, by_module)
 }
 
 /// Cross-module verification: `import M { N }` checks, plus the same export
@@ -2514,5 +2669,201 @@ fn use_helper(x: number) -> number { return helper(x) }
             valid >= 1,
             "expected ≥1 DidValidateMemoizedValue (decl_ty served from memo); got {valid} events: {unedited_events:?}"
         );
+    }
+
+    // ----------------------------------------------------------------------
+    // DeclKey / ModuleId: declaration identity that survives an insertion
+    // ----------------------------------------------------------------------
+
+    fn decl_index_of(db: &CompilerDb) -> DeclIndex {
+        project_decl_keys(db, db.project_files_input())
+    }
+
+    fn symbol_id_of(db: &CompilerDb, file: SourceFile, name: &str) -> glyph_resolver::SymbolId {
+        module_symbols(db, file)
+            .symbols()
+            .expect("symbols collected")
+            .lookup(name)
+            .unwrap_or_else(|| panic!("no top-level `{name}`"))
+    }
+
+    #[test]
+    fn a_decl_key_survives_a_declaration_inserted_above_it() {
+        // The measured case. `SymbolId` is a dense index into the module's
+        // table, so a declaration inserted above `charge` renumbers it; the
+        // whole reason the graph needs a second key is that its edges must not
+        // move when that happens.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "pay.glyph",
+            "module pay\npub fn charge(amount: number) -> number { return amount }\n",
+        );
+        db.set_project(vec![("pay".to_string(), file)]);
+
+        let before_id = symbol_id_of(&db, file, "charge");
+        let before_key = decl_index_of(&db)
+            .key_of("pay", "charge")
+            .expect("`charge` is keyed");
+
+        file.set_text(&mut db).to(
+            "module pay\npub fn audit() {}\npub fn charge(amount: number) -> number { return amount }\n"
+                .to_string(),
+        );
+
+        let after_id = symbol_id_of(&db, file, "charge");
+        let after_key = decl_index_of(&db)
+            .key_of("pay", "charge")
+            .expect("`charge` is still keyed");
+
+        assert_ne!(
+            before_id, after_id,
+            "the symbol index has to move, or this test proves nothing"
+        );
+        assert_eq!(
+            before_key, after_key,
+            "the decl key must name the same declaration across the insertion"
+        );
+    }
+
+    #[test]
+    fn a_decl_key_ignores_the_declaration_kind() {
+        // `kind` is deliberately not in the key. Turning `const Limit` into
+        // `fn Limit()` edits one declaration; it does not replace it with a
+        // different entity, and the graph's edges into it must survive.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "pay.glyph", "module pay\npub const Limit = 5\n");
+        db.set_project(vec![("pay".to_string(), file)]);
+        let as_const = decl_index_of(&db)
+            .key_of("pay", "Limit")
+            .expect("`Limit` is keyed as a const");
+
+        file.set_text(&mut db)
+            .to("module pay\npub fn Limit() -> number { return 5 }\n".to_string());
+        let as_fn = decl_index_of(&db)
+            .key_of("pay", "Limit")
+            .expect("`Limit` is keyed as a fn");
+
+        assert_eq!(as_const, as_fn);
+    }
+
+    #[test]
+    fn a_module_id_does_not_depend_on_project_entry_order() {
+        // `ProjectFiles::entries` is a Vec, and nothing promises a build lists
+        // files in a fixed order. The index interns in module-path order so the
+        // ids are a function of the file set alone.
+        let mut db = CompilerDb::with_default_stdlib();
+        let a = new_file(&db, "a.glyph", "module pay/charges\npub fn charge() {}\n");
+        let b = new_file(&db, "b.glyph", "module pay/refunds\npub fn refund() {}\n");
+
+        db.set_project(vec![
+            ("pay/charges".to_string(), a),
+            ("pay/refunds".to_string(), b),
+        ]);
+        let forward = decl_index_of(&db);
+        let charge = forward.key_of("pay/charges", "charge").expect("charge");
+        let refund = forward.key_of("pay/refunds", "refund").expect("refund");
+        assert_ne!(charge.module(), refund.module());
+
+        db.set_project(vec![
+            ("pay/refunds".to_string(), b),
+            ("pay/charges".to_string(), a),
+        ]);
+        let reversed = decl_index_of(&db);
+        assert_eq!(Some(charge), reversed.key_of("pay/charges", "charge"));
+        assert_eq!(Some(refund), reversed.key_of("pay/refunds", "refund"));
+        assert_eq!(forward, reversed, "the index is a function of the file set");
+    }
+
+    #[test]
+    fn a_private_declaration_is_keyed_even_though_it_is_not_exported() {
+        // Identity is not visibility. `module_exports` filters on `pub` because
+        // an export surface answers what another module may name; the index
+        // answers what exists, and a private helper exists.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\npub fn api() -> number { return 1 }\nfn secret() -> number { return 2 }\n",
+        );
+        db.set_project(vec![("lib".to_string(), file)]);
+        let idx = decl_index_of(&db);
+        assert!(idx.key_of("lib", "api").is_some());
+        assert!(
+            idx.key_of("lib", "secret").is_some(),
+            "a private declaration is still a declaration"
+        );
+        assert!(!module_exports(&db, file).exports().contains("secret"));
+    }
+
+    #[test]
+    fn an_imported_name_is_not_keyed_to_the_importing_module() {
+        // `import std/array { map }` binds `map` locally. The declaration it
+        // names belongs to `std/array` and is keyed there; keying it here too
+        // would make one declaration two entities.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "app.glyph",
+            "module app\nimport std/array { map }\npub fn go() {}\n",
+        );
+        db.set_project(vec![("app".to_string(), file)]);
+        let idx = decl_index_of(&db);
+        assert!(idx.key_of("app", "go").is_some());
+        assert_eq!(idx.key_of("app", "map"), None);
+    }
+
+    #[test]
+    fn a_union_variant_is_keyed_alongside_its_type() {
+        // Variants are hoisted into module scope, so they are nameable
+        // declarations and the graph has to be able to point at one.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "lib.glyph",
+            "module lib\npub type FeedError = | NotFound | Timeout\n",
+        );
+        db.set_project(vec![("lib".to_string(), file)]);
+        let idx = decl_index_of(&db);
+        assert!(idx.key_of("lib", "FeedError").is_some());
+        assert!(idx.key_of("lib", "NotFound").is_some());
+        assert!(idx.key_of("lib", "Timeout").is_some());
+    }
+
+    #[test]
+    fn a_body_only_edit_leaves_the_index_content_equal() {
+        // Which is what lets salsa backdate the memo: an edit that adds no
+        // top-level name does not invalidate anything downstream of the index.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "pay.glyph",
+            "module pay\npub fn charge(a: number) -> number { return a }\n",
+        );
+        db.set_project(vec![("pay".to_string(), file)]);
+        let before = decl_index_of(&db);
+
+        file.set_text(&mut db)
+            .to("module pay\npub fn charge(a: number) -> number { return a + 0 }\n".to_string());
+        let after = decl_index_of(&db);
+
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn an_unparsable_file_contributes_no_keys_and_does_not_poison_the_rest() {
+        let mut db = CompilerDb::with_default_stdlib();
+        let good = new_file(&db, "good.glyph", "module good\npub fn ok() {}\n");
+        let bad = new_file(&db, "bad.glyph", "module bad\npub fn broken(\n");
+        db.set_project(vec![
+            ("good".to_string(), good),
+            ("bad".to_string(), bad),
+        ]);
+        let idx = decl_index_of(&db);
+        assert!(idx.key_of("good", "ok").is_some());
+        assert_eq!(idx.key_of("bad", "broken"), None);
+        // The module itself is still interned: it is a module in the project
+        // whether or not it currently parses.
+        assert!(idx.module_id("bad").is_some());
     }
 }

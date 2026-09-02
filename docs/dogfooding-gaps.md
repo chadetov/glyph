@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-162 entries, 125 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-18 are open. G144, the D28 boundary cast that never reached the returns a
+164 entries, 128 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+17 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -3340,7 +3340,7 @@ worth keeping.
   does it is four lines of `match acc` ceremony each time. `max_by`/`min_by`
   taking a key function is the shape that closes it; `max`/`min`/`sum` over
   `Array<number>` are the trivial cases of the same thing.
-  *Reproduced against 0.1.96, and the five diagnostics are word for word what
+  *Reproduced against 0.1.102: `std/array` exports find, filter, map, zip, get, len, push, concat, reverse, slice, any, contains, sort, fold, index_of, flat_map, range and range_from, and none of `max`, `min`, `max_by`, `min_by` or `sum`, and the five diagnostics are word for word what
   0.1.84 printed: all five are `[E0105] not exported by std/array`, `max` is
   still answered with `(did you mean `map`?)`, and the other four append the
   export list (`any, concat, contains, filter, find, flat_map, fold, get, and 10
@@ -3362,7 +3362,7 @@ worth keeping.
   and not pruning. A `fold_while`/`try_fold` whose callback returns a continue-or-
   stop is the missing piece. Not a soundness bug: the hand-written form is
   correct, just long.
-  *Reproduced against 0.1.96: `fold_while` and `try_fold` are each `[E0105] not
+  *Reproduced against 0.1.102: `fold` is still `xs.reduce(f, init)` with no early exit, and there is no `try_fold`, `fold_while` or `fold_until` beside it: `fold_while` and `try_fold` are each `[E0105] not
   exported by std/array`, with the module's export list appended (`exports: any,
   concat, contains, filter, find, flat_map, fold, get, and 10 more`).
   `runtime/std/array.ts` defines `fold` and nothing that can stop early, and
@@ -3576,7 +3576,7 @@ and stopped on the same sentence: Glyph has no bytes.
   has to decide what to call it. The only expressible version of the app is
   `read_text` plus `array.sort`, which is the memory shape the round existed to
   avoid.
-  *Reproduced against 0.1.96: `fs.open` and `fs.read_line_at` are both `[E0105]
+  *Reproduced against 0.1.102: `std/fs` exports read_text, write_text, append_text, read_bytes, write_bytes, append_bytes, make_dir, exists, read_dir, is_dir, stat and remove, with no open, seek or line iterator, and `io.read_line` is still the only line reader: `fs.open` and `fs.read_line_at` are both `[E0105]
   not exported by std/fs`, the diagnostic listing `ErrorKind, FileInfo, FsError,
   append_bytes, append_text, exists, is_dir, make_dir, and 7 more`, and
   `runtime/` still contains no `asyncIterator`, `AsyncIterable`,
@@ -3657,7 +3657,7 @@ which is the infrastructure round 28 left blocked.
 
   *Re-run for 0.1.96: an import referenced only from an `@example` still draws `unused import`.*
 
-- **G107. In a multi-project build, a `tsc` error is reported against a
+- **G107. [FIXED] In a multi-project build, a `tsc` error is reported against a
   same-named module in a *different project*.** `glyph build examples` builds
   each `apps/<name>/` as its own project (D41). When `tsc` reports an error in
   one project's `main`, the remap resolves the module name against the first
@@ -3700,6 +3700,19 @@ was fixed in 0.1.80. Two were not, and are here.
 
   *Re-run for 0.1.96: two projects each with a `main`: the `TS2307` for beta's bad import still quotes alpha's `import std/io`.*
 
+  Closed in 0.1.101. Each project's module paths are now qualified by where they
+  are emitted, and the lookup prefers the longest match, so a project at the tree
+  root can no longer shadow a nested one sharing a module name. Both halves are
+  deliberate: qualification makes a collision impossible, longest-match makes one
+  that slips through harmless. The first attempt at this fixed only the sibling
+  case and its test used two sibling subdirectories, the one layout where the
+  bug cannot appear; the root-plus-nested layout still reproduced until the
+  second pass.
+
+  *Verified fixed against 0.1.102: a root project and a nested one both named
+  `main`, with the bad import in the nested one, now quotes the nested project's
+  own `import totally-not-installed { thing }` rather than the root's working
+  `import std/io { println }`.*
 - **G120. [FIXED] `http.read_request` has no body size cap and never settles when a
   client disconnects mid-body.** It accumulates `raw += chunk` with no limit and
   listens for `data` and `end` only, with no `aborted` and no `error`. A client
@@ -4530,7 +4543,7 @@ until this one.
   deadline the way `tls.connect` did (a breaking change to the two most-used
   functions in the stdlib), or whether `request` stops treating 0 as permission
   and `fetch_of` ships a real default instead. Scheduled in the rolling lane.
-  *Reproduced against 0.1.96, on the shape the entry describes: a TCP listener
+  *Reproduced against 0.1.102: `http.get(url)` still takes a URL and nothing else, and `request` still reads a zero timeout as permission not to arm the timer, on the shape the entry describes: a TCP listener
   that accepts the connection and sends nothing, dialled with `http.get`. The
   program printed `listening, dialing` and nothing else, and was still pending
   when it was killed at 50 seconds. `runtime/std/http.ts` is unchanged in the two
@@ -6514,3 +6527,52 @@ and is the owner's to confirm.
   see past its own permanently failing seed. Seed committed as
   `fuzz/seeds/g162-bare-literal-absorbs-a-parenthesized-statement.glyph` and
   skipped by name in `fuzz_seeds_are_format_fixed_points`.*
+
+- **G163. [FIXED] The doc-checking gates would silently check a `glyph` on `PATH` instead of the one built from this tree.**
+  `scripts/glyph_bin.py`'s `find()` tried `glyph-compiler/target/release/glyph`,
+  then `target/debug/glyph`, then fell back to `shutil.which("glyph")`. The
+  gates that use it do not merely read the binary's mtime, they run it:
+  `check_catches`, `check_docs_compile`, `check_scaffold_docs`. With no local
+  build present, those would exercise whatever release happened to be installed
+  globally and report on it.
+
+  Found while checking whether `check_binary_fresh.py` could run in CI. In a
+  fresh clone with no `target/`, it picked
+  `/Users/…/.npm-global/bin/glyph`, an installed 0.1.x release, and reported it
+  stale against this tree's sources.
+
+  Staleness and wrong-binary are the same class, and the file's own header says
+  so about staleness: it "fails plausibly", reporting failures that are not
+  real. The wrong binary fails in the more expensive direction. A stale one
+  reports a false failure and costs a morning; a different compiler entirely can
+  report a clean tree for code that was never compiled.
+
+  The fallback is removed. `GLYPH_BIN` remains as the deliberate override.
+
+  *Reproduced against 0.1.101 in a fresh `git clone` with no build directory,
+  then confirmed fixed: the same clone now reports "no glyph binary found" and
+  names the build command, and this repo with its `target/` present still
+  resolves to the local binary.*
+
+- **G164. [FIXED] `glyph-wasm` said it excluded salsa, and salsa was compiled into it anyway.**
+  `glyph-wasm/Cargo.toml` carries the comment "Deliberately NOT glyph-db (salsa),
+  glyph-cli (filesystem), or glyph-lsp (tokio) ... salsa would bloat the wasm
+  binary for no benefit on a single in-memory module." The exclusion was not
+  real. `glyph-resolver` and `glyph-typechecker` each declared
+  `salsa.workspace = true` and neither contained a single `salsa::`, `use salsa`
+  or `#[salsa` anywhere in its source, and `glyph-wasm` depends on both through
+  `glyph-emit`. So `cargo tree -p glyph-wasm -i salsa` resolved, and salsa was
+  built for the wasm target that a comment in the same file says it is kept out
+  of.
+
+  Whether it survived into the artifact was not measured, so this is not a claim
+  about binary size. It is a claim about a committed comment describing something
+  the build did not do.
+
+  Both unused declarations are removed. `cargo tree -p glyph-wasm -i salsa` now
+  finds nothing, `glyph-db` still reaches salsa as the only crate that uses it,
+  and the workspace builds unchanged.
+
+  *Reproduced against 0.1.101 during the salsa 0.28 migration: both crates
+  declared the dependency with zero uses, and the tree query resolved through
+  `glyph-emit`. Confirmed fixed: the same query now reports no match.*

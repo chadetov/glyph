@@ -285,21 +285,418 @@ const KEYWORDS: &[&str] = &[
     "else", "true", "false", "void",
 ];
 
-impl Analysis {
-    /// The rendered type of the innermost typed expression covering `offset`,
-    /// for hover. `None` when no typed expression is there or its type is the
-    /// not-yet-inferred placeholder.
-    pub fn hover(&self, offset: usize) -> Option<String> {
-        let mut best: Option<(u32, String)> = None;
-        for (span, ty) in self.types.iter() {
-            if (span.start as usize) <= offset && offset < (span.end as usize) {
-                let width = span.end - span.start;
-                if best.as_ref().is_none_or(|(w, _)| width < *w) {
-                    best = Some((width, display_ty(ty)));
+// ---------------------------------------------------------------------------
+// The shared query layer.
+//
+// Every position query below is a free function over the *pieces* of an
+// analysis rather than a method on a bundle, because the two callers hold
+// those pieces differently: the language server owns an `Analysis` built from
+// the editor's in-memory buffer, while the MCP server reads them out of the
+// salsa database (`glyph_db::parse_module`, `glyph_db::resolve`) and never
+// materializes an `Analysis` at all. Splitting them also keeps the type map
+// out of the signatures that do not need it — only `hover_at` reads it, which
+// is what lets the MCP references path skip `assign_types` entirely.
+//
+// `Analysis` below is a convenience wrapper over exactly these functions.
+// ---------------------------------------------------------------------------
+
+/// The rendered type of the innermost typed expression covering `offset`, for
+/// hover. `None` when no typed expression is there or its type is the
+/// not-yet-inferred placeholder.
+pub fn hover_at(types: &TypeMap, offset: usize) -> Option<String> {
+    let mut best: Option<(u32, String)> = None;
+    for (span, ty) in types.iter() {
+        if (span.start as usize) <= offset && offset < (span.end as usize) {
+            let width = span.end - span.start;
+            if best.as_ref().is_none_or(|(w, _)| width < *w) {
+                best = Some((width, display_ty(ty)));
+            }
+        }
+    }
+    best.map(|(_, rendered)| rendered).filter(|s| s != "?")
+}
+
+/// Where the name reference covering `offset` is defined, for go-to-definition:
+/// within this file (`Here`), or in another module (an imported name —
+/// `InModule`, which the server resolves to a file). A prelude built-in or no
+/// reference yields `None`.
+///
+/// Takes only the resolution table: unlike its siblings this query never reads
+/// the AST, so it does not ask for a `Module` it would ignore.
+pub fn definition_at(resolved: &ResolvedModule, offset: usize) -> Option<Definition> {
+    match innermost_ref(resolved, offset)? {
+        ResolvedRef::Local(def_start) => Some(Definition::Here(def_start, def_start)),
+        ResolvedRef::Module(id) => {
+            let sym = resolved.symbols.table.get(id)?;
+            match &sym.kind {
+                // An imported name: jump to its declaration in the target
+                // module's file (resolved by the server over the workspace).
+                SymbolKind::ImportNamed { path, original } => Some(Definition::InModule {
+                    module_path: path
+                        .segments
+                        .iter()
+                        .map(|s| s.as_ref())
+                        .collect::<Vec<_>>()
+                        .join("/"),
+                    name: original.to_string(),
+                }),
+                // A module-level declaration in this file.
+                _ => Some(Definition::Here(sym.span.start, sym.span.start)),
+            }
+        }
+        ResolvedRef::Prelude(_) => None,
+    }
+}
+
+/// The innermost resolution covering `offset`, or `None` when the position is
+/// not on a resolved name. "Innermost" is the narrowest span, so a name inside
+/// a larger resolved expression wins.
+fn innermost_ref(resolved: &ResolvedModule, offset: usize) -> Option<ResolvedRef> {
+    innermost_ref_span(resolved, offset).map(|(_, r)| r)
+}
+
+/// As `innermost_ref`, but also reporting the covering span.
+fn innermost_ref_span(resolved: &ResolvedModule, offset: usize) -> Option<((u32, u32), ResolvedRef)> {
+    let mut best: Option<(u32, (u32, u32), ResolvedRef)> = None;
+    for (span, r) in resolved.resolutions.iter() {
+        if (span.start as usize) <= offset && offset < (span.end as usize) {
+            let width = span.end - span.start;
+            if best.as_ref().is_none_or(|(w, _, _)| width < *w) {
+                best = Some((width, (span.start, span.end), r));
+            }
+        }
+    }
+    best.map(|(_, span, r)| (span, r))
+}
+
+/// The canonical definition offset identifying the binding a `ResolvedRef`
+/// points at — a local's def-site, or a module symbol's declaration start — so
+/// two references to the same binding share one identity. `None` for a prelude
+/// built-in (nothing in this document defines it).
+fn ref_identity(resolved: &ResolvedModule, r: ResolvedRef) -> Option<u32> {
+    match r {
+        ResolvedRef::Local(def_start) => Some(def_start),
+        ResolvedRef::Module(id) => Some(resolved.symbols.table.get(id)?.span.start),
+        ResolvedRef::Prelude(_) => None,
+    }
+}
+
+/// The binding at `offset` as `(identity, name, is_local)`, whether the cursor
+/// sits on a *reference* or on the *definition's* name. `None` for a prelude
+/// built-in, whitespace, or a position with no resolvable name. `is_local`
+/// distinguishes a function-body binding (safe to rename in isolation) from a
+/// module-level declaration (whose renames would need the workspace index).
+fn binding_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    offset: usize,
+    text: &str,
+) -> Option<(u32, String, bool)> {
+    // 1. A reference position: the innermost resolution covering `offset`.
+    if let Some(((s, e), r)) = innermost_ref_span(resolved, offset) {
+        let id = ref_identity(resolved, r)?;
+        let name = text.get(s as usize..e as usize)?.to_string();
+        let is_local = matches!(r, ResolvedRef::Local(_));
+        return Some((id, name, is_local));
+    }
+    // 2. A definition position: a top-level declaration's name.
+    for decl in &module.items {
+        if let Some((name, span)) = top_decl_name_and_span(decl) {
+            if let Some((ns, ne)) = whole_word_span(text, span.0, span.1, name) {
+                if (ns as usize) <= offset && offset < (ne as usize) {
+                    return Some((span.0, name.to_string(), false));
                 }
             }
         }
-        best.map(|(_, rendered)| rendered).filter(|s| s != "?")
+    }
+    // 3. A definition position: a local binding's name. A local's def-site
+    //    start (`Local(def_start)`) points at the binding statement (the
+    //    `let`/`for` keyword or the parameter), not the name, so find the
+    //    name as the first whole word at/after that start. Each reference
+    //    supplies the name.
+    for (span, r) in resolved.resolutions.iter() {
+        if let ResolvedRef::Local(def_start) = r {
+            let Some(name) = text.get(span.start as usize..span.end as usize) else {
+                continue;
+            };
+            if let Some((ns, ne)) = local_name_span(text, def_start, name) {
+                if (ns as usize) <= offset && offset < (ne as usize) {
+                    return Some((def_start, name.to_string(), true));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Every occurrence span `[start, end)` of the binding identified by
+/// `identity`/`name`/`is_local`, sorted and de-duplicated. Reference sites come
+/// from the resolution table; the declaration's own name span is added when
+/// `include_decl`.
+fn occurrences_of(
+    module: &Module,
+    resolved: &ResolvedModule,
+    identity: u32,
+    name: &str,
+    is_local: bool,
+    text: &str,
+    include_decl: bool,
+) -> Vec<(u32, u32)> {
+    let mut out: Vec<(u32, u32)> = Vec::new();
+    for (span, r) in resolved.resolutions.iter() {
+        if ref_identity(resolved, r) == Some(identity) {
+            out.push((span.start, span.end));
+        }
+    }
+    if include_decl {
+        let decl_span = if is_local {
+            // `identity` is the binding statement's start; the name is the
+            // first whole word at/after it.
+            local_name_span(text, identity, name)
+        } else {
+            // The module symbol's name sits inside its declaration; find it
+            // by whole word so `fn`/`type`/`const` keywords are skipped.
+            module
+                .items
+                .iter()
+                .find_map(|d| top_decl_name_and_span(d).filter(|(_, s)| s.0 == identity))
+                .and_then(|(n, s)| whole_word_span(text, s.0, s.1, n))
+                .or(Some((identity, identity + name.len() as u32)))
+        };
+        if let Some(span) = decl_span {
+            out.push(span);
+        }
+    }
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+/// Every reference to the name at `offset`, as byte spans `[start, end)`. The
+/// declaration site is included when `include_decl`. File-scoped: it sees one
+/// document, so a symbol used from another module is under-reported — the
+/// workspace-wide answer is `symbol_target_at` plus `global_occurrences_in`
+/// over every file. Empty when `offset` is not on a name.
+pub fn references_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    offset: usize,
+    text: &str,
+    include_decl: bool,
+) -> Vec<(u32, u32)> {
+    match binding_at(module, resolved, offset, text) {
+        Some((identity, name, is_local)) => {
+            occurrences_of(module, resolved, identity, &name, is_local, text, include_decl)
+        }
+        None => Vec::new(),
+    }
+}
+
+/// The edit spans for renaming the binding at `offset` to `new_name`: every
+/// occurrence (declaration included) to overwrite with `new_name`. Restricted
+/// to **local bindings** — a `let`, parameter, `match`/`for`/lambda binding —
+/// which cannot be referenced from another file, so a file-local rename is
+/// complete. A module-level declaration is refused (`ModuleLevelUnsupported`)
+/// until the workspace index can find its cross-file references. The new name
+/// is validated as a legal, non-keyword identifier.
+pub fn rename_edits_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    offset: usize,
+    text: &str,
+    new_name: &str,
+) -> Result<Vec<(u32, u32)>, RenameError> {
+    validate_rename_name(new_name)?;
+    let (identity, name, is_local) =
+        binding_at(module, resolved, offset, text).ok_or(RenameError::NoBinding)?;
+    if !is_local {
+        return Err(RenameError::ModuleLevelUnsupported);
+    }
+    Ok(occurrences_of(module, resolved, identity, &name, is_local, text, true))
+}
+
+/// The global identity `(module_path, name)` of a module-level symbol id, or
+/// `None` for a namespace import, alias, or prelude built-in. An imported name
+/// reports the module it came from; any other module symbol reports
+/// `this_module` (the file it is declared in).
+fn module_global_of(
+    resolved: &ResolvedModule,
+    id: SymbolId,
+    this_module: &str,
+) -> Option<(String, String)> {
+    let sym = resolved.symbols.table.get(id)?;
+    match &sym.kind {
+        SymbolKind::ImportNamed { path, original } => {
+            Some((join_segments(&path.segments), original.to_string()))
+        }
+        SymbolKind::ImportNamespace { .. }
+        | SymbolKind::ImportAlias { .. }
+        | SymbolKind::Prelude { .. } => None,
+        _ => Some((this_module.to_string(), sym.name.to_string())),
+    }
+}
+
+/// Resolve the symbol at `offset` for cross-file operations, given the file's
+/// own module path `this_module`. `Local` is file-private and never crosses
+/// files; `Global { module, name }` is a module-level symbol keyed by where it
+/// is declared (its own module for a same-file declaration, the import's module
+/// for an imported name). `None` when `offset` is not on a resolvable name.
+pub fn symbol_target_at(
+    module: &Module,
+    resolved: &ResolvedModule,
+    offset: usize,
+    text: &str,
+    this_module: &str,
+) -> Option<SymbolTarget> {
+    // 1. A reference position.
+    if let Some(r) = innermost_ref(resolved, offset) {
+        return match r {
+            ResolvedRef::Local(_) => Some(SymbolTarget::Local),
+            ResolvedRef::Module(id) => module_global_of(resolved, id, this_module)
+                .map(|(module, name)| SymbolTarget::Global { module, name }),
+            ResolvedRef::Prelude(_) => None,
+        };
+    }
+    // 2. A top-level declaration name.
+    for decl in &module.items {
+        if let Some((name, span)) = top_decl_name_and_span(decl) {
+            if let Some((ns, ne)) = whole_word_span(text, span.0, span.1, name) {
+                if (ns as usize) <= offset && offset < (ne as usize) {
+                    return Some(SymbolTarget::Global {
+                        module: this_module.to_string(),
+                        name: name.to_string(),
+                    });
+                }
+            }
+        }
+    }
+    // 2b. A tagged-union variant name (a module-scope constructor).
+    for top in module_outline(module) {
+        for child in &top.children {
+            if let Some((ns, ne)) = whole_word_span(text, child.span.0, child.span.1, &child.name) {
+                if (ns as usize) <= offset && offset < (ne as usize) {
+                    return Some(SymbolTarget::Global {
+                        module: this_module.to_string(),
+                        name: child.name.clone(),
+                    });
+                }
+            }
+        }
+    }
+    // 3. An `import M { name }` binding.
+    for decl in &module.items {
+        if let Decl::Import(im) = decl {
+            if let ImportKind::Named(names) = &im.kind {
+                let module = join_segments(&im.path.segments);
+                for n in names {
+                    if let Some((ns, ne)) =
+                        whole_word_span(text, im.span.start, im.span.end, n.as_ref())
+                    {
+                        if (ns as usize) <= offset && offset < (ne as usize) {
+                            return Some(SymbolTarget::Global {
+                                module,
+                                name: n.to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // 4. A local binding name.
+    for (span, r) in resolved.resolutions.iter() {
+        if let ResolvedRef::Local(def_start) = r {
+            let Some(name) = text.get(span.start as usize..span.end as usize) else {
+                continue;
+            };
+            if let Some((ns, ne)) = local_name_span(text, def_start, name) {
+                if (ns as usize) <= offset && offset < (ne as usize) {
+                    return Some(SymbolTarget::Local);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Every occurrence of the globally-identified symbol `(sym_module, name)` in
+/// THIS file, whose own module path is `this_module`. Reference sites come from
+/// the resolution table; the declaration or import-binding site is added when
+/// `include_decl` — the declaration itself in the defining module, or the
+/// `import sym_module { name }` token in an importing module. This is the
+/// per-file half of a workspace-wide references/rename: the server runs it over
+/// every file.
+pub fn global_occurrences_in(
+    module: &Module,
+    resolved: &ResolvedModule,
+    this_module: &str,
+    sym_module: &str,
+    name: &str,
+    text: &str,
+    include_decl: bool,
+) -> Vec<(u32, u32)> {
+    let mut out: Vec<(u32, u32)> = Vec::new();
+    for (span, r) in resolved.resolutions.iter() {
+        if let ResolvedRef::Module(id) = r {
+            if module_global_of(resolved, id, this_module)
+                .as_ref()
+                .map(|(m, n)| (m.as_str(), n.as_str()))
+                == Some((sym_module, name))
+            {
+                out.push((span.start, span.end));
+            }
+        }
+    }
+    if include_decl {
+        if this_module == sym_module {
+            // The declaration in the defining module: a top-level decl name,
+            // or a tagged-union variant name.
+            for decl in &module.items {
+                if let Some((n, span)) = top_decl_name_and_span(decl) {
+                    if n == name {
+                        if let Some(ws) = whole_word_span(text, span.0, span.1, n) {
+                            out.push(ws);
+                        }
+                    }
+                }
+            }
+            for top in module_outline(module) {
+                for child in &top.children {
+                    if child.name == name {
+                        if let Some(ws) = whole_word_span(text, child.span.0, child.span.1, name) {
+                            out.push(ws);
+                        }
+                    }
+                }
+            }
+        } else {
+            // The `import sym_module { name }` binding token in an importer.
+            for decl in &module.items {
+                if let Decl::Import(im) = decl {
+                    if join_segments(&im.path.segments) == sym_module {
+                        if let ImportKind::Named(names) = &im.kind {
+                            if names.iter().any(|nm| nm.as_ref() == name) {
+                                if let Some(ws) =
+                                    whole_word_span(text, im.span.start, im.span.end, name)
+                                {
+                                    out.push(ws);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+impl Analysis {
+    /// See [`hover_at`].
+    pub fn hover(&self, offset: usize) -> Option<String> {
+        hover_at(&self.types, offset)
     }
 
     /// Inlay type hints: for each `let` with no written type annotation, the
@@ -354,303 +751,37 @@ impl Analysis {
         None
     }
 
-    /// Where the name reference covering `offset` is defined, for
-    /// go-to-definition: within this file (`Here`), or in another module (an
-    /// imported name — `InModule`, which the server resolves to a file). A
-    /// prelude built-in or no reference yields `None`.
+    /// See [`definition_at`].
     pub fn definition(&self, offset: usize) -> Option<Definition> {
-        let mut best: Option<(u32, ResolvedRef)> = None;
-        for (span, r) in self.resolved.resolutions.iter() {
-            if (span.start as usize) <= offset && offset < (span.end as usize) {
-                let width = span.end - span.start;
-                if best.as_ref().is_none_or(|(w, _)| width < *w) {
-                    best = Some((width, r));
-                }
-            }
-        }
-        match best.map(|(_, r)| r)? {
-            ResolvedRef::Local(def_start) => Some(Definition::Here(def_start, def_start)),
-            ResolvedRef::Module(id) => {
-                let sym = self.resolved.symbols.table.get(id)?;
-                match &sym.kind {
-                    // An imported name: jump to its declaration in the target
-                    // module's file (resolved by the server over the workspace).
-                    SymbolKind::ImportNamed { path, original } => Some(Definition::InModule {
-                        module_path: path
-                            .segments
-                            .iter()
-                            .map(|s| s.as_ref())
-                            .collect::<Vec<_>>()
-                            .join("/"),
-                        name: original.to_string(),
-                    }),
-                    // A module-level declaration in this file.
-                    _ => Some(Definition::Here(sym.span.start, sym.span.start)),
-                }
-            }
-            ResolvedRef::Prelude(_) => None,
-        }
+        definition_at(&self.resolved, offset)
     }
 
-    /// The canonical definition offset identifying the binding a `ResolvedRef`
-    /// points at — a local's def-site, or a module symbol's declaration start —
-    /// so two references to the same binding share one identity. `None` for a
-    /// prelude built-in (nothing in this document defines it).
-    fn ref_identity(&self, r: ResolvedRef) -> Option<u32> {
-        match r {
-            ResolvedRef::Local(def_start) => Some(def_start),
-            ResolvedRef::Module(id) => Some(self.resolved.symbols.table.get(id)?.span.start),
-            ResolvedRef::Prelude(_) => None,
-        }
-    }
-
-    /// The binding at `offset` as `(identity, name, is_local)`, whether the cursor
-    /// sits on a *reference* or on the *definition's* name. `None` for a prelude
-    /// built-in, whitespace, or a position with no resolvable name. `is_local`
-    /// distinguishes a function-body binding (safe to rename in isolation) from a
-    /// module-level declaration (whose renames would need the workspace index).
-    fn binding_at(&self, offset: usize, text: &str) -> Option<(u32, String, bool)> {
-        // 1. A reference position: the innermost resolution covering `offset`.
-        let mut best: Option<(u32, (u32, u32), ResolvedRef)> = None;
-        for (span, r) in self.resolved.resolutions.iter() {
-            if (span.start as usize) <= offset && offset < (span.end as usize) {
-                let width = span.end - span.start;
-                if best.as_ref().is_none_or(|(w, _, _)| width < *w) {
-                    best = Some((width, (span.start, span.end), r));
-                }
-            }
-        }
-        if let Some((_, (s, e), r)) = best {
-            let id = self.ref_identity(r)?;
-            let name = text.get(s as usize..e as usize)?.to_string();
-            let is_local = matches!(r, ResolvedRef::Local(_));
-            return Some((id, name, is_local));
-        }
-        // 2. A definition position: a top-level declaration's name.
-        for decl in &self.module.items {
-            if let Some((name, span)) = top_decl_name_and_span(decl) {
-                if let Some((ns, ne)) = whole_word_span(text, span.0, span.1, name) {
-                    if (ns as usize) <= offset && offset < (ne as usize) {
-                        return Some((span.0, name.to_string(), false));
-                    }
-                }
-            }
-        }
-        // 3. A definition position: a local binding's name. A local's def-site
-        //    start (`Local(def_start)`) points at the binding statement (the
-        //    `let`/`for` keyword or the parameter), not the name, so find the
-        //    name as the first whole word at/after that start. Each reference
-        //    supplies the name.
-        for (span, r) in self.resolved.resolutions.iter() {
-            if let ResolvedRef::Local(def_start) = r {
-                let Some(name) = text.get(span.start as usize..span.end as usize) else {
-                    continue;
-                };
-                if let Some((ns, ne)) = local_name_span(text, def_start, name) {
-                    if (ns as usize) <= offset && offset < (ne as usize) {
-                        return Some((def_start, name.to_string(), true));
-                    }
-                }
-            }
-        }
-        None
-    }
-
-    /// Every occurrence span `[start, end)` of the binding identified by
-    /// `identity`/`name`/`is_local`, sorted and de-duplicated. Reference sites
-    /// come from the resolution table; the declaration's own name span is added
-    /// when `include_decl`.
-    fn occurrences(
-        &self,
-        identity: u32,
-        name: &str,
-        is_local: bool,
-        text: &str,
-        include_decl: bool,
-    ) -> Vec<(u32, u32)> {
-        let mut out: Vec<(u32, u32)> = Vec::new();
-        for (span, r) in self.resolved.resolutions.iter() {
-            if self.ref_identity(r) == Some(identity) {
-                out.push((span.start, span.end));
-            }
-        }
-        if include_decl {
-            let decl_span = if is_local {
-                // `identity` is the binding statement's start; the name is the
-                // first whole word at/after it.
-                local_name_span(text, identity, name)
-            } else {
-                // The module symbol's name sits inside its declaration; find it
-                // by whole word so `fn`/`type`/`const` keywords are skipped.
-                self.module
-                    .items
-                    .iter()
-                    .find_map(|d| top_decl_name_and_span(d).filter(|(_, s)| s.0 == identity))
-                    .and_then(|(n, s)| whole_word_span(text, s.0, s.1, n))
-                    .or(Some((identity, identity + name.len() as u32)))
-            };
-            if let Some(span) = decl_span {
-                out.push(span);
-            }
-        }
-        out.sort_unstable();
-        out.dedup();
-        out
-    }
-
-    /// Every reference to the name at `offset`, as byte spans `[start, end)`. The
-    /// declaration site is included when `include_decl`. File-scoped: it sees the
-    /// open document only, so a symbol used from another module is under-reported
-    /// until the workspace index lands. Empty when `offset` is not on a name.
+    /// See [`references_at`].
     pub fn references(&self, offset: usize, text: &str, include_decl: bool) -> Vec<(u32, u32)> {
-        match self.binding_at(offset, text) {
-            Some((identity, name, is_local)) => {
-                self.occurrences(identity, &name, is_local, text, include_decl)
-            }
-            None => Vec::new(),
-        }
+        references_at(&self.module, &self.resolved, offset, text, include_decl)
     }
 
-    /// The edit spans for renaming the binding at `offset` to `new_name`: every
-    /// occurrence (declaration included) to overwrite with `new_name`. Restricted
-    /// to **local bindings** — a `let`, parameter, `match`/`for`/lambda binding —
-    /// which cannot be referenced from another file, so a file-local rename is
-    /// complete. A module-level declaration is refused (`ModuleLevelUnsupported`)
-    /// until the workspace index can find its cross-file references. The new name
-    /// is validated as a legal, non-keyword identifier.
+    /// See [`rename_edits_at`].
     pub fn rename_edits(
         &self,
         offset: usize,
         text: &str,
         new_name: &str,
     ) -> Result<Vec<(u32, u32)>, RenameError> {
-        validate_rename_name(new_name)?;
-        let (identity, name, is_local) =
-            self.binding_at(offset, text).ok_or(RenameError::NoBinding)?;
-        if !is_local {
-            return Err(RenameError::ModuleLevelUnsupported);
-        }
-        Ok(self.occurrences(identity, &name, is_local, text, true))
+        rename_edits_at(&self.module, &self.resolved, offset, text, new_name)
     }
 
-    /// The global identity `(module_path, name)` of a module-level symbol id, or
-    /// `None` for a namespace import, alias, or prelude built-in. An imported
-    /// name reports the module it came from; any other module symbol reports
-    /// `this_module` (the file it is declared in).
-    fn module_global_of(&self, id: SymbolId, this_module: &str) -> Option<(String, String)> {
-        let sym = self.resolved.symbols.table.get(id)?;
-        match &sym.kind {
-            SymbolKind::ImportNamed { path, original } => {
-                Some((join_segments(&path.segments), original.to_string()))
-            }
-            SymbolKind::ImportNamespace { .. }
-            | SymbolKind::ImportAlias { .. }
-            | SymbolKind::Prelude { .. } => None,
-            _ => Some((this_module.to_string(), sym.name.to_string())),
-        }
-    }
-
-    /// Resolve the symbol at `offset` for cross-file operations, given the open
-    /// file's own module path `this_module`. `Local` is file-private and never
-    /// crosses files; `Global { module, name }` is a module-level symbol keyed by
-    /// where it is declared (its own module for a same-file declaration, the
-    /// import's module for an imported name). `None` when `offset` is not on a
-    /// resolvable name.
+    /// See [`symbol_target_at`].
     pub fn symbol_target(
         &self,
         offset: usize,
         text: &str,
         this_module: &str,
     ) -> Option<SymbolTarget> {
-        // 1. A reference position.
-        let mut best: Option<(u32, ResolvedRef)> = None;
-        for (span, r) in self.resolved.resolutions.iter() {
-            if (span.start as usize) <= offset && offset < (span.end as usize) {
-                let width = span.end - span.start;
-                if best.as_ref().is_none_or(|(w, _)| width < *w) {
-                    best = Some((width, r));
-                }
-            }
-        }
-        if let Some((_, r)) = best {
-            return match r {
-                ResolvedRef::Local(_) => Some(SymbolTarget::Local),
-                ResolvedRef::Module(id) => self
-                    .module_global_of(id, this_module)
-                    .map(|(module, name)| SymbolTarget::Global { module, name }),
-                ResolvedRef::Prelude(_) => None,
-            };
-        }
-        // 2. A top-level declaration name.
-        for decl in &self.module.items {
-            if let Some((name, span)) = top_decl_name_and_span(decl) {
-                if let Some((ns, ne)) = whole_word_span(text, span.0, span.1, name) {
-                    if (ns as usize) <= offset && offset < (ne as usize) {
-                        return Some(SymbolTarget::Global {
-                            module: this_module.to_string(),
-                            name: name.to_string(),
-                        });
-                    }
-                }
-            }
-        }
-        // 2b. A tagged-union variant name (a module-scope constructor).
-        for top in module_outline(&self.module) {
-            for child in &top.children {
-                if let Some((ns, ne)) = whole_word_span(text, child.span.0, child.span.1, &child.name)
-                {
-                    if (ns as usize) <= offset && offset < (ne as usize) {
-                        return Some(SymbolTarget::Global {
-                            module: this_module.to_string(),
-                            name: child.name.clone(),
-                        });
-                    }
-                }
-            }
-        }
-        // 3. An `import M { name }` binding.
-        for decl in &self.module.items {
-            if let Decl::Import(im) = decl {
-                if let ImportKind::Named(names) = &im.kind {
-                    let module = join_segments(&im.path.segments);
-                    for n in names {
-                        if let Some((ns, ne)) =
-                            whole_word_span(text, im.span.start, im.span.end, n.as_ref())
-                        {
-                            if (ns as usize) <= offset && offset < (ne as usize) {
-                                return Some(SymbolTarget::Global {
-                                    module,
-                                    name: n.to_string(),
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        // 4. A local binding name.
-        for (span, r) in self.resolved.resolutions.iter() {
-            if let ResolvedRef::Local(def_start) = r {
-                let Some(name) = text.get(span.start as usize..span.end as usize) else {
-                    continue;
-                };
-                if let Some((ns, ne)) = local_name_span(text, def_start, name) {
-                    if (ns as usize) <= offset && offset < (ne as usize) {
-                        return Some(SymbolTarget::Local);
-                    }
-                }
-            }
-        }
-        None
+        symbol_target_at(&self.module, &self.resolved, offset, text, this_module)
     }
 
-    /// Every occurrence of the globally-identified symbol `(sym_module, name)` in
-    /// THIS file, whose own module path is `this_module`. Reference sites come
-    /// from the resolution table; the declaration or import-binding site is added
-    /// when `include_decl` — the declaration itself in the defining module, or
-    /// the `import sym_module { name }` token in an importing module. This is the
-    /// per-file half of a workspace-wide references/rename: the server runs it
-    /// over every file.
+    /// See [`global_occurrences_in`].
     pub fn global_occurrences(
         &self,
         this_module: &str,
@@ -659,63 +790,15 @@ impl Analysis {
         text: &str,
         include_decl: bool,
     ) -> Vec<(u32, u32)> {
-        let mut out: Vec<(u32, u32)> = Vec::new();
-        for (span, r) in self.resolved.resolutions.iter() {
-            if let ResolvedRef::Module(id) = r {
-                if self.module_global_of(id, this_module).as_ref().map(|(m, n)| {
-                    (m.as_str(), n.as_str())
-                }) == Some((sym_module, name))
-                {
-                    out.push((span.start, span.end));
-                }
-            }
-        }
-        if include_decl {
-            if this_module == sym_module {
-                // The declaration in the defining module: a top-level decl name,
-                // or a tagged-union variant name.
-                for decl in &self.module.items {
-                    if let Some((n, span)) = top_decl_name_and_span(decl) {
-                        if n == name {
-                            if let Some(ws) = whole_word_span(text, span.0, span.1, n) {
-                                out.push(ws);
-                            }
-                        }
-                    }
-                }
-                for top in module_outline(&self.module) {
-                    for child in &top.children {
-                        if child.name == name {
-                            if let Some(ws) =
-                                whole_word_span(text, child.span.0, child.span.1, name)
-                            {
-                                out.push(ws);
-                            }
-                        }
-                    }
-                }
-            } else {
-                // The `import sym_module { name }` binding token in an importer.
-                for decl in &self.module.items {
-                    if let Decl::Import(im) = decl {
-                        if join_segments(&im.path.segments) == sym_module {
-                            if let ImportKind::Named(names) = &im.kind {
-                                if names.iter().any(|nm| nm.as_ref() == name) {
-                                    if let Some(ws) =
-                                        whole_word_span(text, im.span.start, im.span.end, name)
-                                    {
-                                        out.push(ws);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        out.sort_unstable();
-        out.dedup();
-        out
+        global_occurrences_in(
+            &self.module,
+            &self.resolved,
+            this_module,
+            sym_module,
+            name,
+            text,
+            include_decl,
+        )
     }
 
     /// The document outline: this module's top-level declarations, with a tagged

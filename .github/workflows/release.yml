@@ -429,7 +429,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14, windows-latest]
+        # macos-13 is the Intel runner and macos-14 is Apple Silicon. Both are
+        # here because the two darwin binaries are different artifacts: without
+        # macos-13, `darwin-x64` was built on every release and executed on
+        # none, so the only thing standing behind it was that it compiled.
+        # An arm64 pass says nothing about the x64 package a user on an Intel
+        # Mac actually downloads.
+        os: [ubuntu-latest, macos-13, macos-14, windows-latest]
     steps:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:

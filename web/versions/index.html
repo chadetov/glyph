@@ -49,8 +49,37 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.103</span>
+            <span class="rel-ver">0.1.104</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Ask about a function by name, not by a line number that moves</h3>
+            <p>An agent that recorded a position and asked again after an edit got a confident answer about the wrong thing. Inserting one function above another was enough.</p>
+            <div class="code">
+              <span class="cap">before, against 0.1.103</span>
+<pre>glyph_references { path, line: 7, character: 3 }
+  -&gt; charge, and its one call site
+
+<span class="del">// then `fn audit` is inserted above `charge`</span>
+glyph_references { path, line: 7, character: 3 }
+  <span class="del">-&gt; audit          // no error, well-formed, wrong entity</span>
+
+<span class="cap">now</span>
+glyph_references { path, name: "charge" }
+  <span class="add">-&gt; charge, and its one call site, whatever moved above it</span></pre>
+            </div>
+            <p>The position form is unchanged, because an editor has a real cursor and that is the right question for it. What was missing is the question an agent asks: the declaration called <code>charge</code>. Send both and they are cross-checked: if the coordinate has gone stale you are told, naming what sits at the position and what the name resolves to, rather than being handed one of them.</p>
+            <p>A name that no longer exists says so and lists what the module does declare. Resolving to whatever is nearby is the failure this exists to fix, so it does not fall back.</p>
+            <p class="rel-note">An <code>@example</code> failure now names the function it belongs to and numbers examples per declaration, so <code>main::triple example #1</code> stays that even after you add an example to something else. Internally, a declaration has an identity built from its module and its own name, which is the convention three separate parts of the compiler had each arrived at independently.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.103</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

@@ -26,29 +26,36 @@
 //! mirrors what the example tests already do by hand — but now it's
 //! memoized: changing one file's text invalidates only that file's queries.
 //!
-//! ## Why manual `Update` impls and not `#[derive(salsa::Update)]`?
+//! ## Why wrapper newtypes, and what salsa asks of them
 //!
-//! salsa stores tracked-fn return values internally and uses
-//! `Update::maybe_update` to decide if downstream queries need
-//! recomputation. The blanket impls cover primitives, `Vec`, `Arc`, etc., but
-//! a user struct needs either `#[derive(salsa::Update)]` (which requires the
-//! transitive type closure to implement Update — invasive across
-//! `glyph-ast`, `glyph-resolver`, and `glyph-typechecker`) or a hand-written
-//! impl. We pick the wrapper-with-manual-Update approach: `glyph-ast` and the
-//! other upstream crates stay unaware of salsa. The wrapper newtypes here
-//! (`ParsedModule`, `Symbols`, `Diagnostics`, `Resolved`, `Types`) hold
-//! `Arc<…>` of the real payload, and the local `impl_wrapper_update!` macro
-//! produces a `maybe_update` that compares for equality (delegating to
-//! `Arc`'s `PartialEq`, which fast-paths on pointer-equality) and overwrites
-//! on change. Single macro definition = single source of truth for the
-//! invalidation protocol. Same semantics salsa's blanket `Update` for
-//! `Vec<T>` ultimately provides.
+//! salsa stores tracked-fn return values internally and needs two things
+//! from a stored value:
 //!
-//! The `unsafe` for `Update::maybe_update` is satisfied here because:
-//! - the payload types all derive `Eq`, so the `Eq` invariant the trait doc
-//!   asks for holds; and
-//! - we never hand out `'db`-bound references to the inner payload that
-//!   outlive the wrapper, so the "no `&'db T`" caution doesn't bind.
+//! - `PartialEq`, which it calls itself (`Configuration::values_equal`) on
+//!   the old and new answers after a query re-executes. An equal answer is
+//!   backdated: the memo's `changed_at` stays where it was, so downstream
+//!   queries skip. This is the invalidation protocol.
+//! - `salsa::SalsaValue`, the marker asserting that a value produced in an
+//!   older revision stays safe to retain and compare in a newer one.
+//!
+//! The wrapper newtypes here (`ParsedModule`, `Symbols`, `Diagnostics`,
+//! `Resolved`, `Types`, plus the per-declaration slices) hold `Arc<…>` of
+//! the real payload, which keeps `glyph-ast`, `glyph-resolver`, and
+//! `glyph-typechecker` unaware of salsa: the derived `PartialEq` delegates
+//! to `Arc`'s, which fast-paths on pointer equality, and the local
+//! `impl_wrapper_salsa_value!` macro writes the one marker impl every
+//! wrapper gets. Single macro definition = single source of truth.
+//!
+//! The `unsafe` on that impl is satisfied here because the wrappers own
+//! their payload behind an `Arc` and never carry a `'db`-bound reference, so
+//! nothing inside one can point at storage a later revision changed or
+//! freed.
+//!
+//! Every tracked query below is pinned to `returns(clone)`. salsa returns
+//! `&Output` by default as of 0.28; cloning an `Arc`-backed wrapper is a
+//! refcount bump, and an owned answer is what a compiler that mutates its
+//! own database (`SourceFile::set_text`) between queries can hold without a
+//! borrow tied to the database.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 
@@ -70,32 +77,24 @@ use glyph_typechecker::{
 };
 
 // ============================================================================
-// Update macro for wrapper newtypes
+// SalsaValue marker impls for wrapper newtypes
 // ============================================================================
 
-/// Implements `salsa::Update` for an `Arc`-wrapped newtype whose `PartialEq`
-/// is derived. Centralizes the unsafe-impl protocol so the five wrapper
-/// types can't drift apart by copy-paste error. See the module docstring for
-/// the safety rationale.
-macro_rules! impl_wrapper_update {
+/// Implements `salsa::SalsaValue` for an `Arc`-wrapped newtype whose
+/// `PartialEq` is derived. Centralizes the unsafe-impl protocol so the
+/// wrapper types can't drift apart by copy-paste error. See the module
+/// docstring for the safety rationale.
+///
+/// Equality is not part of this impl: `SalsaValue` is a bodyless marker, and
+/// salsa compares answers through the wrapper's own `PartialEq` when it
+/// decides whether to backdate.
+macro_rules! impl_wrapper_salsa_value {
     ($t:ty) => {
-        // SAFETY: the wrapper derives `Eq`; the body follows the contract at
-        // salsa::update::Update::maybe_update — compare via PartialEq, write
-        // only on change, return whether a change occurred. No `'db`-bound
-        // references escape the wrapper.
-        unsafe impl salsa::Update for $t {
-            unsafe fn maybe_update(old_pointer: *mut Self, new_value: Self) -> bool {
-                // SAFETY: caller guarantees `old_pointer` is a valid
-                // initialized `Self` per Update::maybe_update's contract.
-                let old = unsafe { &mut *old_pointer };
-                if *old == new_value {
-                    false
-                } else {
-                    *old = new_value;
-                    true
-                }
-            }
-        }
+        // SAFETY: the wrapper owns its payload behind an `Arc` and holds no
+        // `'db`-bound reference, so an instance produced in an older
+        // revision stays safe to retain and to compare with `PartialEq` in a
+        // newer one — the invariant at salsa::SalsaValue.
+        unsafe impl salsa::SalsaValue for $t {}
     };
 }
 
@@ -298,7 +297,7 @@ impl ParsedModule {
     }
 }
 
-impl_wrapper_update!(ParsedModule);
+impl_wrapper_salsa_value!(ParsedModule);
 
 // ============================================================================
 // Stage 2 wrapper: Symbols
@@ -346,7 +345,7 @@ impl Symbols {
     }
 }
 
-impl_wrapper_update!(Symbols);
+impl_wrapper_salsa_value!(Symbols);
 
 // ============================================================================
 // Stage 3 wrapper: Diagnostics (cross-module verification)
@@ -376,7 +375,7 @@ impl Diagnostics {
     }
 }
 
-impl_wrapper_update!(Diagnostics);
+impl_wrapper_salsa_value!(Diagnostics);
 
 // ============================================================================
 // Stage 4 wrapper: Resolved
@@ -424,7 +423,7 @@ impl Resolved {
     }
 }
 
-impl_wrapper_update!(Resolved);
+impl_wrapper_salsa_value!(Resolved);
 
 // ============================================================================
 // Stage 5 wrapper: Types
@@ -467,7 +466,7 @@ impl Types {
     }
 }
 
-impl_wrapper_update!(Types);
+impl_wrapper_salsa_value!(Types);
 
 // ============================================================================
 // Stage 6 wrapper: DeclTy (per-declaration intermediate)
@@ -477,8 +476,8 @@ impl_wrapper_update!(Types);
 /// the parsed module's `items` Vec. Per-declaration granularity is what makes
 /// "edit one fn body, don't recompute the others' types" cheap — when
 /// `decl_ty(file, k)`'s body re-runs but produces a structurally-equal Ty,
-/// salsa's Update returns false and downstream queries that depend on
-/// `decl_ty(file, k)` stay cached.
+/// the new answer compares equal, salsa backdates the memo, and downstream
+/// queries that depend on `decl_ty(file, k)` stay cached.
 ///
 /// `Fn` and `Component` lower to a `Ty::Fn`. Other declarations are
 /// `Ty::Unknown` here — `type` and `const` decls have their type information
@@ -507,7 +506,7 @@ impl DeclTy {
     }
 }
 
-impl_wrapper_update!(DeclTy);
+impl_wrapper_salsa_value!(DeclTy);
 
 /// The export view of one `type` declaration: the declaration lowered as
 /// another module sees it, or `None` when the declaration at that index is not
@@ -536,7 +535,7 @@ impl ExportedTypeDecl {
     }
 }
 
-impl_wrapper_update!(ExportedTypeDecl);
+impl_wrapper_salsa_value!(ExportedTypeDecl);
 
 // ============================================================================
 // Stage 7 wrappers: DeclAst and ResolvedDecl (per-declaration input slices)
@@ -565,9 +564,10 @@ pub struct DeclAst {
 #[derive(Debug, Clone)]
 struct DeclAstInner {
     decl: Option<Decl>,
-    /// Source bytes covered by `Decl`'s outer span. The fingerprint used
-    /// by salsa's Update; comparing two `DeclAst`s is just an Arc<str>
-    /// content compare.
+    /// Source bytes covered by `Decl`'s outer span. The fingerprint
+    /// salsa reads through `PartialEq` when it decides whether to
+    /// backdate; comparing two `DeclAst`s is just an Arc<str> content
+    /// compare.
     canonical: Arc<str>,
 }
 
@@ -630,7 +630,7 @@ impl DeclAst {
     }
 }
 
-impl_wrapper_update!(DeclAst);
+impl_wrapper_salsa_value!(DeclAst);
 
 /// The resolver output sliced to spans inside one declaration's signature.
 /// Carries a `ResolvedModule` whose `resolutions` map contains only the
@@ -712,15 +712,15 @@ impl ResolvedDecl {
     }
 }
 
-impl_wrapper_update!(ResolvedDecl);
+impl_wrapper_salsa_value!(ResolvedDecl);
 
 /// Extract the source-byte slice for a span. Used as the canonical
 /// fingerprint for `DeclAst` and `ResolvedDecl`. Falls back to an empty
 /// string on malformed spans so PartialEq can't panic in release, but
 /// `debug_assert!`s in test/debug builds — a malformed span here is a
 /// parser bug, and silently producing an empty canonical would make
-/// two mismatched malformed decls compare equal (Update returns false,
-/// salsa serves a stale `Ty`).
+/// two mismatched malformed decls compare equal (salsa backdates and
+/// serves a stale `Ty`).
 fn canonical_bytes(source: &str, span: glyph_ast::Span) -> Arc<str> {
     let start = span.start as usize;
     let end = span.end as usize;
@@ -762,8 +762,8 @@ fn decl_outer_span(d: &Decl) -> glyph_ast::Span {
 ///
 /// Salsa-backed via `module_exports(file)`. When fn 5's name doesn't
 /// change across an edit (only its body shifts), the wrapper's
-/// PartialEq returns true → Update returns false → consumers of this
-/// file's exports (e.g., the ProjectGraph in another file's
+/// PartialEq returns true → salsa backdates the memo → consumers of
+/// this file's exports (e.g., the ProjectGraph in another file's
 /// `import_diagnostics`) skip re-execution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Exports {
@@ -791,7 +791,7 @@ impl Exports {
     }
 }
 
-impl_wrapper_update!(Exports);
+impl_wrapper_salsa_value!(Exports);
 
 // ============================================================================
 // Stage 9 wrapper: ProjectExports (salsa-tracked aggregate)
@@ -850,7 +850,7 @@ impl ModuleGraph for ProjectExports {
     }
 }
 
-impl_wrapper_update!(ProjectExports);
+impl_wrapper_salsa_value!(ProjectExports);
 
 // ============================================================================
 // ProjectGraph — a ModuleGraph backed by salsa-cached file exports
@@ -928,7 +928,7 @@ impl ModuleGraph for ProjectGraph {
 /// Parse the source file's text. Returns `ParsedModule::err(error)` on parse
 /// failure; downstream queries gracefully degrade. The structured error
 /// preserves the failing span — see `ParsedModule::error()`.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn parse_module(db: &dyn Db, file: SourceFile) -> ParsedModule {
     match glyph_parser::parse(file.text(db)) {
         Ok(m) => ParsedModule::ok(m),
@@ -938,7 +938,7 @@ pub fn parse_module(db: &dyn Db, file: SourceFile) -> ParsedModule {
 
 /// Top-level symbol table for a file. Empty (`Symbols::err`) if parsing
 /// failed or collection itself reported errors.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn module_symbols(db: &dyn Db, file: SourceFile) -> Symbols {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -957,9 +957,10 @@ pub fn module_symbols(db: &dyn Db, file: SourceFile) -> Symbols {
 ///
 /// Backs the `ProjectGraph` aggregation: editing a file's body re-runs
 /// this query, but when the export set hasn't changed (most edits don't
-/// add or remove top-level names) the wrapper's Update returns false and
-/// downstream consumers of this file's exports skip re-validation.
-#[salsa::tracked]
+/// add or remove top-level names) the two answers compare equal, salsa
+/// backdates, and downstream consumers of this file's exports skip
+/// re-validation.
+#[salsa::tracked(returns(clone))]
 pub fn module_exports(db: &dyn Db, file: SourceFile) -> Exports {
     let syms = module_symbols(db, file);
     let Some(table) = syms.symbols() else {
@@ -1001,9 +1002,9 @@ pub fn module_exports(db: &dyn Db, file: SourceFile) -> Exports {
 /// file's exports change OR when the project file list itself changes.
 /// When the new aggregate is content-equal to the cached one (the common
 /// case: a body edit that doesn't add or remove a top-level name), the
-/// wrapper's Update returns false and downstream consumers
-/// (`import_diagnostics`) backdate.
-#[salsa::tracked]
+/// two answers compare equal, salsa backdates, and downstream consumers
+/// (`import_diagnostics`) skip re-execution.
+#[salsa::tracked(returns(clone))]
 pub fn project_exports(db: &dyn Db, project: ProjectFiles) -> ProjectExports {
     let mut by_path = std::collections::BTreeMap::<String, ModuleExports>::new();
     for (path, file) in project.entries(db).iter() {
@@ -1027,7 +1028,7 @@ pub fn project_exports(db: &dyn Db, project: ProjectFiles) -> ProjectExports {
 ///
 /// Both spellings run against one graph here so visibility cannot depend on how
 /// a name was brought into scope.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn import_diagnostics(db: &dyn Db, file: SourceFile) -> Diagnostics {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -1051,7 +1052,7 @@ pub fn import_diagnostics(db: &dyn Db, file: SourceFile) -> Diagnostics {
 /// Intra-module name resolution. Returns a `Resolved::skipped(...)` placeholder
 /// if upstream stages failed; otherwise the `ResolvedModule` plus any
 /// resolution errors.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn resolve(db: &dyn Db, file: SourceFile) -> Resolved {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -1074,12 +1075,12 @@ pub fn resolve(db: &dyn Db, file: SourceFile) -> Resolved {
 /// memo on `crate::decl_ty(db, file, idx)`. Editing any line in the file
 /// still invalidates `parse_module` and `resolve`, so `decl_ty(file, k)`
 /// re-executes for every k — but for untouched fns each re-execution
-/// returns a structurally-equal `Ty`, the wrapper's Update returns false,
+/// returns a structurally-equal `Ty`, the two answers compare equal,
 /// and salsa backdates the revision so downstream consumers of those
 /// `decl_ty` entries skip. The day-7 win is the cache-sharing across the
 /// `type_map` ↔ `decl_ty` boundary, not sub-decl input granularity (that's
 /// week 2 day 8+).
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn type_map(db: &dyn Db, file: SourceFile) -> Types {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -1245,7 +1246,7 @@ impl DeclTyResolver for SalsaDeclTy<'_> {
 /// module. The salsa memo gets backdated whenever the decl's source
 /// bytes are unchanged across a file edit — even when absolute byte
 /// positions shifted because of edits to other decls.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn decl_ast(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclAst {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -1267,7 +1268,7 @@ pub fn decl_ast(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclAst {
 /// fn 1's `ResolvedDecl` is still considered equal — the carried
 /// `ResolvedModule` has different absolute spans but the bytes that
 /// produced it are unchanged.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn resolved_decl(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ResolvedDecl {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -1295,11 +1296,11 @@ pub fn resolved_decl(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ResolvedDe
 /// the whole-file `parse_module`/`resolve` outputs. Editing fn 5's body
 /// makes `decl_ast(file, 5)` and `resolved_decl(file, 5)` change, but for
 /// k≠5 (with stable byte positions) both per-decl slices stay
-/// content-equal — Update returns false, and `decl_ty(file, k)` skips
+/// content-equal — salsa backdates them, and `decl_ty(file, k)` skips
 /// re-execution entirely (zero `WillExecute` in salsa's event log).
 ///
 /// Out-of-range or non-callable decls return `DeclTy::new(Ty::Unknown)`.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
     let ast = decl_ast(db, file, decl_idx);
     let Some(decl) = ast.decl() else {
@@ -1334,7 +1335,7 @@ pub fn decl_ty(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
 ///
 /// This query answers `DeclTyResolver::imported_type_decl` — same declaration,
 /// producing side.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn exported_type(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ExportedTypeDecl {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -1384,7 +1385,7 @@ pub fn exported_type(db: &dyn Db, file: SourceFile, decl_idx: u32) -> ExportedTy
 /// past a miss exactly the way it already does for the stdlib table.
 ///
 /// This query answers `DeclTyResolver::imported_fn_decl`.
-#[salsa::tracked]
+#[salsa::tracked(returns(clone))]
 pub fn exported_fn(db: &dyn Db, file: SourceFile, decl_idx: u32) -> DeclTy {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
@@ -1799,9 +1800,9 @@ pub mod tests {
         // Day-6 acceptance: changing the body of fn #0 must produce a
         // *content-equal* DeclTy for fn #1 across the edit, so downstream
         // consumers that depend on decl_ty(file, 1) can be backdated by
-        // salsa and skip re-execution. Salsa's backdating compares values
-        // via Update::maybe_update — when our wrapper's PartialEq returns
-        // true, downstream queries observe "no change."
+        // salsa and skip re-execution. Salsa's backdating compares the
+        // old and new answers with `PartialEq` — when our wrapper's
+        // PartialEq returns true, downstream queries observe "no change."
         //
         // Note: salsa does NOT preserve memo Arc identity across re-execution
         // (see `function/backdate.rs`); it preserves the `changed_at`
@@ -1887,7 +1888,7 @@ fn ident(x: string) -> string { return x }
         // body, re-running `type_map` causes `decl_ty(file, k)` to re-execute
         // for every k (since parse_module/resolve are per-file inputs) — but
         // for k whose signature is unchanged, the new Ty is content-equal,
-        // the wrapper's Update returns false, and salsa backdates the
+        // the old and new answers compare equal, and salsa backdates the
         // revision counter. A later direct call to `decl_ty(file, k)` then
         // returns from the memo without re-running.
         //
@@ -2377,8 +2378,8 @@ fn other(x: number) -> number { return x }
         // **Exact count rather than upper bound.** The chain
         // re-validates exactly five queries: parse_module, module_symbols,
         // resolve, decl_ast(other_idx), resolved_decl(other_idx). Each
-        // runs to compute a new value; their Update impls check whether
-        // the new value matches the cached canonical. The day-12 win:
+        // runs to compute a new value; salsa's `PartialEq` check then
+        // compares that value against the cached canonical. The day-12 win:
         // decl_ast and resolved_decl produce content-equal canonicals
         // (source bytes unchanged for the untouched decl), so backdating
         // fires and decl_ty's deps are considered fresh — decl_ty's body

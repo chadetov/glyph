@@ -50,8 +50,8 @@ union whose variant payload is never checked at all, generic or not, and it
 named the surviving half of G142, which is now closed as G148: the imported gate
 was reading the application instead of its base, the third site to stop applying
 the moment a type parameter appeared. That leaves, of
-171 entries, 134 are fixed, 9 are partly fixed, 10 are decided or resolved, and
-18 are open. G144, the D28 boundary cast that never reached the returns a
+172 entries, 138 are fixed, 9 are partly fixed, 10 are decided or resolved, and
+15 are open. G144, the D28 boundary cast that never reached the returns a
 `match` lowers to, was found by an app and closed in the same round. So was
 G145, the nullary variant one level deep that matched every value of its outer
 variant and left the arm after it dead. G145 closed G130 with it, the same
@@ -6007,7 +6007,7 @@ through an object pattern's fields.
   same 80 would-reformat and 95 already-formatted before and after, so nothing
   else moved.
 
-- **G151. `glyph fmt` needs two passes to reach a fixed point when an annotation
+- **G151. [FIXED] `glyph fmt` needs two passes to reach a fixed point when an annotation
   swallows a comment.** Milder than G150 and the same family. Forty-four bytes:
 
   ```glyph
@@ -6055,6 +6055,12 @@ through an object pattern's fields.
   argument for keeping it running rather than treating one finding as the job
   done. Reproduced against 0.1.95 plus the G150 fix.*
 
+  Closed in 0.1.101 as a side effect of G160, since they were one defect with two
+  symptoms: once a comment stops merging into an annotation's argument text, the
+  second pass has nothing left to move.
+
+  *Verified fixed against 0.1.106: the committed seed reaches a fixed point on
+  the first pass.*
 - **G152. [FIXED] `glyph fix` reports "removed 0 unused import(s)" while the lint is
   reporting two.** A three-name import with two dead names draws `E0106` on
   `filter` and on `fold`, and `glyph fix` on the same file answers `removed 0
@@ -6412,7 +6418,7 @@ and is the owner's to confirm.
   compared before and after rather than assumed equal. The gate that stops it
   recurring is the deliverable; the reformat is the easy half.
 
-  *Reproduced against 0.1.100: `glyph fmt --check` over every tracked `.glyph`
+  *Reproduced against 0.1.106: 123 of 285 tracked `.glyph` files disagree with `glyph fmt --check`, up from 121 of 284 as the corpus grew: `glyph fmt --check` over every tracked `.glyph`
   reports 121 of 284 not clean. Found while checking whether an edit to
   `examples/apps/feeds/main.glyph` had broken formatting. It had not: that file
   was already unformatted on main, and so were 120 others.*
@@ -6438,11 +6444,11 @@ and is the owner's to confirm.
   rejected and both `.ts` cases accepted by `tsc --strict`. The stale numbers are
   the committed JSON under `benchmarks/results/`, last measured 2026-06-15.
 
-  *Reproduced against 0.1.100: each fixture copied into its own project and
+  *Reproduced against 0.1.106: of the three benchmark fixtures only `parse_user.glyph` compiles; the other two still fail: each fixture copied into its own project and
   built. `check.sh` run against the same binary to confirm the public claim is
   unaffected.*
 
-- **G160. A comment before a continuation line silently deletes an `@example` assertion, and the compiler reports the false claim as verified.**
+- **G160. [FIXED] A comment before a continuation line silently deletes an `@example` assertion, and the compiler reports the false claim as verified.**
   The same parser defect as G151. `Annotation.raw_args` is a raw source slice
   with continuation newlines replaced by a single space
   (`glyph-parser/src/decl.rs`), and every consumer re-lexes it
@@ -6482,7 +6488,12 @@ and is the owner's to confirm.
   adversarial review after two fix attempts for G151 had been written and
   rejected on the premise that the bug was cosmetic.*
 
-- **G161. `glyph fmt` reattaches a comment to the wrong annotation, and the result is a fixed point.**
+  Closed in 0.1.101. `parse_annotations` ends a captured segment at a comment
+  preceding a continuation and resumes after it, emitting nothing in its place.
+
+  *Verified fixed against 0.1.106: both byte-identical false claims now fail,
+  reported as 2 of 2 examples failing where 0.1.100 reported 1 of 2.*
+- **G161. [FIXED] `glyph fmt` reattaches a comment to the wrong annotation, and the result is a fixed point.**
   `glyph-formatter/src/lib.rs` sorts a declaration's annotations by kind, then
   flushes pending comments with `flush_comments_before(a.span.start)` using a
   monotone cursor over source offsets. Sorting makes those starts non-monotone,
@@ -6518,7 +6529,12 @@ and is the owner's to confirm.
   *Reproduced against 0.1.100, the published release: `glyph fmt` rewrites the file as shown,
   and `glyph fmt --check` then reports it already formatted.*
 
-- **G162. `glyph fmt` prints a bare literal statement and a parenthesized statement so they reparse as a call.**
+  Closed in 0.1.101. A comment now travels with its own annotation through the
+  kind sort rather than being flushed at whichever annotation sorted first.
+
+  *Verified fixed against 0.1.106: a comment written above `@pure` is still
+  above `@pure` after formatting.*
+- **G162. [FIXED] `glyph fmt` prints a bare literal statement and a parenthesized statement so they reparse as a call.**
   Given a block holding a bare expression statement followed by a parenthesized
   one, the formatter emits
 
@@ -6550,7 +6566,12 @@ and is the owner's to confirm.
   immediately after one that could absorb it; either it separates them or it
   keeps the parentheses attached to the construct that owns them.
 
-  *Reproduced against 0.1.100, the published release: formatting the seed twice
+  Closed in 0.1.102, which stopped the formatter wrapping a `match` in parentheses
+  it never needed. That removed the leading bracket the following statement was
+  gluing onto, so the pair no longer reparses as a call.
+
+  *Verified fixed against 0.1.106: the committed seed is a fixed point on the
+  first pass. Previously, formatting the seed twice
   gives two different files. Found by the `format_idempotent` fuzz target within
   five minutes of G151 being fixed, which is the first time that target could
   see past its own permanently failing seed. Seed committed as
@@ -6797,3 +6818,29 @@ and is the owner's to confirm.
   project-wide identity, confirmed by reading the arm and by the tool's own
   behaviour. What is not measured, and is the whole question, is the fraction of
   diagnostics whose primary span sits inside a function body.*
+
+- **G172. A file's own `module` line and the path the project keys it by can disagree, and nothing says so.**
+  `glyph-cli`'s `derive_module_path` and the language server's `module_path_of`
+  key a file by where it sits. The typechecker keys a locally declared type by
+  the file's own `module` header. Nothing anywhere compares the two.
+
+  So a file whose header reads `module app/models` while sitting at a path the
+  project keys as `models` gives one declaration two type-end spellings,
+  depending on which side of the boundary a match is on: a match over its own
+  local union names `app/models`, and a match on the same type reached by import
+  from another file names the project path. A file with no `module` line at all
+  keys as the empty string and behaves the same way.
+
+  Surfaced by the coverage fold in 0.1.106, which needs one address per type end
+  and therefore has to notice. The fold implements the uniform rule, keying a
+  type end when the project keys that module path and naming it otherwise, so
+  nothing is dropped. That is a workaround for the disagreement, not a decision
+  about it.
+
+  **The decision owed is what a file's address is.** Either the header is
+  authoritative and the path-derived key is wrong, or the path is authoritative
+  and a disagreeing header is a diagnostic. Picking silently is what produced
+  two spellings in the first place.
+
+  *Reproduced against 0.1.106 by the fold's own `Unkeyed` case, which fires on
+  this configuration and is covered by a test naming it.*

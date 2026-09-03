@@ -61,8 +61,41 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.106</span>
+            <span class="rel-ver">0.1.107</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>An autofix that breaks a file now says so</h3>
+            <p><code>glyph fix</code> could remove a dead name from an import and leave the file unparseable, while exiting 0 and reporting success. It has done that since 0.1.99.</p>
+            <div class="code">
+              <span class="cap">before</span>
+<pre>import helper { one, two, three }
+fn main(argv: Array&lt;string&gt;) -&gt; number {</pre>
+              <span class="cap">after, on 0.1.106</span>
+<pre><span class="del">import helper { one }fn main(argv: Array&lt;string&gt;) -&gt; number {</span>
+glyph fix:   removed 2 unused import(s)          exit 0
+glyph check: [E0002] expected newline after import   exit 1</pre>
+            </div>
+            <p>An import's span ends past the newline that terminates it. Removing a whole import walks that back; the path that prunes individual names, added in 0.1.99, spliced over the raw span and took the newline with it. It survived only when a blank line happened to sit below the import and absorb the loss, which is why the existing tests never saw it.</p>
+            <p>Both paths now share one helper, so the terminator is preserved rather than reconstructed. Separately, <code>glyph fix</code> re-parses every file before writing it and refuses to write one it broke. That second change is the one that matters: it catches this whole class whatever causes it, and an autofix that can corrupt a file should never be the thing that tells you it worked.</p>
+            <h3>The compiler tells an agent how to update itself</h3>
+            <p>The MCP server now sends an <code>instructions</code> string at connect time, which clients put in the model's context without anyone reading a file. It names <code>glyph_variants</code>, <code>glyph llms</code>, and the two update commands: <code>glyph --update</code> for the installed tool, <code>glyph upgrade</code> for a project's pin.</p>
+            <p>That channel exists because documentation alone did not carry. <code>glyph --update</code> was already in the bootstrap, and the next agent that needed it still reached for npm.</p>
+            <h3>Two more places a tool answered without saying what it left out</h3>
+            <p><code>glyph_variants</code> could drop a match site entirely. A site that reaches the queried type through a payload, in a file whose <code>module</code> line disagrees with the path the project keys it by, appeared in none of the three lists the answer returns: not <code>sites</code>, not <code>nested</code>, not <code>unkeyed</code>. The top-level case already had a name-only fallback and the nested case did not. It reproduced on the layout <code>glyph init</code> generates, which is how it went unnoticed.</p>
+            <p>And a diagnostic now carries the declaration it sits in, as <code>module::name</code>, on both <code>glyph check --json</code> and <code>glyph_diagnostics</code>. An agent that gets an error can go straight to <code>glyph_variants</code> or <code>glyph_references</code> for that entity without re-parsing the file to work out where it was.</p>
+            <h3>Six things the reference got wrong</h3>
+            <p>From an outside author who wrote 1,430 lines of Glyph having never seen it. The gotcha on <code>mut</code> read as "you cannot mutate through a parameter", which is false and would force every state transition to rebuild a whole record; it now says <code>mut</code> is not a declaration modifier and that a parameter's fields are mutable in place. A sibling module is imported by its bare name, which E0101's help implied otherwise. <code>rng.bool</code> lost the <code>?</code> that says its argument is optional. <code>std/random</code> sat in the "not detailed" list while being detailed. And the two ways to read an undocumented module's signatures are now written down, including that the emitted runtime holds only the modules you already import.</p>
+            <p class="rel-note">Nothing the compiler accepts or rejects changed. A program that compiled on 0.1.106 compiles here, and one that failed fails the same way; the difference is only that a file <code>glyph fix</code> touches is still valid afterwards.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.106</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

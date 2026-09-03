@@ -61,8 +61,33 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.105</span>
+            <span class="rel-ver">0.1.106</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>Ask what an added variant would break, before you add it</h3>
+            <p>The compiler worked out which match arms name which variants on every build and then threw the answer away. It keeps it now, and <code>glyph_variants</code> hands it to an agent.</p>
+            <div class="code">
+              <span class="cap">glyph_variants { name: "Status" }</span>
+<pre>main::strict  line 16  <span class="add">exhaustive</span>       Open, Closed, Archived
+main::label   line  8  <span class="del">has_catch_all</span>    Open, Closed, else
+
+<span class="cap">then add Suspended to Status</span>
+main::strict  <span class="add">E0200: missing variants `Suspended`</span>
+main::label   <span class="del">compiles, and routes Suspended into else</span></pre>
+            </div>
+            <p>The second one is why the distinction is worth having. A match that fails to compile tells you where to go. A match with a catch-all takes the new variant silently and does whatever the catch-all does, and there is nothing to see.</p>
+            <p>An answer names the declaration, the scrutinee as you wrote it, and the line. Sites the relation cannot key are listed rather than counted, because leaving one out would claim there is no relation when the truth is that the compiler could not tell.</p>
+            <p class="rel-note">The relation is called <code>mentions</code> rather than <code>covers</code>, and the difference is real: for most arms the compiler knows the arm names a variant without concluding it handles every value that variant can hold. No diagnostic changed in this release. Across 31 applications, the corpus, the negative tests and the paired demos, the compiler says exactly what it said before.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.105</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">

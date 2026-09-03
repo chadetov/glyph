@@ -5080,6 +5080,53 @@ calls them, so the churn does not reach the edge set today; a per-declaration
 coverage query added later for incrementality would reintroduce exactly the
 renumbering `DeclKey` shipped to remove.
 
+#### The site-identity fork, decided: sites get no durable identity
+
+The review left this open and it decides the release, so it is settled here.
+
+**Neither candidate works.** A bare ordinal within the declaration leaves 1,285 of 2,725 sites
+(47.16%) able to move when a match is inserted above them, and it reintroduces at the site level
+exactly the failure 0.1.104 shipped `DeclKey` to remove at the declaration level. The scrutinee
+spelling looks better at 106 sites (3.89%) needing a disambiguator, until you ask what it is
+unstable under: **2,103 of 2,735 scrutinees are compound expressions**, and a spelling key changes
+whenever the scrutinee is edited. That trades 47% exposure to insertion for 77% exposure to an
+ordinary refactor, and it puts a second normalisation path next to a formatter that has produced
+six gaps of its own.
+
+**The exit is that nothing needs a durable site identity.** The review established the fact and
+stopped short of the conclusion: nothing in the compiler holds a site identity across revisions,
+because storage is per file and re-executes on any edit. The only holder is an agent that received
+an opaque "site 3 of `bind`" from a tool call and edited before asking again. So the fix is not a
+better key. It is to stop handing out a key that can go stale.
+
+- **Storage** uses a within-file index, valid only inside the computation that produced it. It is
+  never published and never compared across revisions, so it is not an identity and the One Rule
+  does not bite.
+- **The answer** carries a descriptor rather than an id: the declaration's `DeclKey`, the scrutinee
+  as written, and the line. "In `csvql::bind`, the match on `col` at line 214, arm 2." An agent
+  relocates that rather than dereferencing it, and the spelling appears as prose rather than as a
+  key that must be canonical, so no normalisation is owed.
+- **The durable ends stay durable.** The declaration and the type ends of an edge are `DeclKey`s,
+  which is where identity was always needed and where 0.1.104 already put it.
+
+What this costs is that an agent cannot cache a site reference between calls. Given the query
+answers warm in about fifteen milliseconds, re-asking is the cheaper half of that trade, and an
+answer that is always current beats one that is addressable and sometimes wrong.
+
+#### The shape, decided: extract the classifier and have the dispatch fill a sink
+
+The review showed the three shapes are not alternatives, and that the plan's own argument did not
+reach its conclusion. A site's state is decided by an ordered dispatch, and the match handler
+mutates the type map before any of it runs, so a query that re-walked and re-asked would need to
+reproduce the dispatch and would become the third copy of the logic this release exists to stop
+duplicating.
+
+So: one extracted per-pattern classifier, and the existing dispatch, which already knows the
+answer, accumulates into a sink as it goes. One copy of the dispatch, one of the per-pattern
+rules, two thin call sites in the duplicated pair. The classifier must read three buckets rather
+than two, because a single value-testing object payload is recorded in neither `covered` nor
+`nested` and is exactly what the declined state is for.
+
 #### What an adversarial review of this plan found
 
 Review 61, saved locally. It re-measured every figure and found four of ten wrong, two structural

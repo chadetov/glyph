@@ -79,7 +79,8 @@ use glyph_resolver::{
     ResolvedModule, StdlibStubs, SymbolKind,
 };
 use glyph_typechecker::{
-    assign_types_with_resolver, DeclTyResolver, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
+    assign_types_with_coverage, CoverageSite, CoverageSiteRef, CoverageTypeName, DeclTyResolver,
+    FileMatchCoverage, ImportedTypeDecl, Lowerer, Ty, TypeError, TypeMap,
 };
 
 // ============================================================================
@@ -986,6 +987,228 @@ impl DeclIndex {
 impl_wrapper_salsa_value!(DeclIndex);
 
 // ============================================================================
+// Stage 12 wrappers: the match-coverage relation
+// ============================================================================
+
+/// Both halves of one assigner pass over one file.
+///
+/// The pass already produced both. `assign_types_with_resolver` is a call to
+/// `assign_types_with_coverage` that drops the coverage on the floor, so the
+/// relation was being computed on every build and thrown away. This query
+/// holds the one execution and [`type_map`] and [`match_coverage`] are
+/// projections of it, which is why adding coverage costs no second walk.
+///
+/// Private, and it is the shared *execution* rather than an answer. Each
+/// projection is what a consumer depends on and each backdates on its own, so
+/// an edit that changes the type map without changing coverage leaves the
+/// coverage consumers skipping, and the other way round. A consumer that
+/// depended on the pair would wake for both.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct TypedFile {
+    types: Types,
+    coverage: MatchCoverage,
+}
+
+impl TypedFile {
+    /// Neither half, for a file that does not parse: there is no module line
+    /// to read and no expression to type.
+    fn empty() -> Self {
+        Self {
+            types: Types::empty(),
+            coverage: MatchCoverage::empty(),
+        }
+    }
+}
+
+impl_wrapper_salsa_value!(TypedFile);
+
+/// One file's match-coverage relation: every `match` over a scrutinee whose
+/// type someone could add a variant to, and what the exhaustiveness checkers
+/// concluded about it.
+///
+/// **The value is file-local and every identity in it is a string.** It has to
+/// be. A `DeclKey` carries a `ModuleId`, those are issued by the project-level
+/// interner, and interning runs in module-path order, so adding one file
+/// renumbers the ids after it. A per-file query that reached the interner
+/// would therefore depend on the project's file list, and adding any file
+/// would re-execute every file's coverage *and change what it says* about
+/// matches the new file has nothing to do with. The strings stay here and
+/// [`project_match_coverage`] mints the keys.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MatchCoverage {
+    inner: Arc<MatchCoverageInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct MatchCoverageInner {
+    module: String,
+    coverage: FileMatchCoverage,
+}
+
+impl MatchCoverage {
+    pub fn new(module: String, coverage: FileMatchCoverage) -> Self {
+        Self {
+            inner: Arc::new(MatchCoverageInner { module, coverage }),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(String::new(), FileMatchCoverage::default())
+    }
+
+    /// The module key this file declares itself under, or the empty string
+    /// when it declares no `module` line.
+    ///
+    /// Read from the file's own `module` line, which is where the typechecker
+    /// reads it too when it names a locally declared union. The two halves of
+    /// a local site therefore cannot disagree about which module the file is.
+    /// Note that both the CLI and the language server key a file in the
+    /// project by *where the file sits* instead, so this is not always the key
+    /// the project knows the file by; a type end under a module the project
+    /// does not have is named rather than keyed. See [`CoverageTypeRef`].
+    pub fn module(&self) -> &str {
+        &self.inner.module
+    }
+
+    /// Every site in the file, in source order, each carrying every edge the
+    /// checkers wrote about it.
+    pub fn sites(&self) -> &[CoverageSite] {
+        self.inner.coverage.sites()
+    }
+
+    pub fn len(&self) -> usize {
+        self.sites().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sites().is_empty()
+    }
+}
+
+impl_wrapper_salsa_value!(MatchCoverage);
+
+/// The type end of a match site, keyed where this project declares it.
+///
+/// Three cases because there are three, and collapsing any two of them would
+/// mean answering about a declaration that is not there.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CoverageTypeRef {
+    /// A declaration this project keys, under the identity everything else in
+    /// the graph names it by.
+    Decl(DeclKey),
+    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`): a fixed
+    /// variant table behind a name, with no declaration in any project module.
+    /// A name and not a key, because there is nothing to key; a `DeclKey`
+    /// invented for it would name a module that does not exist.
+    Builtin { name: String },
+    /// A type end this project's declaration index does not key: the module it
+    /// is declared under is not a module of this project, or that module
+    /// declares no such name.
+    ///
+    /// Named, not dropped. Absence in this relation means *no relation
+    /// exists*, and a site whose type could not be keyed is a site that does
+    /// exist, so reporting it absent would be a false answer rather than a
+    /// missing one. A consumer reports these; it does not count them.
+    Unkeyed { module: String, name: String },
+}
+
+/// One match site in a project: where it is, what the checker concluded, and
+/// which type it is over.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ProjectCoverageSite {
+    /// The type the scrutinee resolved to.
+    pub scrutinee_type: CoverageTypeRef,
+    /// The site as an answer carries it. No site index: the index that routed
+    /// the checkers' writes is a cursor inside one computation, and it is
+    /// never published nor compared across revisions.
+    pub site: CoverageSiteRef,
+}
+
+/// The project-wide match-coverage relation: every site in every registered
+/// file, with its type end minted into a [`DeclKey`] where this project
+/// declares the type.
+///
+/// The keys and the interner that issued them travel together. A `ModuleId`
+/// is an index into one [`ModuleInterner`] and means nothing outside it: an
+/// in-range id from a different interner names the wrong module rather than
+/// answering nothing. So this carries the [`DeclIndex`] its keys were minted
+/// from, and a consumer renders or looks up a key through
+/// [`ProjectMatchCoverage::decls`] rather than pairing it with whichever index
+/// it happens to hold.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectMatchCoverage {
+    inner: Arc<ProjectMatchCoverageInner>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProjectMatchCoverageInner {
+    decls: DeclIndex,
+    sites: Vec<ProjectCoverageSite>,
+    /// Positions in `sites`, grouped by type end. Private and internal: it is
+    /// built from `sites` in the same function, two lines away, so indexing
+    /// through it cannot miss.
+    by_type: BTreeMap<CoverageTypeRef, Vec<usize>>,
+}
+
+impl ProjectMatchCoverage {
+    fn new(decls: DeclIndex, sites: Vec<ProjectCoverageSite>) -> Self {
+        let mut by_type: BTreeMap<CoverageTypeRef, Vec<usize>> = BTreeMap::new();
+        for (i, site) in sites.iter().enumerate() {
+            by_type
+                .entry(site.scrutinee_type.clone())
+                .or_default()
+                .push(i);
+        }
+        Self {
+            inner: Arc::new(ProjectMatchCoverageInner {
+                decls,
+                sites,
+                by_type,
+            }),
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(DeclIndex::empty(), Vec::new())
+    }
+
+    /// The declaration index the keys in this relation were minted from.
+    pub fn decls(&self) -> &DeclIndex {
+        &self.inner.decls
+    }
+
+    /// Every site, ordered by module path and then by source position.
+    pub fn sites(&self) -> &[ProjectCoverageSite] {
+        &self.inner.sites
+    }
+
+    /// Every site over one type, in the same order.
+    pub fn sites_over(&self, ty: &CoverageTypeRef) -> impl Iterator<Item = &ProjectCoverageSite> {
+        self.inner
+            .by_type
+            .get(ty)
+            .into_iter()
+            .flatten()
+            .map(|i| &self.inner.sites[*i])
+    }
+
+    /// Every type end the relation holds, ordered.
+    pub fn types(&self) -> impl Iterator<Item = &CoverageTypeRef> + '_ {
+        self.inner.by_type.keys()
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.sites.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.sites.is_empty()
+    }
+}
+
+impl_wrapper_salsa_value!(ProjectMatchCoverage);
+
+// ============================================================================
 // ProjectGraph — a ModuleGraph backed by salsa-cached file exports
 // ============================================================================
 
@@ -1216,6 +1439,71 @@ pub fn project_decl_keys(db: &dyn Db, project: ProjectFiles) -> DeclIndex {
     DeclIndex::new(modules, by_module)
 }
 
+/// The project-wide match-coverage relation: every file's sites, with each
+/// site's type end minted into a [`DeclKey`] where this project declares the
+/// type.
+///
+/// **The keys are minted here and nowhere below.** `ModuleId`s come from the
+/// interner [`project_decl_keys`] owns, and reusing that one rather than
+/// filling a second is not tidiness: two interners issue overlapping ids for
+/// different modules, so a key from a second one would compare equal to an
+/// unrelated declaration's and answer about the wrong thing. Every key in this
+/// value and every key in [`project_decl_keys`] therefore mean the same
+/// module, and the index that issued them ships with the answer.
+///
+/// A type end this project does not declare is named rather than dropped; see
+/// [`CoverageTypeRef::Unkeyed`].
+#[salsa::tracked(returns(clone))]
+pub fn project_match_coverage(db: &dyn Db, project: ProjectFiles) -> ProjectMatchCoverage {
+    let decls = project_decl_keys(db, project);
+    let mut entries: Vec<(&str, SourceFile)> = project
+        .entries(db)
+        .iter()
+        .map(|(path, file)| (path.as_str(), *file))
+        .collect();
+    // Module-path order, matching `project_decl_keys`, so the site list is a
+    // function of the project's file set rather than of the order a build
+    // happened to list its files in.
+    entries.sort_by(|a, b| a.0.cmp(b.0));
+
+    let mut sites = Vec::new();
+    for (path, file) in entries {
+        for site in match_coverage(db, file).sites() {
+            sites.push(ProjectCoverageSite {
+                scrutinee_type: mint_type_ref(&decls, site.scrutinee_type()),
+                // The path the project knows the file by, which is what a
+                // consumer holding this answer looks the file up under. It is
+                // the file's own `module` line that keys the *type*, and the
+                // two disagree when a file's header disagrees with where it
+                // sits; that shows up as an unkeyed type end, not as a site
+                // filed under a module it is not in.
+                site: site.descriptor(path),
+            });
+        }
+    }
+    ProjectMatchCoverage::new(decls, sites)
+}
+
+/// Turn one file's string-shaped type end into a project identity.
+///
+/// A declared type becomes the [`DeclKey`] the rest of the graph names it by.
+/// A builtin stays a name, because `Result` and `fs.ErrorKind` have a fixed
+/// variant table and no declaration to point at. A declared type this project
+/// does not key stays a name too: the site exists either way, and absence in
+/// this relation is reserved for meaning that no relation exists.
+fn mint_type_ref(decls: &DeclIndex, named: &CoverageTypeName) -> CoverageTypeRef {
+    match named {
+        CoverageTypeName::Builtin { name } => CoverageTypeRef::Builtin { name: name.clone() },
+        CoverageTypeName::Declared { module, name } => match decls.key_of(module, name) {
+            Some(key) => CoverageTypeRef::Decl(key),
+            None => CoverageTypeRef::Unkeyed {
+                module: module.clone(),
+                name: name.clone(),
+            },
+        },
+    }
+}
+
 /// Cross-module verification: `import M { N }` checks, plus the same export
 /// check on every `ns.Name` type annotation reached through a namespace import.
 /// Composes the static stdlib `module_graph` with the salsa-tracked
@@ -1265,6 +1553,12 @@ pub fn resolve(db: &dyn Db, file: SourceFile) -> Resolved {
 /// Assign a `Ty` to every expression node in the file. Empty `TypeMap` if
 /// upstream stages failed.
 ///
+/// A projection of [`typed_file`], which runs the pass and holds both halves
+/// of what it produced. The query's shape and its answer are what they were:
+/// `assign_types_with_resolver` is itself a call to `assign_types_with_coverage`
+/// that discards the coverage, so the `TypeMap` and the errors here are the
+/// same values by the same route.
+///
 /// Routes per-decl signature lowering through the salsa-tracked `decl_ty`
 /// query via `SalsaDeclTy`. The Assigner's old in-call HashMap cache is
 /// gone; calls to `decl_ty_resolver.decl_ty(idx)` hit the cross-revision
@@ -1278,22 +1572,73 @@ pub fn resolve(db: &dyn Db, file: SourceFile) -> Resolved {
 /// week 2 day 8+).
 #[salsa::tracked(returns(clone))]
 pub fn type_map(db: &dyn Db, file: SourceFile) -> Types {
+    typed_file(db, file).types
+}
+
+/// The file's match-coverage relation: every `match` over a scrutinee whose
+/// type someone could add a variant to, and what the exhaustiveness checkers
+/// concluded about each one.
+///
+/// **This query re-executes on any edit to the file**, because it depends on
+/// `parse_module` and `resolve` like everything else does, and a keystroke
+/// invalidates both. Separating it from [`type_map`] does not change that and
+/// was never going to. What it buys is on the other side: coverage is a much
+/// smaller and much flatter thing than a span-keyed `TypeMap`, so an edit that
+/// changes no coverage produces an equal value, salsa backdates it, and the
+/// consumers of *coverage* skip. Hung off `Types` instead, every one of them
+/// would wake for a byte inserted anywhere in the file, because every span
+/// after it moved.
+///
+/// A projection of [`typed_file`], so the relation costs no second walk.
+#[salsa::tracked(returns(clone))]
+pub fn match_coverage(db: &dyn Db, file: SourceFile) -> MatchCoverage {
+    typed_file(db, file).coverage
+}
+
+/// Run the assigner once and keep both halves of what it produced. See
+/// [`TypedFile`].
+#[salsa::tracked(returns(clone))]
+fn typed_file(db: &dyn Db, file: SourceFile) -> TypedFile {
     let parsed = parse_module(db, file);
     let Some(module) = parsed.module() else {
-        return Types::empty();
+        return TypedFile::empty();
     };
+    // Read before the resolve, so a file that parses and fails to resolve
+    // still reports the module it declares itself as rather than none.
+    let module_key = own_module_key(module);
     let resolved = resolve(db, file);
     let Some(resolved_module) = resolved.resolved() else {
-        return Types::empty();
+        return TypedFile {
+            types: Types::empty(),
+            coverage: MatchCoverage::new(module_key, FileMatchCoverage::default()),
+        };
     };
     let decl_ty_resolver = SalsaDeclTy { db, file };
-    let (tm, ty_errs) = assign_types_with_resolver(
+    let (tm, ty_errs, coverage) = assign_types_with_coverage(
         module,
         resolved_module,
         db.prelude(),
         &decl_ty_resolver,
     );
-    Types::new(tm, ty_errs)
+    TypedFile {
+        types: Types::new(tm, ty_errs),
+        coverage: MatchCoverage::new(module_key, coverage),
+    }
+}
+
+/// The module key a file declares itself under, or the empty string when it
+/// declares no `module` line.
+///
+/// Read the way the typechecker reads it when it names a locally declared
+/// union, so the module in a local site's type end and the module the file
+/// reports itself as are one answer rather than two that have to be kept in
+/// step.
+fn own_module_key(module: &Module) -> String {
+    module
+        .module_path
+        .as_ref()
+        .map(path_key)
+        .unwrap_or_default()
 }
 
 /// `DeclTyResolver` impl that fetches per-decl types from the salsa-tracked
@@ -2865,5 +3210,388 @@ fn use_helper(x: number) -> number { return helper(x) }
         // The module itself is still interned: it is a module in the project
         // whether or not it currently parses.
         assert!(idx.module_id("bad").is_some());
+    }
+
+    // ----------------------------------------------------------------------
+    // Match coverage: the exhaustiveness relation, per file and folded
+    // ----------------------------------------------------------------------
+
+    use glyph_typechecker::CoverageState;
+
+    /// A module-local union and one match over it that names every variant.
+    const LOCAL_UNION: &str = r#"module app
+pub type Command =
+  | Up
+  | Down
+pub fn run(c: Command) -> number {
+  return match c {
+    Up => 1,
+    Down => 0,
+  }
+}
+"#;
+
+    /// A second declaration after the match, so an edit to it moves no span
+    /// the relation records. The edit lengthens the body, which is what makes
+    /// the span-keyed `TypeMap` come out different while the coverage does
+    /// not.
+    const OTHER_FN_BEFORE: &str = "pub fn other(x: number) -> number { return x + 1 }\n";
+    const OTHER_FN_AFTER: &str = "pub fn other(x: number) -> number { return x + 1 + 2 + 3 }\n";
+
+    /// A database that logs the *name* of every query it executes, and the log.
+    ///
+    /// salsa renders a `DatabaseKeyIndex` as its query name only while the
+    /// database is attached, which it is inside the event callback. Counting
+    /// events says how much ran; this says which query ran, which is what a
+    /// claim about one query skipping needs.
+    fn recording_db() -> (CompilerDb, Arc<Mutex<Vec<String>>>) {
+        let log: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let recorder = Arc::clone(&log);
+        let sink: EventSink = Arc::new(move |event: &Event| {
+            if let EventKind::WillExecute { database_key } = &event.kind {
+                recorder.lock().unwrap().push(format!("{database_key:?}"));
+            }
+        });
+        (
+            CompilerDb::with_event_sink(build_prelude(), Arc::new(StdlibStubs::new()), sink),
+            log,
+        )
+    }
+
+    /// Drain the recorded query names.
+    fn ran(log: &Arc<Mutex<Vec<String>>>) -> Vec<String> {
+        std::mem::take(&mut log.lock().unwrap())
+    }
+
+    fn only_site(cov: &ProjectMatchCoverage) -> &ProjectCoverageSite {
+        assert_eq!(cov.sites().len(), 1, "sites: {:?}", cov.sites());
+        &cov.sites()[0]
+    }
+
+    /// The variants a site's arms name, in the order the arms name them.
+    fn variants_named(site: &ProjectCoverageSite) -> Vec<String> {
+        site.site
+            .mentions
+            .iter()
+            .map(|m| m.variant.clone())
+            .collect()
+    }
+
+    #[test]
+    fn a_local_unions_match_site_is_keyed_to_the_declaration_it_is_over() {
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "app.glyph", LOCAL_UNION);
+        db.set_project(vec![("app".to_string(), file)]);
+
+        let cov = project_match_coverage(&db, db.project_files_input());
+        let key = cov
+            .decls()
+            .key_of("app", "Command")
+            .expect("`Command` is keyed");
+        let site = only_site(&cov);
+
+        assert_eq!(site.scrutinee_type, CoverageTypeRef::Decl(key.clone()));
+        assert_eq!(site.site.module, "app");
+        assert_eq!(site.site.state, CoverageState::Exhaustive);
+        assert_eq!(variants_named(site), vec!["Up".to_string(), "Down".to_string()]);
+        assert_eq!(cov.sites_over(&CoverageTypeRef::Decl(key)).count(), 1);
+
+        // A mentioned variant is keyable from what the answer already carries.
+        // Variants are hoisted into module scope and the declaration index
+        // keys them, so a consumer gets from an arm to the declaration it
+        // names through the same interner the site's key came from, rather
+        // than filling a second one whose ids would mean something else.
+        for variant in variants_named(site) {
+            assert!(
+                cov.decls().key_of("app", &variant).is_some(),
+                "`{variant}` is not keyed"
+            );
+        }
+    }
+
+    #[test]
+    fn the_per_file_value_carries_the_module_key_the_file_declares() {
+        // File-local, and a string rather than an id. An id would come from a
+        // project-wide interner, and interning is in module-path order, so
+        // adding any file would renumber the ids and change every file's
+        // answer to a question the new file has nothing to do with.
+        let db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "app.glyph", LOCAL_UNION);
+
+        let cov = match_coverage(&db, file);
+        assert_eq!(cov.module(), "app");
+        assert_eq!(cov.sites().len(), 1, "sites: {:?}", cov.sites());
+        assert_eq!(cov.sites()[0].state(), CoverageState::Exhaustive);
+        assert_eq!(
+            cov.sites()[0].scrutinee_type(),
+            &CoverageTypeName::Declared {
+                module: "app".to_string(),
+                name: "Command".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn adding_a_file_to_the_project_leaves_another_files_coverage_untouched() {
+        // The reason the keys are minted in the fold. A per-file query that
+        // reached a project-wide interner would depend on the file list, so
+        // adding an unrelated file would re-execute every file's coverage and
+        // change what it says.
+        let (mut db, log) = recording_db();
+        let app = new_file(&db, "app.glyph", LOCAL_UNION);
+        db.set_project(vec![("app".to_string(), app)]);
+        let before = match_coverage(&db, app);
+        let _ = ran(&log);
+
+        let other = new_file(
+            &db,
+            "other.glyph",
+            "module other\npub fn go() -> number { return 1 }\n",
+        );
+        db.set_project(vec![
+            ("app".to_string(), app),
+            ("other".to_string(), other),
+        ]);
+        let after = match_coverage(&db, app);
+        let events = ran(&log);
+
+        assert_eq!(before, after);
+        assert!(
+            !events.iter().any(|k| k.starts_with("match_coverage")),
+            "a file added elsewhere re-executed this file's coverage: {events:?}"
+        );
+    }
+
+    #[test]
+    fn a_repeat_project_coverage_call_executes_no_queries() {
+        let (mut db, log) = recording_db();
+        let file = new_file(&db, "app.glyph", LOCAL_UNION);
+        db.set_project(vec![("app".to_string(), file)]);
+
+        let first = project_match_coverage(&db, db.project_files_input());
+        let cold = ran(&log);
+        assert!(
+            cold.iter().any(|k| k.starts_with("match_coverage")),
+            "the cold call must run the per-file query: {cold:?}"
+        );
+        assert!(
+            cold.iter().any(|k| k.starts_with("project_match_coverage")),
+            "the cold call must run the fold: {cold:?}"
+        );
+
+        let second = project_match_coverage(&db, db.project_files_input());
+        let warm = ran(&log);
+        assert_eq!(first, second);
+        assert!(
+            warm.is_empty(),
+            "an unchanged repeat call executed queries: {warm:?}"
+        );
+    }
+
+    #[test]
+    fn an_edit_that_changes_no_coverage_lets_the_fold_skip() {
+        // The whole argument for a separate query, in one edit. A later
+        // declaration's body grows, which shifts nothing the relation records
+        // but does change the span-keyed `TypeMap`. The per-file coverage
+        // query re-executes, because it depends on parse and resolve like
+        // everything else and separating it never changed that. Its value
+        // comes out equal, salsa backdates it, and the consumer above it does
+        // not run. Hung off `Types`, that consumer would have woken here.
+        let (mut db, log) = recording_db();
+        let file = new_file(&db, "app.glyph", &format!("{LOCAL_UNION}{OTHER_FN_BEFORE}"));
+        db.set_project(vec![("app".to_string(), file)]);
+        let before_types = type_map(&db, file);
+        let before = project_match_coverage(&db, db.project_files_input());
+        let _ = ran(&log);
+
+        file.set_text(&mut db)
+            .to(format!("{LOCAL_UNION}{OTHER_FN_AFTER}"));
+        let after = project_match_coverage(&db, db.project_files_input());
+        let events = ran(&log);
+
+        assert_eq!(
+            before, after,
+            "an edit that changed no coverage changed the value"
+        );
+        assert!(
+            events.iter().any(|k| k.starts_with("match_coverage")),
+            "the per-file query re-executes on any edit; this test is about what happens above it: {events:?}"
+        );
+        assert!(
+            !events.iter().any(|k| k.starts_with("project_match_coverage")),
+            "the fold must skip when coverage did not change: {events:?}"
+        );
+        // And the contrast that makes the skip worth having: the same edit did
+        // move the type map, so a coverage set riding on it would have been
+        // invalidated by a keystroke that changed no coverage.
+        let after_types = type_map(&db, file);
+        assert_ne!(
+            before_types.type_map(),
+            after_types.type_map(),
+            "the fixture no longer changes the type map, so it no longer tests the contrast"
+        );
+    }
+
+    #[test]
+    fn adding_a_variant_changes_the_relation_and_names_the_gap() {
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "app.glyph", LOCAL_UNION);
+        db.set_project(vec![("app".to_string(), file)]);
+        let before = project_match_coverage(&db, db.project_files_input());
+        assert_eq!(only_site(&before).site.state, CoverageState::Exhaustive);
+
+        file.set_text(&mut db)
+            .to(LOCAL_UNION.replace("  | Down\n", "  | Down\n  | Left\n"));
+        let after = project_match_coverage(&db, db.project_files_input());
+
+        assert_ne!(before, after, "adding a variant left the relation unchanged");
+        let site = only_site(&after);
+        assert_eq!(site.site.state, CoverageState::Declined);
+        assert_eq!(site.site.gaps.len(), 1, "gaps: {:?}", site.site.gaps);
+        assert_eq!(site.site.gaps[0].missing, vec!["Left".to_string()]);
+        // The same declaration throughout: adding a variant is not a rename.
+        assert_eq!(
+            site.scrutinee_type,
+            only_site(&before).scrutinee_type,
+            "the type end moved when the declaration did not"
+        );
+    }
+
+    #[test]
+    fn a_same_named_type_in_two_modules_gets_two_keys_and_two_site_sets() {
+        // The corpus holds eleven unrelated declarations named `Command`. A
+        // relation keyed by the display name files all eleven under one key
+        // and answers about the wrong one.
+        let mut db = CompilerDb::with_default_stdlib();
+        let a = new_file(&db, "a.glyph", LOCAL_UNION.replace("module app", "module a").as_str());
+        let b = new_file(
+            &db,
+            "b.glyph",
+            &LOCAL_UNION
+                .replace("module app", "module b")
+                .replace("Up", "Left")
+                .replace("Down", "Right"),
+        );
+        db.set_project(vec![("a".to_string(), a), ("b".to_string(), b)]);
+
+        let cov = project_match_coverage(&db, db.project_files_input());
+        let a_key = cov.decls().key_of("a", "Command").expect("a's `Command`");
+        let b_key = cov.decls().key_of("b", "Command").expect("b's `Command`");
+        assert_ne!(a_key, b_key, "one key for two declarations");
+        assert_eq!(cov.sites().len(), 2, "sites: {:?}", cov.sites());
+
+        let a_sites: Vec<_> = cov.sites_over(&CoverageTypeRef::Decl(a_key)).collect();
+        assert_eq!(a_sites.len(), 1, "a's sites: {a_sites:?}");
+        assert_eq!(a_sites[0].site.module, "a");
+        assert_eq!(
+            variants_named(a_sites[0]),
+            vec!["Up".to_string(), "Down".to_string()]
+        );
+
+        let b_sites: Vec<_> = cov.sites_over(&CoverageTypeRef::Decl(b_key)).collect();
+        assert_eq!(b_sites.len(), 1, "b's sites: {b_sites:?}");
+        assert_eq!(b_sites[0].site.module, "b");
+        assert_eq!(
+            variants_named(b_sites[0]),
+            vec!["Left".to_string(), "Right".to_string()]
+        );
+    }
+
+    #[test]
+    fn two_projects_with_a_same_named_type_each_answer_about_their_own_files() {
+        // Two `ProjectFiles` inputs in one database, each with a module named
+        // `shared` declaring a `Command`. Each fold answers about its own file
+        // set. The two projects' keys are *not* comparable with each other:
+        // each is an index into the interner its own fold minted it from,
+        // which is why the answer carries that interner rather than leaving a
+        // consumer to pair a key with whichever one it has to hand.
+        let db = CompilerDb::with_default_stdlib();
+        let one = new_file(&db, "one.glyph", &LOCAL_UNION.replace("module app", "module shared"));
+        let two = new_file(
+            &db,
+            "two.glyph",
+            &LOCAL_UNION
+                .replace("module app", "module shared")
+                .replace("Up", "Left")
+                .replace("Down", "Right"),
+        );
+        let p1 = ProjectFiles::new(&db, vec![("shared".to_string(), one)]);
+        let p2 = ProjectFiles::new(&db, vec![("shared".to_string(), two)]);
+
+        let c1 = project_match_coverage(&db, p1);
+        let c2 = project_match_coverage(&db, p2);
+
+        let k1 = c1.decls().key_of("shared", "Command").expect("p1's `Command`");
+        let k2 = c2.decls().key_of("shared", "Command").expect("p2's `Command`");
+
+        let s1: Vec<_> = c1.sites_over(&CoverageTypeRef::Decl(k1)).collect();
+        let s2: Vec<_> = c2.sites_over(&CoverageTypeRef::Decl(k2)).collect();
+        assert_eq!(s1.len(), 1, "p1's sites: {s1:?}");
+        assert_eq!(s2.len(), 1, "p2's sites: {s2:?}");
+        assert_eq!(variants_named(s1[0]), vec!["Up".to_string(), "Down".to_string()]);
+        assert_eq!(
+            variants_named(s2[0]),
+            vec!["Left".to_string(), "Right".to_string()]
+        );
+        assert_ne!(c1, c2, "two projects collapsed into one answer");
+    }
+
+    #[test]
+    fn a_prelude_union_is_a_named_site_with_no_declaration_to_key() {
+        // `Result` has a fixed variant table and no declaration in any project
+        // module. There is nothing to mint a key for, and inventing one would
+        // file the site under a module that does not exist.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(
+            &db,
+            "app.glyph",
+            r#"module app
+pub fn f(r: Result<number, string>) -> number {
+  return match r {
+    Ok(n) => n,
+    Err(_e) => 0,
+  }
+}
+"#,
+        );
+        db.set_project(vec![("app".to_string(), file)]);
+
+        let cov = project_match_coverage(&db, db.project_files_input());
+        let site = only_site(&cov);
+        assert_eq!(
+            site.scrutinee_type,
+            CoverageTypeRef::Builtin {
+                name: "Result".to_string()
+            }
+        );
+        assert_eq!(site.site.state, CoverageState::Exhaustive);
+        assert_eq!(variants_named(site), vec!["Ok".to_string(), "Err".to_string()]);
+    }
+
+    #[test]
+    fn a_site_whose_type_the_project_does_not_key_is_named_not_dropped() {
+        // Both the CLI and the language server derive a file's module path
+        // from where the file sits, so a file whose own `module` line says
+        // something else declares its types under a key the project has never
+        // heard of. The site is real and the relation cannot key it; reporting
+        // it absent would assert no relation exists, which is the one thing
+        // absence is not allowed to mean here.
+        let mut db = CompilerDb::with_default_stdlib();
+        let file = new_file(&db, "models.glyph", &LOCAL_UNION.replace("module app", "module app/models"));
+        db.set_project(vec![("models".to_string(), file)]);
+
+        let cov = project_match_coverage(&db, db.project_files_input());
+        let site = only_site(&cov);
+        assert_eq!(
+            site.scrutinee_type,
+            CoverageTypeRef::Unkeyed {
+                module: "app/models".to_string(),
+                name: "Command".to_string(),
+            }
+        );
+        // Still a whole site: the state and the arms are what the checker
+        // concluded, and only the type end is missing.
+        assert_eq!(site.site.state, CoverageState::Exhaustive);
+        assert_eq!(variants_named(site), vec!["Up".to_string(), "Down".to_string()]);
     }
 }

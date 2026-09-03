@@ -150,6 +150,56 @@ pub struct ImportedTypeDecl {
     pub body: Ty,
 }
 
+/// Which declaration a union's variant set came from: the module it is
+/// declared in, the name it is declared under, and whether there is a
+/// declaration at all.
+///
+/// The answer `required_variants` gives, and the type end of a match-coverage
+/// edge. A display name alone cannot be that end: the dogfood corpus holds
+/// eleven unrelated declarations named `Command`, so an edge keyed by
+/// `"Command"` names all eleven. The name diagnostics print is still here, as
+/// `display`, and it is the same string it always was.
+///
+/// Three cases rather than one pair, because the four producers behind them
+/// differ in a way a consumer has to see. A local union's module comes from
+/// the file being checked; an imported union's comes from the type itself, and
+/// collapsing the two would answer a consumer's own module for a declaration
+/// in someone else's. A builtin has no project declaration anywhere, so there
+/// is nothing to address.
+///
+/// No `DeclKey` and no `ModuleId` appear here. A `ModuleId` is issued by the
+/// project-level interner in `glyph-db`; one minted anywhere else is an
+/// in-range id for some *other* module, so it names the wrong module rather
+/// than answering nothing. This crate hands out strings and the key is minted
+/// at that boundary.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum UnionRef {
+    /// A union declared in the file being checked, under the module key that
+    /// file is known by. The key is empty for a file that declares no `module`
+    /// line, which is the honest answer for it: the declaration has a name and
+    /// no address.
+    Local { module: String, name: String },
+    /// A union declared in another project module, under that module's key
+    /// (the slash-joined spelling every cross-module query is looked up by).
+    Imported { module: String, name: String },
+    /// A prelude or stdlib union: `Result`, `Option`, `fs.ErrorKind`. A fixed
+    /// variant table behind a name, with no declaration to point at.
+    Builtin { name: String },
+}
+
+impl UnionRef {
+    /// The name a diagnostic prints. E0200's `type_name` and E0220's `union`
+    /// render this and nothing else, so it is exactly the string the variant-set
+    /// resolution used to return on its own.
+    pub fn display(&self) -> &str {
+        match self {
+            UnionRef::Local { name, .. }
+            | UnionRef::Imported { name, .. }
+            | UnionRef::Builtin { name } => name,
+        }
+    }
+}
+
 /// Stable handle for a named type or value. Mirrors `glyph_resolver::SymbolId`
 /// but kept here as an opaque newtype so the typechecker doesn't depend on the
 /// resolver's storage choices. The two are converted at the boundary.

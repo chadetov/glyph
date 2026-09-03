@@ -26,7 +26,7 @@ use glyph_resolver::{Prelude, ResolvedModule, ResolvedRef, SymbolId, SymbolKind}
 use crate::lower::Lowerer;
 use crate::ty::{
     ty_display, FnParam, ImportedTypeDecl, ModuleKey, ParamOwner, Primitive, RecordField,
-    SymbolRef, Ty, UnionVariant,
+    SymbolRef, Ty, UnionRef, UnionVariant,
 };
 use crate::type_map::TypeMap;
 use crate::TypeError;
@@ -243,8 +243,31 @@ pub fn assign_types_with_resolver(
     prelude: &Prelude,
     decl_ty_resolver: &dyn DeclTyResolver,
 ) -> (TypeMap, Vec<TypeError>) {
+    let (tm, errors, _coverage) =
+        assign_types_with_coverage(module, resolved, prelude, decl_ty_resolver);
+    (tm, errors)
+}
+
+/// Same as `assign_types_with_resolver`, and additionally the match-coverage
+/// relation the exhaustiveness dispatch filled while it ran.
+///
+/// A side channel, not a second analysis. Every edge is written where the
+/// existing ordered dispatch in `check_match_exhaustiveness` already knew
+/// something, so there is nothing to keep in step. A query that re-derived
+/// coverage by walking the arms again would have to reproduce that dispatch
+/// (the literal-arm recovery for `bool` and `number`, and the union the
+/// `Expr::Match` handler writes back into the type map before any of it runs)
+/// and would be a third copy of the logic the extraction below exists to stop
+/// duplicating.
+pub fn assign_types_with_coverage(
+    module: &Module,
+    resolved: &ResolvedModule,
+    prelude: &Prelude,
+    decl_ty_resolver: &dyn DeclTyResolver,
+) -> (TypeMap, Vec<TypeError>, FileMatchCoverage) {
     let mut tm = TypeMap::new();
     let mut errors: Vec<TypeError> = Vec::new();
+    let mut coverage = FileMatchCoverage::default();
     {
         let mut assigner = Assigner {
             module,
@@ -252,6 +275,7 @@ pub fn assign_types_with_resolver(
             resolved,
             tm: &mut tm,
             errors: &mut errors,
+            coverage: &mut coverage,
             decl_ty_resolver,
             return_stack: Vec::new(),
             local_tys: HashMap::new(),
@@ -267,7 +291,357 @@ pub fn assign_types_with_resolver(
     // map rather than interleaved with it.
     errors.extend(crate::owned::check_owned(module, resolved, prelude, &tm));
     errors.extend(crate::concurrency::check_await_straddle(module));
-    (tm, errors)
+    (tm, errors, coverage)
+}
+
+// ============================================================================
+// Match coverage: the side channel the exhaustiveness dispatch fills
+// ============================================================================
+
+/// Where a match site's scrutinee union is declared, as far as one file can
+/// name it.
+///
+/// A module string plus a name, never a `DeclKey`. A `DeclKey` carries a
+/// `ModuleId`, those are issued by the project-level interner in `glyph-db`,
+/// and one minted anywhere else is an in-range id for some *other* module: it
+/// would answer wrongly rather than fail. This crate holds no interner, so it
+/// hands out the strings and the project-wide fold mints the key.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CoverageTypeName {
+    /// A union declared in a project module, under the module key that
+    /// declaration is reachable by: this file's own module path for a union
+    /// declared here, the source module's key for an imported one. Empty for a
+    /// file that declares no `module` line, which nothing can key.
+    Declared { module: String, name: String },
+    /// A prelude or stdlib union (`Result`, `Option`, `fs.ErrorKind`): a name
+    /// with a fixed variant table behind it and no declaration to point at.
+    Builtin { name: String },
+}
+
+impl From<&UnionRef> for CoverageTypeName {
+    /// The type end of a site, derived from the one union resolution that
+    /// produced its variant set.
+    ///
+    /// Derived rather than resolved a second time: a site's type end and the
+    /// variant set it was counted against have to describe the same
+    /// declaration, and the way they stop doing that is two functions walking
+    /// the same four paths in an order kept in step by hand. `Local` and
+    /// `Imported` collapse here because the relation keys a declaration by its
+    /// module either way; which side of the boundary it was reached from is
+    /// the consumer's question, not the key's.
+    fn from(union: &UnionRef) -> Self {
+        match union {
+            UnionRef::Local { module, name } | UnionRef::Imported { module, name } => {
+                CoverageTypeName::Declared {
+                    module: module.clone(),
+                    name: name.clone(),
+                }
+            }
+            UnionRef::Builtin { name } => CoverageTypeName::Builtin {
+                name: name.clone(),
+            },
+        }
+    }
+}
+
+/// One arm naming one variant of one union.
+///
+/// `mentions`, not `covers`. An arm that reaches a variant through a payload
+/// sub-pattern (`Ok(Some(x))`) has not covered `Ok`'s payload, and for most
+/// top-level edges the checker draws no conclusion from the arm alone: it
+/// concludes about the site, once every arm is in. What this edge records is
+/// the thing the checker actually knew at the point it wrote it, which is that
+/// the arm named the variant.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoverageMention {
+    /// The arm's ordinal within its site, counted from zero in source order.
+    /// Order is semantic (D9: first match wins), so this and the site are the
+    /// arm's whole identity.
+    pub arm: u16,
+    /// 0 for the scrutinee's own union, 1 for a payload union the checker
+    /// recursed into, and so on.
+    pub depth: u16,
+    /// The union the variant belongs to: the site's scrutinee type at depth 0,
+    /// and at greater depth a payload union, which can live in another module.
+    pub union: CoverageTypeName,
+    /// The variant named. For a string-literal union, whose members are values
+    /// rather than tags, this is the value the arm matched.
+    pub variant: String,
+}
+
+/// An arm the checker read nothing from, so its site's mentions are not a
+/// complete accounting.
+///
+/// Three shapes decline: a single payload sub-pattern that tests a field's
+/// value and can therefore fail (`Node({ colour: Black })`), an `is` guard
+/// naming no variant of the union, and a top-level pattern the check does not
+/// model (a literal, an array, a record destructure over a union scrutinee).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoverageDecline {
+    pub arm: u16,
+    pub depth: u16,
+    /// The variant the arm named, when it named one: a value-testing payload
+    /// declines a known variant, while an unmodeled top-level shape names
+    /// nothing.
+    pub variant: Option<String>,
+}
+
+/// An arm that absorbs every value the scrutinee can still take, which is
+/// where the checker stops counting variants.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoverageCatchAll {
+    pub arm: u16,
+    pub depth: u16,
+}
+
+/// A union scope where some variant went unmentioned: the same list E0200
+/// reports, recorded where the checker builds it.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoverageGap {
+    pub depth: u16,
+    pub union: CoverageTypeName,
+    /// The unmentioned variants, in declaration order, unquoted.
+    pub missing: Vec<String>,
+}
+
+/// What the checker concluded about a whole site.
+///
+/// The state reports the weakest thing true of the site, so `Exhaustive` is
+/// only ever the strongest claim: it means this site was counted against the
+/// full variant set, nothing was declined, and nothing went unmentioned.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CoverageState {
+    /// Every variant is mentioned and no arm was declined. Adding a variant to
+    /// the union breaks this site, which is the guarantee the checker gives.
+    Exhaustive,
+    /// One of the site's own arms absorbs the rest, so the mentions are what
+    /// the arms name rather than a complete accounting, and adding a variant
+    /// leaves this site compiling and silent.
+    HasCatchAll,
+    /// The checker did not conclude coverage: an arm it declined to read (see
+    /// `declines`), or a variant no arm mentions (see `gaps`, which is the
+    /// E0200 it reported alongside).
+    Declined,
+    /// The scrutinee never resolved to a variant set, so there was nothing to
+    /// count against. Nothing about this site is checked today.
+    ScrutineeUnresolved,
+}
+
+/// One match site and every edge the checkers wrote about it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CoverageSite {
+    scrutinee_type: CoverageTypeName,
+    scrutinee_span: Span,
+    match_span: Span,
+    scrutinee_resolved: bool,
+    mentions: Vec<CoverageMention>,
+    declines: Vec<CoverageDecline>,
+    catch_alls: Vec<CoverageCatchAll>,
+    gaps: Vec<CoverageGap>,
+}
+
+impl CoverageSite {
+    /// The union this site's scrutinee resolved to. For an unresolved site,
+    /// the type the scrutinee was *named* by, which is all that was known.
+    pub fn scrutinee_type(&self) -> &CoverageTypeName {
+        &self.scrutinee_type
+    }
+
+    /// The scrutinee expression's span. A location, not an identity: it moves
+    /// with the file and is never compared across revisions.
+    pub fn scrutinee_span(&self) -> Span {
+        self.scrutinee_span
+    }
+
+    /// The whole `match` expression's span, which is where E0200 points.
+    pub fn match_span(&self) -> Span {
+        self.match_span
+    }
+
+    pub fn mentions(&self) -> &[CoverageMention] {
+        &self.mentions
+    }
+
+    pub fn declines(&self) -> &[CoverageDecline] {
+        &self.declines
+    }
+
+    pub fn catch_alls(&self) -> &[CoverageCatchAll] {
+        &self.catch_alls
+    }
+
+    pub fn gaps(&self) -> &[CoverageGap] {
+        &self.gaps
+    }
+
+    /// What the checker concluded here, derived from the edges rather than
+    /// stored beside them: a site is written across the whole dispatch,
+    /// including its payload recursions, and a state updated in pieces along
+    /// the way is a state that can disagree with its own edges.
+    pub fn state(&self) -> CoverageState {
+        if !self.scrutinee_resolved {
+            return CoverageState::ScrutineeUnresolved;
+        }
+        if !self.declines.is_empty() || !self.gaps.is_empty() {
+            return CoverageState::Declined;
+        }
+        // Only a catch-all among the site's *own* arms makes the site absorb
+        // what it does not name. One inside a payload (`Ok(x)` over a
+        // `Result<Option<T>, E>`) leaves the site's own accounting complete,
+        // which is what the checker concluded and what E0200's silence means.
+        if self.catch_alls.iter().any(|c| c.depth == 0) {
+            return CoverageState::HasCatchAll;
+        }
+        CoverageState::Exhaustive
+    }
+
+    /// The site as an answer carries it, with no site index anywhere in it.
+    ///
+    /// The index that routed the writes into this site is a cursor inside one
+    /// computation: it is never published and never compared across
+    /// revisions. What crosses the boundary is this descriptor, and an agent
+    /// relocates the site from it. Turning the span into a line and into the
+    /// scrutinee as written is the reader's job, because this crate never sees
+    /// the file's bytes.
+    pub fn descriptor(&self, module: &str) -> CoverageSiteRef {
+        CoverageSiteRef {
+            module: module.to_string(),
+            scrutinee_span: self.scrutinee_span,
+            match_span: self.match_span,
+            state: self.state(),
+            mentions: self.mentions.clone(),
+            declines: self.declines.clone(),
+            catch_alls: self.catch_alls.clone(),
+            gaps: self.gaps.clone(),
+        }
+    }
+}
+
+/// A site's descriptor: where it is and what the checker concluded, with the
+/// type end left to the caller that keys it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CoverageSiteRef {
+    /// The module key of the file the site is in.
+    pub module: String,
+    pub scrutinee_span: Span,
+    pub match_span: Span,
+    pub state: CoverageState,
+    pub mentions: Vec<CoverageMention>,
+    pub declines: Vec<CoverageDecline>,
+    pub catch_alls: Vec<CoverageCatchAll>,
+    pub gaps: Vec<CoverageGap>,
+}
+
+/// One file's match-coverage relation.
+///
+/// Sites are in the order the walk reached them, which is source order, and
+/// each carries every edge written about it including the ones its payload
+/// recursions produced.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub struct FileMatchCoverage {
+    sites: Vec<CoverageSite>,
+}
+
+impl FileMatchCoverage {
+    pub fn sites(&self) -> &[CoverageSite] {
+        &self.sites
+    }
+
+    /// Open a site and return the within-file index its writes go through.
+    ///
+    /// Private, and that is the design: the index is a cursor valid inside the
+    /// computation that produced it, so there is no way for it to leave this
+    /// file and become an identity that outlives an edit.
+    fn open(
+        &mut self,
+        scrutinee_type: CoverageTypeName,
+        scrutinee_span: Span,
+        match_span: Span,
+        scrutinee_resolved: bool,
+    ) -> usize {
+        self.sites.push(CoverageSite {
+            scrutinee_type,
+            scrutinee_span,
+            match_span,
+            scrutinee_resolved,
+            mentions: Vec::new(),
+            declines: Vec::new(),
+            catch_alls: Vec::new(),
+            gaps: Vec::new(),
+        });
+        self.sites.len() - 1
+    }
+
+    fn record_mention(&mut self, site: usize, edge: CoverageMention) {
+        if let Some(s) = self.sites.get_mut(site) {
+            s.mentions.push(edge);
+        }
+    }
+
+    fn record_decline(&mut self, site: usize, edge: CoverageDecline) {
+        if let Some(s) = self.sites.get_mut(site) {
+            s.declines.push(edge);
+        }
+    }
+
+    fn record_catch_all(&mut self, site: usize, edge: CoverageCatchAll) {
+        if let Some(s) = self.sites.get_mut(site) {
+            s.catch_alls.push(edge);
+        }
+    }
+
+    fn record_gap(&mut self, site: usize, edge: CoverageGap) {
+        if let Some(s) = self.sites.get_mut(site) {
+            s.gaps.push(edge);
+        }
+    }
+}
+
+/// Which site a checker's coverage writes belong to.
+#[derive(Debug, Clone, Copy)]
+enum CoverageAt {
+    /// A `match` (or a JSX `<match>`) the dispatch just reached: open a site
+    /// for it, once the scrutinee's union has a name. Carries the scrutinee
+    /// expression's span, which is what an answer locates the site by.
+    Entry(Span),
+    /// A payload an exhaustiveness check recursed into. A recursion is not a
+    /// new site: it writes into the one already open, one level deeper.
+    Payload { site: usize, depth: u16 },
+}
+
+/// The open site, the depth, and the union one check's writes are about.
+#[derive(Debug, Clone)]
+struct CoverageWriter {
+    site: usize,
+    depth: u16,
+    union: CoverageTypeName,
+}
+
+impl CoverageWriter {
+    /// Where a recursion into a payload of this scope writes.
+    fn payload(&self) -> CoverageAt {
+        CoverageAt::Payload {
+            site: self.site,
+            depth: self.depth + 1,
+        }
+    }
+}
+
+/// Every arm's pattern paired with its ordinal. The ordinal is half the arm's
+/// identity (the site is the other half), and it is not incidental: `match` is
+/// first-match-wins (D9), so an arm's position is part of what it means.
+fn arm_patterns(arms: &[MatchArm]) -> Vec<(u16, &Pattern)> {
+    arms.iter()
+        .enumerate()
+        .map(|(i, a)| (arm_ordinal(i), &a.pattern))
+        .collect()
+}
+
+/// An arm's ordinal, saturating at `u16::MAX`. Nothing in the corpus is within
+/// three orders of magnitude of a 65,536-arm `match`, and a saturating count
+/// keeps the identity of every arm below that exact.
+fn arm_ordinal(index: usize) -> u16 {
+    u16::try_from(index).unwrap_or(u16::MAX)
 }
 
 struct Assigner<'a> {
@@ -280,6 +654,11 @@ struct Assigner<'a> {
     /// Diagnostics collected during the walk. Day 14 ships the first
     /// real consumer: non-exhaustive match on tagged unions.
     errors: &'a mut Vec<TypeError>,
+    /// The match-coverage relation, filled by the exhaustiveness dispatch as
+    /// it runs. Nothing reads it during the walk: it is written at the points
+    /// where the checkers already know what an arm named, so the answer costs
+    /// one push per edge and cannot drift from the diagnostics beside it.
+    coverage: &'a mut FileMatchCoverage,
     /// Plug-in source of `Ty::Fn` answers for module-level fn/component
     /// references. Each call returns the lowered Ty for the given decl_idx;
     /// the Assigner doesn't keep a local `decl_ty` map any more.
@@ -873,7 +1252,7 @@ impl Assigner<'_> {
                         scrutinee_ty = recovered;
                     }
                 }
-                self.check_match_exhaustiveness(&scrutinee_ty, arms, *span);
+                self.check_match_exhaustiveness(&scrutinee_ty, scrutinee.span(), arms, *span);
                 for arm in arms {
                     // Type the arm's payload binding from the matched
                     // variant before walking the body, so refs to it inside
@@ -996,8 +1375,19 @@ impl Assigner<'_> {
             .into_iter()
             .map(|name| Pattern::Ident { name, span: j.span })
             .collect();
-        let pattern_refs: Vec<&Pattern> = patterns.iter().collect();
-        self.check_patterns_exhaustive(&scrutinee_ty, &pattern_refs, j.span);
+        // A `<case>`'s position among the cases is its ordinal, the role an
+        // arm's position plays in a value-level `match`.
+        let pattern_refs: Vec<(u16, &Pattern)> = patterns
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (arm_ordinal(i), p))
+            .collect();
+        self.check_patterns_exhaustive(
+            &scrutinee_ty,
+            &pattern_refs,
+            j.span,
+            Some(CoverageAt::Entry(value.span())),
+        );
     }
 
     // ----- ident reference typing -----
@@ -2218,6 +2608,134 @@ impl Assigner<'_> {
         }
     }
 
+    // ----- match coverage: the writes the dispatch makes as it goes -----
+
+    /// Enter a coverage scope: the site `at` names, opening one when this is a
+    /// top-level entry whose union can be named.
+    ///
+    /// `None` switches every write below it off, which is the answer for a
+    /// union with neither a declaration nor a builtin name: the relation is
+    /// keyed by type, so a site with no type end has nowhere to be filed and
+    /// is better absent than filed under an invented name.
+    fn cover_enter(
+        &mut self,
+        at: Option<CoverageAt>,
+        union: Option<CoverageTypeName>,
+        match_span: Span,
+    ) -> Option<CoverageWriter> {
+        let (at, union) = (at?, union?);
+        match at {
+            CoverageAt::Payload { site, depth } => Some(CoverageWriter { site, depth, union }),
+            CoverageAt::Entry(scrutinee_span) => {
+                let site = self
+                    .coverage
+                    .open(union.clone(), scrutinee_span, match_span, true);
+                Some(CoverageWriter {
+                    site,
+                    depth: 0,
+                    union,
+                })
+            }
+        }
+    }
+
+    fn cover_mention(&mut self, w: Option<&CoverageWriter>, arm: u16, variant: &str) {
+        let Some(w) = w else { return };
+        self.coverage.record_mention(
+            w.site,
+            CoverageMention {
+                arm,
+                depth: w.depth,
+                union: w.union.clone(),
+                variant: variant.to_string(),
+            },
+        );
+    }
+
+    fn cover_decline(&mut self, w: Option<&CoverageWriter>, arm: u16, variant: Option<&str>) {
+        let Some(w) = w else { return };
+        self.coverage.record_decline(
+            w.site,
+            CoverageDecline {
+                arm,
+                depth: w.depth,
+                variant: variant.map(str::to_string),
+            },
+        );
+    }
+
+    fn cover_catch_all(&mut self, w: Option<&CoverageWriter>, arm: u16) {
+        let Some(w) = w else { return };
+        self.coverage.record_catch_all(
+            w.site,
+            CoverageCatchAll {
+                arm,
+                depth: w.depth,
+            },
+        );
+    }
+
+    fn cover_gap(&mut self, w: Option<&CoverageWriter>, missing: Vec<String>) {
+        let Some(w) = w else { return };
+        self.coverage.record_gap(
+            w.site,
+            CoverageGap {
+                depth: w.depth,
+                union: w.union.clone(),
+                missing,
+            },
+        );
+    }
+
+    /// The type end of a string-literal-union site, resolved the way
+    /// `string_literal_union_values` resolved the values: the alias declared
+    /// here, the alias imported from a sibling, or nothing at all for a
+    /// literal set written inline, which has no declaration to key a site to.
+    fn string_literal_union_type_name(&self, ty: &Ty) -> Option<CoverageTypeName> {
+        match ty {
+            Ty::Imported { module, name } => Some(CoverageTypeName::Declared {
+                module: module.as_str().to_string(),
+                name: name.to_string(),
+            }),
+            Ty::Named { symbol, .. } => {
+                let sym = self.resolved.symbols.table.get(SymbolId(symbol.0))?;
+                Some(CoverageTypeName::Declared {
+                    module: self.own_module_key(),
+                    name: sym.name.to_string(),
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// The module key this file is known by, or the empty string when it
+    /// declares no `module` line. Empty is not a key anything resolves, which
+    /// is the honest answer for that file: its types have names and no
+    /// address.
+    fn own_module_key(&self) -> String {
+        self.module
+            .module_path
+            .as_ref()
+            .map(|p| crate::lower::module_key(p).as_str().to_string())
+            .unwrap_or_default()
+    }
+
+    /// Record the one fact a union-shaped scrutinee this module cannot read
+    /// leaves behind: there is a match over it and the checker concluded
+    /// nothing. Only an imported scrutinee gets a site, because only it has a
+    /// module and a name; a scrutinee whose type never resolved at all has
+    /// nothing to key a site to.
+    fn cover_unresolved_site(&mut self, ty: &Ty, scrutinee_span: Span, match_span: Span) {
+        let Ty::Imported { module, name } = union_base(ty) else {
+            return;
+        };
+        let named = CoverageTypeName::Declared {
+            module: module.as_str().to_string(),
+            name: name.to_string(),
+        };
+        self.coverage.open(named, scrutinee_span, match_span, false);
+    }
+
     // ----- match exhaustiveness for tagged unions -----
 
     /// If the scrutinee resolves to a tagged union — a user-defined
@@ -2248,9 +2766,15 @@ impl Assigner<'_> {
     /// suggestion rather than being read as a silent catch-all. This is the
     /// module-local, decidable-scrutinee case; cross-module/imported unions
     /// are out of scope (see `docs/dogfooding-gaps.md`).
+    ///
+    /// Each branch below that resolves a union-shaped scrutinee also opens a
+    /// coverage site and fills it as it counts. `scrutinee_span` is carried for
+    /// that and nothing else: it is what an answer locates a site by, since the
+    /// within-file site index never leaves the computation that produced it.
     fn check_match_exhaustiveness(
         &mut self,
         scrutinee_ty: &Ty,
+        scrutinee_span: glyph_ast::Span,
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
     ) {
@@ -2288,7 +2812,13 @@ impl Assigner<'_> {
         // catch-all (unlike an unbounded `string` below). Resolves a named alias
         // (`type Tier = "free" | "pro"`) to its literal set.
         if let Some(values) = self.string_literal_union_values(scrutinee_ty) {
-            self.check_string_literal_union_exhaustiveness(&values, arms, match_span);
+            self.check_string_literal_union_exhaustiveness(
+                &values,
+                arms,
+                match_span,
+                scrutinee_ty,
+                Some(CoverageAt::Entry(scrutinee_span)),
+            );
             return;
         }
         // A `number`/`string` match: those domains are unbounded, so literal arms
@@ -2335,9 +2865,14 @@ impl Assigner<'_> {
             if let Some((module, type_name, required)) =
                 self.imported_union_variants_from_arms(arms)
             {
-                let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
+                let patterns = arm_patterns(arms);
                 self.check_imported_union_coverage(
-                    &module, &type_name, &required, &patterns, match_span,
+                    &module,
+                    &type_name,
+                    &required,
+                    &patterns,
+                    match_span,
+                    Some(CoverageAt::Entry(scrutinee_span)),
                 );
                 return;
             }
@@ -2350,10 +2885,22 @@ impl Assigner<'_> {
         // catch-all, the chain the emitter builds falls off its end.
         if self.required_variants(scrutinee_ty).is_none() {
             self.check_refutable_arms_have_a_catch_all(arms, match_span);
+            // Union-shaped and unresolvable: an imported scrutinee whose
+            // declaration this module cannot read as a union, and whose arms
+            // named no variant of it either. It still has a name, so the
+            // relation records the site with the one thing the checker
+            // concluded, which is nothing. The alternative is a match that
+            // nobody can see is going unchecked.
+            self.cover_unresolved_site(scrutinee_ty, scrutinee_span, match_span);
         }
 
-        let patterns: Vec<&Pattern> = arms.iter().map(|a| &a.pattern).collect();
-        self.check_patterns_exhaustive(scrutinee_ty, &patterns, match_span);
+        let patterns = arm_patterns(arms);
+        self.check_patterns_exhaustive(
+            scrutinee_ty,
+            &patterns,
+            match_span,
+            Some(CoverageAt::Entry(scrutinee_span)),
+        );
     }
 
     /// A `match` over a scrutinee with no variant set: `{ x: 0, y: y }` over a
@@ -2496,70 +3043,72 @@ impl Assigner<'_> {
         module: &ModuleKey,
         type_name: &str,
         required: &[Ident],
-        patterns: &[&Pattern],
+        patterns: &[(u16, &Pattern)],
         match_span: glyph_ast::Span,
+        at: Option<CoverageAt>,
     ) {
+        // The site these writes belong to: this entry's own, or the one a
+        // payload recursion is already inside.
+        let cov = self.cover_enter(
+            at,
+            Some(CoverageTypeName::Declared {
+                module: module.as_str().to_string(),
+                name: type_name.to_string(),
+            }),
+            match_span,
+        );
         let mut covered: std::collections::HashSet<&str> = std::collections::HashSet::new();
         // Variants covered only via a nested constructor sub-pattern
         // (`B(X)`): the payload's own exhaustiveness is a separate question,
         // checked below by recursion, once it's known the payload's variant
         // set can even be resolved.
-        let mut nested: HashMap<&str, Vec<&Pattern>> = HashMap::new();
+        let mut nested: HashMap<&str, Vec<(u16, &Pattern)>> = HashMap::new();
         let mut has_catch_all = false;
         let mut unknown: Vec<(String, glyph_ast::Span)> = Vec::new();
-        for pat in patterns {
-            match pat {
-                Pattern::Wildcard { .. } | Pattern::Else { .. } => has_catch_all = true,
-                // The same predicate the module-local side uses, with the
-                // imported union's own variant set as the context. The raw
-                // uppercase test this replaces missed the second clause, so a
-                // *lowercase* variant of the imported union (Glyph allows one)
-                // read as a binding catch-all and silenced the whole check.
-                Pattern::Ident { name, .. } => {
-                    if is_catch_all_pattern(pat, Scrutinee::Union(required)) {
-                        has_catch_all = true;
-                    } else {
+        for &(arm, pat) in patterns {
+            // The same classification the module-local side runs, with the
+            // imported union's own variant set as the context. What differs is
+            // only what this side does with an unknown head, below.
+            match classify_arm(pat, required) {
+                ArmCoverage::CatchAll => {
+                    has_catch_all = true;
+                    self.cover_catch_all(cov.as_ref(), arm);
+                }
+                ArmCoverage::Mentions(v) => {
+                    covered.insert(v.as_ref());
+                    self.cover_mention(cov.as_ref(), arm, v.as_ref());
+                }
+                // A single payload sub-pattern names the *variant* here, but
+                // whether it covers the payload's own variant set is a
+                // question for the payload's type — deferred to the recursive
+                // check below. Folding this straight into `covered` was the
+                // shallow bug: `B(X)` over `Inner = X | Y` marked `B` fully
+                // handled without ever looking at `Y`. The mention is still
+                // recorded, because the arm did name `B`.
+                ArmCoverage::Nests { variant, sub } => {
+                    nested.entry(variant.as_ref()).or_default().push((arm, sub));
+                    self.cover_mention(cov.as_ref(), arm, variant.as_ref());
+                }
+                ArmCoverage::UnknownVariant { name, span, bare } => {
+                    if bare {
+                        // A bare head naming no variant of this union has
+                        // always been credited on this side, where the
+                        // module-local twin reports E0220 for it. The insert
+                        // cannot change the outcome (the name is not in
+                        // `required`, so nothing it covers can be missing) and
+                        // the diagnostic asymmetry is not this change's to
+                        // fix, so it is left exactly as it stood — and the
+                        // relation records no mention for it, because the arm
+                        // named nothing this union declares.
                         covered.insert(name.as_ref());
+                    } else {
+                        unknown.push((name.to_string(), span));
                     }
                 }
-                Pattern::Constructor {
-                    path, args, span, ..
-                } => {
-                    if let Some(v) = path.last() {
-                        if required.iter().any(|r| r == v) {
-                            match args.as_slice() {
-                                // Same rule as `check_patterns_exhaustive`: a
-                                // record destructure sub-pattern that can
-                                // itself fail (tests a field's value) covers
-                                // nothing on its own, so the variant is
-                                // neither `covered` nor `nested` — a missing
-                                // variant still surfaces below.
-                                [sub]
-                                    if sub.is_refutable()
-                                        && matches!(sub, Pattern::Object { .. }) => {}
-                                // A single payload sub-pattern covers the
-                                // *variant* here, but whether it covers the
-                                // payload's own variant set is a question for
-                                // the payload's type — deferred to the
-                                // recursive check below. Folding this
-                                // straight into `covered` was the shallow
-                                // bug: `B(X)` over `Inner = X | Y` marked `B`
-                                // fully handled without ever looking at `Y`.
-                                [sub] => {
-                                    nested.entry(v.as_ref()).or_default().push(sub);
-                                }
-                                // No-arg or multi-arg payloads fully cover
-                                // the variant at this level.
-                                _ => {
-                                    covered.insert(v.as_ref());
-                                }
-                            }
-                        } else if is_constructor_shaped(v) {
-                            unknown.push((v.to_string(), *span));
-                        }
-                    }
+                ArmCoverage::Declined { variant } => {
+                    let variant = variant.map(|v| v.to_string());
+                    self.cover_decline(cov.as_ref(), arm, variant.as_deref());
                 }
-                _ => {}
             }
         }
         for (name, span) in unknown {
@@ -2574,10 +3123,7 @@ impl Assigner<'_> {
         if has_catch_all {
             return;
         }
-        // Backticked, exactly like the module-local path in
-        // `check_patterns_exhaustive`: E0200 has one shape whether the union was
-        // declared here or imported (greppability — one rule, one rendering).
-        let mut missing: Vec<String> = Vec::new();
+        let mut missing: Vec<&str> = Vec::new();
         for v in required {
             let v = v.as_ref();
             if covered.contains(v) {
@@ -2602,16 +3148,29 @@ impl Assigner<'_> {
                             &inner_required,
                             subs,
                             match_span,
+                            cov.as_ref().map(CoverageWriter::payload),
                         );
                     }
                 }
-                None => missing.push(format!("`{v}`")),
+                None => missing.push(v),
             }
         }
         if !missing.is_empty() {
+            self.cover_gap(
+                cov.as_ref(),
+                missing.iter().map(|v| v.to_string()).collect(),
+            );
+            // Backticked, exactly like the module-local path in
+            // `check_patterns_exhaustive`: E0200 has one shape whether the
+            // union was declared here or imported (greppability — one rule,
+            // one rendering).
             self.errors.push(TypeError::NonExhaustiveMatch {
                 type_name: type_name.to_string(),
-                missing: missing.join(", "),
+                missing: missing
+                    .iter()
+                    .map(|v| format!("`{v}`"))
+                    .collect::<Vec<_>>()
+                    .join(", "),
                 span: match_span,
             });
         }
@@ -2704,13 +3263,38 @@ impl Assigner<'_> {
         values: &[String],
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
+        scrutinee_ty: &Ty,
+        at: Option<CoverageAt>,
     ) {
+        // The type end is the alias the literal set was reached through. A set
+        // written inline into a signature has no declaration, so it has
+        // nothing to key a site to and gets none.
+        let union = self.string_literal_union_type_name(scrutinee_ty);
+        let cov = self.cover_enter(at, union, match_span);
         // A string-literal union is a bounded set of *values*, not a set of
         // variants: `Scrutinee::Opaque`, so a PascalCase head stays the tag
         // test it is instead of covering the rest of the set.
         let has_catch_all = arms
             .iter()
             .any(|a| is_catch_all_pattern(&a.pattern, Scrutinee::Opaque));
+        // The arms name what they name whether or not a catch-all absorbs the
+        // rest, so the edges go in before the early return below. There is no
+        // head classification and no nesting here: the members of this union
+        // are values, so an arm either matches one, absorbs everything, or is
+        // read by nothing.
+        for (i, arm) in arms.iter().enumerate() {
+            let ordinal = arm_ordinal(i);
+            match &arm.pattern {
+                Pattern::Literal {
+                    value: LiteralPattern::String(s),
+                    ..
+                } => self.cover_mention(cov.as_ref(), ordinal, s),
+                p if is_catch_all_pattern(p, Scrutinee::Opaque) => {
+                    self.cover_catch_all(cov.as_ref(), ordinal)
+                }
+                _ => self.cover_decline(cov.as_ref(), ordinal, None),
+            }
+        }
         if has_catch_all {
             return;
         }
@@ -2724,12 +3308,12 @@ impl Assigner<'_> {
                 _ => None,
             })
             .collect();
-        let missing: Vec<String> = values
+        let missing: Vec<&String> = values
             .iter()
             .filter(|v| !covered.contains(v.as_str()))
-            .map(|v| format!("\"{v}\""))
             .collect();
         if !missing.is_empty() {
+            self.cover_gap(cov.as_ref(), missing.iter().map(|v| (*v).clone()).collect());
             let type_name = values
                 .iter()
                 .map(|v| format!("\"{v}\""))
@@ -2737,7 +3321,11 @@ impl Assigner<'_> {
                 .join(" | ");
             self.errors.push(TypeError::NonExhaustiveMatch {
                 type_name,
-                missing: missing.join(", "),
+                missing: missing
+                    .iter()
+                    .map(|v| format!("\"{v}\""))
+                    .collect::<Vec<_>>()
+                    .join(", "),
                 span: match_span,
             });
         }
@@ -2936,130 +3524,102 @@ impl Assigner<'_> {
     fn check_patterns_exhaustive(
         &mut self,
         scrutinee_ty: &Ty,
-        patterns: &[&Pattern],
+        patterns: &[(u16, &Pattern)],
         match_span: glyph_ast::Span,
+        at: Option<CoverageAt>,
     ) {
-        // Resolve the scrutinee to a tagged union (user-defined or a
-        // prelude Result/Option) and its required variant set.
-        let Some((type_name, variants)) = self.required_variants(scrutinee_ty) else {
+        // Resolve the scrutinee to a tagged union (user-defined, imported, or
+        // a prelude/stdlib one) and its required variant set.
+        let Some((union, variants)) = self.required_variants(scrutinee_ty) else {
             return;
         };
+        // The name the diagnostics below render. `union` carries the declaring
+        // module as well, which is what the coverage edge is keyed by; the
+        // messages have always printed the bare name and still do.
+        let type_name = union.display().to_string();
+        // The site these writes belong to: this entry's own, opened now that
+        // the union is resolved, or the one a payload recursion is inside.
+        let cov = self.cover_enter(at, Some(CoverageTypeName::from(&union)), match_span);
 
         // `covered`: variants whose whole payload is matched (a binding,
         // wildcard, object/array destructure, or no-payload form) — no deeper
         // check needed. `nested`: variants covered ONLY by a constructor
         // sub-pattern, mapped to those sub-patterns for a recursive check.
         let mut covered: HashSet<Ident> = HashSet::new();
-        let mut nested: HashMap<Ident, Vec<&Pattern>> = HashMap::new();
+        let mut nested: HashMap<Ident, Vec<(u16, &Pattern)>> = HashMap::new();
         let mut has_catch_all = false;
-        for pat in patterns {
-            match pat {
-                Pattern::Wildcard { .. } | Pattern::Else { .. } => {
-                    has_catch_all = true;
-                }
-                Pattern::Constructor {
-                    path, args, span, ..
-                } if !path.is_empty() => {
-                    // Take the LAST segment as the variant name. Bare
-                    // `Loading` → ["Loading"] → "Loading". Qualified
-                    // `Feed.Loading` → ["Feed", "Loading"] → "Loading".
-                    let variant = path.last().unwrap();
-                    if !variants.iter().any(|v| v == variant) {
-                        // A constructor-form (`Loadign(x)`) or qualified
-                        // (`Feed.Loadign`) head that names no variant of this
-                        // union is the same silent-swallow class the bare
-                        // `Ident` branch escalates, and it is the common shape
-                        // for prelude unions (`Ok`/`Err`/`Some`). Escalate to
-                        // E0220 with a nearest-variant hint before dropping the
-                        // arm. Unlike the bare form it can never be an
-                        // irrefutable binding (a binding takes no payload and no
-                        // qualifier), so it is neither covered nor a catch-all
-                        // and a genuinely missing variant still surfaces as
-                        // E0200 alongside it.
-                        if is_constructor_shaped(variant) {
-                            self.errors.push(TypeError::UnknownVariantPattern {
-                                union: type_name.clone(),
-                                name: variant.to_string(),
-                                suggestion: nearest_variant(variant.as_ref(), &variants),
-                                span: *span,
-                            });
-                        }
+        for &(arm, pat) in patterns {
+            // `is TypeName` (D9) is read here rather than in the shared
+            // classifier: only this side ever credited one, and crediting it
+            // for the imported twin as well would change what E0200 says about
+            // a match this change is not about. The asymmetry stays at the one
+            // call site that has it.
+            //
+            // Not collapsed into a nested pattern on purpose: a non-`Path`
+            // `ty` has to fall through to the conservative skip, and matching
+            // `ty: TypeExpr::Path { .. }` in the arm would need a second arm
+            // to say the same thing.
+            #[allow(clippy::collapsible_match)]
+            if let Pattern::IsType { ty, .. } = pat {
+                // The inner TypeExpr is typically a `Path` — extract the last
+                // segment as the variant name when possible.
+                if let TypeExpr::Path { segments, .. } = ty {
+                    if let Some(name) = segments.last().filter(|n| variants.iter().any(|v| v == *n))
+                    {
+                        covered.insert(name.clone());
+                        self.cover_mention(cov.as_ref(), arm, name.as_ref());
                         continue;
                     }
-                    match args.as_slice() {
-                        // A single payload sub-pattern is collected for a
-                        // recursive check. Whether it actually covers the
-                        // payload (a binding `Ok(x)`) or only part of it (a
-                        // nested variant `Ok(Some(x))`, or the no-arg variant
-                        // `Ok(None)` which parses as an ident) is decided by
-                        // the recursion, which knows the payload's variants.
-                        //
-                        // Except when the sub-pattern is a record destructure
-                        // with a *value-testing* field (`Node({ color: Black,
-                        // .. })`): that can fail, so the arm covers nothing on
-                        // its own. Neither covered nor recursed into, so the
-                        // variant is reported missing unless another arm or a
-                        // catch-all takes it. That is the safe direction; the
-                        // alternative is accepting a match that falls off its
-                        // end and throws at run time.
-                        [sub] if sub.is_refutable() && matches!(sub, Pattern::Object { .. }) => {}
-                        [sub] => {
-                            nested.entry(variant.clone()).or_default().push(sub);
-                        }
-                        // No-arg (`fs.ErrorKind.NotFound`) or multi-arg
-                        // payloads fully cover the variant at this level.
-                        _ => {
-                            covered.insert(variant.clone());
-                        }
-                    }
                 }
-                Pattern::Ident { name, span } => {
-                    // The shared predicate decides first: a head that is not a
-                    // variant reference is a fresh binding, so it absorbs
-                    // everything. A head that *is* one either names a variant
-                    // of this union and covers it, or names none of them and is
-                    // a typo or a wrong-union variant, escalated to E0220
-                    // rather than silently absorbing every value. That third
-                    // case is neither covered nor a catch-all, so a genuinely
-                    // missing variant still surfaces as E0200 alongside it.
-                    if is_catch_all_pattern(pat, Scrutinee::Union(&variants)) {
-                        has_catch_all = true;
-                    } else if variants.iter().any(|v| v == name) {
-                        covered.insert(name.clone());
-                    } else {
-                        self.errors.push(TypeError::UnknownVariantPattern {
-                            union: type_name.clone(),
-                            name: name.to_string(),
-                            suggestion: nearest_variant(name.as_ref(), &variants),
-                            span: *span,
-                        });
-                    }
+                // Non-Path TypeExpr (e.g., `is fn(x) -> y`) or a path that
+                // doesn't name a variant of this union — conservative: skip
+                // without marking catch-all.
+                self.cover_decline(cov.as_ref(), arm, None);
+                continue;
+            }
+            match classify_arm(pat, &variants) {
+                ArmCoverage::CatchAll => {
+                    has_catch_all = true;
+                    self.cover_catch_all(cov.as_ref(), arm);
                 }
-                // Not collapsed into the arm pattern on purpose: a non-`Path`
-                // `ty` has to fall through to the conservative skip below, and
-                // matching `ty: TypeExpr::Path { .. }` in the arm would need a
-                // second arm to say the same thing.
-                #[allow(clippy::collapsible_match)]
-                Pattern::IsType { ty, .. } => {
-                    // `is TypeName` (D9) guard. The inner TypeExpr is
-                    // typically a `Path` — extract the last segment as
-                    // the variant name when possible.
-                    if let TypeExpr::Path { segments, .. } = ty {
-                        if let Some(name) =
-                            segments.last().filter(|n| variants.iter().any(|v| v == *n))
-                        {
-                            covered.insert(name.clone());
-                            continue;
-                        }
-                    }
-                    // Non-Path TypeExpr (e.g., `is fn(x) -> y`) or a
-                    // path that doesn't name a variant of this union —
-                    // conservative: skip without marking catch-all.
+                ArmCoverage::Mentions(variant) => {
+                    covered.insert(variant.clone());
+                    self.cover_mention(cov.as_ref(), arm, variant.as_ref());
                 }
-                // Top-level literal/object/array patterns over a union
-                // scrutinee are not modeled. Conservative assumption: skip —
-                // don't flag false-positive missing variants.
-                _ => {}
+                // A single payload sub-pattern is collected for a recursive
+                // check. Whether it actually covers the payload (a binding
+                // `Ok(x)`) or only part of it (a nested variant `Ok(Some(x))`,
+                // or the no-arg variant `Ok(None)` which parses as an ident)
+                // is decided by the recursion, which knows the payload's
+                // variants. The arm still named the variant here, so the
+                // mention is recorded: this bucket, not `covered`, is where
+                // most of the corpus's sites keep their outer edge.
+                ArmCoverage::Nests { variant, sub } => {
+                    nested.entry(variant.clone()).or_default().push((arm, sub));
+                    self.cover_mention(cov.as_ref(), arm, variant.as_ref());
+                }
+                // A head that names no variant of this union is the
+                // silent-swallow class this escalates: E0220 with a
+                // nearest-variant hint, before the arm is dropped. It is
+                // neither covered nor a catch-all, so a genuinely missing
+                // variant still surfaces as E0200 alongside it.
+                ArmCoverage::UnknownVariant { name, span, .. } => {
+                    self.errors.push(TypeError::UnknownVariantPattern {
+                        union: type_name.clone(),
+                        name: name.to_string(),
+                        suggestion: nearest_variant(name.as_ref(), &variants),
+                        span,
+                    });
+                }
+                // A value-testing record payload, or a top-level shape this
+                // check does not model. Recorded as declined rather than
+                // dropped: the site's mentions are not a complete accounting,
+                // and a reader has to be able to tell that from a site where
+                // they are.
+                ArmCoverage::Declined { variant } => {
+                    let variant = variant.map(|v| v.to_string());
+                    self.cover_decline(cov.as_ref(), arm, variant.as_deref());
+                }
             }
         }
 
@@ -3102,9 +3662,14 @@ impl Assigner<'_> {
                     // (empty) variant set and report against itself.
                     if let Some(payload_ty) = self.variant_payload(scrutinee_ty, v) {
                         if self.required_variants(&payload_ty).is_some() {
-                            self.check_patterns_exhaustive(&payload_ty, subs, match_span);
+                            self.check_patterns_exhaustive(
+                                &payload_ty,
+                                subs,
+                                match_span,
+                                cov.as_ref().map(CoverageWriter::payload),
+                            );
                         } else if self.resolves_to_non_union_decl(&payload_ty) {
-                            for sub in subs {
+                            for &(_arm, sub) in subs {
                                 let (name, span) = match sub {
                                     Pattern::Ident { name, span }
                                         if is_constructor_shaped(name) =>
@@ -3140,6 +3705,10 @@ impl Assigner<'_> {
             return;
         }
 
+        self.cover_gap(
+            cov.as_ref(),
+            missing.iter().map(|n| n.to_string()).collect(),
+        );
         let missing_str = missing
             .iter()
             .map(|n| format!("`{n}`"))
@@ -3699,33 +4268,55 @@ impl Assigner<'_> {
         definitely_incompatible(found, expected)
     }
 
-    /// If `ty` is a module-local tagged union, return the type's name and
-    /// the ordered list of variant names. Otherwise None. A generic union's
-    /// application (`Tree<K>`) answers the same as its bare form: the variant
-    /// set does not depend on the arguments, and `resolve_named_union` unwraps
-    /// the application for us.
-    /// The variant list of a union declared in another module, read off the
-    /// export view through the same query an imported union's payload uses.
-    fn imported_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+    /// The declaration and ordered variant list of a union declared in another
+    /// module, read off the export view through the same query an imported
+    /// union's payload uses. Otherwise None.
+    fn imported_union_variants(&self, ty: &Ty) -> Option<(UnionRef, Vec<Ident>)> {
         let (base, _args) = split_type_app(ty);
         let Ty::Imported { module, name } = base else { return None };
         let decl = self.decl_ty_resolver.imported_type_decl(module.as_str(), name)?;
         let Ty::Union { variants } = &decl.body else { return None };
         let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
-        Some((name.to_string(), names))
+        // The module comes off the type, which is the declaring module rather
+        // than this one. Both halves were already destructured here and both
+        // used to be dropped at the return.
+        let union = UnionRef::Imported {
+            module: module.as_str().to_string(),
+            name: name.to_string(),
+        };
+        Some((union, names))
     }
 
-    fn named_union_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+    /// If `ty` is a module-local tagged union, return its declaration and the
+    /// ordered list of variant names. Otherwise None. A generic union's
+    /// application (`Tree<K>`) answers the same as its bare form: the variant
+    /// set does not depend on the arguments, and `resolve_named_union` unwraps
+    /// the application for us.
+    fn named_union_variants(&self, ty: &Ty) -> Option<(UnionRef, Vec<Ident>)> {
         let (td, _) = self.resolve_named_union(ty)?;
         let TypeExpr::Union { variants, .. } = &td.body else { return None };
         let names: Vec<Ident> = variants.iter().map(|v| v.name.clone()).collect();
-        Some((td.name.to_string(), names))
+        // `resolve_named_union` only ever reaches `self.module.items`, so a hit
+        // here is declared in the file being checked and the module is this
+        // file's own key.
+        let union = UnionRef::Local {
+            module: self.own_module_key(),
+            name: td.name.to_string(),
+        };
+        Some((union, names))
     }
 
-    /// The exhaustiveness target for `ty`: a module-local tagged union, or
-    /// a prelude `Result` (`Ok`/`Err`) / `Option` (`Some`/`None`). Returns
-    /// the display name and the required variant names. Otherwise None.
-    fn required_variants(&self, ty: &Ty) -> Option<(String, Vec<Ident>)> {
+    /// The exhaustiveness target for `ty`: a module-local tagged union, one
+    /// declared in another module, a stdlib union, or a prelude `Result`
+    /// (`Ok`/`Err`) / `Option` (`Some`/`None`). Returns the declaration the
+    /// variant set came from and the required variant names. Otherwise None.
+    ///
+    /// The declaration, not a display name: this answer is the type end of a
+    /// match-coverage edge as well as the string E0200 prints, and the corpus
+    /// holds eleven unrelated declarations named `Command`, so the name on its
+    /// own would file all eleven under one key. `UnionRef::display` is the name
+    /// every diagnostic still renders.
+    fn required_variants(&self, ty: &Ty) -> Option<(UnionRef, Vec<Ident>)> {
         if let Some(found) = stdlib_union_variants(ty) {
             return Some(found);
         }
@@ -3747,9 +4338,22 @@ impl Assigner<'_> {
         if let Some(found) = self.imported_union_variants(ty) {
             return Some(found);
         }
+        // A prelude union has a fixed variant table and no declaration in any
+        // project module, so there is nothing to address and it is not a
+        // `Declared` case under an invented module.
         match self.prelude_union(ty)? {
-            ("Result", _) => Some(("Result".to_string(), vec!["Ok".into(), "Err".into()])),
-            ("Option", _) => Some(("Option".to_string(), vec!["Some".into(), "None".into()])),
+            ("Result", _) => Some((
+                UnionRef::Builtin {
+                    name: "Result".to_string(),
+                },
+                vec!["Ok".into(), "Err".into()],
+            )),
+            ("Option", _) => Some((
+                UnionRef::Builtin {
+                    name: "Option".to_string(),
+                },
+                vec!["Some".into(), "None".into()],
+            )),
             _ => None,
         }
     }
@@ -4308,10 +4912,12 @@ fn stdlib_type_fields(a: &Assigner<'_>, ty: &Ty) -> Option<Vec<RecordField>> {
 /// exhaustiveness (E0200), arm reachability (E0216) and the unknown-variant hint
 /// (E0220) all read, so one entry here makes `match e.kind { ... }` a checked
 /// match instead of a run-time throw.
-fn stdlib_union_variants(ty: &Ty) -> Option<(String, Vec<Ident>)> {
+fn stdlib_union_variants(ty: &Ty) -> Option<(UnionRef, Vec<Ident>)> {
     match stdlib_type_path(ty)? {
         ("fs", "ErrorKind") => Some((
-            "fs.ErrorKind".to_string(),
+            UnionRef::Builtin {
+                name: "fs.ErrorKind".to_string(),
+            },
             vec![
                 "NotFound".into(),
                 "IsADirectory".into(),
@@ -4561,6 +5167,122 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                 .collect(),
         },
         other => other.clone(),
+    }
+}
+
+/// What one arm's head says about a union's variant set: the per-pattern
+/// classification both coverage checkers run, lifted out of the two loops
+/// that used to hold a copy each.
+///
+/// It decides and does not report. The callers keep their own diagnostics, at
+/// the points they already pushed them, and they keep the two places they
+/// disagree: the module-local checker escalates an unknown head to E0220
+/// immediately, while the imported one collects constructor heads for the same
+/// diagnostic after its loop and has always credited a bare one instead.
+enum ArmCoverage<'p> {
+    /// Absorbs every value the scrutinee can still take, so no later arm runs
+    /// and no earlier gap remains.
+    CatchAll,
+    /// Names this variant and covers its whole payload: a bare variant head, a
+    /// no-payload constructor, or a multi-argument one.
+    Mentions(&'p Ident),
+    /// Names this variant through exactly one payload sub-pattern. Whether the
+    /// payload is itself covered is a question for the payload's type, which is
+    /// what the caller's recursion answers.
+    Nests {
+        variant: &'p Ident,
+        sub: &'p Pattern,
+    },
+    /// A constructor-shaped head naming no variant of this union: a typo, or a
+    /// variant of a different union. `bare` distinguishes `Loadign` from
+    /// `Loadign(x)`, which the two callers treat differently.
+    UnknownVariant {
+        name: &'p Ident,
+        span: Span,
+        bare: bool,
+    },
+    /// The checker reads nothing from this arm: a payload sub-pattern that
+    /// tests a field's value and can fail, or a top-level shape (literal,
+    /// array, record) this check does not model.
+    Declined { variant: Option<&'p Ident> },
+}
+
+/// Classify one arm head against `variants`. See `ArmCoverage`.
+///
+/// `is TypeName` is deliberately not handled here: only the module-local
+/// checker ever credited one, and reading it for the imported checker too
+/// would change what E0200 says about a match this change is not about. That
+/// asymmetry stays at the one call site that has it.
+fn classify_arm<'p>(pat: &'p Pattern, variants: &[Ident]) -> ArmCoverage<'p> {
+    match pat {
+        Pattern::Wildcard { .. } | Pattern::Else { .. } => ArmCoverage::CatchAll,
+        Pattern::Ident { name, span } => {
+            // The shared predicate decides first: a head that is not a variant
+            // reference is a fresh binding, so it absorbs everything. A head
+            // that is one either names a variant of this union or names none
+            // of them, and the second case is a typo rather than a licence to
+            // swallow every value.
+            if is_catch_all_pattern(pat, Scrutinee::Union(variants)) {
+                ArmCoverage::CatchAll
+            } else if variants.iter().any(|v| v == name) {
+                ArmCoverage::Mentions(name)
+            } else {
+                ArmCoverage::UnknownVariant {
+                    name,
+                    span: *span,
+                    bare: true,
+                }
+            }
+        }
+        Pattern::Constructor {
+            path, args, span, ..
+        } => {
+            // The LAST segment is the variant name: bare `Loading` and
+            // qualified `Feed.Loading` both name `Loading`.
+            let Some(variant) = path.last() else {
+                return ArmCoverage::Declined { variant: None };
+            };
+            if !variants.iter().any(|v| v == variant) {
+                // A constructor form can never be an irrefutable binding (a
+                // binding takes no payload and no qualifier), so it is neither
+                // covered nor a catch-all and a genuinely missing variant
+                // still surfaces alongside whatever the caller reports here.
+                return if is_constructor_shaped(variant) {
+                    ArmCoverage::UnknownVariant {
+                        name: variant,
+                        span: *span,
+                        bare: false,
+                    }
+                } else {
+                    ArmCoverage::Declined { variant: None }
+                };
+            }
+            match args.as_slice() {
+                // A record destructure sub-pattern that tests a field's value
+                // (`Node({ colour: Black })`) can fail, so the arm covers
+                // nothing on its own and is recorded in neither map. The
+                // variant is reported missing unless another arm or a
+                // catch-all takes it, which is the safe direction: the
+                // alternative is accepting a match that falls off its end.
+                [sub] if sub.is_refutable() && matches!(sub, Pattern::Object { .. }) => {
+                    ArmCoverage::Declined {
+                        variant: Some(variant),
+                    }
+                }
+                // One payload sub-pattern names the variant here; whether it
+                // covers the payload (a binding `Ok(x)`) or only part of it (a
+                // nested variant `Ok(Some(x))`) is for the recursion, which
+                // knows the payload's variants.
+                [sub] => ArmCoverage::Nests { variant, sub },
+                // No-arg (`fs.ErrorKind.NotFound`) or multi-arg payloads cover
+                // the variant at this level.
+                _ => ArmCoverage::Mentions(variant),
+            }
+        }
+        // Literal, object, array and `is` patterns over a union scrutinee are
+        // not modeled here. Conservative: read nothing from them rather than
+        // report a variant missing that an unread arm may well handle.
+        _ => ArmCoverage::Declined { variant: None },
     }
 }
 
@@ -8191,6 +8913,645 @@ fn label(s: Status) -> string {
         assert!(
             errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveBoolMatch { .. })),
             "an object pattern destructures a record, it does not absorb a bool: {errs:?}"
+        );
+    }
+
+    // ------------------------------------------------------------------
+    // Match coverage: the side channel the exhaustiveness dispatch fills
+    // ------------------------------------------------------------------
+
+    /// The coverage sink and the diagnostics from one run of the same
+    /// dispatch. Both come out of one call on purpose: the sink's claim about
+    /// a site is only worth anything if it agrees with what the checker
+    /// reported while filling it.
+    fn coverage_and_errors(src: &str) -> (FileMatchCoverage, Vec<TypeError>) {
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let lowerer = Lowerer::new(&resolved, &prelude);
+        let resolver = LocalDeclTy::new(&m, &lowerer);
+        let (_tm, errs, cov) = assign_types_with_coverage(&m, &resolved, &prelude, &resolver);
+        (cov, errs)
+    }
+
+    /// A stand-in for the cross-module resolver: one two-variant union in a
+    /// sibling module, which is all it takes to reach
+    /// `check_imported_union_coverage` without a salsa database.
+    struct OneImportedUnion;
+
+    impl DeclTyResolver for OneImportedUnion {
+        fn decl_ty(&self, _decl_idx: u32) -> Ty {
+            Ty::Unknown
+        }
+
+        fn imported_union_of_variant(
+            &self,
+            module_path: &str,
+            variant_name: &str,
+        ) -> Option<(String, Vec<Ident>)> {
+            if module_path != "model" || !matches!(variant_name, "Yes" | "No") {
+                return None;
+            }
+            Some(("Answer".to_string(), vec!["Yes".into(), "No".into()]))
+        }
+    }
+
+    fn imported_coverage_and_errors(src: &str) -> (FileMatchCoverage, Vec<TypeError>) {
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let (_tm, errs, cov) =
+            assign_types_with_coverage(&m, &resolved, &prelude, &OneImportedUnion);
+        (cov, errs)
+    }
+
+    /// `(arm ordinal, depth, variant)` for every mention edge, in the order
+    /// the dispatch wrote them.
+    fn mentions_of(site: &CoverageSite) -> Vec<(u16, u16, String)> {
+        site.mentions()
+            .iter()
+            .map(|m| (m.arm, m.depth, m.variant.clone()))
+            .collect()
+    }
+
+    fn declared(module: &str, name: &str) -> CoverageTypeName {
+        CoverageTypeName::Declared {
+            module: module.to_string(),
+            name: name.to_string(),
+        }
+    }
+
+    #[test]
+    fn a_single_payload_arm_mentions_the_variant_it_nests_into() {
+        // The trap this side channel is easiest to get wrong on: a
+        // constructor arm with exactly one sub-pattern is recorded in
+        // `nested` and never in `covered`, so a sink reading `covered` alone
+        // loses the arm's mention of `Cd` while the checker itself counts
+        // it as present.
+        let src = r#"module app
+type Command =
+  | Up
+  | Cd({ name: string })
+fn run(c: Command) -> string {
+  return match c {
+    Up => "up",
+    Cd(x) => x.name,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert_eq!(cov.sites().len(), 1, "sites: {:?}", cov.sites());
+        let site = &cov.sites()[0];
+        assert_eq!(
+            mentions_of(site),
+            vec![(0, 0, "Up".to_string()), (1, 0, "Cd".to_string())]
+        );
+        assert_eq!(site.scrutinee_type(), &declared("app", "Command"));
+        assert_eq!(site.state(), CoverageState::Exhaustive);
+    }
+
+    #[test]
+    fn a_value_testing_record_payload_declines_its_arm() {
+        // The third bucket. `Node({ colour: Red })` can fail, so the checker
+        // records it in neither map and concludes nothing from it; the sink
+        // says so instead of quietly counting it as coverage.
+        let src = r#"module app
+type Colour =
+  | Red
+  | Black
+type Tree =
+  | Leaf
+  | Node({ colour: Colour })
+fn f(t: Tree) -> number {
+  return match t {
+    Leaf => 0,
+    Node({ colour: Red }) => 1,
+    Node(n) => 2,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let site = &cov.sites()[0];
+        assert_eq!(
+            mentions_of(site),
+            vec![(0, 0, "Leaf".to_string()), (2, 0, "Node".to_string())]
+        );
+        assert_eq!(site.declines().len(), 1, "declines: {:?}", site.declines());
+        assert_eq!(site.declines()[0].arm, 1);
+        assert_eq!(site.declines()[0].variant.as_deref(), Some("Node"));
+        assert_eq!(site.state(), CoverageState::Declined);
+    }
+
+    #[test]
+    fn a_catch_all_arm_is_recorded_with_its_ordinal() {
+        let src = r#"module app
+type Feed =
+  | Loading
+  | Ready
+  | Failed
+fn f(x: Feed) -> number {
+  return match x {
+    Loading => 0,
+    _ => 1,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let site = &cov.sites()[0];
+        assert_eq!(mentions_of(site), vec![(0, 0, "Loading".to_string())]);
+        assert_eq!(site.catch_alls().len(), 1);
+        assert_eq!(site.catch_alls()[0].arm, 1);
+        assert_eq!(site.catch_alls()[0].depth, 0);
+        assert_eq!(site.state(), CoverageState::HasCatchAll);
+    }
+
+    #[test]
+    fn a_variant_no_arm_mentions_is_a_gap_and_the_site_is_not_exhaustive() {
+        let src = r#"module app
+type Feed =
+  | Loading
+  | Ready
+  | Failed
+fn f(x: Feed) -> number {
+  return match x {
+    Loading => 0,
+    Ready => 1,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveMatch { .. })),
+            "errs: {errs:?}"
+        );
+        let site = &cov.sites()[0];
+        assert_eq!(site.gaps().len(), 1, "gaps: {:?}", site.gaps());
+        assert_eq!(site.gaps()[0].depth, 0);
+        assert_eq!(site.gaps()[0].missing, vec!["Failed".to_string()]);
+        assert_eq!(site.state(), CoverageState::Declined);
+    }
+
+    #[test]
+    fn a_payload_recursion_writes_deeper_edges_into_the_same_site() {
+        // A recursion into a payload is not a new site: the edges land in the
+        // same one, one level deeper, and the arm ordinals pass through
+        // unchanged so `Ok(Some(x))` is still arm 0.
+        let src = r#"module app
+fn run(r: Result<Option<number>, string>) -> number {
+  return match r {
+    Ok(Some(x)) => x,
+    Ok(None) => 0,
+    Err(_e) => 1,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert_eq!(cov.sites().len(), 1);
+        let site = &cov.sites()[0];
+        assert_eq!(
+            mentions_of(site),
+            vec![
+                (0, 0, "Ok".to_string()),
+                (1, 0, "Ok".to_string()),
+                (2, 0, "Err".to_string()),
+                (0, 1, "Some".to_string()),
+                (1, 1, "None".to_string()),
+            ]
+        );
+        assert_eq!(
+            site.scrutinee_type(),
+            &CoverageTypeName::Builtin {
+                name: "Result".to_string()
+            }
+        );
+        let deep = site
+            .mentions()
+            .iter()
+            .find(|m| m.depth == 1)
+            .expect("a depth-1 edge");
+        assert_eq!(
+            deep.union,
+            CoverageTypeName::Builtin {
+                name: "Option".to_string()
+            }
+        );
+        assert_eq!(site.state(), CoverageState::Exhaustive);
+    }
+
+    #[test]
+    fn a_string_literal_union_site_records_the_values_its_arms_name() {
+        let src = r#"module app
+type Tier = "free" | "pro"
+fn f(t: Tier) -> number {
+  return match t {
+    "free" => 0,
+    "pro" => 1,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let site = &cov.sites()[0];
+        assert_eq!(
+            mentions_of(site),
+            vec![(0, 0, "free".to_string()), (1, 0, "pro".to_string())]
+        );
+        assert_eq!(site.scrutinee_type(), &declared("app", "Tier"));
+        assert_eq!(site.state(), CoverageState::Exhaustive);
+    }
+
+    #[test]
+    fn an_inline_string_literal_union_has_no_declaration_to_key_a_site_to() {
+        // Every edge's type end is a declaration or a builtin name. A literal
+        // set written into a signature is neither, so it gets no site rather
+        // than a site keyed to something invented.
+        let src = r#"module app
+fn f(t: "free" | "pro") -> number {
+  return match t {
+    "free" => 0,
+    "pro" => 1,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert!(cov.sites().is_empty(), "sites: {:?}", cov.sites());
+    }
+
+    #[test]
+    fn an_imported_union_site_carries_its_source_module_and_its_gap() {
+        let src = r#"module app
+import model { Answer, Yes, No }
+fn f(a: Answer) -> number {
+  return match a {
+    Yes => 1,
+  }
+}
+"#;
+        let (cov, errs) = imported_coverage_and_errors(src);
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveMatch { .. })),
+            "errs: {errs:?}"
+        );
+        assert_eq!(cov.sites().len(), 1, "sites: {:?}", cov.sites());
+        let site = &cov.sites()[0];
+        assert_eq!(site.scrutinee_type(), &declared("model", "Answer"));
+        assert_eq!(mentions_of(site), vec![(0, 0, "Yes".to_string())]);
+        assert_eq!(site.gaps()[0].missing, vec!["No".to_string()]);
+        assert_eq!(site.state(), CoverageState::Declined);
+    }
+
+    #[test]
+    fn an_imported_union_covered_by_every_arm_is_exhaustive() {
+        let src = r#"module app
+import model { Answer, Yes, No }
+fn f(a: Answer) -> number {
+  return match a {
+    Yes => 1,
+    No => 0,
+  }
+}
+"#;
+        let (cov, errs) = imported_coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let site = &cov.sites()[0];
+        assert_eq!(
+            mentions_of(site),
+            vec![(0, 0, "Yes".to_string()), (1, 0, "No".to_string())]
+        );
+        assert_eq!(site.state(), CoverageState::Exhaustive);
+    }
+
+    #[test]
+    fn an_imported_arm_with_a_payload_mentions_its_variant_too() {
+        // The imported checker is a near-clone of the module-local one, and
+        // the two buckets have to be read on both sides or the pair gains a
+        // second divergence. `Yes(_v)` lands in `nested` here exactly as it
+        // would there, and the catch-all is recorded with its own ordinal.
+        let src = r#"module app
+import model { Answer, Yes, No }
+fn f(a: Answer) -> number {
+  return match a {
+    Yes(_v) => 1,
+    _ => 0,
+  }
+}
+"#;
+        let (cov, errs) = imported_coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        let site = &cov.sites()[0];
+        assert_eq!(site.scrutinee_type(), &declared("model", "Answer"));
+        assert_eq!(mentions_of(site), vec![(0, 0, "Yes".to_string())]);
+        assert_eq!(site.catch_alls().len(), 1);
+        assert_eq!(site.catch_alls()[0].arm, 1);
+        assert_eq!(site.state(), CoverageState::HasCatchAll);
+    }
+
+    #[test]
+    fn an_unresolvable_imported_scrutinee_is_a_site_with_no_conclusion() {
+        // The fourth state. The scrutinee is named (`model::Sheet`) but this
+        // module cannot read it as a union, so the checker concludes nothing
+        // and the sink says exactly that rather than reporting coverage.
+        let src = r#"module app
+import model { Sheet }
+fn f(s: Sheet) -> number {
+  return match s {
+    { kind: "a" } => 1,
+    else => 0,
+  }
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(errs.is_empty(), "errs: {errs:?}");
+        assert_eq!(cov.sites().len(), 1, "sites: {:?}", cov.sites());
+        let site = &cov.sites()[0];
+        assert_eq!(site.scrutinee_type(), &declared("model", "Sheet"));
+        assert!(site.mentions().is_empty());
+        assert_eq!(site.state(), CoverageState::ScrutineeUnresolved);
+    }
+
+    #[test]
+    fn a_jsx_match_directive_is_a_site_with_one_mention_per_case() {
+        let src = r#"module x
+type Status =
+  | Idle
+  | Loading
+  | Done
+component View(s: Status) -> Component {
+  return <match value={s}>
+    <case Idle><span>idle</span></case>
+    <case Loading><span>loading</span></case>
+  </match>
+}
+"#;
+        let (cov, errs) = coverage_and_errors(src);
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveMatch { .. })),
+            "errs: {errs:?}"
+        );
+        assert_eq!(cov.sites().len(), 1, "sites: {:?}", cov.sites());
+        let site = &cov.sites()[0];
+        assert_eq!(
+            mentions_of(site),
+            vec![(0, 0, "Idle".to_string()), (1, 0, "Loading".to_string())]
+        );
+        assert_eq!(site.gaps()[0].missing, vec!["Done".to_string()]);
+        assert_eq!(site.state(), CoverageState::Declined);
+    }
+
+    // ------------------------------------------------------------------
+    // The type end of a resolved union: which declaration, not which name
+    // ------------------------------------------------------------------
+
+    /// A cross-module resolver that declares one union, `Answer`, in `model`.
+    ///
+    /// It answers `imported_type_decl`, which is the query `required_variants`
+    /// reaches an imported union through. `OneImportedUnion` above answers a
+    /// different one (`imported_union_of_variant`, resolved from an arm rather
+    /// than from the scrutinee's type), so the two are not interchangeable.
+    struct ImportedAnswerDecl;
+
+    impl DeclTyResolver for ImportedAnswerDecl {
+        fn decl_ty(&self, _decl_idx: u32) -> Ty {
+            Ty::Unknown
+        }
+
+        fn imported_type_decl(
+            &self,
+            module_path: &str,
+            type_name: &str,
+        ) -> Option<ImportedTypeDecl> {
+            if module_path != "model" || type_name != "Answer" {
+                return None;
+            }
+            Some(ImportedTypeDecl {
+                name: Ident::from("Answer"),
+                generics: Vec::new(),
+                body: Ty::Union {
+                    variants: vec![
+                        UnionVariant {
+                            name: Ident::from("Yes"),
+                            payload: None,
+                        },
+                        UnionVariant {
+                            name: Ident::from("No"),
+                            payload: None,
+                        },
+                    ],
+                },
+            })
+        }
+    }
+
+    /// Run `f` against an `Assigner` wired the way `assign_types_with_coverage`
+    /// wires one.
+    ///
+    /// `required_variants` is what all four exhaustiveness callers read, and
+    /// the walk publishes only its display name, through a diagnostic. Asking
+    /// it directly is the only way to see which of the three declaration cases
+    /// it resolved, which is the whole point of the answer it returns.
+    fn with_assigner<R>(
+        src: &str,
+        resolver: &dyn DeclTyResolver,
+        f: impl FnOnce(&Assigner<'_>) -> R,
+    ) -> R {
+        let m = glyph_parser::parse(src).expect("parse failed");
+        let syms = collect_module_symbols(&m).unwrap();
+        let prelude = build_prelude();
+        let (resolved, _errs) = resolve_module(&m, syms, &prelude);
+        let mut tm = TypeMap::new();
+        let mut errors = Vec::new();
+        let mut coverage = FileMatchCoverage::default();
+        let assigner = Assigner {
+            module: &m,
+            lowerer: Lowerer::with_imports(&resolved, &prelude, resolver),
+            resolved: &resolved,
+            tm: &mut tm,
+            errors: &mut errors,
+            coverage: &mut coverage,
+            decl_ty_resolver: resolver,
+            return_stack: Vec::new(),
+            local_tys: HashMap::new(),
+        };
+        f(&assigner)
+    }
+
+    /// The lowered type of the first parameter of the first `fn` in the file.
+    fn first_param_ty(a: &Assigner<'_>) -> Ty {
+        for d in &a.module.items {
+            if let Decl::Fn(f) = d {
+                return a.lowerer.lower(&f.params[0].ty);
+            }
+        }
+        panic!("no fn declaration in the source");
+    }
+
+    #[test]
+    fn a_local_unions_type_end_carries_the_module_it_is_declared_in() {
+        // A display name is not an address. The dogfood corpus holds eleven
+        // unrelated declarations named `Command`, so an edge whose type end is
+        // the string `"Command"` names all eleven. The module this file is
+        // known by is the other half, and it comes from the file being checked
+        // rather than from the type, which is why local is its own case.
+        let src = r#"module app
+type Command =
+  | Up
+  | Down
+fn run(c: Command) -> string {
+  return "x"
+}
+"#;
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| {
+            let ty = first_param_ty(a);
+            a.required_variants(&ty)
+        });
+        let (union, variants) = got.expect("a module-local union resolves");
+        assert_eq!(
+            union,
+            UnionRef::Local {
+                module: "app".to_string(),
+                name: "Command".to_string(),
+            }
+        );
+        assert_eq!(variants, vec![Ident::from("Up"), Ident::from("Down")]);
+        // The diagnostics render this and nothing else, unchanged.
+        assert_eq!(union.display(), "Command");
+    }
+
+    #[test]
+    fn a_local_unions_type_end_has_an_empty_module_without_a_module_line() {
+        // A file that declares no `module` line has no key anything resolves.
+        // Empty is the honest answer for it: the declaration has a name and no
+        // address. Inventing one would file the site under a module that does
+        // not exist.
+        let src = r#"type Command =
+  | Up
+  | Down
+fn run(c: Command) -> string {
+  return "x"
+}
+"#;
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| {
+            let ty = first_param_ty(a);
+            a.required_variants(&ty)
+        });
+        let (union, _variants) = got.expect("a module-local union resolves");
+        assert_eq!(
+            union,
+            UnionRef::Local {
+                module: String::new(),
+                name: "Command".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn an_imported_unions_type_end_carries_the_module_it_came_from() {
+        // The module comes off the type here, not off the file: this is the
+        // half a single `(module, name)` pair would have collapsed into the
+        // consumer's own module and answered wrongly for.
+        let src = "module app\nfn f(n: number) -> number {\n  return n\n}\n";
+        let ty = Ty::Imported {
+            module: ModuleKey::from("model"),
+            name: Ident::from("Answer"),
+        };
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| a.required_variants(&ty));
+        let (union, variants) = got.expect("an imported union resolves");
+        assert_eq!(
+            union,
+            UnionRef::Imported {
+                module: "model".to_string(),
+                name: "Answer".to_string(),
+            }
+        );
+        assert_eq!(variants, vec![Ident::from("Yes"), Ident::from("No")]);
+        assert_eq!(union.display(), "Answer");
+    }
+
+    #[test]
+    fn a_prelude_unions_type_end_is_a_builtin_with_no_declaration() {
+        // `Result` has a fixed variant table and no declaration in any project
+        // module. There is nothing to mint a key for, so it is not a `Declared`
+        // case with an invented module: it is its own.
+        let src = "module app\nfn f(r: Result<number, string>) -> number {\n  return 0\n}\n";
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| {
+            let ty = first_param_ty(a);
+            a.required_variants(&ty)
+        });
+        let (union, variants) = got.expect("a prelude Result resolves");
+        assert_eq!(
+            union,
+            UnionRef::Builtin {
+                name: "Result".to_string(),
+            }
+        );
+        assert_eq!(variants, vec![Ident::from("Ok"), Ident::from("Err")]);
+        assert_eq!(union.display(), "Result");
+    }
+
+    #[test]
+    fn a_stdlib_unions_type_end_is_a_builtin_under_its_display_name() {
+        // `fs.ErrorKind` is published by the stdlib stubs and declared nowhere
+        // in the project. Its display name is the only name it has in Glyph
+        // source, and E0200 has always printed it with the dot.
+        let src = "module app\nfn f(n: number) -> number {\n  return n\n}\n";
+        let ty = stdlib_named("fs", "ErrorKind");
+        let got = with_assigner(src, &ImportedAnswerDecl, |a| a.required_variants(&ty));
+        let (union, variants) = got.expect("a stdlib union resolves");
+        assert_eq!(
+            union,
+            UnionRef::Builtin {
+                name: "fs.ErrorKind".to_string(),
+            }
+        );
+        assert_eq!(variants.first(), Some(&Ident::from("NotFound")));
+        assert_eq!(union.display(), "fs.ErrorKind");
+    }
+
+    #[test]
+    fn the_coverage_type_end_comes_from_the_one_union_resolution() {
+        // The relation's type end and the variant set a site was counted
+        // against must describe the same declaration. They do because there is
+        // one resolution: `required_variants` answers with the declaration and
+        // the coverage name is derived from that answer, rather than a second
+        // function re-walking the same four paths in an order kept in step by
+        // hand.
+        let local = UnionRef::Local {
+            module: "app".to_string(),
+            name: "Command".to_string(),
+        };
+        assert_eq!(
+            CoverageTypeName::from(&local),
+            CoverageTypeName::Declared {
+                module: "app".to_string(),
+                name: "Command".to_string(),
+            }
+        );
+        let imported = UnionRef::Imported {
+            module: "model".to_string(),
+            name: "Answer".to_string(),
+        };
+        assert_eq!(
+            CoverageTypeName::from(&imported),
+            CoverageTypeName::Declared {
+                module: "model".to_string(),
+                name: "Answer".to_string(),
+            }
+        );
+        let builtin = UnionRef::Builtin {
+            name: "Result".to_string(),
+        };
+        assert_eq!(
+            CoverageTypeName::from(&builtin),
+            CoverageTypeName::Builtin {
+                name: "Result".to_string(),
+            }
         );
     }
 }

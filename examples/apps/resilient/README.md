@@ -41,7 +41,7 @@ to show the difference between aborting a request and abandoning one.
 
 ## What it exercises
 
-The heaviest `@example` user in the tree at 54, covering an entire state
+The heaviest `@example` user in the tree at 51, covering an entire state
 machine with no network and no waiting. Tagged unions modelling state and
 decisions, so fields that only make sense in one state cannot be read in the
 others, and a gate type that hands back the decision and the state change

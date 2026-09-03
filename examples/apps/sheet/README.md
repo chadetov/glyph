@@ -38,15 +38,27 @@ references.
 
 **G65: `==` meant a deep comparison in an `@example` and reference equality in
 the program.** A test that passes while the code it tests is wrong is worse than
-no test.
+no test. Closed in 0.1.66: `==` is now value equality on every type (D42), so a
+record or tagged union compares by structure wherever it is written, in a
+function body or an `@example`, and a primitive comparison still lowers to
+`===`.
 
-**G67 is still open and still visible here**: a `for` binding carries no element
-type, so a string-literal union's exhaustiveness evaporates inside a loop and the
-compiler's own help text suggests adding the `else` that forfeits the guarantee.
-The annotation working around it is load-bearing and says so.
+**G67 is closed.** A `for` binding used to carry no element type, so a
+string-literal union's exhaustiveness evaporated inside a loop and the
+compiler's own help text suggested adding the `else` that forfeits the
+guarantee. `apply_batch` carried a `let cmd: CommandSpec = bound` annotation
+and a comment saying it was load-bearing for exactly that reason. Closed in
+0.1.98 together with G37, by giving each loop binding its own span
+(`ForBinding { name, span }`) so a two-binding `for i, bound in commands`
+types `bound` the same way a single-binding loop already did. The annotation
+and its comment are gone: `apply_batch`'s `match cmd.op { "clear" => ..., "set"
+=> ... }` is exhaustive today with no `else` and no annotation, because
+`cmd.op`'s type (`"set" | "clear"`) survives the loop.
+
+None of the three findings above still has a workaround in this file.
 
 ## What it exercises
 
-Forty-seven `@example` rows, the densest single file in the tree. Deep tagged
+Forty-six `@example` rows, the densest single file in the tree. Deep tagged
 unions including a recursive formula AST, a string-literal union in a record
 field, and one-step descriptor validation at both file boundaries.

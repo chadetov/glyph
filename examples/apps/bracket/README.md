@@ -19,19 +19,40 @@ glyph run examples/apps/bracket/main.glyph -- standings --champion
 
 ## What it changed in Glyph
 
-Shipped **0.1.43**, and the finding was that the build lied.
+This is the app that produced the **0.1.43** trip, and the finding was that
+the build lied.
 
-**G49: `@example` execution was opt-in behind `--test`, contradicting D23.** The
-`--json` half was worse: the JSON emitter ran before the example block, so
-`glyph build --test --json` printed `"ok": true, "tsc": "passed"` on a project
-whose own `@example` asserted something false. Now a plain build runs them, and
-flipping one assertion prints the failure and withholds the `tsc --strict
-passed` line.
+**G49 (0.1.43): `@example` execution was opt-in behind `--test`, contradicting
+D23.** The `--json` half was worse: the JSON emitter ran before the example
+block, so `glyph build --test --json` printed `"ok": true, "tsc": "passed"` on
+a project whose own `@example` asserted something false. A plain `glyph
+build` now runs them, and flipping one assertion prints the failure and
+withholds the `tsc --strict passed` line. All fifteen of this app's own
+`@example` rows are the ones a plain build used to skip.
 
-It also held the workaround for **G41** (a descriptor's `.parse` result was not
-assignable to `Result`, so the app carried two identity re-wrap matches around
-its parse calls) and drove **G30** (`array.range`), which deleted its
-hand-rolled `upto` and `span` across 16 call sites with byte-identical output.
+**G41 (0.1.52): a descriptor's `.parse` result was not assignable to
+`Result`.** `Bracket.parse` and `SeedFile.parse` used to return a bare `{
+tag, value }` object, so `load` and `read_seed_file` each wrapped the call in
+an identity re-wrap `match`: an `Ok(b) => Ok(b)` arm next to an `Err` arm that
+only reworded the message, just to get something the rest of the function
+could treat as a real `Result`. A descriptor's `.parse` now returns the actual
+`Result`, built with the prelude constructors, so both functions call
+`.map_err(...)` directly on the parse result. The two re-wrap `match` blocks
+are gone; see `load` and `read_seed_file` in `main.glyph`.
+
+**G30, the range half (0.1.52): `for` had no counted range.** This app had
+hand-rolled the counted loop as `upto` and `span`, used across 16 call sites
+in the bracket layout and rendering code. Both helpers are deleted; every one
+of those call sites now reads `array.range(n)` or `array.range_from(lo, hi)`,
+and the emitted TypeScript is byte-identical to what the hand-rolled helpers
+produced. G30's other half, `xs[i]` typing as `Unknown` with no bounds check,
+closed separately in 0.1.70 with a runtime bounds check on the emitted read
+rather than a code shape change in any app; this app's own indexing
+(`widths[r]`, `rest[i]`, `argv[0]`, and so on) was already in range by
+construction, so nothing here needed to change for it.
+
+None of the three gaps above leaves a workaround behind. There is nothing
+currently open that this app is carrying around.
 
 ## What it exercises
 

@@ -3,9 +3,14 @@
 // The six CLDR categories are a tagged union, so a catalogue that declares a
 // category no locale can select, or a formatter that forgets a branch, is a
 // compile error rather than a wrong string at run time.
+//
+// Selection itself comes from `std/intl.plural_category`, which asks the host's
+// CLDR tables rather than hand-rolling a rule set. `category_from_name` turns
+// its answer into this module's own six-variant union so a catalogue and a
+// formatter still match over `PluralCategory`, not a bare string.
 module plural
 
-import std/math
+import std/intl
 import std/string
 
 pub type PluralCategory =
@@ -57,46 +62,6 @@ pub fn categories_for(locale: string) -> Array<PluralCategory> {
   }
 }
 
-// CLDR `i` (integer part of the absolute value) and `v` (whether the value has
-// visible fraction digits) are the only operands these two rule sets need.
-fn integer_part(count: number) -> number {
-  return math.floor(math.abs(count))
-}
-
-fn has_fraction(count: number) -> bool {
-  return math.abs(count) != math.floor(math.abs(count))
-}
-
-// English: `one` when i = 1 and v = 0, `other` everywhere else.
-fn select_en(count: number) -> PluralCategory {
-  return match has_fraction(count) {
-    true => Other,
-    false => match integer_part(count) == 1 {
-      true => One,
-      false => Other,
-    },
-  }
-}
-
-// Polish: `one` for exactly 1; `few` for i%10 in 2..4 excluding i%100 in 12..14;
-// `many` for every other whole number; `other` only for fractions. This is the
-// case that a naive `count == 1 ? singular : plural` gets wrong three ways.
-fn select_pl(count: number) -> PluralCategory {
-  let i = integer_part(count)
-  let mod10 = i % 10
-  let mod100 = i % 100
-  return match has_fraction(count) {
-    true => Other,
-    false => match i == 1 {
-      true => One,
-      false => match mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14) {
-        true => Few,
-        false => Many,
-      },
-    },
-  }
-}
-
 @example category_name(select("en", 1)) == "one"
 @example category_name(select("en", 0)) == "other"
 @example category_name(select("en-US", 42)) == "other"
@@ -110,8 +75,5 @@ fn select_pl(count: number) -> PluralCategory {
 @example category_name(select("pl", 112)) == "many"
 @example category_name(select("pl", 1.5)) == "other"
 pub fn select(locale: string, count: number) -> PluralCategory {
-  return match base_language(locale) {
-    "pl" => select_pl(count),
-    else => select_en(count),
-  }
+  return category_from_name(intl.plural_category(locale, count))
 }

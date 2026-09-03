@@ -885,25 +885,6 @@ fn parse_day(raw: string, label: string) -> Result<number, Fail> {
   }
 }
 
-// `?` cannot be used inside a `match` arm, so an optional date flag reads
-// through its own function rather than inline at the call site.
-fn day_flag(f: Flags, name: string, fallback: number) -> Result<number, Fail> {
-  return match flag(f, name) {
-    None => Ok(fallback),
-    Some(raw) => parse_day(raw, name),
-  }
-}
-
-fn optional_day_flag(f: Flags, name: string) -> Result<Option<number>, Fail> {
-  return match flag(f, name) {
-    None => Ok(None),
-    Some(raw) => match parse_day(raw, name) {
-      Ok(ms) => Ok(Some(ms)),
-      Err(e) => Err(e),
-    },
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Commands
 // ---------------------------------------------------------------------------
@@ -926,7 +907,10 @@ fn cmd_add(f: Flags, description: string) -> Result<int, Fail> {
     Err(m) => { return Err(BadInput({ message: "--amount: ${m}" })) },
   }
 
-  let date = day_flag(f, "--date", time.now())?
+  let date = match flag(f, "--date") {
+    None => time.now(),
+    Some(raw) => parse_day(raw, "--date")?,
+  }
 
   let split = split_from_flags(f)?
   // A split the rules refuse is a rejected operation, not a malformed command
@@ -1030,7 +1014,10 @@ fn matches_filters(e: Expense, since: Option<number>, who: Option<string>) -> bo
 fn cmd_log(f: Flags) -> Result<int, Fail> {
   let expenses = load_ledger(ledger_path(f))?
 
-  let since = optional_day_flag(f, "--since")?
+  let since = match flag(f, "--since") {
+    None => None,
+    Some(raw) => Some(parse_day(raw, "--since")?),
+  }
   let who = flag(f, "--who")
 
   let selected = array.filter(

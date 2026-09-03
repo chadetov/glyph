@@ -16,8 +16,9 @@ glyph run examples/apps/intake -- examples/apps/intake/sample.json
 ## What it changed in Glyph
 
 **Nothing recorded, and it is a demonstration app rather than a probe.** It has
-no gap number, no round, and no mention in the release history. Its whole git
-history is one commit.
+no gap number, no round, and no mention in the release history. Its only
+commits are the one that wrote it and the repo-wide pass that gave every
+dogfood app its own directory and README; neither found a language gap.
 
 What it demonstrates is the shape `Result` cannot express. `Result<T, E>` stops
 at the first `Err`, and someone validating a form wants every field's complaint

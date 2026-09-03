@@ -1,0 +1,34 @@
+module main
+
+// The has_catch_all bug shape: a union gains a variant, the exhaustive match
+// over it fails loudly, and the catch-all match over the *same* union stays
+// green and silently routes the new variant wherever `else` points.
+//
+// `Direction` and `describe_direction` exist only to give a text search
+// something to trip over: a second, unrelated catch-all in the same file, so
+// "grep for a catch-all" and "find the catch-all over UserStatus" are
+// different questions. See ../README.md.
+type UserStatus = Active | Inactive | Suspended
+
+type Direction = North | South | East | West
+
+pub fn describe_exhaustive(s: UserStatus) -> string {
+    match s {
+        Active => "active",
+        Inactive => "inactive",
+    }
+}
+
+pub fn describe_catchall(s: UserStatus) -> string {
+    match s {
+        Active => "active",
+        else => "other",
+    }
+}
+
+pub fn describe_direction(d: Direction) -> string {
+    match d {
+        North => "north",
+        else => "other",
+    }
+}

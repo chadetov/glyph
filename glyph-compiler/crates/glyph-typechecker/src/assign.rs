@@ -2383,7 +2383,13 @@ impl Assigner<'_> {
         if !tests_a_field {
             return;
         }
-        if arms.iter().any(|a| !a.pattern.is_refutable()) {
+        // `Scrutinee::Record`: the guard above established that these arms
+        // destructure a record, which is the one scrutinee an all-binding
+        // object pattern absorbs.
+        if arms
+            .iter()
+            .any(|a| is_catch_all_pattern(&a.pattern, Scrutinee::Record))
+        {
             return;
         }
         self.errors
@@ -2417,11 +2423,10 @@ impl Assigner<'_> {
             }
             let variant = match &arm.pattern {
                 Pattern::Constructor { path, .. } => path.last(),
-                Pattern::Ident { name, .. }
-                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) =>
-                {
-                    Some(name)
-                }
+                // The shared shape check, not a hand-rolled copy of it. There
+                // is no variant set to consult here — finding it is what this
+                // function is for — so shape is the whole test.
+                Pattern::Ident { name, .. } if is_constructor_shaped(name) => Some(name),
                 _ => None,
             };
             let Some(variant) = variant else { continue };
@@ -2505,11 +2510,16 @@ impl Assigner<'_> {
         for pat in patterns {
             match pat {
                 Pattern::Wildcard { .. } | Pattern::Else { .. } => has_catch_all = true,
+                // The same predicate the module-local side uses, with the
+                // imported union's own variant set as the context. The raw
+                // uppercase test this replaces missed the second clause, so a
+                // *lowercase* variant of the imported union (Glyph allows one)
+                // read as a binding catch-all and silenced the whole check.
                 Pattern::Ident { name, .. } => {
-                    if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
-                        covered.insert(name.as_ref());
-                    } else {
+                    if is_catch_all_pattern(pat, Scrutinee::Union(required)) {
                         has_catch_all = true;
+                    } else {
+                        covered.insert(name.as_ref());
                     }
                 }
                 Pattern::Constructor {
@@ -2673,12 +2683,9 @@ impl Assigner<'_> {
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
     ) {
-        let has_catch_all = arms.iter().any(|a| {
-            matches!(
-                a.pattern,
-                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. }
-            )
-        });
+        let has_catch_all = arms
+            .iter()
+            .any(|a| is_catch_all_pattern(&a.pattern, Scrutinee::Opaque));
         if !has_catch_all {
             self.errors.push(TypeError::NonExhaustiveValueMatch {
                 type_name: type_name.to_string(),
@@ -2698,12 +2705,12 @@ impl Assigner<'_> {
         arms: &[MatchArm],
         match_span: glyph_ast::Span,
     ) {
-        let has_catch_all = arms.iter().any(|a| {
-            matches!(
-                a.pattern,
-                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. }
-            )
-        });
+        // A string-literal union is a bounded set of *values*, not a set of
+        // variants: `Scrutinee::Opaque`, so a PascalCase head stays the tag
+        // test it is instead of covering the rest of the set.
+        let has_catch_all = arms
+            .iter()
+            .any(|a| is_catch_all_pattern(&a.pattern, Scrutinee::Opaque));
         if has_catch_all {
             return;
         }
@@ -2761,31 +2768,19 @@ impl Assigner<'_> {
             .required_variants(scrutinee_ty)
             .map(|(_, vs)| vs)
             .unwrap_or_default();
-        // Prelude variant names are always refutable, even when the scrutinee
-        // type is undecidable (e.g. `match array.find(..) { None => .., Some(_)
-        // => .. }`, whose `Option` return type the checker cannot see through a
-        // `.d.ts` method). The emitter classifies these the same way
-        // (`is_prelude_variant`), so gating on the same set keeps the two in
-        // step — no arm the emitter would lower to a `case` is called a binding.
-        const PRELUDE_VARIANTS: [&str; 4] = ["Ok", "Err", "Some", "None"];
-        // A PascalCase bare ident is a variant *reference* (refutable), not a
-        // fresh binding — the same rule the resolver uses to tell a constructor
-        // pattern from a binding. This matters for an *imported* union, whose
-        // variant set is empty here (its type lowers to `Unknown` in a consuming
-        // module), so a nullary variant like `EmptyOctet` would otherwise be
-        // misread as an irrefutable catch-all and draw a false E0216 on every
-        // later arm. The emitter classifies the same way, so the two stay in step.
-        // `is_constructor_shaped` is the shared free fn (single source of truth
-        // with `check_patterns_exhaustive`).
-        let is_irrefutable = |p: &Pattern| match p {
-            Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
-            Pattern::Ident { name, .. } => {
-                !variants.iter().any(|v| v == name)
-                    && !PRELUDE_VARIANTS.contains(&name.as_ref())
-                    && !is_constructor_shaped(name)
-            }
-            _ => false,
-        };
+        // `is_catch_all_pattern` is the shared predicate; irrefutable is the
+        // same question this pass asks, so it asks it the same way. The
+        // prelude names (`Ok`, `Err`, `Some`, `None`) need no clause of their
+        // own: all four are PascalCase, so the shape half already calls them
+        // references even when the scrutinee's type is undecidable (`match
+        // array.find(..) { None => .., Some(_) => .. }`, whose `Option` the
+        // checker cannot see through a `.d.ts` method). The same shape half
+        // carries an *imported* union, whose variant set is empty here, so a
+        // nullary variant like `EmptyOctet` is not misread as an irrefutable
+        // catch-all drawing a false E0216 on every later arm. Object patterns
+        // stay out of the irrefutable set (`Scrutinee::Union`, not `Record`):
+        // they are not the reported hazard and skipping them keeps this check
+        // free of false positives.
         let mut seen_irrefutable = false;
         for arm in arms {
             if seen_irrefutable {
@@ -2793,7 +2788,7 @@ impl Assigner<'_> {
                     .push(TypeError::UnreachableMatchArm { span: arm.span });
                 continue;
             }
-            if is_irrefutable(&arm.pattern) {
+            if is_catch_all_pattern(&arm.pattern, Scrutinee::Union(&variants)) {
                 seen_irrefutable = true;
             }
         }
@@ -2810,19 +2805,23 @@ impl Assigner<'_> {
         let mut has_true = false;
         let mut has_false = false;
         for arm in arms {
-            match &arm.pattern {
-                // A binding or catch-all absorbs every value.
-                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. } => return,
-                Pattern::Literal { value: LiteralPattern::Bool(b), .. } => {
-                    if *b {
-                        has_true = true;
-                    } else {
-                        has_false = true;
-                    }
+            // A binding or catch-all absorbs every value. A `bool` has no
+            // variants and no fields, so `Scrutinee::Opaque`.
+            if is_catch_all_pattern(&arm.pattern, Scrutinee::Opaque) {
+                return;
+            }
+            // Other pattern shapes over a bool scrutinee are not modeled
+            // (and don't normally type-check); skip without crediting.
+            if let Pattern::Literal {
+                value: LiteralPattern::Bool(b),
+                ..
+            } = &arm.pattern
+            {
+                if *b {
+                    has_true = true;
+                } else {
+                    has_false = true;
                 }
-                // Other pattern shapes over a bool scrutinee are not modeled
-                // (and don't normally type-check); skip without crediting.
-                _ => {}
             }
         }
         if has_true && has_false {
@@ -2874,29 +2873,27 @@ impl Assigner<'_> {
         // covers every length at or above that value.
         let mut rest_min: Option<usize> = None;
         for arm in arms {
-            match &arm.pattern {
-                Pattern::Wildcard { .. } | Pattern::Else { .. } | Pattern::Ident { .. } => {
-                    // A whole-array binding or catch-all covers every length.
-                    return;
+            // A whole-array binding or catch-all covers every length.
+            if is_catch_all_pattern(&arm.pattern, Scrutinee::Opaque) {
+                return;
+            }
+            // Other pattern shapes over an array scrutinee are not modeled.
+            let Pattern::Array { elements, rest, .. } = &arm.pattern else {
+                continue;
+            };
+            if !elements.iter().all(is_irrefutable_pattern) {
+                continue;
+            }
+            match rest {
+                None => {
+                    covered_lengths.insert(elements.len());
                 }
-                Pattern::Array { elements, rest, .. } => {
-                    if !elements.iter().all(is_irrefutable_pattern) {
-                        continue;
-                    }
-                    match rest {
-                        None => {
-                            covered_lengths.insert(elements.len());
-                        }
-                        Some(r) if is_irrefutable_pattern(r) => {
-                            let k = elements.len();
-                            rest_min = Some(rest_min.map_or(k, |m| m.min(k)));
-                        }
-                        // A refutable rest (unusual) credits nothing.
-                        Some(_) => {}
-                    }
+                Some(r) if is_irrefutable_pattern(r) => {
+                    let k = elements.len();
+                    rest_min = Some(rest_min.map_or(k, |m| m.min(k)));
                 }
-                // Other pattern shapes over an array scrutinee are not modeled.
-                _ => {}
+                // A refutable rest (unusual) credits nothing.
+                Some(_) => {}
             }
         }
 
@@ -3017,27 +3014,25 @@ impl Assigner<'_> {
                     }
                 }
                 Pattern::Ident { name, span } => {
-                    // A bare head that names a known variant covers it.
-                    // Otherwise its *shape* decides (the same rule the resolver
-                    // and reachability pass use): a lowercase/underscore-led
-                    // name is a fresh binding — an irrefutable catch-all — while
-                    // a PascalCase name is a variant reference. A PascalCase
-                    // head that names no variant of this union is a typo or a
-                    // wrong-union variant, escalated to E0220 rather than
-                    // silently absorbing every value. It is neither covered nor
-                    // a catch-all, so a genuinely missing variant still surfaces
-                    // as E0200 alongside it.
-                    if variants.iter().any(|v| v == name) {
+                    // The shared predicate decides first: a head that is not a
+                    // variant reference is a fresh binding, so it absorbs
+                    // everything. A head that *is* one either names a variant
+                    // of this union and covers it, or names none of them and is
+                    // a typo or a wrong-union variant, escalated to E0220
+                    // rather than silently absorbing every value. That third
+                    // case is neither covered nor a catch-all, so a genuinely
+                    // missing variant still surfaces as E0200 alongside it.
+                    if is_catch_all_pattern(pat, Scrutinee::Union(&variants)) {
+                        has_catch_all = true;
+                    } else if variants.iter().any(|v| v == name) {
                         covered.insert(name.clone());
-                    } else if is_constructor_shaped(name) {
+                    } else {
                         self.errors.push(TypeError::UnknownVariantPattern {
                             union: type_name.clone(),
                             name: name.to_string(),
                             suggestion: nearest_variant(name.as_ref(), &variants),
                             span: *span,
                         });
-                    } else {
-                        has_catch_all = true;
                     }
                 }
                 // Not collapsed into the arm pattern on purpose: a non-`Path`
@@ -4566,6 +4561,95 @@ fn substitute_type_params(ty: &Ty, subst: &HashMap<Ident, Ty>) -> Ty {
                 .collect(),
         },
         other => other.clone(),
+    }
+}
+
+/// What the catch-all question needs to know about the scrutinee, and all it
+/// needs to know.
+///
+/// "Does this arm absorb every remaining value" has one answer, but reaching
+/// it takes context, because two pattern shapes mean different things over
+/// different scrutinees. A lowercase head is a fresh binding everywhere
+/// except over a union that declares it as a variant (Glyph allows a
+/// lowercase variant name). An all-binding object pattern destructures a
+/// record and absorbs every value of it, while over a `bool` or a number it
+/// tests a shape the value does not have and absorbs nothing.
+///
+/// So the context is unified rather than the answer flattened: every
+/// exhaustiveness check names which of these three it is looking at, and
+/// `is_catch_all_pattern` decides from there.
+#[derive(Clone, Copy)]
+enum Scrutinee<'a> {
+    /// A tagged union with this variant set: module-local, the prelude
+    /// `Result`/`Option`, or an imported one resolved cross-module. Empty
+    /// when the union's variants could not be resolved, which costs nothing:
+    /// shape alone still classifies a PascalCase head.
+    Union(&'a [Ident]),
+    /// A record. The only scrutinee an object pattern can be irrefutable
+    /// against.
+    Record,
+    /// A `bool`, a number, a string, a string-literal union, an array: no
+    /// variants to name and no fields to destructure, so only `_`, `else`,
+    /// and a binding absorb anything.
+    Opaque,
+}
+
+/// Whether a bare `Pattern::Ident` arm head is a *variant reference* rather
+/// than a fresh binding.
+///
+/// Shape answers first, and it answers for every scrutinee kind: D9 fixes a
+/// PascalCase head as a variant reference before any type is known, which is
+/// why `glyph_resolver` resolves it as a name reference instead of binding it
+/// (an unknown one is E0103) and why every emitter path lowers it to a
+/// `{access}.tag === "Foo"` test rather than a `default:`. A head that binds
+/// nothing and tests a tag cannot be a catch-all over a `bool` any more than
+/// over a union; the checker calling it one there was claiming a binding the
+/// rest of the compiler never makes.
+///
+/// The variant set answers the other half. Glyph accepts a lowercase variant
+/// name, so `blank` is a reference over a union that declares it and a
+/// binding anywhere else.
+fn is_variant_reference(name: &Ident, scrutinee: Scrutinee<'_>) -> bool {
+    if is_constructor_shaped(name) {
+        return true;
+    }
+    match scrutinee {
+        Scrutinee::Union(variants) => variants.iter().any(|v| v == name),
+        Scrutinee::Record | Scrutinee::Opaque => false,
+    }
+}
+
+/// **The** catch-all predicate: whether this arm matches every value the
+/// scrutinee can still take, so no later arm can run and no earlier gap can
+/// remain.
+///
+/// Every exhaustiveness and reachability check in this file routes through
+/// here. They used to each carry their own version and disagree: four of them
+/// read a PascalCase `Pattern::Ident` as a catch-all while the reachability
+/// pass and `check_patterns_exhaustive` read it as a variant reference, so
+/// `match b { true => .., Red => .. }` type-checked as exhaustive and then
+/// failed in the emitter. One question, one answer.
+///
+/// Where two readings were defensible the reporting one wins, which is why an
+/// object pattern is a catch-all only over `Scrutinee::Record`: crediting it
+/// over a `bool` would swallow E0209.
+fn is_catch_all_pattern(pat: &Pattern, scrutinee: Scrutinee<'_>) -> bool {
+    match pat {
+        Pattern::Wildcard { .. } | Pattern::Else { .. } => true,
+        Pattern::Ident { name, .. } => !is_variant_reference(name, scrutinee),
+        // `{ x, y }` over a record binds both fields and cannot fail;
+        // `{ x: 0, y }` tests one and can. `is_refutable` already recurses on
+        // the fields, so only the scrutinee's shape is decided here.
+        Pattern::Object { .. } => matches!(scrutinee, Scrutinee::Record) && !pat.is_refutable(),
+        // A literal, a constructor, an array, and an `is` guard each test
+        // something, so each can fail. An array pattern that is nothing but a
+        // rest binding is the one arguable case; `check_array_exhaustiveness`
+        // credits it through its length algebra instead, where the answer is
+        // exact rather than conservative.
+        Pattern::Literal { .. }
+        | Pattern::Constructor { .. }
+        | Pattern::Array { .. }
+        | Pattern::IsType { .. } => false,
     }
 }
 
@@ -7934,6 +8018,179 @@ fn label(s: Status) -> string {
         assert!(
             errs.iter().any(|e| matches!(e, TypeError::UnknownField { field, .. } if field == "mesage")),
             "errs: {errs:?}"
+        );
+    }
+    // ---------------------------------------------------------------------
+    // One catch-all predicate. A bare `Pattern::Ident` arm head is a variant
+    // *reference* when it is PascalCase (D9): the resolver resolves it as a
+    // name rather than binding it, and the emitter lowers it to a
+    // `.tag === "Foo"` test. It therefore absorbs nothing, whatever the
+    // scrutinee is. These pin that every exhaustiveness check reads it the
+    // same way; four of them used to read it as a catch-all and report
+    // nothing.
+    // ---------------------------------------------------------------------
+
+    #[test]
+    fn a_variant_shaped_head_is_not_a_catch_all_over_a_bool() {
+        let errs = errors_of(
+            "module x\n\
+             type Colour = Red | Green\n\
+             fn f(b: bool) -> number {\n\
+             \x20 return match b {\n\
+             \x20\x20\x20 true => 1,\n\
+             \x20\x20\x20 Red => 2,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::NonExhaustiveBoolMatch { missing, .. } if missing == "`false`"
+            )),
+            "`Red` tests a tag, so `false` is still uncovered: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_variant_shaped_head_is_not_a_catch_all_over_a_number() {
+        let errs = errors_of(
+            "module x\n\
+             type Colour = Red | Green\n\
+             fn f(n: number) -> number {\n\
+             \x20 return match n {\n\
+             \x20\x20\x20 0 => 1,\n\
+             \x20\x20\x20 Red => 2,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::NonExhaustiveValueMatch { type_name, .. } if type_name == "number"
+            )),
+            "the rest of `number` is still uncovered: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_variant_shaped_head_is_not_a_catch_all_over_a_string_literal_union() {
+        let errs = errors_of(
+            "module x\n\
+             type Colour = Red | Green\n\
+             type Tier = \"free\" | \"pro\"\n\
+             fn f(t: Tier) -> number {\n\
+             \x20 return match t {\n\
+             \x20\x20\x20 \"free\" => 1,\n\
+             \x20\x20\x20 Red => 2,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(
+                e,
+                TypeError::NonExhaustiveMatch { missing, .. } if missing == "\"pro\""
+            )),
+            "`\"pro\"` is still uncovered: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_variant_shaped_head_is_not_a_catch_all_over_an_array() {
+        let errs = errors_of(
+            "module x\n\
+             type Colour = Red | Green\n\
+             fn f(xs: Array<number>) -> number {\n\
+             \x20 return match xs {\n\
+             \x20\x20\x20 [a, b] => a + b,\n\
+             \x20\x20\x20 Red => 2,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveArrayMatch { .. })),
+            "every length but 2 is still uncovered: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn a_binding_head_is_still_a_catch_all_over_every_scrutinee_kind() {
+        // The other direction, so the unified predicate cannot be tightened
+        // into rejecting the ordinary spelling: a lowercase head binds and
+        // absorbs everything, whatever is being matched.
+        let errs = errors_of(
+            "module x\n\
+             type Tier = \"free\" | \"pro\"\n\
+             fn b(v: bool) -> number {\n\
+             \x20 return match v {\n\
+             \x20\x20\x20 true => 1,\n\
+             \x20\x20\x20 other => 2,\n\
+             \x20 }\n\
+             }\n\
+             fn n(v: number) -> number {\n\
+             \x20 return match v {\n\
+             \x20\x20\x20 0 => 1,\n\
+             \x20\x20\x20 other => 2,\n\
+             \x20 }\n\
+             }\n\
+             fn t(v: Tier) -> number {\n\
+             \x20 return match v {\n\
+             \x20\x20\x20 \"free\" => 1,\n\
+             \x20\x20\x20 other => 2,\n\
+             \x20 }\n\
+             }\n\
+             fn a(v: Array<number>) -> number {\n\
+             \x20 return match v {\n\
+             \x20\x20\x20 [x, y] => x + y,\n\
+             \x20\x20\x20 other => 2,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(
+                e,
+                TypeError::NonExhaustiveBoolMatch { .. }
+                    | TypeError::NonExhaustiveValueMatch { .. }
+                    | TypeError::NonExhaustiveArrayMatch { .. }
+                    | TypeError::NonExhaustiveMatch { .. }
+            )),
+            "a binding absorbs every value: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn an_all_binding_object_arm_is_still_a_catch_all_over_a_record() {
+        // The context half of the predicate. `{ x, y }` tests nothing, so over
+        // a record it absorbs every value and E0226 must stay silent. Over a
+        // `bool` the same shape absorbs nothing, which the case below pins.
+        let errs = errors_of(
+            "module x\n\
+             type Point = { x: number, y: number }\n\
+             fn f(p: Point) -> string {\n\
+             \x20 return match p {\n\
+             \x20\x20\x20 { x: 0, y: 0 } => \"origin\",\n\
+             \x20\x20\x20 { x, y } => \"other\",\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            !errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveFieldMatch { .. })),
+            "the second arm cannot fail: {errs:?}"
+        );
+    }
+
+    #[test]
+    fn an_object_arm_is_not_a_catch_all_over_a_bool() {
+        let errs = errors_of(
+            "module x\n\
+             fn f(b: bool) -> number {\n\
+             \x20 return match b {\n\
+             \x20\x20\x20 { } => 1,\n\
+             \x20 }\n\
+             }\n",
+        );
+        assert!(
+            errs.iter().any(|e| matches!(e, TypeError::NonExhaustiveBoolMatch { .. })),
+            "an object pattern destructures a record, it does not absorb a bool: {errs:?}"
         );
     }
 }

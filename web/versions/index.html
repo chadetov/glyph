@@ -49,8 +49,37 @@
       <section>
         <div class="release">
           <div class="rel-head">
-            <span class="rel-ver">0.1.104</span>
+            <span class="rel-ver">0.1.105</span>
             <span class="rel-tag latest">Latest</span>
+            <span class="rel-date">September 2026</span>
+          </div>
+          <div class="rel-body">
+            <h3>A match that could not compile no longer type-checks clean first</h3>
+            <p>Seven places in the checker each decided whether a match had a catch-all arm, and they did not agree. Four of them treated a capitalised bare name as one, on the reasoning that a boolean has no constructors so the name must be a variable.</p>
+            <div class="code">
+              <span class="cap">main.glyph</span>
+<pre>match ready {
+  true =&gt; 1,
+  Red =&gt; 2,
+}
+
+<span class="del">// before: no error here, then at emit time</span>
+<span class="del">//   E0300 emission for a match mixing literal and</span>
+<span class="del">//   variant patterns is not implemented yet</span>
+<span class="add">// now:    E0209 non-exhaustive match on bool:</span>
+<span class="add">//         `false` not covered</span></pre>
+            </div>
+            <p>The reasoning was wrong, and the rest of the compiler had already settled it: a capitalised name in a pattern resolves as a reference, not a binding, and every emitted form turns it into a tag test. A pattern that binds nothing and tests a tag absorbs nothing, so calling it a catch-all certified a match the emitter could not build. The compiler was saying your program was fine and that it could not compile it.</p>
+            <p>All seven now ask one question, and it takes the strict answer wherever two readings were defensible.</p>
+            <p class="rel-note">Nothing that compiled before is rejected now. Across 31 applications, the corpus, the negative tests and the paired demos, every diagnostic is unchanged and all 1,149 emitted TypeScript files are byte-identical. The cases that changed are ones the old checker passed and then failed later.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="release">
+          <div class="rel-head">
+            <span class="rel-ver">0.1.104</span>
             <span class="rel-date">September 2026</span>
           </div>
           <div class="rel-body">
